@@ -417,6 +417,8 @@ export interface ContextServiceInfo {
 }
 export interface ContextLocation { user_place: string; user_latitude: number | null; user_longitude: number | null; read_links: boolean; updated_at: string }
 export interface ContextOverview {
+  /** The companion's real-world city, when it has one; weather for it can be looked up. */
+  companion_place: string | null
   location: ContextLocation
   services: ContextServiceInfo[]
   categories: Record<ContextCategory, { label: string; purposes: ContextPurpose[] }>

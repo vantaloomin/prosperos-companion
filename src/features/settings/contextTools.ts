@@ -36,6 +36,17 @@ export function canTry(category: ContextCategory): boolean {
   return category !== 'link' && category !== 'web_search'
 }
 
+/** Which of the built-in weather switches are on: your place, the companion's, or both. */
+export function weatherSwitches(saved?: ContextMapping): { mine: boolean; theirs: boolean } {
+  const on = Boolean(saved?.enabled && saved.approved)
+  return { mine: on && saved!.run_in.includes('conversation'), theirs: on && saved!.run_in.includes('companion_city') }
+}
+
+/** When the weather lookup runs, from the two switches. */
+export function weatherRunIn(mine: boolean, theirs: boolean): ContextPurpose[] {
+  return [...(mine ? ['conversation' as const] : []), ...(theirs ? ['companion_city' as const] : [])]
+}
+
 export interface MappingDraft { tool: string; arguments: Record<string, ToolArgument>; run_in: ContextPurpose[] }
 
 /** Start from the saved mapping, else the app's suggestion, else the first tool with nothing mapped. */

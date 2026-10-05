@@ -187,8 +187,17 @@ tests use the stand-in server with Parallel's documented tool shape.
 ## The built-in weather server
 
 `companion/mcp/servers/weather.py` is a small read-only MCP server that ships with the app. Settings
-offers **Add the built-in weather server**, which adds and checks it in one step; its weather lookup
-then needs the same disclosure and confirmation as any other service. The app runs it with its own
+offers **Add the built-in weather server**, which adds and checks it in one step. One server covers
+both places: its card shows two switches, **Your weather (your city or region)** and **<Companion>'s
+weather (their city)**, each naming the place it uses, under a sentence saying what a switch sends and
+where. Turning a switch on saves the lookup and confirms that disclosure; the full mapping (tool,
+arguments, the disclosure list, "try it") is under **Advanced**. The companion's switch is available
+only when they live in a real, modern city.
+
+When the user and the companion live in the same place ("Baltimore, MD" and "Baltimore, Maryland":
+the same city and region, with US state abbreviations spelled out), a fresh weather result for one is
+reused for the other instead of asking again. The copy keeps the original's retrieval time and
+freshness and counts as no request. The app runs it with its own
 Python (`python -I companion/mcp/servers/weather.py`), so it works from a checkout or the installed
 bundle with nothing else installed. It is stored as the command `@builtin:weather`.
 

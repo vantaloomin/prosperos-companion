@@ -41,3 +41,14 @@ test('web search sends only what you asked for and says when it runs', async () 
   assert.equal(canTry('weather'), true)
   assert.deepEqual(SEARCH_PRESETS.map((preset) => preset.url), ['https://search.parallel.ai/mcp', 'https://mcp.exa.ai/mcp', 'https://mcp.firecrawl.dev/v2/mcp'])
 })
+
+test('the built-in weather switches map to when the lookup runs', async () => {
+  const { weatherRunIn, weatherSwitches } = await import('../../src/features/settings/contextTools.ts')
+  assert.deepEqual(weatherRunIn(true, true), ['conversation', 'companion_city'])
+  assert.deepEqual(weatherRunIn(false, true), ['companion_city'])
+  assert.deepEqual(weatherRunIn(false, false), [])
+  const mapping = { category: 'weather', tool: 'get_forecast', arguments: {}, run_in: ['companion_city'], enabled: true, approved: true } as never
+  assert.deepEqual(weatherSwitches(mapping), { mine: false, theirs: true })
+  assert.deepEqual(weatherSwitches({ ...(mapping as object), approved: false } as never), { mine: false, theirs: false })
+  assert.deepEqual(weatherSwitches(undefined), { mine: false, theirs: false })
+})
