@@ -3924,5 +3924,119 @@
    "seasons": [],
    "source": "curated-2026-10"
   }
+ ],
+ "prices": [
+  {
+   "id": "beer",
+   "item": "Glass of beer",
+   "low": 0.1,
+   "high": 0.15,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "whiskey",
+   "item": "Whiskey",
+   "low": 0.125,
+   "high": 0.25,
+   "per": "a shot, a bit or two bits",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "meal",
+   "item": "Meal at a chophouse",
+   "low": 0.25,
+   "high": 0.75,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hotel",
+   "item": "Hotel room",
+   "low": 1,
+   "high": 2.5,
+   "per": "a night",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "board",
+   "item": "Board",
+   "low": 7,
+   "high": 10,
+   "per": "a week's board",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bath",
+   "item": "Bath at the bathhouse",
+   "low": 0.25,
+   "high": 0.5,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shave",
+   "item": "Haircut and shave",
+   "low": 0.25,
+   "high": 0.5,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "newspaper",
+   "item": "Newspaper",
+   "low": 0.05,
+   "high": 0.1,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "horse-hire",
+   "item": "Livery horse",
+   "low": 2,
+   "high": 3,
+   "per": "a day",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stage",
+   "item": "Stage fare",
+   "low": 2,
+   "high": 5,
+   "per": "to the next camp",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "opera-house",
+   "item": "Opera-house seat",
+   "low": 0.5,
+   "high": 1.5,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tobacco",
+   "item": "Plug tobacco",
+   "low": 0.1,
+   "high": 0.25,
+   "per": "a plug",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "boots",
+   "item": "Boots",
+   "low": 5,
+   "high": 10,
+   "per": "a pair",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wage",
+   "item": "Miner's wage",
+   "low": 3.5,
+   "high": 4,
+   "per": "a day; labourers $2-$3",
+   "source": "curated-2026-10"
+  }
  ]
 }

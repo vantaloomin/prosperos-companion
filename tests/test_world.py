@@ -455,3 +455,27 @@ def test_city_checker(tmp_path, capsys, monkeypatch):
     assert results['broken.json']['errors'] and results['good.json']['warnings'] == []
     monkeypatch.setenv(catalog.PACKS_ENV, str(tmp_path / 'no-packs'))
     assert check.main([]) == 0
+
+
+def test_prices_are_seeded_within_range_and_ground_facts():
+    data = baltimore()
+    assert data['prices'] and all(item['low'] <= item['high'] for item in data['prices'])
+    item = data['prices'][0]
+    first = generators.price(data, item['id'], seed='s')
+    assert first == generators.price(data, item['id'], seed='s')
+    assert item['low'] <= first['amount'] <= item['high'] and first['estimate']
+    assert any(line.startswith('Typical prices:') for line in generators.facts(data))
+    assert catalog.city('emerald-city')['prices'] == []
+    with pytest.raises(DomainError):
+        generators.price(data, 'unicorn-rides', seed='s')
+    bad = plain(data) | {'prices': [item | {'low': 5, 'high': 1}]}
+    with pytest.raises(ValidationError):
+        catalog.prepare(bad)
+
+
+def test_prices_api(client):
+    listing = client.get('/api/world/cities/london-1895/prices').json()
+    assert listing['prices'] and listing['currency']['code']
+    item = listing['prices'][0]['id']
+    picked = client.get('/api/world/cities/london-1895/prices', params={'item': item, 'seed': 's'}).json()
+    assert picked['price']['id'] == item

@@ -34,6 +34,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -635,6 +639,22 @@ CITY = {
         color('wassail', 'Wassail', 'drink', 'At Christmas and Twelfth Night a bowl of hot spiced ale with roasted '
               'apples is passed around with the greeting "wassail" ("be well") and the answer "drinkhail".',
               seasons=['winter']),
+    ],
+    'prices': [
+        price('ale', 'Ale', 1, 1.5, 'a gallon'),
+        price('loaf', 'Loaf of bread', 0.25, 0.5, 'a farthing or halfpenny loaf'),
+        price('pie', 'Pie from a cookshop', 0.5, 1),
+        price('inn-meal', 'Meal at an inn', 1, 3),
+        price('wine', 'Wine', 4, 8, 'a gallon'),
+        price('inn-bed', 'Bed at an inn', 0.5, 1, 'a night, often shared'),
+        price('board', 'Board and lodging', 6, 10, "a week's board"),
+        price('stabling', 'Stabling a horse', 1, 2, 'a night'),
+        price('horse-hire', 'Hired horse', 6, 12, 'a day'),
+        price('toll', 'Bridge toll', 0.25, 1, 'on foot to a laden cart'),
+        price('bath', 'Bathhouse', 0.5, 1, 'a bath'),
+        price('candles', 'Tallow candles', 1, 1.5, 'a pound'),
+        price('shoes', 'Shoes', 4, 8, 'a pair'),
+        price('wage', "Labourer's wage", 2, 4, 'a day'),
     ],
 }
 

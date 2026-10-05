@@ -43,6 +43,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -658,6 +662,22 @@ CITY = {
         color('assay-office', 'The assay office', 'shop', 'The assayer on Main Street crushes, fires and weighs '
               'samples for anyone with a sack of rock and a few dollars, and his figures start or end most mining '
               'arguments.', ['main-street']),
+    ],
+    'prices': [
+        price('beer', 'Glass of beer', 0.1, 0.15),
+        price('whiskey', 'Whiskey', 0.125, 0.25, 'a shot, a bit or two bits'),
+        price('meal', 'Meal at a chophouse', 0.25, 0.75),
+        price('hotel', 'Hotel room', 1, 2.5, 'a night'),
+        price('board', 'Board', 7, 10, "a week's board"),
+        price('bath', 'Bath at the bathhouse', 0.25, 0.5),
+        price('shave', 'Haircut and shave', 0.25, 0.5),
+        price('newspaper', 'Newspaper', 0.05, 0.1),
+        price('horse-hire', 'Livery horse', 2, 3, 'a day'),
+        price('stage', 'Stage fare', 2, 5, 'to the next camp'),
+        price('opera-house', 'Opera-house seat', 0.5, 1.5),
+        price('tobacco', 'Plug tobacco', 0.1, 0.25, 'a plug'),
+        price('boots', 'Boots', 5, 10, 'a pair'),
+        price('wage', "Miner's wage", 3.5, 4, 'a day; labourers $2-$3'),
     ],
 }
 

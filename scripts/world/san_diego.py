@@ -25,6 +25,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -852,6 +856,22 @@ CITY = {
               'at Snapdragon Stadium.', ['snapdragon-stadium']),
         color('sdsu-aztecs', 'SDSU Aztecs', 'team', 'San Diego State\'s teams, with basketball at Viejas Arena and '
               'football at Snapdragon Stadium.', ['viejas-arena', 'snapdragon-stadium']),
+    ],
+    'prices': [
+        price('coffee', 'Coffee', 2.5, 4, 'a cup'),
+        price('latte', 'Latte', 5, 7),
+        price('breakfast-burrito', 'Breakfast burrito', 9, 14),
+        price('fish-taco', 'Fish taco', 4, 7, 'one taco'),
+        price('cheap-lunch', 'Cheap lunch', 13, 20),
+        price('dinner', 'Mid-range dinner', 40, 65, 'for one'),
+        price('beer', 'Pint of craft beer', 8, 10, 'a pint'),
+        price('cocktail', 'Cocktail', 14, 18),
+        price('groceries', 'Groceries', 85, 125, 'a week, one person'),
+        price('transit', 'Trolley or bus fare', 2.5, 2.5, 'one way'),
+        price('rideshare', 'Rideshare across town', 15, 30),
+        price('movie', 'Movie ticket', 14, 19),
+        price('gym', 'Gym membership', 25, 70, 'a month'),
+        price('haircut', 'Haircut', 25, 50),
     ],
 }
 
