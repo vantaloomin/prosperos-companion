@@ -2,6 +2,8 @@ from datetime import timedelta
 
 from conftest import send
 
+from companion.providers.chat import Chunk
+
 
 def remember(client, **body):
     response = client.post('/api/memories', json=body)
@@ -61,6 +63,23 @@ def test_delete_removes_every_version_and_can_redact_sources(client, connected):
     messages = {item['id']: item for item in client.get('/api/conversation').json()['messages']}
     assert messages[message['id']]['text'] == '' and messages[message['id']]['redacted'] is True
     assert client.get('/api/conversation/search', params={'q': 'marathon'}).json()['results'] == []
+
+
+def test_replies_to_forgotten_messages_leave_context_too(client, connected, provider):
+    """The companion's reply usually repeats what it answered, so it must not resend forgotten content."""
+    provider.respond = lambda system, messages: [Chunk(f"You said: {messages[-1]['content']}"), Chunk('', 'stop')]
+    excluded = send(client, 'My sister is called Ana', 'client-0001')['message']
+    deleted = send(client, 'I am training for a marathon', 'client-0002')['message']
+    kept = send(client, 'I like tea', 'client-0003')['message']
+    sister = remember(client, layer='user_fact', subject='Sister', value='Ana', source_message_ids=[excluded['id']])
+    training = remember(client, layer='user_fact', subject='Training', value='Marathon',
+                        source_message_ids=[deleted['id']])
+    client.post(f"/api/memories/{sister['id']}/exclude")
+    client.post(f"/api/memories/{training['id']}/delete", json={'delete_sources': True})
+    send(client, 'What do you remember?', 'client-0004')
+    sent = provider.requests[-1]['system'] + ''.join(item['content'] for item in provider.requests[-1]['messages'])
+    assert 'Ana' not in sent and 'marathon' not in sent
+    assert 'You said: I like tea' in sent and kept['text'] in sent
 
 
 def test_declined_message_cannot_become_a_memory(client, connected):

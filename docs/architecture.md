@@ -133,7 +133,8 @@ deletes its vectors; excluded memories and their source messages never enter the
 vectors are never ranked. The receipt records whether semantic recall took part.
 
 Eligibility is applied before ranking: only active, non-tentative, in-scope, currently applicable
-memories qualify, and source messages of excluded memories are kept out of raw recall too. The
+memories qualify, and source messages of excluded memories are kept out of raw recall too. A companion reply to an excluded
+or deleted message leaves context with it, since a reply usually repeats what it answered. The
 receipt stored with each reply lists included and omitted identities, never content, so deleting
 a memory leaves nothing readable behind in old receipts.
 
