@@ -60,8 +60,12 @@ export function statusLabels(memory: Memory): string[] {
 }
 
 /** Why a suggestion is waiting, in words. */
-export function suggestionReason(reason: string | null): string {
+export function suggestionReason(reason: string | null, replaces: string[] = []): string {
   if (reason === 'sensitive') return 'Sensitive details are only kept when you say so.'
+  if (reason === 'conflict') {
+    const earlier = replaces.length ? ` from “${replaces.join('”, “')}”` : ''
+    return `This is different${earlier}, and you didn't say it changed. Remember replaces the earlier value, which is kept as history.`
+  }
   if (reason === 'model_guess') return 'Suggested by the model from your words. It is only kept if you say so.'
   return 'Waiting for you to decide.'
 }

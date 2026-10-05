@@ -39,7 +39,7 @@ def validate_sources(connection, timeline_id, message_ids):
 
 
 def ended(memory, now) -> bool:
-    return memory['applies_until'] is not None and memory['applies_until'] < now
+    return memory['applies_until'] is not None and memory['applies_until'] <= now
 
 
 def find_duplicate(connection, companion_id, timeline_id, fields, now) -> dict | None:
@@ -285,7 +285,7 @@ def in_scope(memory, timeline_id, share_profile) -> bool:
 
 def current_at(memory, now) -> bool:
     started = memory['applies_from'] is None or memory['applies_from'] <= now
-    ended = memory['applies_until'] is not None and memory['applies_until'] < now
+    ended = memory['applies_until'] is not None and memory['applies_until'] <= now
     return started and not ended
 
 

@@ -171,10 +171,15 @@ marks the batch failed; changed permissions make it stale. Each message is sent 
 **Supersession.** Single-valued subjects (`preferred_name`, `home_city`, `work`, `birthday`,
 `favourite_*`) hold one current value. A new current value ends the earlier one at its start
 (`applies_until`, `ended_by_id`), which stays as history: "I moved to Boston" ends Chicago, "I might
-move to Boston" is a proposed plan, and "I lived in Boston ten years ago" ends nothing. A correction
+move to Boston" is a proposed plan, and "I lived in Boston ten years ago" ends nothing. A different
+value stated without saying it changed ("I live in Denver" while Chicago is current) does not end
+anything automatically: it waits as a `conflict` suggestion that shows the value it would replace,
+until the user picks one. Remember this on that message is the user's choice and replaces directly.
+Spans are half-open, so a value ended at a moment is no longer current at that moment. A correction
 is a different thing: a new revision that supersedes a wrong value. Ended facts are recallable
 history marked "no longer current"; expired temporary circumstances are not recalled. Open plans
-stay commitments after their date, marked "outcome not confirmed".
+stay commitments after their date, marked "outcome not confirmed"; the Memories view asks whether
+such a plan happened, and offers to set a date that was unclear.
 
 ## Life simulation (T1–T7)
 

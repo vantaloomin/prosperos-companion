@@ -4,7 +4,9 @@ With automatic memory on, each user message queues one job under the current per
 revision. A job runs after the reply, never in front of it, and commits only if the permission
 revision is unchanged at commit time, so turning automatic memory off stops queued work.
 Explicitly stated ordinary facts commit directly; sensitive ones wait as suggestions unless the
-user allowed sensitive memory. Remember this on a message is deliberate, so it commits what it
+user allowed sensitive memory. A new value that contradicts a current one without saying it changed
+("I live in Denver" while Chicago is current) also waits, so two ambiguous statements stay
+unresolved until the user says which holds (M8). Remember this on a message is deliberate, so it commits what it
 finds, sensitive or not. Every step leaves an activity record of identities and reason codes.
 """
 import hashlib
@@ -107,6 +109,27 @@ def resolve(connection, candidate_id, status, memory=None, reason=None, timestam
                        (status, memory and memory['id'], reason, timestamp, candidate_id))
 
 
+def contradicts(connection, companion, candidate, fields, timestamp) -> bool:
+    """A different current value for a single-valued subject, with nothing saying it changed."""
+    if candidate.layer != 'user_fact' or candidate.signals_change or not extraction.single_valued(candidate.subject_key):
+        return False
+    if records.ended(fields, timestamp):
+        return False
+    rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer='user_fact' "
+                'AND subject_key=?', (companion['id'], candidate.subject_key))
+    value = candidate.value.casefold()
+    return any(row['value'].casefold() != value and not records.ended(row, timestamp) for row in rows)
+
+
+def hold_reason(connection, companion, candidate, fields, timestamp, *, deliberate, allowed_sensitive) -> str | None:
+    """Why a candidate waits for the user instead of committing; deliberate Remember this never waits."""
+    if fields['sensitive'] and not allowed_sensitive:
+        return 'sensitive'
+    if not deliberate and contradicts(connection, companion, candidate, fields, timestamp):
+        return 'conflict'
+    return None
+
+
 def form(connection, companion, message, timestamp, *, deliberate: bool) -> list[dict]:
     """Extract, validate and commit from one message. Returns the memories written or matched."""
     allowed_sensitive = deliberate or bool(settings(connection)['sensitive_memory'])
@@ -117,10 +140,11 @@ def form(connection, companion, message, timestamp, *, deliberate: bool) -> list
             continue
         log(connection, timestamp, 'extracted', candidate_id=candidate_id, message_id=message['id'],
             detail=candidate.rule)
-        if fields['sensitive'] and not allowed_sensitive:
-            resolve(connection, candidate_id, 'pending', reason='sensitive', timestamp=None)
-            log(connection, timestamp, 'suggested', candidate_id=candidate_id, message_id=message['id'],
-                detail='sensitive')
+        reason = hold_reason(connection, companion, candidate, fields, timestamp, deliberate=deliberate,
+                             allowed_sensitive=allowed_sensitive)
+        if reason:
+            resolve(connection, candidate_id, 'pending', reason=reason, timestamp=None)
+            log(connection, timestamp, 'suggested', candidate_id=candidate_id, message_id=message['id'], detail=reason)
             continue
         memory, outcome = commit(connection, companion, fields, [message['id']], timestamp,
                                  'user' if deliberate else 'automatic')
@@ -218,10 +242,18 @@ def forget_message(database, message_id) -> dict:
     return {'message_id': message_id, 'declined': True, 'removed_memory_ids': sorted(set(removed))}
 
 
-def suggestion_view(row) -> dict:
+def replaces(connection, companion, fields, now) -> list[str]:
+    """The current values a conflicting suggestion would end, so the choice is shown side by side."""
+    rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer='user_fact' "
+                'AND subject_key=?', (companion['id'], fields['subject_key']))
+    return [row['value'] for row in rows if not records.ended(row, now)]
+
+
+def suggestion_view(connection, companion, row, now) -> dict:
     fields = decode(row['proposal'])
+    current = replaces(connection, companion, fields, now) if row['reason'] == 'conflict' else []
     return {'id': row['id'], 'message_id': row['message_id'], 'source': row['source'], 'rule': row['rule'],
-            'reason': row['reason'], 'created_at': row['created_at'], **fields}
+            'reason': row['reason'], 'created_at': row['created_at'], 'replaces': current, **fields}
 
 
 def suggestions(database) -> list[dict]:
@@ -229,7 +261,7 @@ def suggestions(database) -> list[dict]:
         companion = require_current(connection)
         rows = many(connection, "SELECT * FROM memory_candidates WHERE companion_id=? AND status='pending' "
                     'ORDER BY created_at DESC LIMIT ?', (companion['id'], PENDING_LIMIT))
-        return [suggestion_view(row) for row in rows]
+        return [suggestion_view(connection, companion, row, database.now()) for row in rows]
 
 
 def accept(database, candidate_id) -> dict:
