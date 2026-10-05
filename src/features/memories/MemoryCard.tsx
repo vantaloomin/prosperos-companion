@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../api'
 import { Check, Pencil, Pin, PinOff, Trash2, Eye, EyeOff } from 'lucide-react'
-import type { Memory, Message } from '../../types'
+import type { DeletePreview, Memory, Message } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Toggle } from '../../components/Fields'
-import { earlierVersions, statusLabels } from './memoryGroups'
+import { deletePreviewText, earlierVersions, statusLabels } from './memoryGroups'
 
 export interface MemoryActions {
   correct: (memory: Memory, value: string) => Promise<boolean>
@@ -123,7 +125,16 @@ function DeleteDialog({ memory, versions, remove, onClose }: { memory: Memory; v
         <Toggle label="Also delete the messages it came from" checked={withSources} onChange={setWithSources}
           hint="Their text is removed from your conversation and replaced with a note that it was deleted. Other memories from those messages are listed afterwards." />
       )}
+      <PreviewNote memory={memory} withSources={withSources} />
       <p className="subtle">Copies already sent to a model service, or in backups made earlier, cannot be removed by the app.</p>
     </ConfirmDialog>
   )
+}
+
+/** What else Delete touches, fetched before anything is applied. */
+function PreviewNote({ memory, withSources }: { memory: Memory; withSources: boolean }) {
+  const preview = useQuery({ queryKey: ['delete-preview', memory.id], queryFn: () => api<DeletePreview>(`/memories/${memory.id}/delete-preview`) })
+  if (!preview.data) return null
+  const lines = deletePreviewText(preview.data, withSources)
+  return lines.length ? <ul className="subtle">{lines.map((line) => <li key={line}>{line}</li>)}</ul> : null
 }

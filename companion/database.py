@@ -69,6 +69,9 @@ class Database:
 ADDED_COLUMNS = (
     ('life_settings', 'phrase_with_model', 'INTEGER NOT NULL DEFAULT 1 CHECK (phrase_with_model IN (0, 1))'),
     ('connection', 'embedding_model', 'TEXT'),
+    ('memory_jobs', 'model_status', 'TEXT'),
+    ('workspace_settings', 'model_memory_suggestions',
+     'INTEGER NOT NULL DEFAULT 0 CHECK (model_memory_suggestions IN (0, 1))'),
     ('memories', 'subject_key', "TEXT NOT NULL DEFAULT ''"),
     ('memories', 'origin', "TEXT NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'automatic', 'suggestion'))"),
     ('memories', 'ended_by_id', 'TEXT'),

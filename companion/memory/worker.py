@@ -10,6 +10,7 @@ import time
 from companion.characters import require_current
 from companion.database import optional, settings
 from companion.memory import consolidation, vectors
+from companion.memory import suggest as model_suggestions
 from companion.memory.formation import run_pending
 from companion.providers.embeddings import EmbeddingProvider
 from companion.providers.scheduling import MAINTENANCE
@@ -20,11 +21,12 @@ CONSOLIDATE_SECONDS = 3600
 
 
 class MemoryWorker:
-    def __init__(self, database, scheduler, vault=None, embedder=None, enabled=True):
+    def __init__(self, database, scheduler, vault=None, embedder=None, enabled=True, provider=None):
         self.database = database
         self.scheduler = scheduler
         self.vault = vault
         self.embedder = embedder or EmbeddingProvider()
+        self.provider = provider
         self.enabled = enabled
         self.task: asyncio.Task | None = None
         self.consolidated_at = -CONSOLIDATE_SECONDS
@@ -45,11 +47,18 @@ class MemoryWorker:
             try:
                 formed = (await asyncio.to_thread(run_pending, self.database))['processed']
                 indexed = await self.index()
-                if not formed and not indexed:
+                suggested = await self.suggest()
+                if not formed and not indexed and not suggested:
                     await self.consolidate()
                     return
             except Exception:  # noqa: BLE001 - memory work is optional; the next kick retries.
                 return
+
+    async def suggest(self) -> int:
+        if self.provider is None:
+            return 0
+        return await model_suggestions.suggest(self.database, self.provider, self.scheduler,
+                                     lambda config: credential_for(self.vault, config['credential_ref']))
 
     async def consolidate(self):
         """At most once per CONSOLIDATE_SECONDS, and only while automatic memory is on (M11)."""

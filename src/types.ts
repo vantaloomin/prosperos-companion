@@ -73,6 +73,7 @@ export interface WorkspaceSettings {
   user_timezone: string
   automatic_memory: boolean
   sensitive_memory: boolean
+  model_memory_suggestions?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean
@@ -143,6 +144,14 @@ export interface Suggestion {
 export interface RememberResult {
   memories: Memory[]
   draft: { layer: Layer; subject: string; value: string; source_message_ids: string[] } | null
+}
+
+export interface DeletePreview {
+  memory_ids: string[]
+  source_message_ids: string[]
+  other_memories: { id: string; subject: string }[]
+  summaries_with_sources: number
+  kept: string
 }
 
 export interface MergeProposal { id: string; keep: Memory; merge: Memory; created_at: string }

@@ -62,7 +62,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.vault = vault or SystemVault()
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder)
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
-                                    app.state.conversation.embedder, enabled=life_tasks)
+                                    app.state.conversation.embedder, enabled=life_tasks,
+                                    provider=app.state.conversation.provider)
     app.state.conversation.after_turn = app.state.memory.kick
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world or CatalogWorld(app.state.database))

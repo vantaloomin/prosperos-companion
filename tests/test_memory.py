@@ -161,3 +161,16 @@ def test_trait_intensity_is_validated(client, companion):
     response = client.post('/api/companion/versions', json={'definition': definition,
                                                             'expected_version_id': companion['active_version_id']})
     assert response.status_code == 422
+
+
+def test_delete_preview_lists_what_would_go_and_what_stays(client, connected):
+    message = send(client, 'My sister Ana lives in Porto', 'client-0001')['message']
+    sister = remember(client, layer='user_fact', subject='Sister', value='Ana', source_message_ids=[message['id']])
+    remember(client, layer='user_fact', subject="Sister's city", value='Porto', source_message_ids=[message['id']])
+    corrected = client.post(f"/api/memories/{sister['id']}/correct",
+                            json={'value': 'Ana Maria', 'expected_revision': 1}).json()
+    preview = client.get(f"/api/memories/{corrected['id']}/delete-preview").json()
+    assert sorted(preview['memory_ids']) == sorted([sister['id'], corrected['id']])
+    assert preview['source_message_ids'] == [message['id']]
+    assert [item['subject'] for item in preview['other_memories']] == ["Sister's city"]
+    assert len(client.get('/api/memories?history=true').json()) == 3, 'a preview changes nothing'

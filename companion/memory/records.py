@@ -197,6 +197,29 @@ def chain(connection, memory_id) -> list[str]:
     return sorted(found)
 
 
+def delete_preview(database, memory_id) -> dict:
+    """What Delete would remove, shown before it is applied (M12). Counts and identities, plus subjects of
+    other memories that came from the same messages so the user can see what stays."""
+    with database.connect() as connection:
+        get(connection, memory_id)
+        versions = chain(connection, memory_id)
+        marks = ','.join('?' * len(versions))
+        sources = sorted({row['message_id'] for row in many(
+            connection, f'SELECT message_id FROM memory_sources WHERE memory_id IN ({marks})', versions)})
+        others = [identity for identity in linked_memories(connection, sources) if identity not in versions]
+        summaries = {row['id'] for row in many(
+            connection, 'SELECT memory_summaries.id, json_each.value AS source FROM memory_summaries, '
+            'json_each(memory_summaries.source_message_ids)') if row['source'] in sources}
+        other_rows = [row for row in (optional(connection, 'SELECT id, subject, status FROM memories WHERE id=?',
+                                               (identity,)) for identity in others)
+                      if row and row['status'] != 'superseded']
+        return {'memory_ids': versions, 'source_message_ids': sources,
+                'other_memories': [{'id': row['id'], 'subject': row['subject']} for row in other_rows],
+                'summaries_with_sources': len(summaries),
+                'kept': 'A marker without content, so the memory is not added back automatically. Copies already '
+                        'sent to a model service, or in backups made earlier, are outside what the app can remove.'}
+
+
 def delete(database, memory_id, delete_sources=False) -> dict:
     with database.connect(write=True) as connection:
         get(connection, memory_id)

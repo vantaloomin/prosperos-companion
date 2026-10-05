@@ -1,4 +1,4 @@
-import type { Layer, Memory } from '../../types'
+import type { DeletePreview, Layer, Memory } from '../../types'
 
 export const LAYERS: { id: Layer; title: (name: string) => string; hint: string }[] = [
   { id: 'user_fact', title: () => 'About you', hint: 'Facts, preferences and boundaries. They last until you correct them.' },
@@ -62,6 +62,7 @@ export function statusLabels(memory: Memory): string[] {
 /** Why a suggestion is waiting, in words. */
 export function suggestionReason(reason: string | null): string {
   if (reason === 'sensitive') return 'Sensitive details are only kept when you say so.'
+  if (reason === 'model_guess') return 'Suggested by the model from your words. It is only kept if you say so.'
   return 'Waiting for you to decide.'
 }
 
@@ -74,3 +75,14 @@ export function rememberedText(name: string, memories: { subject: string; value:
 export const REMEMBER_KEY = 'companion:remember'
 
 export interface RememberRequest { messageId: string; text: string }
+
+/** Plain lines for the delete dialog: what goes with the messages, and what stays. */
+export function deletePreviewText(preview: DeletePreview, withSources: boolean): string[] {
+  if (!withSources) return []
+  const lines: string[] = []
+  const count = preview.source_message_ids.length
+  if (count) lines.push(`${count} message${count === 1 ? '' : 's'} will show as deleted in your conversation.`)
+  if (preview.summaries_with_sources) lines.push(`${preview.summaries_with_sources} conversation summar${preview.summaries_with_sources === 1 ? 'y' : 'ies'} quoting them will be removed.`)
+  if (preview.other_memories.length) lines.push(`Also from those messages, and kept: ${preview.other_memories.map((item) => item.subject).join(', ')}.`)
+  return lines
+}

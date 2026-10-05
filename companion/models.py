@@ -77,6 +77,7 @@ class SettingsUpdate(Input):
     sensitive_memory: bool | None = None
     share_profile_across_timelines: bool | None = None
     background_activity: bool | None = None
+    model_memory_suggestions: bool | None = None
     review_complete: bool | None = None
 
 

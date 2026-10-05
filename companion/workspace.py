@@ -3,9 +3,10 @@ from companion.clock import zone
 from companion.database import identifier, optional, settings
 from companion.errors import require
 
-FLAGS = ('automatic_memory', 'sensitive_memory', 'share_profile_across_timelines', 'background_activity')
+FLAGS = ('automatic_memory', 'sensitive_memory', 'share_profile_across_timelines', 'background_activity',
+         'model_memory_suggestions')
 # Changing any of these can make queued work stale, so they advance the permission revision.
-PERMISSIONS = {'automatic_memory', 'sensitive_memory', 'background_activity'}
+PERMISSIONS = {'automatic_memory', 'sensitive_memory', 'background_activity', 'model_memory_suggestions'}
 
 
 def view(row: dict) -> dict:
