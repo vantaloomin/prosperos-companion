@@ -7,6 +7,8 @@ picks the same outing. Results are plain dictionaries with `refs`, the ids of ev
 and `sources`, so an event can record exactly which facts it was built from. The model only
 phrases these facts; it never has to invent a place, employer, rent or commute.
 """
+import copy
+import functools
 import hashlib
 from datetime import date, timedelta
 
@@ -39,6 +41,14 @@ LINES = {'bus', 'ferry', 'water-taxi', 'boat', 'airship', 'stagecoach'}
 PRIVATE = ('car', 'carriage', 'horse', 'bike-share')
 DEFAULT_SPEEDS = {'walk': 4.5, 'car': 25, 'rideshare': 25, 'bus': 13, 'carriage': 10, 'horse': 12, 'tram': 15}
 OVERHEAD = {'walk': 0, 'car': 6, 'rideshare': 8, 'bus': 9, 'ferry': 10, 'water-taxi': 10, 'bike-share': 3}
+
+
+def detached(function):
+    """Return a deep copy, so a caller that edits a result can't change the cached city data."""
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        return copy.deepcopy(function(*args, **kwargs))
+    return wrapper
 
 
 def unit(seed: str, *parts) -> float:
@@ -79,6 +89,7 @@ def conditions(data: dict, day: date, seed: str = '') -> dict | None:
             'rain': wet, 'note': month['note'], 'typical': True}
 
 
+@detached
 def annual_events(data: dict, day: date) -> list[dict]:
     """Recurring events usually held in this month. Exact dates vary year to year."""
     return [event for event in data['annual_events'] if day.month in event['months']]
@@ -187,6 +198,7 @@ def _weight(data: dict, place: dict, around: dict | None, weather: dict | None) 
     return weight
 
 
+@detached
 def outing(data: dict, *, seed: str, day: date | None = None, day_part: str = 'afternoon', company: str = 'solo',
            neighborhood: str | None = None, home: str | None = None, budget: str | None = None,
            kinds: list[str] | None = None, exclude: list[str] | tuple = ()) -> dict | None:
@@ -223,6 +235,7 @@ def outing(data: dict, *, seed: str, day: date | None = None, day_part: str = 'a
     return result | provenance(data, refs)
 
 
+@detached
 def meal(data: dict, *, seed: str, meal: str = 'dinner', **options) -> dict | None:
     """Somewhere to eat: an outing limited to restaurants, cafes and markets (bars for a late bite)."""
     if meal not in MEALS:
@@ -294,6 +307,7 @@ def _free_time(start: str, end: str, bed: str) -> tuple[str, str] | None:
     return _clock(begin), _clock(min(sleep, begin + 4 * 60))
 
 
+@detached
 def job(data: dict, career_id: str, *, seed: str, home: str | None = None, employer: str | None = None,
         avoid: list[str] | tuple = ()) -> dict:
     """An employer, workplace neighborhood, weekly schedule and commute for a career in this city.
@@ -353,6 +367,7 @@ def _workplace(data: dict, career: dict, seed: str, given: str | None, avoid=())
 
 # --- Housing ---
 
+@detached
 def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | None = None,
          vibe: str | None = None, near: str | None = None) -> dict:
     """A neighborhood, housing type and rent within that neighborhood's typical range.
@@ -477,6 +492,7 @@ def _haunts(data: dict, seed: str, hood: str, count: int = 3) -> list[dict]:
             for _, _, place in sorted(scored)[:count]]
 
 
+@detached
 def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None = None, age: int | None = None,
              near: str | None = None, employer: str | None = None, family: str | None = None,
              group: str | None = None, around_age: int | None = None, local: bool = True,
@@ -522,6 +538,7 @@ def _home_in(data: dict, seed: str, bedrooms: str, hood_id: str) -> dict:
     return home(single, seed=seed, bedrooms=bedrooms)
 
 
+@detached
 def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age: int | None = None,
            career: str | None = None, employer: str | None = None, family: str | None = None,
            group: str | None = None) -> dict:
@@ -566,6 +583,7 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
 
 # --- Grounding text ---
 
+@detached
 def local_color(data: dict, *, seed: str, kinds: list[str] | None = None, day: date | None = None,
                 count: int = 3) -> list[dict]:
     """A few things locals eat, drink, say or do, for flavour. Seasonal items appear only in season on `day`."""
