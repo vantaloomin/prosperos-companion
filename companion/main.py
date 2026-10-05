@@ -61,6 +61,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
     app.include_router(life_routes.router)
+    app.include_router(life_routes.today_router)
+    app.include_router(life_routes.feed_router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

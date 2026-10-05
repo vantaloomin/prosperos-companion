@@ -21,7 +21,7 @@ from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import routine
+from companion.life import feed, routine
 from companion.life.synthesis import SynthesisInvalid, synthesize
 from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
@@ -280,6 +280,9 @@ class LifeEngine:
             connection.execute('UPDATE life_runs SET results=?, status=?, error=?, lease_until=?, finished_at=? '
                                'WHERE id=?', (encode(list(results.values())), status, error,
                                               stamp(self.now() + LEASE), finished, run_id))
+            if status == 'completed':
+                feed.publish_run(connection, one(connection, 'SELECT * FROM life_runs WHERE id=?', (run_id,)),
+                                 list(results.values()), stamp(self.now()))
 
     async def simulate(self, run, slot) -> dict:
         """One routine slot: write it, record it as a proposal, and commit it if permitted."""
