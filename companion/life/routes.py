@@ -9,7 +9,19 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
 from companion.errors import require
-from companion.life import agenda, circle, feed, money, mood, recommendations, routine, simulation, storylines, today
+from companion.life import (
+    agenda,
+    circle,
+    feed,
+    money,
+    mood,
+    network,
+    recommendations,
+    routine,
+    simulation,
+    storylines,
+    today,
+)
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -198,6 +210,27 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
         row = circle.person(connection, person_id)
         require(row['timeline_id'] == companion['active_timeline_id'], 'That person is not in the circle.', 404)
         return agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
+
+
+@router.get('/network')
+def network_people(request: Request, key: str):
+    """Someone's own people, a few layers out from the circle (companion/life/network.py): `key` is a circle
+    member's `key` or a key from an earlier answer. Built on request and never stored."""
+    with db(request).connect() as connection:
+        companion = require_current(connection)
+        found = network.find(connection, companion, key)
+        require(found is not None, 'That person is not around the circle.', 404)
+        return {'person': found, 'people': network.people_of(connection, companion, key),
+                'deeper': found['depth'] + 1 < network.MAX_DEPTH}
+
+
+@router.get('/acquaintances')
+def read_acquaintances(request: Request):
+    """People the companion has met through their circle, newest first."""
+    database = db(request)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        return network.acquaintances(connection, companion['active_timeline_id'], database.clock.now())
 
 
 @today_router.get('')

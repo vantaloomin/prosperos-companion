@@ -4,7 +4,7 @@ import { displayName, personFacts, personNow, personTies, personWork } from '../
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
-  id: 'p', name: 'Ebony', role: 'friend', status: 'active', revision: 1, career: 'Nurse', employer: null,
+  id: 'p', key: 'circle:t:0', name: 'Ebony', role: 'friend', status: 'active', revision: 1, career: 'Nurse', employer: null,
   neighborhood: null, city: 'Baltimore', now: null, recent: [], ...extra,
 })
 

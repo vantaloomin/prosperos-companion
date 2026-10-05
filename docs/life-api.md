@@ -255,6 +255,32 @@ rent_range, currency, rent_period, estimate`. `variety` is a pet's species or a 
 the seeded changes still ahead and rebuilds the upcoming agenda entries that mention the home;
 moments that already happened keep what they said. A fork keeps the home as it was at the fork.
 
+## Friends of friends
+
+Everyone in the circle has their own people, and theirs have theirs, down to four layers from the
+companion (`companion/life/network.py`). Nobody out there is stored or simulated: a person is a seeded
+path from a circle member (`circle:<timeline>:<n>/2/0`) rebuilt the same way on request, with an
+era-fitting name (`companion/world/naming.py`) and only relatives sharing a family name. A partner gets no
+partner of their own.
+
+```http
+GET /api/life/network?key=<key>   # {person, people: [{key, full, relation, how, age, occupation, met}], deeper}
+GET /api/life/acquaintances       # people met through the circle, newest first
+```
+
+A circle member's `key` is on `GET /api/life/circle`; each person returned carries the key for the next
+layer while `deeper` is true.
+
+They come up at gatherings and run-ins. When the agenda writes a Friday or Saturday evening the companion
+has free, a free friend (not family) may host something: a Friendsgiving in November, a summer barbecue, a
+holiday party in December, game night, a dinner party, a housewarming. The companion goes, the entry names
+two to four of the host's people they met, sometimes one of a guest's people too, and each is saved as an
+acquaintance with a snapshot of who they are. An acquaintance counts once that evening has happened and its
+entry still records the meeting. Later, out somewhere, the companion now and then runs into one of them
+("Ran into Jordan Lee (Becca's coworker, from Becca's Friendsgiving) there."). The chat context lists the
+six most recent acquaintances and where they met; forks keep those met before the fork. No model is
+involved.
+
 ## Precomputed agenda
 
 Every reconcile also brings a hidden agenda up to date, without a model (PRD T9). The agenda holds
