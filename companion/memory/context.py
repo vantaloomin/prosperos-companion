@@ -37,8 +37,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
             'relationship_mood': 'Your current mood about time apart',
-            'weather': "Today's weather where you live (typical for the season in your fictional day, "
-                       'from climate averages; not a real forecast)',
+            'weather': "Today where you live (typical weather for the season in your fictional day, from "
+                       'climate averages, not a real forecast; event dates are fictional too)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
                           'never as done, and they may change)',
@@ -222,8 +222,11 @@ def fit_conversation(packet, recent) -> list[dict]:
 def offer_life(packet, connection, timeline_id, version, now):
     """The companion's fictional world: today's weather, their circle, likely next steps and recent events."""
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
-    if conditions := agenda.weather_on(connection, timeline_id, today):
-        packet.offer('weather', today, agenda.weather_text(conditions))
+    day = agenda.day_on(connection, timeline_id, today)
+    if day['weather']:
+        packet.offer('weather', today, agenda.weather_text(day['weather']))
+    if day['happenings']:
+        packet.offer('weather', f'{today}:events', agenda.happenings_text(day['happenings']))
     for person in agenda.circle_view(connection, timeline_id, now):
         packet.offer('circle', person['id'], person_text(person))
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):

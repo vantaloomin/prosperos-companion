@@ -1,10 +1,10 @@
 """The shipped city data as the life simulation's world source (see companion/life/world.py)."""
-from datetime import date
+from datetime import date, timedelta
 from typing import Sequence
 
 from companion.life.world import Place
 from companion.world import catalog, custom
-from companion.world.generators import SEASONS, conditions
+from companion.world.generators import SEASONS, conditions, unit
 
 # The composer's place kinds, answered from this data's place kinds (and tags, for waterfronts and books).
 KINDS = {
@@ -35,6 +35,19 @@ class CatalogWorld:
         data = self.find(city)
         return conditions(data, day) if data else None
 
+    def happenings(self, city: str, day: date) -> list[dict]:
+        """The city's annual events held on this date. The data gives only their months, so each year
+        one Saturday in one of those months is chosen from a seed of the city, event and year. Whole
+        seasons (a team's season, "The London Season") are not one-day outings and are left out."""
+        data = self.find(city)
+        if not data:
+            return []
+        hoods = {hood['id']: hood['name'] for hood in data['neighborhoods']}
+        return [{'id': item['id'], 'name': item['name'], 'kind': 'event', 'city': data['name'],
+                 'neighborhood': hoods.get(item['neighborhood'], ''), 'summary': item['summary']}
+                for item in data['annual_events'] if day.month in item['months'] and not seasonal(item)
+                and festival_day(data['id'], item, day.year) == day]
+
     def places(self, city: str, kinds: Sequence[str], *, day_part: str | None = None,
                day: date | None = None) -> list[Place]:
         """Places of these kinds, open at `day_part` (morning, afternoon, evening, late) and in season on `day`."""
@@ -57,3 +70,18 @@ class CatalogWorld:
                     result.append(Place(item['id'], item['name'], kind, data['name'], hoods[item['neighborhood']],
                                         tuple(item.get('tags', ()))))
         return result
+
+
+def festival_day(city_id: str, event: dict, year: int) -> date:
+    """The one Saturday this year's edition of an annual event is held on, stable for the city and year."""
+    months = event['months']
+    month = months[int(unit(city_id, event['id'], year, 'month') * len(months))]
+    first = date(year, month, 1)
+    saturday = first + timedelta(days=(5 - first.weekday()) % 7)
+    saturdays = [saturday + timedelta(weeks=week) for week in range(5)
+                 if (saturday + timedelta(weeks=week)).month == month]
+    return saturdays[int(unit(city_id, event['id'], year, 'week') * len(saturdays))]
+
+
+def seasonal(event: dict) -> bool:
+    return 'season' in event['name'].lower()

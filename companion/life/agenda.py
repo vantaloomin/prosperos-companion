@@ -90,10 +90,14 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
             continue
         local_date = slot.local_date.isoformat()
         if local_date not in skies:
-            skies[local_date] = composer.weather(world, definition, local_date)
+            skies[local_date] = (composer.weather(world, definition, local_date),
+                                 composer.happenings(world, definition, local_date))
         block, entry = holiday_block(slot.block.view(), days_off.get(local_date)), None
-        if skies[local_date]:
-            block['weather'] = skies[local_date]
+        conditions, events = skies[local_date]
+        if conditions:
+            block['weather'] = conditions
+        if events:
+            block['happenings'] = events
         if block['kind'] not in routine.RESTING:
             company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
             entry = composer.compose({**slot.view(), 'block': block}, definition, world,
@@ -209,12 +213,18 @@ def current(connection, timeline_id, subject, now) -> dict | None:
     return decode(row['block']) if row else None
 
 
-def weather_on(connection, timeline_id, local_date) -> dict | None:
-    """The typical weather recorded for the companion's city on a local date, if the agenda has it."""
-    row = optional(connection, "SELECT json_extract(block, '$.weather') AS weather FROM life_agenda WHERE "
-                   "timeline_id=? AND subject=? AND local_date=? AND json_extract(block, '$.weather') IS NOT NULL "
-                   'LIMIT 1', (timeline_id, COMPANION, local_date))
-    return decode(row['weather']) if row else None
+def day_on(connection, timeline_id, local_date) -> dict:
+    """The typical weather and annual events recorded for the companion's city on a local date."""
+    row = optional(connection, "SELECT json_extract(block, '$.weather') AS weather, json_extract(block, "
+                   "'$.happenings') AS happenings FROM life_agenda WHERE timeline_id=? AND subject=? AND "
+                   'local_date=? LIMIT 1', (timeline_id, COMPANION, local_date))
+    return {'weather': decode(row['weather']) if row and row['weather'] else None,
+            'happenings': decode(row['happenings']) if row and row['happenings'] else []}
+
+
+def happenings_text(events) -> str:
+    return 'Annual events in the city today: ' + '; '.join(
+        event['name'] + (f" ({event['neighborhood']})" if event['neighborhood'] else '') for event in events) + '.'
 
 
 def weather_text(conditions: dict) -> str:

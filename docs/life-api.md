@@ -99,6 +99,16 @@ park. A rainy day at home sometimes gets a rainy caption. Agenda entries carry i
 as typical for the season and not a real forecast. Cities without climate data, and world sources
 without a `weather` method, have no weather and every day is fair.
 
+### City events
+
+The world data lists each city's annual events by month. Each year one Saturday in one of those
+months is picked from a seed of the city, event and year, so everyone in the city agrees on the
+date; whole seasons (a team's season) are left out. On that day a leisure or social block may be
+spent at the event (`activity: "festival"`, `place.kind: "event"`, at most once a day and less
+often in bad weather), possibly with a free circle member. Agenda blocks carry the day's events as
+`block.happenings` (`[{id, name, neighborhood, city}]`), and the chat context lists them beside the
+weather, marked as fictional dates.
+
 Events are composed from the routine, a fixed activity catalog and the world data, without a
 model. When a model is connected and `phrase_with_model` is on, it only rewrites the wording;
 `inputs.wording` is `model` or `template`. Set `home_city` on the character to a city id from the

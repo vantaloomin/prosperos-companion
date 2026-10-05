@@ -125,7 +125,8 @@ settings and export stay neutral either way.
   names), and templates write the
   summary, caption and mood. The choice is seeded by the event key, so a resumed batch composes
   the same event. Typical weather from the city's climate (shared by everyone there that day) moves
-  outdoor activities indoors on rainy, very hot or very cold days. About one slot in five is deliberately quiet. With no matching place the
+  outdoor activities indoors on rainy, very hot or very cold days, and a city's annual event, on the
+  Saturday seeded for it each year, can draw the companion out. About one slot in five is deliberately quiet. With no matching place the
   wording stays generic ("at a café") instead of inventing one.
 - **Plans.** An event sometimes adds one plan for a slot in the next week (`kind: plan`, keyed
   `plan:<timeline>:<slot>`). Batches always include a slot a committed plan names, and that slot is
