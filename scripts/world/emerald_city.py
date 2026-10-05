@@ -249,6 +249,94 @@ CITY = {
         place('history-room', 'The Oz history room', 'museum', 'bookbinders-close', 'Everyday city museum of maps of '
               'the four countries, old green spectacles and a model of the yellow brick road.', ['history', 'maps',
               'rainy-day', 'everyday'], 'indoor', ALL, DAY),
+        # More everyday places, one neighbourhood at a time.
+        place('palace-kitchen-door', 'The palace kitchen door', 'restaurant', 'palace-grounds', 'Everyday city '
+              'kitchen door behind the palace where the cooks hand out bowls of soup and warm rolls at noon.',
+              ['lunch', 'soup', 'everyday'], 'mixed', ALL, ['afternoon'], cuisine='soup and bread'),
+        place('fountain-court', 'The fountain court', 'square', 'palace-grounds', 'Everyday city courtyard by the '
+              'palace laundry, with a fountain and stone benches where servants and neighbours eat their lunch.',
+              ['fountain', 'benches', 'everyday'], 'outdoor', ALL, DAY, WARM),
+        place('wheelwrights-yard', 'The wheelwright\'s yard', 'workshop', 'gate-quarter', 'Everyday city yard just '
+              'inside the gate where wagon wheels and axles cracked on the country roads are mended.',
+              ['craft', 'wagons', 'everyday'], 'mixed', ALL, DAY),
+        place('gate-quarter-washhouse', 'The travellers\' washhouse', 'fitness', 'gate-quarter', 'Everyday city '
+              'washhouse with hot tubs and clean towels for travellers who arrive dusty from the road.',
+              ['bath', 'travellers', 'everyday'], 'indoor', ['solo', 'friends', 'family'], DAYLONG),
+        place('apple-cart', 'The Apple Cart', 'tavern', 'market-square', 'Everyday city tavern on the corner of '
+              'Market Square where wagon drivers drink cider and eat cold pork before the long ride home.',
+              ['tavern', 'cider', 'everyday'], 'indoor', ADULT, ['afternoon', 'evening'], cuisine='cider and pork'),
+        place('weighing-house', 'The weighing house', 'landmark', 'market-square', 'Everyday city hall with a '
+              'great beam scale, where farmers weigh their loads and a clerk writes down what each country sent.',
+              ['market', 'scales', 'everyday'], 'indoor', ALL, ['morning']),
+        place('polishers-table', 'The Polishers\' Table', 'restaurant', 'cutters-row', 'Everyday city cookshop where '
+              'cutters and goldsmiths eat mutton pies and pea soup at one long table at midday.',
+              ['lunch', 'pies', 'everyday'], 'indoor', ALL, ['afternoon'], cuisine='pies and soup'),
+        place('cutters-green', 'Cutters\' green', 'square', 'cutters-row', 'Everyday city patch of grass with a '
+              'drinking fountain at the end of the row, where apprentices play marbles at noon.',
+              ['square', 'marbles', 'everyday'], 'outdoor', ALL, DAY, WARM),
+        place('oven-street-dairy', 'The Oven Street dairy', 'market', 'oven-street', 'Everyday city dairy where '
+              'milk, butter and soft cheese are handed out from the counter at first light.',
+              ['milk', 'cheese', 'everyday'], 'indoor', ALL, ['morning'], cuisine='dairy'),
+        place('flour-loft', 'The flour loft', 'workshop', 'oven-street', 'Everyday city loft where flour from the '
+              'country mills is sifted and sacked for the bakehouses, and children slide on the empty sacks.',
+              ['flour', 'craft', 'everyday'], 'indoor', ALL, ['morning']),
+        place('the-thimble', 'The Thimble', 'tavern', 'needle-hill', 'Everyday city tavern of tailors and dyers, '
+              'small and warm, with green ale and a long argument about cloth every night.',
+              ['tavern', 'tailors', 'everyday'], 'indoor', ADULT, NIGHT, cuisine='ale and toasted cheese'),
+        place('needle-hill-tea-garden', 'Needle Hill tea garden', 'cafe', 'needle-hill', 'Everyday city tea garden '
+              'on the top of the rise, with a view over the drying lines and lemon cake on a tray.',
+              ['tea', 'views', 'everyday'], 'outdoor', ALL, ['afternoon'], WARM, cuisine='tea and cakes'),
+        place('needle-hill-laundry', 'The Needle Hill laundry', 'workshop', 'needle-hill', 'Everyday city laundry '
+              'of coppers and mangles where neighbours wash on Mondays and the steam fogs the windows.',
+              ['laundry', 'neighbours', 'everyday'], 'indoor', ['solo', 'family'], ['morning']),
+        place('close-bindery', 'The Close bindery', 'workshop', 'bookbinders-close', 'Everyday city bindery with '
+              'its door propped open, where worn library books are restitched and anyone may learn to sew a '
+              'notebook.', ['books', 'craft', 'everyday'], 'indoor', ALL, DAY),
+        place('pump-square-pie-shop', 'Mrs Gubbin\'s pie shop', 'restaurant', 'pump-square', 'Everyday city pie '
+              'shop on the corner of the square, with pork pies, apple turnovers and a queue of children after '
+              'school.', ['pies', 'children', 'everyday'], 'indoor', ALL, ['afternoon', 'evening'], cuisine='pies'),
+        place('toy-mender', 'The toy mender', 'workshop', 'pump-square', 'Everyday city workshop where an old '
+              'carpenter glues dolls, restrings tops and repaints wooden soldiers for the square\'s children.',
+              ['toys', 'children', 'everyday'], 'indoor', ['family', 'solo'], DAY),
+        place('yellow-kettle', 'The Yellow Kettle', 'cafe', 'winkie-street', 'Everyday city breakfast room run by '
+              'Winkie tinsmiths\' wives, with porridge, fried bread and tea in tin mugs.',
+              ['breakfast', 'winkie', 'everyday'], 'indoor', ALL, ['morning'], cuisine='breakfast'),
+        place('winkie-street-stalls', 'Winkie Street stalls', 'market', 'winkie-street', 'Everyday city street '
+              'market where Winkie farmers hand out yellow apples, honey and buttercup cheese from their carts.',
+              ['market', 'winkie', 'everyday'], 'outdoor', ALL, DAY, WARM, cuisine='produce'),
+        place('winkie-street-baths', 'Winkie Street baths', 'fitness', 'winkie-street', 'Everyday city bathhouse '
+              'with a big tin tub heated from the forge next door, much used by tinsmiths at the end of the day.',
+              ['bath', 'tinsmiths', 'everyday'], 'indoor', ['solo', 'friends'], ['afternoon', 'evening']),
+        place('red-shutter', 'The Red Shutter', 'tavern', 'quadling-lane', 'Everyday city tavern run by a Quadling '
+              'family, red-painted inside, with cherry cordial for children and stronger drink for the rest.',
+              ['tavern', 'quadling', 'everyday'], 'indoor', ALL, NIGHT, cuisine='Quadling country cooking'),
+        place('quadling-dance-yard', 'The Quadling dance yard', 'venue', 'quadling-lane', 'Everyday city yard '
+              'strung with red lanterns where families dance the Quadling reels on play-day evenings.',
+              ['dancing', 'music', 'quadling', 'everyday'], 'outdoor', ALL, ['evening'], WARM),
+        place('quadling-lane-wash-green', 'Quadling Lane wash green', 'square', 'quadling-lane', 'Everyday city '
+              'green where washing is laid out to bleach, with a pump at one end and children at the other.',
+              ['washing', 'children', 'everyday'], 'outdoor', ALL, DAY, WARM),
+        place('gillikin-seed-shed', 'The seed shed', 'market', 'gillikin-gardens', 'Everyday city shed where '
+              'allotment keepers swap seeds, cuttings and spare onions, with the swaps chalked on a board.',
+              ['gardening', 'seeds', 'everyday'], 'indoor', ALL, DAY, WARM),
+        place('gillikin-oatcake-oven', 'The Gillikin oatcake oven', 'cafe', 'gillikin-gardens', 'Everyday city '
+              'bakehouse with a purple door where Gillikin oatcakes and plum buns come out hot every morning.',
+              ['bakery', 'gillikin', 'everyday'], 'indoor', ALL, ['morning'], cuisine='bakery'),
+        place('brass-button', 'The Brass Button', 'tavern', 'barracks-corner', 'Everyday city tavern by the '
+              'barracks where officers outnumber privates at the bar, as they do on the parade ground.',
+              ['tavern', 'army', 'everyday'], 'indoor', ADULT, NIGHT, cuisine='ale and sausages'),
+        place('officers-reading-room', 'The officers\' reading room', 'library', 'barracks-corner', 'Everyday '
+              'city reading room in a wing of the barracks nobody needs, now open to the whole neighbourhood.',
+              ['books', 'quiet', 'everyday'], 'indoor', ['solo', 'friends', 'family'], DAYLONG),
+        place('barracks-plunge', 'The barracks plunge', 'fitness', 'barracks-corner', 'Everyday city cold plunge '
+              'pool built for an army that never filled it, where the neighbours swim on hot afternoons.',
+              ['swimming', 'cold', 'everyday'], 'indoor', ['solo', 'friends', 'family'], DAY, ['summer']),
+        place('halfway-well', 'The halfway well', 'square', 'yellow-brick-road', 'Everyday roadside well with a '
+              'bench and a tin cup on a chain, where walkers on the yellow brick road stop to drink.',
+              ['well', 'road', 'everyday'], 'outdoor', ALL, DAY),
+        place('cider-barn', 'The cider barn', 'workshop', 'yellow-brick-road', 'Everyday farm barn with a cider '
+              'press where neighbours bring apples in the fall and leave with a jug.',
+              ['cider', 'farm', 'everyday'], 'mixed', ALL, DAY, ['fall'], cuisine='cider'),
     ],
     'colleges': [
         {'id': 'little-schoolhouse', 'name': 'The Pump Square schoolhouse', 'type': 'academy',

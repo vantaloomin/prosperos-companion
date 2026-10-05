@@ -239,17 +239,19 @@ def _free_time(start: str, end: str, bed: str) -> tuple[str, str] | None:
     return _clock(begin), _clock(min(sleep, begin + 4 * 60))
 
 
-def job(data: dict, career_id: str, *, seed: str, home: str | None = None, employer: str | None = None) -> dict:
+def job(data: dict, career_id: str, *, seed: str, home: str | None = None, employer: str | None = None,
+        avoid: list[str] | tuple = ()) -> dict:
     """An employer, workplace neighborhood, weekly schedule and commute for a career in this city.
 
     Named employers come from the data. Careers the data has no employer for work at a fitting place
     (a cafe for a barista) or at an unnamed employer in a matching career hub, so nothing is invented.
-    `employer` names a record (employer, college or place) to work at, such as a coworker's.
+    `employer` names a record (employer, college or place) to work at, such as a coworker's. Workplaces in
+    `avoid` (ids already taken by others in a circle, say) are much less likely to be chosen.
     """
     career = catalog.careers_for(data).get(career_id)
     if not career:
         raise DomainError(f'{data["name"]} has no career {career_id!r}.', 404, 'unknown_career')
-    chosen, hood, refs = _workplace(data, career, seed, employer)
+    chosen, hood, refs = _workplace(data, career, seed, employer, avoid)
     refs = [*refs, hood]
     result = {'career': career, 'employer': chosen, 'neighborhood': catalog.neighborhood(data, hood),
               'schedule': schedule(career, seed, chosen['name'] if chosen['named'] else ''), 'commute': None}
@@ -265,7 +267,11 @@ def _named(record: dict, fit: str, summary: str | None = None) -> tuple[dict, st
     return employer, record['neighborhood'], [record['id']]
 
 
-def _workplace(data: dict, career: dict, seed: str, given: str | None) -> tuple[dict, str, list[str]]:
+def _spread(seed: str, label: str, items: list[dict], avoid) -> dict:
+    return pick(seed, label, items, [0.15 if item['id'] in avoid else 1.0 for item in items])
+
+
+def _workplace(data: dict, career: dict, seed: str, given: str | None, avoid=()) -> tuple[dict, str, list[str]]:
     record = catalog.find(data, given) if given else None
     if given and not (record and 'neighborhood' in record):
         raise DomainError(f'{data["name"]} has no workplace {given!r}.', 404, 'unknown_workplace')
@@ -273,13 +279,13 @@ def _workplace(data: dict, career: dict, seed: str, given: str | None) -> tuple[
         summary = record.get('summary') or f'Known for {", ".join(record["known_for"][:3]).replace("-", " ")}.'
         return _named(record, 'given', summary)
     if employers := [item for item in data['employers'] if career['id'] in item['careers']]:
-        return _named(pick(seed, 'employer', employers), 'employer')
+        return _named(_spread(seed, 'employer', employers, avoid), 'employer')
     if career['id'] in STUDY and data['colleges']:
-        chosen = pick(seed, 'college', data['colleges'])
+        chosen = _spread(seed, 'college', data['colleges'], avoid)
         return _named(chosen, 'college', f'Known for {", ".join(chosen["known_for"][:3]).replace("-", " ")}.')
     if places := [place for place in data['places'] if place['kind'] in
                   WORKPLACE_KINDS.get(career['id'], SECTOR_KINDS.get(career['sector'], ()))]:
-        return _named(pick(seed, 'workplace', places), 'workplace')
+        return _named(_spread(seed, 'workplace', places, avoid), 'workplace')
     matching = [hub for hub in data['career_hubs'] if career['sector'] in hub['sectors']]
     hub = pick(seed, 'hub', matching or data['career_hubs'])
     hood = pick(seed, 'hub-neighborhood', hub['neighborhoods'] if hub else
@@ -418,12 +424,14 @@ def _haunts(data: dict, seed: str, hood: str, count: int = 3) -> list[dict]:
 
 def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None = None, age: int | None = None,
              near: str | None = None, employer: str | None = None, family: str | None = None,
-             group: str | None = None, around_age: int | None = None, local: bool = True) -> dict:
+             group: str | None = None, around_age: int | None = None, local: bool = True,
+             avoid: list[str] | tuple = ()) -> dict:
     """One person in the city: name, age, home, job with commute, weekly schedule and regular haunts.
 
     `near` puts their home close to a neighborhood (a neighbor's is the same one); `employer` makes them
     work at that record; `family` and `group` keep a relative's family name and heritage. `local=False`
-    gives someone who lives out of town, with no home, job or schedule here.
+    gives someone who lives out of town, with no home, job or schedule here. `avoid` lists workplaces to
+    steer away from, so a circle doesn't all work in one place.
     """
     if role not in ROLES:
         raise DomainError(f'Role is one of {", ".join(ROLES)}.', 422)
@@ -445,7 +453,7 @@ def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None 
     person |= {'home': place, 'haunts': _haunts(data, seed, hood)}
     refs = [hood, *[spot['id'] for spot in person['haunts']]]
     if career:
-        work = job(data, career, seed=seed, home=hood, employer=employer)
+        work = job(data, career, seed=seed, home=hood, employer=employer, avoid=avoid)
         person |= {'job': work, 'schedule': work['schedule']}
         refs += work['refs']
     else:
@@ -476,7 +484,7 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
     if not family:
         chosen = name(data, seed=f'{seed}:family', group=group)
         family, group = chosen['family'], group or chosen['group']
-    people, used = [], set()
+    people, used, taken = [], set(), {employer} - {None}
     for index, role in enumerate(roles[:size]):
         member_seed, related = f'{seed}:{role}:{index}', ROLES[role][2]
         if related is None:
@@ -486,7 +494,10 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
                           near=home if role in ('neighbor', 'parent', 'sibling') else None,
                           employer=employer if role == 'coworker' else None,
                           career=career if role == 'coworker' and not employer else None,
-                          family=family if related else None, group=group if role in ('parent', 'sibling') else None)
+                          family=family if related else None, group=group if role in ('parent', 'sibling') else None,
+                          avoid=sorted(taken))
+        if person['job'] and person['job']['employer']['id']:
+            taken.add(person['job']['employer']['id'])
         retry = 0
         while person['name']['full'] in used and retry < 5:
             retry += 1

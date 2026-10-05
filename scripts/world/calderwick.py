@@ -1,4 +1,4 @@
-"""Calderwick, an original steampunk mill-and-canal town. Run `python scripts/world/calderwick.py` to rewrite the JSON."""
+"""Calderwick, an original steampunk mill-and-canal town. Run `python scripts/world/calderwick.py` to rewrite it."""
 import json
 from pathlib import Path
 
@@ -283,6 +283,101 @@ CITY = {
         place('holme-pier', 'Holme pleasure pier', 'attraction', 'calder-holme', 'A short pier on the old mill '
               'dam with rowing boats, a penny-in-the-slot machine hall and a whelk stall.', ['pier', 'boating',
               'amusements'], '$', 'outdoor', ALL, ['afternoon', 'evening'], WARM),
+        # Everyday places so every district has somewhere to eat, drink, wash and meet.
+        place('miss-pickles-tea-room', 'Miss Pickles\' tea room', 'cafe', 'castle-hill', 'A front-room tea room in '
+              'a stone house below the castle, with seed cake, potted-meat sandwiches and a view of the chimneys.',
+              ['tea-room', 'cakes', 'quiet'], '$', 'indoor', ['solo', 'friends', 'date', 'family'], DAY,
+              cuisine='tea room'),
+        place('castle-bowling-green', 'Castle Hill bowling green', 'fitness', 'castle-hill', 'A level green inside '
+              'the old outer bailey where retired mill managers play crown bowls on summer evenings.',
+              ['bowls', 'quiet', 'old-town'], '$', 'outdoor', ['solo', 'friends'], ['afternoon', 'evening'], WARM),
+        place('lowfield-dining-rooms', 'Lowfield Dining Rooms', 'restaurant', 'lowfield', 'A works cookshop by the '
+              'tube mill gates selling hot dinners in basins: meat and potato pie, peas and a mug of tea for '
+              'fourpence.', ['dinners', 'works', 'cheap'], '$', 'indoor', ['solo', 'coworkers'], ['morning',
+              'afternoon'], cuisine='English'),
+        place('lowfield-co-op', 'Lowfield Co-operative Store', 'shopping', 'lowfield', 'The Co-op grocery and '
+              'drapery, where members collect their dividend twice a year and argue about it at the counter.',
+              ['co-op', 'groceries', 'dividend'], '$', 'indoor', ALL, DAY),
+        place('ogdens-clogger', 'Ogden\'s clogger', 'workshop', 'lowfield', 'A clogger\'s shop where wooden soles '
+              'are cut, irons nailed on and old clogs re-ironed while you wait on the bench.', ['clogs', 'craft',
+              'repairs'], '$', 'indoor', ['solo', 'family'], DAY),
+        place('hirsts-dry-dock', 'Hirst\'s dry dock', 'workshop', 'saltergate-basin', 'A boatyard at the end of the '
+              'basin where narrowboats are caulked, tarred and painted with roses and castles.', ['boats', 'craft',
+              'canal'], 'free', 'outdoor', ['solo', 'friends', 'family'], DAY),
+        place('boatmens-mission', 'Boatmen\'s Mission', 'temple', 'saltergate-basin', 'A small mission chapel on '
+              'the wharf with a Sunday service, a reading room and a night school for boat children.',
+              ['chapel', 'canal', 'school'], 'free', 'indoor', ['solo', 'family'], ['morning', 'evening']),
+        place('zion-chapel', 'Zion Primitive Methodist Chapel', 'temple', 'hobcroft', 'A plain brick chapel with a '
+              'big Sunday school, a brass band and the anniversary sing on the second Sunday in June.',
+              ['chapel', 'singing', 'sunday-school'], 'free', 'indoor', ['solo', 'family'], ['morning', 'evening']),
+        place('hobcroft-rec', 'Hobcroft recreation ground', 'park', 'hobcroft', 'A cinder field with swings, a '
+              'cricket pitch and a shelter where old men sit and children kick a ball till dark.',
+              ['playground', 'cricket', 'children'], 'free', 'outdoor', ALL, ['afternoon', 'evening']),
+        place('ings-end-co-op', 'Ings End Co-operative Store and News Room', 'shopping', 'ings-end', 'The branch '
+              'Co-op with a grocery below and a news room above, where members read the papers for nothing.',
+              ['co-op', 'groceries', 'newspapers'], '$', 'indoor', ALL, DAY),
+        place('pickerings-pie-shop', 'Pickering\'s pie shop', 'restaurant', 'ings-end', 'A pie shop with a few '
+              'tables, selling pork pies, pie and peas with mint sauce, and a jug of gravy for home.',
+              ['pies', 'cheap', 'takeaway'], '$', 'indoor', ALL, ['afternoon', 'evening'], cuisine='English'),
+        place('ings-end-wesleyan', 'Ings End Wesleyan Chapel', 'temple', 'ings-end', 'A new stone chapel built by '
+              'subscription, with a Thursday choir practice and a Band of Hope for the children.',
+              ['chapel', 'choir', 'temperance'], 'free', 'indoor', ['solo', 'family'], ['morning', 'evening']),
+        place('pneumatic-post-office', 'Head Post Office', 'landmark', 'exchange-quarter', 'The post office where '
+              'the pneumatic post began, with a counter of brass tube mouths and a clerk who sends a letter '
+              'across town in a minute.', ['post', 'pneumatics', 'civic'], '$', 'indoor', ALL, DAY),
+        place('commercial-hotel', 'The Commercial Hotel', 'inn', 'station-fields', 'A hotel for travelling '
+              'salesmen opposite the station, with sample rooms, a coffee room and a plain table d\'hote at six.',
+              ['hotel', 'travellers', 'dinner'], '$$', 'indoor', ['solo', 'coworkers'], ['morning', 'evening'],
+              cuisine='English'),
+        place('station-bookstall', 'Central Station bookstall', 'shopping', 'station-fields', 'A platform bookstall '
+              'of newspapers, railway novels, timetables and penny maps of the valley.', ['books', 'newspapers',
+              'railway'], '$', 'indoor', ['solo'], ['morning', 'afternoon', 'evening']),
+        place('uncle-dicks', 'Uncle Dick\'s pawnshop', 'shopping', 'market-place', 'The busiest pawnbroker in '
+              'town, with Sunday suits going in on Monday and coming out again on Saturday.',
+              ['pawnshop', 'bargains', 'secondhand'], '$', 'indoor', ['solo', 'family'], DAY),
+        place('st-patricks-church', 'St Patrick\'s Church', 'temple', 'paradise', 'The Catholic church at the top '
+              'of Paradise Street, with early Mass for the works and the Whit procession behind a band.',
+              ['church', 'catholic', 'procession'], 'free', 'indoor', ALL, ['morning', 'evening']),
+        place('the-harp', 'The Harp', 'tavern', 'paradise', 'An Irish pub on Paradise Street with a fiddler on '
+              'Saturday nights and a back room where the Hibernian society meets.', ['pub', 'irish', 'music'],
+              '$', 'indoor', ADULT, NIGHT),
+        place('ackroyd-bandstand', 'Ackroyd Park bandstand', 'venue', 'ackroyd-park', 'An iron bandstand by the '
+              'lake where works brass bands play on Sunday afternoons and the town band on summer evenings.',
+              ['brass-band', 'music', 'sunday'], 'free', 'outdoor', ALL, ['afternoon', 'evening'], WARM),
+        place('ackroyd-pavilion', 'Park refreshment pavilion', 'cafe', 'ackroyd-park', 'A timber pavilion by '
+              'the boating lake selling tea, lemonade, buns and ices to families on their Sunday walk.',
+              ['tea', 'family', 'lake'], '$', 'mixed', ALL, DAY, WARM, cuisine='tea room'),
+        place('ackroyd-bowling-greens', 'Ackroyd Park bowling greens', 'fitness', 'ackroyd-park', 'Two corporation '
+              'greens with a hut for woods, open to anyone with a penny and flat-soled shoes.', ['bowls',
+              'corporation', 'evening'], '$', 'outdoor', ['solo', 'friends'], ['afternoon', 'evening'], WARM),
+        place('shoulder-of-mutton', 'The Shoulder of Mutton', 'tavern', 'moorside', 'A pub on the moor road used by '
+              'students, porters from the infirmary and art-school teachers arguing about Ruskin.',
+              ['pub', 'students', 'arguments'], '$', 'indoor', ADULT, NIGHT),
+        place('st-aidans-fernleigh', 'St Aidan\'s, Fernleigh', 'temple', 'fernleigh', 'A new stone church paid for '
+              'by the manufacturers, with carved pews, a good organ and a Sunday parade of hats.',
+              ['church', 'organ', 'society'], 'free', 'indoor', ALL, ['morning', 'evening']),
+        place('fernleigh-hotel', 'Fernleigh Hotel dining room', 'restaurant', 'fernleigh', 'A quiet hotel dining '
+              'room on the omnibus terminus where villa families take Sunday luncheon and wedding breakfasts.',
+              ['dining-room', 'sunday-lunch', 'society'], '$$$', 'indoor', ['family', 'date', 'friends'],
+              ['afternoon', 'evening'], cuisine='English'),
+        place('fernleigh-subscription-library', 'Fernleigh Subscription Library', 'library', 'fernleigh', 'A '
+              'subscription library in a converted villa, with new novels from London and a ladies\' committee '
+              'that picks them.', ['books', 'novels', 'subscription'], '$$', 'indoor', ['solo', 'friends'], DAY),
+        place('ridley-top-farm', 'Ridley Top Farm teas', 'cafe', 'ridley-moor', 'A farmhouse that sells '
+              'teas, eggs and buttermilk to walkers, with a parlour for wet days and a table outside for fine ones.',
+              ['farm', 'teas', 'walkers'], '$', 'mixed', ALL, DAY, WARM, cuisine='farmhouse teas'),
+        place('ridley-quarry', 'Ridley delph', 'workshop', 'ridley-moor', 'A gritstone quarry on the moor edge '
+              'where the stone for the town\'s chapels and villas is cut and dressed in open sheds.',
+              ['quarry', 'stone', 'work'], 'free', 'outdoor', ['solo', 'friends'], DAY),
+        place('holme-tea-gardens', 'Holme tea gardens', 'cafe', 'calder-holme', 'Trestle tables under the alders '
+              'by the river where families buy a jug of hot water for their own tea and a plate of teacakes.',
+              ['tea', 'river', 'family'], '$', 'outdoor', ALL, DAY, WARM, cuisine='tea room'),
+        place('ferry-boat-inn', 'The Ferry Boat Inn', 'tavern', 'calder-holme', 'A riverside pub by the old ferry '
+              'with a garden of benches, where cyclists stop after the Saturday races.', ['pub', 'river',
+              'cyclists'], '$', 'mixed', ADULT, ['afternoon', 'evening']),
+        place('calder-rowing-club', 'Calder Rowing Club', 'fitness', 'calder-holme', 'A wooden boathouse on the '
+              'mill dam where clerks and mechanics row fours in the evening and hold a regatta in July.',
+              ['rowing', 'river', 'club'], '$', 'mixed', ['solo', 'friends'], ['morning', 'evening'], WARM),
     ],
     'colleges': [
         {'id': 'pennock-institute', 'name': 'Pennock Institute of Mechanical Science', 'type': 'technical-institute',

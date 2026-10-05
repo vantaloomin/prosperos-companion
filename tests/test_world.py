@@ -359,3 +359,12 @@ def test_people_api(client):
     assert person.status_code == 200 and person.json()['role'] == 'mentor'
     assert client.get('/api/world/cities/baltimore/generate/circle', params={'seed': 's', 'size': 40}).status_code == 422
     assert 'modern' in client.get('/api/world/names').json()['banks']
+
+
+def test_a_circle_spreads_across_workplaces():
+    data = baltimore()
+    for seed in SEEDS[:30]:
+        people = generators.circle(data, seed=seed, size=6, home='fells-point')['people']
+        employers = [person['job']['employer']['id'] for person in people
+                     if person['job'] and person['job']['employer']['id']]
+        assert all(employers.count(item) <= 2 for item in employers)

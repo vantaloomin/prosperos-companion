@@ -39,13 +39,13 @@ CITY = {
     'names': {'mix': {'hispanic': 7, 'anglo': 1.2, 'black-american': 1, 'caribbean': 1.5, 'jewish': 0.4,
                        'italian': 0.2, 'east-asian': 0.2, 'south-asian': 0.2}},
     'sources': {
-        S: {'kind': 'curated', 'title': 'Miami places and neighbourhoods written for Prospero Companion',
+        S: {'kind': 'curated', 'title': 'Miami places and neighborhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',
             'note': 'Well-known public places, institutions and employers from general knowledge, covering the '
-                    'City of Miami plus Miami Beach and nearby municipalities people treat as neighbourhoods '
+                    'City of Miami plus Miami Beach and nearby municipalities people treat as neighborhoods '
                     '(Coral Gables, Key Biscayne, Doral, Aventura, Miami Gardens). Businesses open and close and '
                     'rents move: treat this as a snapshot for fiction. Rents are rounded estimates of typical '
-                    'asking ranges, not listings. Coordinates are approximate neighbourhood centres.'},
+                    'asking ranges, not listings. Coordinates are approximate neighborhood centers.'},
         CLIMATE: {'kind': 'curated', 'title': 'Approximate monthly climate for Miami (Miami International '
                   'Airport area)', 'license': 'CC0-1.0', 'retrieved': '2026-10-05',
                   'note': 'Rounded values in line with NOAA 1991-2020 normals; refresh with scripts/world when '
@@ -54,7 +54,7 @@ CITY = {
     },
     'neighborhoods': [
         hood('brickell', 'Brickell', 'The financial district: a dense wall of glass condo and office towers along '
-             'Brickell Avenue and the bay, with rooftop bars and Brickell City Centre.',
+             'Brickell Avenue and the bay, with rooftop bars and Brickell City Center.',
              ['finance', 'high-rise', 'young-professional', 'nightlife'], 25.760, -80.193, 'very-high',
              ([2200, 2900], [2700, 3700], [3800, 5500]), ['apartment-tower', 'condo'], 'high',
              ['metrorail', 'metromover', 'metrobus', 'trolley', 'citi-bike']),
@@ -87,7 +87,7 @@ CITY = {
              'cafecito windows, domino games, cigar shops and live salsa.', ['cuban', 'cultural', 'historic',
              'music'], 25.766, -80.217, 'mid', ([1300, 1700], [1600, 2100], [2000, 2700]),
              ['apartment', 'duplex', 'bungalow'], 'high', ['metrobus', 'trolley']),
-        hood('overtown', 'Overtown', 'Historic Black neighbourhood once called the Harlem of the South, now '
+        hood('overtown', 'Overtown', 'Historic Black neighborhood once called the Harlem of the South, now '
              'mixing public housing, churches and new development near downtown.', ['historic', 'black-history',
              'changing', 'affordable'], 25.785, -80.202, 'low', ([1200, 1700], [1500, 2100], [1900, 2700]),
              ['apartment', 'public-housing'], 'medium', ['metrorail', 'metrobus', 'trolley']),
@@ -99,8 +99,8 @@ CITY = {
              'Hospital and the University of Miami Miller School of Medicine, beside the courthouse buildings.',
              ['medical', 'students', 'institutional'], 25.790, -80.212, 'mid', ([1600, 2100], [1900, 2600],
              [2500, 3400]), ['apartment', 'student-housing'], 'medium', ['metrorail', 'metrobus', 'trolley']),
-        hood('coconut-grove', 'Coconut Grove', 'Miami\'s oldest neighbourhood: leafy, bayside and bohemian-turned-'
-             'affluent, with marinas, sailing clubs and a walkable village centre.', ['leafy', 'waterfront',
+        hood('coconut-grove', 'Coconut Grove', 'Miami\'s oldest neighborhood: leafy, bayside and bohemian-turned-'
+             'affluent, with marinas, sailing clubs and a walkable village center.', ['leafy', 'waterfront',
              'affluent', 'village'], 25.728, -80.242, 'very-high', ([1900, 2500], [2500, 3400], [3300, 5000]),
              ['apartment', 'single-family', 'townhouse', 'condo'], 'medium', ['metrorail', 'metrobus', 'trolley']),
         hood('coral-gables', 'Coral Gables', 'A planned 1920s Mediterranean Revival city of banyan-lined streets, '
@@ -120,7 +120,7 @@ CITY = {
              25.815, -80.123, 'high', ([1700, 2300], [2200, 3100], [3100, 4800]), ['condo', 'apartment',
              'single-family'], 'medium', ['metrobus', 'beach-trolley', 'citi-bike']),
         hood('north-beach', 'North Beach', 'A calmer, more local stretch of Miami Beach with MiMo-style low-rise '
-             'apartments, reaching up toward Surfside and Bal Harbour.', ['beach', 'local', 'mimo', 'quiet'],
+             'apartments, reaching up toward Surfside and Bal Harbor.', ['beach', 'local', 'mimo', 'quiet'],
              25.858, -80.121, 'mid', ([1500, 1900], [1800, 2400], [2400, 3300]), ['apartment', 'condo'],
              'medium', ['metrobus', 'beach-trolley', 'citi-bike']),
         hood('doral', 'Doral', 'A city west of the airport of warehouses, corporate headquarters, TV studios, '
@@ -131,7 +131,7 @@ CITY = {
              'Mall, at the end of the Metrorail line.', ['suburban', 'family', 'car-dependent'], 25.679, -80.317,
              'mid', ([1500, 1900], [1800, 2300], [2300, 3000]), ['apartment', 'single-family', 'townhouse'],
              'low', ['metrorail', 'metrobus', 'car']),
-        hood('westchester', 'Westchester and University Park', 'Cuban-American suburban neighbourhoods around '
+        hood('westchester', 'Westchester and University Park', 'Cuban-American suburban neighborhoods around '
              'Florida International University\'s main campus.', ['suburban', 'students', 'cuban'], 25.752,
              -80.355, 'mid', ([1400, 1800], [1700, 2200], [2200, 2900]), ['single-family', 'apartment',
              'student-housing'], 'low', ['metrobus', 'car']),
@@ -194,7 +194,7 @@ CITY = {
               'of the New World Symphony, with free outdoor wallcasts in SoundScape Park.', ['classical',
               'concerts', 'architecture'], '$$', 'mixed', ['date', 'solo', 'family'], ['evening']),
         place('fillmore-miami-beach', 'The Fillmore Miami Beach', 'venue', 'south-beach', 'Concert and comedy '
-              'theatre in the former Jackie Gleason Theater.', ['concerts', 'comedy'], '$$$', 'indoor',
+              'theater in the former Jackie Gleason Theater.', ['concerts', 'comedy'], '$$$', 'indoor',
               ['friends', 'date'], NIGHT),
         place('joes-stone-crab', 'Joe\'s Stone Crab', 'restaurant', 'south-beach', 'Century-old institution for '
               'stone crab claws with mustard sauce and key lime pie; stone crab season runs mid-October to May.',
@@ -220,8 +220,8 @@ CITY = {
         place('north-beach-oceanside', 'North Beach Oceanside Park', 'beach', 'north-beach', 'Quieter local beach '
               'and park with shade trees and picnic areas.', ['beach', 'quiet', 'picnic'], 'free', 'outdoor',
               ALL, DAY),
-        place('bal-harbour-shops', 'Bal Harbour Shops', 'shopping', 'north-beach', 'Open-air luxury mall in the '
-              'village of Bal Harbour, just north of North Beach.', ['luxury', 'fashion', 'mall'], '$$$$', 'outdoor',
+        place('bal-harbour-shops', 'Bal Harbor Shops', 'shopping', 'north-beach', 'Open-air luxury mall in the '
+              'village of Bal Harbor, just north of North Beach.', ['luxury', 'fashion', 'mall'], '$$$$', 'outdoor',
               ['solo', 'date', 'friends'], ['afternoon']),
         # Downtown, Brickell and the bay
         place('pamm', 'Pérez Art Museum Miami', 'museum', 'downtown', 'Modern and contemporary art museum on the '
@@ -250,8 +250,8 @@ CITY = {
               'touring concerts.', ['basketball', 'concerts', 'sports'], '$$$', 'indoor', ['friends', 'family',
               'date'], ['evening'], ['fall', 'winter', 'spring']),
         place('arsht-center', 'Adrienne Arsht Center for the Performing Arts', 'venue', 'downtown', 'The main '
-              'performing arts centre, hosting touring Broadway, opera, ballet and the Florida Grand Opera.',
-              ['theatre', 'broadway', 'opera', 'ballet'], '$$$', 'indoor', ['date', 'family', 'solo'],
+              'performing arts center, hosting touring Broadway, opera, ballet and the Florida Grand Opera.',
+              ['theater', 'broadway', 'opera', 'ballet'], '$$$', 'indoor', ['date', 'family', 'solo'],
               ['evening']),
         place('club-space', 'Club Space', 'nightlife', 'downtown', 'Electronic music club famous for its '
               'rooftop terrace and parties running past sunrise.', ['club', 'techno', 'after-hours'], '$$$',
@@ -259,7 +259,7 @@ CITY = {
         place('garcias', 'Garcia\'s Seafood Grille & Fish Market', 'restaurant', 'downtown', 'Family-run fish '
               'market and restaurant on the Miami River.', ['seafood', 'river', 'casual'], '$$', 'mixed', ALL,
               ['afternoon', 'evening'], cuisine='seafood'),
-        place('brickell-city-centre', 'Brickell City Centre', 'shopping', 'brickell', 'Multi-level open-air mall '
+        place('brickell-city-centre', 'Brickell City Center', 'shopping', 'brickell', 'Multi-level open-air mall '
               'with a food hall, cinema and offices.', ['mall', 'shopping', 'food-hall'], '$$$', 'mixed', ALL,
               ['afternoon', 'evening']),
         place('the-underline', 'The Underline', 'trail', 'brickell', 'Linear park and path under the Metrorail '
@@ -281,7 +281,7 @@ CITY = {
         place('panther-coffee', 'Panther Coffee', 'cafe', 'wynwood', 'Local specialty roaster with its original '
               'cafe in Wynwood.', ['coffee', 'laptop-friendly'], '$', 'indoor', ['solo', 'friends', 'date'],
               ['morning', 'afternoon'], cuisine='coffee'),
-        place('gramps', 'Gramps', 'bar', 'wynwood', 'Neighbourhood bar with a big back patio, drag brunch and '
+        place('gramps', 'Gramps', 'bar', 'wynwood', 'Neighborhood bar with a big back patio, drag brunch and '
               'live music.', ['bar', 'patio', 'live-music', 'drag'], '$$', 'mixed', ['friends', 'solo'], NIGHT),
         place('lagniappe', 'Lagniappe', 'bar', 'midtown', 'Wine bar with a candle-lit backyard and live jazz most '
               'nights.', ['wine', 'jazz', 'backyard'], '$$', 'mixed', ['date', 'friends'], NIGHT),
@@ -302,7 +302,7 @@ CITY = {
               'a Michelin star and hard-to-get reservations.', ['italian', 'michelin', 'reservations'], '$$$',
               'indoor', ['date', 'friends'], DINNER, cuisine='italian'),
         place('little-haiti-cultural-complex', 'Little Haiti Cultural Complex', 'venue', 'little-haiti', 'Arts '
-              'centre with a gallery, theatre and the monthly Sounds of Little Haiti music night.',
+              'center with a gallery, theater and the monthly Sounds of Little Haiti music night.',
               ['haitian', 'music', 'art', 'community'], 'free', 'mixed', ALL, ['afternoon', 'evening']),
         place('rubell-museum', 'Rubell Museum', 'museum', 'allapattah', 'Private contemporary art collection in '
               'converted industrial buildings.', ['art', 'contemporary', 'rainy-day'], '$$', 'indoor', ADULT,
@@ -342,7 +342,7 @@ CITY = {
         place('peacock-park', 'Peacock Park', 'park', 'coconut-grove', 'Bayfront lawn in the Grove village '
               'with sailboats moored offshore.', ['bay-views', 'picnic', 'dogs'], 'free', 'outdoor', ALL,
               ['morning', 'afternoon', 'evening']),
-        place('cocowalk', 'CocoWalk', 'shopping', 'coconut-grove', 'Open-air shopping and dining centre in the '
+        place('cocowalk', 'CocoWalk', 'shopping', 'coconut-grove', 'Open-air shopping and dining center in the '
               'heart of Coconut Grove.', ['shopping', 'restaurants'], '$$', 'outdoor', ALL,
               ['afternoon', 'evening']),
         place('venetian-pool', 'Venetian Pool', 'attraction', 'coral-gables', 'Spring-fed public pool built in a '
@@ -372,7 +372,7 @@ CITY = {
               'tip of Key Biscayne with a beach, bike paths and the 1825 Cape Florida Lighthouse.', ['beach',
               'lighthouse', 'state-park', 'cycling'], '$', 'outdoor', ALL, DAY),
         place('rickenbacker-causeway', 'Rickenbacker Causeway', 'trail', 'key-biscayne', 'The causeway to Key '
-              'Biscayne, the city\'s favourite road-cycling and running route with skyline views.', ['cycling',
+              'Biscayne, the city\'s favorite road-cycling and running route with skyline views.', ['cycling',
               'running', 'views'], 'free', 'outdoor', ['solo', 'friends'], ['morning']),
         # Suburbs and stadiums
         place('el-arepazo', 'El Arepazo', 'restaurant', 'doral', 'Busy Venezuelan restaurant serving arepas and '
@@ -393,6 +393,208 @@ CITY = {
         place('hard-rock-stadium', 'Hard Rock Stadium', 'stadium', 'miami-gardens', 'Home of the Dolphins and '
               'the Hurricanes, and host of the Miami Open, the Orange Bowl and the Formula 1 race.', ['football',
               'tennis', 'f1', 'tailgate'], '$$$', 'outdoor', ['friends', 'family'], ['afternoon', 'evening']),
+        # Everyday neighborhood spots: cafes, diners, pubs, libraries, parks and markets.
+        place('simpson-park', 'Simpson Park', 'park', 'brickell', 'Shady tropical hardwood hammock with a short '
+              'nature trail, a quiet escape a few blocks from the towers.', ['nature', 'shade', 'quiet'], 'free',
+              'outdoor', ['solo', 'family', 'date'], DAY),
+        place('brickell-key-loop', 'Brickell Key loop', 'trail', 'brickell', 'Flat waterfront path around the '
+              'island of Brickell Key, the neighborhood\'s jogging and dog-walking circuit.',
+              ['running', 'waterfront', 'dogs'], 'free', 'outdoor', ALL, ['morning', 'evening']),
+        place('perricones', 'Perricone\'s Marketplace & Cafe', 'restaurant', 'brickell', 'Italian restaurant and '
+              'market in an old Vermont barn under the trees, known for its Sunday brunch.',
+              ['italian', 'brunch', 'garden'], '$$', 'mixed', ALL, ['morning', 'afternoon', 'evening'],
+              cuisine='italian'),
+        place('blackbird-ordinary', 'Blackbird Ordinary', 'bar', 'brickell', 'Cocktail bar with a back patio, the '
+              'neighborhood\'s after-work and late-night standby.', ['cocktails', 'patio', 'after-work'], '$$',
+              'mixed', ['friends', 'coworkers', 'date'], NIGHT),
+        place('venetian-causeway', 'Venetian Causeway', 'trail', 'edgewater', 'Low causeway of drawbridges and '
+              'little islands from the mainland to Miami Beach, popular with runners and cyclists.',
+              ['running', 'cycling', 'views'], 'free', 'outdoor', ['solo', 'friends', 'date'],
+              ['morning', 'evening']),
+        place('blue-collar', 'Blue Collar', 'restaurant', 'edgewater', 'Small diner-style restaurant in the MiMo '
+              'district up Biscayne Boulevard with braises, burgers and a veggie board.', ['comfort-food',
+              'brunch', 'local'], '$$', 'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='american'),
+        place('jimmys-eastside-diner', 'Jimmy\'s Eastside Diner', 'restaurant', 'edgewater', 'Old-fashioned '
+              'breakfast diner on Biscayne Boulevard with a loyal neighborhood and LGBTQ+ crowd.',
+              ['diner', 'breakfast', 'cheap'], '$', 'indoor', ALL, DAY, cuisine='american-diner'),
+        place('wynwood-brewing', 'Wynwood Brewing Company', 'bar', 'wynwood', 'The neighborhood\'s first craft '
+              'brewery, with a taproom and food trucks outside.', ['brewery', 'beer', 'food-trucks'], '$$', 'mixed',
+              ['friends', 'date'], ['afternoon', 'evening']),
+        place('coyo-taco', 'Coyo Taco', 'restaurant', 'wynwood', 'Taqueria with a speakeasy bar out back that '
+              'stays busy late into the night.', ['tacos', 'late-night'], '$', 'indoor', ['friends', 'date', 'solo'],
+              ['afternoon', 'evening', 'late'], cuisine='mexican'),
+        place('shops-at-midtown', 'The Shops at Midtown Miami', 'shopping', 'midtown', 'Open-air big-box center '
+              'with Target and other errand stores.', ['errands', 'groceries'], '$$', 'outdoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('sugarcane', 'Sugarcane Raw Bar Grill', 'restaurant', 'midtown', 'Busy small-plates restaurant with '
+              'a raw bar, robata grill and weekend brunch.', ['small-plates', 'brunch', 'cocktails'], '$$$',
+              'mixed', ['date', 'friends'], ['afternoon', 'evening'], cuisine='latin-asian'),
+        place('buena-vista-deli', 'Buena Vista Deli', 'cafe', 'midtown', 'French bakery-cafe in Buena Vista with '
+              'croissants, quiche and sidewalk tables.', ['bakery', 'coffee', 'french'], '$', 'mixed', ALL,
+              ['morning', 'afternoon', 'evening'], cuisine='french-bakery'),
+        place('roberto-clemente-park', 'Roberto Clemente Park', 'park', 'midtown', 'City park with ball fields, '
+              'basketball courts and a playground just west of Midtown.', ['sports', 'playground', 'local'],
+              'free', 'outdoor', ALL, ['afternoon', 'evening']),
+        place('flys-eye-dome', 'Fly\'s Eye Dome', 'landmark', 'design-district', 'Buckminster Fuller\'s geodesic '
+              'dome in Palm Court, the district\'s free-to-wander public art center.', ['art', 'architecture',
+              'free'], 'free', 'outdoor', ['solo', 'date', 'friends'], ['afternoon', 'evening']),
+        place('libreri-mapou', 'Libreri Mapou', 'shopping', 'little-haiti', 'Haitian bookstore with books in '
+              'Kreyol, French and English and occasional readings and drumming.', ['books', 'haitian', 'culture'],
+              '$', 'indoor', ['solo', 'friends', 'family'], DAY),
+        place('little-haiti-soccer-park', 'Little Haiti Soccer Park', 'park', 'little-haiti', 'Community park with '
+              'lit soccer fields, a running track and a playground.', ['soccer', 'running', 'playground'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('churchills-pub', 'Churchill\'s Pub', 'venue', 'little-haiti', 'Long-running dive and punk club with '
+              'noise, rock and jazz nights.', ['live-music', 'punk', 'dive-bar'], '$', 'indoor', ['friends', 'solo'],
+              NIGHT),
+        place('chez-le-bebe', 'Chez Le Bebe', 'restaurant', 'little-haiti', 'Family Haitian restaurant serving '
+              'griot, stewed goat and rice and beans.', ['haitian', 'cheap', 'local'], '$', 'indoor', ALL,
+              ['afternoon', 'evening'], cuisine='haitian'),
+        place('lemon-city-library', 'Lemon City Branch Library', 'library', 'little-haiti', 'Miami-Dade branch '
+              'library with Haitian Creole collections and kids\' programs.', ['books', 'haitian', 'kids'], 'free',
+              'indoor', ALL, DAY),
+        place('lyric-theater-overtown', 'Historic Lyric Theater', 'venue', 'overtown', 'Restored 1913 theater run by '
+              'the Black Archives, once the center of Overtown\'s "Little Broadway".', ['history', 'theater',
+              'black-history'], '$$', 'indoor', ALL, ['evening']),
+        place('jackson-soul-food', 'Jackson Soul Food', 'restaurant', 'overtown', 'Family-run breakfast and soul '
+              'food spot on Northwest 3rd Avenue since the 1940s.', ['soul-food', 'breakfast', 'historic'], '$',
+              'indoor', ALL, DAY, cuisine='soul-food'),
+        place('gibson-park', 'Gibson Park', 'park', 'overtown', 'Rebuilt community park with a pool, ball field '
+              'and indoor recreation center.', ['pool', 'rec-center', 'sports'], 'free', 'mixed', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('mount-zion-baptist', 'Historic Mount Zion Baptist Church', 'landmark', 'overtown', 'Stately church '
+              'founded in 1896, a pillar of Overtown\'s history.', ['history', 'church', 'architecture'], 'free',
+              'indoor', ['family', 'solo'], ['morning']),
+        place('culmer-overtown-library', 'Culmer/Overtown Branch Library', 'library', 'overtown', 'Neighborhood '
+              'branch library with computers and after-school help.', ['books', 'kids', 'computers'], 'free',
+              'indoor', ALL, DAY),
+        place('allapattah-produce-market', 'Allapattah produce markets', 'market', 'allapattah', 'Wholesale-and-'
+              'retail produce warehouses along NW 22nd Avenue selling tropical fruit by the case.',
+              ['produce', 'cheap', 'local'], '$', 'mixed', ALL, ['morning']),
+        place('allapattah-library', 'Allapattah Branch Library', 'library', 'allapattah', 'Miami-Dade branch '
+              'library with bilingual programs.', ['books', 'bilingual', 'kids'], 'free', 'indoor', ALL, DAY),
+        place('duarte-park', 'Juan Pablo Duarte Park', 'park', 'allapattah', 'Neighborhood park with ball fields '
+              'and a playground, busy with Dominican families on weekends.', ['sports', 'playground', 'local'],
+              'free', 'outdoor', ALL, ['afternoon', 'evening']),
+        place('bakehouse-art-complex', 'Bakehouse Art Complex', 'museum', 'allapattah', 'Former bakery turned into '
+              'dozens of artist studios and galleries with open studio days.', ['art', 'studios', 'free'], 'free',
+              'indoor', ['solo', 'friends', 'date'], ['afternoon']),
+        place('miami-river-greenway', 'Miami River Greenway', 'trail', 'health-district', 'Riverside walkway past '
+              'boatyards, fishing boats and bridges between downtown and the Civic Center.',
+              ['waterfront', 'walk', 'boats'], 'free', 'outdoor', ['solo', 'friends', 'date'], DAY),
+        place('lummus-park-river', 'Lummus Park Historic District', 'park', 'health-district', 'Small riverside '
+              'park holding the city\'s oldest buildings, the Wagner House and Fort Dallas.', ['history', 'shade',
+              'river'], 'free', 'outdoor', ['solo', 'family'], DAY),
+        place('casablanca-seafood', 'Casablanca Seafood Bar & Grill', 'restaurant', 'health-district', 'Fish market '
+              'and dock restaurant on the Miami River, serving the day\'s catch.', ['seafood', 'river', 'fish-market'],
+              '$$', 'mixed', ALL, ['afternoon', 'evening'], cuisine='seafood'),
+        place('kiki-on-the-river', 'Kiki on the River', 'restaurant', 'health-district', 'Greek restaurant on the '
+              'Miami River with a party crowd on weekend afternoons.', ['greek', 'waterfront', 'party'], '$$$',
+              'mixed', ['friends', 'date'], ['afternoon', 'evening'], cuisine='greek'),
+        place('spring-garden', 'Spring Garden Historic District', 'landmark', 'health-district', 'Quiet 1920s houses '
+              'along Wagner Creek behind the hospital campus.', ['history', 'walk', 'quiet'], 'free', 'outdoor',
+              ['solo', 'date'], DAY),
+        place('barnacle', 'The Barnacle Historic State Park', 'park', 'coconut-grove', 'The Grove\'s oldest house '
+              'on a wooded bayfront lawn, with picnics and moonlight concerts.', ['history', 'picnic', 'bayfront'],
+              '$', 'outdoor', ALL, DAY),
+        place('kennedy-park', 'David T. Kennedy Park', 'park', 'coconut-grove', 'Bayfront park with a fitness '
+              'course, dog park and views over the water.', ['running', 'dogs', 'bayfront'], 'free', 'outdoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('coconut-grove-library', 'Coconut Grove Branch Library', 'library', 'coconut-grove', 'Historic coral '
+              'rock library on the bay, one of the oldest in Miami-Dade.', ['books', 'historic', 'quiet'], 'free',
+              'indoor', ALL, DAY),
+        place('greenstreet-cafe', 'GreenStreet Cafe', 'restaurant', 'coconut-grove', 'Sidewalk cafe in the center of '
+              'the Grove, a people-watching spot from breakfast to late drinks.', ['brunch', 'sidewalk',
+              'people-watching'], '$$', 'outdoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='american'),
+        place('montys-raw-bar', 'Monty\'s Raw Bar', 'bar', 'coconut-grove', 'Tiki-hut marina bar with stone crabs, '
+              'happy-hour deals and live music.', ['tiki', 'happy-hour', 'waterfront'], '$$', 'outdoor', ADULT,
+              ['afternoon', 'evening']),
+        place('havana-harrys', 'Havana Harry\'s', 'restaurant', 'coral-gables', 'Casual, generous Cuban restaurant '
+              'favoured by local families.', ['cuban', 'family'], '$$', 'indoor', ALL, ['afternoon', 'evening'],
+              cuisine='cuban'),
+        place('coral-gables-library', 'Coral Gables Branch Library', 'library', 'coral-gables', 'Mediterranean '
+              'Revival branch library with a courtyard and a big children\'s room.', ['books', 'quiet', 'kids'],
+              'free', 'indoor', ALL, DAY),
+        place('rusty-pelican', 'Rusty Pelican', 'restaurant', 'key-biscayne', 'Bayside restaurant on Virginia Key '
+              'with skyline views from the causeway.', ['views', 'brunch', 'waterfront'], '$$$', 'mixed',
+              ['date', 'family', 'friends'], ['afternoon', 'evening'], cuisine='seafood'),
+        place('village-green-park', 'Village Green Park', 'park', 'key-biscayne', 'The island\'s central park with '
+              'ball fields, a playground and village events.', ['playground', 'sports', 'local'], 'free', 'outdoor',
+              ALL, ['morning', 'afternoon', 'evening']),
+        place('key-biscayne-library', 'Key Biscayne Branch Library', 'library', 'key-biscayne', 'Small island '
+              'branch library next to the village green.', ['books', 'quiet', 'kids'], 'free', 'indoor', ALL, DAY),
+        place('arthur-godfrey-road', 'Arthur Godfrey Road', 'shopping', 'mid-beach', 'The 41st Street main drag of '
+              'kosher bakeries, delis, banks and everyday shops.', ['errands', 'kosher', 'local'], '$$', 'outdoor',
+              ALL, DAY),
+        place('roasters-n-toasters', 'Roasters \'n Toasters', 'restaurant', 'mid-beach', 'Jewish deli for corned '
+              'beef, matzo ball soup and big breakfasts.', ['deli', 'breakfast'], '$$', 'indoor', ALL, DAY,
+              cuisine='jewish-deli'),
+        place('indian-beach-park', 'Indian Beach Park', 'park', 'mid-beach', 'Beachfront park with a playground and '
+              'shady picnic spots on the boardwalk.', ['beach', 'playground', 'picnic'], 'free', 'outdoor', ALL, DAY),
+        place('scott-rakow-center', 'Scott Rakow Youth Center', 'fitness', 'mid-beach', 'City recreation center with '
+              'an ice rink, pool, gym and bowling.', ['rec-center', 'skating', 'kids'], '$', 'indoor', ALL,
+              ['afternoon', 'evening']),
+        place('cafe-prima-pasta', 'Café Prima Pasta', 'restaurant', 'north-beach', 'Long-running Argentine-Italian '
+              'trattoria on 71st Street with fresh pasta and sidewalk tables.', ['italian', 'pasta', 'local'], '$$',
+              'mixed', ['date', 'family', 'friends'], DINNER, cuisine='italian'),
+        place('north-shore-library', 'North Shore Branch Library', 'library', 'north-beach', 'Branch library on '
+              'Collins Avenue a block from the sand.', ['books', 'quiet'], 'free', 'indoor', ALL, DAY),
+        place('normandy-village-market', 'Normandy Village Marketplace', 'market', 'north-beach', 'Saturday farmers '
+              'market around the Normandy Isle fountain.', ['farmers-market', 'saturday', 'local'], '$', 'outdoor',
+              ALL, ['morning']),
+        place('doral-legacy-park', 'Doral Legacy Park', 'park', 'doral', 'Large city park with a community center, '
+              'water play, fields and a walking path.', ['playground', 'sports', 'rec-center'], 'free', 'mixed',
+              ALL, ['morning', 'afternoon', 'evening']),
+        place('doral-library', 'Doral Branch Library', 'library', 'doral', 'Miami-Dade branch library with '
+              'bilingual story times and study space.', ['books', 'bilingual', 'kids'], 'free', 'indoor', ALL, DAY),
+        place('miami-international-mall', 'Miami International Mall', 'shopping', 'doral', 'Enclosed suburban mall '
+              'by the Dolphin Expressway, a cool place to walk on hot afternoons.', ['mall', 'errands'], '$$',
+              'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('kendall-indian-hammocks', 'Kendall Indian Hammocks Park', 'park', 'kendall', 'Large county park with '
+              'sports fields, a playground and shady hammock trails.', ['sports', 'trail', 'playground'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('kendall-library', 'Kendall Branch Library', 'library', 'kendall', 'Suburban branch library used for '
+              'homework help and story times.', ['books', 'kids', 'study'], 'free', 'indoor', ALL, DAY),
+        place('tropical-park', 'Tropical Park', 'park', 'westchester', 'Big county park on Bird Road with lakes, an '
+              'equestrian center, tennis and a running track.', ['running', 'lakes', 'sports'], 'free', 'outdoor',
+              ALL, ['morning', 'afternoon', 'evening']),
+        place('frost-art-museum', 'Patricia & Phillip Frost Art Museum', 'museum', 'westchester', 'Free art museum on '
+              'FIU\'s campus with Latin American and contemporary work.', ['art', 'free', 'campus'], 'free',
+              'indoor', ALL, DAY),
+        place('westchester-library', 'Westchester Regional Library', 'library', 'westchester', 'Large regional '
+              'library on Coral Way with study rooms and Spanish-language collections.', ['books', 'study',
+              'bilingual'], 'free', 'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('islas-canarias', 'Islas Canarias Restaurant', 'restaurant', 'westchester', 'Family Cuban restaurant '
+              'famous for its ham croquetas.', ['cuban', 'croquetas', 'family'], '$', 'indoor', ALL,
+              ['morning', 'afternoon', 'evening'], cuisine='cuban'),
+        place('bird-bowl', 'Bird Bowl', 'venue', 'westchester', 'Old-school bowling alley on Bird Road with leagues, '
+              'billiards and a bar.', ['bowling', 'retro', 'leagues'], '$', 'indoor', ALL, ['afternoon', 'evening',
+              'late']),
+        place('founders-park', 'Founders Park', 'park', 'aventura', 'Aventura\'s main park with a playground, '
+              'fields and a bayside walk.', ['playground', 'sports', 'bayfront'], 'free', 'outdoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('aventura-arts-center', 'Aventura Arts & Cultural Center', 'venue', 'aventura', 'Small performing '
+              'arts center with concerts, comedy and touring shows.', ['theater', 'concerts'], '$$', 'indoor',
+              ['date', 'family', 'friends'], ['evening']),
+        place('ne-dade-aventura-library', 'Northeast Dade-Aventura Branch Library', 'library', 'aventura', 'Branch '
+              'library beside the city hall complex.', ['books', 'quiet', 'kids'], 'free', 'indoor', ALL, DAY),
+        place('oleta-river', 'Oleta River State Park', 'park', 'aventura', 'Mangrove park with mountain-bike trails, '
+              'kayak rentals and a small beach.', ['kayaking', 'mountain-biking', 'nature'], '$', 'outdoor', ALL, DAY),
+        place('bourbon-steak-aventura', 'Bourbon Steak', 'restaurant', 'aventura', 'Michael Mina\'s steakhouse at the '
+              'Turnberry resort, the area\'s special-occasion dinner.', ['steak', 'special-occasion'], '$$$$',
+              'indoor', ['date', 'family'], DINNER, cuisine='steakhouse'),
+        place('betty-ferguson-complex', 'Betty T. Ferguson Recreational Complex', 'fitness', 'miami-gardens',
+              'City recreation complex with a pool, gym, fields and a community center.', ['rec-center', 'pool',
+              'sports'], '$', 'mixed', ALL, ['morning', 'afternoon', 'evening']),
+        place('north-dade-library', 'North Dade Regional Library', 'library', 'miami-gardens', 'Large regional '
+              'library with study rooms, computers and teen programs.', ['books', 'study', 'teens'], 'free',
+              'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('rolling-oaks-park', 'Rolling Oaks Park', 'park', 'miami-gardens', 'Neighborhood park with ball '
+              'fields, a playground and youth football on autumn evenings.', ['sports', 'playground', 'local'],
+              'free', 'outdoor', ALL, ['afternoon', 'evening']),
+        place('amelia-earhart-park', 'Amelia Earhart Park', 'park', 'miami-gardens', 'Large county park with lakes, '
+              'a farm village, a skate park and mountain-bike trails.', ['lakes', 'skate', 'kids'], '$', 'outdoor',
+              ALL, DAY),
     ],
     'colleges': [
         {'id': 'um', 'name': 'University of Miami', 'type': 'research-university', 'neighborhood': 'coral-gables',
@@ -418,7 +620,7 @@ CITY = {
          'neighborhood': 'miami-gardens', 'size': 'small', 'known_for': ['hbcu', 'aviation', 'education'],
          'source': S},
         {'id': 'nwsa', 'name': 'New World School of the Arts', 'type': 'art-school', 'neighborhood': 'downtown',
-         'size': 'small', 'known_for': ['dance', 'music', 'theatre', 'visual-arts'], 'source': S},
+         'size': 'small', 'known_for': ['dance', 'music', 'theater', 'visual-arts'], 'source': S},
     ],
     'employers': [
         {'id': 'jackson-health', 'name': 'Jackson Health System', 'sector': 'healthcare',
@@ -427,7 +629,7 @@ CITY = {
          'night-nurse', 'physician-resident', 'pharmacist', 'social-worker'], 'source': S},
         {'id': 'uhealth', 'name': 'UHealth - University of Miami Health System', 'sector': 'healthcare',
          'neighborhood': 'health-district', 'size': 'large', 'summary': 'The University of Miami\'s academic '
-         'medical system, including the Sylvester cancer centre and research labs.', 'careers': [
+         'medical system, including the Sylvester cancer center and research labs.', 'careers': [
          'registered-nurse', 'physician-resident', 'medical-researcher', 'biotech-scientist', 'pharmacist'],
          'source': S},
         {'id': 'baptist-health', 'name': 'Baptist Health South Florida', 'sector': 'healthcare',
@@ -485,13 +687,13 @@ CITY = {
          'and convention space.', 'careers': ['hotel-front-desk', 'event-planner', 'line-cook', 'server',
          'bartender'], 'source': S},
         {'id': 'faena', 'name': 'Faena Hotel Miami Beach', 'sector': 'hospitality', 'neighborhood': 'mid-beach',
-         'size': 'medium', 'summary': 'Luxury hotel with its own theatre for cabaret shows.', 'careers': [
+         'size': 'medium', 'summary': 'Luxury hotel with its own theater for cabaret shows.', 'careers': [
          'hotel-front-desk', 'server', 'bartender', 'performer', 'event-planner'], 'source': S},
         {'id': 'magic-city-casino', 'name': 'Magic City Casino', 'sector': 'hospitality',
          'neighborhood': 'little-havana', 'size': 'medium', 'summary': 'Casino on NW 37th Avenue at the west '
          'edge of Little Havana.', 'careers': ['casino-dealer', 'bartender', 'server'], 'source': S},
         {'id': 'arsht-employer', 'name': 'Adrienne Arsht Center', 'sector': 'entertainment',
-         'neighborhood': 'downtown', 'size': 'medium', 'summary': 'The main performing arts centre.',
+         'neighborhood': 'downtown', 'size': 'medium', 'summary': 'The main performing arts center.',
          'careers': ['performer', 'musician', 'actor', 'event-planner'], 'source': S},
         {'id': 'new-world-symphony', 'name': 'New World Symphony', 'sector': 'entertainment',
          'neighborhood': 'south-beach', 'size': 'small', 'summary': 'Orchestral academy for young musicians at '
@@ -512,7 +714,7 @@ CITY = {
          'hedge funds, law firms and tech offices in the towers along Brickell Avenue.', 'source': S},
         {'id': 'downtown-port', 'name': 'Downtown and the port', 'neighborhoods': ['downtown', 'overtown'],
          'sectors': ['government', 'logistics', 'tourism', 'entertainment', 'education'], 'summary': 'County '
-         'government, Miami Dade College, the arena, the arts centre and PortMiami.', 'source': S},
+         'government, Miami Dade College, the arena, the arts center and PortMiami.', 'source': S},
         {'id': 'health-district-hub', 'name': 'Health District', 'neighborhoods': ['health-district', 'kendall'],
          'sectors': ['healthcare', 'biotech', 'social-services', 'legal'], 'summary': 'Jackson Memorial, UHealth '
          'and the medical school at the Civic Center, plus big hospitals in Kendall.', 'source': S},

@@ -301,6 +301,120 @@ CITY = {
         place('copper-basin-stage-stop', 'Copper Basin stage stop', 'tavern', 'copper-basin', 'A log store and '
               'saloon where the stage changes horses and passengers get coffee and a plate of beans.',
               ['stage', 'remote', 'coffee'], '$', 'indoor', ['solo', 'friends'], ['afternoon', 'evening']),
+        # Everyday places beyond Main Street
+        place('mill-mess-house', 'Sarah Ann mess house', 'restaurant', 'mill-hill', 'The company mess house by the '
+              'mill where shift men eat beef, beans, pie and coffee at plank tables for thirty cents.',
+              ['mess-hall', 'miners', 'cheap'], '$', 'indoor', ['solo', 'coworkers'], ['morning', 'evening',
+              'late'], cuisine='american'),
+        place('mill-road-saloon', 'Mill Road Saloon', 'bar', 'mill-hill', 'A board saloon halfway down the mill '
+              'road where millmen stop on the way home, with a stove and a checkerboard.', ['saloon', 'millmen',
+              'checkers'], '$', 'indoor', ['solo', 'friends'], NIGHT),
+        place('company-pay-window', 'Sarah Ann pay window', 'landmark', 'mill-hill', 'The barred window in the '
+              'company office where the line forms on the tenth of the month and wives wait to meet their men.',
+              ['payday', 'company', 'crowds'], 'free', 'outdoor', ['solo', 'family'], DAY),
+        place('mill-machine-shop', 'Mill machine shop', 'workshop', 'mill-hill', 'The company machine shop and '
+              'foundry where stamp shoes are cast and broken pump parts are made new.', ['machinery', 'foundry',
+              'work'], 'free', 'indoor', ['solo', 'coworkers'], DAY),
+        place('gulch-change-house', 'Sarah Ann change house', 'fitness', 'sarah-ann-gulch', 'A steamy shed at the '
+              'shaft head with hot water, benches and hooks, where miners wash and change out of wet clothes.',
+              ['washing', 'miners', 'shift-change'], 'free', 'indoor', ['solo', 'coworkers'], ALLDAY),
+        place('cornish-chapel', 'Gulch Methodist chapel', 'temple', 'sarah-ann-gulch', 'A plain board chapel the '
+              'Cornish miners built themselves, known for loud hymn singing and a carol service at Christmas.',
+              ['chapel', 'cornish', 'singing'], 'free', 'indoor', ['solo', 'family'], ['morning', 'evening']),
+        place('hagens-grocery', 'Hagen\'s corner grocery', 'shopping', 'fourth-street', 'A corner grocery with '
+              'a cracker barrel, kerosene, eggs from the back yard and a running account for every family on the '
+              'street.', ['grocery', 'neighbours', 'credit'], '$', 'indoor', ALL, DAY),
+        place('first-baptist-church', 'First Baptist Church', 'temple', 'fourth-street', 'A new frame church with '
+              'a Sunday school, a strawberry festival in May and baptisms in Ash Creek.', ['church', 'baptist',
+              'socials'], 'free', 'indoor', ['solo', 'family'], ['morning', 'evening']),
+        place('hose-company-hall', 'Whitlock Hose Company No. 1', 'venue', 'fourth-street', 'The volunteer fire '
+              'company\'s hall and hose cart shed, with a dance on the first Saturday of the month.',
+              ['firemen', 'dances', 'volunteers'], '$', 'indoor', ALL, ['evening']),
+        place('mrs-osgoods-lunch-room', 'Mrs. Osgood\'s lunch room', 'restaurant', 'fourth-street', 'A front-parlour '
+              'lunch room serving soup, cold meat and pie to clerks and railroad men who live nearby.',
+              ['lunch', 'home-cooking', 'cheap'], '$', 'indoor', ['solo', 'friends', 'coworkers'], ['afternoon'],
+              cuisine='american'),
+        place('county-courthouse', 'County courthouse', 'landmark', 'courthouse-hill', 'The brick courthouse with '
+              'a cupola, where people take a seat in the gallery to follow a good trial.', ['court', 'trials',
+              'civic'], 'free', 'indoor', ['solo', 'friends'], DAY),
+        place('ladies-library', 'Ladies\' Library Association rooms', 'library', 'courthouse-hill', 'Two rooms '
+              'behind the courthouse with donated books, magazines from the East and a dollar a year '
+              'subscription.', ['books', 'magazines', 'quiet'], '$', 'indoor', ['solo', 'family'], DAY),
+        place('whitcombs-lunch-counter', 'Whitcomb\'s lunch counter', 'restaurant', 'courthouse-hill', 'A counter '
+              'across from the courthouse where lawyers, jurors and witnesses eat stew and pie between sessions.',
+              ['lunch', 'lawyers', 'quick-meal'], '$', 'indoor', ['solo', 'coworkers'], ['afternoon'],
+              cuisine='american'),
+        place('kwong-wo-store', 'Kwong Wo general store', 'market', 'china-alley', 'A Chinese general store of '
+              'rice sacks, dried fish, tea, firecrackers and letters held for men who have no address.',
+              ['grocery', 'chinese', 'letters'], '$', 'indoor', ['solo', 'family'], DAY),
+        place('herreria-ruiz', 'Herrería Ruiz', 'workshop', 'la-plaza', 'A smithy off the plaza that makes '
+              'window grilles, spurs and cooking irons, and mends anything brought to the door.', ['blacksmith',
+              'ironwork', 'mexican'], '$', 'mixed', ['solo'], DAY),
+        place('gallegos-farm-stand', 'Gallegos farm stand', 'market', 'ash-creek', 'A brush ramada by the road '
+              'where the Gallegos family sells green chiles, squash, melons and corn from their creek plots.',
+              ['produce', 'chiles', 'farm'], '$', 'outdoor', ALL, DAY, WARM),
+        place('molino-baca', 'Molino Baca', 'workshop', 'ash-creek', 'A small water-powered grist mill on the '
+              'acequia where farmers bring wheat and corn to be ground for a share of the flour.', ['mill',
+              'grain', 'acequia'], '$', 'mixed', ['solo', 'family'], DAY),
+        place('tafoyas-kitchen', 'Tafoya\'s kitchen', 'restaurant', 'ash-creek', 'A farmhouse kitchen that sells '
+              'tamales, posole and coffee to picnickers and teamsters on the creek road.', ['tamales',
+              'farmhouse', 'cheap'], '$', 'mixed', ALL, ['morning', 'afternoon'], cuisine='sonoran'),
+        place('whitlock-brickyard', 'Whitlock brickyard', 'workshop', 'fairground-flat', 'Clay pits, drying racks '
+              'and a kiln turning out the red brick for every new store front on Main Street.', ['bricks',
+              'kiln', 'work'], 'free', 'outdoor', ['solo', 'coworkers'], DAY),
+        place('schusters-beer-garden', 'Schuster\'s beer garden', 'bar', 'fairground-flat', 'A German brewer\'s '
+              'garden of lager, pretzels and sausages under a brush arbour, with a brass band on Sunday afternoons.',
+              ['beer', 'german', 'sunday'], '$', 'outdoor', ALL, ['afternoon', 'evening'], WARM, cuisine='german'),
+        place('fair-sheds', 'County fair sheds', 'venue', 'fairground-flat', 'Long open sheds for stock and '
+              'produce shows, used the rest of the year for roller skating and the Fourth of July dinner.',
+              ['fair', 'skating', 'holidays'], '$', 'mixed', ALL, ['afternoon', 'evening']),
+        place('suds-row', 'Suds Row', 'workshop', 'fort-merritt', 'The adobe huts of the company laundresses at the '
+              'edge of the post, with tubs steaming outside and children underfoot.', ['laundry', 'army',
+              'families'], '$', 'outdoor', ['solo', 'family'], DAY),
+        place('post-library', 'Fort Merritt post library', 'library', 'fort-merritt', 'A reading room in the '
+              'adjutant\'s building with newspapers from home, a few hundred books and a school for soldiers\' '
+              'children.', ['books', 'newspapers', 'army'], 'free', 'indoor', ['solo', 'family'], ALLDAY),
+        place('halfway-house', 'The Halfway House', 'bar', 'fort-merritt', 'A roadhouse on the valley road just '
+              'off the military reservation, where troopers spend their pay on whiskey and stew.',
+              ['roadhouse', 'soldiers', 'payday'], '$', 'indoor', ['solo', 'friends'], NIGHT, cuisine='american'),
+        place('diamond-k-headquarters', 'Diamond K ranch headquarters', 'workshop', 'turkey-creek', 'An adobe '
+              'ranch house with corrals, a blacksmith shed and a windmill, where neighbours help at branding time.',
+              ['ranch', 'corrals', 'branding'], 'free', 'outdoor', ['solo', 'friends', 'family'], DAY),
+        place('turkey-creek-store', 'Turkey Creek store and post office', 'market', 'turkey-creek', 'A one-room '
+              'store with flour, coffee, cartridges and the ranch mail, and a bench out front for talking cattle '
+              'prices.', ['store', 'mail', 'ranchers'], '$', 'indoor', ALL, DAY),
+        place('turkey-creek-schoolhouse', 'Turkey Creek schoolhouse', 'venue', 'turkey-creek', 'A one-room adobe '
+              'school that clears its desks for dances, spelling bees and Sunday preaching.', ['dances', 'school',
+              'ranch-families'], 'free', 'indoor', ALL, ['evening']),
+        place('roundup-chuck-wagon', 'Roundup chuck wagon', 'restaurant', 'turkey-creek', 'The cook\'s wagon at '
+              'the spring and fall roundups, feeding cowhands sourdough biscuits, beef and beans at dawn.',
+              ['roundup', 'cowhands', 'campfire'], 'free', 'outdoor', ['solo', 'coworkers'], ['morning',
+              'evening'], ['spring', 'fall'], cuisine='american'),
+        place('turkey-creek-tank', 'Turkey Creek stock tank', 'park', 'turkey-creek', 'A windmill and earth tank '
+              'with a cottonwood beside it, where ranch children swim and riders water their horses.',
+              ['windmill', 'swimming', 'shade'], 'free', 'outdoor', ALL, DAY, ['summer']),
+        place('kuhns-picnic-grove', 'Kuhn\'s picnic grove', 'park', 'kuhns-springs', 'Sycamores and tables below '
+              'the bathhouse, where Sunday parties spread their baskets after a soak.', ['picnic', 'shade',
+              'sunday'], 'free', 'outdoor', ALL, DAY, WARM),
+        place('kuhns-canyon-trail', 'Kuhn\'s canyon trail', 'trail', 'kuhns-springs', 'A footpath up the canyon '
+              'from the springs to a seep with ferns and a view back over the valley.', ['walk', 'canyon', 'view'],
+              'free', 'outdoor', ADULT, DAY, WARM),
+        place('kuhns-dairy', 'Kuhn\'s dairy', 'market', 'kuhns-springs', 'The Kuhn family\'s milk cows and spring '
+              'house, selling butter, buttermilk and cheese to visitors and to the hotel.', ['dairy', 'butter',
+              'farm'], '$', 'mixed', ALL, DAY, cuisine='dairy'),
+        place('copper-basin-store', 'Copper Basin store', 'market', 'copper-basin', 'The camp\'s only store, '
+              'selling powder, candles, canned goods and whiskey by the bottle, and the only true scales in camp.',
+              ['store', 'mining-camp', 'supplies'], '$', 'indoor', ['solo', 'family'], DAY),
+        place('copper-basin-boarding-table', 'Widow Ames\'s boarding table', 'restaurant', 'copper-basin', 'A '
+              'tent kitchen with a long table where miners eat stew, biscuits and dried-apple pie twice a day.',
+              ['boarding-house', 'miners', 'home-cooking'], '$', 'indoor', ['solo', 'coworkers'], ['morning',
+              'evening'], cuisine='american'),
+        place('copper-basin-post-office', 'Copper Basin post office', 'landmark', 'copper-basin', 'A shelf of '
+              'pigeonholes in a log cabin, where the whole camp gathers when the stage brings the mail.',
+              ['mail', 'stage', 'news'], 'free', 'indoor', ALL, ['afternoon']),
+        place('copper-basin-smithy', 'Copper Basin smithy', 'workshop', 'copper-basin', 'A lean-to forge where '
+              'drill steel is sharpened by the hundred and the stage horses are shod.', ['blacksmith', 'forge',
+              'mining-camp'], '$', 'mixed', ['solo'], DAY),
     ],
     'colleges': [
         {'id': 'whitlock-public-school', 'name': 'Whitlock Public School', 'type': 'academy',

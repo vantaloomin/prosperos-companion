@@ -1802,6 +1802,950 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "mill-mess-house",
+   "name": "Sarah Ann mess house",
+   "kind": "restaurant",
+   "neighborhood": "mill-hill",
+   "summary": "The company mess house by the mill where shift men eat beef, beans, pie and coffee at plank tables for thirty cents.",
+   "tags": [
+    "mess-hall",
+    "miners",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mill-road-saloon",
+   "name": "Mill Road Saloon",
+   "kind": "bar",
+   "neighborhood": "mill-hill",
+   "summary": "A board saloon halfway down the mill road where millmen stop on the way home, with a stove and a checkerboard.",
+   "tags": [
+    "saloon",
+    "millmen",
+    "checkers"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "company-pay-window",
+   "name": "Sarah Ann pay window",
+   "kind": "landmark",
+   "neighborhood": "mill-hill",
+   "summary": "The barred window in the company office where the line forms on the tenth of the month and wives wait to meet their men.",
+   "tags": [
+    "payday",
+    "company",
+    "crowds"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mill-machine-shop",
+   "name": "Mill machine shop",
+   "kind": "workshop",
+   "neighborhood": "mill-hill",
+   "summary": "The company machine shop and foundry where stamp shoes are cast and broken pump parts are made new.",
+   "tags": [
+    "machinery",
+    "foundry",
+    "work"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gulch-change-house",
+   "name": "Sarah Ann change house",
+   "kind": "fitness",
+   "neighborhood": "sarah-ann-gulch",
+   "summary": "A steamy shed at the shaft head with hot water, benches and hooks, where miners wash and change out of wet clothes.",
+   "tags": [
+    "washing",
+    "miners",
+    "shift-change"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cornish-chapel",
+   "name": "Gulch Methodist chapel",
+   "kind": "temple",
+   "neighborhood": "sarah-ann-gulch",
+   "summary": "A plain board chapel the Cornish miners built themselves, known for loud hymn singing and a carol service at Christmas.",
+   "tags": [
+    "chapel",
+    "cornish",
+    "singing"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hagens-grocery",
+   "name": "Hagen's corner grocery",
+   "kind": "shopping",
+   "neighborhood": "fourth-street",
+   "summary": "A corner grocery with a cracker barrel, kerosene, eggs from the back yard and a running account for every family on the street.",
+   "tags": [
+    "grocery",
+    "neighbours",
+    "credit"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "first-baptist-church",
+   "name": "First Baptist Church",
+   "kind": "temple",
+   "neighborhood": "fourth-street",
+   "summary": "A new frame church with a Sunday school, a strawberry festival in May and baptisms in Ash Creek.",
+   "tags": [
+    "church",
+    "baptist",
+    "socials"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hose-company-hall",
+   "name": "Whitlock Hose Company No. 1",
+   "kind": "venue",
+   "neighborhood": "fourth-street",
+   "summary": "The volunteer fire company's hall and hose cart shed, with a dance on the first Saturday of the month.",
+   "tags": [
+    "firemen",
+    "dances",
+    "volunteers"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mrs-osgoods-lunch-room",
+   "name": "Mrs. Osgood's lunch room",
+   "kind": "restaurant",
+   "neighborhood": "fourth-street",
+   "summary": "A front-parlour lunch room serving soup, cold meat and pie to clerks and railroad men who live nearby.",
+   "tags": [
+    "lunch",
+    "home-cooking",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "county-courthouse",
+   "name": "County courthouse",
+   "kind": "landmark",
+   "neighborhood": "courthouse-hill",
+   "summary": "The brick courthouse with a cupola, where people take a seat in the gallery to follow a good trial.",
+   "tags": [
+    "court",
+    "trials",
+    "civic"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ladies-library",
+   "name": "Ladies' Library Association rooms",
+   "kind": "library",
+   "neighborhood": "courthouse-hill",
+   "summary": "Two rooms behind the courthouse with donated books, magazines from the East and a dollar a year subscription.",
+   "tags": [
+    "books",
+    "magazines",
+    "quiet"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "whitcombs-lunch-counter",
+   "name": "Whitcomb's lunch counter",
+   "kind": "restaurant",
+   "neighborhood": "courthouse-hill",
+   "summary": "A counter across from the courthouse where lawyers, jurors and witnesses eat stew and pie between sessions.",
+   "tags": [
+    "lunch",
+    "lawyers",
+    "quick-meal"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kwong-wo-store",
+   "name": "Kwong Wo general store",
+   "kind": "market",
+   "neighborhood": "china-alley",
+   "summary": "A Chinese general store of rice sacks, dried fish, tea, firecrackers and letters held for men who have no address.",
+   "tags": [
+    "grocery",
+    "chinese",
+    "letters"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "herreria-ruiz",
+   "name": "Herrería Ruiz",
+   "kind": "workshop",
+   "neighborhood": "la-plaza",
+   "summary": "A smithy off the plaza that makes window grilles, spurs and cooking irons, and mends anything brought to the door.",
+   "tags": [
+    "blacksmith",
+    "ironwork",
+    "mexican"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gallegos-farm-stand",
+   "name": "Gallegos farm stand",
+   "kind": "market",
+   "neighborhood": "ash-creek",
+   "summary": "A brush ramada by the road where the Gallegos family sells green chiles, squash, melons and corn from their creek plots.",
+   "tags": [
+    "produce",
+    "chiles",
+    "farm"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "molino-baca",
+   "name": "Molino Baca",
+   "kind": "workshop",
+   "neighborhood": "ash-creek",
+   "summary": "A small water-powered grist mill on the acequia where farmers bring wheat and corn to be ground for a share of the flour.",
+   "tags": [
+    "mill",
+    "grain",
+    "acequia"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tafoyas-kitchen",
+   "name": "Tafoya's kitchen",
+   "kind": "restaurant",
+   "neighborhood": "ash-creek",
+   "summary": "A farmhouse kitchen that sells tamales, posole and coffee to picnickers and teamsters on the creek road.",
+   "tags": [
+    "tamales",
+    "farmhouse",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "sonoran",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "whitlock-brickyard",
+   "name": "Whitlock brickyard",
+   "kind": "workshop",
+   "neighborhood": "fairground-flat",
+   "summary": "Clay pits, drying racks and a kiln turning out the red brick for every new store front on Main Street.",
+   "tags": [
+    "bricks",
+    "kiln",
+    "work"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "schusters-beer-garden",
+   "name": "Schuster's beer garden",
+   "kind": "bar",
+   "neighborhood": "fairground-flat",
+   "summary": "A German brewer's garden of lager, pretzels and sausages under a brush arbour, with a brass band on Sunday afternoons.",
+   "tags": [
+    "beer",
+    "german",
+    "sunday"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "german",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fair-sheds",
+   "name": "County fair sheds",
+   "kind": "venue",
+   "neighborhood": "fairground-flat",
+   "summary": "Long open sheds for stock and produce shows, used the rest of the year for roller skating and the Fourth of July dinner.",
+   "tags": [
+    "fair",
+    "skating",
+    "holidays"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "suds-row",
+   "name": "Suds Row",
+   "kind": "workshop",
+   "neighborhood": "fort-merritt",
+   "summary": "The adobe huts of the company laundresses at the edge of the post, with tubs steaming outside and children underfoot.",
+   "tags": [
+    "laundry",
+    "army",
+    "families"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "post-library",
+   "name": "Fort Merritt post library",
+   "kind": "library",
+   "neighborhood": "fort-merritt",
+   "summary": "A reading room in the adjutant's building with newspapers from home, a few hundred books and a school for soldiers' children.",
+   "tags": [
+    "books",
+    "newspapers",
+    "army"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "halfway-house",
+   "name": "The Halfway House",
+   "kind": "bar",
+   "neighborhood": "fort-merritt",
+   "summary": "A roadhouse on the valley road just off the military reservation, where troopers spend their pay on whiskey and stew.",
+   "tags": [
+    "roadhouse",
+    "soldiers",
+    "payday"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "diamond-k-headquarters",
+   "name": "Diamond K ranch headquarters",
+   "kind": "workshop",
+   "neighborhood": "turkey-creek",
+   "summary": "An adobe ranch house with corrals, a blacksmith shed and a windmill, where neighbours help at branding time.",
+   "tags": [
+    "ranch",
+    "corrals",
+    "branding"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "turkey-creek-store",
+   "name": "Turkey Creek store and post office",
+   "kind": "market",
+   "neighborhood": "turkey-creek",
+   "summary": "A one-room store with flour, coffee, cartridges and the ranch mail, and a bench out front for talking cattle prices.",
+   "tags": [
+    "store",
+    "mail",
+    "ranchers"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "turkey-creek-schoolhouse",
+   "name": "Turkey Creek schoolhouse",
+   "kind": "venue",
+   "neighborhood": "turkey-creek",
+   "summary": "A one-room adobe school that clears its desks for dances, spelling bees and Sunday preaching.",
+   "tags": [
+    "dances",
+    "school",
+    "ranch-families"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "roundup-chuck-wagon",
+   "name": "Roundup chuck wagon",
+   "kind": "restaurant",
+   "neighborhood": "turkey-creek",
+   "summary": "The cook's wagon at the spring and fall roundups, feeding cowhands sourdough biscuits, beef and beans at dawn.",
+   "tags": [
+    "roundup",
+    "cowhands",
+    "campfire"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [
+    "spring",
+    "fall"
+   ],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "turkey-creek-tank",
+   "name": "Turkey Creek stock tank",
+   "kind": "park",
+   "neighborhood": "turkey-creek",
+   "summary": "A windmill and earth tank with a cottonwood beside it, where ranch children swim and riders water their horses.",
+   "tags": [
+    "windmill",
+    "swimming",
+    "shade"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kuhns-picnic-grove",
+   "name": "Kuhn's picnic grove",
+   "kind": "park",
+   "neighborhood": "kuhns-springs",
+   "summary": "Sycamores and tables below the bathhouse, where Sunday parties spread their baskets after a soak.",
+   "tags": [
+    "picnic",
+    "shade",
+    "sunday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kuhns-canyon-trail",
+   "name": "Kuhn's canyon trail",
+   "kind": "trail",
+   "neighborhood": "kuhns-springs",
+   "summary": "A footpath up the canyon from the springs to a seep with ferns and a view back over the valley.",
+   "tags": [
+    "walk",
+    "canyon",
+    "view"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kuhns-dairy",
+   "name": "Kuhn's dairy",
+   "kind": "market",
+   "neighborhood": "kuhns-springs",
+   "summary": "The Kuhn family's milk cows and spring house, selling butter, buttermilk and cheese to visitors and to the hotel.",
+   "tags": [
+    "dairy",
+    "butter",
+    "farm"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "dairy",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "copper-basin-store",
+   "name": "Copper Basin store",
+   "kind": "market",
+   "neighborhood": "copper-basin",
+   "summary": "The camp's only store, selling powder, candles, canned goods and whiskey by the bottle, and the only true scales in camp.",
+   "tags": [
+    "store",
+    "mining-camp",
+    "supplies"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "copper-basin-boarding-table",
+   "name": "Widow Ames's boarding table",
+   "kind": "restaurant",
+   "neighborhood": "copper-basin",
+   "summary": "A tent kitchen with a long table where miners eat stew, biscuits and dried-apple pie twice a day.",
+   "tags": [
+    "boarding-house",
+    "miners",
+    "home-cooking"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "copper-basin-post-office",
+   "name": "Copper Basin post office",
+   "kind": "landmark",
+   "neighborhood": "copper-basin",
+   "summary": "A shelf of pigeonholes in a log cabin, where the whole camp gathers when the stage brings the mail.",
+   "tags": [
+    "mail",
+    "stage",
+    "news"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "copper-basin-smithy",
+   "name": "Copper Basin smithy",
+   "kind": "workshop",
+   "neighborhood": "copper-basin",
+   "summary": "A lean-to forge where drill steel is sharpened by the hundred and the stage horses are shod.",
+   "tags": [
+    "blacksmith",
+    "forge",
+    "mining-camp"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [

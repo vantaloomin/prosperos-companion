@@ -40,15 +40,15 @@ CITY = {
     'names': {'mix': {'anglo': 4, 'hispanic': 3, 'east-asian': 1.6, 'black-american': 0.6, 'south-asian': 0.4,
                        'irish': 0.4, 'italian': 0.3, 'arabic': 0.3, 'jewish': 0.3, 'slavic': 0.2}},
     'sources': {
-        S: {'kind': 'curated', 'title': 'San Diego places and neighbourhoods written for Prospero Companion',
+        S: {'kind': 'curated', 'title': 'San Diego places and neighborhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',
             'note': 'Well-known public places, institutions and employers from general knowledge. Businesses open '
                     'and close and rents move: treat this as a snapshot for fiction. Rents are rounded estimates '
-                    'of typical 2025 asking ranges, not listings. Coordinates are approximate neighbourhood centres.'},
+                    'of typical 2025 asking ranges, not listings. Coordinates are approximate neighborhood centers.'},
         CLIMATE: {'kind': 'curated', 'title': 'Approximate monthly climate for San Diego (Lindbergh Field)',
                   'license': 'CC0-1.0', 'retrieved': '2026-10-05',
                   'note': 'Rounded values in line with NOAA 1991-2020 normals for San Diego International '
-                          'Airport (Lindbergh Field); the coast is cooler and inland neighbourhoods warmer. '
+                          'Airport (Lindbergh Field); the coast is cooler and inland neighborhoods warmer. '
                           'Refresh with scripts/world when network access to NOAA is available.'},
     },
     'neighborhoods': [
@@ -80,7 +80,7 @@ CITY = {
              'Street.', ['hip', 'craft-beer', 'bars', 'young-professional'], 32.747, -117.130, 'mid',
              ([1500, 1950], [1850, 2500], [2500, 3400]), ['bungalow', 'apartment', 'craftsman'], 'high',
              ['mts-bus', 'rapid']),
-        hood('south-park', 'South Park', 'A small, leafy neighbourhood of craftsman houses and independent shops '
+        hood('south-park', 'South Park', 'A small, leafy neighborhood of craftsman houses and independent shops '
              'on the east side of Balboa Park.', ['quiet', 'leafy', 'neighbourly'], 32.723, -117.130, 'mid',
              ([1500, 1900], [1850, 2450], [2500, 3300]), ['craftsman', 'bungalow', 'apartment'], 'medium',
              ['mts-bus']),
@@ -120,10 +120,10 @@ CITY = {
              'suburban', 'new-build', 'central'], 32.772, -117.150, 'high', ([1900, 2400], [2400, 3100],
              [3000, 4000]), ['apartment', 'condo'], 'medium', ['green-line', 'mts-bus']),
         hood('old-town', 'Old Town', 'Where the city began: adobe buildings, Mexican restaurants and the main '
-             'transit centre on the way to the beaches.', ['historic', 'touristy', 'mexican-food'], 32.754,
+             'transit center on the way to the beaches.', ['historic', 'touristy', 'mexican-food'], 32.754,
              -117.197, 'high', ([1700, 2200], [2100, 2800], [2800, 3700]), ['apartment', 'townhouse'], 'medium',
              ['blue-line', 'green-line', 'coaster', 'mts-bus']),
-        hood('barrio-logan', 'Barrio Logan', 'A historically Mexican-American neighbourhood under the Coronado '
+        hood('barrio-logan', 'Barrio Logan', 'A historically Mexican-American neighborhood under the Coronado '
              'Bridge, known for Chicano Park murals, galleries and the shipyards beside it.', ['chicano-culture',
              'arts', 'industrial', 'gentrifying'], 32.698, -117.143, 'low', ([1300, 1700], [1600, 2100],
              [2000, 2800]), ['apartment', 'bungalow', 'loft'], 'medium', ['blue-line', 'mts-bus']),
@@ -139,7 +139,7 @@ CITY = {
              'University.', ['students', 'college-town', 'affordable'], 32.773, -117.071, 'mid',
              ([1300, 1750], [1700, 2200], [2200, 3000]), ['student-housing', 'apartment', 'single-family'],
              'medium', ['green-line', 'mts-bus', 'rapid']),
-        hood('linda-vista', 'Linda Vista', 'A diverse, modest neighbourhood on the mesa above Mission Valley, '
+        hood('linda-vista', 'Linda Vista', 'A diverse, modest neighborhood on the mesa above Mission Valley, '
              'home to the University of San Diego.', ['diverse', 'affordable', 'academic'], 32.780, -117.178,
              'mid', ([1450, 1850], [1800, 2300], [2300, 3100]), ['apartment', 'single-family'], 'medium',
              ['green-line', 'mts-bus']),
@@ -154,7 +154,7 @@ CITY = {
         {'id': 'orange-line', 'name': 'Orange Line (MTS Trolley)', 'kind': 'light-rail', 'summary': 'Trolley from '
          'downtown east through Southeast San Diego to Lemon Grove and El Cajon.', 'source': S},
         {'id': 'mts-bus', 'name': 'MTS buses', 'kind': 'bus', 'summary': 'The Metropolitan Transit System bus '
-         'network, the only transit to the beach neighbourhoods.', 'source': S},
+         'network, the only transit to the beach neighborhoods.', 'source': S},
         {'id': 'rapid', 'name': 'MTS Rapid buses', 'kind': 'bus', 'summary': 'Limited-stop bus routes, including '
          'the line along El Cajon Boulevard to SDSU.', 'source': S},
         {'id': 'coaster', 'name': 'COASTER', 'kind': 'commuter-rail', 'summary': 'Commuter trains along the coast '
@@ -186,7 +186,7 @@ CITY = {
               'home to the San Diego Symphony\'s summer season.', ['concerts', 'classical', 'outdoor'], '$$$',
               'outdoor', ['date', 'friends', 'solo'], ['evening'], WARM),
         place('civic-theatre', 'San Diego Civic Theatre', 'venue', 'downtown', 'The main downtown hall for touring '
-              'Broadway shows and the opera.', ['theatre', 'broadway'], '$$$', 'indoor', ['date', 'friends',
+              'Broadway shows and the opera.', ['theater', 'broadway'], '$$$', 'indoor', ['date', 'friends',
               'family'], ['evening']),
         # Gaslamp and East Village
         place('gaslamp-fifth-avenue', 'Fifth Avenue in the Gaslamp', 'nightlife', 'gaslamp', 'Blocks of bars, '
@@ -218,10 +218,10 @@ CITY = {
         place('sdma', 'San Diego Museum of Art', 'museum', 'bankers-hill', 'Balboa Park\'s main art museum, with '
               'Spanish old masters and a sculpture garden.', ['art', 'rainy-day'], '$$', 'indoor', ALL, DAY),
         place('fleet-science-center', 'Fleet Science Center', 'museum', 'bankers-hill', 'Hands-on science museum '
-              'with a dome theatre.', ['science', 'kids', 'rainy-day'], '$$', 'indoor', ['family', 'friends',
+              'with a dome theater.', ['science', 'kids', 'rainy-day'], '$$', 'indoor', ['family', 'friends',
               'date'], DAY),
         place('the-nat', 'San Diego Natural History Museum', 'museum', 'bankers-hill', '"The Nat": fossils, '
-              'regional wildlife and a giant-screen theatre.', ['science', 'dinosaurs', 'kids', 'rainy-day'], '$$',
+              'regional wildlife and a giant-screen theater.', ['science', 'dinosaurs', 'kids', 'rainy-day'], '$$',
               'indoor', ['family', 'friends', 'solo'], DAY),
         place('museum-of-us', 'Museum of Us', 'museum', 'bankers-hill', 'Anthropology museum under the California '
               'Tower, the landmark of Balboa Park.', ['anthropology', 'history', 'rainy-day'], '$$', 'indoor', ALL,
@@ -229,21 +229,21 @@ CITY = {
         place('spreckels-organ', 'Spreckels Organ Pavilion', 'venue', 'bankers-hill', 'Outdoor pipe organ with '
               'free Sunday afternoon concerts.', ['free', 'concerts', 'sunday'], 'free', 'outdoor', ALL,
               ['afternoon']),
-        place('old-globe', 'The Old Globe', 'venue', 'bankers-hill', 'Respected theatre in Balboa Park known for '
-              'its summer Shakespeare festival.', ['theatre', 'shakespeare'], '$$$', 'mixed', ['date', 'friends',
+        place('old-globe', 'The Old Globe', 'venue', 'bankers-hill', 'Respected theater in Balboa Park known for '
+              'its summer Shakespeare festival.', ['theater', 'shakespeare'], '$$$', 'mixed', ['date', 'friends',
               'solo'], ['evening']),
         # Uptown
         place('hillcrest-farmers-market', 'Hillcrest Farmers Market', 'market', 'hillcrest', 'Sunday market with '
               'produce and international food stalls.', ['farmers-market', 'sunday', 'food'], '$', 'outdoor', ALL,
               ['morning']),
         place('hillcrest-nightlife', 'University Avenue bars in Hillcrest', 'nightlife', 'hillcrest', 'The '
-              'centre of San Diego\'s gay nightlife, with bars and dance clubs around the Hillcrest sign.',
+              'center of San Diego\'s gay nightlife, with bars and dance clubs around the Hillcrest sign.',
               ['lgbtq', 'bars', 'dancing'], '$$', 'indoor', ['friends', 'date', 'solo'], NIGHT),
         place('north-park-thirtieth', '30th Street in North Park', 'nightlife', 'north-park', 'A strip of '
               'breweries, beer bars and restaurants.', ['craft-beer', 'bars'], '$$', 'mixed', ['friends', 'date'],
               NIGHT),
         place('observatory-north-park', 'The Observatory North Park', 'venue', 'north-park', 'Restored 1920s '
-              'theatre hosting touring rock and indie bands.', ['live-music', 'concerts'], '$$', 'indoor',
+              'theater hosting touring rock and indie bands.', ['live-music', 'concerts'], '$$', 'indoor',
               ['friends', 'date', 'solo'], NIGHT),
         place('north-park-thursday-market', 'North Park Thursday Market', 'market', 'north-park', 'Weekly evening '
               'farmers\' market with food stalls.', ['farmers-market', 'food'], '$', 'outdoor', ALL,
@@ -278,7 +278,7 @@ CITY = {
         place('ob-dog-beach', 'Ocean Beach Dog Beach', 'beach', 'ocean-beach', 'An off-leash beach where the San '
               'Diego River meets the ocean.', ['dogs', 'beach'], 'free', 'outdoor', ALL, DAY),
         place('hodads', 'Hodad\'s', 'restaurant', 'ocean-beach', 'Burger joint on Newport Avenue covered in '
-              'licence plates and surf stickers.', ['burgers', 'line', 'casual'], '$$', 'indoor', ALL,
+              'license plates and surf stickers.', ['burgers', 'line', 'casual'], '$$', 'indoor', ALL,
               ['afternoon', 'evening'], cuisine='burgers'),
         place('newport-avenue', 'Newport Avenue', 'shopping', 'ocean-beach', 'OB\'s main street of antique malls, '
               'surf shops and dive bars.', ['antiques', 'surf-shops', 'walk'], '$', 'outdoor', ALL, DAYLONG),
@@ -371,6 +371,214 @@ CITY = {
               'korean-bbq', 'boba'], '$$', 'indoor', ALL, ['afternoon', 'evening', 'late'], cuisine='pan-asian'),
         place('mitsuwa', 'Mitsuwa Marketplace', 'market', 'kearny-mesa', 'Japanese supermarket with a food court.',
               ['groceries', 'japanese', 'food-court'], '$', 'indoor', ALL, DAY, cuisine='japanese'),
+        # Everyday neighborhood spots: cafes, diners, pubs, libraries, parks and markets.
+        place('kansas-city-barbeque', 'Kansas City Barbeque', 'restaurant', 'downtown', 'Bayside barbecue joint and '
+              'bar where the piano scene in Top Gun was filmed.', ['bbq', 'dive-bar', 'movie-history'], '$', 'indoor',
+              ['friends', 'solo'], ['afternoon', 'evening', 'late'], cuisine='bbq'),
+        place('horton-plaza-park', 'Horton Plaza Park', 'park', 'gaslamp', 'Plaza with an old fountain, splash '
+              'jets and lunch kiosks at the top of the Gaslamp.', ['plaza', 'fountain', 'lunch-break'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('davis-horton-house', 'Davis-Horton House Museum', 'museum', 'gaslamp', 'The oldest surviving '
+              'building in New Town, with walking tours of the Gaslamp\'s history.', ['history', 'tours'], '$',
+              'indoor', ['solo', 'family', 'date'], DAY),
+        place('spreckels-theatre', 'Spreckels Theatre', 'venue', 'gaslamp', 'Ornate 1912 theater on Broadway for '
+              'concerts, comedy and touring shows.', ['theater', 'concerts', 'historic'], '$$', 'indoor',
+              ['date', 'friends'], ['evening']),
+        place('cafe-sevilla', 'Café Sevilla', 'restaurant', 'gaslamp', 'Long-running Spanish restaurant with '
+              'tapas, paella, flamenco shows and salsa nights.', ['tapas', 'flamenco', 'dancing'], '$$', 'indoor',
+              ['date', 'friends'], NIGHT, cuisine='spanish'),
+        place('american-comedy-co', 'American Comedy Co.', 'venue', 'gaslamp', 'Basement comedy club on Sixth '
+              'Avenue with touring headliners and open mics.', ['comedy', 'late-night'], '$$', 'indoor',
+              ['friends', 'date'], NIGHT),
+        place('basic-bar-pizza', 'Basic Bar & Pizza', 'restaurant', 'east-village', 'Warehouse bar serving '
+              'thin-crust New Haven-style pizza, busy before Padres games.', ['pizza', 'beer', 'game-day'], '$$',
+              'indoor', ['friends', 'date'], ['evening', 'late'], cuisine='pizza'),
+        place('fault-line-park', 'Fault Line Park', 'park', 'east-village', 'Small new park with a playground, dog '
+              'area and lawn among the East Village towers.', ['dogs', 'playground', 'local'], 'free', 'outdoor',
+              ALL, ['morning', 'afternoon', 'evening']),
+        place('half-door-brewing', 'Half Door Brewing Co.', 'bar', 'east-village', 'Irish-style brewpub in an old '
+              'house a block from Petco Park.', ['brewery', 'pub', 'game-day'], '$$', 'mixed', ['friends', 'solo'],
+              ['afternoon', 'evening', 'late'], cuisine='irish-pub'),
+        place('filippis', 'Filippi\'s Pizza Grotto', 'restaurant', 'little-italy', 'Family Italian deli and '
+              'red-sauce restaurant on India Street since 1950, with Chianti bottles on the ceiling.',
+              ['pizza', 'italian', 'old-school'], '$$', 'indoor', ALL, ['afternoon', 'evening'], cuisine='italian'),
+        place('amici-park', 'Amici Park', 'park', 'little-italy', 'Neighborhood park with bocce courts, a small '
+              'amphitheatre and a dog run.', ['bocce', 'dogs', 'local'], 'free', 'outdoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('hob-nob-hill', 'Hob Nob Hill', 'restaurant', 'bankers-hill', 'Comfort-food coffee shop on First '
+              'Avenue serving breakfasts and pot roast since 1944.', ['diner', 'breakfast', 'historic'], '$',
+              'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='american-diner'),
+        place('hash-house-a-go-go', 'Hash House a Go Go', 'restaurant', 'hillcrest', 'Brunch spot on Fifth Avenue '
+              'known for enormous plates and weekend waits.', ['brunch', 'big-portions'], '$$', 'indoor', ALL, DAY,
+              cuisine='american'),
+        place('bread-and-cie', 'Bread & Cie', 'cafe', 'hillcrest', 'Artisan bakery and cafe on University Avenue for '
+              'sandwiches and loaves to take home.', ['bakery', 'coffee', 'sandwiches'], '$', 'indoor', ALL, DAY,
+              cuisine='bakery'),
+        place('mission-hills-hillcrest-library', 'Mission Hills-Hillcrest Library', 'library', 'hillcrest', 'Modern '
+              'branch library with a rooftop terrace and community rooms.', ['books', 'study', 'quiet'], 'free',
+              'indoor', ALL, DAY),
+        place('caffe-calabria', 'Caffè Calabria', 'cafe', 'north-park', 'Roaster and Italian-style coffee bar on '
+              '30th Street, with Neapolitan pizza at night.', ['coffee', 'roaster', 'pizza'], '$', 'indoor', ALL,
+              ['morning', 'afternoon', 'evening'], cuisine='italian-cafe'),
+        place('north-park-library', 'North Park Branch Library', 'library', 'north-park', 'Neighborhood branch '
+              'library on 30th Street.', ['books', 'quiet', 'kids'], 'free', 'indoor', ALL, DAY),
+        place('toronado-san-diego', 'Toronado', 'bar', 'north-park', 'Beer bar on 30th Street with a long draught '
+              'list of local and Belgian beers.', ['beer', 'craft-beer'], '$$', 'indoor', ['friends', 'solo'], NIGHT),
+        place('hamiltons-tavern', 'Hamilton\'s Tavern', 'bar', 'south-park', 'Corner beer bar with a famous tap list, '
+              'pinball and pub food.', ['craft-beer', 'pub', 'local'], '$$', 'indoor', ['friends', 'solo'], NIGHT,
+              cuisine='american-pub'),
+        place('station-tavern', 'Station Tavern', 'restaurant', 'south-park', 'Burger and beer spot with a big '
+              'family-friendly patio by the old streetcar stop.', ['burgers', 'patio', 'family'], '$$', 'mixed', ALL,
+              ['afternoon', 'evening'], cuisine='burgers'),
+        place('golden-hill-park', 'Golden Hill Park', 'park', 'south-park', 'Hilly southeastern corner of Balboa '
+              'Park with a playground, picnic areas and a disc golf course.', ['playground', 'picnic', 'disc-golf'],
+              'free', 'outdoor', ALL, DAY),
+        place('morley-field', 'Morley Field Sports Complex', 'fitness', 'south-park', 'Balboa Park sports area with a '
+              'public pool, tennis courts, disc golf and the velodrome.', ['pool', 'tennis', 'disc-golf'], '$',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('grape-street-dog-park', 'Grape Street Dog Park', 'park', 'south-park', 'Big off-leash meadow on the '
+              'edge of Balboa Park where neighbours meet with their dogs.', ['dogs', 'off-leash', 'local'], 'free',
+              'outdoor', ['solo', 'family', 'friends'], ['morning', 'afternoon', 'evening']),
+        place('blind-lady-ale-house', 'Blind Lady Ale House', 'restaurant', 'normal-heights', 'Neighborhood beer '
+              'hall on Adams Avenue with wood-fired pizza and long shared tables.', ['pizza', 'craft-beer', 'local'],
+              '$$', 'indoor', ALL, ['afternoon', 'evening'], cuisine='pizza'),
+        place('lestats-adams', 'Lestat\'s Coffee House', 'cafe', 'normal-heights', 'Twenty-four-hour coffee house '
+              'with an attached small venue for open mics and acoustic shows.', ['coffee', 'late-night', 'open-mic'],
+              '$', 'indoor', ['solo', 'friends', 'date'], ['morning', 'afternoon', 'evening', 'late'],
+              cuisine='cafe'),
+        place('polite-provisions', 'Polite Provisions', 'bar', 'normal-heights', 'Apothecary-style cocktail bar at '
+              'Adams and 30th, with a soda fountain look.', ['cocktails', 'date-night'], '$$', 'indoor',
+              ['date', 'friends'], NIGHT),
+        place('kensington-normal-heights-library', 'Kensington-Normal Heights Library', 'library', 'normal-heights',
+              'Small neighborhood branch library on Adams Avenue.', ['books', 'quiet', 'kids'], 'free', 'indoor',
+              ALL, DAY),
+        place('kate-sessions-park', 'Kate Sessions Park', 'park', 'pacific-beach', 'Hilltop park with sweeping views '
+              'over Mission Bay, popular for sunsets, kites and dogs.', ['views', 'sunset', 'dogs'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('pacific-beach-library', 'Pacific Beach/Taylor Branch Library', 'library', 'pacific-beach', 'Branch '
+              'library on Grand Avenue with a reading garden.', ['books', 'quiet', 'kids'], 'free', 'indoor', ALL,
+              DAY),
+        place('konos-cafe', 'Kono\'s Cafe', 'restaurant', 'pacific-beach', 'Cheap, busy breakfast counter across '
+              'from Crystal Pier with ocean views and breakfast burritos.', ['breakfast', 'cheap', 'views'], '$',
+              'mixed', ALL, ['morning'], cuisine='american-breakfast'),
+        place('the-mission-mission-beach', 'The Mission', 'restaurant', 'mission-beach', 'Laid-back breakfast spot '
+              'on Mission Boulevard with Latin and Asian twists on brunch.', ['breakfast', 'brunch', 'local'], '$',
+              'indoor', ALL, DAY, cuisine='californian'),
+        place('mission-bay-aquatic-center', 'Mission Bay Aquatic Center', 'fitness', 'mission-beach', 'Public '
+              'watersports center on the bay with kayak, paddleboard and sailing rentals and classes.',
+              ['kayaking', 'paddleboard', 'sailing'], '$$', 'outdoor', ALL, DAY),
+        place('la-jolla-library', 'La Jolla/Riford Library', 'library', 'la-jolla', 'Branch library in the village '
+              'with a quiet reading garden and an art gallery.', ['books', 'quiet', 'art'], 'free', 'indoor', ALL,
+              DAY),
+        place('warwicks', 'Warwick\'s', 'shopping', 'la-jolla', 'Family-owned bookstore on Girard Avenue, among '
+              'the oldest in the country, with frequent author events.', ['books', 'indie', 'events'], '$', 'indoor',
+              ['solo', 'date', 'family'], ['morning', 'afternoon', 'evening']),
+        place('rose-canyon', 'Rose Canyon Open Space', 'trail', 'university-city', 'Creek trail through a sycamore '
+              'canyon under the trolley line, used by runners and dog walkers.', ['trail', 'running', 'dogs'],
+              'free', 'outdoor', ['solo', 'friends', 'family'], DAY),
+        place('university-community-library', 'University Community Library', 'library', 'university-city',
+              'Branch library on Governor Drive serving families and students.', ['books', 'kids', 'study'], 'free',
+              'indoor', ALL, DAY),
+        place('doyle-community-park', 'Doyle Community Park', 'park', 'university-city', 'Park with a recreation '
+              'center, fields and a playground beside the library.', ['playground', 'sports', 'rec-center'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('regents-pizzeria', 'Regents Pizzeria', 'restaurant', 'university-city', 'Neighborhood pizza and beer '
+              'spot near UCSD, popular with students and families.', ['pizza', 'students', 'casual'], '$', 'indoor',
+              ALL, ['afternoon', 'evening'], cuisine='pizza'),
+        place('torrey-pines-golf', 'Torrey Pines Golf Course', 'fitness', 'sorrento-valley', 'Municipal clifftop '
+              'golf course that hosts PGA Tour events and sells tee times to residents.', ['golf', 'views'], '$$$',
+              'outdoor', ['solo', 'friends', 'coworkers'], DAY),
+        place('penasquitos-canyon', 'Los Peñasquitos Canyon Preserve', 'trail', 'sorrento-valley', 'Canyon trail '
+              'to a small waterfall, used by hikers, runners and mountain bikers.', ['hiking', 'waterfall',
+              'mountain-biking'], 'free', 'outdoor', ['solo', 'friends', 'family'], DAY),
+        place('torrey-pines-state-beach', 'Torrey Pines State Beach', 'beach', 'sorrento-valley', 'Long beach '
+              'beneath sandstone cliffs, reached by a lot at the bottom of the reserve.', ['beach', 'cliffs',
+              'walk'], '$', 'outdoor', ALL, DAY),
+        place('karl-strauss-sorrento', 'Karl Strauss Brewing Company', 'restaurant', 'sorrento-valley', 'Brewery '
+              'restaurant with a garden patio, a lunch and after-work spot for biotech workers.',
+              ['brewery', 'after-work', 'patio'], '$$', 'mixed', ['coworkers', 'friends'], ['afternoon', 'evening'],
+              cuisine='american-pub'),
+        place('san-diego-river-trail', 'San Diego River Trail', 'trail', 'mission-valley', 'Paved path along the '
+              'river through Mission Valley, used by commuters and runners.', ['running', 'cycling', 'river'],
+              'free', 'outdoor', ['solo', 'friends'], ['morning', 'afternoon', 'evening']),
+        place('mission-valley-library', 'Mission Valley Library', 'library', 'mission-valley', 'Large branch library '
+              'by the river with study rooms and a big children\'s area.', ['books', 'study', 'kids'], 'free',
+              'indoor', ALL, DAY),
+        place('westfield-mission-valley', 'Westfield Mission Valley', 'shopping', 'mission-valley', 'Outdoor '
+              'mall with discount stores, groceries and a cinema.', ['errands', 'mall'], '$$', 'outdoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('mission-san-diego', 'Mission Basilica San Diego de Alcalá', 'landmark', 'mission-valley', 'The first '
+              'of the California missions, with gardens, a museum and an active parish.', ['history', 'church',
+              'gardens'], '$', 'mixed', ['solo', 'family'], DAY),
+        place('old-town-mexican-cafe', 'Old Town Mexican Café', 'restaurant', 'old-town', 'Busy Mexican restaurant '
+              'where women make tortillas by hand in the front window.', ['mexican', 'margaritas', 'tortillas'],
+              '$$', 'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='mexican'),
+        place('presidio-park', 'Presidio Park', 'park', 'old-town', 'Hilltop park above Old Town with lawns, '
+              'trails and the Serra Museum on the site of the first Spanish fort.', ['history', 'views', 'picnic'],
+              'free', 'outdoor', ALL, DAY),
+        place('whaley-house', 'Whaley House', 'museum', 'old-town', '1857 brick house museum famous for its ghost '
+              'stories and evening tours.', ['history', 'haunted'], '$', 'indoor', ['family', 'friends', 'date'],
+              ['afternoon', 'evening']),
+        place('cesar-chavez-park', 'Cesar Chavez Park', 'park', 'barrio-logan', 'Small waterfront park with a '
+              'fishing pier looking across the bay at the shipyards and Coronado.', ['waterfront', 'fishing',
+              'local'], 'free', 'outdoor', ALL, DAY),
+        place('logan-heights-library', 'Logan Heights Branch Library', 'library', 'barrio-logan', 'Bilingual '
+              'neighborhood library with homework help and murals.', ['books', 'bilingual', 'kids'], 'free',
+              'indoor', ALL, DAY),
+        place('salud-tacos', 'Salud!', 'restaurant', 'barrio-logan', 'Taco shop on Logan Avenue with lowrider '
+              'culture on the walls and late hours on weekends.', ['tacos', 'local', 'late-night'], '$', 'mixed',
+              ALL, ['afternoon', 'evening', 'late'], cuisine='mexican'),
+        place('claytons-coffee-shop', 'Clayton\'s Coffee Shop', 'restaurant', 'coronado', 'Retro horseshoe-counter '
+              'diner on Orange Avenue with jukeboxes at the stools.', ['diner', 'breakfast', 'retro'], '$', 'indoor',
+              ALL, DAY, cuisine='american-diner'),
+        place('coronado-library', 'Coronado Public Library', 'library', 'coronado', 'Handsome city library with a '
+              'Spanish-style reading room by Spreckels Park.', ['books', 'quiet', 'historic'], 'free', 'indoor', ALL,
+              DAY),
+        place('spreckels-park', 'Spreckels Park', 'park', 'coronado', 'Town green with a playground, summer '
+              'concerts and an art fair.', ['playground', 'concerts', 'local'], 'free', 'outdoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('coronado-ferry-landing', 'Coronado Ferry Landing', 'shopping', 'coronado', 'Bayside shops and '
+              'restaurants where the ferry from downtown docks, with skyline views.', ['ferry', 'views', 'shops'],
+              '$$', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('dumpling-inn', 'Dumpling Inn', 'restaurant', 'kearny-mesa', 'Small, long-running dumpling house in '
+              'the Convoy district.', ['dumplings', 'chinese'], '$', 'indoor', ALL, ['afternoon', 'evening'],
+              cuisine='chinese'),
+        place('zion-market', 'Zion Market', 'market', 'kearny-mesa', 'Large Korean supermarket with a food court and '
+              'banchan counter.', ['grocery', 'korean', 'food-court'], '$', 'indoor', ALL,
+              ['morning', 'afternoon', 'evening'], cuisine='korean'),
+        place('serra-mesa-kearny-mesa-library', 'Serra Mesa-Kearny Mesa Library', 'library', 'kearny-mesa', 'Branch '
+              'library with study rooms and a children\'s area.', ['books', 'study', 'kids'], 'free', 'indoor', ALL,
+              DAY),
+        place('viejas-arena', 'Viejas Arena', 'venue', 'college-area', 'SDSU\'s arena for Aztecs basketball and '
+              'touring concerts.', ['basketball', 'concerts', 'students'], '$$', 'indoor', ['friends', 'date'],
+              ['evening']),
+        place('sdsu-campus', 'San Diego State University campus', 'landmark', 'college-area', 'Mission Revival '
+              'campus around Hepner Hall\'s bell tower, with a student union and free galleries.',
+              ['campus', 'architecture', 'students'], 'free', 'outdoor', ALL, DAY),
+        place('college-rolando-library', 'College-Rolando Library', 'library', 'college-area', 'Branch library on '
+              'Montezuma Road used by students and neighbours.', ['books', 'study', 'quiet'], 'free', 'indoor', ALL,
+              DAY),
+        place('pal-joeys', 'Pal Joey\'s', 'bar', 'college-area', 'Old neighborhood dive bar with live bands, pool '
+              'tables and cheap drinks.', ['dive-bar', 'live-music', 'pool-tables'], '$', 'indoor',
+              ['friends', 'solo'], NIGHT),
+        place('lake-murray', 'Lake Murray', 'trail', 'college-area', 'Reservoir with a paved shoreline path of '
+              'about three miles, busy with walkers, runners and anglers.', ['running', 'walk', 'fishing'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('tecolote-canyon', 'Tecolote Canyon Natural Park', 'trail', 'linda-vista', 'Canyon park with a nature '
+              'center and dirt trails running north from Mission Bay.', ['hiking', 'nature', 'dogs'], 'free',
+              'outdoor', ['solo', 'friends', 'family'], DAY),
+        place('linda-vista-library', 'Linda Vista Library', 'library', 'linda-vista', 'Branch library with '
+              'collections in Vietnamese, Spanish and other languages.', ['books', 'multilingual', 'kids'], 'free',
+              'indoor', ALL, DAY),
+        place('usd-campus', 'University of San Diego campus', 'landmark', 'linda-vista', 'Spanish Renaissance-style '
+              'campus on the mesa with the Immaculata church and bay views.', ['campus', 'architecture', 'views'],
+              'free', 'outdoor', ['solo', 'date', 'family'], DAY),
+        place('linda-vista-rec-center', 'Linda Vista Recreation Center', 'fitness', 'linda-vista', 'City recreation '
+              'center with a gym, fields and youth sports leagues.', ['rec-center', 'sports', 'kids'], 'free',
+              'mixed', ALL, ['afternoon', 'evening']),
+        place('linda-vista-skate-park', 'Linda Vista Skate Park', 'park', 'linda-vista', 'Public concrete skate '
+              'park with bowls and street features.', ['skate', 'teens'], 'free', 'outdoor', ['solo', 'friends'],
+              ['afternoon', 'evening']),
     ],
     'colleges': [
         {'id': 'ucsd', 'name': 'University of California San Diego', 'type': 'research-university',
@@ -417,7 +625,7 @@ CITY = {
          'neighborhood': 'kearny-mesa', 'size': 'large', 'summary': 'Marine Corps aviation base on the mesa north '
          'of Kearny Mesa.', 'careers': ['military-sailor'], 'source': S},
         {'id': 'niwc-pacific', 'name': 'Naval Information Warfare Center Pacific', 'sector': 'defense',
-         'neighborhood': 'point-loma', 'size': 'large', 'summary': 'Navy research and engineering centre with '
+         'neighborhood': 'point-loma', 'size': 'large', 'summary': 'Navy research and engineering center with '
          'campuses on Point Loma and in Old Town.', 'careers': ['defense-engineer', 'software-engineer',
          'data-analyst'], 'source': S},
         {'id': 'nassco', 'name': 'General Dynamics NASSCO', 'sector': 'defense', 'neighborhood': 'barrio-logan',
@@ -450,7 +658,7 @@ CITY = {
          'careers': ['registered-nurse', 'night-nurse', 'physician-resident', 'pharmacist',
          'medical-researcher', 'social-worker'], 'source': S},
         {'id': 'scripps-mercy', 'name': 'Scripps Mercy Hospital', 'sector': 'healthcare', 'neighborhood': 'hillcrest',
-         'size': 'large', 'summary': 'Scripps Health hospital and trauma centre in Hillcrest.',
+         'size': 'large', 'summary': 'Scripps Health hospital and trauma center in Hillcrest.',
          'careers': ['registered-nurse', 'night-nurse', 'physician-resident', 'pharmacist'], 'source': S},
         {'id': 'sharp-memorial', 'name': 'Sharp Memorial Hospital', 'sector': 'healthcare',
          'neighborhood': 'kearny-mesa', 'size': 'large', 'summary': 'Flagship hospital of Sharp HealthCare in the '
@@ -470,7 +678,7 @@ CITY = {
          'careers': ['government-analyst', 'accountant', 'social-worker'], 'source': S},
         {'id': 'county-of-san-diego', 'name': 'County of San Diego', 'sector': 'government',
          'neighborhood': 'downtown', 'size': 'large', 'summary': 'County agencies, courts and the District '
-         'Attorney, centred on the County Administration Center.', 'careers': ['government-analyst',
+         'Attorney, centered on the County Administration Center.', 'careers': ['government-analyst',
          'social-worker', 'paralegal'], 'source': S},
         {'id': 'sd-lifeguards', 'name': 'San Diego Lifeguard Service', 'sector': 'recreation',
          'neighborhood': 'mission-beach', 'size': 'medium', 'summary': 'City Fire-Rescue lifeguards in towers on '
@@ -499,7 +707,7 @@ CITY = {
          'size': 'small', 'summary': 'Orchestra playing Jacobs Music Center indoors and The Rady Shell in summer.',
          'careers': ['musician', 'event-planner'], 'source': S},
         {'id': 'old-globe-employer', 'name': 'The Old Globe', 'sector': 'arts', 'neighborhood': 'bankers-hill',
-         'size': 'small', 'summary': 'Regional theatre in Balboa Park.', 'careers': ['actor', 'performer'],
+         'size': 'small', 'summary': 'Regional theater in Balboa Park.', 'careers': ['actor', 'performer'],
          'source': S},
         {'id': 'kpbs', 'name': 'KPBS', 'sector': 'media', 'neighborhood': 'college-area', 'size': 'small',
          'summary': 'Public radio and television newsroom on the SDSU campus.', 'careers': ['journalist'],

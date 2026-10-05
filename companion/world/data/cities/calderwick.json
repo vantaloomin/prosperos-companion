@@ -1762,6 +1762,813 @@
    ],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "miss-pickles-tea-room",
+   "name": "Miss Pickles' tea room",
+   "kind": "cafe",
+   "neighborhood": "castle-hill",
+   "summary": "A front-room tea room in a stone house below the castle, with seed cake, potted-meat sandwiches and a view of the chimneys.",
+   "tags": [
+    "tea-room",
+    "cakes",
+    "quiet"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "tea room",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "castle-bowling-green",
+   "name": "Castle Hill bowling green",
+   "kind": "fitness",
+   "neighborhood": "castle-hill",
+   "summary": "A level green inside the old outer bailey where retired mill managers play crown bowls on summer evenings.",
+   "tags": [
+    "bowls",
+    "quiet",
+    "old-town"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lowfield-dining-rooms",
+   "name": "Lowfield Dining Rooms",
+   "kind": "restaurant",
+   "neighborhood": "lowfield",
+   "summary": "A works cookshop by the tube mill gates selling hot dinners in basins: meat and potato pie, peas and a mug of tea for fourpence.",
+   "tags": [
+    "dinners",
+    "works",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "English",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lowfield-co-op",
+   "name": "Lowfield Co-operative Store",
+   "kind": "shopping",
+   "neighborhood": "lowfield",
+   "summary": "The Co-op grocery and drapery, where members collect their dividend twice a year and argue about it at the counter.",
+   "tags": [
+    "co-op",
+    "groceries",
+    "dividend"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ogdens-clogger",
+   "name": "Ogden's clogger",
+   "kind": "workshop",
+   "neighborhood": "lowfield",
+   "summary": "A clogger's shop where wooden soles are cut, irons nailed on and old clogs re-ironed while you wait on the bench.",
+   "tags": [
+    "clogs",
+    "craft",
+    "repairs"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hirsts-dry-dock",
+   "name": "Hirst's dry dock",
+   "kind": "workshop",
+   "neighborhood": "saltergate-basin",
+   "summary": "A boatyard at the end of the basin where narrowboats are caulked, tarred and painted with roses and castles.",
+   "tags": [
+    "boats",
+    "craft",
+    "canal"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "boatmens-mission",
+   "name": "Boatmen's Mission",
+   "kind": "temple",
+   "neighborhood": "saltergate-basin",
+   "summary": "A small mission chapel on the wharf with a Sunday service, a reading room and a night school for boat children.",
+   "tags": [
+    "chapel",
+    "canal",
+    "school"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "zion-chapel",
+   "name": "Zion Primitive Methodist Chapel",
+   "kind": "temple",
+   "neighborhood": "hobcroft",
+   "summary": "A plain brick chapel with a big Sunday school, a brass band and the anniversary sing on the second Sunday in June.",
+   "tags": [
+    "chapel",
+    "singing",
+    "sunday-school"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hobcroft-rec",
+   "name": "Hobcroft recreation ground",
+   "kind": "park",
+   "neighborhood": "hobcroft",
+   "summary": "A cinder field with swings, a cricket pitch and a shelter where old men sit and children kick a ball till dark.",
+   "tags": [
+    "playground",
+    "cricket",
+    "children"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ings-end-co-op",
+   "name": "Ings End Co-operative Store and News Room",
+   "kind": "shopping",
+   "neighborhood": "ings-end",
+   "summary": "The branch Co-op with a grocery below and a news room above, where members read the papers for nothing.",
+   "tags": [
+    "co-op",
+    "groceries",
+    "newspapers"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pickerings-pie-shop",
+   "name": "Pickering's pie shop",
+   "kind": "restaurant",
+   "neighborhood": "ings-end",
+   "summary": "A pie shop with a few tables, selling pork pies, pie and peas with mint sauce, and a jug of gravy for home.",
+   "tags": [
+    "pies",
+    "cheap",
+    "takeaway"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "English",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ings-end-wesleyan",
+   "name": "Ings End Wesleyan Chapel",
+   "kind": "temple",
+   "neighborhood": "ings-end",
+   "summary": "A new stone chapel built by subscription, with a Thursday choir practice and a Band of Hope for the children.",
+   "tags": [
+    "chapel",
+    "choir",
+    "temperance"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pneumatic-post-office",
+   "name": "Head Post Office",
+   "kind": "landmark",
+   "neighborhood": "exchange-quarter",
+   "summary": "The post office where the pneumatic post began, with a counter of brass tube mouths and a clerk who sends a letter across town in a minute.",
+   "tags": [
+    "post",
+    "pneumatics",
+    "civic"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "commercial-hotel",
+   "name": "The Commercial Hotel",
+   "kind": "inn",
+   "neighborhood": "station-fields",
+   "summary": "A hotel for travelling salesmen opposite the station, with sample rooms, a coffee room and a plain table d'hote at six.",
+   "tags": [
+    "hotel",
+    "travellers",
+    "dinner"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "English",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "station-bookstall",
+   "name": "Central Station bookstall",
+   "kind": "shopping",
+   "neighborhood": "station-fields",
+   "summary": "A platform bookstall of newspapers, railway novels, timetables and penny maps of the valley.",
+   "tags": [
+    "books",
+    "newspapers",
+    "railway"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "uncle-dicks",
+   "name": "Uncle Dick's pawnshop",
+   "kind": "shopping",
+   "neighborhood": "market-place",
+   "summary": "The busiest pawnbroker in town, with Sunday suits going in on Monday and coming out again on Saturday.",
+   "tags": [
+    "pawnshop",
+    "bargains",
+    "secondhand"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "st-patricks-church",
+   "name": "St Patrick's Church",
+   "kind": "temple",
+   "neighborhood": "paradise",
+   "summary": "The Catholic church at the top of Paradise Street, with early Mass for the works and the Whit procession behind a band.",
+   "tags": [
+    "church",
+    "catholic",
+    "procession"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-harp",
+   "name": "The Harp",
+   "kind": "tavern",
+   "neighborhood": "paradise",
+   "summary": "An Irish pub on Paradise Street with a fiddler on Saturday nights and a back room where the Hibernian society meets.",
+   "tags": [
+    "pub",
+    "irish",
+    "music"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ackroyd-bandstand",
+   "name": "Ackroyd Park bandstand",
+   "kind": "venue",
+   "neighborhood": "ackroyd-park",
+   "summary": "An iron bandstand by the lake where works brass bands play on Sunday afternoons and the town band on summer evenings.",
+   "tags": [
+    "brass-band",
+    "music",
+    "sunday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ackroyd-pavilion",
+   "name": "Park refreshment pavilion",
+   "kind": "cafe",
+   "neighborhood": "ackroyd-park",
+   "summary": "A timber pavilion by the boating lake selling tea, lemonade, buns and ices to families on their Sunday walk.",
+   "tags": [
+    "tea",
+    "family",
+    "lake"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "tea room",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ackroyd-bowling-greens",
+   "name": "Ackroyd Park bowling greens",
+   "kind": "fitness",
+   "neighborhood": "ackroyd-park",
+   "summary": "Two corporation greens with a hut for woods, open to anyone with a penny and flat-soled shoes.",
+   "tags": [
+    "bowls",
+    "corporation",
+    "evening"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shoulder-of-mutton",
+   "name": "The Shoulder of Mutton",
+   "kind": "tavern",
+   "neighborhood": "moorside",
+   "summary": "A pub on the moor road used by students, porters from the infirmary and art-school teachers arguing about Ruskin.",
+   "tags": [
+    "pub",
+    "students",
+    "arguments"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "st-aidans-fernleigh",
+   "name": "St Aidan's, Fernleigh",
+   "kind": "temple",
+   "neighborhood": "fernleigh",
+   "summary": "A new stone church paid for by the manufacturers, with carved pews, a good organ and a Sunday parade of hats.",
+   "tags": [
+    "church",
+    "organ",
+    "society"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fernleigh-hotel",
+   "name": "Fernleigh Hotel dining room",
+   "kind": "restaurant",
+   "neighborhood": "fernleigh",
+   "summary": "A quiet hotel dining room on the omnibus terminus where villa families take Sunday luncheon and wedding breakfasts.",
+   "tags": [
+    "dining-room",
+    "sunday-lunch",
+    "society"
+   ],
+   "cost": "$$$",
+   "setting": "indoor",
+   "good_for": [
+    "family",
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "English",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fernleigh-subscription-library",
+   "name": "Fernleigh Subscription Library",
+   "kind": "library",
+   "neighborhood": "fernleigh",
+   "summary": "A subscription library in a converted villa, with new novels from London and a ladies' committee that picks them.",
+   "tags": [
+    "books",
+    "novels",
+    "subscription"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ridley-top-farm",
+   "name": "Ridley Top Farm teas",
+   "kind": "cafe",
+   "neighborhood": "ridley-moor",
+   "summary": "A farmhouse that sells teas, eggs and buttermilk to walkers, with a parlour for wet days and a table outside for fine ones.",
+   "tags": [
+    "farm",
+    "teas",
+    "walkers"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "farmhouse teas",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ridley-quarry",
+   "name": "Ridley delph",
+   "kind": "workshop",
+   "neighborhood": "ridley-moor",
+   "summary": "A gritstone quarry on the moor edge where the stone for the town's chapels and villas is cut and dressed in open sheds.",
+   "tags": [
+    "quarry",
+    "stone",
+    "work"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "holme-tea-gardens",
+   "name": "Holme tea gardens",
+   "kind": "cafe",
+   "neighborhood": "calder-holme",
+   "summary": "Trestle tables under the alders by the river where families buy a jug of hot water for their own tea and a plate of teacakes.",
+   "tags": [
+    "tea",
+    "river",
+    "family"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "tea room",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ferry-boat-inn",
+   "name": "The Ferry Boat Inn",
+   "kind": "tavern",
+   "neighborhood": "calder-holme",
+   "summary": "A riverside pub by the old ferry with a garden of benches, where cyclists stop after the Saturday races.",
+   "tags": [
+    "pub",
+    "river",
+    "cyclists"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "calder-rowing-club",
+   "name": "Calder Rowing Club",
+   "kind": "fitness",
+   "neighborhood": "calder-holme",
+   "summary": "A wooden boathouse on the mill dam where clerks and mechanics row fours in the evening and hold a regatta in July.",
+   "tags": [
+    "rowing",
+    "river",
+    "club"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [

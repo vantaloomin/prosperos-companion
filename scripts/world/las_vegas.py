@@ -40,11 +40,11 @@ CITY = {
     'names': {'mix': {'anglo': 3.5, 'hispanic': 3, 'black-american': 1.2, 'east-asian': 1.2, 'italian': 0.3,
                        'irish': 0.3, 'jewish': 0.3, 'south-asian': 0.2, 'slavic': 0.2, 'caribbean': 0.1}},
     'sources': {
-        S: {'kind': 'curated', 'title': 'Las Vegas places and neighbourhoods written for Prospero Companion',
+        S: {'kind': 'curated', 'title': 'Las Vegas places and neighborhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',
             'note': 'Well-known public places, institutions and employers from general knowledge. Businesses open '
                     'and close and rents move: treat this as a snapshot for fiction. Rents are rounded estimates '
-                    'of typical asking ranges, not listings. Coordinates are approximate neighbourhood centres.'},
+                    'of typical asking ranges, not listings. Coordinates are approximate neighborhood centers.'},
         CLIMATE: {'kind': 'curated', 'title': 'Approximate monthly climate for Las Vegas (Harry Reid '
                   'International Airport)', 'license': 'CC0-1.0', 'retrieved': '2026-10-05',
                   'note': 'Rounded values in line with NOAA 1991-2020 normals; refresh with scripts/world when '
@@ -88,11 +88,11 @@ CITY = {
              'working-class', 'latino'], 36.160, -115.090, 'low', ([750, 1000], [900, 1200], [1100, 1550]),
              ['single-family', 'apartment', 'mobile-home'], 'low', ['rtc-bus', 'car']),
         hood('north-las-vegas', 'North Las Vegas', 'A separate city of newer subdivisions, warehouses and older '
-             'neighbourhoods, next to Nellis Air Force Base.', ['affordable', 'suburban', 'military', 'industrial'],
+             'neighborhoods, next to Nellis Air Force Base.', ['affordable', 'suburban', 'military', 'industrial'],
              36.220, -115.120, 'low', ([800, 1050], [950, 1300], [1250, 1700]),
              ['single-family', 'apartment', 'townhouse'], 'low', ['rtc-bus', 'car']),
         hood('centennial-hills', 'Centennial Hills', 'Northwest suburbs of stucco subdivisions and shopping '
-             'centres on the road toward Mount Charleston.', ['suburban', 'family', 'quiet'], 36.275, -115.265,
+             'centers on the road toward Mount Charleston.', ['suburban', 'family', 'quiet'], 36.275, -115.265,
              'mid', ([1000, 1300], [1200, 1550], [1500, 2000]), ['single-family', 'apartment', 'casita'], 'low',
              ['rtc-bus', 'car']),
         hood('summerlin', 'Summerlin', 'A large master-planned community on the west edge of the valley with '
@@ -105,7 +105,7 @@ CITY = {
              ['suburban', 'diverse', 'affordable'], 36.108, -115.245, 'mid', ([900, 1150], [1050, 1400],
              [1350, 1800]), ['apartment', 'single-family', 'condo'], 'low', ['rtc-bus', 'car']),
         hood('enterprise', 'Southwest (Enterprise)', 'The fast-growing southwest valley of master-planned '
-             'subdivisions like Mountain\'s Edge, plus data centres and warehouses.',
+             'subdivisions like Mountain\'s Edge, plus data centers and warehouses.',
              ['suburban', 'new-build', 'family'], 36.025, -115.240, 'mid', ([1000, 1300], [1200, 1600],
              [1500, 2100]), ['master-planned', 'single-family', 'apartment', 'casita'], 'low', ['rtc-bus', 'car']),
         hood('southern-highlands', 'Southern Highlands', 'A master-planned community at the south end of the valley '
@@ -113,10 +113,10 @@ CITY = {
              35.995, -115.200, 'high', ([1150, 1450], [1300, 1750], [1650, 2400]),
              ['master-planned', 'single-family', 'apartment'], 'low', ['car']),
         hood('green-valley', 'Green Valley (Henderson)', 'Henderson\'s older master-planned core of parks, '
-             'schools and shopping centres, popular with families.', ['suburban', 'family', 'safe'], 36.035,
+             'schools and shopping centers, popular with families.', ['suburban', 'family', 'safe'], 36.035,
              -115.085, 'mid', ([1050, 1350], [1200, 1650], [1550, 2200]),
              ['master-planned', 'single-family', 'apartment', 'townhouse'], 'low', ['rtc-bus', 'car']),
-        hood('henderson', 'Downtown Henderson', 'Henderson\'s original town centre around Water Street, with '
+        hood('henderson', 'Downtown Henderson', 'Henderson\'s original town center around Water Street, with '
              'newer subdivisions climbing toward the River Mountains.', ['suburban', 'small-town', 'family'],
              36.030, -114.982, 'mid', ([950, 1250], [1100, 1500], [1450, 2000]),
              ['single-family', 'apartment', 'townhouse'], 'medium', ['rtc-bus', 'car']),
@@ -178,7 +178,7 @@ CITY = {
               'hundreds of dishes across live-cooking stations.', ['buffet', 'splurge'], '$$$$', 'indoor', ALL,
               ['morning', 'afternoon', 'evening'], cuisine='buffet'),
         place('fashion-show-mall', 'Fashion Show Las Vegas', 'shopping', 'the-strip', 'Big indoor mall on the Strip '
-              'with department stores and a runway in the centre court.', ['mall', 'rainy-day'], '$$', 'indoor',
+              'with department stores and a runway in the center court.', ['mall', 'rainy-day'], '$$', 'indoor',
               ALL, ['afternoon', 'evening']),
         place('tacos-el-gordo', 'Tacos El Gordo', 'restaurant', 'the-strip', 'Tijuana-style taqueria on the north '
               'Strip with adobada shaved off the spit, open into the small hours.', ['tacos', 'late-night', 'cheap'],
@@ -228,8 +228,8 @@ CITY = {
               'Circa resort facing a giant screen showing live sports.', ['pool', 'sports', 'party'], '$$$',
               'outdoor', ['friends'], ['afternoon'], ['spring', 'summer', 'fall']),
         place('smith-center', 'The Smith Center for the Performing Arts', 'venue', 'downtown', 'Art deco performing '
-              'arts centre in Symphony Park hosting touring Broadway, the symphony and the ballet.',
-              ['theatre', 'broadway', 'classical'], '$$$', 'indoor', ['date', 'family', 'solo'], DINNER),
+              'arts center in Symphony Park hosting touring Broadway, the symphony and the ballet.',
+              ['theater', 'broadway', 'classical'], '$$$', 'indoor', ['date', 'family', 'solo'], DINNER),
         place('discovery-childrens-museum', 'Discovery Children\'s Museum', 'museum', 'downtown', 'Three floors of '
               'hands-on exhibits in Symphony Park.', ['kids', 'rainy-day', 'science'], '$$', 'indoor', ['family'],
               DAY),
@@ -237,7 +237,7 @@ CITY = {
               'laptop mornings.', ['coffee', 'pastries', 'brunch'], '$', 'indoor', ['solo', 'friends', 'date'], DAY,
               cuisine='cafe'),
         place('esthers-kitchen', 'Esther\'s Kitchen', 'restaurant', 'arts-district', 'Arts District Italian '
-              'restaurant known for house-made pasta and sourdough.', ['pasta', 'local-favourite'], '$$$', 'indoor',
+              'restaurant known for house-made pasta and sourdough.', ['pasta', 'local-favorite'], '$$$', 'indoor',
               ['date', 'friends'], ['afternoon', 'evening'], cuisine='italian'),
         place('velveteen-rabbit', 'Velveteen Rabbit', 'bar', 'arts-district', 'Moody craft cocktail bar with a '
               'patio in the Arts District.', ['cocktails', 'patio'], '$$', 'mixed', ['friends', 'date'], NIGHT),
@@ -248,7 +248,7 @@ CITY = {
               'Mountain Road open around the clock.', ['pho', '24-hour', 'cheap'], '$', 'indoor', ALL, ALWAYS,
               cuisine='vietnamese'),
         place('raku', 'Raku', 'restaurant', 'chinatown', 'Small Japanese robata grill famous for house-made tofu, '
-              'open late and popular with off-duty chefs.', ['japanese', 'late-night', 'chef-favourite'], '$$$',
+              'open late and popular with off-duty chefs.', ['japanese', 'late-night', 'chef-favorite'], '$$$',
               'indoor', ['date', 'friends', 'solo'], NIGHT, cuisine='japanese'),
         place('chinatown-plaza', 'Chinatown Plaza', 'shopping', 'chinatown', 'The original 1990s Chinatown mall on '
               'Spring Mountain Road, with a gate, Asian grocers and restaurants.', ['food', 'groceries', 'asian'],
@@ -257,7 +257,7 @@ CITY = {
               'with half-price steaks at happy hour.', ['cocktails', 'steak', 'happy-hour'], '$$$', 'indoor',
               ['date', 'friends'], NIGHT),
         place('lotus-of-siam', 'Lotus of Siam', 'restaurant', 'university-district', 'Celebrated Thai restaurant '
-              'known for Northern Thai dishes and a long riesling list.', ['thai', 'local-favourite'], '$$$',
+              'known for Northern Thai dishes and a long riesling list.', ['thai', 'local-favorite'], '$$$',
               'indoor', ['date', 'friends', 'family'], ['afternoon', 'evening'], cuisine='thai'),
         place('ellis-island', 'Ellis Island Casino & Brewery', 'bar', 'convention-center', 'Locals\' casino off the '
               'Strip with a brewery, karaoke lounge and a cheap steak special.', ['karaoke', 'brewery', 'locals'],
@@ -278,7 +278,7 @@ CITY = {
               'elaborate custom cakes.', ['cakes', 'pastries', 'family-run'], '$', 'indoor', ALL, DAY,
               cuisine='bakery'),
         place('wetlands-park', 'Clark County Wetlands Park', 'park', 'eastside', 'Ponds, cottonwoods and trails '
-              'along the Las Vegas Wash with a nature centre and good birdwatching.', ['nature', 'birds', 'walk'],
+              'along the Las Vegas Wash with a nature center and good birdwatching.', ['nature', 'birds', 'walk'],
               'free', 'outdoor', ALL, DAY, MILD),
         place('red-rock-canyon', 'Red Rock Canyon National Conservation Area', 'park', 'summerlin', 'Red sandstone '
               'cliffs on a 13-mile scenic loop drive with hiking and climbing, minutes from Summerlin.',
@@ -287,7 +287,7 @@ CITY = {
               'Vegas Aviators, with a pool beyond the outfield.', ['baseball', 'sports', 'family'], '$$', 'outdoor',
               ALL, ['evening'], ['spring', 'summer']),
         place('downtown-summerlin', 'Downtown Summerlin', 'shopping', 'summerlin', 'Open-air shopping and dining '
-              'district at the centre of Summerlin.', ['shops', 'restaurants', 'walk'], '$$', 'outdoor', ALL,
+              'district at the center of Summerlin.', ['shops', 'restaurants', 'walk'], '$$', 'outdoor', ALL,
               ['afternoon', 'evening']),
         place('summerlin-farmers-market', 'Downtown Summerlin Farmers Market', 'market', 'summerlin', 'Weekly '
               'farmers market with produce, baked goods and food stalls.', ['farmers-market', 'food'], '$',
@@ -334,6 +334,159 @@ CITY = {
         place('seven-magic-mountains', 'Seven Magic Mountains', 'landmark', 'southern-highlands', 'Ugo Rondinone\'s '
               'stacks of day-glo painted boulders in the desert off I-15, about 20 minutes south of the valley.',
               ['art', 'photo-op', 'desert'], 'free', 'outdoor', ALL, DAY, MILD),
+        # Everyday neighborhood spots: cafes, diners, pubs, libraries, parks and markets.
+        place('hofbrauhaus-las-vegas', 'Hofbräuhaus Las Vegas', 'restaurant', 'convention-center', 'Munich '
+              'beer-hall replica on Paradise Road with oompah bands, pretzels and steins.', ['beer-hall', 'german',
+              'live-music'], '$$', 'indoor', ['friends', 'coworkers', 'family'], NIGHT, cuisine='german'),
+        place('battistas', 'Battista\'s Hole in the Wall', 'restaurant', 'convention-center', 'Old-school Italian '
+              'restaurant behind the Strip since 1970, with an accordion player and free house wine.',
+              ['italian', 'old-school', 'kitschy'], '$$', 'indoor', ['date', 'friends', 'family'], DINNER,
+              cuisine='italian'),
+        place('westgate-las-vegas', 'Westgate Las Vegas', 'landmark', 'convention-center', 'The former Las Vegas '
+              'Hilton beside the convention center, where Elvis played hundreds of shows, with a huge sportsbook.',
+              ['casino', 'elvis', 'sportsbook'], '$$', 'indoor', ['friends', 'solo'], ALWAYS),
+        place('winchester-park', 'Winchester Dondero Cultural Center', 'park', 'convention-center', 'County park '
+              'and cultural center with a playground, gallery, classes and a small theater.', ['playground', 'arts',
+              'classes'], 'free', 'mixed', ALL, ['morning', 'afternoon', 'evening']),
+        place('main-street-antiques', 'Main Street antique row', 'shopping', 'arts-district', 'Blocks of vintage '
+              'and antique shops selling midcentury furniture, casino memorabilia and old neon.',
+              ['vintage', 'antiques', 'browsing'], '$$', 'indoor', ['solo', 'friends', 'date'], DAY),
+        place('makers-and-finders', 'Makers & Finders', 'cafe', 'arts-district', 'Latin-inspired coffee bar and '
+              'brunch spot in the Arts District.', ['coffee', 'brunch', 'latin'], '$$', 'indoor', ALL, DAY,
+              cuisine='latin'),
+        place('99-ranch-las-vegas', '99 Ranch Market', 'market', 'chinatown', 'Big Asian supermarket anchoring a '
+              'Spring Mountain Road plaza, with a bakery and hot food counters.', ['grocery', 'asian'], '$',
+              'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('ping-pang-pong', 'Ping Pang Pong', 'restaurant', 'chinatown', 'Locals\' dim sum restaurant inside '
+              'the Gold Coast casino, packed for weekend lunches.', ['dim-sum', 'chinese', 'locals'], '$$', 'indoor',
+              ALL, ['morning', 'afternoon', 'evening'], cuisine='chinese'),
+        place('lorenzi-park', 'Lorenzi Park', 'park', 'medical-district', 'City park with a duck pond, tennis '
+              'courts, a playground and a walking loop.', ['pond', 'playground', 'walk'], 'free', 'outdoor', ALL,
+              ['morning', 'evening']),
+        place('dona-maria-tamales', 'Doña Maria Tamales', 'restaurant', 'medical-district', 'Family Mexican '
+              'restaurant on Charleston Boulevard famous for its tamales since the 1980s.', ['tamales', 'mexican',
+              'local'], '$', 'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='mexican'),
+        place('west-las-vegas-library', 'West Las Vegas Library', 'library', 'medical-district', 'Historic Westside '
+              'branch library with a theater and African American collections.', ['books', 'theater',
+              'black-history'], 'free', 'indoor', ALL, DAY),
+        place('clark-county-library', 'Clark County Library', 'library', 'university-district', 'Large library on '
+              'Flamingo Road near UNLV with a theater and art gallery.', ['books', 'study', 'theater'], 'free',
+              'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('crown-and-anchor', 'Crown & Anchor British Pub', 'bar', 'university-district', 'Twenty-four-hour '
+              'British pub near UNLV with fish and chips and football on the TVs.', ['pub', 'british', 'late-night'],
+              '$$', 'indoor', ['friends', 'solo'], ALWAYS, cuisine='british-pub'),
+        place('east-las-vegas-library', 'East Las Vegas Library', 'library', 'eastside', 'Branch library with '
+              'bilingual programs, computers and a busy children\'s room.', ['books', 'bilingual', 'kids'], 'free',
+              'indoor', ALL, DAY),
+        place('frenchman-mountain', 'Frenchman Mountain', 'trail', 'eastside', 'Steep, rocky hike up the mountain '
+              'at the valley\'s east edge for a view over the whole city.', ['hiking', 'views', 'sunrise'], 'free',
+              'outdoor', ['solo', 'friends'], ['morning'], MILD),
+        place('commercial-center', 'Commercial Center', 'shopping', 'eastside', 'Aging 1960s shopping center on '
+              'East Sahara, home to cheap Asian restaurants and some of the city\'s oldest gay bars.',
+              ['cheap-eats', 'lgbtq', 'retro'], '$', 'mixed', ['friends', 'solo'], ['afternoon', 'evening', 'late']),
+        place('huntridge-tavern', 'Huntridge Tavern', 'bar', 'eastside', 'Classic dive bar at Charleston and '
+              'Maryland Parkway with cheap drinks and video poker.', ['dive-bar', 'video-poker', 'cheap'], '$',
+              'indoor', ['friends', 'solo'], NIGHT),
+        place('aliante-nature-park', 'Aliante Nature Discovery Park', 'park', 'north-las-vegas', 'Park with a lake, '
+              'dinosaur-themed playground and walking paths.', ['lake', 'playground', 'walk'], 'free', 'outdoor',
+              ALL, ['morning', 'evening']),
+        place('alexander-library', 'Alexander Library', 'library', 'north-las-vegas', 'North Las Vegas branch '
+              'library with study rooms and computers.', ['books', 'study', 'kids'], 'free', 'indoor', ALL, DAY),
+        place('aliante-casino', 'Aliante Casino', 'nightlife', 'north-las-vegas', 'Locals casino with a movie '
+              'theater, bars and a buffet.', ['casino', 'locals', 'movies'], '$$', 'indoor',
+              ['friends', 'date'], NIGHT),
+        place('tule-springs', 'Tule Springs Fossil Beds National Monument', 'trail', 'north-las-vegas', 'Open desert '
+              'washes where Ice Age mammoth and camel fossils were found, with simple trailheads.',
+              ['fossils', 'desert', 'hiking'], 'free', 'outdoor', ['solo', 'family', 'friends'], ['morning'], MILD),
+        place('centennial-hills-library', 'Centennial Hills Library', 'library', 'centennial-hills', 'Big suburban '
+              'branch library with a YMCA next door.', ['books', 'kids', 'study'], 'free', 'indoor', ALL, DAY),
+        place('centennial-hills-park', 'Centennial Hills Park', 'park', 'centennial-hills', 'Large city park with '
+              'an amphitheatre, fields, playgrounds and a dog park.', ['playground', 'dogs', 'sports'], 'free',
+              'outdoor', ALL, ['morning', 'evening']),
+        place('santa-fe-station', 'Santa Fe Station', 'nightlife', 'centennial-hills', 'Northwest locals casino '
+              'with a bowling center, cinema and bars.', ['casino', 'bowling', 'locals'], '$$', 'indoor',
+              ['friends', 'family', 'date'], ['afternoon', 'evening', 'late']),
+        place('gilcrease-orchard', 'Gilcrease Orchard', 'market', 'centennial-hills', 'Pick-your-own orchard and '
+              'farm stand with apples, pumpkins and cider doughnuts in autumn.', ['u-pick', 'pumpkins', 'family'],
+              '$', 'outdoor', ALL, ['morning'], ['fall', 'spring']),
+        place('honey-salt', 'Honey Salt', 'restaurant', 'summerlin', 'Neighborhood farm-to-table restaurant on '
+              'Rampart, popular for brunch.', ['brunch', 'seasonal', 'local'], '$$$', 'indoor',
+              ['date', 'friends', 'family'], ['morning', 'afternoon', 'evening'], cuisine='american'),
+        place('summerlin-library', 'Summerlin Library', 'library', 'summerlin', 'Branch library with a performing '
+              'arts theater and gallery.', ['books', 'theater', 'quiet'], 'free', 'indoor', ALL, DAY),
+        place('sahara-west-library', 'Sahara West Library', 'library', 'spring-valley', 'Large branch library with '
+              'a gallery and many study rooms.', ['books', 'study', 'art'], 'free', 'indoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('desert-breeze-park', 'Desert Breeze Park', 'park', 'spring-valley', 'County park with a community '
+              'center, aquatic complex, skate park and dog park.', ['pool', 'skate', 'dogs'], 'free', 'mixed', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('spring-valley-library', 'Spring Valley Library', 'library', 'spring-valley', 'Neighborhood branch '
+              'library with story times and computers.', ['books', 'kids', 'computers'], 'free', 'indoor', ALL, DAY),
+        place('orleans-arena', 'Orleans Arena', 'venue', 'spring-valley', 'Mid-sized arena at the Orleans casino '
+              'for concerts, rodeo finals and college tournaments.', ['concerts', 'sports'], '$$', 'indoor',
+              ['friends', 'family'], ['evening']),
+        place('orleans-bowling', 'Orleans Bowling Center', 'fitness', 'spring-valley', 'Big locals bowling center '
+              'inside the Orleans, with leagues and late-night games.', ['bowling', 'leagues', 'late-night'], '$',
+              'indoor', ALL, ALWAYS),
+        place('mountains-edge-park', 'Mountain\'s Edge Regional Park', 'park', 'enterprise', 'Large park with '
+              'fields, playgrounds and a dog park at the foot of the southwest hills.', ['playground', 'dogs',
+              'sports'], 'free', 'outdoor', ALL, ['morning', 'evening']),
+        place('exploration-peak', 'Exploration Peak Park', 'trail', 'enterprise', 'Park with a short summit trail '
+              'and views over the southwest valley.', ['hiking', 'views', 'playground'], 'free', 'outdoor', ALL,
+              ['morning', 'evening'], MILD),
+        place('enterprise-library', 'Enterprise Library', 'library', 'enterprise', 'Branch library serving the '
+              'southwest suburbs.', ['books', 'kids', 'study'], 'free', 'indoor', ALL, DAY),
+        place('windmill-library', 'Windmill Library', 'library', 'enterprise', 'Branch library with a large '
+              'children\'s area and study rooms.', ['books', 'kids', 'study'], 'free', 'indoor', ALL, DAY),
+        place('town-square-las-vegas', 'Town Square Las Vegas', 'shopping', 'enterprise', 'Open-air shopping and '
+              'restaurant center with a cinema and a children\'s park.', ['shopping', 'cinema', 'restaurants'],
+              '$$', 'outdoor', ALL, ['afternoon', 'evening']),
+        place('m-resort', 'M Resort', 'nightlife', 'southern-highlands', 'Locals resort casino at the south end of '
+              'Las Vegas Boulevard with a pool deck and lounge views up the valley.', ['casino', 'views', 'locals'],
+              '$$', 'indoor', ['friends', 'date'], NIGHT),
+        place('studio-b-buffet', 'Studio B Buffet', 'restaurant', 'southern-highlands', 'The M Resort\'s buffet, a '
+              'locals\' favorite with free beer and wine.', ['buffet', 'locals'], '$$', 'indoor', ALL,
+              ['morning', 'afternoon', 'evening'], cuisine='buffet'),
+        place('south-point-bowling', 'South Point Bowling Center', 'fitness', 'southern-highlands', 'Large bowling '
+              'center at the South Point casino, open around the clock.', ['bowling', 'leagues', 'late-night'], '$',
+              'indoor', ALL, ALWAYS),
+        place('silverado-ranch-park', 'Silverado Ranch Park', 'park', 'southern-highlands', 'County park with '
+              'fields, playgrounds and shaded picnic areas.', ['playground', 'sports', 'picnic'], 'free', 'outdoor',
+              ALL, ['morning', 'evening']),
+        place('paseo-verde-library', 'Paseo Verde Library', 'library', 'green-valley', 'Henderson branch library '
+              'with a gallery and a park next door.', ['books', 'kids', 'art'], 'free', 'indoor', ALL, DAY),
+        place('sunset-park', 'Sunset Park', 'park', 'green-valley', 'Big county park with a pond, disc golf, '
+              'volleyball and dog runs.', ['pond', 'disc-golf', 'dogs'], 'free', 'outdoor', ALL,
+              ['morning', 'evening']),
+        place('green-valley-ranch', 'Green Valley Ranch Resort', 'nightlife', 'green-valley', 'Henderson locals '
+              'resort with a casino, pool scene and restaurants.', ['casino', 'pool', 'locals'], '$$', 'mixed',
+              ['friends', 'date'], NIGHT),
+        place('henderson-bird-preserve', 'Henderson Bird Viewing Preserve', 'park', 'henderson', 'Ponds at the '
+              'water-treatment plant where hundreds of bird species stop over; free and quiet.', ['birds', 'nature',
+              'quiet'], 'free', 'outdoor', ['solo', 'family', 'date'], ['morning']),
+        place('gibson-library', 'James I. Gibson Library', 'library', 'henderson', 'Henderson\'s central branch '
+              'library near Water Street.', ['books', 'kids', 'study'], 'free', 'indoor', ALL, DAY),
+        place('lake-las-vegas-water-sports', 'Lake Las Vegas Water Sports', 'fitness', 'lake-las-vegas', 'Kayak, '
+              'paddleboard and pedal-boat rentals on the lake.', ['kayaking', 'paddleboard'], '$$', 'outdoor', ALL,
+              DAY, ['spring', 'summer', 'fall']),
+        place('reflection-bay-golf', 'Reflection Bay Golf Club', 'fitness', 'lake-las-vegas', 'Jack Nicklaus-'
+              'designed public golf course along the lakeshore.', ['golf', 'views'], '$$$', 'outdoor',
+              ['friends', 'coworkers', 'solo'], DAY),
+        place('lake-las-vegas-path', 'Lake Las Vegas lakeside path', 'trail', 'lake-las-vegas', 'Walking path '
+              'around the lake past the village and its bridges.', ['walk', 'lake', 'running'], 'free', 'outdoor',
+              ALL, ['morning', 'evening']),
+        place('northshore-road', 'Northshore Road scenic drive', 'landmark', 'lake-las-vegas', 'Desert drive from '
+              'Lake Las Vegas into Lake Mead National Recreation Area, past red rock and coves.',
+              ['scenic-drive', 'desert', 'views'], '$', 'outdoor', ['solo', 'friends', 'date'], DAY, MILD),
+        place('boulder-dam-brewing', 'Boulder Dam Brewing Company', 'restaurant', 'boulder-city', 'Small-town '
+              'brewpub with a patio, pub food and dam-themed beers.', ['brewery', 'patio', 'local'], '$$', 'mixed',
+              ALL, ['afternoon', 'evening'], cuisine='american-pub'),
+        place('boulder-city-library', 'Boulder City Library', 'library', 'boulder-city', 'The town\'s friendly '
+              'public library, a short walk from the historic district.', ['books', 'kids', 'quiet'], 'free',
+              'indoor', ALL, DAY),
+        place('boulder-dam-hotel', 'Boulder Dam Hotel and Museum', 'museum', 'boulder-city', 'Historic 1930s hotel '
+              'with a small museum on the building of the dam.', ['history', 'museum', 'hotel'], '$', 'indoor', ALL,
+              DAY),
     ],
     'colleges': [
         {'id': 'unlv', 'name': 'University of Nevada, Las Vegas', 'type': 'research-university',
@@ -390,7 +543,7 @@ CITY = {
          'source': S},
         {'id': 'cirque-du-soleil', 'name': 'Cirque du Soleil resident shows', 'sector': 'entertainment',
          'neighborhood': 'the-strip', 'size': 'medium', 'summary': 'Several permanent Cirque productions in Strip '
-         'resort theatres, with artists, musicians and technical crews.', 'careers': ['performer', 'musician',
+         'resort theaters, with artists, musicians and technical crews.', 'careers': ['performer', 'musician',
          'actor'], 'source': S},
         {'id': 'lvcva', 'name': 'Las Vegas Convention and Visitors Authority', 'sector': 'tourism',
          'neighborhood': 'convention-center', 'size': 'medium', 'summary': 'Runs the Las Vegas Convention Center '
@@ -404,7 +557,7 @@ CITY = {
          'size': 'medium', 'summary': 'Low-cost airline headquartered in Summerlin.', 'careers': ['data-analyst',
          'software-engineer', 'financial-analyst', 'accountant', 'marketing-coordinator'], 'source': S},
         {'id': 'switch', 'name': 'Switch', 'sector': 'technology', 'neighborhood': 'enterprise', 'size': 'medium',
-         'summary': 'Data centre company with large campuses in the southwest valley.', 'careers':
+         'summary': 'Data center company with large campuses in the southwest valley.', 'careers':
          ['software-engineer', 'data-analyst', 'construction-trades'], 'source': S},
         {'id': 'zappos', 'name': 'Zappos', 'sector': 'technology', 'neighborhood': 'downtown', 'size': 'medium',
          'summary': 'Online shoe and clothing retailer headquartered in the old City Hall downtown.',
@@ -415,7 +568,7 @@ CITY = {
          'careers': ['fitness-trainer', 'marketing-coordinator', 'event-planner', 'data-analyst'], 'source': S},
         {'id': 'umc', 'name': 'University Medical Center of Southern Nevada', 'sector': 'healthcare',
          'neighborhood': 'medical-district', 'size': 'large', 'summary': 'The county public hospital with the '
-         'state\'s only Level I trauma centre, and UNLV\'s main teaching hospital.', 'careers': ['registered-nurse',
+         'state\'s only Level I trauma center, and UNLV\'s main teaching hospital.', 'careers': ['registered-nurse',
          'night-nurse', 'physician-resident', 'pharmacist', 'social-worker'], 'source': S},
         {'id': 'sunrise-hospital', 'name': 'Sunrise Hospital and Medical Center', 'sector': 'healthcare',
          'neighborhood': 'university-district', 'size': 'large', 'summary': 'Large HCA hospital on Maryland Parkway '
@@ -426,7 +579,7 @@ CITY = {
          'campuses in Henderson.', 'careers': ['registered-nurse', 'night-nurse', 'pharmacist', 'social-worker'],
          'source': S},
         {'id': 'lou-ruvo-center', 'name': 'Cleveland Clinic Lou Ruvo Center for Brain Health', 'sector': 'healthcare',
-         'neighborhood': 'downtown', 'size': 'small', 'summary': 'Neurology clinic and research centre in a Frank '
+         'neighborhood': 'downtown', 'size': 'small', 'summary': 'Neurology clinic and research center in a Frank '
          'Gehry building in Symphony Park.', 'careers': ['medical-researcher', 'registered-nurse'], 'source': S},
         {'id': 'unlv-employer', 'name': 'UNLV', 'sector': 'education', 'neighborhood': 'university-district',
          'size': 'large', 'summary': 'Faculty, research and staff jobs at the main university campus.',
@@ -469,9 +622,9 @@ CITY = {
         {'id': 'henderson-hub', 'name': 'Henderson', 'neighborhoods': ['henderson', 'green-valley'],
          'sectors': ['healthcare', 'education', 'sports', 'real-estate', 'retail'], 'summary': 'Hospitals, health '
          'sciences schools, the Raiders\' headquarters and fast-growing suburban retail.', 'source': S},
-        {'id': 'southwest-industrial', 'name': 'Southwest warehouses and data centres', 'neighborhoods':
+        {'id': 'southwest-industrial', 'name': 'Southwest warehouses and data centers', 'neighborhoods':
          ['enterprise', 'spring-valley'], 'sectors': ['logistics', 'technology', 'construction'], 'summary':
-         'Distribution centres, data centres and home building in the growing southwest valley.', 'source': S},
+         'Distribution centers, data centers and home building in the growing southwest valley.', 'source': S},
         {'id': 'north-valley', 'name': 'Nellis and North Las Vegas', 'neighborhoods': ['north-las-vegas'],
          'sectors': ['defense', 'logistics', 'manufacturing', 'construction'], 'summary': 'The air base, '
          'industrial parks and warehouses along I-15 north.', 'source': S},

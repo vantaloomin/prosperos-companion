@@ -2033,6 +2033,1206 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "marylebone-church",
+   "name": "St Marylebone Parish Church",
+   "kind": "temple",
+   "neighborhood": "marylebone",
+   "summary": "The big classical parish church on the Marylebone Road where the Brownings married, with a choir on Sundays.",
+   "tags": [
+    "church",
+    "parish",
+    "music"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "marylebone-baths",
+   "name": "St Marylebone Public Baths",
+   "kind": "fitness",
+   "neighborhood": "marylebone",
+   "summary": "Parish baths and wash-houses on the Marylebone Road: a swimming bath, slipper baths and a laundry for households.",
+   "tags": [
+    "swimming",
+    "baths",
+    "laundry"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "blandford-street-chop-house",
+   "name": "Dawson's chop house, Blandford Street",
+   "kind": "restaurant",
+   "neighborhood": "marylebone",
+   "summary": "A plain chop house off Baker Street with high-backed boxes, mutton chops, kidneys and a pint of stout for lodgers and cabmen.",
+   "tags": [
+    "chop-house",
+    "cheap",
+    "invented"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "English chops",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shepherd-market",
+   "name": "Shepherd Market",
+   "kind": "market",
+   "neighborhood": "mayfair",
+   "summary": "A small village of lanes off Curzon Street with a butcher, a dairy, a pub and cheap rooms, where Mayfair's servants do their own shopping.",
+   "tags": [
+    "shops",
+    "servants",
+    "village"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "st-stephens-tavern",
+   "name": "St Stephen's Tavern",
+   "kind": "tavern",
+   "neighborhood": "westminster",
+   "summary": "A pub on Bridge Street facing the Clock Tower, with a division bell so members of Parliament can finish their drinks.",
+   "tags": [
+    "pub",
+    "parliament",
+    "gossip"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "army-and-navy-stores",
+   "name": "Army and Navy Stores",
+   "kind": "shopping",
+   "neighborhood": "westminster",
+   "summary": "The great co-operative store on Victoria Street, for members and their friends, selling everything from tea to tents.",
+   "tags": [
+    "department-store",
+    "groceries",
+    "members"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "great-smith-street-baths",
+   "name": "Westminster Public Baths, Great Smith Street",
+   "kind": "fitness",
+   "neighborhood": "westminster",
+   "summary": "New parish baths with a swimming bath, private hot baths and a public wash-house behind the Abbey.",
+   "tags": [
+    "swimming",
+    "baths",
+    "laundry"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ye-olde-cock-tavern",
+   "name": "Ye Olde Cock Tavern",
+   "kind": "tavern",
+   "neighborhood": "fleet-street",
+   "summary": "Old Fleet Street chop house and tavern, moved across the road when the bank took its site, still serving chops and stout to lawyers and printers.",
+   "tags": [
+    "pub",
+    "chops",
+    "press"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "English chops",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "st-bride-foundation",
+   "name": "St Bride Foundation Institute",
+   "kind": "library",
+   "neighborhood": "fleet-street",
+   "summary": "New institute in Bride Lane for the printing trades, with a technical library, a reading room and swimming baths.",
+   "tags": [
+    "books",
+    "printing",
+    "baths"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "temple-gardens",
+   "name": "Inner Temple Garden",
+   "kind": "garden",
+   "neighborhood": "fleet-street",
+   "summary": "Lawns and flower borders between the barristers' chambers and the Embankment, a quiet place to eat a sandwich.",
+   "tags": [
+    "garden",
+    "quiet",
+    "law"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "simpsons-tavern",
+   "name": "Simpson's Tavern",
+   "kind": "restaurant",
+   "neighborhood": "the-city",
+   "summary": "Old chop house up Ball Court off Cornhill where clerks crowd the benches at one o'clock for chops, stewed cheese and beer.",
+   "tags": [
+    "chop-house",
+    "lunch",
+    "clerks"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "English chops",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "guildhall-library",
+   "name": "Guildhall Library",
+   "kind": "library",
+   "neighborhood": "the-city",
+   "summary": "The Corporation's free reference library in the Guildhall, full of maps, directories and London history, open to all.",
+   "tags": [
+    "books",
+    "free",
+    "history"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ten-bells",
+   "name": "The Ten Bells",
+   "kind": "tavern",
+   "neighborhood": "whitechapel",
+   "summary": "Corner pub on Commercial Street opposite Christ Church, Spitalfields, crowded with market porters and weavers' descendants.",
+   "tags": [
+    "pub",
+    "market",
+    "east-end"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spitalfields-market",
+   "name": "Spitalfields Market",
+   "kind": "market",
+   "neighborhood": "whitechapel",
+   "summary": "The fruit and vegetable market in its new buildings by Christ Church, busy with carts from before dawn.",
+   "tags": [
+    "produce",
+    "early",
+    "carts"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "whitechapel-library",
+   "name": "Whitechapel Public Library",
+   "kind": "library",
+   "neighborhood": "whitechapel",
+   "summary": "New free library on the High Street with a newsroom and reading room, much used by young immigrants learning English.",
+   "tags": [
+    "books",
+    "free",
+    "newsroom"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "goulston-street-baths",
+   "name": "Goulston Street Baths and Wash-houses",
+   "kind": "fitness",
+   "neighborhood": "whitechapel",
+   "summary": "Early public baths and wash-houses where women do the family washing and men pay a penny for a bath.",
+   "tags": [
+    "baths",
+    "laundry",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "prospect-of-whitby",
+   "name": "The Prospect of Whitby",
+   "kind": "tavern",
+   "neighborhood": "limehouse",
+   "summary": "Old riverside pub on Wapping Wall with a flagstone floor, a pewter bar and a balcony over the Thames.",
+   "tags": [
+    "pub",
+    "river",
+    "old"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chrisp-street-market",
+   "name": "Chrisp Street market",
+   "kind": "market",
+   "neighborhood": "limehouse",
+   "summary": "Poplar's street market of costers' barrows selling vegetables, fish, crockery and cheap clothes to dockers' wives.",
+   "tags": [
+    "street-market",
+    "cheap",
+    "east-end"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "poplar-baths",
+   "name": "Poplar Public Baths",
+   "kind": "fitness",
+   "neighborhood": "limehouse",
+   "summary": "Parish baths on the East India Dock Road with a swimming bath, slipper baths and a wash-house for dock families.",
+   "tags": [
+    "swimming",
+    "baths",
+    "laundry"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "museum-tavern",
+   "name": "The Museum Tavern",
+   "kind": "tavern",
+   "neighborhood": "bloomsbury",
+   "summary": "Pub on Great Russell Street opposite the British Museum gates, full of readers, students and porters at lunchtime.",
+   "tags": [
+    "pub",
+    "students",
+    "lunch"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-lamb",
+   "name": "The Lamb",
+   "kind": "tavern",
+   "neighborhood": "bloomsbury",
+   "summary": "Small pub in Lamb's Conduit Street with snob screens at the bar, used by hospital staff and clerks from the Inns of Court.",
+   "tags": [
+    "pub",
+    "snob-screens",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mudies-library",
+   "name": "Mudie's Select Library",
+   "kind": "library",
+   "neighborhood": "bloomsbury",
+   "summary": "The great circulating library on New Oxford Street, where a guinea a year lets you borrow the new three-volume novels.",
+   "tags": [
+    "books",
+    "novels",
+    "subscription"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-anchor-bankside",
+   "name": "The Anchor, Bankside",
+   "kind": "tavern",
+   "neighborhood": "southwark",
+   "summary": "Riverside pub by the Barclay Perkins brewery, with draymen at the bar and a view across to St Paul's.",
+   "tags": [
+    "pub",
+    "river",
+    "brewery"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "st-saviours-southwark",
+   "name": "St Saviour's Church, Southwark",
+   "kind": "temple",
+   "neighborhood": "southwark",
+   "summary": "The old priory church by London Bridge, its nave being rebuilt, with a parish of market men and hop factors.",
+   "tags": [
+    "church",
+    "old",
+    "parish"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "southwark-park",
+   "name": "Southwark Park",
+   "kind": "park",
+   "neighborhood": "southwark",
+   "summary": "A people's park in Rotherhithe with a lake, a bandstand and cricket pitches, near the Surrey Docks.",
+   "tags": [
+    "park",
+    "bandstand",
+    "cricket"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "old-vic",
+   "name": "Royal Victoria Hall",
+   "kind": "venue",
+   "neighborhood": "lambeth",
+   "summary": "Miss Cons's temperance music hall on the Waterloo Road: cheap concerts, ballads and lantern lectures, with coffee instead of gin.",
+   "tags": [
+    "music-hall",
+    "temperance",
+    "lectures"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vauxhall-park",
+   "name": "Vauxhall Park",
+   "kind": "park",
+   "neighborhood": "lambeth",
+   "summary": "Small new public park off the South Lambeth Road with flower beds, benches and a playground for the neighbouring terraces.",
+   "tags": [
+    "park",
+    "children",
+    "new"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lower-marsh-eel-pie-shop",
+   "name": "Pie and eel shop, Lower Marsh",
+   "kind": "restaurant",
+   "neighborhood": "lambeth",
+   "summary": "Marble tables and sawdust on the floor, serving hot meat pies, mashed potato and stewed eels with green liquor.",
+   "tags": [
+    "pies",
+    "eels",
+    "cheap",
+    "invented"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "Pie and eels",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "st-barnabas-pimlico",
+   "name": "St Barnabas, Pimlico",
+   "kind": "temple",
+   "neighborhood": "pimlico",
+   "summary": "High church in Church Street with a choir school and incense, popular with servants and lodgers on Sunday evenings.",
+   "tags": [
+    "church",
+    "choir",
+    "high-church"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "victoria-station",
+   "name": "Victoria Station",
+   "kind": "landmark",
+   "neighborhood": "pimlico",
+   "summary": "Two railway termini side by side, for Brighton and for the Continent, with bookstalls, a refreshment room and a cab yard.",
+   "tags": [
+    "railway",
+    "travel",
+    "bookstall"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lupus-street-coffee-house",
+   "name": "Coffee house, Lupus Street",
+   "kind": "cafe",
+   "neighborhood": "pimlico",
+   "summary": "A clean coffee house with high-backed boxes, serving coffee, rashers and toast to clerks before the omnibus.",
+   "tags": [
+    "coffee",
+    "breakfast",
+    "cheap",
+    "invented"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "Coffee and breakfasts",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "warwick-way-laundry",
+   "name": "Mrs Pratt's laundry, Warwick Way",
+   "kind": "workshop",
+   "neighborhood": "pimlico",
+   "summary": "A hand laundry of coppers, mangles and drying lines that collects lodgers' collars and shirts by the dozen.",
+   "tags": [
+    "laundry",
+    "local",
+    "invented"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "royal-hospital-chelsea",
+   "name": "Royal Hospital Chelsea",
+   "kind": "landmark",
+   "neighborhood": "chelsea",
+   "summary": "Wren's home for old soldiers, whose pensioners in scarlet coats show visitors the chapel and the great hall.",
+   "tags": [
+    "history",
+    "soldiers",
+    "gardens"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kings-head-eight-bells",
+   "name": "The King's Head and Eight Bells",
+   "kind": "tavern",
+   "neighborhood": "chelsea",
+   "summary": "Old corner pub on Cheyne Walk by the river, used by painters, watermen and pensioners.",
+   "tags": [
+    "pub",
+    "river",
+    "artists"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "carlyles-house",
+   "name": "Carlyle's House",
+   "kind": "museum",
+   "neighborhood": "chelsea",
+   "summary": "Thomas Carlyle's plain brick house in Cheyne Row, newly opened to visitors with his books, pipes and soundproof study.",
+   "tags": [
+    "writers",
+    "history",
+    "new"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chelsea-public-library",
+   "name": "Chelsea Public Library",
+   "kind": "library",
+   "neighborhood": "chelsea",
+   "summary": "Free library in Manresa Road with a reading room, newspapers and a good shelf of art books for the studio crowd.",
+   "tags": [
+    "books",
+    "free",
+    "art"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-grenadier",
+   "name": "The Grenadier",
+   "kind": "tavern",
+   "neighborhood": "kensington",
+   "summary": "Small pub hidden in Wilton Row mews, said to have been the Guards' officers' mess, with a sentry box outside.",
+   "tags": [
+    "pub",
+    "mews",
+    "hidden"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "brompton-oratory",
+   "name": "The Brompton Oratory",
+   "kind": "temple",
+   "neighborhood": "kensington",
+   "summary": "The new Italianate Catholic church on the Brompton Road, known for its music at Sunday high mass.",
+   "tags": [
+    "church",
+    "music",
+    "catholic"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "jack-straws-castle",
+   "name": "Jack Straw's Castle",
+   "kind": "inn",
+   "neighborhood": "hampstead",
+   "summary": "Weatherboarded inn at the top of the Heath by the Whitestone Pond, with chops, ale and a view of the whole of London.",
+   "tags": [
+    "pub",
+    "heath",
+    "views"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "English",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hampstead-parish-church",
+   "name": "St John-at-Hampstead",
+   "kind": "temple",
+   "neighborhood": "hampstead",
+   "summary": "The village parish church at the end of Church Row, with Constable buried in the churchyard.",
+   "tags": [
+    "church",
+    "village",
+    "churchyard"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "heath-bathing-ponds",
+   "name": "Hampstead Heath bathing ponds",
+   "kind": "fitness",
+   "neighborhood": "hampstead",
+   "summary": "The old reservoir ponds on the Heath where men bathe before work, in all weathers if they are hardy.",
+   "tags": [
+    "swimming",
+    "ponds",
+    "early"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "richmond-park",
+   "name": "Richmond Park",
+   "kind": "park",
+   "neighborhood": "kew",
+   "summary": "The royal deer park on the hill above Richmond, with herds of red and fallow deer, ponds and long rides for walkers and riders.",
+   "tags": [
+    "deer",
+    "walk",
+    "riding"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "maids-of-honour",
+   "name": "Newens' Maids of Honour tea shop",
+   "kind": "cafe",
+   "neighborhood": "kew",
+   "summary": "Bakery and tea room on the Kew Road, famous for the little curd tarts called maids of honour.",
+   "tags": [
+    "tea",
+    "cakes",
+    "outing"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "Tea and cakes",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kew-green",
+   "name": "Kew Green",
+   "kind": "square",
+   "neighborhood": "kew",
+   "summary": "The village green by the gardens' main gate, with cricket on summer Saturdays and St Anne's church at one end.",
+   "tags": [
+    "cricket",
+    "green",
+    "village"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "richmond-boat-hire",
+   "name": "Boat hire at Richmond Bridge",
+   "kind": "attraction",
+   "neighborhood": "kew",
+   "summary": "Boatmen's rafts by the bridge hiring skiffs and punts by the hour for rowing up toward Petersham and Teddington.",
+   "tags": [
+    "boating",
+    "river",
+    "summer"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [
