@@ -64,6 +64,9 @@ try {
   $runtime = Join-Path $Bundle 'runtime\python.exe'
   $server = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" | Where-Object { $_.CommandLine -match 'companion\.launch' }
   Check ($server -and ($server | Select-Object -First 1).ExecutablePath -eq $runtime) "runs on the bundled runtime $runtime"
+  # Saved API keys go to Windows Credential Manager through keyring; its backend must load here.
+  $vault = & $runtime -I -c 'import keyring; print(type(keyring.get_keyring()).__name__)'
+  Check ($vault -eq 'WinVaultKeyring') "finds the Windows credential store ($vault)"
 
   Check (Test-Path -LiteralPath (Join-Path $DataDir 'companion.sqlite3')) "keeps its workspace in $DataDir"
   $backup = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8775/api/backups' -Headers @{ 'x-companion-client' = 'workspace' }
