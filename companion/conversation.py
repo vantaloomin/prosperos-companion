@@ -213,7 +213,7 @@ class Conversation:
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
             packet = context.build(connection, companion, self.database.clock.now(),
-                                   config['context_tokens'] - config['max_output_tokens'])
+                                   config['context_tokens'] - config['max_output_tokens'], user['seq'])
             attempt_id = identifier()
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
