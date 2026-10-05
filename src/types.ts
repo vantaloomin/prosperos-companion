@@ -161,3 +161,20 @@ export interface Today {
 }
 
 export interface PauseRecord { id: string; started_at: string; ended_at: string | null; catch_up_requested_at: string | null; catch_up_run_id: string | null }
+
+export type Reaction = 'heart' | 'laugh' | 'wow' | 'sad' | 'hug'
+
+export interface FeedPost {
+  id: string
+  kind: 'digest' | 'event'
+  intro: string
+  status: 'visible' | 'hidden'
+  read: boolean
+  reaction: Reaction | null
+  occurs_at: string
+  created_at: string
+  events: { id: string; summary: string; caption: string; mood: string | null; label: string | null; kind: string; starts_at: string; ends_at: string; revision: number }[]
+  image: { status: string; error: string | null }
+}
+
+export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }

@@ -7,8 +7,8 @@ import { Character } from './features/character/Character'
 import { Memories } from './features/memories/Memories'
 import { Settings } from './features/settings/Settings'
 import { Today } from './features/today/Today'
+import { Feed } from './features/feed/Feed'
 import { useReconcile } from './features/today/useReconcile'
-import { Placeholder } from './components/Placeholder'
 import { Loading, Notice } from './components/Feedback'
 
 const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
@@ -59,7 +59,7 @@ function CurrentView({ view, companion, go }: { view: View; companion: Companion
   if (view === 'character') return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
   if (view === 'today') return <Today companion={companion} go={go} />
-  if (view === 'feed') return <Placeholder title="Feed" text={`${companion.version.name}'s private posts will appear here once the feed is ready.`} />
+  if (view === 'feed') return <Feed companion={companion} go={go} />
   if (view === 'memories') return <Memories companion={companion} />
   return <Conversation companion={companion} go={go} />
 }
