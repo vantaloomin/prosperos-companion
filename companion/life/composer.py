@@ -232,7 +232,9 @@ def weather(world, definition: dict, local_date: str) -> dict | None:
     for everyone in the city). None when the world or city has no climate."""
     lookup, city = getattr(world, 'weather', None), home_city(definition)
     found = lookup(city, date.fromisoformat(local_date)) if lookup and city else None
-    return found and {key: found[key] for key in ('season', 'high_f', 'low_f', 'rain', 'note')}
+    # `observed` marks real weather looked up for the city that day (companion/mcp/weather.py).
+    return found and {key: found[key] for key in ('season', 'high_f', 'low_f', 'rain', 'note', 'observed')
+                      if key in found}
 
 
 def harsh(conditions: dict | None) -> bool:

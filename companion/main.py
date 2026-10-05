@@ -19,6 +19,7 @@ from companion.images.runner import ImageRunner
 from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
 from companion.mcp import routes as context_routes
+from companion.mcp import weather as observed_weather
 from companion.mcp.lookups import Lookups
 from companion.memory.worker import MemoryWorker
 from companion.providers.vault import SystemVault
@@ -63,8 +64,9 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     app.state.vault = vault or SystemVault()
-    world = world or CatalogWorld(app.state.database)
+    world = observed_weather.ObservedWorld(world or CatalogWorld(app.state.database), app.state.database)
     app.state.lookups = Lookups(app.state.database, app.state.vault, world, context_transports)
+    app.state.lookups.listeners.append(lambda observation: observed_weather.apply(app.state.database, observation))
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder,
                                           lookups=app.state.lookups)
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
@@ -73,6 +75,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.conversation.after_turn = app.state.memory.kick
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world)
+    app.state.life.lookups = app.state.lookups
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
     app.state.life_tasks = life_tasks

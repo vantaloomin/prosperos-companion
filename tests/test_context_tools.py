@@ -426,3 +426,72 @@ def test_no_model_connection_means_no_lookup(client, companion, standin_log):
     enable(client, add_service(client), 'weather')
     assert send(client, 'What is the weather like?', 'nc1')['connection'] == 'not_configured'
     assert calls(standin_log) == []
+
+
+# Real weather for the simulated day
+
+
+def test_conditions_are_read_from_structured_fields_or_text():
+    from companion.mcp.weather import conditions_from
+    assert conditions_from('', {'high_f': 61, 'low_f': 52, 'condition': 'light rain'}) == {
+        'high_f': 61, 'low_f': 52, 'rain': True, 'note': 'light rain'}
+    assert conditions_from('Sunny. High 30°C, low 21 °C. No rain expected.', None) == {
+        'high_f': 86, 'low_f': 70, 'rain': False, 'note': 'Sunny. High 30°C, low 21 °C. No rain expected.'}
+    assert conditions_from('Thunderstorms, 75 F', None)['rain'] is True
+    assert conditions_from('Partly cloudy and pleasant.', None) is None
+
+
+def companion_in(client, city, timezone='America/New_York'):
+    companion = client.get('/api/companion').json()['companion']
+    definition = {**companion['version']['definition'], 'home_city': city, 'timezone': timezone}
+    response = client.post('/api/companion/versions', json={'definition': definition,
+                                                            'expected_version_id': companion['active_version_id']})
+    assert response.status_code == 200, response.text
+
+
+def later_today(client, app):
+    with app.state.database.connect() as connection:
+        return [dict(row) for row in connection.execute(
+            "SELECT block, starts_at FROM life_agenda WHERE subject='companion' AND local_date='2026-10-05' "
+            "AND starts_at>'2026-10-05T12:00:00.000000+00:00'").fetchall()]
+
+
+def test_a_city_lookup_gives_the_rest_of_the_day_real_weather(client, app, connected, provider, standin_log):
+    companion_in(client, 'baltimore')
+    client.post('/api/life/reconcile')
+    before = later_today(client, app)
+    assert before and all('observed' not in json.loads(row['block']).get('weather', {}) for row in before)
+    enable(client, add_service(client), 'weather', run_in=('companion_city',))
+    found = client.post('/api/context/lookup', json={'category': 'weather', 'purpose': 'companion_city'}).json()
+    assert found['observations'][0]['arguments']['location'].startswith('Baltimore')
+    assert later_today(client, app) == []  # removed, to be composed again with the real weather
+    client.post('/api/life/reconcile')
+    after = [json.loads(row['block'])['weather'] for row in later_today(client, app)]
+    assert after and all(item['observed']['source'] == 'Stand-in' and item['rain'] and item['high_f'] == 61
+                         for item in after)
+    send(client, 'How is your day going?', 'lw1')
+    system = provider.requests[-1]['system']
+    assert "Today's real weather where you live (looked up by the app" in system
+    assert 'High 61°F, low 52°F, with rain. (looked up from Stand-in at 12:00 UTC)' in system
+    assert 'typical weather for the season' not in system
+
+
+def test_fictional_cities_keep_typical_weather(client, app, connected, standin_log):
+    companion_in(client, 'oz', 'UTC')
+    enable(client, add_service(client), 'weather', run_in=('companion_city',))
+    assert client.post('/api/context/lookup', json={'category': 'weather', 'purpose': 'companion_city'}).json() == {
+        'observations': []}
+    assert calls(standin_log) == []
+
+
+def test_background_ticks_ask_at_most_hourly_and_not_while_paused(client, app, connected, clock, standin_log):
+    companion_in(client, 'baltimore')
+    enable(client, add_service(client), 'weather', run_in=('companion_city',))
+    life = app.state.life
+    asyncio.run(life.quietly_observe())
+    asyncio.run(life.quietly_observe())
+    assert len(calls(standin_log)) == 1
+    client.post('/api/pause')
+    clock.advance(timedelta(hours=2))
+    asyncio.run(life.quietly_observe())
+    assert len(calls(standin_log)) == 1

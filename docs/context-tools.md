@@ -86,6 +86,24 @@ Observations are not personal memories (M6): they are never extracted into memor
 listed separately, and each one can be deleted. The receipt of a reply lists the observations it
 was given under `outside`.
 
+## Real weather for the companion's day
+
+A weather mapping that allows companion lookups can also give the companion's simulated day real
+weather, in place of the city's typical weather from its climate data (W2). While background
+activity is on and the workspace is not paused, each life tick asks for the companion's city; the
+fresh-result reuse keeps that to about once an hour. A conversation question about the weather
+where the companion is counts too.
+
+`companion/mcp/weather.py` reads a high, a low and rain from the result: from structured fields
+named for their unit (`high_f`, `temp_c`…) or from temperatures in the text ("61°F", "30 °C"), with
+rain from words such as rain, showers or storms. A result with no readable temperature changes
+nothing. Only a lookup made on that local date applies, and only for a real, modern city. After a
+readable lookup, that day's schedule entries that have not started are removed and composed again
+with the same seeds, so only the weather (and whether an outdoor plan moves indoors) can change.
+Entries already under way keep their weather. The day's weather then carries `observed` (source,
+tool, time), and the reply's context gives it under "Today's real weather where you live (looked up
+by the app…)" with its source and time, instead of the typical-weather heading.
+
 ## Interface
 
 Settings has a **Real-world lookups** section: your location, the services, a suggested tool for
