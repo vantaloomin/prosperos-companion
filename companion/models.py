@@ -190,3 +190,14 @@ class ContextLookup(Input):
     category: Literal['weather', 'news', 'local_events']
     purpose: Literal['conversation', 'companion_city'] = 'conversation'
     topic: str = Field(default='', max_length=80)
+
+
+class TimelineFork(Input):
+    message_id: str = Field(min_length=1, max_length=64)
+    text: str = Field(min_length=1, max_length=40000)
+    label: str = Field(default='', max_length=80)
+
+
+class TimelineUpdate(Input):
+    label: str | None = Field(default=None, max_length=80)
+    clear_draft: bool | None = None

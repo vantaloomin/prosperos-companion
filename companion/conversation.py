@@ -80,6 +80,8 @@ def record_user(database, body) -> dict:
             "created_at, completed_at) VALUES (?, ?, ?, 'user', ?, ?, 'complete', ?, ?, ?)",
             (message_id, timeline_id, next_seq(connection, timeline_id), body.text, body.client_id,
              companion['active_version_id'], database.now(), database.now()))
+        # Sending on a timeline made by a historical edit uses up its waiting draft (C4).
+        connection.execute('UPDATE timelines SET draft=NULL WHERE id=?', (timeline_id,))
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         formation.enqueue(connection, message, database.now())
         return message

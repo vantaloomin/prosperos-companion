@@ -14,6 +14,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import bump_memory_revision, decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
+from companion.lineage import related
 from companion.memory import records
 from companion.memory.extraction import sentences
 from companion.memory.retrieval import terms
@@ -29,7 +30,7 @@ def local_day(value: str, timezone: str) -> str:
 
 
 def excluded_sources(connection, companion_id) -> set[str]:
-    declined = {row['message_id'] for row in many(connection, 'SELECT message_id FROM memory_declines')}
+    declined = related(connection, [row['message_id'] for row in many(connection, 'SELECT message_id FROM memory_declines')])
     return declined | records.blocked_messages(connection, companion_id)
 
 

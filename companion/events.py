@@ -15,7 +15,10 @@ def view(row: dict) -> dict:
     return {**row, 'details': decode(row['details']), 'inputs': decode(row['inputs'])}
 
 
-def propose(database, body) -> dict:
+def propose(database, body, timeline_id=None) -> dict:
+    """Background work names the timeline it was planned for, so a proposal finishing after a
+    switch lands on that (now frozen) timeline and fails its commit check instead of joining the
+    newly active one (T7)."""
     starts_at, ends_at = stamp(parse(body.starts_at)), stamp(parse(body.ends_at))
     require(starts_at <= ends_at, 'An event must end after it starts.', 422)
     with database.connect(write=True) as connection:
@@ -28,7 +31,7 @@ def propose(database, body) -> dict:
             'INSERT INTO life_events (id, companion_id, timeline_id, idempotency_key, kind, status, summary, details, '
             "starts_at, ends_at, character_version_id, permission_revision, inputs, created_at) "
             "VALUES (?, ?, ?, ?, ?, 'proposed', ?, ?, ?, ?, ?, ?, ?, ?)",
-            (event_id, companion['id'], companion['active_timeline_id'], body.idempotency_key, body.kind,
+            (event_id, companion['id'], timeline_id or companion['active_timeline_id'], body.idempotency_key, body.kind,
              body.summary, encode(body.details), starts_at, ends_at, companion['active_version_id'],
              settings(connection)['permission_revision'], encode(body.inputs), database.now()))
         return view(one(connection, 'SELECT * FROM life_events WHERE id=?', (event_id,)))
