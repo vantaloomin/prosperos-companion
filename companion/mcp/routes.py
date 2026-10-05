@@ -8,6 +8,7 @@ from companion.models import (
     ContextLinks,
     ContextLocation,
     ContextLookup,
+    ContextPreset,
     ContextService,
     ToolApproval,
     ToolMapping,
@@ -38,6 +39,12 @@ def create_service(request: Request, body: ContextService):
 @router.put('/links')
 def update_links(request: Request, body: ContextLinks):
     return services.update_links(db(request), body)
+
+
+@router.post('/services/preset')
+def create_preset(request: Request, body: ContextPreset):
+    """Add a hosted search service that works without a key: Parallel, Exa or Firecrawl."""
+    return services.create_preset(db(request), request.app.state.vault, body.preset)
 
 
 @router.post('/services/builtin')

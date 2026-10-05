@@ -374,7 +374,7 @@ export interface ImageJob {
 }
 
 // Current context through MCP (PRD X1–X3)
-export type ContextCategory = 'weather' | 'news' | 'local_events' | 'link'
+export type ContextCategory = 'weather' | 'news' | 'local_events' | 'link' | 'web_search'
 export type ContextPurpose = 'conversation' | 'companion_city'
 export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal' | 'url'
 export interface ToolArgument { source: ArgumentSource; value?: string | number | boolean }

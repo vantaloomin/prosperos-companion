@@ -22,6 +22,10 @@ TOOLS = [
     {'name': 'fetch_page', 'description': 'Fetch web pages and extract their text as Markdown.',
      'inputSchema': {'type': 'object', 'properties': {'urls': {'type': 'array', 'items': {'type': 'string'}},
                                                       'objective': {'type': 'string'}}, 'required': ['urls']}},
+    {'name': 'web_search', 'description': 'Search the web and return excerpts with their sources.',
+     'inputSchema': {'type': 'object', 'properties': {
+         'objective': {'type': 'string'}, 'search_queries': {'type': 'array', 'items': {'type': 'string'}},
+         'session_id': {'type': 'string'}}, 'required': ['objective', 'search_queries']}},
     {'name': 'broken', 'description': 'Always fails.', 'inputSchema': {'type': 'object', 'properties': {}}},
     {'name': 'slow', 'description': 'Takes a long time.', 'inputSchema': {'type': 'object', 'properties': {}}},
 ]
@@ -42,6 +46,10 @@ def call(name, arguments):
     if name == 'fetch_page':
         return {'content': [{'type': 'text', 'text': f"# Fetched {', '.join(arguments.get('urls') or [])}\n"
                              'The harbor bridge reopened on Monday after repairs.'}]}
+    if name == 'web_search':
+        return {'content': [{'type': 'text', 'text': f"Results for {arguments.get('objective')} "
+                             f"({len(arguments.get('search_queries') or [])} queries): Most people like the "
+                             'new bridge, per r/baltimore.'}]}
     if name == 'broken':
         return {'content': [{'type': 'text', 'text': 'Upstream weather service unavailable.'}], 'isError': True}
     if name == 'slow':

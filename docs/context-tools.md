@@ -48,6 +48,7 @@ The model is never given tools. The app decides, with fixed rules on the user's 
 | Weather | mentions the weather, forecast, rain, snow, temperature, an umbrella… | The user's location |
 | News | mentions news, headlines or current events; "news about X" sends X as the topic | No location |
 | Local events | mentions events, concerts, festivals or things to do, with "near me", "tonight", "this weekend"… | The user's location |
+| Web search | asks for a search: "can you google…", "please search the web for…", "look up…", or a sentence starting "Search…"; "search reddit for X" and "search twitter for X" add the site | Sends only what was asked, up to twelve words |
 | Reading links | contains a link that this computer could not read (see [Links you paste](#links-you-paste)) | Sends only the link |
 
 When the message asks about the companion's whereabouts ("what's the weather like where you
@@ -156,6 +157,33 @@ What the companion is told:
 Under the user's message, a small out-of-character note says **Opened example.com** or **Couldn't
 load example.com: the real reason**, so the user always knows what happened.
 
+## Web search
+
+Settings offers three hosted search services that work without a key, as one click each (checked
+2026-10-05; each one's own terms, limits and retention apply):
+
+| Service | Address | Tools (as documented) | Without a key |
+| --- | --- | --- | --- |
+| Parallel Search | `https://search.parallel.ai/mcp` | `web_search(objective, search_queries)`, `web_fetch(urls)` | Free at lower rate limits; commercial use allowed |
+| Exa | `https://mcp.exa.ai/mcp` | `web_search_exa`, `web_fetch_exa`, `web_search_advanced_exa` | Free, rate-limited (HTTP 429 when exceeded) |
+| Firecrawl | `https://mcp.firecrawl.dev/v2/mcp` | `firecrawl_search`, `firecrawl_scrape`, `firecrawl_parse` | A small keyless allowance |
+
+Adding one connects and lists its tools. Its **Web search** and **Reading links** mappings are then
+suggested from those tools and stay off until their disclosures are confirmed, like any other service.
+A search sends only the request, taken from the message (up to twelve words, and "on Reddit" or "on X
+(Twitter)" when the user named the site); never the user's location, conversation or memories. A tool
+field that takes a list, such as Parallel's `search_queries`, gets the request as a list of one.
+Results stay fresh for an hour, are quoted to the companion as outside information (4,000 characters
+at most), and a failed search tells the companion it has seen no results and must not invent any.
+
+Searching Reddit and X: the request names the site, and the search service decides what it finds.
+Reddit threads usually appear. X posts appear only when the search service has indexed them, which is
+hit and miss: X has no keyless search, and its own search API is paid. A pasted Reddit or X link is
+read directly instead (see [Links you paste](#links-you-paste)).
+
+None of these services has been reached from the development environment, which blocks them, so the
+tests use the stand-in server with Parallel's documented tool shape.
+
 ## The built-in weather server
 
 `companion/mcp/servers/weather.py` is a small read-only MCP server that ships with the app. Settings
@@ -191,6 +219,7 @@ sent, where, when, and whether it still counts as current, with delete.
 | `GET /api/context` | Location, services with their mappings and disclosures, and the source and timing labels |
 | `PUT /api/context/location` | `{user_place, user_latitude, user_longitude}` |
 | `PUT /api/context/links` | `{read_links}`: whether links pasted in chat are opened |
+| `POST /api/context/services/preset` | `{preset: parallel\|exa\|firecrawl}`: add a hosted search service (once) |
 | `POST /api/context/services/builtin` | `{kind: weather}`: add the built-in weather server (once) |
 | `POST /api/context/services` | `{name, transport: stdio\|http, command: [program, args…], url, secret, secret_name}` |
 | `PUT`, `DELETE /api/context/services/{id}` | Edit (`clear_secret` removes the key) or remove a service |
