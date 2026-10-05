@@ -7,6 +7,12 @@ with an offset; display them in the user's timezone (`GET /api/settings` → `us
 companion's (`GET /api/companion` → `version.timezone`). Writes need the
 `x-companion-client: workspace` header, like the rest of the API.
 
+`user_timezone` follows this PC unless the user picks one (`user_timezone_source`: `default`, `pc` or
+`chosen`). On startup the backend sets it from the Windows registry (mapped to IANA with CLDR,
+`companion/windows_zones.py`) or `TZ` and `/etc/localtime`; the interface then sends the browser's zone
+with `user_timezone_source: "detected"`, which is ignored once the user has chosen a zone.
+`GET /api/settings` also returns `system_timezone`, the backend's own reading.
+
 ## When to call reconcile
 
 Call `POST /api/life/reconcile` when the interface opens and when it becomes visible again after

@@ -104,6 +104,8 @@ class CharacterRevision(Input):
 
 class SettingsUpdate(Input):
     user_timezone: str | None = Field(default=None, max_length=64)
+    # 'detected': the interface reporting this PC's zone; 'pc': Use this PC's timezone; otherwise chosen.
+    user_timezone_source: Literal['detected', 'pc', 'chosen'] | None = None
     automatic_memory: bool | None = None
     sensitive_memory: bool | None = None
     share_profile_across_timelines: bool | None = None

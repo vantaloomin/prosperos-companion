@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { SETTINGS_KEY, useWorkspaceSettings } from '../../companion'
+import { SETTINGS_KEY, pcTimezone, useWorkspaceSettings } from '../../companion'
 import { Pause, Play } from 'lucide-react'
 import { api } from '../../api'
 import type { WorkspaceSettings as Settings } from '../../types'
@@ -12,7 +12,6 @@ export function WorkspaceSettings() {
   const client = useQueryClient()
   const settings = useWorkspaceSettings()
   const [error, setError] = useState<string | null>(null)
-  const [zone, setZone] = useState<string | null>(null)
   const [pending, setPending] = useState<Partial<Settings>>({})
   // Toggles show the new state at once and fall back to the saved state if the change is refused.
   const save = async (change: Partial<Settings> & { review_complete?: boolean }) => {
@@ -59,12 +58,7 @@ export function WorkspaceSettings() {
           <button type="button" className="button" onClick={() => void pause(!data.paused)}>{data.paused ? <><Play aria-hidden="true" />Resume</> : <><Pause aria-hidden="true" />Pause</>}</button>
         </div>
       </section>
-      <section className="settings-section form-stack" aria-labelledby="time-heading">
-        <h2 id="time-heading">Your time</h2>
-        <TextInput label="Your timezone" value={zone ?? data.user_timezone} onChange={setZone} list="settings-timezones" maxLength={64} hint="Used for dates and for what time it is for you." />
-        <datalist id="settings-timezones">{timezones().map((item) => <option key={item} value={item} />)}</datalist>
-        {zone !== null && zone !== data.user_timezone && <div className="form-actions"><button type="button" className="button primary" onClick={() => void save({ user_timezone: zone }).then(() => setZone(null))}>Save timezone</button></div>}
-      </section>
+      <TimezoneSettings data={data} save={save} />
       <MemorySettings data={data} save={save} />
       <section className="settings-section form-stack" aria-labelledby="background-heading">
         <h2 id="background-heading">Background activity</h2>
@@ -72,6 +66,39 @@ export function WorkspaceSettings() {
           hint="Uses your model connection now and then while the Companion is running. Nothing runs while the app is closed." />
       </section>
     </>
+  )
+}
+
+const ZONE_USE = 'Used for dates, quiet hours and what time it is for you.'
+const ZONE_HINTS: Record<Settings['user_timezone_source'], string> = {
+  pc: `Following this PC's timezone. ${ZONE_USE}`,
+  chosen: `Set by you, so it stays put if this PC's timezone changes. ${ZONE_USE}`,
+  default: ZONE_USE,
+}
+
+function TimezoneSettings({ data, save }: { data: Settings; save: (change: Partial<Settings>) => Promise<boolean> }) {
+  const client = useQueryClient()
+  const [zone, setZone] = useState<string | null>(null)
+  const pc = pcTimezone(data)
+  const edited = zone !== null && zone !== data.user_timezone
+  const offerPc = !!pc && (zone !== null || `${data.user_timezone_source}:${data.user_timezone}` !== `pc:${pc}`)
+  const savedZone = (change: Partial<Settings>) => void save(change).then((saved) => {
+    if (saved) { setZone(null); void client.invalidateQueries({ queryKey: ['today'] }) }
+  })
+  const hint = ZONE_HINTS[data.user_timezone_source]
+  return (
+    <section className="settings-section form-stack" aria-labelledby="time-heading">
+      <h2 id="time-heading">Your time</h2>
+      <TextInput label="Your timezone" value={zone ?? data.user_timezone} onChange={setZone} list="settings-timezones" maxLength={64} hint={hint} />
+      <datalist id="settings-timezones">{timezones().map((item) => <option key={item} value={item} />)}</datalist>
+      {pc && <p className="subtle">This PC's timezone: {pc}</p>}
+      {(edited || offerPc) && (
+        <div className="form-actions">
+          {edited && <button type="button" className="button primary" onClick={() => savedZone({ user_timezone: zone!, user_timezone_source: 'chosen' })}>Save timezone</button>}
+          {offerPc && <button type="button" className="button" onClick={() => savedZone({ user_timezone: pc!, user_timezone_source: 'pc' })}>Use this PC's timezone</button>}
+        </div>
+      )}
+    </section>
   )
 }
 
