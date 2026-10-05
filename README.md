@@ -6,5 +6,6 @@ A standalone companion application derived from the Companion Mode concept in [P
 - [Backbone architecture](docs/architecture.md)
 - [Development](docs/development.md)
 - [Life simulation API](docs/life-api.md)
+- [World data](docs/world-data.md)
 
 Licensed under the GNU Affero General Public License v3.0, matching the Study code it reuses.
