@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from companion.errors import DomainError
 from companion.identity import data_dir
-from companion.world.schema import Careers, City
+from companion.world.schema import Careers, City, Names
 
 DATA = Path(__file__).parent / 'data'
 
@@ -29,6 +29,35 @@ def careers_for(data: dict) -> dict[str, dict]:
     return shared | {career['id']: career for career in data['careers']}
 
 
+@cache
+def names() -> dict:
+    """The shared name banks and each era's default bank and group weights."""
+    return Names.model_validate_json((DATA / 'names.json').read_text(encoding='utf-8')).model_dump()
+
+
+def name_groups(data: dict) -> tuple[dict[str, dict], dict[str, float]]:
+    """The name groups a city draws residents' names from, and the weight of each.
+
+    A city's own `names.mix` wins; a city with its own groups and no mix uses only those; otherwise the era's
+    weights apply when the city keeps its era's bank, else every group of the bank weighs the same.
+    """
+    own = data.get('names') or {}
+    era = names()['eras'][data['era']]
+    bank = own.get('bank') or era['bank']
+    groups = names()['banks'][bank] | own.get('groups', {})
+    if own.get('mix'):
+        mix = own['mix']
+    elif own.get('groups'):
+        mix = dict.fromkeys(own['groups'], 1.0)
+    elif bank == era['bank'] and era['mix']:
+        mix = era['mix']
+    else:
+        mix = {}
+    # Weights for groups the bank lacks (say, after a city changes era) are ignored.
+    mix = {key: weight for key, weight in mix.items() if weight > 0 and key in groups}
+    return groups, mix or dict.fromkeys(groups, 1.0)
+
+
 def prepare(raw: bytes | str | dict) -> dict:
     """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError."""
     model = City.model_validate(raw) if isinstance(raw, dict) else City.model_validate_json(raw)
@@ -38,6 +67,9 @@ def prepare(raw: bytes | str | dict) -> dict:
         unknown = set(employer['careers']) - set(known)
         if unknown:
             raise ValueError(f'{employer["id"]} names careers this city does not offer: {sorted(unknown)}.')
+    own = data.get('names') or {}
+    if own.get('bank') and own['bank'] not in names()['banks']:
+        raise ValueError(f'Unknown name bank {own["bank"]!r}; the banks are {sorted(names()["banks"])}.')
     # Identifies the exact data a generator used, so a recorded event can name its inputs (PRD T7).
     canonical = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     data['data_version'] = hashlib.sha256(canonical.encode()).hexdigest()[:12]

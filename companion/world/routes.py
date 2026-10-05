@@ -150,3 +150,30 @@ def generate_home(request: Request, city_id: str, seed: str, bedrooms: str = 'on
                   budget: int | None = Query(None, gt=0), vibe: str | None = None, near: str | None = None):
     return generators.home(city(request, city_id), seed=seed, bedrooms=bedrooms, budget=budget, vibe=vibe,
                            near=near)
+
+
+Role = Literal['close-friend', 'friend', 'coworker', 'neighbor', 'old-classmate', 'mentor', 'sibling', 'parent',
+               'cousin']
+
+
+@router.get('/cities/{city_id}/generate/resident')
+def generate_resident(request: Request, city_id: str, seed: str, role: Role = 'friend', career: str | None = None,
+                      age: int | None = Query(None, ge=16, le=100), near: str | None = None,
+                      employer: str | None = None, family: str | None = None, group: str | None = None,
+                      local: bool = True):
+    return generators.resident(city(request, city_id), seed=seed, role=role, career=career, age=age, near=near,
+                               employer=employer, family=family, group=group, local=local)
+
+
+@router.get('/cities/{city_id}/generate/circle')
+def generate_circle(request: Request, city_id: str, seed: str, size: int = Query(6, ge=1, le=12),
+                    home: str | None = None, age: int | None = Query(None, ge=16, le=100),
+                    career: str | None = None, employer: str | None = None, family: str | None = None,
+                    group: str | None = None):
+    return generators.circle(city(request, city_id), seed=seed, size=size, home=home, age=age, career=career,
+                             employer=employer, family=family, group=group)
+
+
+@router.get('/names')
+def read_names():
+    return catalog.names()

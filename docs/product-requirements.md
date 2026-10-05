@@ -6,7 +6,7 @@
 
 > **Amendment (2026-10-05).** Image generation now supports local, Codex/ChatGPT subscription and hosted API backends with content routing, per Vanta's direction in the project. Changed: the confirmed-direction table, the Feasibility stage, F3 and F5 to F9, the LoRA section's closing note, compute and job control, the acceptance matrix and the decisions table. The rest of the draft is unchanged.
 
-> **Amendment (2026-10-05).** Added *World data requirements* (W1–W5), per Vanta's direction that the companion's world be generated programmatically from knowledge bases of real cities rather than by the model.
+> **Amendment (2026-10-05).** Added *World data requirements* (W1–W6), per Vanta's direction that the companion's world be generated programmatically from knowledge bases of real cities rather than by the model.
 
 > **Amendment (2026-10-05).** Simulated life now runs programmatically in the background for the companion and their social circle, per Vanta's direction that everything feel responsive and that downtime be filled in when the app opens. Changed: T2, T4 and T5, and the time reconciliation and shared compute acceptance rows; added T8 (social circle) and T9 (precomputed schedules and prepared work). The rest of the draft is unchanged.
 
@@ -146,6 +146,8 @@ Everyday facts about where the companion lives come from shipped data and determ
 **W4 Model role.** Life synthesis passes generated facts to the model, which phrases them in the companion's voice. The model must not add named places, employers or prices that are not in the supplied facts. A companion whose location is not a shipped city keeps today's behaviour until a city is added.
 
 **W5 Settings and user cities.** Built-in cities include real cities, well-known fictional settings that may be redistributed (public domain), and original settings written for the product; settings owned by others are not shipped as built-in data. Users can create, copy, edit and delete their own cities in the workspace, validated like built-in ones and usable by every generator. A city's era, currency and its own careers let historical, fantasy and other settings work without modern assumptions.
+
+**W6 People.** The companion's social circle and other residents are generated from the same data: names from period- and place-appropriate name banks, an age, a home, a job with its commute, a weekly schedule and regular haunts, deterministic for a seed. Coworkers share the companion's workplace, neighbours live nearby and relatives share a family name. The model never invents a resident's name, job or address.
 
 ## Memory and relationship requirements
 

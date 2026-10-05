@@ -36,6 +36,9 @@ CITY = {
                'hospitality economy, sprawling master-planned suburbs and red-rock country on its edges.',
     'lat': 36.17, 'lon': -115.14,
     'speeds': {'walk': 4.5, 'car': 35, 'rideshare': 35, 'bus': 12, 'monorail': 20},
+    # Rough heritage weights for residents' names (estimates, not census figures).
+    'names': {'mix': {'anglo': 3.5, 'hispanic': 3, 'black-american': 1.2, 'east-asian': 1.2, 'italian': 0.3,
+                       'irish': 0.3, 'jewish': 0.3, 'south-asian': 0.2, 'slavic': 0.2, 'caribbean': 0.1}},
     'sources': {
         S: {'kind': 'curated', 'title': 'Las Vegas places and neighbourhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',

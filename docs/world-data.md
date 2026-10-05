@@ -30,6 +30,7 @@ are optional, so a setting without money (Oz) or without weather data still work
 | --- | --- |
 | `companion/world/data/cities/<id>.json` | One city. Validated against `companion/world/schema.py` on load and in the tests. |
 | `companion/world/data/careers.json` | Careers with sector, schedule pattern, pay band and themes. |
+| `companion/world/data/names.json` | Name banks for residents, written by `scripts/world/names.py`. |
 | `scripts/world/<city>.py` | The source each city's JSON is written from. Edit these, then rerun them. |
 
 Nothing needs the network at run time. Every record names a source in its city's `sources` table
@@ -56,10 +57,17 @@ generators.commute(data, 'canton', 'towson', mode=None)
 generators.outing(data, seed=..., day=..., day_part='evening', company='date',
                   neighborhood='fells-point', home='canton', budget='$$', kinds=None, exclude=[...])
 generators.meal(data, seed=..., meal='brunch', neighborhood='hampden')
-generators.job(data, 'registered-nurse', seed=..., home='canton')
+generators.job(data, 'registered-nurse', seed=..., home='canton', employer=None)  # employer: a record id
 generators.schedule(career, seed)           # weekly routine blocks only
 generators.home(data, seed=..., bedrooms='one_bedroom', budget=1400, vibe='arts', near='mount-vernon')
 generators.facts(data, neighborhood='hampden')  # short lines to ground a prompt
+
+# People: the companion's social circle and anyone else in the city.
+generators.circle(data, seed=..., size=6, home='canton', age=31, career='teacher', employer=None,
+                  family=None, group=None)
+generators.resident(data, seed=..., role='friend', career=None, age=None, near=None, employer=None,
+                    family=None, group=None, local=True)
+generators.name(data, seed=..., pronouns=None, group=None, family=None)
 ```
 
 **Seeds.** Choices come from SHA-256 of the seed, never from `random`, so they are identical on every
@@ -78,7 +86,19 @@ event's generation inputs.
 | `schedule` | Routine blocks in exactly the character `schedule` shape of the [life simulation API](life-api.md): `work` (or `study`), `sleep`, `after-work` leisure when there is time, and `day-off` leisure. They can be passed straight to `POST /api/companion`. |
 | `home` | `neighborhood`, `housing` type, `bedrooms`, `rent` within the neighbourhood's range and the budget (in the city's `currency` per `rent_period`), `rent_range`; both `null` where the setting has no rents. |
 | `commute` | `mode`, `line` (transit name or `null`), `distance_km`, `minutes`; walking for short trips, a shared rail line, then a shared bus, then a car. All values are estimates. |
+| `circle` | `family` (the companion's family name, given or chosen) and `people`, closest first: close friend, coworker, sibling, friend, parent, neighbor, friend, cousin, old classmate, friend, mentor, coworker (up to 12). Coworkers share the companion's `employer` (or `career` when only that is known; with neither there are no coworkers). Neighbors live in the `home` neighbourhood. Parents and siblings share the family name and heritage group; cousins do half the time. Relatives live out of town about 40% of the time. Ages sit around the companion's `age`. Names are unique within a circle. |
+| `resident` | `id` (stable for the seed), `role`, `closeness` (`close`, `regular`, `occasional`), `name`, `age`, `local`, `home` (a `home` result), `job` (a `job` result with a commute from home, or `null` when retired at 67 or out of town), `schedule` (routine blocks like `job`'s; a simple retired day; `null` out of town) and `haunts` (up to three affordable cafes, bars, parks and the like near home). Feed `schedule` to the background simulation the same way as a companion's. |
+| `name` | `given`, `family`, `full`, `pronouns` (`she/her`, `he/him` or `they/them`) and `group` (the heritage group drawn from). |
 | `conditions` | `season`, `month`, `high_f`, `low_f`, `rain`, `note`, `typical: true` (monthly climate, not a forecast), or `None` for a city without a climate. |
+
+**Names.** Each era has a bank of name groups (`GET /api/world/names`): modern American heritages,
+Victorian Britain, a West Riding mill town, medieval England and Wales, the 1880s territories, and a
+plain storybook set for fantasy. Most of a resident's family names come from the same group as the
+given name; one in five come from any group in the city. Real cities weight the groups by rough
+local estimates in their `names.mix` (Miami leans Hispanic and Caribbean, Baltimore Black American).
+A city may set `names` to pick another `bank`, weight groups with `mix`, or add its own `groups`
+(`{"feminine": […], "masculine": […], "neutral": […], "family": […]}`); a city with its own groups and no
+`mix` uses only those. Weights for groups a bank lacks are ignored, so changing a city's era keeps working.
 
 Weather here is climate, not a forecast. Real current conditions belong to the MCP context tools
 (PRD X1–X3); a life event built from climate must not be presented as today's weather.
@@ -109,8 +129,11 @@ need `x-companion-client: workspace`. Every `{id}` may be a built-in city or one
 | `/api/world/cities/{id}/commute?from=&to=&mode=` | A commute estimate |
 | `/api/world/cities/{id}/generate/outing?seed=&day=&day_part=&company=&neighborhood=&home=&budget=&kind=&exclude=` | `{"outing": …}` |
 | `/api/world/cities/{id}/generate/meal?seed=&meal=&…` | `{"outing": …}` with `meal` |
-| `/api/world/cities/{id}/generate/job?career=&seed=&home=` | A job |
 | `/api/world/cities/{id}/generate/home?seed=&bedrooms=&budget=&vibe=&near=` | A home |
+| `/api/world/cities/{id}/generate/job?career=&seed=&home=&employer=` | `employer` puts the job at that record |
+| `/api/world/cities/{id}/generate/circle?seed=&size=&home=&age=&career=&employer=&family=&group=` | A social circle |
+| `/api/world/cities/{id}/generate/resident?seed=&role=&career=&age=&near=&employer=&family=&group=&local=` | One person |
+| `/api/world/names` | The name banks and each era's default |
 | `/api/world/careers` | The career catalogue |
 | `/api/world/resolve?text=` | `{"match": {"city", "neighborhood"} \| null}` for a free-text location |
 

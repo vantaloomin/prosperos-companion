@@ -36,6 +36,9 @@ CITY = {
     'lat': 32.72, 'lon': -117.16,
     'speeds': {'walk': 4.5, 'car': 32, 'rideshare': 32, 'bus': 13, 'light-rail': 28, 'commuter-rail': 55,
                'ferry': 15},
+    # Rough heritage weights for residents' names (estimates, not census figures).
+    'names': {'mix': {'anglo': 4, 'hispanic': 3, 'east-asian': 1.6, 'black-american': 0.6, 'south-asian': 0.4,
+                       'irish': 0.4, 'italian': 0.3, 'arabic': 0.3, 'jewish': 0.3, 'slavic': 0.2}},
     'sources': {
         S: {'kind': 'curated', 'title': 'San Diego places and neighbourhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',

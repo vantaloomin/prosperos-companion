@@ -23,6 +23,21 @@
   "commuter-rail": 45,
   "water-taxi": 10
  },
+ "names": {
+  "mix": {
+   "black-american": 6,
+   "anglo": 3,
+   "hispanic": 0.8,
+   "irish": 0.5,
+   "italian": 0.4,
+   "jewish": 0.5,
+   "slavic": 0.4,
+   "east-asian": 0.4,
+   "south-asian": 0.3,
+   "west-african": 0.4,
+   "caribbean": 0.2
+  }
+ },
  "sources": {
   "curated-2026-10": {
    "kind": "curated",
