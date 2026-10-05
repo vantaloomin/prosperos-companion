@@ -254,6 +254,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .receipt-detail { color: var(--muted); overflow-wrap: anywhere; }
 .receipt-omitted { color: var(--danger); }
 .receipt-raw summary { cursor: pointer; color: var(--muted); }
+.advanced > summary { cursor: pointer; color: var(--muted); font-size: 0.875rem; margin-top: 4px; }
+.advanced[open] > summary { margin-bottom: 10px; }
 .receipt-raw pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; background: var(--canvas); border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 360px; overflow-y: auto; }
 @media (max-width: 720px) { .receipt-rows li { grid-template-columns: 1fr; gap: 2px; } }
 

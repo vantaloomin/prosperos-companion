@@ -19,6 +19,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.mcp import links
 from companion.mcp.client import ToolFailure, open_session
+from companion.mcp.servers.weather import US_STATES
 from companion.mcp.services import CATEGORIES, active_mappings, destination, place_settings, transport_for
 
 FRESH_FOR = {'weather': timedelta(hours=1), 'news': timedelta(hours=3), 'local_events': timedelta(hours=12),
@@ -91,6 +92,19 @@ def clean(text: str, limit: int = MAX_CONTENT) -> str:
     text = re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', ' ', text).replace('«', '"').replace('»', '"')
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
     return text if len(text) <= limit else text[:limit - 1].rstrip() + '…'
+
+
+def place_key(label: str) -> tuple[str, str]:
+    """(city, region) in lower case, with a US state abbreviation spelled out."""
+    parts = [part.strip().lower() for part in (label or '').split(',')]
+    region = parts[1] if len(parts) > 1 else ''
+    return parts[0], US_STATES.get(region.upper(), region).lower()
+
+
+def same_place(first: str, second: str) -> bool:
+    """Whether two typed places name the same city and region ("Paris" and "Paris, Texas" do not)."""
+    (city, region), (other_city, other_region) = place_key(first), place_key(second)
+    return bool(city) and city == other_city and region == other_region
 
 
 def city_target(world, definition: dict) -> dict | None:
@@ -274,14 +288,31 @@ class Lookups:
                 cached = self.cached(connection, service['id'], mapping['tool'], arguments)
                 if cached:
                     return [observation_view(cached, self.now())]
+                twin = self.same_place(connection, service['id'], mapping, where) if mapping['category'] == 'weather' \
+                    else None
                 refusal = self.limited(connection, service['id'])
                 previous = self.latest(connection, service['id'], mapping['tool'], arguments)
             record = {'service': service, 'category': mapping['category'], 'purpose': purpose, 'tool': mapping['tool'],
                       'arguments': arguments, 'location': where}
+            if twin:
+                # The user and the companion are in the same place: one lookup serves both.
+                shared = self.record(**record, status='ok', content=twin['content'],
+                                     structured=decode(twin['structured']), copied_from=twin)
+                self.notify(shared)
+                return [shared]
             if refusal:
                 refused = self.record(**record, status='refused', error_code=refusal[0], error=refusal[1])
                 return [refused] + ([observation_view(previous, self.now())] if previous else [])
             return [await self.call(record, deadline)]
+
+    def same_place(self, connection, service_id, mapping, where) -> dict | None:
+        """A fresh weather result from the same service and tool for the same place under its other name, such as
+        the user's "Baltimore, MD" and the companion's "Baltimore, Maryland"."""
+        rows = many(connection, "SELECT * FROM context_observations WHERE service_id IS ? AND tool=? AND "
+                    "category='weather' AND status='ok' AND fresh_until>? ORDER BY retrieved_at DESC, rowid DESC LIMIT 10",
+                    (service_id, mapping['tool'], stamp(self.now())))
+        return next((row for row in rows if same_place((decode(row['location']) or {}).get('label', ''),
+                                                       where.get('label', ''))), None)
 
     def cached(self, connection, service_id, tool, arguments) -> dict | None:
         return optional(connection, "SELECT * FROM context_observations WHERE service_id IS ? AND tool=? AND arguments=? "
@@ -338,8 +369,13 @@ class Lookups:
                 pass
 
     def record(self, service, category, purpose, tool, arguments, location, status, content='', structured=None,
-               error_code=None, error=None, attempts=0, where_to=None) -> dict:
+               error_code=None, error=None, attempts=0, where_to=None, copied_from=None) -> dict:
+        """Store one attempt. `copied_from` reuses another result without asking again: it keeps that result's
+        retrieval time and freshness and counts as no request."""
         now, observation_id = self.now(), identifier()
+        retrieved = copied_from['retrieved_at'] if copied_from else stamp(now) if status == 'ok' else None
+        fresh = copied_from['fresh_until'] if copied_from else stamp(now + FRESH_FOR[category]) if status == 'ok' \
+            else None
         with self.database.connect(write=True) as connection:
             connection.execute(
                 'INSERT INTO context_observations (id, service_id, service_name, category, purpose, tool, arguments, '
@@ -347,8 +383,7 @@ class Lookups:
                 'retrieved_at, fresh_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 (observation_id, service['id'], service['name'], category, purpose, tool, encode(arguments),
                  where_to or destination(service), encode(location), status, content, encode(structured) if structured else None,
-                 error_code, error, attempts, stamp(now), stamp(now) if status == 'ok' else None,
-                 stamp(now + FRESH_FOR[category]) if status == 'ok' else None))
+                 error_code, error, attempts, stamp(now), retrieved, fresh))
             if status == 'failed' and service['id']:
                 connection.execute('UPDATE context_services SET cooldown_until=? WHERE id=?',
                                    (stamp(now + FAILURE_PAUSE), service['id']))

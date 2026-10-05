@@ -511,3 +511,29 @@ def test_real_events_in_the_city_can_inspire_but_are_never_attended(client, app,
     system = provider.requests[-1]['system']
     assert system.count('Night market at the pier') == 1  # the reused lookup is quoted once
     assert len(calls(standin_log)) == 1
+
+
+def test_same_place_names():
+    assert lookups.same_place('Baltimore, MD', 'Baltimore, Maryland')
+    assert lookups.same_place('baltimore, maryland', 'Baltimore, Maryland')
+    assert not lookups.same_place('Paris', 'Paris, Texas')
+    assert not lookups.same_place('Portland, OR', 'Portland, Maine')
+    assert not lookups.same_place('', '')
+
+
+def test_one_weather_lookup_serves_both_when_you_live_in_the_same_city(client, app, companion, standin_log):
+    companion_in(client, 'baltimore')
+    overview = client.get('/api/context').json()
+    assert overview['companion_place'].startswith('Baltimore, ')
+    client.put('/api/context/location', json={'user_place': 'Baltimore, MD'})
+    enable(client, add_service(client), 'weather', run_in=('conversation', 'companion_city'))
+    mine = client.post('/api/context/lookup', json={'category': 'weather'}).json()['observations']
+    theirs = client.post('/api/context/lookup', json={'category': 'weather', 'purpose': 'companion_city'}).json()
+    [shared] = theirs['observations']
+    assert len(calls(standin_log)) == 1
+    assert (shared['purpose'], shared['attempts'], shared['retrieved_at'], shared['content']) == (
+        'companion_city', 0, mine[0]['retrieved_at'], mine[0]['content'])
+    assert shared['location']['whose'] == 'companion'
+    client.put('/api/context/location', json={'user_place': 'Baltimore, Ireland'})
+    client.post('/api/context/lookup', json={'category': 'weather'})
+    assert len(calls(standin_log)) == 2

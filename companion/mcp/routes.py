@@ -23,7 +23,11 @@ def db(request: Request):
 
 @router.get('')
 def overview(request: Request):
-    return services.overview(db(request))
+    """Also names the companion's real-world city, if it has one, for the weather switches."""
+    found = services.overview(db(request))
+    with db(request).connect() as connection:
+        where = lookups.target(connection, 'companion_city', request.app.state.lookups.world, db(request).clock.now())
+    return {**found, 'companion_place': where['label'] if where else None}
 
 
 @router.put('/location')

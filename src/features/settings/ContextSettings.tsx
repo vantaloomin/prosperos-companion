@@ -4,6 +4,7 @@ import { Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextOverview, ContextPurpose, ContextServiceInfo, MappingSuggestion, Observation, ToolArgument } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { BuiltinWeather } from './BuiltinWeather'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SEARCH_PRESETS, SOURCE_LABELS, canSave, canTry, purposeLabel, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
 
@@ -173,16 +174,26 @@ function ServiceRow({ service, data, name, refresh, setResult }: { service: Cont
       <ServiceSummary service={service} />
       {service.check_error && <Notice tone="error">{service.check_error}</Notice>}
       {!service.checked_at && <p className="subtle">Check the service to see its tools. Checking connects and lists tools; it looks nothing up.</p>}
-      {service.tools.length > 0 && CATEGORY_ORDER.map((category) => (
-        <CategoryMapping key={category} category={category} service={service} data={data} name={name} suggestion={service.suggestions[category]}
-          saved={service.mappings.find((mapping) => mapping.category === category)} refresh={refresh} setResult={setResult} />
-      ))}
+      {service.tools.length > 0 && (service.builtin === 'weather' ? <>
+        <BuiltinWeather service={service} data={data} name={name} refresh={refresh} onError={(text) => setResult({ tone: 'error', text })} />
+        <details className="advanced">
+          <summary>Advanced</summary>
+          <Mappings service={service} data={data} name={name} refresh={refresh} setResult={setResult} />
+        </details>
+      </> : <Mappings service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}
       <div className="post-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void check()}>{service.checked_at ? 'Check again' : 'Check'}</button>
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void remove()}><Trash2 aria-hidden="true" />Remove</button>
       </div>
     </li>
   )
+}
+
+function Mappings({ service, data, name, refresh, setResult }: { service: ContextServiceInfo; data: Overview; name: string; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+  return <>{CATEGORY_ORDER.map((category) => (
+    <CategoryMapping key={category} category={category} service={service} data={data} name={name} suggestion={service.suggestions[category]}
+      saved={service.mappings.find((mapping) => mapping.category === category)} refresh={refresh} setResult={setResult} />
+  ))}</>
 }
 
 interface MappingProps {
