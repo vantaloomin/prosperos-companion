@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { GitBranch, Search } from 'lucide-react'
 import { api } from '../../api'
@@ -11,7 +11,9 @@ function localTime(timezone: string, now: Date) {
   } catch { return null }
 }
 
-export function ConversationHeader({ companion, searching, onSearch, timeline, browsing, onTimelines }: { companion: Companion; searching: boolean; onSearch: () => void; timeline: string | null; browsing: boolean; onTimelines: () => void }) {
+type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void }
+
+export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, browsing, timelinesButton, onTimelines }: Props) {
   const { name, timezone, location } = { ...companion.version.definition, name: companion.version.name }
   const [now, setNow] = useState(() => new Date())
   useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30_000); return () => window.clearInterval(timer) }, [])
@@ -26,8 +28,8 @@ export function ConversationHeader({ companion, searching, onSearch, timeline, b
         <h1>{name}</h1>
         <p className="subtle">{[timeline, activity, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
       </div>
-      <button type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
-      <button type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
+      <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
+      <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
     </header>
   )
 }

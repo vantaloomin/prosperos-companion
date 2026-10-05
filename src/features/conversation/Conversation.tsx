@@ -5,6 +5,7 @@ import type { Companion, DeclineResult, History, Message, RememberResult, Search
 import { HISTORY_KEY, MEMORIES_KEY, type View } from '../../companion'
 import { Loading, Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { useReturnFocus } from '../../components/returnFocus'
 import { REMEMBER_KEY, rememberedText } from '../memories/memoryGroups'
 import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
@@ -185,11 +186,13 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
 function ConversationTop({ companion, onJump, timeline }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null }) {
   const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
+  const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
+  const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
   const pick = async (result: SearchResult) => { if (await onJump(result)) setOpen(null) }
   const toggle = (panel: 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
-    <ConversationHeader companion={companion} searching={open === 'search'} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} onTimelines={() => toggle('timelines')} />
+    <ConversationHeader companion={companion} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
+      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} />
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
   </>
