@@ -15,6 +15,7 @@ from companion.events import committed
 from companion.life import agenda
 from companion.life import mood as moods
 from companion.life.feed import linked_post
+from companion.memory import vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.hybrid_recall import hybrid_hits
@@ -52,6 +53,7 @@ class Packet:
     included: dict = field(default_factory=dict)
     omitted: dict = field(default_factory=dict)
     used: int = 0
+    semantic: bool = False
 
     def require(self, section, identity, text):
         self.used += token_estimate(text)
@@ -181,11 +183,32 @@ def recall_pool(memories, older) -> tuple[list, dict]:
     return chunks, owners
 
 
-def recalled(memories, older, query) -> list[tuple[str, str]]:
-    """Pinned memories first, then lexical recall over eligible memories and older turns."""
+def semantic_ranking(connection, semantic, memories, older) -> list[str]:
+    """Chunk ids ranked by embedding similarity over the eligible pool only (M10, M12)."""
+    if not semantic:
+        return []
+    owners = {f"memory:{memory['id']}": vectors.memory_text(memory) for memory in memories if not memory['pinned']}
+    owners |= {f"message:{message['id']}": message['text'] for message in older}
+    ranked = vectors.rank(connection, semantic['model'], semantic['vector'], owners, RECALL_LIMIT * 2)
+    chunk_ids = []
+    for key in ranked:
+        kind, identity = key.split(':', 1)
+        if kind == 'memory':
+            memory = next(item for item in memories if item['id'] == identity)
+            chunk_ids += [chunk.id for chunk in compile_chunks(key, memory['subject'],
+                                                               f"{memory['subject']}: {memory['value']}", 'memory')]
+        else:
+            message = next(item for item in older if item['id'] == identity)
+            chunk_ids += [chunk.id for chunk in compile_chunks(key, message['role'], message['text'])]
+    return chunk_ids
+
+
+def recalled(memories, older, query, ranking=()) -> list[tuple[str, str]]:
+    """Pinned memories first, then keyword and semantic recall fused over eligible memories and older turns."""
     result = [(memory['id'], memory_text(memory)) for memory in memories if memory['pinned']]
     chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older)
-    hits = hybrid_hits(chunks, [query], {'rankings': []}, RECALL_LIMIT) if query.strip() else []
+    rankings = [list(ranking)] if ranking else []
+    hits = hybrid_hits(chunks, [query], {'rankings': rankings}, RECALL_LIMIT) if query.strip() else []
     seen = set()
     for hit in hits:
         kind, owner = owners[hit.chunk.id]
@@ -246,10 +269,13 @@ def offer_life(packet, connection, timeline_id, version, now):
         packet.offer('companion_life', event['id'], f"- {event['starts_at'][:16]}: {event['summary']}")
 
 
-def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None) -> dict:
+def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
+          semantic: dict | None = None) -> dict:
     """Assemble the next reply's inputs from the active timeline's saved state.
 
     `until_seq` is the message being answered, so an alternative never sees the reply it replaces.
+    `semantic` ({model, vector}) adds an embedding ranking of the same eligible pool; without it
+    recall is keyword-only.
     """
     timeline_id, version = companion['active_timeline_id'], companion['version']
     groups = partition(eligible(connection, companion, timeline_id, stamp(now)))
@@ -274,8 +300,10 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     if post:
         packet.offer('feed_reference', post['id'], post_text(post))
     query = latest['text'] if latest else ''
-    for identity, text in recalled(groups['recallable'], older, query):
+    ranking = semantic_ranking(connection, semantic, groups['recallable'], older)
+    for identity, text in recalled(groups['recallable'], older, query, ranking):
         packet.offer('recalled', identity, text)
+    packet.semantic = bool(semantic)
     return render(packet, conversation)
 
 
@@ -287,5 +315,5 @@ def render(packet, conversation) -> dict:
     chat = [{'role': 'user' if message['role'] == 'user' else 'assistant', 'content': message['text']}
             for message in conversation]
     receipt = {'budget_tokens': packet.budget, 'estimated_tokens': packet.used,
-               'included': packet.included, 'omitted': packet.omitted}
+               'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic}
     return {'system': '\n\n'.join(parts), 'messages': chat, 'receipt': receipt}

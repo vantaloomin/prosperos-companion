@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS connection (
   max_output_tokens INTEGER NOT NULL,
   context_tokens INTEGER NOT NULL,
   timeout_seconds INTEGER NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  -- Optional; when set, semantic recall uses this model through the same connection's /embeddings.
+  embedding_model TEXT
 );
 
 CREATE TABLE IF NOT EXISTS companions (
@@ -177,6 +179,17 @@ CREATE TABLE IF NOT EXISTS memory_candidates (
   UNIQUE (message_id, fingerprint)
 );
 CREATE INDEX IF NOT EXISTS memory_candidates_status ON memory_candidates(companion_id, status);
+
+-- Embeddings of memories and messages for semantic recall, keyed by the digest of the text embedded.
+CREATE TABLE IF NOT EXISTS memory_vectors (
+  owner_kind TEXT NOT NULL CHECK (owner_kind IN ('memory', 'message')),
+  owner_id TEXT NOT NULL,
+  model TEXT NOT NULL,
+  digest TEXT NOT NULL,
+  vector BLOB NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (owner_kind, owner_id, model)
+);
 
 -- What memory formation did, by identity and reason code only, so deletion leaves no content here.
 CREATE TABLE IF NOT EXISTS memory_activity (

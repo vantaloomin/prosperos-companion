@@ -87,6 +87,7 @@ export interface Connection {
   max_output_tokens: number
   context_tokens: number
   timeout_seconds: number
+  embedding_model?: string | null
 }
 
 export type Layer = 'user_fact' | 'shared_experience' | 'plan' | 'temporary' | 'relationship' | 'companion_life'

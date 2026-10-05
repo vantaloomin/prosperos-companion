@@ -51,12 +51,13 @@ async def lifespan(app):
 
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
-               life_tasks=True, world=None) -> FastAPI:
+               life_tasks=True, world=None, embedder=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     app.state.vault = vault or SystemVault()
-    app.state.conversation = Conversation(app.state.database, app.state.vault, provider)
-    app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, enabled=life_tasks)
+    app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder)
+    app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
+                                    app.state.conversation.embedder, enabled=life_tasks)
     app.state.conversation.after_turn = app.state.memory.kick
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world or CatalogWorld(app.state.database))

@@ -87,6 +87,8 @@ class ConnectionUpdate(Input):
     max_output_tokens: int = Field(default=800, ge=64, le=128000)
     context_tokens: int = Field(default=16000, ge=1024, le=2000000)
     timeout_seconds: int = Field(default=180, ge=10, le=1800)
+    # Optional embedding model on the same connection; empty keeps recall keyword-only.
+    embedding_model: str | None = Field(default=None, max_length=200)
 
 
 class MessageCreate(Input):
