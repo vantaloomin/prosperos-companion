@@ -393,3 +393,14 @@ def test_a_relative_out_of_town_gets_a_call():
     assert 'Aunt Rosa' in composed['summary'] and ('called' in composed['summary'] or 'phone' in composed['summary'])
     assert composer.birthday(slot, {'name': 'Mira'}, CatalogWorld(), 'seed', ('birthday',),
                              [{'id': 'p1', 'name': 'Aunt Rosa', 'local': False}], None) is None
+
+
+def test_today_shows_the_companions_day(client, baltimore, clock, monkeypatch):
+    local = clock.now().astimezone(zone('America/New_York')).date()
+    monkeypatch.setattr(circle, 'birthday', lambda _person_id: local.strftime('%m-%d'))
+    reconcile(client)
+    day = client.get('/api/today').json()['day']
+    assert day['date'] == local.isoformat()
+    assert day['weather']['high_f'] and isinstance(day['happenings'], list)
+    assert {person['id'] for person in day['birthdays']} == {person['id'] for person in
+                                                            client.get('/api/life/circle').json()}
