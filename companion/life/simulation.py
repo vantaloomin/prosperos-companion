@@ -16,7 +16,7 @@ import asyncio
 import random
 from datetime import timedelta
 
-from companion import events
+from companion import events, notifications
 from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -388,8 +388,9 @@ class LifeEngine:
                                'WHERE id=?', (encode(list(results.values())), status, error,
                                               stamp(self.now() + LEASE), finished, run_id))
             if status == 'completed':
-                feed.publish_run(connection, one(connection, 'SELECT * FROM life_runs WHERE id=?', (run_id,)),
-                                 list(results.values()), stamp(self.now()))
+                posts = feed.publish_run(connection, one(connection, 'SELECT * FROM life_runs WHERE id=?',
+                                                         (run_id,)), list(results.values()), stamp(self.now()))
+                notifications.enqueue_posts(connection, posts, stamp(self.now()))
 
     async def simulate(self, run, slot) -> dict:
         """One routine slot: compose it, record it as a proposal, and commit it if permitted."""

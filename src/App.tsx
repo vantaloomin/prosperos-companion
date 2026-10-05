@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BookHeart, CalendarDays, MessageCircle, Newspaper, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
 import { useCompanion, type View } from './companion'
@@ -10,6 +10,7 @@ import { Settings } from './features/settings/Settings'
 import { Today } from './features/today/Today'
 import { Feed } from './features/feed/Feed'
 import { useReconcile } from './features/today/useReconcile'
+import { useNotifications } from './features/notifications/useNotifications'
 import { Loading, Notice } from './components/Feedback'
 
 const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
@@ -35,7 +36,8 @@ export default function App() {
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
   }, [])
-  const go = (next: View) => { window.history.pushState(null, '', `#${next}`); setView(next) }
+  const go = useCallback((next: View) => { window.history.pushState(null, '', `#${next}`); setView(next) }, [])
+  useNotifications(!!companion.data, go)
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
