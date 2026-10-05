@@ -38,6 +38,7 @@ class Database:
             claim_identity(connection)
             connection.executescript(SCHEMA)
             add_columns(connection)
+            backfill_subject_keys(connection)
             connection.execute('INSERT OR IGNORE INTO workspace_settings (id, updated_at) VALUES (1, ?)',
                                (self.now(),))
             connection.execute('INSERT OR IGNORE INTO life_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
@@ -66,6 +67,10 @@ class Database:
 # alone, so a workspace created earlier gains them here.
 ADDED_COLUMNS = (
     ('life_settings', 'phrase_with_model', 'INTEGER NOT NULL DEFAULT 1 CHECK (phrase_with_model IN (0, 1))'),
+    ('memories', 'subject_key', "TEXT NOT NULL DEFAULT ''"),
+    ('memories', 'origin', "TEXT NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'automatic', 'suggestion'))"),
+    ('memories', 'ended_by_id', 'TEXT'),
+    ('memories', 'dates_uncertain', 'INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1))'),
 )
 
 
@@ -74,6 +79,13 @@ def add_columns(connection):
         existing = {row[1] for row in connection.execute(f'PRAGMA table_info({table})')}
         if column not in existing:
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+
+
+def backfill_subject_keys(connection):
+    from companion.memory.extraction import subject_key
+    rows = connection.execute("SELECT id, subject FROM memories WHERE subject_key=''").fetchall()
+    connection.executemany('UPDATE memories SET subject_key=? WHERE id=?',
+                           [(subject_key(row[1]), row[0]) for row in rows])
 
 
 FOREIGN = 'This database belongs to another application. Choose a Companion workspace.'

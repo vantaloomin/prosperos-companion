@@ -15,6 +15,7 @@ from companion.errors import DomainError
 from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
 from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
+from companion.memory.worker import MemoryWorker
 from companion.providers.vault import SystemVault
 from companion.routes import router
 from companion.world import routes as world_routes
@@ -43,6 +44,7 @@ async def invalid_request(_request: Request, error: RequestValidationError):
 async def lifespan(app):
     recover(app.state.database)
     task = asyncio.create_task(app.state.life.run_forever()) if app.state.life_tasks else None
+    app.state.memory.kick()
     yield
     if task:
         task.cancel()
@@ -54,6 +56,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.database = Database(database_path, clock)
     app.state.vault = vault or SystemVault()
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider)
+    app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, enabled=life_tasks)
+    app.state.conversation.after_turn = app.state.memory.kick
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world or CatalogWorld(app.state.database))
     app.state.life_tasks = life_tasks

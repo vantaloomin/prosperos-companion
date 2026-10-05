@@ -20,6 +20,7 @@ can never be confused.
 | `life_events` | Proposed, committed, rejected and superseded fictional events (T2–T3, T7) | Committed events are the single account shared by chat, feed and recall |
 | `memories`, `memory_sources` | Typed personal memories with sources (M6–M12) | `stated`/`confirmed` reach context; `tentative` does not |
 | `memory_declines`, `deletion_markers` | Don't-remember choices and non-content deletion markers | Block re-extraction and reintroduction |
+| `memory_jobs`, `memory_candidates`, `memory_activity` | Queued extraction, extracted candidates and suggestions, and an activity log of identities and reason codes | Candidates are not memories until committed |
 | `workspace_settings`, `pauses` | Permissions, memory revision and pause intervals | Revisions make queued work detectably stale |
 
 ## Revisions and stale work
@@ -95,6 +96,43 @@ exclusivity. A return after a day or more records a visible, resettable absence 
 guilt, missing the user, neediness or sulking (`companion/traits.py`). The mood never exceeds that
 trait's intensity and stops applying once the trait is removed. Product controls such as pause,
 settings and export stay neutral either way.
+
+## Memory formation (M7, M8)
+
+`companion/memory/extraction.py` captures explicitly stated facts with rules, without a model:
+names, homes and moves, work, likes and dislikes, favourites, boundaries, allergies, relations and
+pets, temporary circumstances, dated plans and plan updates ("my interview got postponed").
+Questions, hypotheticals, conditionals, quoted text and messages with `*roleplay actions*` produce
+nothing, so neither fiction nor the companion's own words can create a real-user fact. Relative
+dates ("next Thursday", "ten years ago", "until Friday") resolve against the message's own time in
+the user's timezone (`companion/memory/dates.py`); an ambiguous one is kept but marked
+`dates_uncertain`.
+
+`companion/memory/formation.py` keeps extraction, validation and commit separate:
+
+- **Queueing.** Only while automatic memory is on, saving a user message queues one job under the
+  current permission revision. Nothing is queued while it is off; turning it on does not reach back.
+- **Running.** `MemoryWorker` drains the queue after each turn and waits while a reply is being
+  written. A job commits only if automatic memory is still on under the same permission revision;
+  otherwise it is `stale`. A failure marks the job `failed` and leaves the conversation alone.
+- **Committing.** Ordinary stated facts commit as `automatic` memories with their source message.
+  Sensitive ones (health, sexuality, religion, politics, finances, legal status, addresses) wait as
+  suggestions unless sensitive memory is allowed. An added fact does not advance the memory revision,
+  so it never withholds a reply being written; ending an earlier value or changing a plan does.
+- **Suggestions.** Accepting one is deliberate permission. A declined suggestion's fingerprint is
+  never suggested again, from that message or a later one.
+- **Per message.** Remember this commits what the rules find in one of the user's messages (with
+  automatic memory off too), or returns a draft for the Remember form. Don't remember this blocks
+  extraction from the message and deletes memories extracted from it automatically; the transcript
+  stays.
+
+**Supersession.** Single-valued subjects (`preferred_name`, `home_city`, `work`, `birthday`,
+`favourite_*`) hold one current value. A new current value ends the earlier one at its start
+(`applies_until`, `ended_by_id`), which stays as history: "I moved to Boston" ends Chicago, "I might
+move to Boston" is a proposed plan, and "I lived in Boston ten years ago" ends nothing. A correction
+is a different thing: a new revision that supersedes a wrong value. Ended facts are recallable
+history marked "no longer current"; expired temporary circumstances are not recalled. Open plans
+stay commitments after their date, marked "outcome not confirmed".
 
 ## Life simulation (T1–T7)
 
@@ -183,6 +221,6 @@ reference cleared. Enabling memory or background activity requires marking the r
 
 ## Not yet built
 
-Timeline forking, automatic memory extraction, semantic embeddings, MCP tools, image generation
+Timeline forking, model-proposed memory suggestions, semantic embeddings, MCP tools, image generation
 and LoRA training, durable cross-process scheduling, restore into an existing workspace, and a
 Windows installer (the install and launch scripts need Python and Node already present).
