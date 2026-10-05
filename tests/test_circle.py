@@ -333,3 +333,34 @@ def test_chat_knows_todays_typical_weather(client, baltimore, provider, clock):
 def test_without_climate_data_there_is_no_weather():
     assert composer.weather(object(), {'location': 'Baltimore'}, '2026-10-05') is None
     assert composer.harsh(None) is False
+
+
+def test_annual_events_fall_on_one_saturday_a_year():
+    world = CatalogWorld()
+    found = {}
+    day = datetime(2026, 1, 1).date()
+    while day.year == 2026:
+        for event in world.happenings('baltimore', day):
+            assert day.weekday() == 5 and event['id'] not in found
+            found[event['id']] = day
+        day += timedelta(days=1)
+    assert found['fells-point-fun-festival'].month == 10
+    assert not any('season' in key for key in found)
+
+
+def test_the_companion_goes_out_for_a_city_festival(client, baltimore, provider, clock, monkeypatch):
+    monkeypatch.setattr(composer, 'FESTIVAL_SHARE', 1)
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    clock.instant = datetime(2026, 10, 17, 13, 0, tzinfo=UTC)
+    reconcile(client)
+    day = rows(client, subject='companion', slot_key='day@2026-10-17')[0]
+    assert decode(day['block'])['happenings'][0]['name'] == 'Fells Point Fun Festival'
+    entry = decode(day['entry'])
+    assert entry['activity'] == 'festival' and 'Fells Point Fun Festival' in entry['summary']
+    assert entry['place']['kind'] == 'event'
+    # Only once that day: the evening goes back to the usual routine.
+    evening = decode(rows(client, subject='companion', slot_key='out@2026-10-17')[0]['entry'])
+    assert evening['activity'] != 'festival'
+    client.post('/api/conversation/messages', json={'text': 'Anything on today?', 'client_id': 'festival-01'})
+    assert 'Annual events in the city today: Fells Point Fun Festival' in provider.requests[-1]['system']

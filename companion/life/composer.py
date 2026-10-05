@@ -11,7 +11,7 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-COMPOSER_VERSION = 'compose-2'
+COMPOSER_VERSION = 'compose-3'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -106,6 +106,45 @@ CATALOG = {
 }
 
 
+# A city's annual event, on the day it is held, can draw the companion out for part of a leisure or
+# social block. The event comes from the world data; the wording names it and nothing else.
+FESTIVAL = activity('festival', (), ['{name} joined the crowds for {event}{area}.',
+                                     '{name} spent a few hours out for {event}{area}.'],
+                    ['The whole city came out.', 'Worth the crowds.', 'Already looking forward to next year.'],
+                    ['excited', 'happy'], '', ['{name} and {friend} joined the crowds for {event}{area}.',
+                                               '{name} went out for {event}{area} with {friend}.'])
+FESTIVAL_SHARE = 0.5
+FESTIVAL_KINDS = {'leisure', 'social'}
+
+
+def happenings(world, definition: dict, local_date: str) -> list[dict]:
+    """The city's annual events held on this date, from the world data. [] when the world has none."""
+    lookup, city = getattr(world, 'happenings', None), home_city(definition)
+    found = lookup(city, date.fromisoformat(local_date)) if lookup and city else []
+    return [{key: item[key] for key in ('id', 'name', 'neighborhood', 'city')} for item in found]
+
+
+def festival(slot: dict, definition: dict, world, seed: str, recent_activities, company, conditions) -> dict | None:
+    """Sometimes, the slot is spent at one of the day's annual events."""
+    block = slot['block']
+    if block['kind'] not in FESTIVAL_KINDS or FESTIVAL.key in set(recent_activities):
+        return None
+    events = block.get('happenings') or happenings(world, definition, slot['local_date'])
+    rng = random.Random(f'{seed}:festival')
+    if not events or rng.random() >= FESTIVAL_SHARE / (2 if harsh(conditions) else 1):
+        return None
+    event = rng.choice(events)
+    values = {'name': definition['name'], 'event': event['name'],
+              'area': f" in {event['neighborhood']}" if event['neighborhood'] and event['neighborhood'] not in
+              event['name'] else ''}
+    friend = company[int(rng.random() * len(company))] if company else None
+    summary = rng.choice(FESTIVAL.together).format(**values, friend=friend['name']) if friend else \
+        rng.choice(FESTIVAL.summaries).format(**values)
+    return {'summary': summary, 'post': rng.choice(FESTIVAL.captions), 'mood': rng.choice(FESTIVAL.moods),
+            'activity': FESTIVAL.key, 'place': {**event, 'kind': 'event'}, 'with': friend, 'weather': conditions,
+            'composer_version': COMPOSER_VERSION}
+
+
 def day_part(start: str) -> str:
     """The world data's part of the day for a block starting at this local "HH:MM"."""
     hour = int(start.split(':')[0])
@@ -158,6 +197,8 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
         return None
     # Prefer activities that did not just happen, so variety comes from the routine, not drama.
     conditions = block.get('weather') or weather(world, definition, slot['local_date'])
+    if outing := festival(slot, definition, world, seed, recent_activities, company, conditions):
+        return outing
     if harsh(conditions):
         # Bad weather moves the day indoors: no walks, and no workout in the park.
         options = [option for option in options if not option.place_kinds or set(option.place_kinds) - OUTDOOR] \
