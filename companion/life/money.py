@@ -11,7 +11,7 @@ leave every activity affordable.
 """
 import random
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from functools import lru_cache
 
@@ -117,6 +117,8 @@ class Profile:
     fun: float
     saving: float
     seed: str
+    # Pets and vehicles from their home (companion/life/home.py), per budget period.
+    upkeep: float = 0
 
     @property
     def per_cycle(self) -> float:
@@ -363,9 +365,57 @@ def happened(item, day: date) -> dict | None:
     return {'label': item[0], 'on': item[1].isoformat(), 'cost': round(item[2], 2)}
 
 
-def snapshot(definition: dict, local_date: str) -> dict:
-    """The budget as the Today panel and chat context see it on this local date."""
+# What their home costs to keep, as shares of a month's take-home (so it works in any currency), and
+# what a home change costs by its spend tier.
+UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005,
+          'car': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
+PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
+
+
+def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
+    """The home's rent, pets and vehicles, and what home changes cost this pay cycle, read through
+    home.py's `monthly_costs` and `purchases`. None before the home exists or where money does not apply."""
+    from companion.life import home  # home builds its first rent from this budget, so import late
+
     found = profile(definition)
+    costs = home.monthly_costs(connection, timeline_id, day) if found else None
+    if not costs:
+        return None
+    return {'costs': costs, 'purchases': home.purchases(connection, timeline_id, cycle_start(found, day), day)}
+
+
+def monthly_share(found: Profile) -> float:
+    """A month's take-home in this budget's period: shares of it become amounts per period."""
+    return found.income if found.period == 'month' else found.income * 52 / 12
+
+
+def with_home(found: Profile, costs: dict) -> Profile:
+    """The budget with the home's rent (when it names one in this city's money) and its upkeep."""
+    rent = found.rent
+    if costs.get('rent') and (costs.get('currency') or found.city['currency']) == found.city['currency']:
+        rent = costs['rent'] if costs.get('rent_period', 'month') == found.period else \
+            costs['rent'] * (12 / 52 if found.period == 'week' else 52 / 12)
+    month = monthly_share(found)
+    upkeep = sum(UPKEEP.get(kind, 0) for kind in [*costs.get('pets', ()), *costs.get('vehicles', ())]) * month
+    upkeep *= 1 if found.period == 'month' else 12 / 52
+    spare = max(found.income - rent - found.essentials - upkeep, 0)
+    share = STYLES[found.style]
+    return replace(found, rent=rent, upkeep=upkeep, fun=spare * share, saving=spare * (1 - share))
+
+
+def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
+    """Home changes this cycle with what they cost ({label, on, cost})."""
+    month = monthly_share(found)
+    return [{'label': item['text'], 'on': item['date'], 'cost': round(PURCHASES.get(item['spend'], 0) * month, 2)}
+            for item in purchases if PURCHASES.get(item['spend'])]
+
+
+def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dict:
+    """The budget as the Today panel and chat context see it on this local date. `home` is from
+    `household`: with it, rent and upkeep come from their home and its purchases count as spending."""
+    found = profile(definition)
+    if found and home:
+        found = with_home(found, home['costs'])
     if not found:
         city = city_for(definition)
         reason = f"There is no money in {city['name']}." if city else \
@@ -373,7 +423,8 @@ def snapshot(definition: dict, local_date: str) -> dict:
         return {'available': False, 'reason': reason}
     day = date.fromisoformat(local_date)
     start = cycle_start(found, day)
-    current, left = cycle(found, start), left_on(found, day)
+    bought = spent_at_home(found, home['purchases']) if home else []
+    current, left = cycle(found, start), left_on(found, day) - sum(item['cost'] for item in bought)
     setup = definition.get('money') or {}
     currency = found.city['currency']
     payday = start + timedelta(days=found.cycle_days)
@@ -382,7 +433,9 @@ def snapshot(definition: dict, local_date: str) -> dict:
         'career': {'id': found.career['id'], 'name': found.career['name'], 'pay': found.career['pay'],
                    'guessed': found.guessed} if found.career else None,
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
-        'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'essentials', 'fun', 'saving')},
+        'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
+                                                                  'saving')},
+        'rent_from': 'home' if home and home['costs'].get('rent') else 'budget', 'bought': bought,
         'payday': {'last': start.isoformat(), 'next': payday.isoformat(), 'cycle_days': found.cycle_days,
                    'today': day == start},
         'left': round(left, 2), 'fun_cycle': round(found.fun_cycle, 2),
@@ -392,19 +445,25 @@ def snapshot(definition: dict, local_date: str) -> dict:
         'goal': goal(found, setup, day),
         'text': {'income': amount(found.income, currency), 'rent': amount(found.rent, currency),
                  'essentials': amount(found.essentials, currency), 'fun': amount(found.fun, currency),
+                 'upkeep': amount(found.upkeep, currency),
                  'saving': amount(found.saving, currency), 'left': amount(max(left, 0), currency)},
     }
 
 
-def context_lines(definition: dict, local_date: str) -> list[tuple[str, str]]:
+def context_lines(definition: dict, local_date: str, home: dict | None = None) -> list[tuple[str, str]]:
     """(identity, line) pairs for the chat context's money section; [] where money does not apply."""
-    view = snapshot(definition, local_date)
+    view = snapshot(definition, local_date, home)
     if not view['available']:
         return []
     text, per = view['text'], 'a month' if view['period'] == 'month' else 'a week'
     work = f" as a {view['career']['name'].lower()}" if view['career'] else ''
-    lines = [('budget', f"- You take home about {text['income']} {per}{work}; rent is about {text['rent']} for "
-                        f"{view['housing']['label']} in {view['housing']['neighborhood']}.")]
+    place = 'your home' if view['rent_from'] == 'home' else \
+        f"{view['housing']['label']} in {view['housing']['neighborhood']}"
+    lines = [('budget', f"- You take home about {text['income']} {per}{work}; rent is about {text['rent']} for {place}.")]
+    if view['budget']['upkeep']:
+        lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
+    for item in view['bought']:
+        lines.append((f"bought:{item['on']}", f"- This pay period you spent money at home: you {item['label']}."))
     lines.append(('payday', '- ' + payday_text(view, local_date)))
     if view['splurge']:
         lines.append(('splurge', f"- This pay period you splurged on {view['splurge']['label']}."))
@@ -436,6 +495,8 @@ def payday_text(view: dict, local_date: str) -> str:
 def view(database) -> dict:
     """The current companion's budget on their local today (GET /api/today/money)."""
     with database.connect() as connection:
-        version = require_current(connection)['version']
-    local_date = database.clock.now().astimezone(zone(version['timezone'])).date().isoformat()
-    return {'date': local_date, **snapshot(version['definition'], local_date)}
+        companion = require_current(connection)
+        version = companion['version']
+        day = database.clock.now().astimezone(zone(version['timezone'])).date()
+        home = household(connection, companion['active_timeline_id'], version['definition'], day)
+    return {'date': day.isoformat(), **snapshot(version['definition'], day.isoformat(), home)}

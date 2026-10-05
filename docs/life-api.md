@@ -403,6 +403,12 @@ the model only phrases it (chat context section "Your money").
 - **Saving**: `goal` is the user's `saving_for` and `goal` amount (counted from `goal_since`), or a
   seeded everyday goal for each half of the year.
 
+- **Home**: once their home exists (`companion/life/home.py`), rent comes from its `monthly_costs`
+  (`rent_from: "home"`), pets and vehicles add `upkeep`, and home changes this pay period that cost
+  something (`purchases`: a new pet, a repair) are listed in `bought` and come out of what is left.
+  Before then the budget's own rent estimate applies (`rent_from: "budget"`). The composer's
+  `affordable` check uses the budget without the home, since it has no database.
+
 Where the setting has no money (Oz) or no known city, `available` is `false` with a `reason`.
 
 The composer calls `money.affordable(definition, activity_key, local_date)` once per option: an
