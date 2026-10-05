@@ -423,7 +423,8 @@ class LifeEngine:
                      'block_kind': block['kind'], 'activity': composed['activity'], 'place': composed['place'],
                      'local_date': slot['local_date'], 'timezone': version['timezone'],
                      'post': written['post'], 'mood': composed['mood'], 'with': composed.get('with'),
-                     'fulfils': composed.get('fulfils'), 'weather': composed.get('weather')},
+                     'fulfils': composed.get('fulfils'), 'weather': composed.get('weather'),
+                     'body': block.get('body')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {

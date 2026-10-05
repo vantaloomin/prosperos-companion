@@ -1,4 +1,4 @@
-import type { PauseRecord, Today } from '../../types'
+import type { BodyState, PauseRecord, Today } from '../../types'
 
 const time = (value: string, timeZone?: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone }).format(new Date(value))
 
@@ -37,4 +37,11 @@ export function availabilityShort(availability: Today['availability']): string {
   if (availability.state === 'working') return label ? `Busy: ${label}` : 'Busy'
   if (availability.state === 'out') return label ? `Out: ${label}` : 'Out'
   return label ? `Free: ${label}` : 'Free'
+}
+
+/** One line about how the companion feels today, e.g. "Mira is tired, after drinks at the Owl last night." */
+export function bodyText(body: BodyState | null | undefined, name: string): string {
+  if (!body) return ''
+  const feeling = body.state === 'sick' ? 'under the weather' : body.state
+  return `${name} is ${feeling}: ${body.because}.`
 }
