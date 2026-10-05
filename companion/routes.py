@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from companion import backup, characters, conversation, events, workspace
 from companion.identity import APP_ID, VERSION
-from companion.memory import records
+from companion.memory import formation, records
 from companion.models import (
     CharacterDefinition,
     CharacterRevision,
@@ -124,7 +124,43 @@ def stop_reply(request: Request, attempt_id: str):
 
 @router.post('/conversation/messages/{message_id}/decline-memory')
 def decline_memory(request: Request, message_id: str):
-    return records.decline(db(request), message_id)
+    return formation.forget_message(db(request), message_id)
+
+
+@router.post('/conversation/messages/{message_id}/remember')
+def remember_message(request: Request, message_id: str):
+    return formation.remember_message(db(request), message_id)
+
+
+@router.get('/memory/status')
+def memory_status(request: Request):
+    return formation.status(db(request))
+
+
+@router.post('/memory/run')
+def run_memory(request: Request):
+    """Process queued extraction now (the app also does this after each reply)."""
+    return formation.run_pending(db(request))
+
+
+@router.get('/memory/suggestions')
+def memory_suggestions(request: Request):
+    return formation.suggestions(db(request))
+
+
+@router.post('/memory/suggestions/{candidate_id}/accept')
+def accept_suggestion(request: Request, candidate_id: str):
+    return formation.accept(db(request), candidate_id)
+
+
+@router.post('/memory/suggestions/{candidate_id}/decline')
+def decline_suggestion(request: Request, candidate_id: str):
+    return formation.decline(db(request), candidate_id)
+
+
+@router.get('/memory/activity')
+def memory_activity(request: Request, limit: int = 100):
+    return formation.activity(db(request), min(max(limit, 1), 500))
 
 
 @router.get('/context/preview')

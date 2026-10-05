@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.memory import context
+from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
 from companion.providers.urls import validate_compatible_url
@@ -63,7 +63,10 @@ def next_seq(connection, timeline_id) -> int:
 
 
 def record_user(database, body) -> dict:
-    """Saving the user's text comes first and is idempotent on client_id (no duplicate on retry)."""
+    """Saving the user's text comes first and is idempotent on client_id (no duplicate on retry).
+
+    With automatic memory on, the same write queues the message for extraction after the reply.
+    """
     with database.connect(write=True) as connection:
         existing = optional(connection, 'SELECT * FROM messages WHERE client_id=?', (body.client_id,))
         if existing:
@@ -75,7 +78,9 @@ def record_user(database, body) -> dict:
             "created_at, completed_at) VALUES (?, ?, ?, 'user', ?, ?, 'complete', ?, ?, ?)",
             (message_id, timeline_id, next_seq(connection, timeline_id), body.text, body.client_id,
              companion['active_version_id'], database.now(), database.now()))
-        return one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
+        message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
+        formation.enqueue(connection, message, database.now())
+        return message
 
 
 def active_reply(connection, user_message_id) -> dict | None:
@@ -145,12 +150,14 @@ class LiveReply:
 
 
 class Conversation:
-    def __init__(self, database, vault, provider=None, scheduler=None):
+    def __init__(self, database, vault, provider=None, scheduler=None, after_turn=lambda: None):
         self.database = database
         self.vault = vault
         self.provider = provider or ChatProvider()
         self.scheduler = scheduler or RequestScheduler()
         self.running: dict[str, LiveReply] = {}
+        # Called once a turn needs nothing more from the model, so memory work never runs ahead of a reply.
+        self.after_turn = after_turn
 
     async def send(self, body, wait: bool = True) -> dict:
         user = record_user(self.database, body)
@@ -182,6 +189,7 @@ class Conversation:
     async def respond(self, user, wait: bool = True) -> dict:
         prepared = self.prepare(user)
         if prepared['connection'] != 'ready':
+            self.after_turn()
             return {'message': message_view(user), 'reply': None, 'connection': prepared['connection']}
         live = self.start(prepared)
         if wait:
@@ -205,6 +213,7 @@ class Conversation:
         live = self.running.pop(attempt_id, None)
         for queue in live.listeners if live else ():
             queue.put_nowait(None)
+        self.after_turn()
 
     def reply(self, attempt_id) -> dict:
         with self.database.connect() as connection:

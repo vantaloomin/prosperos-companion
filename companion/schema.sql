@@ -136,9 +136,58 @@ CREATE TABLE IF NOT EXISTS memories (
   revision INTEGER NOT NULL DEFAULT 1,
   supersedes_id TEXT REFERENCES memories(id),
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  -- Normalised subject; single-valued keys such as home_city hold one current value (M8).
+  subject_key TEXT NOT NULL DEFAULT '',
+  origin TEXT NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'automatic', 'suggestion')),
+  -- The later memory whose start ended this one ("I moved to Boston" ends Chicago, which stays history).
+  ended_by_id TEXT,
+  dates_uncertain INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1))
 );
 CREATE INDEX IF NOT EXISTS memories_current ON memories(companion_id, status, layer);
+
+-- Automatic extraction work, one job per user message, queued only while automatic memory is on.
+-- A job runs only under the permission revision it was queued with (M7).
+CREATE TABLE IF NOT EXISTS memory_jobs (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  permission_revision INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('queued', 'done', 'stale', 'skipped', 'failed')),
+  queued_at TEXT NOT NULL,
+  finished_at TEXT,
+  error TEXT
+);
+CREATE INDEX IF NOT EXISTS memory_jobs_status ON memory_jobs(status, queued_at);
+
+-- Extracted candidates. Committed ones point at their memory; pending ones are suggestions the user
+-- reviews. A declined fingerprint is never suggested again (M7).
+CREATE TABLE IF NOT EXISTS memory_candidates (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  source TEXT NOT NULL CHECK (source IN ('rule', 'model')),
+  rule TEXT NOT NULL,
+  proposal TEXT NOT NULL,
+  fingerprint TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'committed', 'declined', 'dismissed')),
+  reason TEXT,
+  memory_id TEXT,
+  created_at TEXT NOT NULL,
+  resolved_at TEXT,
+  UNIQUE (message_id, fingerprint)
+);
+CREATE INDEX IF NOT EXISTS memory_candidates_status ON memory_candidates(companion_id, status);
+
+-- What memory formation did, by identity and reason code only, so deletion leaves no content here.
+CREATE TABLE IF NOT EXISTS memory_activity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL,
+  action TEXT NOT NULL,
+  memory_id TEXT,
+  candidate_id TEXT,
+  message_id TEXT,
+  detail TEXT
+);
 
 CREATE TABLE IF NOT EXISTS memory_sources (
   memory_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,

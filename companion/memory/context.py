@@ -143,12 +143,19 @@ def time_text(now, user_tz, companion_tz, previous) -> str:
     return '\n'.join(lines)
 
 
-def memory_text(memory) -> str:
+def memory_text(memory, now: str | None = None) -> str:
     label = 'Boundary' if memory['boundary'] else memory['layer'].replace('_', ' ').capitalize()
     timing = ''
     if memory['applies_from'] or memory['applies_until']:
         timing = f" (applies {memory['applies_from'] or '…'} to {memory['applies_until'] or '…'})"
-    status = f" [{memory['plan_status']}]" if memory['plan_status'] else ''
+    notes = [memory['plan_status']] if memory['plan_status'] else []
+    if memory.get('historical'):
+        notes.append('no longer current')
+    if memory.get('dates_uncertain'):
+        notes.append('dates uncertain')
+    if now and memory['plan_status'] in OPEN_PLANS and (memory['applies_from'] or '~') < now:
+        notes.append('date has passed; outcome not confirmed')
+    status = f" [{'; '.join(notes)}]" if notes else ''
     return f"- {label}: {memory['subject']}: {memory['value']}{status}{timing} (stated {memory['stated_at'][:10]})"
 
 
@@ -194,6 +201,8 @@ def partition(memories) -> dict:
     for memory in memories:
         if memory['boundary']:
             groups['boundaries'].append(memory)
+        elif memory.get('historical'):
+            groups['recallable'].append(memory)
         elif memory['layer'] == 'plan' and memory['plan_status'] in OPEN_PLANS:
             groups['commitments'].append(memory)
         elif memory['layer'] in {'user_fact', 'temporary'}:
@@ -256,7 +265,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
-            packet.offer(section, memory['id'], memory_text(memory))
+            packet.offer(section, memory['id'], memory_text(memory, stamp(now)))
     offer_life(packet, connection, timeline_id, version, now)
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     post = linked_post(connection, latest['id']) if latest else None
