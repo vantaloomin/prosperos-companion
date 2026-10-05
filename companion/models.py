@@ -52,6 +52,8 @@ class CharacterDefinition(Input):
     appearance: str = Field(default='', max_length=4000)
     routine: str = Field(default='', max_length=8000)
     location: str = Field(default='', max_length=200)
+    # City id in the installed world data (for example "baltimore"); events use its real places.
+    home_city: str = Field(default='', max_length=60)
     relationship: Relationship = 'friendship'
     # Empty means neutral about absence. Jealousy, guilt or missing the user are opt-in traits.
     absence_reaction: str = Field(default='', max_length=2000)
@@ -136,6 +138,7 @@ class EventCorrection(Input):
 class LifeSettingsUpdate(Input):
     """Catch-up and background limits (PRD T3–T5). Ceilings are the tested maximums."""
     automatic_events: bool | None = None
+    phrase_with_model: bool | None = None
     catch_up_on_return: bool | None = None
     catch_up_max_events: int | None = Field(default=None, ge=0, le=6)
     catch_up_lookback_hours: int | None = Field(default=None, ge=6, le=336)

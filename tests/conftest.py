@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from companion.clock import FixedClock
 from companion.identity import CLIENT_HEADER
+from companion.life import composer
 from companion.main import create_app
 from companion.providers.chat import Chunk
 from companion.providers.vault import MemoryVault
@@ -86,15 +87,17 @@ def send(client, text, client_id):
 
 
 def life_reply(system, messages):
-    if 'ordinary moment' not in system:
+    if 'Rephrase one ordinary moment' not in system:
         return [Chunk('Hello again.'), Chunk('', 'stop')]
-    heading = messages[-1]['content'].splitlines()[0]
-    payload = {'summary': f'Event for {heading}', 'post': 'Lovely light today.', 'mood': 'content'}
+    facts = json.loads(messages[-1]['content'])
+    payload = {'summary': f"Phrased: {facts['summary']}", 'post': 'Lovely light today.'}
     return [Chunk(json.dumps(payload)), Chunk('', 'stop')]
 
 
 @pytest.fixture
-def life(provider, connected):
+def life(provider, connected, monkeypatch):
+    """A connected model that phrases events, and no randomly quiet slots, so counts are exact."""
+    monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     provider.respond = life_reply
     return provider
 

@@ -21,8 +21,9 @@ from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import feed, mood, routine
-from companion.life.synthesis import SynthesisInvalid, synthesize
+from companion.life import composer, feed, mood, routine
+from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
+from companion.life.world import EmptyWorld
 from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.providers.vault import credential_for
@@ -30,7 +31,7 @@ from companion.workspace import overlapping_pause
 
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
-FLAGS = ('automatic_events', 'catch_up_on_return')
+FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
 
@@ -266,8 +267,9 @@ class LifeEngine:
     """Runs batches for one process. The lock keeps this process to one batch at a time; across
     processes the cursor transaction and event idempotency keys keep work unique."""
 
-    def __init__(self, database, vault, provider, scheduler):
+    def __init__(self, database, vault, provider, scheduler, world=None):
         self.database = database
+        self.world = world or EmptyWorld()
         self.vault = vault
         self.provider = provider
         self.scheduler = scheduler
@@ -332,7 +334,7 @@ class LifeEngine:
                                  list(results.values()), stamp(self.now()))
 
     async def simulate(self, run, slot) -> dict:
-        """One routine slot: write it, record it as a proposal, and commit it if permitted."""
+        """One routine slot: compose it, record it as a proposal, and commit it if permitted."""
         key = event_key(run['timeline_id'], slot['key'])
         with self.database.connect() as connection:
             companion = current(connection)
@@ -346,31 +348,46 @@ class LifeEngine:
             return {'slot': slot['key'], 'outcome': 'skipped', 'reason': 'Activity permissions changed.'}
         if companion['active_timeline_id'] != run['timeline_id']:
             return {'slot': slot['key'], 'outcome': 'skipped', 'reason': 'The timeline is no longer active.'}
-        if config is None:
-            return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'No model connection, so it stayed uneventful.'}
         version = companion['version']
-        try:
-            written = await synthesize(self.provider, self.scheduler, config,
-                                       credential_for(self.vault, config['credential_ref']), version, slot, recent)
-        except SynthesisInvalid as invalid:
-            return {'slot': slot['key'], 'outcome': 'quiet', 'reason': str(invalid)}
-        if written is None:
+        composed = composer.compose(slot, version['definition'], self.world, key,
+                                    [decode(event['details']).get('activity') for event in recent])
+        if composed is None:
             return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.'}
+        written, phrasing = await self.phrase(config, life, version, slot, composed)
         block = slot['block']
         event = events.propose(self.database, EventProposal(
             idempotency_key=key, kind='ordinary', summary=written['summary'],
-            details={'slot': slot['key'], 'block': block['key'], 'label': block['label'], 'activity': block['kind'],
+            details={'slot': slot['key'], 'block': block['key'], 'label': block['label'],
+                     'block_kind': block['kind'], 'activity': composed['activity'], 'place': composed['place'],
                      'local_date': slot['local_date'], 'timezone': version['timezone'],
-                     'post': written.get('post', ''), 'mood': written.get('mood', '')},
+                     'post': written['post'], 'mood': composed['mood']},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
-            inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'synthesis': 'model',
-                    'model': config['model'], 'base_url': config['base_url'],
-                    'prompt_version': written['prompt_version'], 'character_version_id': version['id']}))
+            inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
+                    'composer_version': composed['composer_version'], 'template': {
+                        'summary': composed['summary'], 'post': composed['post']},
+                    'character_version_id': version['id'], **phrasing}))
         if event['character_version_id'] != version['id']:
             events.reject(self.database, event['id'])
             return {'slot': slot['key'], 'outcome': 'rejected', 'event_id': event['id'],
                     'reason': 'The character changed while this event was written.'}
         return self.settle(event, life)
+
+    async def phrase(self, config, life, version, slot, composed) -> tuple[dict, dict]:
+        """Template wording unless the user allows model phrasing and a model is connected. Any
+        model problem keeps the template wording; only a conversation interrupts the batch."""
+        template = {'summary': composed['summary'], 'post': composed['post']}
+        if config is None or not life['phrase_with_model']:
+            return template, {'wording': 'template'}
+        record = {'wording': 'model', 'model': config['model'], 'base_url': config['base_url'],
+                  'prompt_version': PROMPT_VERSION}
+        try:
+            return await phrase(self.provider, self.scheduler, config, credential_for(
+                self.vault, config['credential_ref']), version, slot, composed), record
+        except BackgroundInterrupted:
+            raise
+        except (SynthesisInvalid, DomainError) as problem:
+            reason = str(problem) if isinstance(problem, SynthesisInvalid) else problem.message
+            return template, {**record, 'wording': 'template', 'phrasing_error': reason}
 
     def settle(self, event, life) -> dict:
         if event['status'] == 'proposed' and life['automatic_events']:

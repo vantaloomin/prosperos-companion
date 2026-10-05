@@ -51,14 +51,14 @@ happened. Never word this as the companion having been active while the app was 
 }
 ```
 
-`status` is `running`, `completed`, `interrupted` (a conversation took priority or the model was
-unreachable; the next reconcile resumes it), or `failed` (shown with `error`). Each result's
+`status` is `running`, `completed`, `interrupted` (a conversation took priority; the next
+reconcile resumes it), or `failed` (shown with `error`). Each result's
 `outcome` is:
 
 - `proposed`: an event awaiting the user's review (automatic events are off).
 - `committed`: an event that is now part of the companion's life.
 - `rejected`: the event was made stale by a pause, character change or permission change (`reason`).
-- `quiet`: nothing notable happened, or no model is connected (`reason`). Quiet stretches are valid.
+- `quiet`: nothing notable happened (`reason`). Quiet stretches are valid.
 - `skipped`: permissions changed or the timeline switched before this slot ran.
 
 `GET /api/life/runs?limit=20` lists recent batches, newest first.
@@ -71,8 +71,15 @@ With automatic events off (the default), catch-up only proposes. Proposed events
 `rejected` with a `rejection` reason when the event became stale. Only committed events reach chat,
 the feed and recall.
 
-Life events carry `details` for display: `label` (routine block), `activity` (block kind),
-`local_date`, `timezone`, `post` (an optional caption in the companion's voice) and `mood`.
+Life events carry `details` for display: `label` (routine block), `block_kind`, `activity` (the
+composed activity, such as `walk` or `groceries`), `place` (`{id, name, kind, city, neighborhood}`
+from the world data, or `null`), `local_date`, `timezone`, `post` (a caption in the companion's
+voice) and `mood`.
+
+Events are composed from the routine, a fixed activity catalog and the world data, without a
+model. When a model is connected and `phrase_with_model` is on, it only rewrites the wording;
+`inputs.wording` is `model` or `template`. Set `home_city` on the character to a city id from the
+world data (for example `"baltimore"`) so events use real places there.
 
 ## Limits and permissions
 
@@ -85,6 +92,7 @@ PUT /api/life/settings
 | --- | --- | --- | --- |
 | `automatic_events` | `false` | | Commit ordinary events without review (PRD T3). Changing it advances the permission revision, so prepared work is revalidated. |
 | `catch_up_on_return` | `true` | | Run a batch on return (PRD T4). |
+| `phrase_with_model` | `true` | | Let the connected model reword composed events. Off means template wording and no model calls. |
 | `catch_up_max_events` | 3 | 0–6 | Most events in one batch, however long the absence (PRD T5). |
 | `catch_up_lookback_hours` | 48 | 6–336 | Only slots this recent are written; older absence stays uneventful. |
 | `return_gap_hours` | 4 | 1–48 | Unsimulated time needed before a return batch runs. |
