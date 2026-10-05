@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
 import type { Companion, History, Message, SendResult } from '../../types'
-import type { View } from '../../companion'
+import { HISTORY_KEY, type View } from '../../companion'
 import { Loading, Notice } from '../../components/Feedback'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { REMEMBER_KEY } from '../memories/memories'
 import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
 import { TurnView } from './TurnView'
@@ -12,7 +14,6 @@ import { useReplyStream } from './useReplyStream'
 import { useDraft } from './useDraft'
 
 const PAGE = 100
-const HISTORY_KEY = ['conversation']
 
 function ReplyFollower({ id, onText, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
   useReplyStream(id, { onText, onDone, onLost })
@@ -27,6 +28,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [announcement, setAnnouncement] = useState('')
   const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string; settings?: boolean } | null>(null)
   const [exhausted, setExhausted] = useState(false)
+  const [declining, setDeclining] = useState<Message | null>(null)
   const draft = useDraft()
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
@@ -77,6 +79,17 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const stop = async (replyId: string) => {
     try { await api(`/conversation/replies/${replyId}/stop`, {}) } catch (error) { fail(error) }
   }
+  const remember = (message: Message) => {
+    try { sessionStorage.setItem(REMEMBER_KEY, JSON.stringify({ messageId: message.id, text: message.text })) } catch { /* The form opens empty. */ }
+    go('memories')
+  }
+  const decline = async (message: Message) => {
+    setDeclining(null)
+    try {
+      await api(`/conversation/messages/${message.id}/decline-memory`, {})
+      setNotice({ tone: 'info', text: `${name} won't form memories from that message. It stays in your conversation.` })
+    } catch (error) { fail(error) }
+  }
   const loadEarlier = async () => {
     const before = messages[0]?.seq
     try {
@@ -103,17 +116,33 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <p className="empty-conversation subtle">This is the start of your conversation with {name}. Say hello whenever you like.</p>}
           {turns.map((turn) => (
-            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} />
+            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} />
           ))}
         </div>
       </div>
       <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
-      {notice && (
-        <div className="conversation-notice">
-          <Notice tone={notice.tone} action={notice.settings ? <button type="button" className="text-button" onClick={() => go('settings')}>Open Settings</button> : undefined}>{notice.text}</Notice>
-        </div>
-      )}
+      {notice && <ConversationNotice notice={notice} go={go} />}
+      {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
       <Composer name={name} draft={draft} streaming={streaming} onSend={send} onStop={() => following.forEach((id) => void stop(id))} />
     </section>
+  )
+}
+
+function ConversationNotice({ notice, go }: { notice: { tone: 'info' | 'error'; text: string; settings?: boolean }; go: (view: View) => void }) {
+  return (
+    <div className="conversation-notice">
+      <Notice tone={notice.tone} action={notice.settings ? <button type="button" className="text-button" onClick={() => go('settings')}>Open Settings</button> : undefined}>{notice.text}</Notice>
+    </div>
+  )
+}
+
+function DeclineDialog({ name, onCancel, onConfirm }: { name: string; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <ConfirmDialog title="Don't remember this message?" onClose={onCancel} actions={<>
+      <button type="button" className="button" onClick={onCancel}>Cancel</button>
+      <button type="button" className="button primary" onClick={onConfirm}>Don't remember it</button>
+    </>}>
+      <p>{name} won't turn this message into a memory, now or later. The message itself stays in your conversation.</p>
+    </ConfirmDialog>
   )
 }

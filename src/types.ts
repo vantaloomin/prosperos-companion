@@ -83,3 +83,29 @@ export interface Connection {
   context_tokens: number
   timeout_seconds: number
 }
+
+export type Layer = 'user_fact' | 'shared_experience' | 'plan' | 'temporary' | 'relationship' | 'companion_life'
+export type PlanStatus = 'proposed' | 'agreed' | 'postponed' | 'cancelled' | 'completed'
+
+export interface Memory {
+  id: string
+  layer: Layer
+  subject: string
+  value: string
+  reality: 'real' | 'fiction'
+  authority: 'stated' | 'confirmed' | 'tentative'
+  status: 'active' | 'superseded' | 'excluded'
+  boundary: boolean
+  pinned: boolean
+  sensitive: boolean
+  plan_status: PlanStatus | null
+  stated_at: string
+  applies_from: string | null
+  applies_until: string | null
+  revision: number
+  supersedes_id: string | null
+  source_message_ids: string[]
+  updated_at: string
+}
+
+export interface DeleteResult { deleted_memory_ids: string[]; redacted_message_ids: string[]; linked_memory_ids: string[] }
