@@ -81,7 +81,7 @@ jobs:
 
   windows-install:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -111,3 +111,8 @@ jobs:
             if ($page.Content -notmatch 'Prospero Companion') { throw 'The interface was not served.' }
             Write-Host "Launched $($health.app_id) $($health.version) and served the interface."
           } finally { Stop-Process -Id $app.Id -Force }
+      - name: Test the checkout helpers
+        shell: powershell
+        env:
+          COMPANION_DATA_DIR: ${{ runner.temp }}\companion-helpers-data
+        run: .\scripts\windows\helpers-test.ps1

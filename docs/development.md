@@ -25,6 +25,19 @@ stop. Launching again while it runs reuses the running copy, and a port taken by
 is never stopped. `install.ps1 -CheckOnly` verifies an existing installation. CI runs the
 installer and a launch on Windows.
 
+The other root `.bat` files wrap scripts in `scripts/windows/`; `common.ps1` there holds the shared
+port checks. `update.bat` runs `git pull --ff-only origin main` and then `install.ps1`; it refuses
+while the Companion runs (Windows locks the files a reinstall replaces) or when the checkout is on
+another branch. `status.bat` exits 0 when the Companion answers, 1 when nothing does and 2 when
+another program holds the port. `stop.bat` ends the process tree that owns the port, but only after
+the port answers as the Companion. `status.bat` and `stop.bat` take `-Port`, like `launch.bat`.
+`create-shortcut.bat -Destination <folder>` writes the shortcut elsewhere, and names it
+`Prospero Companion (checkout)` when the installed app already has a `Prospero Companion` shortcut.
+`dev.bat` starts the backend with `uvicorn --reload` in its own window (or reuses one already
+running), runs `npm run dev` in its own, and stops the backend it started when Vite exits.
+Dev mode uses the real workspace unless `COMPANION_DATA_DIR` points elsewhere. CI runs
+`scripts/windows/helpers-test.ps1` after the installer to exercise each helper through its `.bat`.
+
 On Linux or macOS, follow the commands above and below, then run
 `.venv/bin/python -m companion.launch`.
 
