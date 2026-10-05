@@ -8,6 +8,7 @@ import { Field, TextArea, TextInput } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, timezones } from './definition'
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
 import { FieldHelp } from './FieldHelp'
+import { Home } from './Home'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { QuickStart } from './QuickStart'
@@ -117,6 +118,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
           <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{companion ? 'Save new version' : 'Create companion'}</button>
         </div>
       </form>
+      {companion && <Home name={companion.version.name} />}
       {companion && <SelfFacts name={companion.version.name} />}
       {companion && <Versions current={companion.active_version_id} />}
     </section>
