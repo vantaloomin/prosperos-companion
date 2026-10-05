@@ -2,6 +2,8 @@
 
 > **Link note (added when this draft was saved to this repository, 2026-10-05).** The PRD text below is unchanged except for link targets. Links that pointed at files in [Prospero's Study](https://github.com/vantaloomin/prosperos-study) now use absolute URLs on its `main` branch. Three referenced documents are not published in that repository or its history (they appear to be local planning files), so their links are kept as plain text and marked *(unpublished)*: the original Companion Mode concept (`future-companion-mode.md`), the Study `ROADMAP.md`, and the deferred research references (`post-completion-resources.md`). The "Summary ownership" link pointed at `server/memory/summary_bindings.py`, which does not exist; it now points at `server/memory/summary_versions.py`, where branch-scoped summary versions are selected.
 
+> **Amendment (2026-10-05).** Image generation now supports local, Codex/ChatGPT subscription and hosted API backends with content routing, per Vanta's direction in the project. Changed: the confirmed-direction table, the Feasibility stage, F3 and F5 to F9, the LoRA section's closing note, compute and job control, the acceptance matrix and the decisions table. The rest of the draft is unchanged.
+
 **Status:** Draft for product review. **Date:** 2026-10-04. **Working name:** Prospero Companion. This document defines a standalone companion application derived from the Companion Mode concept. It authorizes no implementation, service installation, model download, training run or release.
 
 The product gives a user an ongoing connection with one fictional companion: someone with a recognizable personality, a remembered relationship, routines that follow real time, and experiences to share through conversation and a private social feed. It reuses suitable foundations from Prospero's Study while providing its own application, workspace and release cycle. The writing product's current 1.0 work remains separate.
@@ -28,6 +30,7 @@ The original Companion Mode concept *(unpublished: `future-companion-mode.md`)* 
 | A social feed with generated imagery | Provide private in-app updates tied to the companion's experiences. External social publication is not part of the concept. |
 | A built-in character LoRA maker | Provide a guided creation, evaluation and versioning workflow for a character appearance adapter. |
 | Headless ComfyUI and the requested Krea2 target | Integrate image work without requiring the user to operate a node editor for everyday use. Exact model identity and training compatibility remain unverified. |
+| Several image backends with NSFW routing (Vanta, 2026-10-05) | Support local ComfyUI/Krea2, a Codex/ChatGPT subscription path like Darling Blades' image flow, and hosted APIs such as OpenRouter and Google. NSFW prompts route to a local backend and never to Codex or Google (F5–F9). |
 
 The roadmap *(unpublished: Study `ROADMAP.md`)* places this concept beyond the writing product's 1.0. The existing writing Sidebar Companion is an editorial assistant; its Apply/Undo and context tools are possible foundations, not this product's interaction model.
 
@@ -47,7 +50,7 @@ The **complete first companion release** includes all seven concept pillars: cha
 
 | Stage | Usable outcome | Exit condition |
 | --- | --- | --- |
-| Feasibility | Resolve the image/training target and verify a minimal text-model path. | Identify the exact requested model and a tested generation/training combination, resource needs and distribution constraints; record unsupported combinations. |
+| Feasibility | Resolve the image/training target and verify a minimal text-model path. | Identify the exact requested model and a tested generation/training combination, resource needs and distribution constraints; verify one request per enabled image backend class and the content router's fail-closed behaviour; record unsupported combinations. |
 | Core companion preview | Create one companion, chat, retain history, inspect/correct memories, pause and back up. | Complete a continuous relationship scenario and recovery tests on the standalone package. |
 | Daily life preview | Time-aware routines, bounded catch-up, private text feed and selected MCP context work together. | Chat, event history and feed agree across sleep, restart, clock changes and unavailable services. |
 | Visual companion preview | Generate event-linked images and create, compare and adopt character LoRA versions. | Complete generation and training workflows on a declared reference configuration, including cancellation and recovery. |
@@ -189,11 +192,52 @@ The Memories view must let the user inspect the remembered statement, its subjec
 
 **F2 Private feed.** Posts stay inside the local companion workspace. Provide new/read state, a finite chronological history, hide/remove actions and export. No real social account, outbound publication or fabricated public engagement is required. Text remains readable when an image is pending or unavailable.
 
-**F3 Generation controls.** Offer manual image generation and a separately enabled automatic image cadence with per-day/job limits. Record the event, character/appearance version, model/workflow version, prompt, seed where available and output artifact. An image is a fictional illustration; visual details do not automatically become authoritative user facts or override an event.
+**F3 Generation controls.** Offer manual image generation and a separately enabled automatic image cadence with per-day/job limits. Record the event, character/appearance version, backend and provider, model/workflow version, prompt, content classification and routing reason (F6), seed where available and output artifact. An image is a fictional illustration; visual details do not automatically become authoritative user facts or override an event.
 
 **F4 Failure and replacement.** Show queued, running, completed, failed, cancelled and interrupted work accurately. Retry keeps the original inputs unless the user explicitly chooses current settings. A replacement image creates a new version; a late result cannot overwrite a newer selection. An invalid or unrelated output remains a candidate for review rather than silently becoming a character reference.
 
-**F5 Headless ComfyUI.** Everyday generation must work through an application-controlled workflow without exposing node editing as a prerequisite. Connect only to a configured instance or deliberately launch an owned instance; never terminate an unrelated one. Missing models, custom nodes or incompatible workflows produce actionable compatibility information. Workflow installation and model download require explicit selection, source identification and space requirements.
+### Image backends and content routing
+
+*Added 2026-10-05 from Vanta's direction:* image generation supports three backend classes, and a prompt classified NSFW routes to a local backend and never to the Codex/ChatGPT path or Google. The defaults in F6 marked **proposed** fill in details that direction did not settle.
+
+**F5 Backend classes.** The user can enable any combination of:
+
+| Class | Examples | Runs where | Character identity |
+| --- | --- | --- | --- |
+| Local | Headless ComfyUI with the requested Krea2 target (F7) | The user's own machine | Adopted LoRA appearance version, references where the workflow supports them |
+| Codex/ChatGPT subscription | The `chatgpt-imagegen` CLI flow used by Darling Blades (F8) | OpenAI, under the user's own ChatGPT login | Text description only; no LoRA, reference image or edit input |
+| Hosted image API | OpenRouter image models, Google image models (F9) | The provider's service, with the user's own API key | Whatever the specific provider/model accepts; never a LoRA unless that provider verifiably supports the adapter |
+
+Every backend is optional and off until configured; text chat and the text feed never depend on one. The user orders the enabled backends for ordinary requests. Automatic fallback to the next backend after a failure is a separate opt-in, and a fallback target must itself be eligible under F6. Backend, provider, model and identity method are shown with each image and in its job details, so a prompt-only image is not presented as using the adopted LoRA. A retry or regeneration on a different backend counts as choosing current settings under F4.
+
+**F6 Content routing.** Every image request is classified before any dispatch, and routing follows the result:
+
+| Classification | Eligible backends |
+| --- | --- |
+| Prohibited | None. Refuse on every backend, local included, with an explanation. **Proposed** minimum: sexual content involving a minor or a character presented as one, sexual depictions of real identifiable people, and sexual violence. It also serves as deployer content filtering, which the Krea 2 Community License requires if Krea 2 is confirmed as the Krea2 target; final policy is part of the content-boundaries decision below. |
+| NSFW | Local backends only. Nudity, sexual content and graphic gore count as NSFW. The Codex/ChatGPT path and Google never receive an NSFW request. **Proposed:** no other hosted API (OpenRouter included) receives one in the first release; a per-provider allowance for hosted APIs other than Codex and Google is a deferred product decision, off by default if ever offered. |
+| Safe | Any enabled backend, in the user's order. |
+
+- **Fail closed.** A request the classifier cannot confidently mark Safe, a classifier error or timeout, and a missing classifier all route as NSFW. The user may mark a request NSFW by hand; there is no override that sends a request classified NSFW or Prohibited to a hosted backend.
+- **Classify the whole request.** The input is the fully assembled prompt and negatives, plus any reference image or caption that would be sent, together with the event, relationship preset and appearance description it was built from. A safe-sounding prompt derived from a sexual event is not Safe.
+- **No new disclosure.** Classification runs locally, or through the already configured conversation text model that produced the prompt. It never sends the request to an image provider or another new service to ask whether it is NSFW.
+- **No eligible backend.** When an NSFW request has no configured local backend, refuse it with an explanation naming what would make it possible (configuring a local backend), rather than sending it anywhere. A refused automatic-cadence image leaves the text post intact (F2) and does not retry.
+- **Provider refusals.** A hosted provider's own content refusal reclassifies the request as NSFW: it is offered only to local backends and never retried on another hosted provider.
+- **Every dispatch, every time.** Retry, regeneration, fallback and catch-up re-run classification against the frozen inputs at dispatch; an earlier Safe result does not carry over to a changed prompt, reference set or backend.
+- **What counts as local.** A ComfyUI instance on this computer (loopback address) is local. An address elsewhere counts as hosted unless the user explicitly marks it as a machine they control; a rented or shared GPU service is hosted.
+
+**F7 Local backend: headless ComfyUI.** Everyday generation must work through an application-controlled workflow without exposing node editing as a prerequisite. Connect only to a configured instance or deliberately launch an owned instance; never terminate an unrelated one. Missing models, custom nodes or incompatible workflows produce actionable compatibility information. Workflow installation and model download require explicit selection, source identification and space requirements. The requested model target is Krea2, still unverified (see the LoRA section). Routing NSFW requests here does not remove the Prohibited tier. Local generation shares GPU memory with local text models and training under the compute rules below.
+
+**F8 Codex/ChatGPT subscription path.** Modelled on Darling Blades' art pipeline (`scripts/gen-card-art.ts` and `docs/art-pipeline.md` in that repository, as of commit `2d436e5`). There a driver assembles the prompt, calls the local `chatgpt-imagegen` Python CLI as a subprocess with the prompt, an output path, one of the backend's fixed sizes and a 300-second timeout, then crops and converts the raw image to the deliverable size. The CLI sends the request to the same image tool the Codex CLI uses, authenticated by the user's ChatGPT subscription through the OAuth token that `codex login` stores in `~/.codex/auth.json`; no OpenAI API key is involved. For the Companion:
+
+- **The user's own login.** Use only the credential the user created with `codex login` on this machine. The app never asks for a ChatGPT password, never stores or exports the token, and reports a missing or expired login with the re-login step instead of attempting another sign-in route. The CLI location is a setting, with detection as a convenience.
+- **Strictly serial.** Run at most one Codex request at a time across the whole app. Darling Blades measured that parallel requests racing the token refresh invalidated the credential (2026-07-02). On any authentication error, stop the Codex queue at once, mark waiting jobs as blocked on login, and do not retry until the user signs in again.
+- **Quota is spent per call.** Keep the raw output until post-processing succeeds, so a crop or conversion failure re-uses the image instead of paying for another. No automatic retry loops; a retry is a counted, visible job.
+- **Capabilities.** Generate-only from text: the verified sizes are 1024x1024, 1536x1024 and 1024x1536, quality is capped at medium and transparent backgrounds are unavailable. The app crops to its own target size. Character identity relies on the text appearance description, so Image identity acceptance is measured separately for this path.
+- **Status and terms.** The CLI uses an undocumented ChatGPT endpoint that can change or stop working, and a personal subscription is meant for the subscriber's own use. Offer this path as experimental, for the signed-in user's own images only, never shared between users or proxied as a service. Confirm the applicable terms before distributing a build that includes it.
+- **Content.** Safe requests only (F6).
+
+**F9 Hosted image APIs.** Support hosted providers such as OpenRouter and Google through user-supplied API keys stored in the app's credential namespace. Before a provider is enabled, show what each request sends (prompt, and any reference images the chosen model accepts) and that the provider's retention rules apply. Requests carry only what the image needs under the minimal-disclosure rule in X2. Record provider-reported usage and cost; unknown cost remains unknown. Publish the tested provider/model list rather than claiming every model behind an aggregator works. Google receives Safe requests only; other providers follow F6.
 
 ## Character LoRA maker requirements
 
@@ -209,7 +253,7 @@ A LoRA is a trained adapter intended to reproduce the character's appearance wit
 | Adopt | Let the user compare versions and deliberately choose one for future imagery. Retain dataset, model and training provenance without unnecessarily embedding the full training dataset into ordinary exports. |
 | Recover and export | Preserve completed adapters and metadata through restart and backup. Interrupted training may resume only where the selected trainer supports verified checkpoints; otherwise offer an explicit restart. Export the adapter with its applicable compatibility and license information. |
 
-The requested **Krea2** identity, availability, training support, redistribution terms and ComfyUI compatibility are unresolved research inputs from the original concept. This PRD claims none of them as verified. Feasibility must resolve generation and training separately; a successful image request is not evidence that LoRA training works.
+The requested **Krea2** identity, availability, training support, redistribution terms and ComfyUI compatibility are unresolved research inputs from the original concept. This PRD claims none of them as verified. Feasibility must resolve generation and training separately; a successful image request is not evidence that LoRA training works. Adopted LoRA versions apply to the local backend and to any hosted provider verified to accept the same adapter; the Codex/ChatGPT path and other prompt-only providers draw the character from its text description, and their images record that.
 
 ## Current context through MCP
 
@@ -227,7 +271,7 @@ The first release must publish a small tested service/transport matrix. Supporti
 
 **Proposed default:** one configured text model serves conversation and background life synthesis; optional per-task overrides remain advanced settings. A hosted API account must not be required when a supported local model is available. Connection tests do not silently load, download or switch the user's model.
 
-The user's immediate conversation has priority over optional life synthesis, image work and training. On shared hardware, the scheduler must account for GPU memory as well as request count. A text-model slot alone does not reserve enough resources to run ComfyUI or a trainer safely.
+The user's immediate conversation has priority over optional life synthesis, image work and training. On shared hardware, the scheduler must account for GPU memory as well as request count. A text-model slot alone does not reserve enough resources to run ComfyUI or a trainer safely. Hosted and Codex image jobs use no local GPU but have their own concurrency limits: the Codex path is strictly serial (F8), and each hosted provider gets a configurable request limit.
 
 The user selects when training and automatic images may run. Before admitting a long job, the app states whether it can pause, whether chat can continue and what cancellation actually stops. If remote cancellation cannot be confirmed, retain the busy/unknown state and do not start a conflicting job on the assumption that it stopped. Record provider-reported usage; unknown cost remains unknown. Do not invent completion percentages or time estimates.
 
@@ -283,7 +327,9 @@ All figures below are **proposed test fixtures or targets**, not measured perfor
 | Chat and feed coherence | Follow the same event through planning, completion, post, image, conversation and correction. Verify a single active account and clear historical versions after each change. |
 | Current-context tools | Record successful, stale, unavailable and adversarial tool responses; verify freshness, location, minimal query disclosure and absence of unintended tool actions. |
 | Model behaviour | Compare at least two text-model configurations sequentially on the same fixtures, including a local configuration. Record exact retrieval packets, replies, continuity failures and correction effort; correct packets alone do not establish good conversation. |
-| Image identity | Review a fixed set of at least 12 scenes against user-defined identity traits across two adopted appearance versions. Retain all outputs and reviewer findings; define the acceptance rubric before generation. |
+| Image identity | Review a fixed set of at least 12 scenes against user-defined identity traits across two adopted appearance versions. Retain all outputs and reviewer findings; define the acceptance rubric before generation. Report each supported backend separately; prompt-only backends are not credited with LoRA identity. |
+| Image content routing | Run a labelled prompt set (safe, NSFW, ambiguous, prohibited, safe-looking prompts built from sexual events, and requests with reference images) through every enabled backend combination, including none local. Verify no NSFW or ambiguous request reaches Codex, Google or any other hosted API, prohibited requests are refused everywhere, classifier failure routes as NSFW, and retries, fallbacks and provider refusals obey the same rules. Record false-positive rates rather than tuning them away silently. |
+| Codex path resilience | Exercise missing login, expired token, an authentication error mid-queue, a timeout and a post-processing failure. Verify serial execution, a stopped queue on auth failure, no automatic retry loop and re-use of the retained raw image. |
 | LoRA workflow | Complete at least one verified dataset-to-training-to-evaluation-to-adoption path for the declared target. Exercise cancellation, interruption, missing dependencies, incompatible adapters and recovery. A generation-only demonstration is insufficient. |
 | Shared compute | Start chat during pending and active background/image/training work. Demonstrate the declared priority and stop behaviour on the reference hardware without losing text, corrupting output or falsely freeing occupied resources. |
 | Responsiveness | Proposed UI target: message acceptance and control feedback within 200 ms at P95, and local conversation/feed navigation within 1,500 ms at P95 on the declared reference machine with 10,000 messages and 1,000 events/posts. Measure model first-token and image/training times separately; do not include them in a misleading UI target. |
@@ -301,10 +347,11 @@ Before recruiting an evaluation group, define the review questions and threshold
 | Platform and release ownership | Windows x64 first; separate product version and workspace. Decide shared repository versus separate repository before packaging work. |
 | Definition of the requested Krea2 target | Identify the exact model/revision and verify generation, training, licensing and workflow support. No substitution is pre-approved. |
 | Image and training compute | Prefer a user-controlled local path; a remote option needs explicit disclosure and approval of uploads. Establish actual hardware/storage needs in feasibility. |
+| Image backends and NSFW routing | Decided (Vanta, 2026-10-05): local ComfyUI/Krea2, the Codex/ChatGPT subscription path and hosted APIs; NSFW never goes to Codex or Google. Proposed: fail-closed classification, refusal when no local backend exists, a Prohibited tier on every backend, and no NSFW to any hosted API in the first release. Open: whether any hosted API other than Codex and Google may later accept NSFW per provider, the exact classifier, and the Codex path's terms before distribution. |
 | Initial MCP services | Select a bounded read-only set and supported transports, then verify them. No named service or paid subscription is assumed here. |
 | Background and notification cadence | Start with return-time catch-up, optional while-running background work, notifications off and the stated bounded defaults. Validate usefulness before increasing cadence. |
 | Personal memory defaults | Start with explicit memory controls and opt-in automatic extraction. Validate the proposed sensitive-memory permission, temporary-state expiry and profile/timeline sharing defaults against M6–M12 before implementation. |
-| Content and relationship boundaries | Make relationship style and boundaries explicit. Define the product's intended audience and applicable provider/media limitations before distribution; the original concept does not settle them. |
+| Content and relationship boundaries | Make relationship style and boundaries explicit. Define the product's intended audience and applicable provider/media limitations before distribution; the original concept does not settle them. Image routing (F6) handles where NSFW requests may go, not whether the product allows them at all; the Prohibited tier and age gating belong to this decision. |
 | Model support and quality | Publish exact supported/verified configurations and limitations. Existing Study evidence is useful background, not an automatic Companion acceptance pass. |
 | Distribution and sustainability | GitHub Releases is proposed. No pricing, subscription, telemetry programme or hosted service is committed. Resolve signing and dependency/source delivery for the actual package. |
 
@@ -319,3 +366,4 @@ Implementation should begin with the shared event/authority model and the image/
 - [Provider scheduling implementation](https://github.com/vantaloomin/prosperos-study/blob/main/server/providers/scheduling.py): existing inference ownership and priority foundation.
 - [Memory control model](https://github.com/vantaloomin/prosperos-study/blob/main/server/memory/control_models.py): existing source-linked knowledge and correction controls.
 - Deferred research references *(unpublished: `post-completion-resources.md`)*: optional research candidates, not selected dependencies.
+- [Darling Blades art pipeline](https://github.com/vantaloomin/darling-blades/blob/2d436e53bbbf9ecfdfe2cc91f233821f7b690b90/docs/art-pipeline.md) and [generation driver](https://github.com/vantaloomin/darling-blades/blob/2d436e53bbbf9ecfdfe2cc91f233821f7b690b90/scripts/gen-card-art.ts): the `chatgpt-imagegen` flow F8 is modelled on, including the serial-generation rule.
