@@ -51,6 +51,8 @@ class ImageRunner:
         # Other runners that send to the same backends (LoRA reference generation) report what
         # they are running, so backend limits and the single Codex slot hold across both.
         self.sharing: list = []
+        # Set by the app: maybe text the user a photo of the companion's moment (images/photos.py).
+        self.share = lambda: None
 
     def wake(self):
         if self.wakeup:
@@ -61,6 +63,7 @@ class ImageRunner:
         while True:
             with contextlib.suppress(Exception):
                 self.automatic()
+                self.share()
                 self.dispatch()
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(self.wakeup.wait(), tick_seconds)

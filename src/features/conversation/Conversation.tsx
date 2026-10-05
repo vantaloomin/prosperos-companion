@@ -22,6 +22,7 @@ import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
 import { useDoorSounds } from './useDoorSounds'
 import { NovelStage } from './NovelStage'
+import { latestPhotoId } from './photoState'
 
 const PAGE = 100
 const JUMP_PAGE = 500
@@ -169,7 +170,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   return (
     <section className={`conversation chat-${chat.style}`} aria-label={`Conversation with ${name}`}>
-      <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} />
+      <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
       {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onDone={onDone} onLost={onLost} />)}
       <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
@@ -194,7 +195,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   )
 }
 
-function ConversationTop({ companion, onJump, timeline, stage }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean }) {
+function ConversationTop({ companion, onJump, timeline, stage, photoId }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean; photoId: string | null }) {
   const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
   const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
   const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
@@ -205,7 +206,7 @@ function ConversationTop({ companion, onJump, timeline, stage }: { companion: Co
       timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} />
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
-    {stage && <NovelStage name={companion.version.name} />}
+    {stage && <NovelStage name={companion.version.name} photoId={photoId} />}
   </>
 }
 

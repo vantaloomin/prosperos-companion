@@ -96,6 +96,49 @@ seed where the backend takes one, the output size and usage.
 - Images are saved in `images/` beside the workspace database. Backups hold the job records but
   not the image files. A restored workspace has its image keys cleared and automatic images off.
 
+## Photos, selfies and memes in chat
+
+Asked what they're up to ("what are you up to?", "wyd", "send me a pic"), the companion can answer
+with a photo of the moment (`companion/images/photos.py`). "Send me a selfie" gets a selfie of the
+same moment, "a pic of the view" a first-person photo with nobody in it (and so no likeness), and
+"send me a meme", "make me laugh" or "cheer me up" a meme. The app decides from a fixed list of
+phrasings, not the model, and a question about another time ("tomorrow", "tonight", "been up to")
+asks for no photo.
+
+- A selfie or view is another version of the moment's picture, on the same post. Each reply keeps
+  the version it sent, the feed shows the newest, and asking again for the same kind in the same
+  moment shows the one already made.
+- A meme is a joke, not an event. Its captions come from templates that fit the companion's day
+  (`companion/images/memes.py`: what their routine has them doing, rain, late night or morning), and
+  the last few are not repeated. The picture is the companion pulling a face or a simple fictional
+  scene, made square on a post of its own that never reaches the feed. The interface draws the
+  captions over it; the image model is never asked for text. Captions are classified with the rest.
+- Pictures nobody asked for: now and then a reply comes with a photo or selfie of a moment not yet
+  sent in chat (a seeded chance per reply), and a meme is likely when the user sounds bored or down.
+  At most three a day, two hours apart, and the reply knows it chose to send it. When the companion
+  may text first (Settings > Life), they sometimes text a photo of something they are out doing
+  (errands, social, leisure; a seeded chance per moment), at most once a day. That text is a first
+  message: the first-message rules decide when it may go out, it counts toward their daily cap, and
+  its words are the moment's caption, with no model call. Settings > Images > "Let them send
+  pictures without being asked" turns both off.
+
+- The photo shows the companion's current routine slot, composed the way the simulation will
+  compose it: the same agenda entry, plan and seed, and the wording prepared ahead for that entry
+  when the current life model prepared it. Nothing asks a model to write anything.
+- The image is made on a feed post keyed `photo:<event key>`. It has no event yet, so it stays out
+  of the feed. When the simulation writes that slot's event, the event joins the photo's post
+  instead of getting a post of its own or a place in a digest, so the feed shows the same picture
+  and the event is told once. A batch picks photographed slots first, like planned ones.
+- The request is classified and routed like any other (F6). With nowhere allowed to send it
+  (no backend, a hosted-only setup for an NSFW moment, or the prohibited tier) no photo is sent,
+  and the reply is not told about one. Sleep, quiet slots, a pause and the setting being off send
+  none either.
+- A reply that sends a photo gets one context section with the moment, so it can mention the photo.
+  Asking again in the same slot shows the same photo without making another.
+- `chat_photos` in the image settings turns it off (on by default; it still needs a backend).
+- In the chat, each style shows the picture under the reply with a line while it is on its way.
+  The Visual novel stage also shows the latest photo (not meme) behind the portrait.
+
 ## Interface
 
 Settings has an **Images** section: add a ComfyUI server, a Codex backend or an image API, accept
@@ -114,7 +157,7 @@ All writes need the `x-companion-client: workspace` header.
 
 | Method and path | Purpose |
 | --- | --- |
-| `GET`, `PUT /api/images/settings` | `automatic_images`, `daily_limit` (0 to 24), `queue_limit` (1 to 20), `fallback`, `aspect` (`square`, `landscape`, `portrait`), `style` |
+| `GET`, `PUT /api/images/settings` | `automatic_images`, `chat_photos`, `daily_limit` (0 to 24), `queue_limit` (1 to 20), `fallback`, `aspect` (`square`, `landscape`, `portrait`), `style` |
 | `GET /api/images/backends` | Backends in order, with `local`, `accepts_nsfw`, `disclosure`, `blocked_reason`, `has_key`; never a key |
 | `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, cli_path?, method?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
 | `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address needs the disclosure again |
@@ -130,6 +173,7 @@ All writes need the `x-companion-client: workspace` header.
 | `POST /api/images/jobs/{id}/retry` | `{current_settings?, backend_id?}` |
 | `POST /api/images/jobs/{id}/select` | Make a finished version the post's image |
 | `GET /api/images/jobs/{id}/file` | The image file |
+| `GET /api/images/photos/{message_id}` | The picture a reply sent: `{post_id, kind, summary, top_text, bottom_text, status, job_id, ref, error, in_feed}` |
 
 A post's `image` is `{status, job_id, ref, error, updated_at}`: `ref` is the id of the job whose
 file is shown, which can differ from `job_id` while a replacement is queued, running or failed.

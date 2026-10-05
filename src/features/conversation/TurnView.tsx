@@ -1,6 +1,7 @@
 import { memo, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
+import { ChatPhoto } from './ChatPhoto'
 import { LinkNotes } from './LinkNotes'
 import { shownAttempt, statusDetail, type Turn } from './turns'
 
@@ -103,6 +104,7 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
       <div className="prose">
         {text ? <Paragraphs text={text} /> : streaming ? <p className="typing subtle">{name} is writing…</p> : null}
       </div>
+      {message.photo && <ChatPhoto message={message} name={name} />}
       {note && <p className="reply-status" role="note">{note}</p>}
     </article>
   )

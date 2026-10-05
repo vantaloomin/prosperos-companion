@@ -48,6 +48,12 @@ def no_pc_timezone(monkeypatch):
     monkeypatch.setattr('companion.local_zone.detect', lambda: None)
 
 
+@pytest.fixture(autouse=True)
+def no_unasked_pictures(monkeypatch):
+    """Unasked chat pictures are a seeded chance; test_chat_photos turns them on where it needs them."""
+    monkeypatch.setattr('companion.images.photos.UNASKED', False)
+
+
 @pytest.fixture
 def clock():
     return FixedClock(START)

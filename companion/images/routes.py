@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 
 from companion.database import decode
 from companion.errors import DomainError
-from companion.images import backends, jobs, storage
+from companion.images import backends, jobs, photos, storage
 from companion.images.models import (
     BackendCreate,
     BackendFields,
@@ -139,3 +139,12 @@ def job_file(request: Request, job_id: str):
         raise DomainError('This image file is missing from the workspace.', 404) from error
     return FileResponse(path, media_type=storage.TYPES[path.suffix.lstrip('.')],
                         headers={'Cache-Control': 'private, max-age=31536000, immutable'})
+
+
+@router.get('/photos/{message_id}')
+def read_photo(request: Request, message_id: str):
+    """The photo a chat reply sent, with its image's current state."""
+    photo = photos.get(db(request), message_id)
+    if photo is None:
+        raise DomainError('This photo could not be found.', 404)
+    return photo
