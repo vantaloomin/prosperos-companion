@@ -406,3 +406,17 @@ def test_today_shows_the_companions_day(client, baltimore, clock, monkeypatch):
     assert day['weather']['high_f'] and isinstance(day['happenings'], list)
     assert {person['id'] for person in day['birthdays']} == {person['id'] for person in
                                                             client.get('/api/life/circle').json()}
+
+
+def test_everyday_places_are_near_home():
+    from companion.world import source
+    world = CatalogWorld()
+    slot = {'key': 'day@2026-10-05', 'local_date': '2026-10-05', 'block': EVENING_OUT[0]}
+    fells = composer.find_places(world, {'name': 'Mira', 'location': 'Fells Point, Baltimore'}, slot, ('cafe',))
+    distances = source.nearby(world.find('baltimore'), 'Fells Point, Baltimore')
+    hoods = {hood['name']: hood['id'] for hood in world.find('baltimore')['neighborhoods']}
+    assert fells and max(distances[hoods[place.neighborhood]] for place in fells) <= 3
+    # A circle member living elsewhere uses their own neighborhood, not the companion's location.
+    away = {'name': 'Dana', 'location': 'Fells Point, Baltimore', 'near': 'Hampden'}
+    theirs = composer.find_places(world, away, slot, ('cafe',))
+    assert theirs and {place.id for place in theirs} != {place.id for place in fells}

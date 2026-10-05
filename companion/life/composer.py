@@ -11,7 +11,7 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-COMPOSER_VERSION = 'compose-5'
+COMPOSER_VERSION = 'compose-6'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -244,12 +244,14 @@ def harsh(conditions: dict | None) -> bool:
 
 def find_places(world, definition: dict, slot: dict, kinds) -> list:
     """Places in the character's home city, or the city its location names, that are open at the
-    slot's time of day and in season on its date; a circle member's haunts first."""
+    slot's time of day and in season on its date, everyday ones near home; a circle member's haunts first."""
     city = home_city(definition)
     if not city or not kinds:
         return []
+    # Everyday places stay near home: a circle member's own neighborhood, else the character's location.
     found = world.places(city, kinds, day_part=day_part(slot['block']['start']),
-                        day=date.fromisoformat(slot['local_date']))
+                        day=date.fromisoformat(slot['local_date']),
+                        near=definition.get('near') or definition.get('location') or None)
     # A circle member's regular haunts come first when one fits.
     haunts = set(definition.get('haunts') or ())
     return [place for place in found if place.name in haunts] or found

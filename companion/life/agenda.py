@@ -37,6 +37,7 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
         result.append((person['id'], {'name': person['name'], 'schedule': decode(person['schedule']),
                                       'home_city': definition.get('home_city', ''),
                                       'location': definition.get('location', ''),
+                                      'near': decode(person['details']).get('neighborhood', ''),
                                       'haunts': decode(person['details']).get('haunts', [])},
                        f"{person['id']}:{person['revision']}"))
     result.append((COMPANION, definition, version['id']))
