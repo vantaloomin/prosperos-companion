@@ -10,7 +10,9 @@ running copy on a second launch and stays clear of Prospero's Study port. Used b
 #>
 param(
   [Parameter(Mandatory = $true)][string]$Bundle,
-  [string]$DataDir = (Join-Path $env:LOCALAPPDATA 'ProsperoCompanion')
+  [string]$DataDir = (Join-Path $env:LOCALAPPDATA 'ProsperoCompanion'),
+  # Prospero's Study is already running on 8765; check it instead of holding the port ourselves.
+  [switch]$StudyRunning
 )
 $ErrorActionPreference = 'Stop'
 $Bundle = (Resolve-Path -LiteralPath $Bundle).Path
@@ -42,8 +44,11 @@ $toolchain = @(Get-Command python, python3, py, node, npm -CommandType Applicati
 Check ($toolchain.Count -eq 0) "no Python or Node on PATH $($toolchain.Source -join ', ')"
 
 # Prospero's Study's port is taken, as it would be with the Study running beside the Companion.
-$study = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 8765)
-$study.Start()
+$study = $null
+if (-not $StudyRunning) {
+  $study = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 8765)
+  $study.Start()
+}
 $log = Join-Path ([System.IO.Path]::GetTempPath()) 'companion-smoke.log'
 $app = Start-Process -FilePath $env:ComSpec -ArgumentList '/d', '/c', "`"`"$launcher`" --no-browser > `"$log`" 2>&1`"" -PassThru -WindowStyle Hidden
 try {
@@ -66,9 +71,14 @@ try {
 
   $second = & $env:ComSpec /d /c "`"$launcher`" --no-browser" 2>&1 | Out-String
   Check ($LASTEXITCODE -eq 0 -and $second -match 'already running') 'a second launch reuses the running copy'
-  Check ($study.Server.IsBound) "Prospero Study's port 8765 is left alone"
+  if ($StudyRunning) {
+    $studyHealth = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 5
+    Check ($studyHealth.application -eq 'Roleplay') "Prospero's Study still answers on 8765"
+  } else {
+    Check ($study.Server.IsBound) "Prospero Study's port 8765 is left alone"
+  }
 } finally {
   & "$env:SystemRoot\System32\taskkill.exe" /T /F /PID $app.Id | Out-Null
-  $study.Stop()
+  if ($study) { $study.Stop() }
 }
 Write-Host 'Smoke test passed.'
