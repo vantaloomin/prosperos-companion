@@ -140,6 +140,36 @@ Baltimore"), everyday kinds (`cafe`, `restaurant`, `bar`, `market`, `grocery`, `
 `park`) keep to places within 3 km of that neighborhood, or the nearest three, closest first, when fewer than two
 are that close. Museums, venues, beaches and attractions stay city-wide.
 
+### City changes
+
+Cities change a little over time (`companion/world/changes.py`): a new cafe opens, a restaurant shuts for a
+remodel, road works dig up a neighbourhood's main street, a favourite spot closes for good. Each month a city
+gets at most one change of each kind (opening, closing, renovation, road works), decided by seeds from the city
+id and the month, starting in October 2026 (a city visited on earlier dates, such as London in 1895, looks
+back one year). The same city therefore changes the same way on every run and nothing has to be stored. People
+hear of a change a few days before it happens (two weeks before a closing). Wording and new-place names come
+from `companion/world/data/changes.json`, written by `scripts/world/changes.py`, in four styles chosen by era:
+modern, Victorian (also steampunk), medieval (also fantasy) and frontier. A new place copies the hours,
+setting and price level of one of the city's places of its kind and is tagged `new`.
+
+In a real city, seeds only close or renovate places that opened through a change: the shipped places are real
+businesses, and saying one closed would be a false claim about it. The user can still close any place there.
+A closing never leaves a neighbourhood without somewhere to eat or drink.
+
+`CatalogWorld.find(city, day)` returns the city as it stands that day, and `places(..., day=)` uses it, so every
+generator sees the change: a closed place drops out of outings and haunts, a new one can be picked, and
+neighbourhoods under road works carry `works`, which adds the works' delay to a `commute` by road (and lists
+them under `works`). Changes are dated, so events composed before a change keep the place they happened at.
+`CatalogWorld.changes(city, day)` lists every change heard of by that day.
+
+The workspace keeps what a seed can't know (tables `world_changes` and `world_change_dismissals`): changes the
+user adds, seeded changes the user dismisses (they never happen), and headlines from real local-event lookups.
+When the user has allowed local-event lookups for the companion's real city, up to three lines of each readable
+result are kept as `news` for two weeks after the lookup goes stale, quoted with their source and date. They are
+something the companion has heard about, never something they attended, and they are deleted with their
+lookup. Chat context gets one section, "Changes around your city", with up to six recent, current or coming
+changes; the latest fresh lookup is left out there because the real events section already quotes it whole.
+
 ## HTTP API
 
 Reads are `GET`s and need no workspace header. The [builder](#building-a-city) endpoints write and
@@ -156,8 +186,11 @@ need `x-companion-client: workspace`. Every `{id}` may be a built-in city or one
 | `/api/world/cities/{id}/prices?item=&seed=` | `{"currency", "prices"}`, or one `price` with an `amount` when `item` and `seed` are given |
 | `/api/world/cities/{id}/holidays?start=&end=` | `{"calendar": id \| null, "holidays": [… with "date"]}` (at most 400 days) |
 | `/api/world/cities/{id}/careers` | Careers this city offers |
-| `/api/world/cities/{id}/commute?from=&to=&mode=` | A commute estimate |
-| `/api/world/cities/{id}/generate/outing?seed=&day=&day_part=&company=&neighborhood=&home=&budget=&kind=&exclude=` | `{"outing": …}` |
+| `/api/world/cities/{id}/commute?from=&to=&mode=&day=` | A commute estimate; with `day`, road works that day add their delay |
+| `/api/world/cities/{id}/changes?day=&days=60` | `{"day", "changes": [… with "active"]}`: changes heard of by `day` (the city's today by default) that start, run or end within `days` of it |
+| `POST /api/world/cities/{id}/changes` | Add a change: `kind` (`opening`, `closing`, `renovation`, `roadworks`), `starts_on`, `ends_on` (renovation and road works), `place_id` (closing, renovation), `neighborhood` (opening, road works), `name` and `place_kind` (opening), optional `summary` and `delay`. The companion's upcoming plans from that day are recomposed |
+| `DELETE /api/world/cities/{id}/changes/{change_id}` | Delete a change you added, or dismiss a seeded one |
+| `/api/world/cities/{id}/generate/outing?seed=&day=&day_part=&company=&neighborhood=&home=&budget=&kind=&exclude=` | `{"outing": …}`; with `day`, from the city as it stands that day |
 | `/api/world/cities/{id}/generate/meal?seed=&meal=&…` | `{"outing": …}` with `meal` |
 | `/api/world/cities/{id}/generate/home?seed=&bedrooms=&budget=&vibe=&near=` | A home |
 | `/api/world/cities/{id}/generate/job?career=&seed=&home=&employer=` | `employer` puts the job at that record |

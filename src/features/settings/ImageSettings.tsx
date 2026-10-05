@@ -2,11 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 import { api } from '../../api'
-import type { BackendCheck, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits } from '../../types'
+import type { BackendCheck, BackendKind, CodexMethod, HostedProvider, ImageBackend, ImageSettings as Limits } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
-import { BACKEND_KINDS, PROVIDERS, disclosureFor } from '../feed/imageState'
+import { BACKEND_KINDS, CODEX_METHODS, PROVIDERS, disclosureFor } from '../feed/imageState'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -117,7 +117,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
 }
 
 function BackendSummary({ backend }: { backend: ImageBackend }) {
-  const where = backend.kind === 'codex' ? 'Codex CLI' : backend.local ? 'This computer' : backend.base_url
+  const where = backend.kind === 'codex' ? CODEX_METHODS.find((item) => item.id === backend.method)?.label : backend.local ? 'This computer' : backend.base_url
   const missingKey = backend.kind === 'hosted' && !backend.has_key
   return <>
     <div className="backend-title">
@@ -129,14 +129,27 @@ function BackendSummary({ backend }: { backend: ImageBackend }) {
   </>
 }
 
-interface Draft { kind: BackendKind; provider: HostedProvider; baseUrl: string; model: string; apiKey: string; cliPath: string; workflow: string; controlled: boolean }
+interface Draft { kind: BackendKind; provider: HostedProvider; baseUrl: string; model: string; apiKey: string; cliPath: string; method: CodexMethod; workflow: string; controlled: boolean }
 
 /** The request body for a new backend; only the fields its kind uses. */
 function backendBody(draft: Draft, disclosure: string | null, accepted: boolean): Record<string, unknown> {
   const body: Record<string, unknown> = { kind: draft.kind, accept_disclosure: disclosure ? accepted : undefined, enabled: !disclosure || accepted }
   if (draft.kind === 'comfyui') return { ...body, base_url: draft.baseUrl, controlled_machine: draft.controlled, workflow: draft.workflow.trim() || undefined }
-  if (draft.kind === 'codex') return { ...body, cli_path: draft.cliPath.trim() || undefined }
+  if (draft.kind === 'codex') return { ...body, method: draft.method, cli_path: draft.cliPath.trim() || undefined }
   return { ...body, provider: draft.provider, model: draft.model, api_key: draft.apiKey || undefined, base_url: draft.baseUrl.trim() || undefined }
+}
+
+function CodexFields({ method, setMethod, cliPath, setCliPath }: { method: CodexMethod; setMethod: (value: CodexMethod) => void; cliPath: string; setCliPath: (value: string) => void }) {
+  const chosen = CODEX_METHODS.find((item) => item.id === method)
+  return <>
+    <Field label="How Codex makes the image" hint={chosen?.hint}>{(id, describedBy) => (
+      <select id={id} aria-describedby={describedBy} value={method} onChange={(event) => setMethod(event.target.value as CodexMethod)}>
+        {CODEX_METHODS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+      </select>
+    )}</Field>
+    <TextInput label={`${method === 'native' ? 'Codex CLI' : 'chatgpt-imagegen'} location (optional)`} value={cliPath} onChange={setCliPath}
+      hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />
+  </>
 }
 
 function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (result: Result) => void }) {
@@ -146,6 +159,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
   const [model, setModel] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [cliPath, setCliPath] = useState('')
+  const [method, setMethod] = useState<CodexMethod>('native')
   const [workflow, setWorkflow] = useState('')
   const [controlled, setControlled] = useState(false)
   const [accepted, setAccepted] = useState(false)
@@ -160,7 +174,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
     event.preventDefault()
     setBusy(true)
     try {
-      await api('/images/backends', backendBody({ kind, provider, baseUrl, model, apiKey, cliPath, workflow, controlled }, disclosure, accepted))
+      await api('/images/backends', backendBody({ kind, provider, baseUrl, model, apiKey, cliPath, method, workflow, controlled }, disclosure, accepted))
       const leftOff = disclosure && !accepted
       setResult({ tone: 'info', text: leftOff ? 'Added, but left off until you accept what it receives.' : 'Backend added. Use Check to confirm it can run.' })
       onDone()
@@ -179,7 +193,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
         <TextArea label="Custom workflow (optional)" value={workflow} rows={3} onChange={setWorkflow}
           hint="Leave empty for the built-in Krea 2 Turbo workflow (unverified). A custom one is ComfyUI's API format with {{prompt}}, {{negative}}, {{seed}}, {{width}} and {{height}}." />
       </>}
-      {kind === 'codex' && <TextInput label="chatgpt-imagegen location (optional)" value={cliPath} onChange={setCliPath} hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />}
+      {kind === 'codex' && <CodexFields method={method} setMethod={setMethod} cliPath={cliPath} setCliPath={setCliPath} />}
       {kind === 'hosted' && <>
         <Field label="Provider">{(id) => (
           <select id={id} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>

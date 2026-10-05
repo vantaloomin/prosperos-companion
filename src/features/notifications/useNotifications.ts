@@ -11,7 +11,7 @@ const EVERY_MS = 60_000
  * backend decides quiet hours, the cap and digests; this only shows what it returns. If the
  * browser permission was withdrawn, notifications are turned off, which cancels what is queued.
  */
-export function useNotifications(enabled: boolean, go: (view: 'feed') => void) {
+export function useNotifications(enabled: boolean, go: (view: 'feed' | 'conversation') => void) {
   const client = useQueryClient()
   useEffect(() => {
     if (!enabled) return
@@ -30,8 +30,9 @@ export function useNotifications(enabled: boolean, go: (view: 'feed') => void) {
         const shown = result.notification
         if (!shown) return
         const notification = new Notification(shown.title, { body: shown.body, tag: shown.id })
-        notification.onclick = () => { window.focus(); go('feed'); notification.close() }
-        void client.invalidateQueries({ queryKey: ['feed'] })
+        const view = shown.kind === 'message' ? 'conversation' : 'feed'
+        notification.onclick = () => { window.focus(); go(view); notification.close() }
+        void client.invalidateQueries({ queryKey: view === 'conversation' ? ['conversation'] : ['feed'] })
       } catch { /* The next tick tries again. */ } finally { running = false }
     }
     void tick()

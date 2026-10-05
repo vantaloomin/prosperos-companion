@@ -537,3 +537,24 @@ def test_one_weather_lookup_serves_both_when_you_live_in_the_same_city(client, a
     client.put('/api/context/location', json={'user_place': 'Baltimore, Ireland'})
     client.post('/api/context/lookup', json={'category': 'weather'})
     assert len(calls(standin_log)) == 2
+
+
+def test_real_event_headlines_stay_as_city_news_until_their_lookup_is_deleted(client, app, connected, provider,
+                                                                            clock, standin_log):
+    companion_in(client, 'miami')
+    enable(client, add_service(client), 'local_events', run_in=('companion_city',))
+    asyncio.run(app.state.life.quietly_observe())
+    clock.advance(timedelta(hours=13))  # the lookup is no longer fresh
+    send(client, 'Anything new around town?', 'cn1')
+    system = provider.requests[-1]['system']
+    assert 'Changes around your city' in system
+    [line] = [line for line in system.splitlines() if 'a real listing from Stand-in, Oct 5' in line]
+    assert 'Night market at the pier' in line
+    assert 'You have not been unless your recent life says so' in system
+    changes = client.get('/api/world/cities/miami/changes').json()['changes']
+    [news] = [item for item in changes if item['kind'] == 'news']
+    assert news['origin'] == 'real' and news['service'] == 'Stand-in'
+    [observation] = client.get('/api/context/observations').json()['observations']
+    client.delete(f"/api/context/observations/{observation['id']}")
+    assert not [item for item in client.get('/api/world/cities/miami/changes').json()['changes']
+                if item['kind'] == 'news']

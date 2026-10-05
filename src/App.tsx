@@ -12,6 +12,7 @@ import { Today } from './features/today/Today'
 import { Feed } from './features/feed/Feed'
 import { useReconcile } from './features/today/useReconcile'
 import { useNotifications } from './features/notifications/useNotifications'
+import { useTexts } from './features/conversation/useTexts'
 import { Loading, Notice } from './components/Feedback'
 
 const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
@@ -46,6 +47,7 @@ export default function App() {
   // Switching Settings tabs keeps the address deep-linkable without filling the back button with tabs.
   const openTab = useCallback((tab: SettingsTab) => { window.history.replaceState(null, '', `#settings/${tab}`); setView(`settings/${tab}`) }, [])
   useNotifications(!!companion.data, go)
+  useTexts(!!companion.data)
   useFocusOnViewChange(view)
   return (
     <div className="app-shell">

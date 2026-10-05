@@ -1,4 +1,4 @@
-import type { BackendKind, HostedProvider, ImageJob, ImageStatus, PostImage } from '../../types'
+import type { BackendKind, CodexMethod, HostedProvider, ImageJob, ImageStatus, PostImage } from '../../types'
 
 export const imageFile = (jobId: string) => `/api/images/jobs/${encodeURIComponent(jobId)}/file`
 
@@ -49,8 +49,13 @@ export function provenance(job: ImageJob): [string, string][] {
 
 export const BACKEND_KINDS: { id: BackendKind; label: string; hint: string }[] = [
   { id: 'comfyui', label: 'ComfyUI', hint: 'A ComfyUI server you run. On this computer it can also make NSFW images.' },
-  { id: 'codex', label: 'Codex (ChatGPT subscription)', hint: 'Experimental. Uses the chatgpt-imagegen CLI and your own codex login. Safe images only.' },
+  { id: 'codex', label: 'Codex (ChatGPT subscription)', hint: "Experimental. Uses the Codex CLI's built-in image generation under your own codex login. Safe images only." },
   { id: 'hosted', label: 'Image API', hint: 'OpenRouter, Google or another provider, with your own API key. Safe images only.' },
+]
+
+export const CODEX_METHODS: { id: CodexMethod; label: string; hint: string }[] = [
+  { id: 'native', label: 'Codex CLI built-in', hint: 'Runs one codex exec turn per image with Codex\'s own image tool. Uses your ChatGPT plan\'s Codex limits.' },
+  { id: 'imagegen_cli', label: 'chatgpt-imagegen CLI', hint: 'The optional one-file CLI from Darling Blades, if you already use it. It uses the same codex login.' },
 ]
 
 export const PROVIDERS: { id: HostedProvider; label: string }[] = [
@@ -70,7 +75,7 @@ export function isLoopback(url: string): boolean {
 /** What a new backend will receive, matching the server's disclosure; null when nothing leaves this computer. */
 export function disclosureFor(kind: BackendKind, provider: HostedProvider, baseUrl: string, controlled: boolean): string | null {
   if (kind === 'comfyui' && (isLoopback(baseUrl) || controlled)) return null
-  const destination = kind === 'codex' ? "OpenAI, under your own ChatGPT login through the Codex CLI's credential"
+  const destination = kind === 'codex' ? 'OpenAI, through the Codex CLI under your own codex login (your ChatGPT plan, or the API key Codex is signed in with)'
     : kind === 'comfyui' ? 'the ComfyUI server at this address, which is not on this computer'
       : provider === 'other' ? 'this image service' : PROVIDERS.find((item) => item.id === provider)?.label ?? 'this provider'
   return `Each image request sends its prompt (built from the event and the character's appearance description) to ${destination}. Their retention rules apply. Conversation, memories and reference images are not sent.`

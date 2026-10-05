@@ -6,7 +6,7 @@ import { Notice } from '../../components/Feedback'
 import { TextInput, Toggle } from '../../components/Fields'
 
 const KEY = ['life-settings']
-type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events'
+type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'texts_gap_hours'
 
 const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: string }[] = [
   { key: 'catch_up_max_events', label: 'Most events when you return', min: 0, max: 6, hint: 'However long you were away.' },
@@ -14,6 +14,8 @@ const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: s
   { key: 'return_gap_hours', label: 'Time away before catching up (hours)', min: 1, max: 48, hint: '' },
   { key: 'background_interval_minutes', label: 'Minutes between background updates', min: 15, max: 1440, hint: '' },
   { key: 'background_daily_events', label: 'Most background events a day', min: 0, max: 8, hint: '' },
+  { key: 'texts_daily', label: 'Most first messages a day', min: 1, max: 6, hint: '' },
+  { key: 'texts_gap_hours', label: 'Quiet hours after talking before they message first', min: 1, max: 24, hint: '' },
 ]
 
 export function LifeSettings({ name }: { name: string }) {
@@ -54,6 +56,8 @@ export function LifeSettings({ name }: { name: string }) {
         hint="Off: new events wait in Today for you to keep or discard. Big changes to who they are or your relationship always wait for you." />
       <Toggle label="Let the model word their days" checked={data.phrase_with_model} onChange={(value) => void save({ phrase_with_model: value })}
         hint="What happens is always built from their routine and city. With this on, your model rewrites it in their voice; off, plain wording is used and no model calls are made." />
+      <Toggle label={`Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
+        hint={`${name} may start a conversation: to ask how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
       <div className="form-grid">
         {LIMITS.map((limit) => (
           <TextInput key={limit.key} label={limit.label} type="number" value={draft[limit.key] ?? String(data[limit.key])} hint={limit.hint || `${limit.min} to ${limit.max}.`}

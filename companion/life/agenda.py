@@ -12,9 +12,10 @@ members' happened entries are their visible diary.
 """
 from datetime import timedelta
 
+from companion import self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import circle, composer, routine
+from companion.life import body, circle, composer, routine
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -40,7 +41,9 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
                                       'near': decode(person['details']).get('neighborhood', ''),
                                       'haunts': decode(person['details']).get('haunts', [])},
                        f"{person['id']}:{person['revision']}"))
-    result.append((COMPANION, definition, version['id']))
+    # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
+    result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id'])},
+                   version['id']))
     return result
 
 
@@ -86,22 +89,17 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     schedule, _default = routine.blocks(definition)
     recent = recent_activities(connection, timeline_id, subject, stamp(start))
     days_off = public_holidays(world, definition, start, end)
-    skies = {}
+    days = {}
     written = 0
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
             continue
         local_date = slot.local_date.isoformat()
-        if local_date not in skies:
-            skies[local_date] = (composer.weather(world, definition, local_date),
-                                 composer.happenings(world, definition, local_date))
-        block, entry = holiday_block(slot.block.view(), days_off.get(local_date)), None
-        conditions, events = skies[local_date]
-        if conditions:
-            block['weather'] = conditions
-        if events:
-            block['happenings'] = events
+        if local_date not in days:
+            days[local_date] = day_facts(connection, timeline_id, subject, definition, world, slot.local_date,
+                                         days_off.get(local_date))
+        block, entry = day_block(slot.block.view(), days[local_date]), None
         if block['kind'] not in routine.RESTING:
             company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
             celebrants = birthdays(connection, timeline_id, local_date, company) if subject == COMPANION else []
@@ -120,6 +118,24 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',
                        (timeline_id, subject, stamp(end)))
     return written
+
+
+def day_facts(connection, timeline_id, subject, definition, world, day, holiday) -> dict:
+    """What every block on one local date shares: weather, annual events, a holiday and how the subject feels."""
+    local_date = day.isoformat()
+    return {'weather': composer.weather(world, definition, local_date),
+            'happenings': composer.happenings(world, definition, local_date), 'holiday': holiday,
+            'body': body.state_on(f'{timeline_id}:{subject}', day,
+                                  body.previous_entries(connection, timeline_id, subject, day), world, definition)}
+
+
+def day_block(block: dict, facts: dict) -> dict:
+    block = body.apply(holiday_block(block, facts['holiday']), facts['body'])
+    if facts['weather']:
+        block['weather'] = facts['weather']
+    if facts['happenings']:
+        block['happenings'] = facts['happenings']
+    return block
 
 
 def public_holidays(world, definition, start, end) -> dict[str, str]:
@@ -153,7 +169,8 @@ def free_people(connection, timeline_id, slot) -> list[dict]:
         overlapping = many(connection, 'SELECT block FROM life_agenda WHERE timeline_id=? AND subject=? '
                            'AND starts_at<? AND ends_at>?', (timeline_id, person['id'], stamp(slot.ends_at),
                                                              stamp(slot.starts_at)))
-        if not any(decode(row['block'])['kind'] in BUSY for row in overlapping):
+        if not any(decode(row['block'])['kind'] in BUSY or decode(row['block']).get('sick_day')
+                   for row in overlapping):
             result.append({'id': person['id'], 'name': person['name']})
     return result
 
@@ -233,13 +250,17 @@ def current(connection, timeline_id, subject, now) -> dict | None:
 
 def day_on(connection, timeline_id, local_date) -> dict:
     """The weather (observed where looked up, else typical) and annual events recorded for the companion's
-    city on a local date."""
+    city on a local date, and how the companion feels that day (companion/life/body.py)."""
     row = optional(connection, "SELECT json_extract(block, '$.weather') AS weather, json_extract(block, "
                    "'$.happenings') AS happenings FROM life_agenda WHERE timeline_id=? AND subject=? AND "
                    "local_date=? ORDER BY json_extract(block, '$.weather.observed') IS NULL, starts_at LIMIT 1",
                    (timeline_id, COMPANION, local_date))
+    state = optional(connection, "SELECT json_extract(block, '$.body') AS body FROM life_agenda WHERE timeline_id=? "
+                     "AND subject=? AND local_date=? AND json_extract(block, '$.body') IS NOT NULL LIMIT 1",
+                     (timeline_id, COMPANION, local_date))
     return {'weather': decode(row['weather']) if row and row['weather'] else None,
-            'happenings': decode(row['happenings']) if row and row['happenings'] else []}
+            'happenings': decode(row['happenings']) if row and row['happenings'] else [],
+            'body': decode(state['body']) if state else None}
 
 
 def happenings_text(events) -> str:

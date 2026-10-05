@@ -1,24 +1,42 @@
 import type { Message } from '../../types'
 
 export interface Turn {
-  user: Message
+  /** Null for messages the companion sent first that nobody has answered yet. */
+  user: Message | null
+  /** Messages the companion sent first, before this user message. */
+  leads: Message[]
   /** Every reply attempt to this message, oldest first. */
   attempts: Message[]
+}
+
+/** The id of the newest turn's user message, when the newest turn has one. */
+export function latestUser(turns: Turn[]): string | undefined {
+  return turns.at(-1)?.user?.id
+}
+
+/** A stable key: the user message, or the first message the companion sent unprompted. */
+export function turnKey(turn: Turn): string {
+  return (turn.user ?? turn.leads[0]).id
 }
 
 /** Pair each user message with its reply attempts. Attempts whose message is on an unloaded page are left out. */
 export function groupTurns(messages: Message[]): Turn[] {
   const turns: Turn[] = []
   const byId = new Map<string, Turn>()
+  let leads: Message[] = []
   for (const message of [...messages].sort((a, b) => a.seq - b.seq)) {
     if (message.role === 'user') {
-      const turn = { user: message, attempts: [] }
+      const turn = { user: message, leads, attempts: [] }
+      leads = []
       turns.push(turn)
       byId.set(message.id, turn)
     } else if (message.reply_to) {
       byId.get(message.reply_to)?.attempts.push(message)
+    } else {
+      leads.push(message)
     }
   }
+  if (leads.length) turns.push({ user: null, leads, attempts: [] })
   return turns.map(settled)
 }
 
@@ -26,9 +44,11 @@ const built = new WeakMap<Message, Turn>()
 
 /** The turn built last time when none of its messages changed, so a memoized turn skips re-rendering. */
 function settled(turn: Turn): Turn {
-  const previous = built.get(turn.user)
-  if (previous && previous.attempts.length === turn.attempts.length && previous.attempts.every((attempt, index) => attempt === turn.attempts[index])) return previous
-  built.set(turn.user, turn)
+  const anchor = turn.user ?? turn.leads[0]
+  const previous = built.get(anchor)
+  const same = (left: Message[], right: Message[]) => left.length === right.length && left.every((message, index) => message === right[index])
+  if (previous && same(previous.attempts, turn.attempts) && same(previous.leads, turn.leads)) return previous
+  built.set(anchor, turn)
   return turn
 }
 

@@ -142,6 +142,10 @@ def copy_history(connection, parent_id, new_id, message):
     } for row in events])
     insert(connection, 'circle_people', [{**row, 'id': ids[row['id']], 'timeline_id': new_id} for row in people])
     copy_posts(connection, posts, ids, new_id)
+    # Triggers already used before the fork stay used, so the copy is not texted about them again.
+    insert(connection, 'openers', [{**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids[row['message_id']],
+                                    'notify': None} for row in many(connection, 'SELECT * FROM openers WHERE timeline_id=?',
+                                                                    (parent_id,)) if row['message_id'] in ids])
     agenda = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND status IN ('happened','skipped') "
                   'AND ends_at<=?', (parent_id, cutoff))
     insert(connection, 'life_agenda', [{

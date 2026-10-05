@@ -1,4 +1,4 @@
-import type { CharacterDefinition, EmotionalTrait } from '../../types'
+import type { CharacterDefinition, EmotionalTrait, MoneySetup } from '../../types'
 import { cleanSchedule } from './schedule.ts'
 
 /** Examples from PRD C6. The user can name any trait; none is enabled by default. */
@@ -16,14 +16,18 @@ export function guessTimezone(): string {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' }
 }
 
+export function emptyMoney(): MoneySetup {
+  return { career: '', style: 'balanced', saving_for: '', goal: 0, goal_since: '' }
+}
+
 export function emptyDefinition(timezone = 'UTC'): CharacterDefinition {
   return { name: '', identity: '', personality: '', voice: '', skills: [], flaws: [], interests: [], background: '', appearance: '', routine: '',
-    location: '', home_city: '', relationship: 'friendship', absence_reaction: '', emotional_traits: [], timezone, schedule: [], life_themes: [] }
+    location: '', home_city: '', relationship: 'friendship', absence_reaction: '', emotional_traits: [], timezone, schedule: [], life_themes: [], money: emptyMoney() }
 }
 
 /** Fill fields that older saved versions may lack, so the form always edits a complete definition. */
 export function completeDefinition(saved: Partial<CharacterDefinition>): CharacterDefinition {
-  return { ...emptyDefinition(), ...saved, skills: saved.skills ?? [], flaws: saved.flaws ?? [], interests: saved.interests ?? [], emotional_traits: saved.emotional_traits ?? [], schedule: saved.schedule ?? [], life_themes: saved.life_themes ?? [] }
+  return { ...emptyDefinition(), ...saved, skills: saved.skills ?? [], flaws: saved.flaws ?? [], interests: saved.interests ?? [], emotional_traits: saved.emotional_traits ?? [], schedule: saved.schedule ?? [], life_themes: saved.life_themes ?? [], money: { ...emptyMoney(), ...saved.money } }
 }
 
 export function parseInterests(text: string): string[] {

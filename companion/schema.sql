@@ -834,7 +834,7 @@ CREATE INDEX IF NOT EXISTS notifications_status ON notifications(status, created
 
 CREATE TABLE IF NOT EXISTS notification_deliveries (
   id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL CHECK (kind IN ('post', 'digest')),
+  kind TEXT NOT NULL CHECK (kind IN ('post', 'digest', 'message')),
   post_count INTEGER NOT NULL,
   delivered_at TEXT NOT NULL
 );
@@ -864,6 +864,85 @@ CREATE TABLE IF NOT EXISTS prompt_overrides (
   name TEXT PRIMARY KEY,
   text TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+-- Closeness stages (PRD M3, M4) are worked out from shared history, never stored as a score. These rows
+-- hold only the user's own choices for one timeline: when counting restarted, a held stage, a nickname
+-- and the shared moments they made running jokes.
+CREATE TABLE IF NOT EXISTS closeness_settings (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  counted_from TEXT,
+  held_level INTEGER CHECK (held_level BETWEEN 1 AND 5),
+  nickname TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS closeness_jokes (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  memory_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, memory_id)
+);
+
+-- A message the companion sent first (companion/life/openers.py). Each trigger fires once per
+-- timeline; `notify` follows its desktop notification like `notifications` does for posts.
+CREATE TABLE IF NOT EXISTS openers (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  trigger_key TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  facts TEXT NOT NULL,
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  wording TEXT NOT NULL CHECK (wording IN ('model', 'template')),
+  notify TEXT CHECK (notify IN ('queued', 'delivered', 'dropped', 'cancelled')),
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, trigger_key)
+);
+CREATE INDEX IF NOT EXISTS openers_message ON openers(message_id);
+
+-- What the companion said about themselves (companion/self_facts.py): fiction about the character,
+-- tied to the message it came from, noted automatically and kept or removed by the user.
+CREATE TABLE IF NOT EXISTS self_facts (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  key TEXT NOT NULL,
+  category TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  value TEXT NOT NULL,
+  statement TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('noted', 'kept', 'rejected', 'conflict')),
+  conflicts_with TEXT,
+  created_at TEXT NOT NULL,
+  decided_at TEXT,
+  UNIQUE (message_id, key)
+);
+CREATE INDEX IF NOT EXISTS self_facts_message ON self_facts(message_id);
+-- Changes to a city the workspace keeps (companion/world/changes.py): the user's own, and headlines remembered
+-- from real local-event lookups, deleted with their lookup. Seeded changes are computed from the city and month,
+-- not stored; one the user dismisses is listed in world_change_dismissals and never happens.
+CREATE TABLE IF NOT EXISTS world_changes (
+  id TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('opening', 'closing', 'renovation', 'roadworks', 'news')),
+  origin TEXT NOT NULL CHECK (origin IN ('user', 'real')),
+  place_id TEXT,
+  neighborhood_id TEXT,
+  name TEXT NOT NULL,
+  summary TEXT NOT NULL DEFAULT '',
+  details TEXT,
+  announced_on TEXT NOT NULL,
+  starts_on TEXT NOT NULL,
+  ends_on TEXT,
+  observation_id TEXT REFERENCES context_observations(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS world_changes_city ON world_changes(city_id, starts_on);
+
+CREATE TABLE IF NOT EXISTS world_change_dismissals (
+  change_id TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  dismissed_at TEXT NOT NULL
 );
 
 -- A photo the companion sent with a chat reply: the image of the post keyed to the slot it shows

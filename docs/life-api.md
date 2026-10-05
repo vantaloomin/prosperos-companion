@@ -209,7 +209,16 @@ that matches what later happens; the companion is told they have not happened an
 mentioning them commits nothing. On a public holiday in the city's
 calendar, a work or study block becomes a day off: the entry's block has `kind: "leisure"`, a label
 such as "Thanksgiving (day off)" and `holiday`, and events simulated from it carry that block. Slots
-inside a pause are marked skipped. Background reconciles extend the agenda only when background
+inside a pause are marked skipped.
+
+Each day also carries how its subject feels physically (`companion/life/body.py`), worked out from
+the day before with no model and seeded by the subject and date: a late night out can leave them
+`tired` or `hungover`, a hectic shift `worn out`, a workout `sore`, and now and then a cold
+(`sick`, more often in winter) lasts two or three days. Every block that day gets
+`body: {state, because}`. A cold turns work or study into a sick day and leisure into "Home sick"
+(`kind: "rest"`, `sick_day: true`), and a sick circle member is not free for plans. A low day keeps
+leisure and social time to calm activities at home or nearby. Events carry `details.body`, Today's
+`day.body` shows it and the chat context gets one line about it. Background reconciles extend the agenda only when background
 activity is on.
 
 ## Limits and permissions
@@ -229,6 +238,9 @@ PUT /api/life/settings
 | `return_gap_hours` | 4 | 1–48 | Unsimulated time needed before a return batch runs. |
 | `background_interval_minutes` | 60 | 15–1440 | Gap between background batches. |
 | `background_daily_events` | 3 | 0–8 | Most background events in 24 hours; one per batch. |
+| `texts_first` | `false` | | The companion may send the first message (see First messages). |
+| `texts_daily` | 2 | 1–6 | Most first messages in 24 hours. |
+| `texts_gap_hours` | 3 | 1–24 | Hours since the last message before the companion writes first. |
 
 Background batches also need `background_activity: true` in `PUT /api/settings`. Pausing
 (`POST /api/pause`) stops new batches, and resuming skips the paused interval rather than
@@ -247,6 +259,33 @@ a return, and returns the same shape as reconcile (`state` is `started`, or `alr
 earlier batch). It is refused (409) while paused or for a pause that has not ended.
 `GET /api/life/pauses` lists pauses newest first with `started_at`, `ended_at`,
 `catch_up_requested_at` and `catch_up_run_id`.
+
+## First messages
+
+```http
+POST /api/life/texts/check   → {state, kind?, message: Message | null}
+```
+
+With `texts_first` on, the companion can start a conversation (`companion/life/openers.py`). The
+open app calls this about once a minute, and a server with background activity on checks on its own
+tick. Fixed triggers decide when, in this order, each at most once per timeline:
+
+| Kind | When | Needs a model |
+| --- | --- | --- |
+| `follow_up` | A plan the user mentioned ended between an hour and three days ago without an outcome | No (template: "Hey! How did the … go?") |
+| `news` | An open thread in the companion's life settled in the last day | Yes |
+| `reminder` | An event committed in the last day shares a distinctive word with a user fact or shared experience | Yes |
+| `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
+
+The model gets the normal chat context plus the reason and its facts, and is told not to add events,
+places or people. A reply that is empty, cut off or longer than 600 characters falls back to the
+template, or to nothing for triggers without one. `state` says why nothing was sent: `off`,
+`paused`, `quiet_hours` (the notification quiet hours, in the user's timezone), `asleep` (a sleep
+block in the companion's routine), `recent_conversation`, `waiting_for_answer` (their last first
+message is still unanswered), `daily_cap`, `interrupted` or `nothing`. A sent message is an ordinary
+companion message with `reply_to: null`; the chat shows it before the user's next message and the
+next reply sees it. With notifications on it is announced (kind `message`) before any waiting
+posts. A forked timeline keeps the triggers its parent already used.
 
 ## Routine
 
@@ -298,11 +337,40 @@ POST /api/today/seen
 | `last_run` | The most recent batch, or `null` |
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
 | `last_seen_at` | When the user last marked Today as seen |
-| `day` | The companion's local day: `{date, weather, happenings, birthdays}`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
+| `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
 
 Call `POST /api/today/seen` once the user has looked at Today, so the next visit's `changes`
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
 and `plans` have the same shape as `GET /api/events`.
+
+### Money
+
+```http
+GET /api/today/money
+```
+
+The companion's budget on their local today, from `companion/life/money.py`. It is computed, not
+stored: the career's pay tier (`definition.money.career`, else a career named in who they are, else an
+ordinary wage), the home city's rents, prices and currency, and `definition.money.style`
+(`careful`, `balanced` or `spender`). The same character and date always give the same answer, and
+the model only phrases it (chat context section "Your money").
+
+- **Pay**: modern US cities pay a monthly take-home by pay tier, a little higher where rents are
+  higher; other cities use their `wage` price, else a multiple of a typical rent. Pay comes every
+  other Friday where rent is monthly and every Saturday where it is weekly.
+- **Rent**: a neighbourhood named in their location, else one whose rent tier fits their pay. When
+  rent would take more than 45% of pay they take a smaller place, or a room in a shared one.
+- **Pay period**: fun money runs down through the period. A seeded splurge may land on or after
+  payday, and now and then a surprise bill. `tight` marks the low stretch; `cant_afford` lists the
+  outings that cost more than what is left.
+- **Saving**: `goal` is the user's `saving_for` and `goal` amount (counted from `goal_since`), or a
+  seeded everyday goal for each half of the year.
+
+Where the setting has no money (Oz) or no known city, `available` is `false` with a `reason`.
+
+The composer calls `money.affordable(definition, activity_key, local_date)` once per option: an
+outing they cannot afford that day gives way to a free activity (a walk, cooking at home). If
+nothing is affordable the routine happens as before.
 
 ## Feed
 

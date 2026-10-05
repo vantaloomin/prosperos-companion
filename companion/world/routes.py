@@ -1,12 +1,15 @@
 """World data API: the built-in and user cities, the generators built on them, and the city builder."""
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Query, Request
 from pydantic import Field
 
+from companion.clock import zone
 from companion.models import Input
-from companion.world import catalog, custom, generators
+from companion.world import catalog, changes, custom, generators
+from companion.world.schema import PlaceKind
+from companion.world.source import CatalogWorld
 
 router = APIRouter(prefix='/api/world')
 Company = Literal['solo', 'friends', 'date', 'family', 'coworkers']
@@ -24,12 +27,26 @@ class CityCopy(Input):
     name: str = Field(min_length=1, max_length=400)
 
 
+class CityChange(Input):
+    kind: Literal['opening', 'closing', 'renovation', 'roadworks']
+    starts_on: date
+    ends_on: date | None = None
+    place_id: str | None = Field(None, max_length=80)
+    neighborhood: str | None = Field(None, max_length=80)
+    name: str | None = Field(None, min_length=1, max_length=120)
+    place_kind: PlaceKind | None = None
+    summary: str = Field('', max_length=300)
+    delay: int | None = Field(None, ge=1, le=60)
+
+
 def user_cities(request: Request) -> dict[str, dict]:
     return custom.read(request.app.state.database)
 
 
-def city(request: Request, city_id: str) -> dict:
-    return catalog.city(city_id, user_cities(request))
+def city(request: Request, city_id: str, day: date | None = None) -> dict:
+    """A city; with `day`, as it stands that day after its changes (closures, openings, road works)."""
+    data = catalog.city(city_id, user_cities(request))
+    return CatalogWorld(request.app.state.database).find(city_id, day) if day else data
 
 
 @router.get('/cities')
@@ -125,8 +142,8 @@ def list_holidays(request: Request, city_id: str, start: date, end: date | None 
 
 @router.get('/cities/{city_id}/commute')
 def read_commute(request: Request, city_id: str, origin: str = Query(alias='from'),
-                 destination: str = Query(alias='to'), mode: str | None = None):
-    return generators.commute(city(request, city_id), origin, destination, mode)
+                 destination: str = Query(alias='to'), mode: str | None = None, day: date | None = None):
+    return generators.commute(city(request, city_id, day), origin, destination, mode)
 
 
 @router.get('/cities/{city_id}/generate/outing')
@@ -134,7 +151,7 @@ def generate_outing(request: Request, city_id: str, seed: str, day: date | None 
                     day_part: DayPart = 'afternoon', company: Company = 'solo', neighborhood: str | None = None,
                     home: str | None = None, budget: Cost | None = None, kind: list[str] | None = Query(default=None),
                     exclude: list[str] = Query(default=[])):
-    return {'outing': generators.outing(city(request, city_id), seed=seed, day=day, day_part=day_part,
+    return {'outing': generators.outing(city(request, city_id, day), seed=seed, day=day, day_part=day_part,
                                         company=company, neighborhood=neighborhood, home=home, budget=budget,
                                         kinds=kind, exclude=exclude)}
 
@@ -143,7 +160,7 @@ def generate_outing(request: Request, city_id: str, seed: str, day: date | None 
 def generate_meal(request: Request, city_id: str, seed: str, meal: str = 'dinner', day: date | None = None,
                   company: Company = 'solo', neighborhood: str | None = None, home: str | None = None,
                   budget: Cost | None = None, exclude: list[str] = Query(default=[])):
-    return {'outing': generators.meal(city(request, city_id), seed=seed, meal=meal, day=day, company=company,
+    return {'outing': generators.meal(city(request, city_id, day), seed=seed, meal=meal, day=day, company=company,
                                       neighborhood=neighborhood, home=home, budget=budget, exclude=exclude)}
 
 
@@ -201,3 +218,45 @@ def list_prices(request: Request, city_id: str, item: str | None = None, seed: s
     if item and seed is not None:
         return generators.price(data, item, seed=seed)
     return {'currency': data['currency'], 'prices': data['prices']}
+
+
+def city_today(request: Request, data: dict) -> date:
+    return request.app.state.database.clock.now().astimezone(zone(data['timezone'])).date()
+
+
+@router.get('/cities/{city_id}/changes')
+def list_changes(request: Request, city_id: str, day: date | None = None, days: int = Query(60, ge=1, le=730)):
+    """Changes heard of by `day` (the city's today by default) that start, run or end within `days` of it."""
+    database = request.app.state.database
+    with database.connect() as connection:
+        data = catalog.city(city_id, custom.all_cities(connection))
+        saved = changes.stored(connection, city_id)
+    day = day or city_today(request, data)
+    since = (day - timedelta(days=days)).isoformat()
+    found = [change for change in changes.known(data, day, saved)
+             if change['starts'] >= since or change['ends'] is None or change['ends'] >= since]
+    return {'day': day.isoformat(), 'changes': [change | {'active': changes.active(change, day)} for change in found]}
+
+
+@router.post('/cities/{city_id}/changes')
+def add_change(request: Request, city_id: str, body: CityChange):
+    database = request.app.state.database
+    with database.connect(write=True) as connection:
+        data = catalog.city(city_id, custom.all_cities(connection))
+        change = body.model_dump(mode='json')
+        added = changes.add(connection, data, change, database.now())
+        changes.refresh_agenda(connection, data, change['starts_on'], database.now())
+        return added
+
+
+@router.delete('/cities/{city_id}/changes/{change_id}')
+def remove_change(request: Request, city_id: str, change_id: str):
+    database = request.app.state.database
+    with database.connect(write=True) as connection:
+        data = catalog.city(city_id, custom.all_cities(connection))
+        before = {change['id']: change for change in changes.known(data, city_today(request, data) + timedelta(
+            days=max(changes.LEAD.values())), changes.stored(connection, city_id))}
+        result = changes.remove(connection, data, change_id, database.now())
+        if change_id in before:
+            changes.refresh_agenda(connection, data, before[change_id]['starts'], database.now())
+        return result

@@ -20,6 +20,7 @@ from companion.images.photos import ChatPhotos
 from companion.images.runner import ImageRunner
 from companion.imports import routes as import_routes
 from companion.life import routes as life_routes
+from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
 from companion.lora import evaluation as lora_evaluation
 from companion.lora import generation as lora_generation
@@ -28,10 +29,12 @@ from companion.lora import training as lora_training
 from companion.mcp import routes as context_routes
 from companion.mcp import weather as observed_weather
 from companion.mcp.lookups import Lookups
+from companion.memory import closeness_routes
 from companion.memory.worker import MemoryWorker
 from companion.providers.vault import SystemVault
 from companion.routes import router
 from companion.text_model_routes import router as model_router
+from companion.world import changes as city_changes
 from companion.world import routes as world_routes
 from companion.world.source import CatalogWorld
 
@@ -80,6 +83,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     world = observed_weather.ObservedWorld(world or CatalogWorld(app.state.database), app.state.database)
     app.state.lookups = Lookups(app.state.database, app.state.vault, world, context_transports, link_reader)
     app.state.lookups.listeners.append(lambda observation: observed_weather.apply(app.state.database, observation))
+    app.state.lookups.listeners.append(lambda observation: city_changes.remember(app.state.database, observation))
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder,
                                           lookups=app.state.lookups)
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
@@ -88,6 +92,9 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world)
     app.state.life.lookups = app.state.lookups
+    app.state.openers = Openers(app.state.database, app.state.vault, app.state.conversation.provider,
+                                app.state.conversation.scheduler)
+    app.state.life.openers = app.state.openers
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
     app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life)
@@ -118,6 +125,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(context_routes.router)
     app.include_router(lora_routes.router)
     app.include_router(import_routes.router)
+    app.include_router(closeness_routes.router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

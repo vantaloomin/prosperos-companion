@@ -11,7 +11,9 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-COMPOSER_VERSION = 'compose-6'
+from companion.life import body, money
+
+COMPOSER_VERSION = 'compose-7'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -106,6 +108,16 @@ CATALOG = {
 }
 
 
+# A cold keeps the companion home (companion/life/body.py); a low day after a late night keeps
+# plans small.
+SICK = activity('sick-day', (), ['{name} stayed home with a cold, sleeping most of the {label}.',
+                                 '{name} spent the {label} on the sofa with tea, tissues and a cold.'],
+                ['Tea, blanket, tissues. Repeat.', 'Officially a couch creature today.', 'Send soup.'],
+                ['under the weather'])
+CALM = {'reading', 'home-cooking', 'coffee', 'walk', 'slow', 'nap'}
+LOW_SHARE = 0.5
+
+
 # A city's annual event, on the day it is held, can draw the companion out for part of a leisure or
 # social block. The event comes from the world data; the wording names it and nothing else.
 FESTIVAL = activity('festival', (), ['{name} joined the crowds for {event}{area}.',
@@ -192,18 +204,30 @@ LEANINGS = {
 LEANING_WEIGHT = 3
 
 
-def leanings(definition: dict) -> set[str]:
-    """Activity keys the character's interests and life themes point toward."""
+def matching(phrases) -> set[str]:
+    """Activity keys whose stems the words in these phrases match."""
     words = set()
-    for phrase in [*definition.get('interests', ()), *definition.get('life_themes', ())]:
+    for phrase in phrases:
         words |= {word.strip('.,;:!?()"\'').casefold() for word in phrase.split()}
     return {key for key, stems in LEANINGS.items()
             if any(word == stem or len(stem) > 3 and word.startswith(stem) for word in words for stem in stems)}
 
 
+def leanings(definition: dict) -> set[str]:
+    """Activity keys the character's interests, life themes and own stated likes point toward."""
+    tastes = definition.get('self_tastes') or {}
+    return matching([*definition.get('interests', ()), *definition.get('life_themes', ()), *tastes.get('likes', ())])
+
+
+def aversions(definition: dict) -> set[str]:
+    """Activity keys the character has said they dislike ("I hate running")."""
+    return matching((definition.get('self_tastes') or {}).get('dislikes', ()))
+
+
 def choose(rng, options, definition: dict):
-    """An activity, with the character's interests weighing in. Without a matching interest the
-    choice is uniform, exactly as before interests counted."""
+    """An activity, with the character's interests weighing in and stated dislikes left out. Without
+    a matching interest the choice is uniform, exactly as before interests counted."""
+    options = [option for option in options if option.key not in aversions(definition)] or options
     favored = leanings(definition)
     if not favored & {option.key for option in options}:
         return rng.choice(options)
@@ -257,6 +281,21 @@ def find_places(world, definition: dict, slot: dict, kinds) -> list:
     return [place for place in found if place.name in haunts] or found
 
 
+def sick_day(rng, block: dict, definition: dict) -> dict:
+    return {'summary': rng.choice(SICK.summaries).format(name=definition['name'], label=block['label'].lower()),
+            'post': rng.choice(SICK.captions), 'mood': SICK.moods[0], 'activity': SICK.key, 'place': None,
+            'with': None, 'weather': block.get('weather'), 'composer_version': COMPOSER_VERSION}
+
+
+def within_reach(options, state: str | None, block: dict):
+    """A low day keeps leisure and social time close to home; a sore one skips the workout."""
+    if state in body.LOW and block['kind'] in {'leisure', 'social'}:
+        return [option for option in options if option.key in CALM] or CATALOG['rest']
+    if state == 'sore':
+        return [option for option in options if option.key != 'workout'] or options
+    return options
+
+
 def compose(slot: dict, definition: dict, world, seed: str, recent_activities=(), company=(),
             celebrants=()) -> dict | None:
     """The event for one slot, or None when the slot stays quiet. `company` are circle members
@@ -267,16 +306,23 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     options = CATALOG.get(block['kind'])
     if not options or rng.random() < QUIET_SHARE:
         return None
+    state = (block.get('body') or {}).get('state')
+    if block.get('sick_day'):
+        return sick_day(rng, block, definition)
     # Prefer activities that did not just happen, so variety comes from the routine, not drama.
     conditions = block.get('weather') or weather(world, definition, slot['local_date'])
     if outing := birthday(slot, definition, world, seed, recent_activities, celebrants, conditions):
         return outing
-    if outing := festival(slot, definition, world, seed, recent_activities, company, conditions):
+    low = state in body.LOW
+    if not low and (outing := festival(slot, definition, world, seed, recent_activities, company, conditions)):
         return outing
+    options = within_reach(options, state, block)
     if harsh(conditions):
         # Bad weather moves the day indoors: no walks, and no workout in the park.
         options = [option for option in options if not option.place_kinds or set(option.place_kinds) - OUTDOOR] \
             or options
+    # Money hook: on a tight day an outing that costs money gives way to a free one.
+    options = [option for option in options if money.affordable(definition, option.key, slot['local_date'])] or options
     fresh = [option for option in options if option.key not in set(recent_activities)] or list(options)
     chosen = choose(rng, fresh, definition)
     places = find_places(world, definition, slot, chosen.place_kinds)
@@ -295,8 +341,10 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     post = rng.choice(chosen.captions)
     if conditions and conditions['rain'] and not chosen.place_kinds and random.Random(f'{seed}:rain').random() < 0.5:
         post = random.Random(f'{seed}:rain').choice(RAINY_CAPTIONS)
-    return {'summary': summary[0].upper() + summary[1:], 'post': post,
-            'mood': rng.choice(chosen.moods), 'activity': chosen.key, 'place': place.view() if place else None,
+    mood = rng.choice(chosen.moods)
+    if state and random.Random(f'{seed}:body').random() < LOW_SHARE:
+        mood = body.MOODS[state]
+    return {'summary': summary[0].upper() + summary[1:], 'post': post, 'mood': mood, 'activity': chosen.key, 'place': place.view() if place else None,
             'with': friend, 'weather': conditions, 'composer_version': COMPOSER_VERSION}
 
 

@@ -91,7 +91,43 @@ export interface CharacterDefinition {
   home_city: string
   schedule: RoutineBlock[]
   life_themes: string[]
+  money: MoneySetup
 }
+
+export type SpendingStyle = 'careful' | 'balanced' | 'spender'
+
+/** How the companion's money works; pay, rent and prices come from the world data. */
+export interface MoneySetup {
+  career: string
+  style: SpendingStyle
+  saving_for: string
+  goal: number
+  goal_since: string
+}
+
+export interface CareerSummary { id: string; name: string; pay: string; eras: string[] }
+
+interface MoneyHappening { label: string; on: string; cost: number }
+
+export type MoneyView = { date: string } & ({ available: false; reason: string } | {
+  available: true
+  currency: { code: string; symbol: string; name: string }
+  period: 'month' | 'week'
+  style: SpendingStyle
+  career: { id: string; name: string; pay: string; guessed: boolean } | null
+  housing: { unit: string; label: string; neighborhood: string }
+  budget: { income: number; rent: number; essentials: number; fun: number; saving: number }
+  payday: { last: string; next: string; cycle_days: number; today: boolean }
+  left: number
+  fun_cycle: number
+  tight: boolean
+  flush: boolean
+  splurge: MoneyHappening | null
+  surprise: MoneyHappening | null
+  cant_afford: string[]
+  goal: { label: string; amount: number; saved: number; share: number; custom: boolean; since: string; stalled: boolean }
+  text: { income: string; rent: string; essentials: string; fun: string; saving: string; left: string }
+})
 
 export interface CharacterVersion {
   id: string
@@ -226,6 +262,10 @@ export interface LifeSettings {
   return_gap_hours: number
   background_interval_minutes: number
   background_daily_events: number
+  /** The companion may send the first message (companion/life/openers.py). */
+  texts_first: boolean
+  texts_daily: number
+  texts_gap_hours: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -271,7 +311,11 @@ export interface Today {
   clock_behind: boolean
   mood: AbsenceMood | null
   last_seen_at: string | null
+  day: { date: string; body: BodyState | null }
 }
+
+/** How the companion feels physically today, carried over from the day before. */
+export interface BodyState { state: 'sick' | 'hungover' | 'tired' | 'worn out' | 'sore'; because: string }
 
 export interface PauseRecord { id: string; started_at: string; ended_at: string | null; catch_up_requested_at: string | null; catch_up_run_id: string | null }
 
@@ -292,7 +336,7 @@ export interface FeedPost {
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
-export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string }
+export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string; era?: string }
 
 export interface ContextReceipt { budget_tokens: number; estimated_tokens: number; included: Record<string, string[]>; omitted: Record<string, string[]> }
 export interface ContextPreview { system: string; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
@@ -334,6 +378,8 @@ export interface PostImage { status: ImageStatus; job_id: string | null; ref: st
 export type BackendKind = 'comfyui' | 'codex' | 'hosted'
 export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'other'
 
+export type CodexMethod = 'native' | 'imagegen_cli'
+
 export interface ImageBackend {
   id: string
   kind: BackendKind
@@ -345,6 +391,7 @@ export interface ImageBackend {
   model: string
   api_style: 'images' | 'chat' | null
   cli_path: string
+  method: CodexMethod | null
   custom_workflow: boolean
   has_key: boolean
   controlled_machine: boolean
@@ -621,7 +668,9 @@ export interface NotificationSettings {
   queued: number
 }
 
-export interface DesktopNotification { id: string; kind: 'post' | 'digest'; post_ids: string[]; title: string; body: string }
+export interface DesktopNotification { id: string; kind: 'post' | 'digest' | 'message'; post_ids: string[]; message_id?: string; title: string; body: string }
+
+export interface TextCheck { state: string; kind?: string; message: Message | null }
 
 export interface NotificationCheck { notification: DesktopNotification | null; held: string | null }
 
@@ -675,4 +724,40 @@ export interface Generation {
   counts: Record<EvalImageStatus | 'kept', number>
   images: GeneratedImage[]
   created_at: string
+}
+
+export interface ClosenessJoke { memory_id: string; subject: string; value: string }
+export interface ClosenessMilestone { level: number; on: string; days: number; moments: number }
+/** Worked out from shared history each time (PRD M4): never a hidden score. */
+export interface Closeness {
+  level: number
+  name: string
+  grown_level: number
+  held_level: number | null
+  relationship: string
+  stages: string[]
+  days_talked: number
+  shared_moments: number
+  counted_moments: number
+  first_day: string | null
+  counted_from: string | null
+  nickname: string
+  history: ClosenessMilestone[]
+  jokes: ClosenessJoke[]
+  joke_candidates: (ClosenessJoke & { days: number })[]
+}
+
+/** Something the companion said about themselves (companion/self_facts.py). */
+export interface SelfFact {
+  id: string
+  message_id: string
+  category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy'
+  label: string
+  subject: string
+  value: string
+  statement: string
+  status: 'noted' | 'kept' | 'conflict'
+  conflicts_with: string | null
+  created_at: string
+  decided_at: string | null
 }

@@ -72,6 +72,7 @@ def queued_count(connection) -> int:
 def cancel_queued(connection, timestamp, reason):
     connection.execute("UPDATE notifications SET status='cancelled', reason=?, settled_at=? WHERE status='queued'",
                        (reason, timestamp))
+    connection.execute("UPDATE openers SET notify='cancelled' WHERE notify='queued'")
 
 
 def enqueue_posts(connection, post_ids, timestamp):
@@ -81,6 +82,27 @@ def enqueue_posts(connection, post_ids, timestamp):
     for post_id in post_ids:
         connection.execute("INSERT OR IGNORE INTO notifications (id, post_id, status, created_at) "
                            "VALUES (?, ?, 'queued', ?)", (identifier(), post_id, timestamp))
+
+
+def enqueue_message(connection, message_id, timestamp):
+    """A message the companion sent first (companion/life/openers.py) is announced like a post."""
+    if notification_settings(connection)['enabled']:
+        connection.execute("UPDATE openers SET notify='queued' WHERE message_id=?", (message_id,))
+
+
+def ready_messages(connection, companion, now) -> list[dict]:
+    """Queued first messages on the active timeline that the user has not answered yet."""
+    ready = []
+    for item in many(connection, "SELECT openers.*, messages.text, messages.seq FROM openers JOIN messages ON "
+                     "messages.id=openers.message_id WHERE notify='queued' ORDER BY openers.created_at"):
+        answered = optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='user' AND seq>?",
+                            (item['timeline_id'], item['seq']))
+        if answered or item['timeline_id'] != companion['active_timeline_id'] or now - parse(
+                item['created_at']) > STALE:
+            connection.execute("UPDATE openers SET notify='dropped' WHERE id=?", (item['id'],))
+        else:
+            ready.append(item)
+    return ready
 
 
 def in_quiet_hours(local: datetime, start: str, end: str) -> bool:
@@ -154,6 +176,25 @@ def message(config, companion, posts, voiced) -> dict:
     return {'title': name, 'body': f'{voiced} {body}' if voiced else body}
 
 
+def message_notice(config, companion, text) -> dict:
+    name = companion['version']['name']
+    if config['preview'] == 'private':
+        return {'title': APP_TITLE, 'body': 'Something new is waiting.'}
+    if config['preview'] == 'name':
+        return {'title': name, 'body': f'{name} sent you a message.'}
+    return {'title': name, 'body': text if len(text) <= CAPTION_LIMIT else text[:CAPTION_LIMIT - 1].rstrip() + '…'}
+
+
+def deliver_message(connection, config, companion, ready, timestamp) -> dict:
+    delivery_id = identifier()
+    connection.execute("INSERT INTO notification_deliveries (id, kind, post_count, delivered_at) "
+                       "VALUES (?, 'message', 0, ?)", (delivery_id, timestamp))
+    connection.executemany("UPDATE openers SET notify='delivered' WHERE id=?", [(item['id'],) for item in ready])
+    return {'notification': {'id': delivery_id, 'kind': 'message', 'post_ids': [],
+                             'message_id': ready[-1]['message_id'],
+                             **message_notice(config, companion, ready[-1]['text'])}, 'held': None}
+
+
 def deliver(database, focused=False) -> dict:
     """The next notification to show, if any. While the app has focus nothing is shown and the queue
     waits; posts read meanwhile are dropped. Several waiting posts become one digest."""
@@ -163,12 +204,15 @@ def deliver(database, focused=False) -> dict:
         companion = current(connection)
         if not config['enabled'] or companion is None:
             return {'notification': None, 'held': 'off'}
-        ready = ready_posts(connection, companion, now)
-        if not ready:
+        messages, ready = ready_messages(connection, companion, now), ready_posts(connection, companion, now)
+        if not ready and not messages:
             return {'notification': None, 'held': None}
         reason = 'focused' if focused else held(connection, config, settings(connection), now)
         if reason:
             return {'notification': None, 'held': reason}
+        # A message waiting for an answer comes before posts; posts wait for the next delivery.
+        if messages:
+            return deliver_message(connection, config, companion, messages, stamp(now))
         posts = [post for _item, post in ready]
         delivery_id, timestamp = identifier(), stamp(now)
         kind = 'post' if len(ready) == 1 else 'digest'

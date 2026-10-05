@@ -9,7 +9,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
 from companion.errors import require
-from companion.life import agenda, circle, feed, mood, routine, simulation, today
+from companion.life import agenda, circle, feed, money, mood, routine, simulation, today
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -55,6 +55,12 @@ def update_settings(request: Request, body: LifeSettingsUpdate):
 @router.post('/reconcile')
 async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
+
+
+@router.post('/texts/check')
+async def check_texts(request: Request):
+    """Asked by the open app about once a minute: the companion may send a first message now."""
+    return await request.app.state.openers.check()
 
 
 @router.post('/prepare')
@@ -154,6 +160,11 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
 @today_router.get('')
 def read_today(request: Request):
     return today.view(db(request))
+
+
+@today_router.get('/money')
+def read_money(request: Request):
+    return money.view(db(request))
 
 
 @today_router.post('/seen')

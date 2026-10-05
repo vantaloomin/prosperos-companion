@@ -42,6 +42,17 @@ class EmotionalTrait(Input):
     note: str = Field(default='', max_length=500)
 
 
+class MoneySetup(Input):
+    """How the companion's money works (companion/life/money.py). Everything else comes from city data."""
+    # A career id from the world data; empty guesses one from who they are, else an ordinary wage.
+    career: str = Field(default='', max_length=60)
+    style: Literal['careful', 'balanced', 'spender'] = 'balanced'
+    # Empty lets the life simulation pick an everyday goal each half year.
+    saving_for: str = Field(default='', max_length=120)
+    goal: float = Field(default=0, ge=0, le=100_000_000)
+    goal_since: str = Field(default='', pattern=r'^(\d{4}-\d{2}-\d{2})?$')
+
+
 class CharacterDefinition(Input):
     name: str = Field(min_length=1, max_length=120)
     identity: str = Field(default='', max_length=4000)
@@ -66,6 +77,7 @@ class CharacterDefinition(Input):
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
+    money: MoneySetup = Field(default_factory=MoneySetup)
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
@@ -183,6 +195,9 @@ class LifeSettingsUpdate(Input):
     return_gap_hours: int | None = Field(default=None, ge=1, le=48)
     background_interval_minutes: int | None = Field(default=None, ge=15, le=1440)
     background_daily_events: int | None = Field(default=None, ge=0, le=8)
+    texts_first: bool | None = None
+    texts_daily: int | None = Field(default=None, ge=1, le=6)
+    texts_gap_hours: int | None = Field(default=None, ge=1, le=24)
 
 
 class NotificationSettingsUpdate(Input):

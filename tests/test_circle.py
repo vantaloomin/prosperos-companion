@@ -7,7 +7,7 @@ from conftest import life_reply, reconcile, set_life
 
 from companion.clock import parse, stamp, zone
 from companion.database import decode
-from companion.life import agenda, circle, composer
+from companion.life import agenda, body, circle, composer
 from companion.world.source import CatalogWorld
 
 EVENING_OUT = [{'key': 'day', 'label': 'Day', 'kind': 'leisure', 'start': '09:00', 'end': '17:00'},
@@ -17,6 +17,9 @@ EVENING_OUT = [{'key': 'day', 'label': 'Day', 'kind': 'leisure', 'start': '09:00
 
 @pytest.fixture
 def baltimore(client, monkeypatch):
+    # Colds and late nights (tests/test_body.py) are seeded by the random timeline id; they would
+    # change which activity a day holds here.
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
     monkeypatch.setattr(composer, 'THREAD_SHARE', 0)

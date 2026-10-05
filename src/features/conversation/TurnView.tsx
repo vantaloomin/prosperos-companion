@@ -31,21 +31,34 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <UserMessage message={turn.user} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
+      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} />
+      <TurnUser turn={turn} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} />
       )}
-      {isLatest && !busy && (
-        <div className="turn-actions">
-          <button type="button" className="text-button" onClick={() => { setChosen(null); onRetry(turn.user.id) }}>
-            <RotateCcw aria-hidden="true" />{shown?.status === 'complete' ? 'Another reply' : 'Retry'}
-          </button>
-        </div>
-      )}
+      {isLatest && !busy && turn.user && <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} onRetry={() => { setChosen(null); onRetry(turn.user!.id) }} />}
     </>
   )
 })
+
+function RetryAction({ label, onRetry }: { label: string; onRetry: () => void }) {
+  return (
+    <div className="turn-actions">
+      <button type="button" className="text-button" onClick={onRetry}><RotateCcw aria-hidden="true" />{label}</button>
+    </div>
+  )
+}
+
+/** Messages the companion sent first: shown like replies, with no versions to page through. */
+function Leads({ messages, name, highlight, onStop }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void }) {
+  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} />)}</>
+}
+
+function TurnUser({ turn, highlight, onRemember, onDecline, onEdit }: { turn: Turn; highlight?: string | null; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
+  if (!turn.user) return null
+  return <UserMessage message={turn.user} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
+}
 
 function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }: { message: Message; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   return (

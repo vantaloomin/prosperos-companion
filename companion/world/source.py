@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from typing import Sequence
 
 from companion.life.world import Place
-from companion.world import catalog, custom
+from companion.world import catalog, changes, custom
 from companion.world.generators import SEASONS, conditions, unit
 
 # The composer's place kinds, answered from this data's place kinds (and tags, for waterfronts and books).
@@ -27,12 +27,24 @@ class CatalogWorld:
     def __init__(self, database=None):
         self.database = database
 
-    def find(self, city: str) -> dict | None:
-        extra = custom.read(self.database) if self.database else {}
-        if city in catalog.cities() or city in extra:
-            return catalog.city(city, extra)
-        match = catalog.resolve(city, extra)
-        return catalog.city(match['city'], extra) if match else None
+    def find(self, city: str, day: date | None = None) -> dict | None:
+        """The city's data; with `day`, as it stands that day after its changes (see companion/world/changes.py)."""
+        if not self.database:
+            data = changes.resolve(city, {})
+            return changes.apply(data, changes.known(data, day), day) if data and day else data
+        with self.database.connect() as connection:
+            data = changes.resolve(city, custom.all_cities(connection))
+            saved = changes.stored(connection, data['id']) if data and day else None
+        return changes.apply(data, changes.known(data, day, saved), day) if saved else data
+
+    def changes(self, city: str, day: date) -> list[dict]:
+        """Changes to the city people have heard of by `day`, oldest first."""
+        if not self.database:
+            data = changes.resolve(city, {})
+            return changes.known(data, day) if data else []
+        with self.database.connect() as connection:
+            data = changes.resolve(city, custom.all_cities(connection))
+            return changes.known(data, day, changes.stored(connection, data['id'])) if data else []
 
     def weather(self, city: str, day: date) -> dict | None:
         """Typical weather for the date from the city's monthly climate, the same for everyone there."""
@@ -59,7 +71,7 @@ class CatalogWorld:
         `near` is the person's neighborhood (an id, or free text such as their location "Fells Point,
         Baltimore"). Everyday kinds (cafes, gyms, groceries and so on) then keep to places within a short
         trip of it, or the nearest few when fewer than two are that close."""
-        data = self.find(city)
+        data = self.find(city, day)
         if not data:
             return []
         season = SEASONS[day.month] if day else None
