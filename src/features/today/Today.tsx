@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { SETTINGS_KEY, type View } from '../../companion'
 import type { Companion, LifeEvent, PauseRecord, Today as TodayData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { Circle } from './Circle'
 import { EventItem } from './EventItem'
 import { availabilityText, moodText, pauseToFill } from './todayText'
 
@@ -75,6 +76,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       </Section>
       <Plans data={data} name={name} />
       <Routine data={data} name={name} go={go} />
+      <Circle name={name} />
     </section>
   )
 }
