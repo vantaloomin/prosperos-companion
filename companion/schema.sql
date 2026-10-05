@@ -265,3 +265,9 @@ CREATE TABLE IF NOT EXISTS relationship_moods (
   cleared_at TEXT,
   UNIQUE (timeline_id, kind, away_from)
 );
+
+-- Paused intervals the user chose to catch up (PRD T6); otherwise a pause blocks its interval.
+CREATE TABLE IF NOT EXISTS pause_catch_ups (
+  pause_id TEXT PRIMARY KEY REFERENCES pauses(id),
+  requested_at TEXT NOT NULL
+);

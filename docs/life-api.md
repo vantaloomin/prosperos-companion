@@ -95,6 +95,20 @@ Background batches also need `background_activity: true` in `PUT /api/settings`.
 (`POST /api/pause`) stops new batches, and resuming skips the paused interval rather than
 generating it.
 
+### Catching up a paused interval
+
+```http
+GET  /api/life/pauses
+POST /api/life/pauses/{pause_id}/catch-up
+```
+
+Resuming never fills in the paused time. If the user deliberately asks for it, call the catch-up
+endpoint for that pause. It runs one batch for slots inside the pause, within the same limits as
+a return, and returns the same shape as reconcile (`state` is `started`, or `already_done` with the
+earlier batch). It is refused (409) while paused or for a pause that has not ended.
+`GET /api/life/pauses` lists pauses newest first with `started_at`, `ended_at`,
+`catch_up_requested_at` and `catch_up_run_id`.
+
 ## Routine
 
 ```http

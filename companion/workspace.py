@@ -62,5 +62,6 @@ def resume(database) -> dict:
 
 
 def overlapping_pause(connection, starts_at: str, ends_at: str) -> dict | None:
-    return optional(connection, 'SELECT * FROM pauses WHERE started_at < ? AND COALESCE(ended_at, ?) > ? LIMIT 1',
-                    (ends_at, ends_at, starts_at))
+    """A pause the user deliberately caught up (T6) no longer blocks its interval."""
+    return optional(connection, 'SELECT * FROM pauses WHERE started_at < ? AND COALESCE(ended_at, ?) > ? '
+                    'AND id NOT IN (SELECT pause_id FROM pause_catch_ups) LIMIT 1', (ends_at, ends_at, starts_at))

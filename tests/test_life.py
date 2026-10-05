@@ -264,3 +264,22 @@ def test_schedule_validation(client, companion):
     response = client.post('/api/companion/versions', json={'definition': definition,
                                                             'expected_version_id': current['active_version_id']})
     assert response.status_code == 422
+
+
+def test_a_paused_interval_can_be_caught_up_once_on_request(client, life, clock):
+    set_life(client, automatic_events=True)
+    client.post('/api/pause')
+    clock.advance(timedelta(days=2))
+    assert client.post(f"/api/life/pauses/{client.get('/api/life/pauses').json()[0]['id']}/catch-up").status_code == 409
+    client.post('/api/resume')
+    pause = client.get('/api/life/pauses').json()[0]
+    assert reconcile(client)['run']['plan'] == []
+    first = client.post(f"/api/life/pauses/{pause['id']}/catch-up").json()
+    assert first['state'] == 'started' and len(first['run']['plan']) == 3
+    assert {item['outcome'] for item in first['run']['results']} == {'committed'}
+    for slot in first['run']['plan']:
+        assert pause['started_at'] <= slot['starts_at'] and slot['ends_at'] <= pause['ended_at']
+    again = client.post(f"/api/life/pauses/{pause['id']}/catch-up").json()
+    assert again['state'] == 'already_done' and again['run']['id'] == first['run']['id']
+    assert client.get('/api/life/pauses').json()[0]['catch_up_run_id'] == first['run']['id']
+    assert len(client.get('/api/events').json()) == 3

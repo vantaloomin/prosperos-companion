@@ -51,6 +51,16 @@ async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
 
 
+@router.get('/pauses')
+def list_pauses(request: Request):
+    return simulation.pauses(db(request))
+
+
+@router.post('/pauses/{pause_id}/catch-up')
+async def catch_up_pause(request: Request, pause_id: str):
+    return await request.app.state.life.catch_up_pause(pause_id)
+
+
 @router.get('/runs')
 def list_runs(request: Request, limit: int = 20):
     return simulation.runs(db(request), min(max(limit, 1), 100))
