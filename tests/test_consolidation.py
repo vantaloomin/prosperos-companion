@@ -121,3 +121,16 @@ def test_a_resurfacing_anecdote_needs_the_users_own_words():
     assert context.recalled([beach], [], 'any plans this weekend', [chunk.id], surfaced={'beach'}) == []
     asked = context.recalled([beach], [], 'remember the beach sunburn?', [chunk.id], surfaced={'beach'})
     assert [item[0] for item in asked] == ['beach'], 'asking directly still recalls it'
+
+
+def test_a_recalled_experience_brings_a_related_one_but_not_an_unrelated_one():
+    sunburn = memory('sunburn', 'The day we got sunburnt at the beach in Cádiz')
+    swim = {**memory('swim', 'Swimming at the beach in Cádiz at night'), 'subject': 'Night swim'}
+    exam = {**memory('exam', 'Passed the driving exam'), 'subject': 'Driving exam'}
+    [chunk] = compile_chunks('memory:sunburn', 'Beach', 'Beach: The day we got sunburnt at the beach in Cádiz',
+                             'memory')
+    found = context.recalled([sunburn, swim, exam], [], 'that sunburn was awful', [chunk.id])
+    assert [item[0] for item in found] == ['sunburn', 'swim']
+    assert found[1][1].endswith('(related to: Beach)')
+    assert [item[0] for item in context.recalled([sunburn, swim, exam], [], 'that sunburn was awful', [chunk.id],
+                                                 surfaced={'swim'})] == ['sunburn']

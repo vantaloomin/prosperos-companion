@@ -22,11 +22,16 @@ from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
 from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
+from companion.memory.retrieval import terms
 
 RECENT_MESSAGES = 24
 RECALL_LIMIT = 8
 RECENT_EVENTS = 5
 RECALLED_LAYERS = {'shared_experience', 'relationship', 'companion_life', 'plan'}
+# Experiences that can bring a related one along (M11): a link is a retrieval aid, never an identity.
+LINKED_LAYERS = {'shared_experience', 'relationship'}
+RELATED = 0.25
+RELATED_LIMIT = 2
 
 GUIDANCE = (
     'You are {name}, a fictional companion talking with the user. Speak as {name} in your own voice. '
@@ -250,6 +255,31 @@ def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozense
             continue
         seen.add(owner['id'])
         result.append((owner['id'], recall_text(kind, owner, hit)))
+    return result + linked(memories, seen, surfaced)
+
+
+def overlap(left, right) -> float:
+    a = set(terms(f"{left['subject']} {left['value']}"))
+    b = set(terms(f"{right['subject']} {right['value']}"))
+    return len(a & b) / len(a | b) if a and b else 0.0
+
+
+def linked(memories, seen, surfaced) -> list[tuple[str, str]]:
+    """Up to RELATED_LIMIT eligible experiences that share most of their words with a recalled one.
+
+    Built from the eligible pool on every reply, so exclusion, correction and deletion apply to links
+    as they do to everything else, and nothing is stored that could outlive its sources (M11, M12).
+    """
+    experiences = [memory for memory in memories if memory['layer'] in LINKED_LAYERS and not memory['pinned']]
+    anchors = [memory for memory in experiences if memory['id'] in seen]
+    result = []
+    for anchor in anchors:
+        scored = [(overlap(anchor, other), other) for other in experiences
+                  if other['id'] not in seen and other['id'] not in surfaced]
+        score, best = max(scored, key=lambda item: item[0], default=(0.0, None))
+        if best is not None and score >= RELATED and len(result) < RELATED_LIMIT:
+            seen.add(best['id'])
+            result.append((best['id'], f"{memory_text(best)} (related to: {anchor['subject']})"))
     return result
 
 
