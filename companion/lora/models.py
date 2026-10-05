@@ -29,3 +29,26 @@ class Adopt(Input):
     adapter_id: str | None = None
     strength: float = Field(default=1.0, ge=0.0, le=2.0)
     note: str = Field(default='', max_length=500)
+
+
+class RunCreate(Input):
+    name: str = Field(min_length=1, max_length=80)
+    # The word captions and prompts use to call up the character.
+    trigger: str = Field(min_length=2, max_length=40, pattern=r'^[A-Za-z0-9_-]+$')
+    network: Literal['lokr', 'lora'] = 'lokr'
+    rank: int = Field(default=16, ge=4, le=128)
+    steps: int = Field(default=1500, ge=10, le=6000)
+    learning_rate: float = Field(default=1e-4, gt=0, le=1e-2)
+    save_every: int = Field(default=250, ge=5, le=2000)
+    resolution: Literal[512, 1024] = 1024
+    low_vram: bool = False
+    attest_fictional_adult: bool = False
+    accept_disclosure: bool = False
+
+    def options(self) -> dict:
+        return self.model_dump(include={'network', 'rank', 'steps', 'learning_rate', 'save_every', 'resolution',
+                                        'low_vram'})
+
+
+class KeepCheckpoint(Input):
+    step: int = Field(ge=0)

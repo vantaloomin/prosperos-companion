@@ -646,3 +646,38 @@ CREATE TABLE IF NOT EXISTS appearance_current (
   companion_id TEXT PRIMARY KEY REFERENCES companions(id),
   version_id TEXT NOT NULL REFERENCES appearance_versions(id)
 );
+
+-- One training run: the Configure and Train steps. `options`, `trainer_config` and `dataset` freeze
+-- what was asked and what the trainer received, so the adapter's provenance survives.
+CREATE TABLE IF NOT EXISTS lora_runs (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  name TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed', 'cancelled', 'interrupted')),
+  trainer TEXT NOT NULL,
+  trainer_tested TEXT NOT NULL,
+  base_model TEXT NOT NULL,
+  trigger TEXT NOT NULL,
+  options TEXT NOT NULL,
+  trainer_config TEXT NOT NULL,
+  dataset TEXT NOT NULL,
+  folder TEXT NOT NULL,
+  attempt INTEGER NOT NULL DEFAULT 1,
+  resumed_from_step INTEGER,
+  -- Only what the trainer printed; never estimated.
+  progress_step INTEGER,
+  progress_total INTEGER,
+  progress_at TEXT,
+  checkpoints TEXT NOT NULL DEFAULT '[]',
+  adapter_id TEXT,
+  pid INTEGER,
+  exit_code INTEGER,
+  log_tail TEXT NOT NULL DEFAULT '',
+  error TEXT,
+  error_code TEXT,
+  disclosure_accepted_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  started_at TEXT,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS lora_runs_companion ON lora_runs(companion_id, created_at);
