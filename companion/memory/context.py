@@ -13,7 +13,18 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
-from companion.life import agenda, body, circle, disruptions, home, money, occasions, recommendations, storylines
+from companion.life import (
+    agenda,
+    body,
+    circle,
+    disruptions,
+    home,
+    money,
+    network,
+    occasions,
+    recommendations,
+    storylines,
+)
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
@@ -64,6 +75,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'day_shifts': 'How today has gone off plan so far (decided: mention it the way a person would, never '
                           'contradict it)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            'acquaintances': 'People you have met through your circle (friends of friends; you know them a little, '
+                             'from where you met)',
             'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
             'storylines': "What is going on in your life and your people's lives (decided: bring it up the way "
                           'a friend would, never contradict it, and never invent how an unfolding one ends)',
@@ -383,6 +396,8 @@ def offer_people(packet, connection, timeline_id, version, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
     for person in agenda.circle_view(connection, timeline_id, now):
         packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
+    for identity, text in network.context_lines(connection, timeline_id, now):
+        packet.offer('acquaintances', identity, text)
     for identity, text in storylines.context_lines(connection, {'active_timeline_id': timeline_id,
                                                                 'version': version}, now):
         packet.offer('storylines', identity, text)

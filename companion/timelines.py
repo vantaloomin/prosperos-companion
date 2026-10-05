@@ -17,7 +17,7 @@ import re
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import feed, home
+from companion.life import feed, home, network
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
 FROZEN_EVENT = 'The timeline was frozen before this event was reviewed.'
@@ -154,6 +154,7 @@ def copy_history(connection, parent_id, new_id, message):
     insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
+    network.copy(connection, parent_id, new_id, cutoff)
     agenda = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND status IN ('happened','skipped') "
                   'AND ends_at<=?', (parent_id, cutoff))
     insert(connection, 'life_agenda', [{

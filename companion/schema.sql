@@ -1042,3 +1042,17 @@ CREATE TABLE IF NOT EXISTS home_log (
   created_at TEXT NOT NULL,
   UNIQUE (timeline_id, period)
 );
+
+-- People the companion met through their circle (companion/life/network.py): a friend of a friend,
+-- keyed by the seeded path that builds them, with a snapshot of who they are. A meeting counts once
+-- the agenda slot it happened in has happened and still records it.
+CREATE TABLE IF NOT EXISTS acquaintances (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  person TEXT NOT NULL,
+  slot_key TEXT NOT NULL,
+  occasion TEXT NOT NULL,
+  met_on TEXT NOT NULL,
+  met_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, key, slot_key)
+);

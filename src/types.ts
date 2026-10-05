@@ -381,6 +381,8 @@ export interface DiaryEntry {
 }
 export interface CirclePerson {
   id: string
+  /** Where their own people are built from (GET /life/network?key=). */
+  key: string
   name: string
   role: string
   status: 'active' | 'removed'
@@ -401,6 +403,24 @@ export interface CirclePerson {
   now: RoutineBlock | null
   recent: DiaryEntry[]
 }
+
+/** Someone around the circle, a few layers out (companion/life/network.py); built on request, never stored. */
+export interface NetworkPerson {
+  key: string
+  name: string
+  full: string
+  pronouns: string
+  age: number
+  relation: string
+  depth: number
+  of: string
+  how: string
+  occupation: string
+  /** Where the companion met them, when they have. */
+  met?: string | null
+}
+export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'depth'>; people: NetworkPerson[]; deeper: boolean }
+export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
 
 export interface CircleTie { id: string; name: string; how: string }
 export interface CircleRoom { people: number; target: number; sociability: 'quiet' | 'usual' | 'social' }

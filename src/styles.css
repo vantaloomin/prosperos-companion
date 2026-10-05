@@ -281,6 +281,10 @@ textarea { resize: vertical; line-height: 1.6; }
 .person-actions .text-button { padding-left: 0; }
 .diary-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: .95rem; }
 .diary-list time { color: var(--muted); margin-right: 6px; }
+.network-list { list-style: none; margin: 6px 0 0 12px; padding: 0 0 0 10px; border-left: 2px solid var(--border); display: grid; gap: 6px; font-size: .95rem; }
+.network-list .badge { margin-left: 6px; }
+.network-list .text-button { margin-left: 6px; }
+.acquaintances { margin-top: 16px; }
 .diary { border-top: 1px solid var(--border); padding-top: 8px; }
 .rename-form { display: grid; gap: 6px; }
 .rename-row { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -172,7 +172,7 @@ def birthday(person_id: str) -> str:
 
 
 def view(row: dict) -> dict:
-    return {'id': row['id'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
+    return {'id': row['id'], 'key': row['seed'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
             'revision': row['revision'], **decode(row['details']), 'birthday': birthday(row['id']),
             'schedule': decode(row['schedule'])}
 
