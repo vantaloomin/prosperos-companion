@@ -49,7 +49,8 @@ CHECK_TIMEOUT = 15
 
 
 def service_view(row: dict, tools: list[dict] | None = None) -> dict:
-    return {'id': row['id'], 'name': row['name'], 'transport': row['transport'], 'command': decode(row['command']),
+    """A service with its mappings and, from its listed tools, a suggested mapping per category."""
+    return {'suggestions': suggestions(decode(row['tools'])),'id': row['id'], 'name': row['name'], 'transport': row['transport'], 'command': decode(row['command']),
             'url': row['url'], 'has_key': bool(row['credential_ref']), 'secret_name': row['secret_name'],
             'tools': decode(row['tools']), 'server_info': decode(row['server_info']), 'checked_at': row['checked_at'],
             'check_error': row['check_error'], 'cooldown_until': row['cooldown_until'],
@@ -203,8 +204,7 @@ async def check_service(database, vault, service_id, transport=None) -> dict:
         else:
             connection.execute('UPDATE context_services SET checked_at=?, check_error=?, updated_at=? WHERE id=?',
                                (now, error, now, service_id))
-    result = read_service(database, service_id)
-    return {**result, 'suggestions': suggestions(result['tools']) if error is None else {}}
+    return read_service(database, service_id)
 
 
 def suggestions(tools: list[dict]) -> dict:

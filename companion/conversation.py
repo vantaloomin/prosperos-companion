@@ -210,6 +210,9 @@ class Conversation:
         """Lookups the message asks for; a failure of the lookup machinery never blocks the reply."""
         if self.lookups is None:
             return []
+        with self.database.connect() as connection:
+            if optional(connection, 'SELECT id FROM connection WHERE id=1') is None:
+                return []  # No reply will be written, so nothing is sent out.
         try:
             return await self.lookups.for_message(user)
         except Exception:  # noqa: BLE001 - the companion continues without tools (X3).

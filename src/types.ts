@@ -330,3 +330,68 @@ export interface ImageJob {
   created_at: string
   finished_at: string | null
 }
+
+// Current context through MCP (PRD X1–X3)
+export type ContextCategory = 'weather' | 'news' | 'local_events'
+export type ContextPurpose = 'conversation' | 'companion_city'
+export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal'
+export interface ToolArgument { source: ArgumentSource; value?: string | number | boolean }
+export interface ContextTool { name: string; description: string; input_schema: { properties?: Record<string, { type?: string; description?: string }>; required?: string[] }; read_only: boolean }
+export interface Disclosure {
+  digest: string
+  destination: string
+  transport: 'stdio' | 'http'
+  tool: string
+  category: ContextCategory
+  sends: { argument: string; source: ArgumentSource; description: string; example: string | number | null }[]
+  run_in: ContextPurpose[]
+  never_sent: string[]
+  summary: string[]
+}
+export interface ContextMapping { category: ContextCategory; tool: string; arguments: Record<string, ToolArgument>; run_in: ContextPurpose[]; enabled: boolean; approved: boolean; disclosure: Disclosure }
+export interface MappingSuggestion { tool: string; arguments: Record<string, ToolArgument>; missing: string[] }
+export interface ContextServiceInfo {
+  id: string
+  name: string
+  transport: 'stdio' | 'http'
+  command: string[] | null
+  url: string | null
+  has_key: boolean
+  secret_name: string
+  tools: ContextTool[]
+  server_info: { protocol: string; name: string; version: string } | null
+  checked_at: string | null
+  check_error: string | null
+  cooldown_until: string | null
+  mappings: ContextMapping[]
+  suggestions: Partial<Record<ContextCategory, MappingSuggestion>>
+}
+export interface ContextLocation { user_place: string; user_latitude: number | null; user_longitude: number | null; updated_at: string }
+export interface ContextOverview {
+  location: ContextLocation
+  services: ContextServiceInfo[]
+  categories: Record<ContextCategory, { label: string; purposes: ContextPurpose[] }>
+  purposes: Record<ContextPurpose, string>
+  sources: Record<ArgumentSource, string>
+  never_sent: string[]
+}
+export interface Observation {
+  id: string
+  service_id: string | null
+  service_name: string
+  category: ContextCategory
+  purpose: ContextPurpose
+  tool: string
+  arguments: Record<string, unknown>
+  destination: string
+  location: { label: string; whose: 'user' | 'companion' } | null
+  status: 'ok' | 'failed' | 'refused'
+  content: string
+  error_code: string | null
+  error: string | null
+  attempts: number
+  requested_at: string
+  retrieved_at: string | null
+  fresh_until: string | null
+  fresh: boolean
+}

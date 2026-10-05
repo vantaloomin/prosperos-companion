@@ -419,3 +419,10 @@ def test_restore_turns_lookups_off(client, app, connected, tmp_path):
         service_row = dict(connection.execute('SELECT credential_ref FROM context_services').fetchone())
     assert row == {'enabled': 0, 'approved': None}
     assert service_row['credential_ref'] is None
+
+
+def test_no_model_connection_means_no_lookup(client, companion, standin_log):
+    client.put('/api/context/location', json={'user_place': 'Baltimore, MD'})
+    enable(client, add_service(client), 'weather')
+    assert send(client, 'What is the weather like?', 'nc1')['connection'] == 'not_configured'
+    assert calls(standin_log) == []
