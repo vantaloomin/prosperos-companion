@@ -93,6 +93,18 @@ from carries `plan_event_id` and `plan_outcome`. Committed upcoming plans appear
 batch always includes that slot and writes the outing "as planned", with `details.fulfils` set to
 the plan's id. If the slot falls outside a later batch's lookback, the plan quietly lapses.
 
+### Unresolved threads
+
+Now and then a simulated slot also opens a small open question in the companion's life, such as
+"Mira ordered a secondhand record player and is waiting for it to arrive". A thread is a life event
+with `kind: "thread"` and `details.state: "open"`, a stable `details.thread_key` and
+`details.settles_on`, the local date from which it may settle. Once it is committed, the first
+simulated slot on or after that date writes how it turned out: another `kind: "thread"` event with
+`details.state: "settled"` and the same `thread_key`. Both are reviewed like any event, at most one
+thread is open at a time, and the batch result for the slot carries `thread_event_id` and
+`thread_outcome`. `GET /api/today` lists committed open threads whose outcome is not committed yet
+under `plans.threads`.
+
 ## Limits and permissions
 
 ```http
@@ -174,7 +186,7 @@ POST /api/today/seen
 | `routine` | `{default_schedule, current, next}`, as in `GET /api/life/routine` |
 | `changes` | Events committed since `last_seen_at`, newest first (the latest ten on a first visit) |
 | `review` | Proposed events waiting for the user's commit or reject, oldest first |
-| `plans` | `shared`: the user's open plans from memory; `companion`: the companion's upcoming committed plans; `threads`: unresolved threads |
+| `plans` | `shared`: the user's open plans from memory; `companion`: the companion's upcoming committed plans; `threads`: committed open threads whose outcome is not committed yet |
 | `feed_unread` | Unread feed posts |
 | `last_run` | The most recent batch, or `null` |
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |

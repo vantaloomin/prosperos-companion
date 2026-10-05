@@ -9,7 +9,7 @@ Some slots are deliberately quiet: an uneventful stretch is a valid outcome, not
 """
 import random
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 COMPOSER_VERSION = 'compose-1'
 QUIET_SHARE = 0.2
@@ -175,3 +175,63 @@ def fulfil(plan: dict, definition: dict) -> dict:
     rng = random.Random(f"fulfil:{plan['id']}")
     return {'summary': summary, 'post': rng.choice(chosen.captions), 'mood': rng.choice(chosen.moods),
             'activity': chosen.key, 'place': place, 'composer_version': COMPOSER_VERSION, 'fulfils': plan['id']}
+
+
+# Unresolved threads (PRD T2): a small open question in the companion's life that settles a few days
+# later, one way or the other. They stay ordinary in scale; nothing here is a major life change.
+THREAD_SHARE = 0.1
+
+
+@dataclass(frozen=True)
+class Thread:
+    key: str
+    opening: str
+    endings: tuple[str, ...]
+    days: tuple[int, int] = (2, 5)
+
+
+THREADS = (
+    Thread('repair', '{name} reported a leaky faucet to the landlord and is waiting for the repair.',
+           ('The landlord finally sent someone to fix {name}\'s leaky faucet.',
+            '{name} gave up waiting and fixed the leaky faucet with the help of a video.')),
+    Thread('parcel', '{name} ordered a secondhand record player and is waiting for it to arrive.',
+           ('{name}\'s record player arrived, and it works.',
+            'The record player arrived with a cracked lid, but it still plays.')),
+    Thread('waitlist', '{name} joined the waitlist for an evening pottery class.',
+           ('A spot opened up in the pottery class, and {name} took it.',
+            'The pottery class filled up, so {name} is on the list for next term.')),
+    Thread('novel', '{name} started a long novel for a friend\'s book club.',
+           ('{name} finished the novel just in time for book club.',
+            '{name} went to book club only halfway through the novel and enjoyed it anyway.')),
+    Thread('friend-visit', 'An old friend of {name}\'s might come to visit, but nothing is settled yet.',
+           ('The friend booked the trip, and {name} is already making a list of places to go.',
+            'The friend\'s visit fell through for now; they promised to try again in the spring.')),
+    Thread('plant', '{name} is trying to rescue a drooping houseplant.',
+           ('{name}\'s houseplant perked up with new leaves.',
+            'The houseplant did not make it; {name} kept a cutting just in case.')),
+)
+
+
+def find_thread(key) -> Thread:
+    return next(thread for thread in THREADS if thread.key == key)
+
+
+def open_thread(definition: dict, seed: str, local_date: str, used=()) -> dict | None:
+    """Sometimes, a new open thread; never one of the keys in `used`."""
+    rng = random.Random(f'thread:{seed}')
+    options = [thread for thread in THREADS if thread.key not in set(used)]
+    if not options or rng.random() >= THREAD_SHARE:
+        return None
+    chosen = rng.choice(options)
+    settles = date.fromisoformat(local_date) + timedelta(days=rng.randint(*chosen.days))
+    return {'summary': chosen.opening.format(name=definition['name']), 'thread': chosen.key,
+            'settles_on': settles.isoformat(), 'composer_version': COMPOSER_VERSION}
+
+
+def settle_thread(thread: dict, definition: dict) -> dict:
+    """How a committed open thread turned out, seeded by the thread so a retry agrees."""
+    details = thread['details']
+    rng = random.Random(f"settle:{details['thread_key']}")
+    ending = rng.choice(find_thread(details['thread']).endings)
+    return {'summary': ending.format(name=definition['name']), 'thread': details['thread'],
+            'composer_version': COMPOSER_VERSION}

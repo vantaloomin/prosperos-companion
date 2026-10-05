@@ -236,6 +236,7 @@ def test_character_change_while_writing_rejects_the_event(app, client, life, clo
 def test_without_a_model_events_use_template_wording(client, companion, clock, provider, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
+    monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
     clock.advance(timedelta(days=1))
     run = reconcile(client)['run']
     assert [item['outcome'] for item in run['results']] == ['proposed'] * 3
@@ -264,6 +265,7 @@ def test_model_phrasing_can_be_turned_off(client, life, clock, provider):
 def test_places_come_from_the_world_source(tmp_path, clock, provider, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
+    monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
     world = StaticWorld([Place('patterson', 'Patterson Park', 'park', 'baltimore', 'Highlandtown'),
                          Place('artifact', 'Artifact Coffee', 'cafe', 'baltimore', 'Hampden'),
                          Place('walters', 'The Walters Art Museum', 'museum', 'baltimore', 'Mount Vernon'),
@@ -348,6 +350,7 @@ def test_a_plan_is_not_an_outing_until_its_slot_happens(client, life, clock, mon
     # Nothing has happened yet: the only ordinary event is the one the plan was made during.
     assert len([event for event in all_events(client) if event['kind'] == 'ordinary']) == 1
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
+    monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
     clock.instant = parse(plan['ends_at']) + timedelta(hours=5)
     reconcile(client)
     fulfilled = [event for event in all_events(client) if event['details'].get('fulfils') == plan['id']]
@@ -359,6 +362,7 @@ def test_a_plan_is_not_an_outing_until_its_slot_happens(client, life, clock, mon
 def test_the_shipped_city_data_is_the_default_world(tmp_path, clock, provider, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
+    monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
     app = create_app(tmp_path / 'city.sqlite3', clock=clock, vault=MemoryVault(), provider=provider,
                      life_tasks=False)
     with TestClient(app, headers={CLIENT_HEADER: 'workspace'}) as client:
@@ -374,3 +378,32 @@ def test_the_shipped_city_data_is_the_default_world(tmp_path, clock, provider, m
             assert event['details']['place']['city'] == 'Baltimore'
             assert event['details']['place']['name'] in event['summary']
             assert event['inputs']['world'] == 'catalog'
+
+
+def test_an_open_thread_settles_a_few_days_later(client, life, clock, monkeypatch):
+    monkeypatch.setattr(composer, 'THREAD_SHARE', 1)
+    set_life(client, catch_up_max_events=1)
+    clock.advance(timedelta(days=1))
+    result = reconcile(client)['run']['results'][0]
+    opened = next(event for event in all_events(client) if event['id'] == result['thread_event_id'])
+    assert opened['kind'] == 'thread' and opened['details']['state'] == 'open'
+    assert result['thread_outcome'] == 'proposed'
+    # Only committed threads are on the companion's mind, and only one thread is open at a time.
+    assert client.get('/api/today').json()['plans']['threads'] == []
+    client.post(f"/api/events/{opened['id']}/commit")
+    assert [item['id'] for item in client.get('/api/today').json()['plans']['threads']] == [opened['id']]
+    set_life(client, automatic_events=True)
+    settled = None
+    for _ in range(6):
+        clock.advance(timedelta(days=1))
+        for item in reconcile(client)['run']['results']:
+            if item.get('thread_event_id') and item['thread_event_id'] != opened['id']:
+                settled = next(event for event in all_events(client) if event['id'] == item['thread_event_id'])
+        if settled:
+            break
+    assert settled and settled['details'] == {**settled['details'], 'state': 'settled',
+                                              'thread_key': opened['details']['thread_key']}
+    assert settled['details']['local_date'] >= opened['details']['settles_on']
+    ending = composer.find_thread(opened['details']['thread']).endings
+    assert settled['summary'] in [text.format(name='Mira') for text in ending]
+    assert client.get('/api/today').json()['plans']['threads'] == []
