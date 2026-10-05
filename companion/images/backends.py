@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 from companion.database import decode, encode, identifier, many, one
 from companion.errors import DomainError, require
+from companion.images.adapters.codex import method_of as codex_method
 from companion.providers.urls import is_loopback, validate_compatible_url
 
 HOSTED_DEFAULTS = {
@@ -19,7 +20,7 @@ HOSTED_DEFAULTS = {
     'other': {'base_url': '', 'api_style': 'images', 'label': 'Image API'},
 }
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
-CONFIG_KEYS = ('base_url', 'model', 'workflow', 'cli_path', 'api_style')
+CONFIG_KEYS = ('base_url', 'model', 'workflow', 'cli_path', 'api_style', 'method')
 
 
 def credential_ref(backend_id: str) -> str:
@@ -44,7 +45,8 @@ def disclosure(backend: dict) -> str | None:
     if backend['kind'] == 'comfyui' and is_local(backend):
         return None
     if backend['kind'] == 'codex':
-        destination = "OpenAI, under your own ChatGPT login through the Codex CLI's credential"
+        destination = 'OpenAI, through the Codex CLI under your own codex login (your ChatGPT plan, or the API key ' \
+            'Codex is signed in with)'
     elif backend['kind'] == 'comfyui':
         destination = 'the ComfyUI server at this address, which is not on this computer'
     else:
@@ -61,6 +63,7 @@ def view(backend: dict) -> dict:
             'enabled': bool(backend['enabled']), 'position': backend['position'],
             'base_url': config.get('base_url', ''), 'model': config.get('model', ''),
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
+            'method': codex_method(config) if backend['kind'] == 'codex' else None,
             'custom_workflow': bool(config.get('workflow')),
             'has_key': backend['credential_ref'] is not None,
             'controlled_machine': bool(backend['controlled_machine']), 'concurrency': backend['concurrency'],
