@@ -107,3 +107,34 @@ def test_retrying_a_send_while_streaming_follows_the_same_reply(app, connected):
 
     first, second = asyncio.run(scenario())
     assert first['reply']['id'] == second['reply']['id']
+
+
+class GatedEmbedder:
+    """Holds the query embedding until released, like a slow service or one busy with background work."""
+
+    def __init__(self):
+        self.release = asyncio.Event()
+
+    async def embed(self, config, key, texts, timeout):
+        await self.release.wait()
+        return [[1.0, 0.0] for _ in texts]
+
+
+def test_send_without_waiting_returns_before_recall_and_lookups(app, client, companion, provider):
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'embedding_model': 'embed'})
+    embedder = GatedEmbedder()
+    conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder)
+
+    async def scenario():
+        result = await asyncio.wait_for(
+            conversation.send(MessageCreate(text='Hi', client_id='client-0001'), wait=False), 1)
+        assert result['reply']['status'] == 'streaming' and provider.requests == []
+        client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Home city', 'value': 'Lisbon'})
+        embedder.release.set()
+        await conversation.running[result['reply']['id']].task
+        return conversation.reply(result['reply']['id'])
+
+    reply = asyncio.run(scenario())
+    # Built after the memory was added, so it uses it and is not withheld for it.
+    assert reply['status'] == 'complete' and 'Home city: Lisbon' in provider.requests[0]['system']
