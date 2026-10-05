@@ -5677,5 +5677,242 @@
    "summary": "College football bowl game at Hard Rock Stadium around New Year.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "cafecito",
+   "name": "Cafecito",
+   "kind": "drink",
+   "summary": "Cuban espresso brewed strong and whipped with sugar into a sweet foam (espumita), drunk in a few sips standing at a walk-up window.",
+   "places": [
+    "versailles",
+    "puerto-sagua"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "colada",
+   "name": "Colada",
+   "kind": "drink",
+   "summary": "A larger cafecito in a styrofoam cup with a stack of thimble-sized plastic cups, bought to share around the office or job site.",
+   "places": [
+    "versailles"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cafe-con-leche-y-tostada",
+   "name": "Café con leche and tostada",
+   "kind": "dish",
+   "summary": "The Cuban breakfast: hot milk with espresso and pressed, buttered Cuban bread for dunking.",
+   "places": [
+    "versailles",
+    "puerto-sagua",
+    "enriquetas"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "three-oh-five",
+   "name": "3:05 cafecito",
+   "kind": "custom",
+   "summary": "Miami's area code is 305, so 3:05 in the afternoon has become a time for a coffee break, with people posting their cafecitos.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ventanita",
+   "name": "Ventanitas",
+   "kind": "shop",
+   "summary": "Walk-up coffee windows at Cuban restaurants and bakeries, where people stand for cafecito, pastelitos, croquetas and talk about politics.",
+   "places": [
+    "versailles",
+    "little-havana"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cuban-sandwich",
+   "name": "Cuban sandwich",
+   "kind": "dish",
+   "summary": "Roast pork, ham, Swiss cheese, pickles and mustard pressed flat on Cuban bread; the medianoche is the same on a sweet egg roll.",
+   "places": [
+    "sanguich",
+    "versailles"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pastelitos-and-croquetas",
+   "name": "Pastelitos and croquetas",
+   "kind": "dish",
+   "summary": "Flaky pastries filled with guava, guava and cream cheese, or meat, and fried ham croquetas, bought by the dozen for any gathering.",
+   "places": [
+    "little-havana"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "frita",
+   "name": "Frita",
+   "kind": "dish",
+   "summary": "The Cuban hamburger: a seasoned beef and chorizo patty with a pile of crisp shoestring potatoes on a soft bun.",
+   "places": [
+    "little-havana"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stone-crabs",
+   "name": "Stone crab claws",
+   "kind": "dish",
+   "summary": "Florida stone crab claws are served cold and cracked with mustard sauce; the season opens in mid-October and runs into spring.",
+   "places": [
+    "joes-stone-crab"
+   ],
+   "seasons": [
+    "fall",
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pub-sub",
+   "name": "Pub sub",
+   "kind": "dish",
+   "summary": "Floridians are devoted to the made-to-order deli subs at Publix supermarkets, especially the chicken tender sub.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dale",
+   "name": "\"Dale\"",
+   "kind": "saying",
+   "summary": "All-purpose Miami Spanish for \"go ahead\", \"let's go\", \"OK\" or \"bye\", heard from everyone whatever their first language.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spanglish",
+   "name": "Miami Spanglish",
+   "kind": "saying",
+   "summary": "Conversations switch between English and Spanish mid-sentence, with phrases like \"pero like\" (\"but, like\") and greetings like the Cuban \"¿qué bolá?\" (what's up?).",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "domino-games",
+   "name": "Domino games",
+   "kind": "custom",
+   "summary": "Older men, many Cuban, play loud games of dominoes all day at the tables of Domino Park on Calle Ocho.",
+   "places": [
+    "domino-park"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hurricane-prep",
+   "name": "Hurricane prep",
+   "kind": "custom",
+   "summary": "From June through November people keep shutters, water, batteries and gas ready, and supermarket shelves empty fast when a storm is in the cone.",
+   "places": [],
+   "seasons": [
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "miami-dolphins",
+   "name": "Miami Dolphins",
+   "kind": "team",
+   "summary": "The NFL team plays at Hard Rock Stadium in Miami Gardens, and fans never let anyone forget the 1972 perfect season.",
+   "places": [
+    "hard-rock-stadium"
+   ],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "miami-heat",
+   "name": "Miami Heat",
+   "kind": "team",
+   "summary": "The NBA team plays downtown at Kaseya Center and is known for \"Heat Culture\", its demanding work ethic, and for crowds dressed in all white for playoff games.",
+   "places": [
+    "kaseya-center"
+   ],
+   "seasons": [
+    "fall",
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "miami-marlins",
+   "name": "Miami Marlins",
+   "kind": "team",
+   "summary": "The Major League Baseball team plays in Little Havana at loanDepot park, which has a retractable roof against summer rain.",
+   "places": [
+    "loandepot-park"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "florida-panthers",
+   "name": "Florida Panthers",
+   "kind": "team",
+   "summary": "The NHL team plays in Sunrise, north of the city, and won back-to-back Stanley Cups in 2024 and 2025.",
+   "places": [],
+   "seasons": [
+    "fall",
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "inter-miami",
+   "name": "Inter Miami",
+   "kind": "team",
+   "summary": "The MLS soccer club co-owned by David Beckham, which made Lionel Messi the city's most famous footballer when he signed in 2023.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "miami-hurricanes",
+   "name": "Miami Hurricanes",
+   "kind": "team",
+   "summary": "The University of Miami's teams, especially football, which plays at Hard Rock Stadium; fans flash the \"U\" with their hands.",
+   "places": [
+    "hard-rock-stadium"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  }
  ]
 }

@@ -184,3 +184,12 @@ def generate_circle(request: Request, city_id: str, seed: str, size: int = Query
 @router.get('/names')
 def read_names():
     return catalog.names()
+
+
+@router.get('/cities/{city_id}/local-color')
+def list_local_color(request: Request, city_id: str, seed: str | None = None, day: date | None = None,
+                     kind: list[str] | None = Query(default=None), count: int = Query(3, ge=1, le=100)):
+    data = city(request, city_id)
+    if seed is None:
+        return data['local_color']
+    return generators.local_color(data, seed=seed, kinds=kind, day=day, count=count)

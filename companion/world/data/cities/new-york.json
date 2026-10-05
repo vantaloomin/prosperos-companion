@@ -6286,5 +6286,248 @@
    "summary": "The ball drop at midnight, watched by huge crowds penned in from mid-afternoon.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "bacon-egg-and-cheese",
+   "name": "Bacon, egg and cheese",
+   "kind": "dish",
+   "summary": "The bodega breakfast: bacon, a fried egg and American cheese on a roll, ordered as \"salt, pepper, ketchup\" and eaten walking to the train.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bodega",
+   "name": "Bodegas",
+   "kind": "shop",
+   "summary": "Corner delis that stay open late or all night, with a grill at the back, coffee, lottery tickets, everything from cat food to cold medicine, and often a resident cat.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-slice",
+   "name": "A slice",
+   "kind": "dish",
+   "summary": "Thin, wide New York pizza sold by the slice from a counter, folded in half lengthwise to eat on the move.",
+   "places": [
+    "joes-pizza"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bagel-and-schmear",
+   "name": "Bagel with a schmear",
+   "kind": "dish",
+   "summary": "Boiled-then-baked bagels with cream cheese, or with lox, onion and capers from an appetizing store; locals have strong views on toasting.",
+   "places": [
+    "russ-and-daughters",
+    "zabars",
+    "barney-greengrass",
+    "kossars"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pastrami-on-rye",
+   "name": "Pastrami on rye",
+   "kind": "dish",
+   "summary": "Hot pastrami piled high on rye with mustard and a sour pickle on the side, the signature order at the old Jewish delis.",
+   "places": [
+    "katzs",
+    "sarges-deli",
+    "court-deli"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chicken-over-rice",
+   "name": "Chicken over rice",
+   "kind": "dish",
+   "summary": "The halal cart plate: chopped chicken or lamb over yellow rice with lettuce, white sauce and hot sauce, sold from street carts on Midtown corners.",
+   "places": [
+    "midtown"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "black-and-white-cookie",
+   "name": "Black-and-white cookie",
+   "kind": "dish",
+   "summary": "A big, soft, cakey cookie iced half vanilla and half chocolate, sold in delis and bakeries across the city.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "egg-cream",
+   "name": "Egg cream",
+   "kind": "drink",
+   "summary": "A soda-fountain drink with neither egg nor cream: chocolate syrup, milk and seltzer stirred until it foams.",
+   "places": [
+    "lexington-candy-shop"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coffee-regular",
+   "name": "\"Coffee regular\"",
+   "kind": "saying",
+   "summary": "At a deli or coffee cart, \"regular\" means with milk and sugar, not plain black.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "walking-etiquette",
+   "name": "Sidewalk etiquette",
+   "kind": "custom",
+   "summary": "Walk fast, keep to the right, never stop dead at the top of subway stairs, and step to the side before checking your phone or map.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "on-line",
+   "name": "\"On line\"",
+   "kind": "saying",
+   "summary": "New Yorkers wait \"on line\" rather than \"in line\", whether at the deli, the DMV or a sample sale.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-city",
+   "name": "\"The city\"",
+   "kind": "saying",
+   "summary": "To people in Brooklyn, Queens, the Bronx and Staten Island, \"going into the city\" means going to Manhattan.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stoop-life",
+   "name": "Stoop sitting and stoop sales",
+   "kind": "custom",
+   "summary": "Brownstone stoops become front porches in warm weather, with neighbors talking, kids playing and weekend stoop sales of books and old clothes.",
+   "places": [
+    "park-slope",
+    "harlem"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "yankees",
+   "name": "New York Yankees",
+   "kind": "team",
+   "summary": "The Bronx Bombers play baseball at Yankee Stadium; their pinstripes and interlocking NY are seen worldwide.",
+   "places": [
+    "yankee-stadium"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mets",
+   "name": "New York Mets",
+   "kind": "team",
+   "summary": "Queens's National League baseball team plays at Citi Field in Flushing, with fans used to suffering and loyal anyway.",
+   "places": [
+    "citi-field"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "knicks",
+   "name": "New York Knicks",
+   "kind": "team",
+   "summary": "The NBA team plays at Madison Square Garden, where courtside seats draw celebrities and a long wait for a title is part of the identity.",
+   "places": [
+    "madison-square-garden"
+   ],
+   "seasons": [
+    "fall",
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rangers",
+   "name": "New York Rangers",
+   "kind": "team",
+   "summary": "One of the NHL's Original Six, playing hockey at Madison Square Garden.",
+   "places": [
+    "madison-square-garden"
+   ],
+   "seasons": [
+    "fall",
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "nets",
+   "name": "Brooklyn Nets",
+   "kind": "team",
+   "summary": "The NBA team that moved from New Jersey to Barclays Center in 2012, wearing black and white.",
+   "places": [
+    "barclays-center"
+   ],
+   "seasons": [
+    "fall",
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "liberty",
+   "name": "New York Liberty",
+   "kind": "team",
+   "summary": "The WNBA team plays at Barclays Center and won its first championship in 2024.",
+   "places": [
+    "barclays-center"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "giants-and-jets",
+   "name": "Giants and Jets",
+   "kind": "team",
+   "summary": "Both of New York's NFL teams play across the Hudson at MetLife Stadium in New Jersey, and fans of each look down on the other.",
+   "places": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  }
  ]
 }

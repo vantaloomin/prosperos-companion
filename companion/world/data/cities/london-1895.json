@@ -4218,5 +4218,245 @@
    "summary": "Drury Lane and the other big theatres open their pantomimes on Boxing Day, with comedians, a transformation scene and a harlequinade.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "pie-mash-and-eels",
+   "name": "Pie, mash and eels",
+   "kind": "dish",
+   "summary": "Minced-meat pies with mashed potato and green parsley \"liquor\", or stewed and jellied eels, eaten at marble-topped tables in South and East London pie shops.",
+   "places": [
+    "lower-marsh-eel-pie-shop",
+    "the-new-cut"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "whelks-and-cockles",
+   "name": "Whelks and cockles",
+   "kind": "dish",
+   "summary": "Saucers of whelks, cockles and mussels with vinegar and pepper, bought from stalls outside pubs and on the market streets on a Saturday night.",
+   "places": [
+    "the-new-cut",
+    "petticoat-lane",
+    "chrisp-street-market"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "baked-potatoes-and-chestnuts",
+   "name": "Baked potatoes and hot chestnuts",
+   "kind": "dish",
+   "summary": "Street sellers with glowing cans sell hot baked potatoes and roast chestnuts for a halfpenny or a penny, as much to warm the hands as to eat.",
+   "places": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fried-fish-and-chips",
+   "name": "Fried fish and chips",
+   "kind": "dish",
+   "summary": "Fried fish shops, many kept by Jewish families in the East End, sell fish fried in batter with chipped potatoes, wrapped in paper to carry away.",
+   "places": [
+    "whitechapel"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chop-and-porter",
+   "name": "A chop and a pint of porter",
+   "kind": "dish",
+   "summary": "The City clerk's dinner: a mutton chop or steak from the gridiron with a potato and a pewter pint of porter, in a sawdust-floored chop house.",
+   "places": [
+    "cheshire-cheese",
+    "simpsons-tavern",
+    "ye-olde-cock-tavern",
+    "blandford-street-chop-house"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tea-shop-tea",
+   "name": "A pot of tea at the tea shop",
+   "kind": "drink",
+   "summary": "The new Aerated Bread Company and Lyons tea shops serve tea, buns and poached eggs cheaply, and are respectable places for women to eat alone.",
+   "places": [
+    "abc-cheapside",
+    "lyons-piccadilly"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "half-and-half",
+   "name": "Half-and-half",
+   "kind": "drink",
+   "summary": "A pint drawn half of ale and half of porter, a common order at the public-house bar.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "christmas-pudding",
+   "name": "Christmas pudding",
+   "kind": "dish",
+   "summary": "Households stir the plum pudding on Stir-up Sunday in late November, everyone taking a turn and making a wish, and serve it flaming with brandy on Christmas Day.",
+   "places": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hot-cross-buns",
+   "name": "Hot cross buns",
+   "kind": "dish",
+   "summary": "Spiced buns marked with a cross are cried in the streets on Good Friday morning: \"Hot cross buns! One a penny, two a penny!\"",
+   "places": [],
+   "seasons": [
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rhyming-slang",
+   "name": "Rhyming slang",
+   "kind": "saying",
+   "summary": "Cockneys say \"apples and pears\" for stairs and \"plates of meat\" for feet, and often drop the rhyming word so that outsiders are lost.",
+   "places": [
+    "whitechapel",
+    "limehouse"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "money-slang",
+   "name": "A bob, a tanner, a quid",
+   "kind": "saying",
+   "summary": "Everyone counts in slang: a \"bob\" is a shilling, a \"tanner\" sixpence, a \"joey\" fourpence, a \"quid\" a sovereign or pound, and a \"monkey\" five hundred pounds.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "peelers-and-bobbies",
+   "name": "Bobbies and coppers",
+   "kind": "saying",
+   "summary": "Police constables are \"bobbies\", \"peelers\" after Sir Robert Peel, or \"coppers\"; a toff is a well-dressed gentleman and a swell a showy one.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pea-souper",
+   "name": "A pea-souper",
+   "kind": "other",
+   "summary": "The thick yellow coal-smoke fogs, also called \"London particulars\", that stop the traffic, put link-boys to work with torches and leave soot on every collar.",
+   "places": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "costermongers",
+   "name": "Costermongers",
+   "kind": "shop",
+   "summary": "Costers sell fruit, vegetables and fish from barrows and donkey carts, crying their goods, and dress for best in pearl-buttoned jackets.",
+   "places": [
+    "the-new-cut",
+    "petticoat-lane",
+    "chrisp-street-market",
+    "covent-garden-market"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "muffin-man",
+   "name": "The muffin man",
+   "kind": "custom",
+   "summary": "On winter afternoons the muffin man walks the residential streets ringing a handbell, with a tray of muffins and crumpets on his head for toasting at the fire.",
+   "places": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "church-parade",
+   "name": "Church parade",
+   "kind": "custom",
+   "summary": "During the Season, fashionable London walks in Hyde Park near the Achilles statue after Sunday morning service to see and be seen.",
+   "places": [
+    "hyde-park"
+   ],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "calling-cards",
+   "name": "Calling cards and at-home days",
+   "kind": "custom",
+   "summary": "Ladies of the middle and upper classes leave engraved cards when they call, turn down a corner for a personal visit, and keep a fixed afternoon \"at home\" each week.",
+   "places": [
+    "mayfair",
+    "kensington",
+    "marylebone"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "music-hall-chorus",
+   "name": "Joining in the chorus",
+   "kind": "custom",
+   "summary": "Music hall audiences sing along with the choruses of the comic songs, eat and drink in their seats, and let a turn they dislike know about it.",
+   "places": [
+    "canterbury-music-hall",
+    "peoples-palace"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "appy-ampstead",
+   "name": "'Appy 'Ampstead",
+   "kind": "custom",
+   "summary": "On bank holidays East Enders crowd onto Hampstead Heath for donkey rides, swings, coconut shies and roundabouts.",
+   "places": [
+    "hampstead-heath"
+   ],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "county-cricket",
+   "name": "Surrey and Middlesex cricket",
+   "kind": "team",
+   "summary": "County cricket at the Oval (Surrey) and Lord's (Middlesex) draws big summer crowds, and W. G. Grace's run-making is the talk of 1895.",
+   "places": [],
+   "seasons": [
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  }
  ]
 }

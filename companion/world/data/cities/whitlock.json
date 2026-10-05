@@ -3687,5 +3687,242 @@
    "summary": "Nine nights of candlelit processions through the barrio before Christmas, ending with tamales and piñatas.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "carne-seca",
+   "name": "Carne seca",
+   "kind": "dish",
+   "summary": "Beef cut thin, salted and dried on lines in the sun, then shredded and fried with chile, onion and tomato; the Sonoran dish everyone in town learns to like.",
+   "places": [
+    "fonda-carrillo",
+    "tafoyas-kitchen"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tortillas-de-harina",
+   "name": "Flour tortillas",
+   "kind": "dish",
+   "summary": "Sonoran cooks stretch flour tortillas thin and wide as a platter on the griddle, and miners from every country buy them by the dozen.",
+   "places": [
+    "fonda-carrillo",
+    "panaderia-ochoa",
+    "tafoyas-kitchen"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "menudo",
+   "name": "Sunday menudo",
+   "kind": "dish",
+   "summary": "A pot of tripe and hominy stew in red chile, served on Sunday mornings and recommended for anyone who spent Saturday night on Main Street.",
+   "places": [
+    "fonda-carrillo"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "christmas-tamales",
+   "name": "Christmas tamales",
+   "kind": "dish",
+   "summary": "Families in the barrio spend whole days making tamales of red-chile pork in corn husks for Las Posadas and Christmas Eve.",
+   "places": [
+    "tafoyas-kitchen",
+    "la-plaza"
+   ],
+   "seasons": [
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pasty",
+   "name": "Pasty",
+   "kind": "dish",
+   "summary": "The Cornish miner's dinner: beef, potato and turnip baked in a thick crust, carried underground in a pail and still warm at noon.",
+   "places": [
+    "cornish-boarding-table",
+    "sarah-ann-gulch"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sourdough-biscuits",
+   "name": "Sourdough biscuits",
+   "kind": "dish",
+   "summary": "Biscuits raised with a crock of sour starter that cooks guard like a savings account; an old prospector is called a \"sourdough\" for the same reason.",
+   "places": [
+    "roundup-chuck-wagon",
+    "copper-basin-boarding-table"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arbuckles",
+   "name": "Arbuckles' coffee",
+   "kind": "drink",
+   "summary": "Roasted coffee sold by the pound in Arbuckles' packages with a stick of peppermint candy inside, which camp cooks hand to whoever grinds the beans.",
+   "places": [
+    "feldman-mercantile-store",
+    "company-store"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mescal",
+   "name": "Mescal",
+   "kind": "drink",
+   "summary": "Agave spirit hauled up from Sonora by wagon, cheaper and stronger than the whiskey on Main Street.",
+   "places": [
+    "cantina-la-sonorense"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lager-schooner",
+   "name": "A schooner of lager",
+   "kind": "drink",
+   "summary": "Lager beer from the German brewer's cellar, sold cold by the glass or the tall schooner when there is ice from the railroad.",
+   "places": [
+    "schusters-beer-garden",
+    "brennans-saloon"
+   ],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cousin-jacks",
+   "name": "Cousin Jacks",
+   "kind": "saying",
+   "summary": "Cornish miners are \"Cousin Jacks\" and their wives \"Cousin Jennies\", from their habit of saying they have a cousin back home who could fill any job going.",
+   "places": [
+    "sarah-ann-gulch",
+    "cornish-chapel"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "high-grade",
+   "name": "High-grade",
+   "kind": "saying",
+   "summary": "Assay talk is everyday talk: rich ore is \"high-grade\", ore is judged in ounces to the ton, and \"high-grading\" means a miner carrying rich pieces home in his lunch pail.",
+   "places": [
+    "mill-hill",
+    "main-street"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "salted",
+   "name": "\"Salted\"",
+   "kind": "saying",
+   "summary": "A claim is \"salted\" when someone has planted rich ore or gold dust in it to fool a buyer, and anything too good to be true is said to be salted.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tommyknockers",
+   "name": "Tommyknockers",
+   "kind": "saying",
+   "summary": "Cornish miners say the knocking in the rock is the tommyknockers, little mine spirits, and some leave them a crust of pasty to stay on their good side.",
+   "places": [
+    "sarah-ann-gulch"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "border-spanish",
+   "name": "Border Spanish",
+   "kind": "saying",
+   "summary": "English in the town is full of borrowed Spanish: \"savvy?\", \"pronto\", \"vamoose\", the \"calaboose\" for the jail, a \"ramada\" for a brush shade, and \"mañana\" for later.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bucking-the-tiger",
+   "name": "Bucking the tiger",
+   "kind": "saying",
+   "summary": "Playing faro, the favourite saloon card game, whose dealing boxes were often painted with a tiger.",
+   "places": [
+    "palace-saloon",
+    "railroad-exchange"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "check-your-guns",
+   "name": "Checking your guns",
+   "kind": "custom",
+   "summary": "A town ordinance says pistols must be left with the hotel clerk, livery or bartender on arriving in town; most people do it, and the deputies remind the rest.",
+   "places": [
+    "main-street",
+    "depot"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pay-day",
+   "name": "Pay day",
+   "kind": "custom",
+   "summary": "The company pays at the barred window on the tenth of the month, and by evening the saloons, stores and the pawnshop all do a month's business in one night.",
+   "places": [
+    "company-pay-window",
+    "main-street"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "evening-paseo",
+   "name": "The evening paseo",
+   "kind": "custom",
+   "summary": "After the heat breaks, families walk slowly round the plaza in their good clothes, the young people one way and their elders the other.",
+   "places": [
+    "plaza-bandstand",
+    "la-plaza"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-rains",
+   "name": "Watching for the rains",
+   "kind": "other",
+   "summary": "In July the whole town watches the thunderheads build over the mountains each afternoon; when the rains break the heat, people stand out in it.",
+   "places": [],
+   "seasons": [
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "assay-office",
+   "name": "The assay office",
+   "kind": "shop",
+   "summary": "The assayer on Main Street crushes, fires and weighs samples for anyone with a sack of rock and a few dollars, and his figures start or end most mining arguments.",
+   "places": [
+    "main-street"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  }
  ]
 }

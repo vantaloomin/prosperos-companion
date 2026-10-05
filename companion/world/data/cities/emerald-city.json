@@ -3180,5 +3180,186 @@
    "summary": "Children borrow green spectacles from the gatehouse for a day to see the city the way visitors once did.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "green-spectacles",
+   "name": "Green spectacles",
+   "kind": "custom",
+   "summary": "In the Wizard's day the Guardian of the Gates locked a pair of green spectacles on every visitor; the custom lapsed under Ozma, but the gatehouse still keeps the box.",
+   "places": [
+    "gatehouse-spectacles",
+    "great-gate"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "no-money",
+   "name": "No money",
+   "kind": "custom",
+   "summary": "There is no money in Oz: people work for the good of all, and take what they need from the shops and storehouses without paying.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "green-lemonade",
+   "name": "Green lemonade",
+   "kind": "drink",
+   "summary": "Sold on the streets for green pennies in the Wizard's time, green lemonade is now handed over the counter free to anyone thirsty.",
+   "places": [
+    "green-lemonade-stand"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "green-popcorn",
+   "name": "Green popcorn",
+   "kind": "dish",
+   "summary": "Popcorn tinted green, sold from street carts in the Wizard's time and still a favourite of children on market days.",
+   "places": [
+    "green-lemonade-stand",
+    "market-square"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "country-colours",
+   "name": "The colours of the four countries",
+   "kind": "custom",
+   "summary": "Munchkins wear blue, Winkies yellow, Quadlings red and Gillikins purple, and newcomers to the city keep their home colour for a long time.",
+   "places": [
+    "winkie-street",
+    "quadling-lane",
+    "gillikin-gardens"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "no-magic-law",
+   "name": "The law against magic",
+   "kind": "custom",
+   "summary": "By Ozma's decree no one but Glinda and the Wizard may practise magic in Oz, so herb-gatherers and conjurers take care what they do.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "nobody-grows-old",
+   "name": "Nobody grows old",
+   "kind": "other",
+   "summary": "Since Oz was made a fairyland, its people do not age or fall ill, so nobody here can quite tell you how old they are.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "no-place-like-home",
+   "name": "\"There is no place like home\"",
+   "kind": "saying",
+   "summary": "Dorothy's words, which the people of the city repeat to homesick travellers and to themselves on returning from a long journey.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "army-of-officers",
+   "name": "The army of officers",
+   "kind": "other",
+   "summary": "The Royal Army of Oz once had twenty-six officers and one private, and the city still jokes about who gives orders to whom.",
+   "places": [
+    "royal-army-parade-ground",
+    "barracks-mess"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "green-whiskers",
+   "name": "The Soldier with the Green Whiskers",
+   "kind": "other",
+   "summary": "The palace's best-known soldier is easy to recognize by his long green beard, and he is the one to ask at the palace door.",
+   "places": [
+    "royal-palace"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "winkie-tinsmith-shops",
+   "name": "Winkie tinsmiths",
+   "kind": "shop",
+   "summary": "Winkie tinsmiths once mended the Tin Woodman, and their shops still make and mend kettles, lanterns, oil-cans and anything else of tin.",
+   "places": [
+    "winkie-street-tinsmiths",
+    "winkie-street"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "purple-plum-wine",
+   "name": "Plum wine",
+   "kind": "drink",
+   "summary": "Gillikin families make a sweet purple wine from their plums and serve it with cold meats.",
+   "places": [
+    "purple-plum"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "oatcakes",
+   "name": "Gillikin oatcakes",
+   "kind": "dish",
+   "summary": "Flat oatcakes baked on a griddle, eaten with butter and honey for breakfast or carried in a pocket on a long walk.",
+   "places": [
+    "gillikin-oatcake-oven"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "apple-cider",
+   "name": "New cider",
+   "kind": "drink",
+   "summary": "When the orchards are picked, the cider barns press apples for sweet new cider, sold by the jug from the taverns.",
+   "places": [
+    "cider-barn",
+    "apple-cart",
+    "cutters-arms"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "afternoon-tea",
+   "name": "Tea and cakes",
+   "kind": "custom",
+   "summary": "Many people stop work in the afternoon for tea, cakes and bread and butter, often in a garden or by the window.",
+   "places": [
+    "bramble-tearoom",
+    "needle-hill-tea-garden"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "puppet-shows",
+   "name": "Market-day puppet shows",
+   "kind": "custom",
+   "summary": "Puppeteers on Market Square play out the adventures of Dorothy, the Scarecrow and the Tin Woodman, and children shout warnings at the wicked witch.",
+   "places": [
+    "market-square-puppets"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  }
  ]
 }

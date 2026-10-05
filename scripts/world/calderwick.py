@@ -38,6 +38,11 @@ def month(high, low, rain, note):
     return {'high_f': high, 'low_f': low, 'rain_days': rain, 'note': note}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -567,6 +572,57 @@ CITY = {
               'lanterns up Kirkgate to the castle on the shortest day, ending with carols at St Wilfrid\'s.'),
         event('pantomime-season', 'Pantomime season', [12, 1], 'market-place', 'The Theatre Royal pantomime runs '
               'from Boxing Day, with works outings booking whole rows.'),
+    ],
+    'local_color': [
+        color('parkin', 'Parkin', 'dish', 'A dark, sticky oatmeal and treacle gingerbread, baked in slabs for Bonfire '
+              'Night and better a week after.', ['market-hall', 'hobcroft'], ['fall']),
+        color('chumping', 'Chumping', 'custom', 'In the weeks before Bonfire Night children go "chumping", collecting '
+              'wood for their street\'s bonfire and guarding the pile from rival streets.',
+              ['hobcroft', 'ings-end'], ['fall']),
+        color('yorkshire-pudding', 'Yorkshire pudding first', 'dish', 'The batter pudding comes to the table on its '
+              'own with gravy before the meat, so that a family fills up before the joint is cut.'),
+        color('pie-and-peas', 'Pie and peas', 'dish', 'A hot pork or meat-and-potato pie with mushy peas and mint '
+              'sauce, the supper of the works and the market.',
+              ['pickerings-pie-shop', 'brierleys-tripe', 'lowfield-dining-rooms']),
+        color('tripe-and-onions', 'Tripe and onions', 'dish', 'Tripe stewed in milk with onions, or eaten cold with '
+              'salt and vinegar, from the tripe dresser\'s.', ['brierleys-tripe', 'market-hall']),
+        color('oatcake', 'Oatcake on the creel', 'dish', 'Soft oatcakes are hung to dry on a wooden rack over the '
+              'range and eaten fresh and floppy, or crisp and toasted with dripping.', ['market-hall', 'hobcroft']),
+        color('forced-rhubarb', 'Forced rhubarb', 'dish', 'Rhubarb grown in the dark in forcing sheds comes pink and '
+              'tender in the cold months, stewed with custard or baked in a pie.',
+              ['ings-allotments', 'market-hall'], ['winter', 'spring']),
+        color('mild-ale', 'A pint of mild', 'drink', 'Dark, sweetish mild ale is the working man\'s pint, drunk in '
+              'quantity after a shift at the tube mill or the foundry.',
+              ['moulders-arms', 'rose-and-crown', 'navigation-inn']),
+        color('temperance-pop', 'Dandelion and burdock', 'drink', 'Chapel folk and the temperance halls drink '
+              'dandelion and burdock, sarsaparilla and ginger beer instead of ale.',
+              ['hope-street-hall', 'basin-coffee-tavern']),
+        color('nowt-owt-summat', '"Nowt", "owt" and "summat"', 'saying', 'Nothing, anything and something: "Has tha '
+              'got owt?" "Nowt." Older people still say "thee" and "tha" to family and friends.'),
+        color('ginnel', 'Ginnel', 'saying', 'A narrow passage between houses or through to the back street; Calderwick '
+              'uses "ginnel", and a stranger from the next valley may say "snicket".', ['hobcroft', 'castle-hill']),
+        color('ey-up', '"Ey up"', 'saying', 'The everyday greeting, meaning hello or look out, usually followed by '
+              '"love" or "lad" whoever you are.'),
+        color('where-theres-muck', '"Where there\'s muck there\'s brass"', 'saying', 'Where there is dirt there is '
+              'money: the town\'s answer to anyone who complains about the smoke from the tube mills.'),
+        color('mash-the-tea', '"Mash the tea"', 'saying', 'Tea is "mashed" rather than brewed, strong, in a brown pot, '
+              'and offered to anyone who comes to the door.'),
+        color('tube-it', '"Tube it"', 'saying', 'To send a note across town by the pneumatic post; a quick answer is '
+              '"back down the tube", and a lost one "gone up the pipe".',
+              ['pneumatic-post-office', 'listers-coffee-rooms']),
+        color('knocker-up', 'The knocker-up', 'custom', 'Before the six o\'clock hooter a knocker-up goes along the '
+              'terraces tapping on bedroom windows with a long pole, paid a few pence a week by each house.',
+              ['hobcroft', 'lowfield']),
+        color('donkey-stone', 'Donkey-stoning the step', 'custom', 'Women scour their front doorsteps and window sills '
+              'with a donkey stone, a cream or white scouring block, and judge a street by its steps.',
+              ['hobcroft', 'ings-end']),
+        color('co-op-divi', 'The Co-op divi', 'custom', 'Every member\'s purchases earn a share of the profits, the '
+              '"divi", paid out twice a year; families quote their check number like a name.',
+              ['lowfield-co-op', 'ings-end-co-op']),
+        color('popping-at-uncles', 'Popping it at Uncle\'s', 'saying', 'Pawning, usually the Sunday suit on a Monday '
+              'to be redeemed on Saturday payday; "Uncle\'s" is the pawnbroker.', ['uncle-dicks']),
+        color('clogger', 'The clogger', 'shop', 'Most of the town walks on clogs, and the clogger cuts alder soles, '
+              'fits the uppers and nails on fresh irons while you sit in your stockings.', ['ogdens-clogger']),
     ],
 }
 
