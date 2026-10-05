@@ -31,6 +31,7 @@ are optional, so a setting without money (Oz) or without weather data still work
 | `companion/world/data/cities/<id>.json` | One city. Validated against `companion/world/schema.py` on load and in the tests. |
 | `companion/world/data/careers.json` | Careers with sector, schedule pattern, pay band and themes. |
 | `companion/world/data/names.json` | Name banks for residents, written by `scripts/world/names.py`. |
+| `companion/world/data/given_names.json` | Popular given names by birth year, family names by culture and names that read as invented, written by `scripts/world/given_names.py` from `scripts/world/name_sources/`. |
 | `companion/world/data/holidays.json` | Holiday calendars, written by `scripts/world/holidays.py`. |
 | `scripts/world/<city>.py` | The source each city's JSON is written from. Edit these, then rerun them. |
 
@@ -103,6 +104,31 @@ local estimates in their `names.mix` (Miami leans Hispanic and Caribbean, Baltim
 A city may set `names` to pick another `bank`, weight groups with `mix`, or add its own `groups`
 (`{"feminine": […], "masculine": […], "neutral": […], "family": […]}`); a city with its own groups and no
 `mix` uses only those. Weights for groups a bank lacks are ignored, so changing a city's era keeps working.
+
+**Names by birth year.** In modern, future and other settings a group's `cultures` weights
+(`{"us-black": 0.6, "local": 0.4}`) send the given name to what babies were actually called around the
+person's birth year: `given_names.json` holds, per culture, the most popular names per birth year or
+cohort, most popular first, and the generator samples a year up to three either side of
+`present_year − age` and favours higher-ranked names. `local` is the city's own country (`countries`
+maps country names to cultures; the United States lists stand in elsewhere). A culture with its own
+`surnames` (India, Korea, Mexico…) supplies the family name too, so a Korean given name never meets a
+Japanese family name; a relative keeps the shared family name and draws from a culture that fits it. Polish and Russian
+women take the feminine form (Kowalska, Ivanova).
+The United States lists for 1920–2008 are the Social Security Administration's top 100 per year and sex
+(`scripts/world/fetch_us_names.py`); 2009 onwards and every other culture (Black American and Hispanic
+American trends, England and Wales, Ireland, Italy, Mexico, Spain, Germany, France, Poland, Russia,
+China, Korea, Japan, Vietnam, the Philippines, India, Arabic-speaking countries, Nigeria, Ghana,
+Jamaica, Haiti, Israel) were written from general knowledge of the published rankings because the
+statistics offices are unreachable from the build machine, and are marked `estimate`. Historical
+eras keep their banks' own lists.
+
+**Invented-sounding names.** `given_names.json` also lists names that read as made up by a language
+model (Elara, Lyra, Kael, Vex, Voss, Thorne…; edit `name_sources/invented.txt`). No popular-name list
+may contain one (validation fails), generators never produce one, and `companion/world/naming.py`
+checks model-written text for them: character drafting retries once naming the problem, then swaps
+each one for an ordinary name; a name the user typed (or one in the world data) is always allowed. Chat
+gets a short "names for anyone new" context section of ready-made names for the companion's city and a
+spread of ages (`companion/world/newcomers.py`), so the model never has to invent one.
 
 **Local colour.** Each city lists things locals eat, drink, say, root for and do (`local_color`, with
 `kind` dish, drink, saying, custom, team, shop or other), with the places they are easiest to find and

@@ -57,7 +57,10 @@ The world comes from the static world data, not the model:
 - The home city, its timezone and "where they live" are the user's pick. The model is told the
   city's name, setting, era and summary, and never to invent street, business or venue names.
 - The model chooses an occupation from the city's own career list (`careers_for`), by id.
-- When the user leaves the name empty, the model is offered names from the city's name banks.
+- When the user leaves the name empty, the model is offered names people of the picked age commonly have
+  in their city (or, without an age, names labelled with ages), plus ordinary given names for family and
+  friends. Names that read as invented (see docs/world-data.md) are retried once, then swapped out,
+  in drafts and in rewritten fields; a name the user typed is kept.
 - The relationship is the user's pick. The model never sets romance.
 
 ## Checking what comes back

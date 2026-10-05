@@ -105,7 +105,10 @@
      "Rogers",
      "Cook",
      "Bennett"
-    ]
+    ],
+    "cultures": {
+     "local": 1
+    }
    },
    "black-american": {
     "feminine": [
@@ -185,7 +188,11 @@
      "Battle",
      "Moton",
      "Tolliver"
-    ]
+    ],
+    "cultures": {
+     "us-black": 0.6,
+     "local": 0.4
+    }
    },
    "hispanic": {
     "feminine": [
@@ -279,7 +286,12 @@
      "Espinoza",
      "Salazar",
      "Ibarra"
-    ]
+    ],
+    "cultures": {
+     "us-hispanic": 0.6,
+     "local": 0.25,
+     "mexico": 0.15
+    }
    },
    "caribbean": {
     "feminine": [
@@ -336,7 +348,12 @@
      "Henry",
      "Barrett",
      "Grant"
-    ]
+    ],
+    "cultures": {
+     "jamaica": 0.4,
+     "haiti": 0.3,
+     "us-black": 0.3
+    }
    },
    "east-asian": {
     "feminine": [
@@ -418,7 +435,15 @@
      "Garcia",
      "Mendoza",
      "Villanueva"
-    ]
+    ],
+    "cultures": {
+     "local": 0.45,
+     "china": 0.15,
+     "korea": 0.12,
+     "vietnam": 0.12,
+     "philippines": 0.1,
+     "japan": 0.06
+    }
    },
    "south-asian": {
     "feminine": [
@@ -483,7 +508,11 @@
      "Agarwal",
      "Gill",
      "Sandhu"
-    ]
+    ],
+    "cultures": {
+     "india": 0.65,
+     "local": 0.35
+    }
    },
    "jewish": {
     "feminine": [
@@ -543,7 +572,11 @@
      "Greenberg",
      "Adler",
      "Berman"
-    ]
+    ],
+    "cultures": {
+     "local": 0.8,
+     "israel": 0.2
+    }
    },
    "italian": {
     "feminine": [
@@ -598,7 +631,11 @@
      "Ferrara",
      "Santoro",
      "Mancini"
-    ]
+    ],
+    "cultures": {
+     "local": 0.8,
+     "italy": 0.2
+    }
    },
    "irish": {
     "feminine": [
@@ -654,7 +691,11 @@
      "Flanagan",
      "Kavanagh",
      "Callahan"
-    ]
+    ],
+    "cultures": {
+     "local": 0.75,
+     "ireland": 0.25
+    }
    },
    "slavic": {
     "feminine": [
@@ -707,7 +748,12 @@
      "Kozlowski",
      "Mazur",
      "Bondarenko"
-    ]
+    ],
+    "cultures": {
+     "poland": 0.4,
+     "russia": 0.35,
+     "local": 0.25
+    }
    },
    "arabic": {
     "feminine": [
@@ -758,7 +804,11 @@
      "Darwish",
      "Kassem",
      "Bakri"
-    ]
+    ],
+    "cultures": {
+     "arab": 0.8,
+     "local": 0.2
+    }
    },
    "west-african": {
     "feminine": [
@@ -810,7 +860,11 @@
      "Ogunleye",
      "Danso",
      "Ndiaye"
-    ]
+    ],
+    "cultures": {
+     "nigeria": 0.6,
+     "ghana": 0.4
+    }
    }
   },
   "victorian": {
@@ -914,7 +968,8 @@
      "Holloway",
      "Marsh",
      "Pritchard"
-    ]
+    ],
+    "cultures": {}
    },
    "irish": {
     "feminine": [
@@ -955,7 +1010,8 @@
      "Byrne",
      "Flynn",
      "Brennan"
-    ]
+    ],
+    "cultures": {}
    },
    "scottish": {
     "feminine": [
@@ -996,7 +1052,8 @@
      "Ross",
      "Henderson",
      "Paterson"
-    ]
+    ],
+    "cultures": {}
    },
    "jewish": {
     "feminine": [
@@ -1037,7 +1094,8 @@
      "Lazarus",
      "Goldsmith",
      "Mendoza"
-    ]
+    ],
+    "cultures": {}
    },
    "italian": {
     "feminine": [
@@ -1068,7 +1126,8 @@
      "Ortelli",
      "Gazzi",
      "Negretti"
-    ]
+    ],
+    "cultures": {}
    },
    "west-riding": {
     "feminine": [
@@ -1139,7 +1198,8 @@
      "Ingham",
      "Rushworth",
      "Dobson"
-    ]
+    ],
+    "cultures": {}
    }
   },
   "medieval": {
@@ -1194,7 +1254,8 @@
      "Malet",
      "Ferrers",
      "Talbot"
-    ]
+    ],
+    "cultures": {}
    },
    "english": {
     "feminine": [
@@ -1254,7 +1315,8 @@
      "Fowler",
      "Gardner",
      "Bowyer"
-    ]
+    ],
+    "cultures": {}
    },
    "welsh": {
     "feminine": [
@@ -1287,7 +1349,8 @@
      "Vychan",
      "Goch",
      "Ddu"
-    ]
+    ],
+    "cultures": {}
    }
   },
   "frontier": {
@@ -1360,7 +1423,8 @@
      "Bascom",
      "Puckett",
      "Yancey"
-    ]
+    ],
+    "cultures": {}
    },
    "mexican": {
     "feminine": [
@@ -1406,7 +1470,8 @@
      "Contreras",
      "Salazar",
      "Montoya"
-    ]
+    ],
+    "cultures": {}
    },
    "cornish": {
     "feminine": [
@@ -1445,7 +1510,8 @@
      "Pengelly",
      "Tremayne",
      "Chenoweth"
-    ]
+    ],
+    "cultures": {}
    },
    "irish": {
     "feminine": [
@@ -1476,7 +1542,8 @@
      "Riordan",
      "Cassidy",
      "Moran"
-    ]
+    ],
+    "cultures": {}
    },
    "german": {
     "feminine": [
@@ -1508,7 +1575,8 @@
      "Brunner",
      "Weber",
      "Zimmermann"
-    ]
+    ],
+    "cultures": {}
    },
    "chinese": {
     "feminine": [
@@ -1537,7 +1605,8 @@
      "Ng",
      "Fong",
      "Louie"
-    ]
+    ],
+    "cultures": {}
    }
   },
   "storybook": {
@@ -1613,7 +1682,8 @@
      "Pennywhistle",
      "Oakshott",
      "Fairweather"
-    ]
+    ],
+    "cultures": {}
    }
   }
  },
