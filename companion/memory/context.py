@@ -104,9 +104,9 @@ def memory_text(memory) -> str:
     return f"- {label}: {memory['subject']}: {memory['value']}{status}{timing} (stated {memory['stated_at'][:10]})"
 
 
-def transcript(connection, timeline_id, blocked) -> list[dict]:
+def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     rows = many(connection, "SELECT * FROM messages WHERE timeline_id=? AND active=1 AND status='complete' "
-                "AND redacted_at IS NULL ORDER BY seq", (timeline_id,))
+                "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, until_seq or 2 ** 62))
     return [row for row in rows if row['id'] not in blocked]
 
 
@@ -171,11 +171,14 @@ def fit_conversation(packet, recent) -> list[dict]:
     return kept
 
 
-def build(connection, companion, now: datetime, budget: int) -> dict:
-    """Assemble the next reply's inputs from the active timeline's saved state."""
+def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None) -> dict:
+    """Assemble the next reply's inputs from the active timeline's saved state.
+
+    `until_seq` is the message being answered, so an alternative never sees the reply it replaces.
+    """
     timeline_id, version = companion['active_timeline_id'], companion['version']
     groups = partition(eligible(connection, companion, timeline_id, stamp(now)))
-    messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']))
+    messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     recent, older = messages[-RECENT_MESSAGES:], messages[:-RECENT_MESSAGES]
     packet = Packet(budget)
     packet.require('character', version['id'], character_text(version))

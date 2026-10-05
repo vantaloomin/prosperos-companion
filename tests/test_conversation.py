@@ -67,6 +67,13 @@ def test_alternative_preserves_the_earlier_wording(client, connected, provider):
     assert messages[second['reply']['id']]['active'] is True
 
 
+def test_alternative_does_not_see_the_reply_it_replaces(client, connected, provider):
+    provider.replies = [[Chunk('First.')], [Chunk('Second.')]]
+    first = send(client, 'Hi', 'client-0001')
+    client.post(f"/api/conversation/messages/{first['message']['id']}/alternatives")
+    assert provider.requests[1]['messages'] == [{'role': 'user', 'content': 'Hi'}]
+
+
 def test_alternatives_only_for_the_latest_message(client, connected):
     first = send(client, 'One', 'client-0001')
     send(client, 'Two', 'client-0002')

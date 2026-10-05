@@ -2,9 +2,8 @@
 
 [Back to the README](../README.md)
 
-The backend is Python 3.12, FastAPI and SQLite. There is no interface yet; the API is the
-product surface for now. Development and CI run on Linux and Windows, while Windows x64 is the
-launch target.
+The backend is Python 3.12, FastAPI and SQLite; the interface is React 19, TypeScript and Vite.
+Development and CI run on Linux and Windows, while Windows x64 is the launch target.
 
 ```sh
 python -m venv .venv
@@ -14,7 +13,24 @@ python -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-Writes require the `x-companion-client: workspace` header, which the local interface will send.
+Writes require the `x-companion-client: workspace` header, which the local interface sends.
+
+## Interface
+
+Node 22 or newer. `npm run build` writes `dist/`, which the backend serves at
+http://127.0.0.1:8775 when it exists. For development, run the backend and Vite side by side;
+Vite serves http://127.0.0.1:5175 and forwards `/api` to the backend.
+
+```sh
+npm ci
+npm run dev        # http://127.0.0.1:5175
+npm run lint
+npm test           # pure UI logic in tests/ui, run with Node's test runner
+npm run build
+```
+
+Views live in `src/features/<view>/`. Logic that can be tested without a browser (turn grouping,
+draft handling) sits in plain `.ts` modules beside the components that use it.
 
 ## Workspace and identity
 
@@ -49,6 +65,9 @@ changes made.
 | `companion/providers/vault.py` | `server/providers/vault.py` | Companion credential service; in-memory vault for tests |
 | `companion/providers/urls.py` | `server/providers/config.py` | URL checks only |
 | `companion/database.py`, `errors.py`, `models.py` | `server/database.py`, `errors.py`, `models.py` | Identity marker and Companion helpers |
+| `src/api.ts` | `src/api.ts` | Companion client header; offline and error codes |
+| `src/styles.css` (palette, type, focus) | `src/styles.css` | Companion layout; one palette |
+| `eslint.config.js`, `tsconfig.json` | same files | Companion paths |
 
 The Study's `assemble_memory` was not copied: it assumes an accepted Story path. The Companion
 context builder in `companion/memory/context.py` replaces it.
