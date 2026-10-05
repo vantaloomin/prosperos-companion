@@ -19,7 +19,17 @@ export function groupTurns(messages: Message[]): Turn[] {
       byId.get(message.reply_to)?.attempts.push(message)
     }
   }
-  return turns
+  return turns.map(settled)
+}
+
+const built = new WeakMap<Message, Turn>()
+
+/** The turn built last time when none of its messages changed, so a memoized turn skips re-rendering. */
+function settled(turn: Turn): Turn {
+  const previous = built.get(turn.user)
+  if (previous && previous.attempts.length === turn.attempts.length && previous.attempts.every((attempt, index) => attempt === turn.attempts[index])) return previous
+  built.set(turn.user, turn)
+  return turn
 }
 
 /**

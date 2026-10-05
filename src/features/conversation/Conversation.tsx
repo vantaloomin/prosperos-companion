@@ -169,7 +169,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turn.user.id} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} highlight={found?.id} />
+            <TurnView key={turn.user.id} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turn.user.id === latestUserId} busy={turn.user.id === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} highlight={found?.id} />
           ))}
         </div>
       </div>

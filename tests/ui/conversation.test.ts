@@ -69,3 +69,12 @@ test('only the turn being streamed sees the live text; the others keep the same 
   assert.equal(liveFor(quiet, live), liveFor(quiet, { r2: 'Hello again' }))
   assert.deepEqual(liveFor(quiet, live), {})
 })
+
+test('regrouping keeps unchanged turns identical so they skip re-rendering', () => {
+  const messages = [message('u1', 1), reply('r1', 2, 'u1'), message('u2', 3), reply('r2', 4, 'u2', { status: 'streaming' })]
+  const before = groupTurns(messages)
+  const after = groupTurns(applyFinished(messages, reply('r2', 4, 'u2', { status: 'complete', active: true })))
+  assert.equal(after[0], before[0])
+  assert.notEqual(after[1], before[1])
+  assert.equal(after[1].attempts[0].status, 'complete')
+})
