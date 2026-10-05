@@ -7,11 +7,15 @@ needs a new confirmation before a lookup can run.
 """
 import hashlib
 import json
+import os
 import re
+import sys
+from pathlib import Path
 
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import DomainError, require
 from companion.mcp.client import HttpTransport, StdioTransport, ToolFailure, check_url, open_session
+from companion.models import ContextService
 
 CATEGORIES = {
     'weather': {'label': 'Weather', 'keywords': ('weather', 'forecast', 'conditions', 'temperature'),
@@ -45,12 +49,25 @@ FILLS = {
 NEVER_SENT = ('your conversation', 'your memories', 'your name', 'the companion\'s character',
               'API keys of other services')
 SERVICE_LIMIT = 12
+# Servers that ship with the app, stored as a one-item command naming them and run with the app's own Python.
+BUILTIN_PREFIX = '@builtin:'
+BUILTIN_SERVERS = {
+    'weather': {'name': 'Built-in weather', 'script': 'weather.py',
+                'destination': 'the built-in weather program on this computer, which asks Open-Meteo '
+                               '(open-meteo.com) and, for US places when Open-Meteo fails, the National Weather '
+                               'Service (weather.gov)'},
+}
+# Proxy and certificate settings let a built-in server reach the internet where the app can; the endpoint
+# override is for tests.
+BUILTIN_ENV = ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'NO_PROXY', 'no_proxy', 'SSL_CERT_FILE',
+               'PROSPERO_WEATHER_ENDPOINTS')
 CHECK_TIMEOUT = 15
 
 
 def service_view(row: dict, tools: list[dict] | None = None) -> dict:
     """A service with its mappings and, from its listed tools, a suggested mapping per category."""
-    return {'suggestions': suggestions(decode(row['tools'])),'id': row['id'], 'name': row['name'], 'transport': row['transport'], 'command': decode(row['command']),
+    return {'suggestions': suggestions(decode(row['tools'])), 'id': row['id'], 'name': row['name'],
+            'transport': row['transport'], 'command': decode(row['command']), 'builtin': builtin_kind(row),
             'url': row['url'], 'has_key': bool(row['credential_ref']), 'secret_name': row['secret_name'],
             'tools': decode(row['tools']), 'server_info': decode(row['server_info']), 'checked_at': row['checked_at'],
             'check_error': row['check_error'], 'cooldown_until': row['cooldown_until'],
@@ -132,6 +149,26 @@ def create_service(database, vault, body) -> dict:
     return read_service(database, service_id)
 
 
+def create_builtin(database, vault, kind: str) -> dict:
+    """Add a server that ships with the app. It is checked like any other and nothing is enabled."""
+    require(kind in BUILTIN_SERVERS, 'Unknown built-in service.', 404)
+    command = [BUILTIN_PREFIX + kind]
+    with database.connect() as connection:
+        taken = optional(connection, 'SELECT id FROM context_services WHERE transport=? AND command=?',
+                         ('stdio', encode(command)))
+    require(taken is None, 'The built-in service is already added.', 409)
+    return create_service(database, vault, ContextService(name=BUILTIN_SERVERS[kind]['name'], transport='stdio',
+                                                          command=command))
+
+
+def builtin_kind(row: dict) -> str | None:
+    command = decode(row['command']) if row['transport'] == 'stdio' else None
+    if command and len(command) == 1 and command[0].startswith(BUILTIN_PREFIX):
+        kind = command[0][len(BUILTIN_PREFIX):]
+        return kind if kind in BUILTIN_SERVERS else None
+    return None
+
+
 def update_service(database, vault, service_id, body) -> dict:
     """A new address, program or key needs the tools checked and each mapping confirmed again."""
     check_definition(body)
@@ -175,6 +212,11 @@ def read_service(database, service_id) -> dict:
 def transport_for(service: dict, vault):
     """Build the transport, adding the service's own key only. The key never reaches a lookup record."""
     secret = vault.get(service['credential_ref']) if service['credential_ref'] else None
+    kind = builtin_kind(service)
+    if kind:
+        script = Path(__file__).parent / 'servers' / BUILTIN_SERVERS[kind]['script']
+        env = {key: os.environ[key] for key in BUILTIN_ENV if key in os.environ}
+        return StdioTransport([sys.executable, '-I', str(script)], env)
     if service['transport'] == 'stdio':
         env = {service['secret_name'] or 'API_KEY': secret} if secret else {}
         return StdioTransport(decode(service['command']), env)
@@ -300,6 +342,8 @@ def remove_mapping(database, service_id, category) -> dict:
 def destination(service: dict) -> str:
     if service['transport'] == 'http':
         return service['url']
+    if builtin_kind(service):
+        return BUILTIN_SERVERS[builtin_kind(service)]['destination']
     return 'Local program: ' + ' '.join(decode(service['command']) or [])
 
 
