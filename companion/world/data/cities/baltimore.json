@@ -2439,6 +2439,33 @@
    "source": "curated-2026-10"
   },
   {
+   "id": "center-stage",
+   "name": "Baltimore Center Stage",
+   "sector": "entertainment",
+   "neighborhood": "mount-vernon",
+   "size": "small",
+   "summary": "Maryland's state theatre, in a converted school building on North Calvert Street.",
+   "careers": [
+    "actor",
+    "performer",
+    "event-planner"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "everyman-theatre",
+   "name": "Everyman Theatre",
+   "sector": "entertainment",
+   "neighborhood": "downtown",
+   "size": "small",
+   "summary": "Resident-company theatre on Fayette Street.",
+   "careers": [
+    "actor",
+    "performer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
    "id": "towson-u-employer",
    "name": "Towson University",
    "sector": "education",
