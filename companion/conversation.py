@@ -292,17 +292,25 @@ class Conversation:
         so a change made after this point withholds the reply (M9)."""
         user = prepared['user']
         semantic, outside = await asyncio.gather(self.query_vector(user), self.outside(user))
-        config = prepared['config']
-        with self.database.connect(write=True) as connection:
+        return await asyncio.to_thread(self.build_packet, prepared, semantic, outside)
+
+    def build_packet(self, prepared, semantic, outside) -> dict:
+        """Runs off the event loop: at 10,000 messages the build takes a few hundred milliseconds and
+        would otherwise hold every other request. The read is one snapshot, so the recorded revision
+        is the one the packet reflects; a change committed after it withholds the reply."""
+        user, config = prepared['user'], prepared['config']
+        with self.database.connect() as connection:
             companion = require_current(connection)
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
             packet = context.build(connection, companion, self.database.clock.now(),
                                    config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic,
                                    outside)
+            revision = settings(connection)['memory_revision']
+        with self.database.connect(write=True) as connection:
             connection.execute('UPDATE messages SET memory_revision=?, character_version_id=?, receipt=? WHERE id=?',
-                               (settings(connection)['memory_revision'], companion['active_version_id'],
-                                encode(packet['receipt']), prepared['attempt_id']))
+                               (revision, companion['active_version_id'], encode(packet['receipt']),
+                                prepared['attempt_id']))
         return packet
 
     async def generate(self, prepared, publish=lambda _text: None):
