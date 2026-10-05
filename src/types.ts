@@ -1,3 +1,5 @@
+import type { RoutineBlock } from './features/character/schedule'
+
 export type Relationship = 'friendship' | 'romance' | 'mentor' | 'family' | 'other'
 export type ReplyStatus = 'complete' | 'streaming' | 'incomplete' | 'cancelled' | 'failed' | 'withheld'
 
@@ -43,9 +45,9 @@ export interface CharacterDefinition {
   absence_reaction: string
   emotional_traits: EmotionalTrait[]
   timezone: string
-  /** Edited by the life simulation's routine tools; kept as-is when the character form saves. */
-  schedule?: unknown[]
-  life_themes?: string[]
+  home_city: string
+  schedule: RoutineBlock[]
+  life_themes: string[]
 }
 
 export interface CharacterVersion {
@@ -112,6 +114,7 @@ export interface DeleteResult { deleted_memory_ids: string[]; redacted_message_i
 
 export interface LifeSettings {
   automatic_events: boolean
+  phrase_with_model: boolean
   catch_up_on_return: boolean
   catch_up_max_events: number
   catch_up_lookback_hours: number
@@ -178,3 +181,5 @@ export interface FeedPost {
 }
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
+
+export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string }

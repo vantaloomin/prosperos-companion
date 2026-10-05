@@ -182,3 +182,13 @@ textarea { resize: vertical; line-height: 1.6; }
 .reaction[aria-pressed='true'] { background: var(--accent-tint); filter: none; opacity: 1; outline: 1px solid var(--accent); }
 .discuss-form { display: flex; flex-direction: column; gap: 8px; }
 .load-more { margin-top: 18px; }
+
+.schedule-row { display: grid; grid-template-columns: minmax(140px, 1fr) 140px 136px 136px 32px; gap: 8px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.schedule-row > * { min-width: 0; }
+.day-picks { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.day-pick { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.8125rem; cursor: pointer; }
+.day-pick input { accent-color: var(--accent); margin: 0; }
+.day-pick:has(input:checked) { background: var(--accent-tint); border-color: var(--accent); }
+.day-pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.schedule-themes { grid-column: 1 / -1; }
+@media (max-width: 720px) { .schedule-row { grid-template-columns: 1fr 1fr 32px; } .schedule-row > input:first-child { grid-column: 1 / 3; } .schedule-row > select { grid-column: 1 / 3; } }

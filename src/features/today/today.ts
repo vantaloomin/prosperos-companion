@@ -29,3 +29,12 @@ export function eventWhen(startsAt: string, now = new Date()): string {
   const day = sameDay ? 'Today' : new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' }).format(date)
   return `${day}, ${time(startsAt)}`
 }
+
+/** A few words for the conversation header. */
+export function availabilityShort(availability: Today['availability']): string {
+  const label = availability.label.toLowerCase()
+  if (availability.state === 'asleep') return 'Asleep'
+  if (availability.state === 'working') return label ? `Busy: ${label}` : 'Busy'
+  if (availability.state === 'out') return label ? `Out: ${label}` : 'Out'
+  return label ? `Free: ${label}` : 'Free'
+}

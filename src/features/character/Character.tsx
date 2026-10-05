@@ -7,6 +7,8 @@ import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, timezones } from './definition'
 import { TraitEditor } from './TraitEditor'
+import { LifeFields } from './LifeFields'
+import { scheduleProblems } from './schedule'
 
 export function Character({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   const [saved, setSaved] = useState<number | null>(null)
@@ -19,14 +21,16 @@ function CharacterForm({ companion, go, saved, onSaved }: { companion: Companion
   const [definition, setDefinition] = useState<CharacterDefinition>(() => companion ? completeDefinition(companion.version.definition) : emptyDefinition(guessTimezone()))
   const [interests, setInterests] = useState(definition.interests.join(', '))
   const [note, setNote] = useState('')
+  const [themes, setThemes] = useState(definition.life_themes.join(', '))
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState<{ tone: 'info' | 'error'; text: string; conflict?: boolean } | null>(null)
   const set = (change: Partial<CharacterDefinition>) => setDefinition((current) => ({ ...current, ...change }))
+  const problems = scheduleProblems(definition.schedule)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setSaving(true)
-    const body = cleanDefinition(definition, interests)
+    const body = cleanDefinition(definition, interests, themes)
     try {
       const saved = companion
         ? await api<Companion>('/companion/versions', { definition: body, note, expected_version_id: companion.active_version_id })
@@ -63,14 +67,16 @@ function CharacterForm({ companion, go, saved, onSaved }: { companion: Companion
         <TextInput label="Interests" value={interests} onChange={setInterests} hint="Separate with commas." />
         <TextArea label="Background" value={definition.background} onChange={(background) => set({ background })} rows={4} maxLength={12000} />
         <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} />
-        <TextArea label="Routine" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="A typical day and week. Their life will follow it." />
+        <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
+        <LifeFields definition={definition} set={set} themes={themes} setThemes={setThemes} />
         <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
         <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
           hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />
         {companion && <TextInput label="What changed (optional)" value={note} onChange={setNote} maxLength={500} />}
         <SaveFeedback result={result} saved={saved !== null && saved === companion?.version.number ? saved : null} onReload={() => void client.invalidateQueries({ queryKey: COMPANION_KEY })} />
+        {problems.length > 0 && <Notice tone="error">{problems.join(' ')}</Notice>}
         <div className="form-actions">
-          <button type="submit" className="button primary" disabled={saving || !definition.name.trim()}>{companion ? 'Save new version' : 'Create companion'}</button>
+          <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{companion ? 'Save new version' : 'Create companion'}</button>
         </div>
       </form>
       {companion && <Versions current={companion.active_version_id} />}
