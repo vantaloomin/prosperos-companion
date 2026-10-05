@@ -190,10 +190,10 @@ def chain(connection, memory_id) -> list[str]:
         if current in found:
             continue
         found.add(current)
-        row = one(connection, 'SELECT supersedes_id FROM memories WHERE id=?', (current,))
-        frontier += [row['supersedes_id']] if row['supersedes_id'] else []
-        frontier += [item['id'] for item in many(connection, 'SELECT id FROM memories WHERE supersedes_id=?',
-                                                 (current,))]
+        row = one(connection, 'SELECT supersedes_id, merged_into_id FROM memories WHERE id=?', (current,))
+        frontier += [row[key] for key in ('supersedes_id', 'merged_into_id') if row[key]]
+        frontier += [item['id'] for item in many(connection, 'SELECT id FROM memories WHERE supersedes_id=? '
+                                                 'OR merged_into_id=?', (current, current))]
     return sorted(found)
 
 
@@ -207,6 +207,8 @@ def delete(database, memory_id, delete_sources=False) -> dict:
         timestamp = database.now()
         connection.execute(f'UPDATE memories SET supersedes_id=NULL WHERE supersedes_id IN ({marks})', versions)
         connection.execute(f'UPDATE memories SET ended_by_id=NULL WHERE ended_by_id IN ({marks})', versions)
+        connection.execute(f'DELETE FROM memory_proposals WHERE keep_id IN ({marks}) OR merge_id IN ({marks})',
+                           versions + versions)
         connection.execute(f'DELETE FROM memory_candidates WHERE memory_id IN ({marks})', versions)
         vectors.forget(connection, 'memory', versions)
         connection.execute(f'DELETE FROM memories WHERE id IN ({marks})', versions)
@@ -228,6 +230,9 @@ def redact_messages(connection, message_ids, timestamp):
     connection.executemany("DELETE FROM memory_candidates WHERE message_id=? AND status<>'committed'",
                            [(identity,) for identity in message_ids])
     vectors.forget(connection, 'message', message_ids)
+    # Episode summaries quoting a deleted message go with it.
+    connection.executemany('DELETE FROM memory_summaries WHERE EXISTS (SELECT 1 FROM json_each(source_message_ids) '
+                           'WHERE value=?)', [(identity,) for identity in message_ids])
 
 
 def linked_memories(connection, message_ids) -> list[str]:

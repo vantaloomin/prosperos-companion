@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from companion.clock import parse, stamp, zone
-from companion.database import many, settings
+from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
 from companion.life import agenda
@@ -18,6 +18,7 @@ from companion.life.feed import linked_post
 from companion.memory import vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
+from companion.memory.consolidation import excluded_sources, usable_summaries
 from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 
@@ -169,8 +170,12 @@ def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     return [row for row in rows if row['id'] not in blocked]
 
 
-def recall_pool(memories, older) -> tuple[list, dict]:
+def recall_pool(memories, older, summaries=()) -> tuple[list, dict]:
     chunks, owners = [], {}
+    for summary in summaries:
+        for chunk in compile_chunks(f"summary:{summary['id']}", summary['day'], summary['text'], 'summary'):
+            chunks.append(chunk)
+            owners[chunk.id] = ('summary', summary)
     for memory in memories:
         for chunk in compile_chunks(f"memory:{memory['id']}", memory['subject'],
                                     f"{memory['subject']}: {memory['value']}", 'memory'):
@@ -203,21 +208,43 @@ def semantic_ranking(connection, semantic, memories, older) -> list[str]:
     return chunk_ids
 
 
-def recalled(memories, older, query, ranking=()) -> list[tuple[str, str]]:
-    """Pinned memories first, then keyword and semantic recall fused over eligible memories and older turns."""
+RESURFACE_WINDOW = 6
+RESURFACE_LIMIT = 2
+
+
+def recently_surfaced(connection, timeline_id) -> set[str]:
+    """Recalled items that already came up in RESURFACE_LIMIT of the last few replies (M10)."""
+    counts = {}
+    for row in many(connection, "SELECT receipt FROM messages WHERE timeline_id=? AND role='companion' "
+                    'AND receipt IS NOT NULL ORDER BY seq DESC LIMIT ?', (timeline_id, RESURFACE_WINDOW)):
+        for identity in set((decode(row['receipt']).get('included') or {}).get('recalled', [])):
+            counts[identity] = counts.get(identity, 0) + 1
+    return {identity for identity, count in counts.items() if count >= RESURFACE_LIMIT}
+
+
+def recall_text(kind, owner, hit) -> str:
+    if kind == 'memory':
+        return memory_text(owner)
+    if kind == 'summary':
+        return (f"- Your conversation on {owner['day']} (your own words, quoted; a reminder, not confirmation): "
+                f"{owner['text']}")
+    return f"- Earlier ({owner['created_at'][:10]}, {owner['role']}): {hit.chunk.text.strip()}"
+
+
+def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozenset()) -> list[tuple[str, str]]:
+    """Pinned memories first, then keyword and semantic recall fused over eligible memories, older turns and
+    episode summaries. An anecdote that keeps resurfacing needs the user's own words to come back."""
     result = [(memory['id'], memory_text(memory)) for memory in memories if memory['pinned']]
-    chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older)
+    chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older, summaries)
     rankings = [list(ranking)] if ranking else []
     hits = hybrid_hits(chunks, [query], {'rankings': rankings}, RECALL_LIMIT) if query.strip() else []
     seen = set()
     for hit in hits:
         kind, owner = owners[hit.chunk.id]
-        if owner['id'] in seen:
+        if owner['id'] in seen or (owner['id'] in surfaced and not hit.matched):
             continue
         seen.add(owner['id'])
-        text = memory_text(owner) if kind == 'memory' else \
-            f"- Earlier ({owner['created_at'][:10]}, {owner['role']}): {hit.chunk.text.strip()}"
-        result.append((owner['id'], text))
+        result.append((owner['id'], recall_text(kind, owner, hit)))
     return result
 
 
@@ -301,7 +328,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('feed_reference', post['id'], post_text(post))
     query = latest['text'] if latest else ''
     ranking = semantic_ranking(connection, semantic, groups['recallable'], older)
-    for identity, text in recalled(groups['recallable'], older, query, ranking):
+    summaries = usable_summaries(connection, timeline_id, excluded_sources(connection, companion['id']))
+    surfaced = recently_surfaced(connection, timeline_id)
+    for identity, text in recalled(groups['recallable'], older, query, ranking, summaries, surfaced):
         packet.offer('recalled', identity, text)
     packet.semantic = bool(semantic)
     return render(packet, conversation)

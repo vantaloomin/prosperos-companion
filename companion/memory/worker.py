@@ -1,19 +1,22 @@
 """Runs queued memory work in the background, after replies and never in front of one (PRD M7, M10).
 
 A drain forms memories from queued messages, then embeds memories and messages that lack a vector
-when an embedding model is configured. Both steps yield to the conversation.
+when an embedding model is configured, then (hourly at most) writes episode summaries and merge
+proposals. Every step yields to the conversation.
 """
 import asyncio
+import time
 
 from companion.characters import require_current
-from companion.database import optional
-from companion.memory import vectors
+from companion.database import optional, settings
+from companion.memory import consolidation, vectors
 from companion.memory.formation import run_pending
 from companion.providers.embeddings import EmbeddingProvider
 from companion.providers.scheduling import MAINTENANCE
 from companion.providers.vault import credential_for
 
 YIELD_SECONDS = 0.5
+CONSOLIDATE_SECONDS = 3600
 
 
 class MemoryWorker:
@@ -24,6 +27,7 @@ class MemoryWorker:
         self.embedder = embedder or EmbeddingProvider()
         self.enabled = enabled
         self.task: asyncio.Task | None = None
+        self.consolidated_at = -CONSOLIDATE_SECONDS
 
     def kick(self):
         """Start draining unless a drain is already running. Safe to call often."""
@@ -41,10 +45,21 @@ class MemoryWorker:
             try:
                 formed = (await asyncio.to_thread(run_pending, self.database))['processed']
                 indexed = await self.index()
+                if not formed and not indexed:
+                    await self.consolidate()
+                    return
             except Exception:  # noqa: BLE001 - memory work is optional; the next kick retries.
                 return
-            if not formed and not indexed:
+
+    async def consolidate(self):
+        """At most once per CONSOLIDATE_SECONDS, and only while automatic memory is on (M11)."""
+        if time.monotonic() - self.consolidated_at < CONSOLIDATE_SECONDS:
+            return
+        with self.database.connect() as connection:
+            if not settings(connection)['automatic_memory']:
                 return
+        self.consolidated_at = time.monotonic()
+        await asyncio.to_thread(consolidation.run, self.database)
 
     async def index(self) -> int:
         """Embed one batch of memories and messages without a current vector. Returns how many were saved."""
