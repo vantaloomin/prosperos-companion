@@ -198,6 +198,11 @@ export interface LifeSettings {
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
+export interface BackupEntry {
+  name: string; bytes: number; kind: 'backup' | 'pre-upgrade'; readable: boolean
+  created_at?: string; app_version?: string; files?: number; datasets_included?: boolean
+}
+export interface BackupList { backups: BackupEntry[]; pending: { name: string; requested_at: string } | null }
 
 export interface LifeEvent {
   id: string

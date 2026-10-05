@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from companion import backup, characters, conversation, events, timelines, workspace
+from companion import backup, characters, conversation, events, restore, timelines, workspace
 from companion.identity import APP_ID, VERSION
 from companion.memory import consolidation, formation, records
 from companion.models import (
@@ -289,3 +289,19 @@ def correct_event(request: Request, event_id: str, body: EventCorrection):
 def create_backup(request: Request, include_datasets: bool = False):
     """Training reference pictures are included only with ?include_datasets=true (PRD persistence)."""
     return backup.create(db(request), db(request).path.parent / 'backups', include_datasets)
+
+
+@router.get('/backups')
+def list_backups(request: Request):
+    return restore.listing(db(request).path.parent)
+
+
+@router.post('/backups/{name}/restore')
+def schedule_restore(request: Request, name: str):
+    """The restore runs the next time the Companion starts; the running app keeps its workspace."""
+    return restore.schedule(db(request).path.parent, name, db(request).now())
+
+
+@router.delete('/backups/restore')
+def cancel_restore(request: Request):
+    return restore.cancel(db(request).path.parent)

@@ -91,18 +91,13 @@ def prepare_workspace() -> bool:
         return False
 
 
-def restore_backup(archive: Path) -> int:
-    """Replace the workspace with a backup while nothing else can open it (the port is held)."""
-    from companion import restore
+def report_restore(name: str, result) -> int:
     from companion.errors import DomainError
-    from companion.identity import database_path
-    try:
-        result = restore.replace_workspace(archive, database_path())
-    except DomainError as error:
-        print(f'Nothing was restored. {error.message}', flush=True)
+    if isinstance(result, DomainError):
+        print(f'Nothing was restored from {name}. {result.message}', flush=True)
         return 1
     assets = result['assets']
-    print(f"Restored {archive.name}. The workspace is paused, with automatic memory and background activity off, "
+    print(f"Restored {name}. The workspace is paused, with automatic memory and background activity off, "
           'until you review it in Settings. Saved keys were not restored; add them again.', flush=True)
     if result['previous']:
         print(f"The workspace it replaced was moved to {result['previous']}.", flush=True)
@@ -116,6 +111,27 @@ def restore_backup(archive: Path) -> int:
     if assets['excluded']:
         print(f"{len(assets['excluded'])} reference pictures were left out of this backup.", flush=True)
     return 0
+
+
+def restore_backup(archive: Path) -> int:
+    """Replace the workspace with a backup while nothing else can open it (the port is held)."""
+    from companion import restore
+    from companion.errors import DomainError
+    from companion.identity import database_path
+    try:
+        result = restore.replace_workspace(archive, database_path())
+    except DomainError as error:
+        result = error
+    return report_restore(archive.name, result)
+
+
+def restore_chosen_backup():
+    """A restore chosen in Settings runs here, before the workspace is opened."""
+    from companion import restore
+    from companion.identity import database_path
+    chosen = restore.apply_pending(database_path())
+    if chosen:
+        report_restore(*chosen)
 
 
 def serve(listener, url, port, no_browser) -> int:
@@ -168,6 +184,7 @@ def main(argv=None) -> int:
     if listener is None:
         return reuse(url, args.no_browser)
     with listener:
+        restore_chosen_backup()
         if not prepare_workspace():
             return 1
         return serve(listener, url, args.port, args.no_browser)

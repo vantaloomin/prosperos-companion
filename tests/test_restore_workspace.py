@@ -83,3 +83,40 @@ def test_the_launcher_restores_a_backup_and_exits(client, app, companion, monkey
     output = capsys.readouterr().out
     assert 'Restored' in output and 'moved to' in output
     assert list(path.parent.glob('replaced-*/companion.sqlite3'))
+
+
+def test_a_restore_chosen_in_settings_runs_on_the_next_start(client, app, companion, clock):
+    remember(client, 'Pet', 'Biscuit')
+    name = Path(client.post('/api/backups').json()['path']).name
+    remember(client, 'Car', 'A green van')
+    listed = client.get('/api/backups').json()
+    assert [item['name'] for item in listed['backups']] == [name] and listed['pending'] is None
+    assert listed['backups'][0]['readable'] and listed['backups'][0]['kind'] == 'backup'
+    with pytest.raises(DomainError):
+        restore.archive_path(app.state.database.path.parent, '../escape.zip')
+    assert client.post('/api/backups/..%2Fescape.zip/restore').status_code in (404, 405)
+    assert client.post('/api/backups/missing.zip/restore').status_code == 404
+    scheduled = client.post(f'/api/backups/{name}/restore').json()
+    assert scheduled['pending']['name'] == name
+    assert client.delete('/api/backups/restore').json()['pending'] is None
+    client.post(f'/api/backups/{name}/restore')
+    path = app.state.database.path
+    client.close()
+
+    chosen = restore.apply_pending(path)
+
+    assert chosen[0] == name and chosen[1]['previous']
+    assert restore.apply_pending(path) is None  # Consumed: never repeated on later starts.
+    restored = app.state.database.__class__(path, clock)
+    with restored.connect() as connection:
+        values = {row[0] for row in connection.execute('SELECT value FROM memories')}
+    assert values == {'Biscuit'}
+
+
+def test_a_damaged_backup_cannot_be_chosen(client, app, companion):
+    folder = app.state.database.path.parent / 'backups'
+    folder.mkdir(exist_ok=True)
+    (folder / 'broken.zip').write_bytes(b'not a zip')
+    assert client.get('/api/backups').json()['backups'][0]['readable'] is False
+    assert client.post('/api/backups/broken.zip/restore').status_code == 422
+    assert client.get('/api/backups').json()['pending'] is None

@@ -139,8 +139,14 @@ automatic images are off, saved keys and context tool approvals are dropped, que
 images and evaluations become interrupted, and a running training job becomes interrupted without
 its old process id. Nothing resumes until the user reviews it.
 
-To restore into the installed app, close it and run the launcher with `--restore <backup.zip>`
-(`"Prospero Companion.cmd" --restore <file>` in the bundle). The current workspace moves to
+In the app, Settings > Backups lists the archives in `backups/` (`GET /api/backups`, read from
+their manifests) and **Restore…** chooses one (`POST /api/backups/{name}/restore`, which verifies
+it in full first and can be cancelled with `DELETE /api/backups/restore`). The running app cannot
+replace its own open workspace, so the choice is recorded in `pending-restore.json` and the
+launcher applies it on the next start, before the workspace opens; the request is consumed whether
+or not the restore succeeds, so a failure is reported once and never retried. Outside the app, close
+it and run the launcher with `--restore <backup.zip>` (`"Prospero Companion.cmd" --restore <file>`
+in the bundle). The current workspace moves to
 `replaced-<time>/` beside it, not deleted, and moves back if the restore fails. Its deletion
 records then apply to the restored workspace, so memories deleted and messages redacted after the
 backup was made stay gone (PRD M5). Pre-upgrade backups hold only the database, since an upgrade
