@@ -46,7 +46,7 @@ function CharacterForm({ companion, go, saved, onSaved }: { companion: Companion
 
   return (
     <section className="page">
-      <CharacterHeading companion={companion} />
+      <CharacterHeading companion={companion} go={go} />
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
           <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} />
@@ -84,13 +84,14 @@ function CharacterForm({ companion, go, saved, onSaved }: { companion: Companion
   )
 }
 
-function CharacterHeading({ companion }: { companion: Companion | null }) {
+function CharacterHeading({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   return (
     <header className="page-header">
       <div>
         <h1>{companion ? companion.version.name : 'Create your companion'}</h1>
         <p className="subtle">{companion ? `Version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Only a name is required, and you can change everything later.'}</p>
       </div>
+      {companion && <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>}
     </header>
   )
 }

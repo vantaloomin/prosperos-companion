@@ -4,6 +4,7 @@ import type { Companion } from './types'
 import { useCompanion, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
 import { Character } from './features/character/Character'
+import { Appearance } from './features/appearance/Appearance'
 import { Memories } from './features/memories/Memories'
 import { Settings } from './features/settings/Settings'
 import { Today } from './features/today/Today'
@@ -22,7 +23,7 @@ const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || id === 'appearance' ? id as View : 'conversation'
 }
 
 export default function App() {
@@ -40,7 +41,7 @@ export default function App() {
       <a className="skip-link" href="#main">Skip to content</a>
       <nav className="app-nav" aria-label="Views">
         {VIEWS.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" aria-current={view === id ? 'page' : undefined} onClick={() => go(id)}>
+          <button key={id} type="button" aria-current={view === id || (id === 'character' && view === 'appearance') ? 'page' : undefined} onClick={() => go(id)}>
             <Icon aria-hidden="true" /><span>{label}</span>
           </button>
         ))}
@@ -58,6 +59,7 @@ function CurrentView({ view, companion, go }: { view: View; companion: Companion
   if (view === 'settings') return <Settings companion={companion} />
   if (view === 'character') return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
+  if (view === 'appearance') return <Appearance companion={companion} go={go} />
   if (view === 'today') return <Today companion={companion} go={go} />
   if (view === 'feed') return <Feed companion={companion} go={go} />
   if (view === 'memories') return <Memories companion={companion} />

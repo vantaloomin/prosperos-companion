@@ -148,6 +148,20 @@ twice: with the adapter (`<trigger>, <name>`) and, for comparison, from the text
   is named `Krea-<name>.safetensors`, as the Krea 2 Community License asks of redistributed
   derivatives.
 
+## Interface
+
+Character has a **Look and LoRA** button that opens a guided page with six steps: **Prepare**
+(add pictures; source, rights and use for each), **Review** (blocking problems and advice,
+captions, crops drawn with sliders and saved as copies), **Configure** (the target trainer marked
+"Not verified on hardware", its requirements and what cancelling stops, the trainer settings, run
+options, the download disclosure and the fictional-adult confirmation), **Train** (state,
+reported progress, checkpoints with their check, the trainer's output, cancel, resume and
+restart), **Evaluate** (the fixed set with and without the adapter side by side, held-out
+references, every failure, good and weak marks) and **Adopt** (the current appearance, every
+adapter with adopt, export and remove, importing an adapter, and the version history). The
+browser computes each picture's difference hash and draws crops; logic that needs no browser is in
+`src/features/appearance/loraState.ts`.
+
 ## API
 
 All writes need the `x-companion-client: workspace` header. Uploads send the file itself as the
