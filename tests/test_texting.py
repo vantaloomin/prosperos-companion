@@ -1,4 +1,4 @@
-"""Texting style and pacing: bursts, lowercase, the odd *correction, and replies held while busy."""
+"""Texting style and pacing: bursts, lowercase, the odd *correction, and replies at the companion's pace."""
 from datetime import timedelta
 
 import pytest
@@ -19,13 +19,18 @@ def says(provider, text):
 
 
 @pytest.fixture
-def office(client, provider):
+def office(client, provider, monkeypatch):
+    monkeypatch.setattr(pacing, 'ACTIVE', True)
     response = client.post('/api/companion', json={'name': 'Mira', 'timezone': 'UTC', 'schedule': OFFICE,
                                                      'texting': {'bursts': True, 'lowercase': True}})
     assert response.status_code == 200, response.text
     client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
                                         'api_key': 'secret-key'})
     return response.json()
+
+
+def way(monkeypatch, name):
+    monkeypatch.setattr(pacing, 'WAYS', ((name, 1),))
 
 
 def test_lowercase_keeps_links_and_typos_are_corrected():
@@ -47,38 +52,62 @@ def test_the_style_reaches_the_model_and_the_saved_reply(client, office, provide
     assert reply['held_until'] is None
 
 
-def test_a_reply_at_work_waits_with_a_holding_line(client, office, provider, clock):
-    set_life(client, paced_replies=True)
+def test_at_work_a_reply_can_come_later_with_a_holding_text(client, office, provider, clock, monkeypatch):
+    way(monkeypatch, 'line')
     clock.instant = clock.now().replace(hour=10)
     says(provider, 'Okay so here is my full answer.')
     reply = send(client, 'Quick question', 'client-text-02')['reply']
     assert reply['text'] == 'okay so here is my full answer.'
     waits = parse(reply['held_until']) - clock.now()
-    assert reply['held_line'] in pacing.HOLDING and timedelta(minutes=8) <= waits <= timedelta(minutes=45)
-    shown = client.post(f"/api/conversation/messages/{reply['id']}/show").json()
-    assert shown['held_until'] <= client.app.state.database.now()
+    assert reply['held_line'] in pacing.LINES['work'] and timedelta(minutes=8) <= waits <= timedelta(minutes=45)
 
 
-def test_asleep_it_waits_until_morning_and_another_message_shows_it(client, office, provider, clock):
-    set_life(client, paced_replies=True)
+def test_at_work_a_reply_can_be_a_quick_note_now(client, office, provider, clock, monkeypatch):
+    way(monkeypatch, 'quick')
+    clock.instant = clock.now().replace(hour=10)
+    says(provider, 'busy, tell you later!')
+    reply = send(client, 'How is your day?', 'client-text-03')['reply']
+    assert reply['held_until'] is None and 'Reply with a quick short note' in provider.requests[-1]['system']
+    assert 'office' in provider.requests[-1]['system']
+
+
+def test_asleep_it_waits_until_morning_and_later_replies_keep_their_order(client, office, provider, clock, monkeypatch):
     clock.instant = clock.now().replace(hour=2)
     says(provider, 'mm, sleepy reply')
-    reply = send(client, 'You up?', 'client-text-03')['reply']
-    assert reply['held_line'] is None and reply['held_until'].startswith(clock.now().date().isoformat() + 'T07:00')
-    says(provider, 'okay now I am up')
-    send(client, 'Hello??', 'client-text-04')
+    first = send(client, 'You up?', 'client-text-04')['reply']
+    assert first['held_line'] is None and first['held_until'].startswith(clock.now().date().isoformat() + 'T07:00')
+    clock.advance(timedelta(hours=8))
+    way(monkeypatch, 'later')
+    says(provider, 'morning!')
+    second = send(client, 'Hello??', 'client-text-05')['reply']
+    assert second['held_until'] >= first['held_until']
+    clock.advance(timedelta(hours=9))
+    says(provider, 'free now')
+    assert send(client, 'Evening', 'client-text-06')['reply']['held_until'] is None
+
+
+def test_a_reply_shown_at_once_shows_earlier_held_ones(client, office, provider, clock, monkeypatch):
+    way(monkeypatch, 'later')
+    clock.instant = clock.now().replace(hour=16, minute=50)
+    says(provider, 'at work reply')
+    held = send(client, 'Ping', 'client-text-07')['reply']
+    assert parse(held['held_until']) > clock.now()
+    clock.instant = clock.now().replace(hour=16, minute=55)
+    set_life(client, paced_replies=False)
+    says(provider, 'here')
+    send(client, 'Ping again', 'client-text-08')
     messages = client.get('/api/conversation').json()['messages']
-    first = next(message for message in messages if message['id'] == reply['id'])
-    assert first['held_until'] <= client.app.state.database.now()
+    first = next(message for message in messages if message['id'] == held['id'])
+    assert parse(first['held_until']) <= clock.now()
 
 
-def test_a_held_reply_is_announced_when_it_shows(client, office, provider, clock):
-    set_life(client, paced_replies=True)
+def test_a_held_reply_is_announced_when_it_shows(client, office, provider, clock, monkeypatch):
+    way(monkeypatch, 'later')
     client.put('/api/notifications/settings', json={'enabled': True, 'preview': 'full', 'quiet_start': '00:00',
                                                     'quiet_end': '00:00'})
     clock.instant = clock.now().replace(hour=10)
     says(provider, 'Sorry, here now.')
-    send(client, 'Ping', 'client-text-05')
+    send(client, 'Ping', 'client-text-09')
     assert client.post('/api/notifications/next', json={'focused': False}).json()['notification'] is None
     clock.advance(timedelta(hours=1))
     shown = client.post('/api/notifications/next', json={'focused': False}).json()['notification']
@@ -86,7 +115,9 @@ def test_a_held_reply_is_announced_when_it_shows(client, office, provider, clock
     assert client.post('/api/notifications/next', json={'focused': False}).json()['notification'] is None
 
 
-def test_unpaced_replies_never_wait(client, office, provider, clock):
+def test_paced_replies_are_on_by_default_and_can_be_turned_off(client, office, provider, clock):
+    assert client.get('/api/life/settings').json()['paced_replies'] is True
+    set_life(client, paced_replies=False)
     clock.instant = clock.now().replace(hour=10)
     says(provider, 'right here')
-    assert send(client, 'Hi', 'client-text-06')['reply']['held_until'] is None
+    assert send(client, 'Hi', 'client-text-10')['reply']['held_until'] is None

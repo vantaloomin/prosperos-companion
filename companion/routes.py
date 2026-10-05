@@ -194,12 +194,6 @@ def stop_reply(request: Request, attempt_id: str):
     return {'stopped': request.app.state.conversation.stop(attempt_id)}
 
 
-@router.post('/conversation/messages/{message_id}/show')
-def show_held(request: Request, message_id: str):
-    """Show a reply held while the companion was busy (companion/life/pacing.py) right away."""
-    return conversation.show(db(request), message_id)
-
-
 @router.post('/conversation/messages/{message_id}/decline-memory')
 def decline_memory(request: Request, message_id: str):
     return formation.forget_message(db(request), message_id)

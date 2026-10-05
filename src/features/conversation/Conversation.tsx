@@ -11,7 +11,7 @@ import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
 import { ConversationSearch } from './ConversationSearch'
 import { GettingStarted } from './GettingStarted'
-import { releaseHeld } from './held'
+import { isHeld, releaseHeld } from './held'
 import { TurnView } from './TurnView'
 import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
@@ -21,7 +21,6 @@ import { loadBack } from './search'
 import { useDraft } from './useDraft'
 import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
-import { useDoorSounds } from './useDoorSounds'
 import { NovelStage } from './NovelStage'
 
 const PAGE = 100
@@ -50,7 +49,6 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const chat = useChatStyle()
   const sounds = useRef(chat.sounds)
   useEffect(() => { sounds.current = chat.sounds })
-  useDoorSounds(chat.sounds)
 
   const timeline = useCurrentTimeline(draft, () => setNotice(null))
   const update = useCallback((change: (messages: Message[]) => Message[]) => {
@@ -59,8 +57,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   const onText = useCallback((id: string, text: string) => setLive((current) => ({ ...current, [id]: text })), [])
   const onDone = useCallback((reply: Message) => {
-    update((current) => applyFinished(current, reply))
+    // A reply that shows at once shows the ones held before it; a held one stays quiet until its time.
+    const held = isHeld(reply, Date.now())
+    update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
+    if (held) return
     setAnnouncement(replyAnnouncement(name, reply))
     if (sounds.current && reply.status === 'complete') playCue('message')
   }, [update, name])
@@ -84,7 +85,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }
 
   const accept = (result: SendResult) => {
-    update((current) => mergeMessages(releaseHeld(current, result.message.seq), [result.message, result.reply]))
+    update((current) => mergeMessages(current, [result.message, result.reply]))
     if (result.connection === 'not_configured') setNotice({ tone: 'info', text: `Your message is saved. Connect a model in Settings so ${name} can reply.`, settings: true })
     else setNotice(null)
     setFound(null)
@@ -108,9 +109,6 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }
   const stop = async (replyId: string) => {
     try { await api(`/conversation/replies/${replyId}/stop`, {}) } catch (error) { fail(error) }
-  }
-  const show = async (message: Message) => {
-    try { onDone(await api<Message>(`/conversation/messages/${message.id}/show`, {})) } catch (error) { fail(error) }
   }
   const remember = async (message: Message) => {
     try {
@@ -156,13 +154,12 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }
 
   // Stable handlers and turns, so a streaming reply re-renders its own turn rather than the whole transcript.
-  const handlers = useRef({ retry, stop, remember, show })
-  useEffect(() => { handlers.current = { retry, stop, remember, show } })
+  const handlers = useRef({ retry, stop, remember })
+  useEffect(() => { handlers.current = { retry, stop, remember } })
   const turnActions = useMemo(() => ({
     retry: (id: string) => void handlers.current.retry(id),
     stop: (id: string) => void handlers.current.stop(id),
     remember: (message: Message) => void handlers.current.remember(message),
-    show: (message: Message) => void handlers.current.show(message),
     decline: setDeclining,
     edit: setEditing,
   }), [])
@@ -183,7 +180,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onShow={turnActions.show} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} />
+            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} />
           ))}
         </div>
       </div>

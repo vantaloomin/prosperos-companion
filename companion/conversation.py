@@ -39,8 +39,6 @@ def record_user(database, body) -> dict:
             return existing
         companion = require_current(connection)
         timeline_id, message_id = companion['active_timeline_id'], identifier()
-        # Writing again shows a reply held while the companion was busy (companion/life/pacing.py).
-        pacing.release(connection, timeline_id, database.now())
         connection.execute(
             'INSERT INTO messages (id, timeline_id, seq, role, text, client_id, status, character_version_id, '
             "created_at, completed_at) VALUES (?, ?, ?, 'user', ?, ?, 'complete', ?, ?, ?)",
@@ -100,17 +98,6 @@ def search(database, query: str, limit=SEARCH_LIMIT) -> dict:
 def message_view(row: dict) -> dict:
     return {key: value for key, value in row.items() if key not in {'receipt', 'client_id'}} | {
         'active': bool(row['active']), 'redacted': row['redacted_at'] is not None}
-
-
-def show(database, message_id) -> dict:
-    """A held reply, shown now; nothing else changes."""
-    with database.connect(write=True) as connection:
-        row = optional(connection, "SELECT * FROM messages WHERE id=? AND role='companion'", (message_id,))
-        require(row is not None, 'That reply was not found.', 404)
-        if row['held_until'] and row['held_until'] > database.now():
-            connection.execute('UPDATE messages SET held_until=?, held_notified=? WHERE id=?',
-                               (database.now(), database.now(), message_id))
-        return message_view(one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,)))
 
 
 def recover(database):
@@ -261,7 +248,9 @@ class Conversation:
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
             attempt_id = identifier()
-            held = pacing.hold(connection, companion, self.database.clock.now(), attempt_id)
+            held = pacing.join(connection, user['timeline_id'],
+                               pacing.hold(connection, companion, self.database.clock.now(), attempt_id),
+                               self.database.now())
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
                 'character_version_id, memory_revision, created_at, held_until, held_line) '
@@ -269,7 +258,8 @@ class Conversation:
                 (attempt_id, user['timeline_id'], next_seq(connection, user['timeline_id']), user['id'],
                  companion['active_version_id'], settings(connection)['memory_revision'], self.database.now(),
                  held['held_until'], held['held_line']))
-        return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user}
+        return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user,
+                'quick': held['quick']}
 
     async def assemble(self, prepared) -> dict:
         """Build the reply's inputs and record the memory revision and character version they reflect,
@@ -303,6 +293,9 @@ class Conversation:
             key = key_for(self.vault, prepared['config'])
             with self.scheduler.foreground_work():
                 packet = await self.assemble(prepared)
+                if prepared.get('quick'):
+                    # Busy: a quick note rather than a real conversation (companion/life/pacing.py).
+                    packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['quick']}"}
                 async with self.scheduler.reserve(prepared['config'], CONVERSATION):
                     async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
                                                             packet['messages']):

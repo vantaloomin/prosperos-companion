@@ -55,6 +55,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.storylines.START', (0, 0, 0, 0))
     # Likewise a birthday seeded by the companion's id (companion/life/occasions.py).
     monkeypatch.setattr('companion.life.occasions.SEEDED', False)
+    # And replies held while the companion is busy (companion/life/pacing.py), on by default in the app.
+    monkeypatch.setattr('companion.life.pacing.ACTIVE', False)
 
 
 @pytest.fixture

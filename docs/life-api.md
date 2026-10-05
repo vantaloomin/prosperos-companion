@@ -380,19 +380,23 @@ A complete reply is then restyled by fixed rules: all lowercase except links, an
 seeded one reply in eight gets one swapped pair of letters and a `*word` line after it. Bursts are
 blank-line separated parts, shown as separate bubbles in the Bubbles chat style.
 
-With the Life setting `paced_replies` on (off by default), a reply to a message sent while the
-companion is at work or asleep is written at once but held (`companion/life/pacing.py`). The message
-carries `held_until` and `held_line`: at work a short holding line ("in a meeting, give me a bit")
-and the full reply 8 to 45 minutes later, never after the work block ends; asleep no line and the
-reply when they wake (at most ten hours). The day that counts is the precomputed agenda's, so a
-holiday or a sick day is not work. It is never a lockout:
+The companion decides when to answer, and the app never says whether they are free: the chat and
+Today show no availability (the `availability` field below is for the context only). With the Life
+setting `paced_replies` on (the default), a reply to a message sent while they are at work or out is,
+by a seeded choice (`companion/life/pacing.py`), one of:
 
-```http
-POST /api/conversation/messages/{id}/show     # the held reply, shown now
-```
+- written now and shown later: 8 to 45 minutes at work, 5 to 25 out, never past the end of the block;
+- a quick holding text now ("in a meeting, give me a bit", the message's `held_line`) and the full
+  reply later;
+- a quick short note now instead of a real conversation (the model is told to keep it brief).
 
-and sending another message shows every reply held before it. A held reply that shows while the
-app is in the background is announced like a first message, unless the user has written since.
+Asleep, the reply shows when they wake (at most ten hours). A held reply carries `held_until`; the
+chat shows nothing for it (or only the holding text) until then. A reply that shows at once also
+shows every earlier one still held, and one held while another is waiting shows no sooner than it,
+so replies keep their order. The day that counts is the precomputed agenda's, so a holiday or a sick
+day is not work, and a shifted day (see Day disruptions) counts as it ended up. A held reply that
+shows while the app is in the background is announced like a first message, unless the user has
+written since.
 
 ## Routine
 

@@ -93,7 +93,7 @@ ADDED_COLUMNS = (
     ('life_settings', 'circle_size', 'INTEGER NOT NULL DEFAULT 0'),
     ('life_settings', 'drama', 'INTEGER NOT NULL DEFAULT 1'),
     ('life_settings', 'user_birthday', "TEXT NOT NULL DEFAULT ''"),
-    ('life_settings', 'paced_replies', 'INTEGER NOT NULL DEFAULT 0'),
+    ('life_settings', 'paced_replies', 'INTEGER NOT NULL DEFAULT 1'),
     ('messages', 'held_until', 'TEXT'),
     ('messages', 'held_line', 'TEXT'),
     ('messages', 'held_notified', 'TEXT'),

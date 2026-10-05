@@ -1,9 +1,7 @@
 // Original tones made on the spot with Web Audio; no recorded sounds ship with the app.
-type Cue = 'door' | 'away' | 'message'
+type Cue = 'message'
 
 const NOTES: Record<Cue, number[]> = {
-  door: [523.25, 659.25, 783.99],
-  away: [783.99, 659.25, 523.25],
   message: [880, 1174.66],
 }
 
@@ -29,9 +27,3 @@ export function playCue(cue: Cue) {
   } catch { /* No audio device or autoplay refused: the cue is a nicety, never needed. */ }
 }
 
-/** The door sound when they become free to talk, the away sound when they stop being free. */
-export function availabilityCue(before: string | undefined, now: string | undefined): Cue | null {
-  if (!before || !now || before === now) return null
-  if (now === 'free') return 'door'
-  return before === 'free' ? 'away' : null
-}

@@ -150,7 +150,7 @@ export interface WorkspaceSettings {
   model_memory_suggestions?: boolean
   /** How the chat looks; the messages and every action are the same in each style. */
   chat_style?: ChatStyle
-  /** Retro IM door, away and message sounds; off unless turned on. */
+  /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean

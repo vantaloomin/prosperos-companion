@@ -12,7 +12,7 @@ import { MoneyPanel } from './MoneyPanel'
 import { Recommendations } from './Recommendations'
 import { Storylines } from './Storylines'
 import { occasionText } from './storyText'
-import { availabilityText, bodyText, moodText, pauseToFill } from './todayText'
+import { bodyText, moodText, pauseToFill } from './todayText'
 
 const TODAY_KEY = ['today']
 
@@ -60,7 +60,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <header className="page-header">
         <div>
           <h1>{name}'s day</h1>
-          <p className="subtle">{availabilityText(data, name)} You can message them any time.</p>
+          <p className="subtle">Message {name} any time. When they are busy or asleep, they answer when they can.</p>
           <Feeling data={data} name={name} />
         </div>
         {data.feed_unread > 0 && <button type="button" className="button" onClick={() => go('feed')}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}

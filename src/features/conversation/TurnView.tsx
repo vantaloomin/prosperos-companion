@@ -1,7 +1,7 @@
 import { memo, useEffect, useState, type ReactNode } from 'react'
-import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Eye, GitBranch, RotateCcw, Square } from 'lucide-react'
+import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
-import { heldNote, isHeld } from './held'
+import { isHeld } from './held'
 import { LinkNotes } from './LinkNotes'
 import { shownAttempt, statusDetail, type Turn } from './turns'
 
@@ -16,8 +16,6 @@ interface Props {
   onRemember: (message: Message) => void
   onDecline: (message: Message) => void
   onEdit: (message: Message) => void
-  /** Show a held reply now. */
-  onShow: (message: Message) => void
   /** Their texting style sends short bursts: each paragraph is its own bubble. */
   bursts: boolean
   /** A message found by search: shown even when it is not the default attempt, and marked. */
@@ -29,7 +27,7 @@ function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
-export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, onShow, bursts, highlight }: Props) {
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, bursts, highlight }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
@@ -39,7 +37,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
       <TurnUser turn={turn} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
-          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onShow={onShow} bursts={bursts} />
+          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} bursts={bursts} />
       )}
       {isLatest && !busy && turn.user && <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} onRetry={() => { setChosen(null); onRetry(turn.user!.id) }} />}
     </>
@@ -85,36 +83,49 @@ function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }:
   )
 }
 
-interface ReplyProps { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void; onShow?: (message: Message) => void; bursts: boolean }
+interface ReplyProps { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void; bursts: boolean }
 
-function Reply({ message, found, name, text, position, onPage, onStop, onShow, bursts }: ReplyProps) {
+function Reply({ message, found, name, text, position, onPage, onStop, bursts }: ReplyProps) {
   const note = statusDetail(message)
-  const streaming = message.status === 'streaming'
   const held = useHeld(message)
+  // A reply being written while they are away stays out of sight: no typing dots, no Stop.
+  const streaming = message.status === 'streaming' && !held
+  // Until they get back to the user there is nothing to see, unless they sent a quick holding text meanwhile.
+  if (held && !message.held_line) return null
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
       <Avatar name={name} />
       <header>
         <span className="speaker">{name}</span>
-        <span className="reply-tools">
-          <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
-          {position && (
-            <span className="pager" role="group" aria-label="Reply versions">
-              <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>
-              <span>{position[0] + 1} of {position[1]}{message.active ? ', current' : ''}</span>
-              <PageButton label="Next version" step={1} disabled={position[0] === position[1] - 1} onPage={onPage}><ChevronRight aria-hidden="true" /></PageButton>
-            </span>
-          )}
-          {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
-        </span>
+        <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} />
       </header>
-      {held ? <Held message={message} name={name} onShow={onShow} /> : (
-        <div className={bursts ? 'prose bursts' : 'prose'}>
-          {text ? <Paragraphs text={text} bursts={bursts} /> : streaming ? <p className="typing subtle">{name} is typing…</p> : null}
-        </div>
-      )}
-      {note && <p className="reply-status" role="note">{note}</p>}
+      <ReplyBody text={held ? message.held_line ?? '' : text} name={name} streaming={streaming} bursts={bursts && !held} />
+      {note && !held && <p className="reply-status" role="note">{note}</p>}
     </article>
+  )
+}
+
+function ReplyTools({ message, position, streaming, onPage, onStop }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop'> & { streaming: boolean }) {
+  return (
+    <span className="reply-tools">
+      <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
+      {position && (
+        <span className="pager" role="group" aria-label="Reply versions">
+          <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>
+          <span>{position[0] + 1} of {position[1]}{message.active ? ', current' : ''}</span>
+          <PageButton label="Next version" step={1} disabled={position[0] === position[1] - 1} onPage={onPage}><ChevronRight aria-hidden="true" /></PageButton>
+        </span>
+      )}
+      {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
+    </span>
+  )
+}
+
+function ReplyBody({ text, name, streaming, bursts }: { text: string; name: string; streaming: boolean; bursts: boolean }) {
+  return (
+    <div className={bursts ? 'prose bursts' : 'prose'}>
+      {text ? <Paragraphs text={text} bursts={bursts} /> : streaming ? <p className="typing subtle">{name} is typing…</p> : null}
+    </div>
   )
 }
 
@@ -128,16 +139,6 @@ function useHeld(message: Message): boolean {
     return () => window.clearTimeout(timer)
   }, [held, message.held_until, now])
   return held
-}
-
-/** A held reply: the holding line they sent meanwhile, when the full reply shows, and Show now. */
-function Held({ message, name, onShow }: { message: Message; name: string; onShow?: (message: Message) => void }) {
-  return (
-    <div className="prose held">
-      {message.held_line && <p>{message.held_line}</p>}
-      <p className="subtle">{heldNote(message, name)} {onShow && <button type="button" className="text-button" onClick={() => onShow(message)}><Eye aria-hidden="true" />Show now</button>}</p>
-    </div>
-  )
 }
 
 /** Shown by the Community style; the other styles hide it. Decorative, since the article is already named. */
