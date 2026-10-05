@@ -100,6 +100,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }
   const retry = async (userId: string) => {
+    // The retry button leaves while the new reply is written; the message box is where Escape stops it.
+    document.getElementById('composer-text')?.focus()
     try { accept(await api<SendResult>(`/conversation/messages/${userId}/alternatives?wait=false`, {})) } catch (error) { fail(error) }
   }
   const stop = async (replyId: string) => {

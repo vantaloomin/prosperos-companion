@@ -6,7 +6,7 @@
 body { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
-button:disabled { cursor: default; opacity: .45; }
+button:disabled, button[aria-disabled='true'] { cursor: default; opacity: .45; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 h1, h2, h3, p { margin: 0; }
 h1, h2, h3 { font-family: 'Literata', Georgia, serif; font-weight: 400; }

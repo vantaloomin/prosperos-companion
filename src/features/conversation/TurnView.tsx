@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { shownAttempt, statusDetail, type Turn } from './turns'
@@ -73,9 +73,9 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
         <span className="reply-tools">
           {position && (
             <span className="pager" role="group" aria-label="Reply versions">
-              <button type="button" className="icon-button" aria-label="Previous version" disabled={position[0] === 0} onClick={() => onPage(-1)}><ChevronLeft aria-hidden="true" /></button>
+              <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>
               <span>{position[0] + 1} of {position[1]}{message.active ? ', current' : ''}</span>
-              <button type="button" className="icon-button" aria-label="Next version" disabled={position[0] === position[1] - 1} onClick={() => onPage(1)}><ChevronRight aria-hidden="true" /></button>
+              <PageButton label="Next version" step={1} disabled={position[0] === position[1] - 1} onPage={onPage}><ChevronRight aria-hidden="true" /></PageButton>
             </span>
           )}
           {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
@@ -87,6 +87,11 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
       {note && <p className="reply-status" role="note">{note}</p>}
     </article>
   )
+}
+
+/** Marked unavailable rather than disabled at either end, so paging to the first or last version keeps keyboard focus on it. */
+function PageButton({ label, step, disabled, onPage, children }: { label: string; step: number; disabled: boolean; onPage: (step: number) => void; children: ReactNode }) {
+  return <button type="button" className="icon-button" aria-label={label} aria-disabled={disabled} onClick={() => !disabled && onPage(step)}>{children}</button>
 }
 
 function classes(base: string, flags: Record<string, boolean>) {
