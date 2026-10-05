@@ -406,17 +406,10 @@ class LifeEngine:
         if companion['active_timeline_id'] != run['timeline_id']:
             return {'slot': slot['key'], 'outcome': 'skipped', 'reason': 'The timeline is no longer active.'}
         version = companion['version']
-        if plan:
-            composed = composer.fulfil(events.view(plan), version['definition'])
-        elif precomputed:
-            composed = precomputed['entry']
-        else:
-            composed = composer.compose(slot, version['definition'], self.world, key,
-                                        [decode(event['details']).get('activity') for event in recent])
+        composed, slot, prepared = self.compose_slot(slot, version, key, plan, precomputed, recent)
         if composed is None:
             return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.',
                     **self.follow_threads(run, slot, version, life, key)}
-        prepared = precomputed['prepared'] if precomputed and composed is precomputed['entry'] else None
         written, phrasing = await self.phrase(config, life, version, slot, composed, prepared)
         block = slot['block']
         event = events.propose(self.database, EventProposal(
@@ -441,6 +434,17 @@ class LifeEngine:
         if result['outcome'] in {'proposed', 'committed'}:
             result.update(self.follow_threads(run, slot, version, life, key))
         return result
+
+    def compose_slot(self, slot, version, key, plan, precomputed, recent) -> tuple:
+        """(composed, slot, prepared wording): a committed plan's outing, else the precomputed entry,
+        else a fresh composition. The precomputed block can differ from the routine's, for example
+        a work block that became a day off on a public holiday."""
+        if plan:
+            return composer.fulfil(events.view(plan), version['definition']), slot, None
+        if precomputed:
+            return precomputed['entry'], {**slot, 'block': decode(precomputed['block'])}, precomputed['prepared']
+        recent_keys = [decode(event['details']).get('activity') for event in recent]
+        return composer.compose(slot, version['definition'], self.world, key, recent_keys), slot, None
 
     def follow_threads(self, run, slot, version, life, key) -> dict:
         """Settle an open thread whose day has come, or now and then open one (PRD T2). At most one

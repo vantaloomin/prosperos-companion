@@ -1,6 +1,6 @@
 """The social circle and precomputed agenda (PRD T8, T9)."""
 import asyncio
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from conftest import life_reply, reconcile, set_life
@@ -275,3 +275,17 @@ def test_chat_knows_the_companions_likely_next_plans(client, baltimore, provider
     assert decode(upcoming[0]['entry'])['activity'].replace('-', ' ') in system
     # Intentions are not events: nothing was proposed or committed for them.
     assert client.get('/api/events?history=true').json() == []
+
+
+def test_work_becomes_a_day_off_on_a_public_holiday(client, baltimore, clock):
+    current = client.get('/api/companion').json()['companion']
+    office = [{'key': 'work', 'label': 'Office', 'kind': 'work', 'days': [0, 1, 2, 3, 4],
+               'start': '09:00', 'end': '17:00'}, *EVENING_OUT[1:]]
+    client.post('/api/companion/versions', json={'definition': {**current['version']['definition'], 'schedule': office},
+                                                  'expected_version_id': current['active_version_id']})
+    clock.instant = datetime(2026, 11, 22, 12, 0, tzinfo=UTC)
+    reconcile(client)
+    thanksgiving = rows(client, subject='companion', slot_key='work@2026-11-26')[0]
+    block = decode(thanksgiving['block'])
+    assert block['kind'] == 'leisure' and block['holiday'] == 'Thanksgiving' and 'day off' in block['label']
+    assert decode(rows(client, subject='companion', slot_key='work@2026-11-25')[0]['block'])['kind'] == 'work'
