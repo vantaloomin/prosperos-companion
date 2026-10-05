@@ -271,3 +271,14 @@ def test_packs_are_not_committed():
 def test_small_currency_rents_use_the_whole_range():
     rents = {generators.home(catalog.city('camelot'), seed=seed)['rent'] for seed in SEEDS}
     assert len(rents) > 3
+
+
+def test_the_world_source_filters_by_time_of_day_and_season():
+    from companion.world.source import CatalogWorld
+    world = CatalogWorld()
+    evening = world.places('baltimore', ['museum', 'attraction'], day_part='evening')
+    assert evening and 'National Aquarium' not in {place.name for place in evening}
+    winter = world.places('baltimore', ['attraction'], day=date(2026, 1, 15))
+    assert 'The Maryland Zoo' not in {place.name for place in winter}
+    assert 'The Maryland Zoo' in {place.name for place in world.places('baltimore', ['attraction'],
+                                                                        day=date(2026, 6, 15))}

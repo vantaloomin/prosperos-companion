@@ -89,6 +89,9 @@ Weather here is climate, not a forecast. Real current conditions belong to the M
 life engine (`companion/life/world.py`). It answers the composer's place kinds (`park`, `cafe`,
 `waterfront`, `college` and so on) from this data, in a stable order. A character's `home_city` may
 be a city id (`baltimore`) or free text that `catalog.resolve` recognises.
+`places(city, kinds, *, day_part=None, day=None)` leaves out places closed at that part of the day
+(`morning`, `afternoon`, `evening`, `late`) or out of season on that date. User cities and packs are
+included.
 
 ## HTTP API
 
