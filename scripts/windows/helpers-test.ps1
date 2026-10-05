@@ -116,9 +116,14 @@ $previous = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 & cmd.exe /d /c (Join-Path $CompanionRoot 'update.bat') -NoPause 2>&1 | ForEach-Object { "$_" } | Out-Host
 $code = $LASTEXITCODE
+Check ($code -eq 0) 'update.bat succeeds when its stderr is captured and npm writes to it'
+# Calling the script directly with its errors redirected (as terminal tools do) makes Windows
+# PowerShell 5.1 hand every native stderr line to the script as an error record.
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '$(Join-Path $PSScriptRoot 'update.ps1')' -NoPause 2>&1 | ForEach-Object { `"`$_`" }; exit `$LASTEXITCODE" | Out-Host
+$code = $LASTEXITCODE
 $ErrorActionPreference = $previous
 Remove-Item Env:npm_config_loglevel
-Check ($code -eq 0) 'update.bat succeeds when its stderr is captured and npm writes to it'
+Check ($code -eq 0) 'update.ps1 succeeds when called with its error stream redirected'
 $app = Start-Process -FilePath $python -ArgumentList '-m', 'companion.launch', '--no-browser' -PassThru -NoNewWindow
 try {
   Check (Wait-State 'running') 'the Companion launches after updating'
