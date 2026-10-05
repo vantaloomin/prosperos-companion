@@ -289,3 +289,47 @@ def test_work_becomes_a_day_off_on_a_public_holiday(client, baltimore, clock):
     block = decode(thanksgiving['block'])
     assert block['kind'] == 'leisure' and block['holiday'] == 'Thanksgiving' and 'day off' in block['label']
     assert decode(rows(client, subject='companion', slot_key='work@2026-11-25')[0]['block'])['kind'] == 'work'
+
+
+def test_everyone_in_the_city_shares_the_days_weather(client, baltimore, clock):
+    reconcile(client)
+    by_date = {}
+    for row in rows(client):
+        weather = decode(row['block']).get('weather')
+        assert weather and set(weather) == {'season', 'high_f', 'low_f', 'rain', 'note'}
+        by_date.setdefault(row['local_date'], []).append(weather)
+    assert all(len({str(item) for item in items}) == 1 for items in by_date.values())
+    assert CatalogWorld().weather('baltimore', datetime(2026, 7, 4).date())['high_f'] > 80
+
+
+def test_bad_weather_keeps_the_day_indoors(monkeypatch):
+    monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    definition = {'name': 'Mira', 'location': 'Fells Point, Baltimore'}
+    block = {**EVENING_OUT[0], 'weather': {'season': 'autumn', 'high_f': 60, 'low_f': 45, 'rain': True,
+                                           'note': 'Crisp, sunny autumn.'}}
+    world = CatalogWorld()
+    composed = [composer.compose({'key': f'day@2026-10-{day:02d}', 'local_date': f'2026-10-{day:02d}', 'block': block},
+                                 definition, world, f'seed-{day}') for day in range(1, 29)]
+    assert all(composed) and not any(item['activity'] == 'walk' for item in composed)
+    assert not any(item['place'] and item['place']['kind'] in composer.OUTDOOR for item in composed)
+    assert all(item['weather']['rain'] for item in composed)
+    fair = {**block, 'weather': {**block['weather'], 'rain': False}}
+    activities = {composer.compose({'key': f'day@2026-10-{day:02d}', 'local_date': f'2026-10-{day:02d}',
+                                    'block': fair}, definition, world, f'seed-{day}')['activity']
+                  for day in range(1, 29)}
+    assert 'walk' in activities
+
+
+def test_chat_knows_todays_typical_weather(client, baltimore, provider, clock):
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    reconcile(client)
+    client.post('/api/conversation/messages', json={'text': 'Nice out?', 'client_id': 'weather-0001'})
+    system = provider.requests[-1]['system']
+    assert 'not a real forecast' in system
+    assert '°F' in system and ('with rain.' in system or 'dry.' in system)
+
+
+def test_without_climate_data_there_is_no_weather():
+    assert composer.weather(object(), {'location': 'Baltimore'}, '2026-10-05') is None
+    assert composer.harsh(None) is False

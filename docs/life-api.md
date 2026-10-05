@@ -85,7 +85,19 @@ the feed and recall.
 Life events carry `details` for display: `label` (routine block), `block_kind`, `activity` (the
 composed activity, such as `walk` or `groceries`), `place` (`{id, name, kind, city, neighborhood}`
 from the world data, or `null`), `local_date`, `timezone`, `post` (a caption in the companion's
-voice) and `mood`.
+voice), `mood` and `weather` (below, or `null`).
+
+### Weather
+
+Each day has typical weather for the companion's city, drawn from the world data's monthly climate
+averages with a seeded chance of rain: `{season, high_f, low_f, rain, note}`. It is the same for
+everyone in the city that day, so the companion and their circle agree. It is not a forecast and
+never claims to be real. On a rainy, very hot (93°F and up) or very cold (38°F and below) day,
+outdoor activities give way to indoor ones: no walks, and workouts happen at a gym rather than a
+park. A rainy day at home sometimes gets a rainy caption. Agenda entries carry it as
+`block.weather`, events as `details.weather`, and the chat context includes today's line, marked
+as typical for the season and not a real forecast. Cities without climate data, and world sources
+without a `weather` method, have no weather and every day is fair.
 
 Events are composed from the routine, a fixed activity catalog and the world data, without a
 model. When a model is connected and `phrase_with_model` is on, it only rewrites the wording;

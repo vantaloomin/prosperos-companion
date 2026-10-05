@@ -11,8 +11,10 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-COMPOSER_VERSION = 'compose-1'
+COMPOSER_VERSION = 'compose-2'
 QUIET_SHARE = 0.2
+OUTDOOR = {'park', 'waterfront', 'beach'}
+RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
 
 
 @dataclass(frozen=True)
@@ -116,10 +118,27 @@ def day_part(start: str) -> str:
     return 'late'
 
 
+def home_city(definition: dict) -> str:
+    return definition.get('home_city') or definition.get('location') or ''
+
+
+def weather(world, definition: dict, local_date: str) -> dict | None:
+    """Typical weather in the character's city on this date, from the world's climate data (the same
+    for everyone in the city). None when the world or city has no climate."""
+    lookup, city = getattr(world, 'weather', None), home_city(definition)
+    found = lookup(city, date.fromisoformat(local_date)) if lookup and city else None
+    return found and {key: found[key] for key in ('season', 'high_f', 'low_f', 'rain', 'note')}
+
+
+def harsh(conditions: dict | None) -> bool:
+    """Rain or extreme heat or cold, when outdoor plans give way to indoor ones."""
+    return bool(conditions) and (conditions['rain'] or conditions['high_f'] >= 93 or conditions['high_f'] <= 38)
+
+
 def find_places(world, definition: dict, slot: dict, kinds) -> list:
     """Places in the character's home city, or the city its location names, that are open at the
     slot's time of day and in season on its date; a circle member's haunts first."""
-    city = definition.get('home_city') or definition.get('location') or ''
+    city = home_city(definition)
     if not city or not kinds:
         return []
     found = world.places(city, kinds, day_part=day_part(slot['block']['start']),
@@ -138,9 +157,16 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     if not options or rng.random() < QUIET_SHARE:
         return None
     # Prefer activities that did not just happen, so variety comes from the routine, not drama.
+    conditions = block.get('weather') or weather(world, definition, slot['local_date'])
+    if harsh(conditions):
+        # Bad weather moves the day indoors: no walks, and no workout in the park.
+        options = [option for option in options if not option.place_kinds or set(option.place_kinds) - OUTDOOR] \
+            or options
     fresh = [option for option in options if option.key not in set(recent_activities)] or list(options)
     chosen = rng.choice(fresh)
     places = find_places(world, definition, slot, chosen.place_kinds)
+    if harsh(conditions):
+        places = [place for place in places if place.kind not in OUTDOOR]
     place = rng.choice(places) if places else None
     values = {'name': definition['name'], 'label': block['label'].lower(),
               'at': f' at {place.name}' if place else chosen.generic, 'place': place.name if place else '',
@@ -151,9 +177,12 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
         summary = rng.choice(chosen.together).format(**values, friend=friend['name'])
     else:
         summary = rng.choice(chosen.summaries).format(**values)
-    return {'summary': summary[0].upper() + summary[1:], 'post': rng.choice(chosen.captions),
+    post = rng.choice(chosen.captions)
+    if conditions and conditions['rain'] and not chosen.place_kinds and random.Random(f'{seed}:rain').random() < 0.5:
+        post = random.Random(f'{seed}:rain').choice(RAINY_CAPTIONS)
+    return {'summary': summary[0].upper() + summary[1:], 'post': post,
             'mood': rng.choice(chosen.moods), 'activity': chosen.key, 'place': place.view() if place else None,
-            'with': friend, 'composer_version': COMPOSER_VERSION}
+            'with': friend, 'weather': conditions, 'composer_version': COMPOSER_VERSION}
 
 
 # Plans (PRD T2): a planned outing is not a completed outing. A plan names a future routine slot;

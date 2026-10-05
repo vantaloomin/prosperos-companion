@@ -37,6 +37,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
             'relationship_mood': 'Your current mood about time apart',
+            'weather': "Today's weather where you live (typical for the season in your fictional day, "
+                       'from climate averages; not a real forecast)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
                           'never as done, and they may change)',
@@ -217,6 +219,19 @@ def fit_conversation(packet, recent) -> list[dict]:
     return kept
 
 
+def offer_life(packet, connection, timeline_id, version, now):
+    """The companion's fictional world: today's weather, their circle, likely next steps and recent events."""
+    today = now.astimezone(zone(version['timezone'])).date().isoformat()
+    if conditions := agenda.weather_on(connection, timeline_id, today):
+        packet.offer('weather', today, agenda.weather_text(conditions))
+    for person in agenda.circle_view(connection, timeline_id, now):
+        packet.offer('circle', person['id'], person_text(person))
+    for item in agenda.upcoming(connection, timeline_id, version['id'], now):
+        packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
+    for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
+        packet.offer('companion_life', event['id'], f"- {event['starts_at'][:16]}: {event['summary']}")
+
+
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None) -> dict:
     """Assemble the next reply's inputs from the active timeline's saved state.
 
@@ -239,12 +254,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory))
-    for person in agenda.circle_view(connection, timeline_id, now):
-        packet.offer('circle', person['id'], person_text(person))
-    for item in agenda.upcoming(connection, timeline_id, version['id'], now):
-        packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
-    for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
-        packet.offer('companion_life', event['id'], f"- {event['starts_at'][:16]}: {event['summary']}")
+    offer_life(packet, connection, timeline_id, version, now)
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     post = linked_post(connection, latest['id']) if latest else None
     if post:
