@@ -1,10 +1,19 @@
 """LoRA maker API: references, adapters and appearance versions."""
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from companion.errors import DomainError
-from companion.lora import appearance, references, training
-from companion.lora.models import Adopt, KeepCheckpoint, LoraSettingsUpdate, ReferenceUpdate, RunCreate
+from companion.images.storage import TYPES
+from companion.lora import appearance, evaluation, export, references, training
+from companion.lora.models import (
+    Adopt,
+    EvaluationCreate,
+    KeepCheckpoint,
+    LoraSettingsUpdate,
+    Rating,
+    ReferenceUpdate,
+    RunCreate,
+)
 
 router = APIRouter(prefix='/api/lora')
 
@@ -157,3 +166,49 @@ async def restart_run(request: Request, run_id: str):
 def keep_checkpoint(request: Request, run_id: str, body: KeepCheckpoint):
     """Make a verified intermediate checkpoint an adapter, to evaluate or adopt."""
     return training.keep(db(request), run_id, body.step)
+
+
+@router.get('/evaluations')
+def list_evaluations(request: Request, adapter_id: str | None = None):
+    return {'evaluations': evaluation.listing(db(request), adapter_id), 'prompts': [
+        {'key': key, 'label': label} for key, label, *_rest in evaluation.PROMPTS]}
+
+
+@router.post('/evaluations')
+async def create_evaluation(request: Request, body: EvaluationCreate):
+    created = evaluation.create(db(request), body, runner(request).active)
+    request.app.state.evaluations.start(created['id'])
+    return created
+
+
+@router.get('/evaluations/{evaluation_id}')
+def read_evaluation(request: Request, evaluation_id: str):
+    return evaluation.get(db(request), evaluation_id)
+
+
+@router.post('/evaluations/{evaluation_id}/cancel')
+async def cancel_evaluation(request: Request, evaluation_id: str):
+    return await request.app.state.evaluations.cancel(evaluation_id)
+
+
+@router.put('/evaluation-images/{image_id}/rating')
+def rate_image(request: Request, image_id: str, body: Rating):
+    return evaluation.rate(db(request), image_id, body.rating)
+
+
+@router.get('/evaluation-images/{image_id}/file')
+def evaluation_file(request: Request, image_id: str):
+    try:
+        path = evaluation.file_of(db(request), image_id)
+    except FileNotFoundError as error:
+        raise DomainError('This image file is missing from the workspace.', 404) from error
+    return FileResponse(path, media_type=TYPES[path.suffix.lstrip('.')],
+                        headers={'Cache-Control': 'private, max-age=31536000, immutable'})
+
+
+@router.get('/adapters/{adapter_id}/export')
+def export_adapter(request: Request, adapter_id: str, background: BackgroundTasks):
+    """A zip with the adapter, its metadata and license notice; never the training pictures."""
+    path, name = export.build(db(request), adapter_id)
+    background.add_task(path.unlink, missing_ok=True)
+    return FileResponse(path, media_type='application/zip', filename=name)

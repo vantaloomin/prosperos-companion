@@ -52,3 +52,14 @@ class RunCreate(Input):
 
 class KeepCheckpoint(Input):
     step: int = Field(ge=0)
+
+
+class EvaluationCreate(Input):
+    adapter_id: str
+    strength: float = Field(default=1.0, ge=0.0, le=2.0)
+    # Also render each prompt from the text description alone, for comparison.
+    include_baseline: bool = True
+
+
+class Rating(Input):
+    rating: Literal['', 'good', 'weak']

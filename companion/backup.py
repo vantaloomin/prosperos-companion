@@ -4,6 +4,7 @@ An archive is a zip holding `manifest.json` and a consistent SQLite snapshot tak
 online backup API. Restore only targets a new workspace path, validates the marker and digest,
 and leaves the restored workspace paused with automatic memory and background activity off
 until the user reviews it. Saved API keys are never in the database, so nothing carries over.
+Adapter files the LoRA maker keeps travel with the archive; reference pictures do not.
 """
 import hashlib
 import json
@@ -18,6 +19,7 @@ from companion.identity import APP_ID, ARCHIVE_FORMAT, ARCHIVE_VERSION, SCHEMA_V
 
 DATABASE_ENTRY = 'companion.sqlite3'
 MANIFEST_ENTRY = 'manifest.json'
+ADAPTER_PREFIX = 'lora/adapters/'
 
 
 def snapshot(database: Database, target: Path):
@@ -38,14 +40,55 @@ def create(database: Database, directory: Path) -> dict:
         copy = Path(scratch) / DATABASE_ENTRY
         snapshot(database, copy)
         content = copy.read_bytes()
+        kept = adapter_files(copy, database.path.parent)
     manifest = {'format': ARCHIVE_FORMAT, 'format_version': ARCHIVE_VERSION, 'app_id': APP_ID,
                 'app_version': VERSION, 'schema_version': SCHEMA_VERSION, 'created_at': created_at,
-                'database_sha256': hashlib.sha256(content).hexdigest(), 'database_bytes': len(content)}
+                'database_sha256': hashlib.sha256(content).hexdigest(), 'database_bytes': len(content),
+                'files': [{'path': entry, 'sha256': digest} for entry, _source, digest in kept]}
     path = directory / name
     with zipfile.ZipFile(path, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr(MANIFEST_ENTRY, json.dumps(manifest, indent=2))
         archive.writestr(DATABASE_ENTRY, content)
+        for entry, source, _digest in kept:
+            archive.write(source, entry, compress_type=zipfile.ZIP_STORED)
     return {**manifest, 'path': str(path)}
+
+
+def adapter_files(copy: Path, workspace: Path) -> list[tuple[str, Path, str]]:
+    """Adapters are kept with the backup (PRD "Recover and export"); reference pictures, training
+    runs and image files are not."""
+    connection = sqlite3.connect(copy)
+    try:
+        rows = connection.execute('SELECT file, sha256 FROM lora_adapters WHERE removed_at IS NULL').fetchall()
+    finally:
+        connection.close()
+    kept = []
+    for name, digest in rows:
+        source = workspace / 'lora' / 'adapters' / name
+        if source.is_file() and Path(name).name == name:
+            kept.append((f'{ADAPTER_PREFIX}{name}', source, digest))
+    return kept
+
+
+def restore_files(path: Path, manifest: dict, workspace: Path):
+    """Unpack adapters next to the restored database, each checked against its recorded digest."""
+    entries = [item for item in manifest.get('files', []) if isinstance(item, dict)
+               and str(item.get('path', '')).startswith(ADAPTER_PREFIX)]
+    if not entries:
+        return
+    target = workspace / 'lora' / 'adapters'
+    target.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path) as archive:
+        for item in entries:
+            name = Path(item['path']).name
+            require(name and name == item['path'][len(ADAPTER_PREFIX):], 'This backup lists an invalid file.', 422)
+            digest = hashlib.sha256()
+            with archive.open(item['path']) as source, (target / name).open('wb') as destination:
+                while chunk := source.read(1024 * 1024):
+                    digest.update(chunk)
+                    destination.write(chunk)
+            require(digest.hexdigest() == item.get('sha256'),
+                    f'This backup is damaged: the adapter {name} does not match its recorded digest.', 422)
 
 
 def inspect(path: Path) -> dict:
@@ -72,6 +115,7 @@ def restore(path: Path, target: Path, clock=None) -> Database:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(checked['content'])
     try:
+        restore_files(path, checked['manifest'], target.parent)
         database = Database(target, clock)
         hold_for_review(database)
     except BaseException:

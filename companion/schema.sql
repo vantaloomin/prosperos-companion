@@ -681,3 +681,44 @@ CREATE TABLE IF NOT EXISTS lora_runs (
   finished_at TEXT
 );
 CREATE INDEX IF NOT EXISTS lora_runs_companion ON lora_runs(companion_id, created_at);
+
+-- The Evaluate step: a fixed set of prompts rendered with an adapter (and, for comparison, from the
+-- text description alone) on a local ComfyUI backend. Every output and failure is kept.
+CREATE TABLE IF NOT EXISTS lora_evaluations (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  adapter_id TEXT NOT NULL REFERENCES lora_adapters(id),
+  set_version INTEGER NOT NULL,
+  strength REAL NOT NULL,
+  comfy_name TEXT NOT NULL,
+  backend_id TEXT,
+  held_out TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'cancelled', 'interrupted')),
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  finished_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS lora_eval_images (
+  id TEXT PRIMARY KEY,
+  evaluation_id TEXT NOT NULL REFERENCES lora_evaluations(id),
+  position INTEGER NOT NULL,
+  prompt_key TEXT NOT NULL,
+  variant TEXT NOT NULL CHECK (variant IN ('lora', 'text')),
+  prompt TEXT NOT NULL,
+  negative TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN
+    ('queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')),
+  classification TEXT NOT NULL,
+  workflow TEXT,
+  model TEXT,
+  output_file TEXT,
+  error TEXT,
+  rating TEXT NOT NULL DEFAULT '' CHECK (rating IN ('', 'good', 'weak')),
+  started_at TEXT,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS lora_eval_images_evaluation ON lora_eval_images(evaluation_id, position);
