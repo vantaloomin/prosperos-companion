@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BookHeart, CalendarDays, MessageCircle, Newspaper, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
-import { useCompanion, type View } from './companion'
+import { useCompanion, useFollowPcTimezone, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
 import { Character } from './features/character/Character'
 import { Appearance } from './features/appearance/Appearance'
@@ -31,6 +31,7 @@ export default function App() {
   const [view, setView] = useState<View>(viewFromHash)
   const companion = useCompanion()
   useReconcile(!!companion.data)
+  useFollowPcTimezone()
   useEffect(() => {
     const sync = () => setView(viewFromHash())
     window.addEventListener('popstate', sync)

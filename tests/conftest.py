@@ -42,6 +42,12 @@ class FakeProvider:
             self.before_finish()
 
 
+@pytest.fixture(autouse=True)
+def no_pc_timezone(monkeypatch):
+    """Tests run in UTC whatever the machine's zone is; test_local_zone sets one where it needs it."""
+    monkeypatch.setattr('companion.local_zone.detect', lambda: None)
+
+
 @pytest.fixture
 def clock():
     return FixedClock(START)

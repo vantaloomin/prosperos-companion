@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS app_identity (
 CREATE TABLE IF NOT EXISTS workspace_settings (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   user_timezone TEXT NOT NULL DEFAULT 'UTC',
+  -- 'default' until set: 'pc' follows this PC's timezone, 'chosen' was picked in Settings and is kept.
+  user_timezone_source TEXT NOT NULL DEFAULT 'default' CHECK (user_timezone_source IN ('default', 'pc', 'chosen')),
   automatic_memory INTEGER NOT NULL DEFAULT 0 CHECK (automatic_memory IN (0, 1)),
   sensitive_memory INTEGER NOT NULL DEFAULT 0 CHECK (sensitive_memory IN (0, 1)),
   share_profile_across_timelines INTEGER NOT NULL DEFAULT 1

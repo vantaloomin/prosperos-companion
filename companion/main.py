@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from companion import local_zone, workspace
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.errors import DomainError
@@ -71,6 +72,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                context_transports=None, trainer_spawn=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
+    workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
     app.state.vault = vault or SystemVault()
     world = observed_weather.ObservedWorld(world or CatalogWorld(app.state.database), app.state.database)
     app.state.lookups = Lookups(app.state.database, app.state.vault, world, context_transports)

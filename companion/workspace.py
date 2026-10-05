@@ -1,5 +1,5 @@
 """Workspace settings, permission revisions and pause (PRD T6, M7)."""
-from companion import notifications
+from companion import local_zone, notifications
 from companion.clock import zone
 from companion.database import identifier, optional, settings
 from companion.errors import require
@@ -12,7 +12,38 @@ PERMISSIONS = {'automatic_memory', 'sensitive_memory', 'background_activity', 'm
 
 def view(row: dict) -> dict:
     return {**row, **{flag: bool(row[flag]) for flag in FLAGS},
-            'paused': row['paused_at'] is not None, 'review_required': bool(row['review_required'])}
+            'paused': row['paused_at'] is not None, 'review_required': bool(row['review_required']),
+            'system_timezone': local_zone.detect()}
+
+
+def follows_pc(row: dict) -> bool:
+    """A zone the user picked is never replaced; the untouched UTC default and a PC-set zone are."""
+    return row['user_timezone_source'] == 'pc' or (row['user_timezone_source'] == 'default'
+                                                    and row['user_timezone'] == 'UTC')
+
+
+def timezone_change(row: dict, changes: dict):
+    """Turns the requested zone and its source into columns. 'detected' is the interface reporting the PC's
+    zone on its own, so it only applies while the workspace follows the PC; 'pc' is the user asking for it."""
+    source = changes.pop('user_timezone_source', None)
+    if 'user_timezone' not in changes:
+        return
+    zone(changes['user_timezone'])
+    if source == 'detected' and not follows_pc(row):
+        del changes['user_timezone']
+        return
+    changes['user_timezone_source'] = 'chosen' if source in (None, 'chosen') else 'pc'
+
+
+def adopt_pc_timezone(database, detected: str | None):
+    """At startup, a workspace still on the UTC default (or following the PC) takes this PC's zone."""
+    if not detected:
+        return
+    with database.connect(write=True) as connection:
+        row = settings(connection)
+        if follows_pc(row) and (row['user_timezone'], row['user_timezone_source']) != (detected, 'pc'):
+            connection.execute("UPDATE workspace_settings SET user_timezone=?, user_timezone_source='pc', "
+                               'updated_at=? WHERE id=1', (detected, database.now()))
 
 
 def read(database) -> dict:
@@ -22,10 +53,9 @@ def read(database) -> dict:
 
 def update(database, body) -> dict:
     changes = body.model_dump(exclude_none=True)
-    if 'user_timezone' in changes:
-        zone(changes['user_timezone'])
     with database.connect(write=True) as connection:
         row = settings(connection)
+        timezone_change(row, changes)
         review_done = changes.pop('review_complete', False)
         changed = {key: value for key, value in changes.items() if row[key] != value}
         enabling = any(changed.get(key) is True for key in PERMISSIONS)

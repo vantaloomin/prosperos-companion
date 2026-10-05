@@ -95,6 +95,10 @@ export interface Companion {
 
 export interface WorkspaceSettings {
   user_timezone: string
+  /** 'pc' follows this PC's timezone; 'chosen' was picked in Settings; 'default' is the untouched UTC. */
+  user_timezone_source: 'default' | 'pc' | 'chosen'
+  /** What the backend worked out from the PC (Windows registry, TZ), or null. */
+  system_timezone: string | null
   automatic_memory: boolean
   sensitive_memory: boolean
   model_memory_suggestions?: boolean
