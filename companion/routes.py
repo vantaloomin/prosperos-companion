@@ -21,6 +21,7 @@ from companion.models import (
     MessageCreate,
     NotificationCheck,
     NotificationSettingsUpdate,
+    PromptUpdate,
     SettingsUpdate,
     TimelineFork,
     TimelineUpdate,
@@ -88,6 +89,21 @@ async def draft_companion(request: Request, body: CharacterDraftRequest):
 @router.post('/companion/draft/field')
 async def draft_field(request: Request, body: FieldDraftRequest):
     return await drafting.redo_field(request.app.state, body)
+
+
+@router.get('/prompts')
+def read_prompts(request: Request):
+    return drafting.prompts(db(request))
+
+
+@router.put('/prompts/{name}')
+def save_prompt(request: Request, name: str, body: PromptUpdate):
+    return drafting.save_prompt(db(request), name, body.text)
+
+
+@router.delete('/prompts/{name}')
+def reset_prompt(request: Request, name: str):
+    return drafting.reset_prompt(db(request), name)
 
 
 @router.post('/companion/versions')

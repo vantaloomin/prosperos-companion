@@ -148,3 +148,25 @@ def test_every_template_placeholder_is_filled():
         assert set(re.findall(r'\{\{(\w+)\}\}', drafting.template(name))) == keys, name
     assert set(drafting.field_guides()) == {'identity', 'personality', 'voice', 'skills', 'flaws', 'interests',
                                             'background', 'appearance', 'routine', 'life_themes', 'schedule'}
+
+
+def test_prompts_can_be_reworded_in_settings_and_reset(client, provider):
+    listed = client.get('/api/prompts').json()
+    assert [item['name'] for item in listed] == list(drafting.EDITABLE)
+    rules = next(item for item in listed if item['name'] == 'character-rules.md')
+    assert not rules['customized'] and rules['text'] == rules['default'] and rules['placeholders'] == []
+    saved = client.put('/api/prompts/character-rules.md', json={'text': 'Make them a retired sailor.'}).json()
+    assert saved['customized']
+    connect(client)
+    provider.respond = replying(json.dumps(GOOD))
+    client.post('/api/companion/draft', json={'idea': 'someone'})
+    assert 'Make them a retired sailor.' in provider.requests[0]['system']
+    assert 'Avoid overused names' not in provider.requests[0]['system']
+    reset = client.delete('/api/prompts/character-rules.md').json()
+    assert not reset['customized'] and 'Avoid overused names' in reset['text']
+
+
+def test_a_reworded_prompt_must_keep_its_placeholders(client):
+    response = client.put('/api/prompts/character-draft.md', json={'text': 'Draft someone. {{rules}}'})
+    assert response.status_code == 422 and '{{picks}}' in response.json()['detail']
+    assert client.put('/api/prompts/notes.md', json={'text': 'x'}).status_code == 404

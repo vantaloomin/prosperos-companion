@@ -1,6 +1,4 @@
-You help someone edit a companion character for an app where the companion lives a simulated
-everyday life and chats with them. Rewrite one part of the character so it fits everything else
-about them.
+You help someone edit a companion character for an app where the companion lives a simulated everyday life and chats with them. Rewrite one part of the character so it fits everything else about them.
 
 {{rules}}
 

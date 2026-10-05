@@ -365,3 +365,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .field-help.open input { flex: 1; min-width: 200px; }
 .field-help-error { flex-basis: 100%; margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .start-notice { max-width: 760px; margin-bottom: 20px; }
+.prompt-editor { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; }
+.prompt-editor > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9375rem; }
+.prompt-editor[open] > summary { margin-bottom: 14px; }
+.prompt-editor .form-actions { margin-top: 12px; }
+.prompt-editor textarea { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.8125rem; line-height: 1.5; }

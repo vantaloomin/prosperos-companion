@@ -40,7 +40,14 @@ plain files, so they can be read and tuned without touching code:
 - `character-field.md` and `character-fields.json` ask for one field.
 - `character-repair.md` is the single retry.
 
-`PROMPT_VERSION` in `companion/drafting.py` names the wording; each response reports it.
+`PROMPT_VERSION` in `companion/drafting.py` names the shipped wording; each response reports it.
+
+Settings > **Character drafting prompts** shows the four `.md` prompts and lets the user reword
+them (`GET /api/prompts`, `PUT /api/prompts/{name}`, `DELETE /api/prompts/{name}` to go back to
+the shipped file). A rewording is kept in the workspace's `prompt_overrides` table, so it travels
+with backups and survives updates, and it applies from the next draft. Saving is refused while
+it drops a `{{placeholder}}` the app fills in. The per-field guides in `character-fields.json`
+stay a shipped file.
 
 ## What stays the app's
 

@@ -784,3 +784,10 @@ CREATE TABLE IF NOT EXISTS study_imports (
   artwork TEXT NOT NULL,
   imported_at TEXT NOT NULL
 );
+
+-- The user's own wording for the character drafting prompts; without a row the shipped file is used.
+CREATE TABLE IF NOT EXISTS prompt_overrides (
+  name TEXT PRIMARY KEY,
+  text TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

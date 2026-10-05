@@ -92,6 +92,10 @@ class FieldDraftRequest(Input):
     request: str = Field(default='', max_length=500)
 
 
+class PromptUpdate(Input):
+    text: str = Field(min_length=1, max_length=20000)
+
+
 class CharacterRevision(Input):
     definition: CharacterDefinition
     note: str = Field(default='', max_length=500)

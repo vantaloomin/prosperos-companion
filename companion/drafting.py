@@ -44,8 +44,64 @@ class Unusable(Exception):
     """The model's reply could not become a definition; the message says why, for the one retry."""
 
 
-def template(name: str) -> str:
+# The prompts a user may reword in Settings; the field guides stay a shipped file.
+EDITABLE = {
+    'character-rules.md': ('What makes a character believable', 'Sent with every draft and rewrite.'),
+    'character-draft.md': ('Drafting a whole character', 'The quick start. Asks for the full character as JSON.'),
+    'character-field.md': ('Rewriting one field', 'The "Help me write" buttons in the character form.'),
+    'character-repair.md': ('Retrying an unusable reply', 'Sent once when a reply could not be used.'),
+}
+
+
+def template(name: str, database=None) -> str:
+    """The user's wording from Settings when there is one, otherwise the shipped file."""
+    if database is not None and name in EDITABLE:
+        with database.connect() as connection:
+            row = optional(connection, 'SELECT text FROM prompt_overrides WHERE name=?', (name,))
+        if row:
+            return row['text']
     return (PROMPTS / name).read_text(encoding='utf-8')
+
+
+def placeholders(text: str) -> list[str]:
+    return sorted(set(re.findall(r'\{\{(\w+)\}\}', text)))
+
+
+def prompt_view(database, name: str) -> dict:
+    label, description = EDITABLE[name]
+    default, text = template(name), template(name, database)
+    return {'name': name, 'label': label, 'description': description, 'text': text, 'default': default,
+            'customized': text != default, 'placeholders': placeholders(default)}
+
+
+def prompts(database) -> list[dict]:
+    return [prompt_view(database, name) for name in EDITABLE]
+
+
+def require_editable(name: str):
+    if name not in EDITABLE:
+        raise DomainError(f'No editable prompt named {name!r}.', 404, 'unknown_prompt')
+
+
+def save_prompt(database, name: str, text: str) -> dict:
+    """A rewording must keep every placeholder the app fills in, or drafts would lose their inputs."""
+    require_editable(name)
+    missing = [key for key in placeholders(template(name)) if '{{' + key + '}}' not in text]
+    if missing:
+        raise DomainError('Keep these placeholders in the prompt: ' + ', '.join('{{' + key + '}}' for key in missing)
+                          + '.', 422, 'missing_placeholders')
+    with database.connect(write=True) as connection:
+        connection.execute('INSERT INTO prompt_overrides (name, text, updated_at) VALUES (?, ?, ?) ON CONFLICT(name) '
+                           'DO UPDATE SET text=excluded.text, updated_at=excluded.updated_at',
+                           (name, text, database.now()))
+    return prompt_view(database, name)
+
+
+def reset_prompt(database, name: str) -> dict:
+    require_editable(name)
+    with database.connect(write=True) as connection:
+        connection.execute('DELETE FROM prompt_overrides WHERE name=?', (name,))
+    return prompt_view(database, name)
 
 
 def fill(text: str, **values: str) -> str:
@@ -152,7 +208,7 @@ async def ask(state, config, system: str, tokens: int, shape):
         return shape(parse_object(reply), False)
     except Unusable as problem:
         retry = [*messages, {'role': 'assistant', 'content': reply[:6000]},
-                 {'role': 'user', 'content': fill(template('character-repair.md'), problem=str(problem))}]
+                 {'role': 'user', 'content': fill(template('character-repair.md', state.database), problem=str(problem))}]
         reply = await complete(state, config, system, retry, tokens)
     try:
         return shape(parse_object(reply), True)
@@ -267,7 +323,8 @@ async def draft(state, body) -> dict:
     config = connection_config(state.database)
     data, seed = home(state.database, body.home_city), identifier()
     offered = careers(data)
-    system = fill(template('character-draft.md'), rules=template('character-rules.md'), picks=picks_text(body),
+    system = fill(template('character-draft.md', state.database), rules=template('character-rules.md', state.database),
+                  picks=picks_text(body),
                   city=city_text(data), careers=careers_text(offered), names=names_text(data, seed),
                   emotional=EDGES if edges_allowed(body) else NO_EDGES)
     return await ask(state, config, system, DRAFT_TOKENS, Draft(body, data, offered, seed))
@@ -306,7 +363,7 @@ async def redo_field(state, body) -> dict:
         data = None
     guide = field_guides()[body.field]
     request = f'What the user wants from it: {body.request}' if body.request else ''
-    system = fill(template('character-field.md'), rules=template('character-rules.md'),
+    system = fill(template('character-field.md', state.database), rules=template('character-rules.md', state.database),
                   character=character_json(body.definition), city=city_text(data), emotional=FIELD_EDGES,
                   field=body.field, field_guide=guide['guide'], request=request, field_shape=guide['shape'])
     value = await ask(state, config, system, FIELD_TOKENS, lambda raw, final: field_value(body.field, raw, final))
