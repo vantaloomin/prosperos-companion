@@ -495,3 +495,19 @@ def test_background_ticks_ask_at_most_hourly_and_not_while_paused(client, app, c
     clock.advance(timedelta(hours=2))
     asyncio.run(life.quietly_observe())
     assert len(calls(standin_log)) == 1
+
+
+def test_real_events_in_the_city_can_inspire_but_are_never_attended(client, app, connected, provider, standin_log):
+    companion_in(client, 'miami')
+    enable(client, add_service(client), 'local_events', run_in=('companion_city',))
+    asyncio.run(app.state.life.quietly_observe())
+    [call] = calls(standin_log)
+    assert call['arguments']['city'].startswith('Miami')
+    send(client, 'How was your morning?', 're1')
+    system = provider.requests[-1]['system']
+    assert 'you have not attended any of them unless your recent life above says so' in system
+    assert 'Night market at the pier' in system
+    send(client, 'Anything fun going on this weekend where you are?', 're2')
+    system = provider.requests[-1]['system']
+    assert system.count('Night market at the pier') == 1  # the reused lookup is quoted once
+    assert len(calls(standin_log)) == 1

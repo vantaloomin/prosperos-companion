@@ -589,17 +589,18 @@ class LifeEngine:
                 await self.quietly_prepare()
 
     async def quietly_observe(self):
-        """Real weather for the companion's city, when the user allowed it for their simulated day. A
-        fresh result is reused, so this asks at most once an hour; it never runs while paused."""
+        """Real weather and local events for the companion's city, when the user allowed lookups for their
+        simulated day. Fresh results are reused (an hour for weather, twelve for events); never while paused."""
         if self.lookups is None:
             return
         with self.database.connect() as connection:
             if settings(connection)['paused_at'] is not None:
                 return
-        try:
-            await self.lookups.run('weather', 'companion_city', None, BACKGROUND_LOOKUP_DEADLINE)
-        except Exception:  # noqa: BLE001 - the day keeps its typical weather.
-            pass
+        for category in ('weather', 'local_events'):
+            try:
+                await self.lookups.run(category, 'companion_city', None, BACKGROUND_LOOKUP_DEADLINE)
+            except Exception:  # noqa: BLE001 - the day keeps its typical weather and its own plans.
+                pass
 
     async def quietly_prepare(self):
         try:
