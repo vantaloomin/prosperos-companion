@@ -33,8 +33,8 @@ foreach ($entry in $manifest.files.PSObject.Properties) {
 Check ($mismatched.Count -eq 0) "all $(@($manifest.files.PSObject.Properties).Count) bundle files match bundle.json $($mismatched -join ', ')"
 
 # A clean machine: no developer toolchain on PATH, and Python variables that would break a
-# runtime that read them.
-$env:PATH = "$env:SystemRoot\System32;$env:SystemRoot;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
+# runtime that read them. C:\Windows stays off PATH because the runner keeps the py launcher there.
+$env:PATH = "$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
 $env:PYTHONPATH = 'C:\nonexistent\pythonpath'
 $env:PYTHONHOME = 'C:\nonexistent\pythonhome'
 Remove-Item Env:COMPANION_DATA_DIR, Env:COMPANION_DB -ErrorAction SilentlyContinue
