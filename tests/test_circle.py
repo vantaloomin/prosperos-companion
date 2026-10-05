@@ -351,6 +351,8 @@ def test_annual_events_fall_on_one_saturday_a_year():
 def test_the_companion_goes_out_for_a_city_festival(client, baltimore, provider, clock, monkeypatch):
     monkeypatch.setattr(composer, 'FESTIVAL_SHARE', 1)
     monkeypatch.setattr(composer, 'harsh', lambda _conditions: False)  # Rain halves the chance.
+    # Birthdays are seeded by random person ids; one landing on the festival day would take it.
+    monkeypatch.setattr(circle, 'birthday', lambda _person_id: '01-01')
     client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
                                         'api_key': 'secret-key'})
     clock.instant = datetime(2026, 10, 17, 13, 0, tzinfo=UTC)

@@ -318,6 +318,20 @@ def test_a_finished_image_of_a_corrected_event_is_marked_outdated(client, compan
     assert post_image(client, post)['outdated'] is False
 
 
+def test_a_carried_over_image_is_not_marked_outdated(client, companion, clock, adapters):
+    local_comfy(client)
+    post = make_post(client, clock)
+    generate(client, post)
+    drain(client)
+    clock.advance(timedelta(hours=1))
+    message = ok(client.post('/api/conversation/messages', json={'text': 'Hi', 'client_id': 'client-0001'}))['message']
+    created = ok(client.post('/api/timelines', json={'message_id': message['id'], 'text': 'Hello'}))
+    ok(client.post(f"/api/timelines/{created['id']}/activate"))
+    [copy] = ok(client.get('/api/feed'))['posts']
+    assert copy['id'] != post['id'] and copy['image']['status'] == 'completed'
+    assert copy['image']['outdated'] is False
+
+
 def test_rechecked_at_dispatch_when_the_request_becomes_nsfw(client, companion, clock, adapters):
     hosted = add_backend(client, kind='hosted', provider='openai', model='gpt-image-1', api_key='k')
     post = make_post(client, clock)

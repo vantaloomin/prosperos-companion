@@ -124,6 +124,13 @@ def copy_history(connection, parent_id, new_id, message):
     people = many(connection, 'SELECT * FROM circle_people WHERE timeline_id=? ORDER BY ordinal', (parent_id,))
     for row in messages + events + people:
         ids[row['id']] = identifier()
+    # A post links the version of an event it was made with; a corrected event's earlier versions
+    # point at the copy of its current one, so the post carries over showing the correction.
+    for row in many(connection, "SELECT id FROM life_events WHERE timeline_id=? AND status='superseded'",
+                    (parent_id,)):
+        current = feed.current_revision(connection, row['id'])
+        if current and current['id'] in ids:
+            ids[row['id']] = ids[current['id']]
     posts = [post for post in many(connection, 'SELECT * FROM feed_posts WHERE timeline_id=?', (parent_id,))
              if all(link['event_id'] in ids for link in post_links(connection, post['id']))]
     for post in posts:
