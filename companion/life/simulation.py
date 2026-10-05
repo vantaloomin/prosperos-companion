@@ -26,7 +26,7 @@ from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
-from companion.providers.vault import credential_for
+from companion.text_models import config_for, key_for
 from companion.workspace import overlapping_pause
 
 LEASE = timedelta(minutes=10)
@@ -398,7 +398,7 @@ class LifeEngine:
         with self.database.connect() as connection:
             companion = current(connection)
             workspace, life = settings(connection), life_settings(connection)
-            config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+            config = config_for(connection, 'life')
             existing = optional(connection, 'SELECT * FROM life_events WHERE idempotency_key=?', (key,))
             recent = events.committed(connection, run['timeline_id'])[-5:]
             plan = plan_for(connection, run['timeline_id'], slot['key'])
@@ -521,8 +521,8 @@ class LifeEngine:
         if prepared and all(prepared.get(key) == record[key] for key in ('model', 'base_url', 'prompt_version')):
             return {'summary': prepared['summary'], 'post': prepared['post']}, {**record, 'prepared': True}
         try:
-            return await phrase(self.provider, self.scheduler, config, credential_for(
-                self.vault, config['credential_ref']), version, slot, composed), record
+            return await phrase(self.provider, self.scheduler, config, key_for(self.vault, config), version, slot,
+                                composed), record
         except BackgroundInterrupted:
             raise
         except (SynthesisInvalid, DomainError) as problem:
@@ -545,12 +545,12 @@ class LifeEngine:
             if companion is None or not may_extend(workspace, 'return'):
                 return {'prepared': 0}
             agenda.extend(connection, companion, self.world, self.now())
-            config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+            config = config_for(connection, 'life')
             version = companion['version']
             due = agenda.unprepared(connection, companion['active_timeline_id'], version['id'], self.now(), limit)
         if config is None or not life['phrase_with_model']:
             return {'prepared': 0}
-        key, count = credential_for(self.vault, config['credential_ref']), 0
+        key, count = key_for(self.vault, config), 0
         for row in due:
             slot = {'key': row['slot_key'], 'block': row['block'], 'local_date': row['local_date'],
                     'starts_at': row['starts_at'], 'ends_at': row['ends_at']}

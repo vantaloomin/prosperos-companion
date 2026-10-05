@@ -1,8 +1,7 @@
 """Priority admission for owned inference; cancellation never releases a lease.
 
 Copied from prosperos-study server/providers/scheduling.py at bbcbde4. Changes: Companion work
-kinds replace the Study's writing kinds, and resources are keyed by base URL only (one
-OpenAI-compatible connection). Admission is in-process and counts requests, not GPU memory.
+kinds replace the Study's writing kinds. Admission is in-process and counts requests, not GPU memory.
 """
 import asyncio
 import time
@@ -43,8 +42,10 @@ def resource_for(config):
     parts = urlsplit(config.get('base_url', ''))
     if config.get('resource_group'):
         return 'shared:' + config['resource_group'], 1
-    if is_loopback(parts.hostname):
+    if config.get('provider') in {'local', 'kobold'} or is_loopback(parts.hostname):
         return 'local-inference', 1
+    if config.get('provider') == 'codex':
+        return 'codex-cli', 1
     return f'{parts.scheme}://{parts.netloc.lower()}', 2
 
 

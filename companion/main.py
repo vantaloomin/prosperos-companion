@@ -28,6 +28,7 @@ from companion.mcp.lookups import Lookups
 from companion.memory.worker import MemoryWorker
 from companion.providers.vault import SystemVault
 from companion.routes import router
+from companion.text_model_routes import router as model_router
 from companion.world import routes as world_routes
 from companion.world.source import CatalogWorld
 
@@ -95,6 +96,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
+    app.include_router(model_router)
     app.include_router(life_routes.router)
     app.include_router(life_routes.today_router)
     app.include_router(life_routes.feed_router)

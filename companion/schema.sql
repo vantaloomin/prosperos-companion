@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS pauses (
   ended_at TEXT
 );
 
+-- Before model profiles there was one connection. Kept so an older workspace can be read; opening
+-- it moves the row into a profile (companion/text_models.py adopt_legacy) and leaves this empty.
 CREATE TABLE IF NOT EXISTS connection (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   base_url TEXT NOT NULL,
@@ -40,6 +42,25 @@ CREATE TABLE IF NOT EXISTS connection (
   updated_at TEXT NOT NULL,
   -- Optional; when set, semantic recall uses this model through the same connection's /embeddings.
   embedding_model TEXT
+);
+
+-- Settings > Models: one provider, model and saved key each (config is JSON; the key lives in the
+-- OS credential vault under credential_ref).
+CREATE TABLE IF NOT EXISTS model_profiles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  config TEXT NOT NULL,
+  credential_ref TEXT,
+  revision INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Which profile does each job; a job without a row uses the 'chat' job's profile.
+CREATE TABLE IF NOT EXISTS model_routes (
+  job TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL REFERENCES model_profiles(id) ON DELETE CASCADE,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS companions (

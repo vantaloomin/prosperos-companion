@@ -94,6 +94,8 @@ def initialize(connection, timestamp: str):
     add_columns(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     backfill_subject_keys(connection)
+    from companion.text_models import adopt_legacy
+    adopt_legacy(connection, timestamp)
     for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings',
                   'notification_settings'):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))

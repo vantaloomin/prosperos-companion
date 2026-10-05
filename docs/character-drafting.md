@@ -11,8 +11,9 @@ draft filled in for review. Nothing is saved until the user creates the companio
 The user writes an idea in a line or two (or nothing, to be surprised) and may pick a name, the
 relationship, a rough age, a home city from the world catalogue, a few vibe words, and whether
 the character may have emotional edges. **Draft my companion** sends this to
-`POST /api/companion/draft`; **Fill in the form myself** skips drafting entirely. Without a
-connected text model the quick start says so, links to Settings, and the form still works.
+`POST /api/companion/draft`; **Fill in the form myself** skips drafting entirely. Drafting uses the
+profile assigned to Character drafting in Settings > Models, or the conversation profile. Without
+one the quick start says so, links to Settings, and the form still works.
 
 The draft fills every part of the definition the app uses, including the weekly routine and the
 themes the life simulation draws on, so a drafted companion has a working life without
@@ -62,7 +63,7 @@ The world comes from the static world data, not the model:
 ## Checking what comes back
 
 Drafting asks for more output tokens than a chat reply (4,000 for a draft, 1,500 for a field,
-or the connection's own limit when that is higher) and runs at the scheduler's `character
+or the profile's own limit when that is higher, never above what the model reports) and runs at the scheduler's `character
 drafting` priority, ahead of background work. The reply is read leniently: a reasoning block,
 a Markdown fence or a sentence around the JSON is ignored. Then it is shaped:
 

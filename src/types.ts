@@ -105,7 +105,12 @@ export interface WorkspaceSettings {
   review_required: boolean
 }
 
+/** The conversation's model profile (GET /api/connection); Settings > Models has the rest. */
 export interface Connection {
+  profile_id: string
+  name: string
+  provider: string
+  provider_name: string
   base_url: string
   model: string
   has_key: boolean

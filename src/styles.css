@@ -370,3 +370,32 @@ textarea { resize: vertical; line-height: 1.6; }
 .prompt-editor[open] > summary { margin-bottom: 14px; }
 .prompt-editor .form-actions { margin-top: 12px; }
 .prompt-editor textarea { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.8125rem; line-height: 1.5; }
+
+/* Settings > Models (layout adapted from prosperos-study src/styles/models.css at bbcbde4) */
+.model-profiles { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; max-width: 760px; }
+.model-profile { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+.model-profile h3 { margin: 2px 0 4px; }
+.model-jobs { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: 0.8125rem; margin-top: 6px; }
+.model-profile-editor { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+.provider-picker { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
+.provider-picker legend { margin-bottom: 8px; font-weight: 500; }
+.provider-picker .button.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
+.token-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.token-entry p { margin: 0; font-size: 0.875rem; }
+.token-entry small { flex-basis: 100%; color: var(--muted); }
+.token-entry .field { flex: 1 1 280px; }
+.connection-success { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); }
+.advanced-settings > summary { cursor: pointer; color: var(--muted); }
+.advanced-settings > .form-stack { margin-top: 14px; }
+.model-combobox { position: relative; }
+.model-combobox label small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+.model-search-input { display: flex; gap: 6px; align-items: center; }
+.model-search-input input { flex: 1; }
+.model-search-popup { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin-top: 4px; padding: 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--raised); box-shadow: 0 8px 24px #0006; }
+.model-search-popup > p { margin: 4px 6px; color: var(--muted); font-size: 0.8125rem; }
+.model-search-popup [role='listbox'] { max-height: 260px; overflow-y: auto; }
+.model-search-popup [role='option'] { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px; border-radius: 6px; cursor: pointer; }
+.model-search-popup [role='option'] small { display: block; color: var(--muted); }
+.model-search-popup [role='option'][data-active='true'] { background: var(--accent-tint); }
+.model-routes { border: 0; padding: 0; margin: 0; }
+.model-routes legend { font-weight: 500; margin-bottom: 8px; }
