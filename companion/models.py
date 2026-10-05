@@ -215,6 +215,7 @@ class LifeSettingsUpdate(Input):
     # "MM-DD", or empty to forget it (companion/life/occasions.py).
     # Replies wait while the companion is at work or asleep (companion/life/pacing.py).
     paced_replies: bool | None = None
+    day_shifts: bool | None = None
     user_birthday: str | None = Field(default=None, pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
 
 

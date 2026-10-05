@@ -15,7 +15,7 @@ from datetime import timedelta
 from companion import self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import body, circle, composer, occasions, recommendations, routine, storylines
+from companion.life import body, circle, composer, disruptions, occasions, recommendations, routine, storylines
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -92,6 +92,8 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     days_off = public_holidays(world, definition, start, end)
     days = {}
     written = 0
+    scope = {'timeline_id': timeline_id, 'subject': subject, 'definition': definition, 'basis': basis, 'world': world,
+             'shifting': disruptions.enabled(connection), 'now': now}
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
@@ -100,27 +102,41 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         if local_date not in days:
             days[local_date] = day_facts(connection, timeline_id, subject, definition, world, slot.local_date,
                                          days_off.get(local_date))
-        block, entry = day_block(slot.block.view(), days[local_date]), None
-        if block['kind'] not in routine.RESTING:
-            company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
-            celebrants = birthdays(connection, timeline_id, local_date, company) if subject == COMPANION else []
-            seed = seed_for(timeline_id, subject, slot.key)
-            entry = (recommendations.session_for(connection, timeline_id, slot, block, definition, seed, company)
-                     if subject == COMPANION else None) or composer.compose(
-                {**slot.view(), 'block': block}, definition, world, seed, recent[-3:], company, celebrants)
-            if entry:
-                recent.append(entry['activity'])
-        connection.execute(
-            'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
-            'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (identifier(), timeline_id, subject, slot.key, stamp(slot.starts_at), stamp(slot.ends_at),
-             slot.local_date.isoformat(), encode(block), encode(entry) if entry else None, basis,
-             stamp(now)))
-        written += 1
+        written += write_slot(connection, scope, slot, days[local_date], recent)
     connection.execute('INSERT INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?) '
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',
                        (timeline_id, subject, stamp(end)))
     return written
+
+
+def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
+    """Compose one slot and write it, shifted when the day does not go to plan (companion/life/disruptions.py)."""
+    timeline_id, subject, definition, world = scope['timeline_id'], scope['subject'], scope['definition'], scope['world']
+    block, entry, shift = day_block(slot.block.view(), facts), None, None
+    seed = seed_for(timeline_id, subject, slot.key)
+    resting = block['kind'] in routine.RESTING
+    company = free_people(connection, timeline_id, slot) if subject == COMPANION and not resting else []
+    if scope['shifting'] and not resting:
+        shift = disruptions.roll(f'{seed}:shift', block, company)
+    starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
+    block = disruptions.shifted(block, shift)
+    if shift and shift['friend']:
+        company = [shift['friend']]
+    if block['kind'] not in routine.RESTING:
+        local_date = slot.local_date.isoformat()
+        celebrants = birthdays(connection, timeline_id, local_date, company) if subject == COMPANION else []
+        entry = (recommendations.session_for(connection, timeline_id, slot, block, definition, seed, company)
+                 if subject == COMPANION else None) or composer.compose(
+            {**slot.view(), 'block': block}, definition, world, seed, recent[-3:], company, celebrants)
+        entry = disruptions.entry_with(entry, shift, definition['name'])
+        if entry:
+            recent.append(entry['activity'])
+    connection.execute(
+        'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
+        'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (identifier(), timeline_id, subject, slot.key, stamp(starts_at), stamp(ends_at), slot.local_date.isoformat(),
+         encode(block), encode(entry) if entry else None, scope['basis'], stamp(scope['now'])))
+    return 1
 
 
 def day_facts(connection, timeline_id, subject, definition, world, day, holiday) -> dict:

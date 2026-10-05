@@ -266,6 +266,7 @@ export interface LifeSettings {
   user_birthday: string
   /** Replies wait while the companion is at work or asleep. */
   paced_replies: boolean
+  day_shifts: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
 }

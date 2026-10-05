@@ -398,6 +398,28 @@ day is not work, and a shifted day (see Day disruptions) counts as it ended up. 
 shows while the app is in the background is announced like a first message, unless the user has
 written since.
 
+## Day disruptions
+
+Nobody's day goes exactly to plan (`companion/life/disruptions.py`). When the agenda writes a slot,
+for the companion and for circle members alike, it rolls on a d100 table for that kind of block with
+the dice and table logic copied from Prospero's Study (`companion/life/chance.py`), seeded by the
+slot, so a slot always shifts the same way and a day never changes after the fact:
+
+| Block | No event | Shifts |
+| --- | --- | --- |
+| work, study | 84% | running late 10 to 45 minutes (9%), staying late 15 to 60 minutes (7%) |
+| social | 76% | running late (8%), plans falling through: a quiet night in (11%), something coming up: an errand (5%) |
+| leisure | 84% | something coming up (7%), a free circle member dropping by: company (9%) |
+
+Each shift rolls a reason on a child table ("missed the bus", "a meeting ran long"). Running late
+moves the slot's start and stretches the slot that ended there (often sleep); staying late moves
+its end, and the next slot starts when it ends. A changed block keeps what was `planned` and
+carries `shift: {key, minutes, reason, friend, text}`; the composed entry starts with the shift
+("Mira ran 20 minutes late (missed the bus). …"). Holidays, sick days and sleep never shift. The
+chat context lists today's shifts so far, so the companion knows why they were late, and paced
+replies follow the day as it turned out. The Life setting `day_shifts` (on by default) turns it off
+for slots written from then on.
+
 ## Routine
 
 ```http

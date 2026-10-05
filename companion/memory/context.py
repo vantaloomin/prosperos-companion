@@ -13,7 +13,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
-from companion.life import agenda, body, circle, money, occasions, recommendations, storylines
+from companion.life import agenda, body, circle, disruptions, money, occasions, recommendations, storylines
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
@@ -58,6 +58,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'recommendations': 'Things the user recommended to you. All you know about each is its name and what '
                                'the user said: never invent plot, people, songs or other details about it',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
+            'day_shifts': 'How today has gone off plan so far (decided: mention it the way a person would, never '
+                          'contradict it)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
             'storylines': "What is going on in your life and your people's lives (decided: bring it up the way "
@@ -367,6 +369,8 @@ def offer_day(packet, connection, timeline_id, version, now, today):
         packet.offer('weather', f'{today}:events', agenda.happenings_text(day['happenings']))
     if day['body']:
         packet.offer('body', today, body.text(day['body']))
+    for identity, text in disruptions.context_lines(connection, timeline_id, agenda.COMPANION, today, now):
+        packet.offer('day_shifts', identity, text)
 
 
 def offer_people(packet, connection, timeline_id, version, now, today):

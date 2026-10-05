@@ -94,6 +94,7 @@ ADDED_COLUMNS = (
     ('life_settings', 'drama', 'INTEGER NOT NULL DEFAULT 1'),
     ('life_settings', 'user_birthday', "TEXT NOT NULL DEFAULT ''"),
     ('life_settings', 'paced_replies', 'INTEGER NOT NULL DEFAULT 1'),
+    ('life_settings', 'day_shifts', 'INTEGER NOT NULL DEFAULT 1 CHECK (day_shifts IN (0, 1))'),
     ('messages', 'held_until', 'TEXT'),
     ('messages', 'held_line', 'TEXT'),
     ('messages', 'held_notified', 'TEXT'),

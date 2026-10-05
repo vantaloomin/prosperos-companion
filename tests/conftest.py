@@ -57,6 +57,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.occasions.SEEDED', False)
     # And replies held while the companion is busy (companion/life/pacing.py), on by default in the app.
     monkeypatch.setattr('companion.life.pacing.ACTIVE', False)
+    # And days going off plan (companion/life/disruptions.py), which would move seeded schedules by chance.
+    monkeypatch.setattr('companion.life.disruptions.ACTIVE', False)
 
 
 @pytest.fixture
