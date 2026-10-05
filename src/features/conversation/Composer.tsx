@@ -16,7 +16,8 @@ export function Composer({ name, draft, streaming, onSend, onStop }: { name: str
     }
   }
   return (
-    <form className="composer" onSubmit={(event) => { event.preventDefault(); if (canSend) onSend() }}>
+    // Sending with the button disables it; keep the keyboard in the message box for the next message.
+    <form className="composer" onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}>
       <label className="visually-hidden" htmlFor="composer-text">Message {name}</label>
       <textarea ref={text} id="composer-text" rows={2} value={draft.value.text} placeholder={`Message ${name}`} maxLength={40000}
         onChange={(event) => { draft.edit(event.target.value); prepare() }} onKeyDown={onKeyDown} aria-describedby="composer-help" />
