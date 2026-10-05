@@ -3,8 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import { guessTimezone } from './features/character/definition'
 import type { Companion, WorkspaceSettings } from './types'
+import type { SettingsTab } from './features/settings/sections'
 
-export type View = 'conversation' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'settings'
+/** A view, as named in the address after #. Settings can name a tab too: #settings/models. */
+export type View = 'conversation' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'settings' | `settings/${SettingsTab}`
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

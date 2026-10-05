@@ -203,7 +203,7 @@ function ConversationNotice({ notice, go }: { notice: { tone: 'info' | 'error'; 
   if (!notice) return null
   return (
     <div className="conversation-notice">
-      <Notice tone={notice.tone} action={notice.settings ? <button type="button" className="text-button" onClick={() => go('settings')}>Open Settings</button> : undefined}>{notice.text}</Notice>
+      <Notice tone={notice.tone} action={notice.settings ? <button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button> : undefined}>{notice.text}</Notice>
     </div>
   )
 }
