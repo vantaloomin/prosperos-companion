@@ -3387,6 +3387,33 @@
    "source": "curated-2026-10"
   },
   {
+   "id": "shang-artisan-noodle",
+   "name": "Shang Artisan Noodle",
+   "kind": "restaurant",
+   "neighborhood": "spring-valley",
+   "summary": "Strip-mall noodle shop on Flamingo where the beef noodle soup comes with noodles hand-pulled to order.",
+   "tags": [
+    "noodles",
+    "cheap",
+    "locals"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "chinese",
+   "source": "curated-2026-10"
+  },
+  {
    "id": "mountains-edge-park",
    "name": "Mountain's Edge Regional Park",
    "kind": "park",
@@ -3523,6 +3550,33 @@
    ],
    "seasons": [],
    "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "yard-house-town-square",
+   "name": "Yard House at Town Square",
+   "kind": "bar",
+   "neighborhood": "enterprise",
+   "summary": "Big sports-bar restaurant at Town Square with a long wall of draft taps and a busy happy hour.",
+   "tags": [
+    "beer",
+    "happy-hour",
+    "sports"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "coworkers"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "american",
    "source": "curated-2026-10"
   },
   {
@@ -3765,6 +3819,32 @@
    "source": "curated-2026-10"
   },
   {
+   "id": "emerald-island-casino",
+   "name": "Emerald Island Casino",
+   "kind": "nightlife",
+   "neighborhood": "henderson",
+   "summary": "Small Irish-themed locals casino on Water Street with video poker, a bar and a cheap grill.",
+   "tags": [
+    "casino",
+    "locals",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
    "id": "lake-las-vegas-water-sports",
    "name": "Lake Las Vegas Water Sports",
    "kind": "fitness",
@@ -3844,6 +3924,31 @@
    ],
    "seasons": [],
    "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "luna-rossa",
+   "name": "Luna Rossa",
+   "kind": "restaurant",
+   "neighborhood": "lake-las-vegas",
+   "summary": "Italian restaurant in MonteLago Village with a patio over the water and pasta made in-house.",
+   "tags": [
+    "italian",
+    "lakeside",
+    "patio"
+   ],
+   "cost": "$$$",
+   "setting": "mixed",
+   "good_for": [
+    "date",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "italian",
    "source": "curated-2026-10"
   },
   {

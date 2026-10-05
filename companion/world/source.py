@@ -14,6 +14,10 @@ KINDS = {
     'beach': ('beach',), 'venue': ('venue', 'stadium'), 'shop': ('shopping',),
 }
 TAGGED = {'waterfront': {'waterfront', 'harbour', 'harbor', 'docks', 'beach'}, 'bookstore': {'books', 'bookshop'}}
+# Everyday stops a person makes close to home; museums, venues and beaches stay city-wide.
+LOCAL = {'cafe', 'restaurant', 'bar', 'market', 'grocery', 'library', 'gym', 'park'}
+# How far "near home" reaches; with fewer than ENOUGH places that close, the nearest ENOUGH + 1 instead.
+NEAR_KM, ENOUGH = 3.0, 2
 
 
 class CatalogWorld:
@@ -49,13 +53,18 @@ class CatalogWorld:
                 and festival_day(data['id'], item, day.year) == day]
 
     def places(self, city: str, kinds: Sequence[str], *, day_part: str | None = None,
-               day: date | None = None) -> list[Place]:
-        """Places of these kinds, open at `day_part` (morning, afternoon, evening, late) and in season on `day`."""
+               day: date | None = None, near: str | None = None) -> list[Place]:
+        """Places of these kinds, open at `day_part` (morning, afternoon, evening, late) and in season on `day`.
+
+        `near` is the person's neighborhood (an id, or free text such as their location "Fells Point,
+        Baltimore"). Everyday kinds (cafes, gyms, groceries and so on) then keep to places within a short
+        trip of it, or the nearest few when fewer than two are that close."""
         data = self.find(city)
         if not data:
             return []
         season = SEASONS[day.month] if day else None
         hoods = {hood['id']: hood['name'] for hood in data['neighborhoods']}
+        close = nearby(data, near)
         result, seen = [], set()
         for kind in kinds:
             matches = [item for item in data['places'] if (item['kind'] in KINDS.get(kind, ())
@@ -64,12 +73,30 @@ class CatalogWorld:
                        and (season is None or not item['seasons'] or season in item['seasons'])]
             if kind == 'college':
                 matches = data['colleges']
+            if close and kind in LOCAL:
+                matches = sorted(matches, key=lambda item: close[item['neighborhood']])
+                local = [item for item in matches if close[item['neighborhood']] <= NEAR_KM]
+                matches = local if len(local) >= ENOUGH else matches[:ENOUGH + 1]
             for item in matches:
                 if item['id'] not in seen:
                     seen.add(item['id'])
                     result.append(Place(item['id'], item['name'], kind, data['name'], hoods[item['neighborhood']],
                                         tuple(item.get('tags', ()))))
         return result
+
+
+def nearby(data: dict, near: str | None) -> dict[str, float]:
+    """Each neighborhood's distance in km from `near`, or {} when it names no neighborhood of this city."""
+    if not near:
+        return {}
+    hoods = {hood['id']: hood for hood in data['neighborhoods']}
+    home = hoods.get(near) or next((hood for hood in data['neighborhoods'] if hood['name'].lower() == near.lower()), None)
+    if home is None:
+        match = catalog.resolve(near, {data['id']: data})
+        home = hoods.get(match['neighborhood']) if match and match['city'] == data['id'] and match['neighborhood'] else None
+    if home is None:
+        return {}
+    return {hood['id']: catalog.distance_km(home, hood) for hood in data['neighborhoods']}
 
 
 def festival_day(city_id: str, event: dict, year: int) -> date:

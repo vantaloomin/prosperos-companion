@@ -4852,6 +4852,60 @@
    "source": "curated-2026-10"
   },
   {
+   "id": "calder-casino",
+   "name": "Calder Casino",
+   "kind": "nightlife",
+   "neighborhood": "miami-gardens",
+   "summary": "Slots casino on the grounds of the old Calder Race Course, with a bar and live music on weekends.",
+   "tags": [
+    "casino",
+    "locals",
+    "music"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "miami-gardens-drive-takeouts",
+   "name": "Jamaican and soul food takeouts on Miami Gardens Drive",
+   "kind": "restaurant",
+   "neighborhood": "miami-gardens",
+   "summary": "Strip-mall counters along NW 183rd Street selling jerk chicken, oxtail, fried fish and smothered pork chops by the plate.",
+   "tags": [
+    "caribbean",
+    "soul-food",
+    "takeout",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "caribbean",
+   "source": "curated-2026-10"
+  },
+  {
    "id": "los-pinarenos",
    "name": "Los Pinareños Frutería",
    "kind": "cafe",

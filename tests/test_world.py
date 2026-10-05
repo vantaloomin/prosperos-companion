@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from companion.errors import DomainError
 from companion.models import CharacterDefinition
 from companion.world import catalog, generators
+from companion.world.check import FOOD
 from companion.world.schema import City
 
 CITIES = sorted(key for key, value in catalog.cities().items() if value['origin'] == 'builtin')
@@ -51,6 +52,14 @@ def test_shipped_json_matches_its_source_script(city_id):
     written = json.loads((catalog.DATA / 'cities' / f'{city_id}.json').read_text(encoding='utf-8'))
     assert runpy.run_path(str(script))['CITY'] == json.loads(json.dumps(written)), 'Rerun the script.'
 
+
+@pytest.mark.parametrize('city_id', CITIES)
+def test_every_neighborhood_has_somewhere_to_eat_or_drink(city_id):
+    data = catalog.city(city_id)
+    kinds = {hood['id']: set() for hood in data['neighborhoods']}
+    for place in data['places']:
+        kinds[place['neighborhood']].add(place['kind'])
+    assert not sorted(hood for hood, found in kinds.items() if not FOOD & found)
 
 def test_validation_rejects_broken_references():
     raw = plain(baltimore())
@@ -479,3 +488,21 @@ def test_prices_api(client):
     item = listing['prices'][0]['id']
     picked = client.get('/api/world/cities/london-1895/prices', params={'item': item, 'seed': 's'}).json()
     assert picked['price']['id'] == item
+
+
+def test_everyday_places_keep_near_home():
+    from companion.world.source import NEAR_KM, CatalogWorld, nearby
+    world = CatalogWorld()
+    data = world.find('baltimore')
+    close = nearby(data, 'Fells Point, Baltimore')
+    assert close == nearby(data, 'fells-point') and close['fells-point'] == 0
+    cafes = world.places('baltimore', ['cafe'], day_part='morning', near='fells-point')
+    hoods = {hood['name']: hood['id'] for hood in data['neighborhoods']}
+    assert len(cafes) >= 2 and all(close[hoods[place.neighborhood]] <= NEAR_KM for place in cafes)
+    assert len(cafes) < len(world.places('baltimore', ['cafe'], day_part='morning'))
+    # Too few within reach: the nearest few instead, closest first.
+    gyms = world.places('baltimore', ['gym'], near='towson')
+    assert len(gyms) == 3 and gyms[0].neighborhood == 'Towson'
+    # Museums and the like stay city-wide, and an unknown place changes nothing.
+    assert world.places('baltimore', ['museum'], near='fells-point') == world.places('baltimore', ['museum'])
+    assert world.places('baltimore', ['cafe'], near='Atlantis') == world.places('baltimore', ['cafe'])

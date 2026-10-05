@@ -135,7 +135,10 @@ life engine (`companion/life/world.py`). It answers the composer's place kinds (
 be a city id (`baltimore`) or free text that `catalog.resolve` recognises.
 `places(city, kinds, *, day_part=None, day=None)` leaves out places closed at that part of the day
 (`morning`, `afternoon`, `evening`, `late`) or out of season on that date. User cities and packs are
-included.
+included. With `near=` (a neighborhood id, or the character's `location` text such as "Fells Point,
+Baltimore"), everyday kinds (`cafe`, `restaurant`, `bar`, `market`, `grocery`, `library`, `gym`,
+`park`) keep to places within 3 km of that neighborhood, or the nearest three, closest first, when fewer than two
+are that close. Museums, venues, beaches and attractions stay city-wide.
 
 ## HTTP API
 
