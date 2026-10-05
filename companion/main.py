@@ -19,6 +19,7 @@ from companion.images import routes as image_routes
 from companion.images.photos import ChatPhotos
 from companion.images.runner import ImageRunner
 from companion.imports import routes as import_routes
+from companion.life import home_routes
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
@@ -120,6 +121,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(router)
     app.include_router(model_router)
     app.include_router(life_routes.router)
+    app.include_router(home_routes.router)
     app.include_router(life_routes.today_router)
     app.include_router(life_routes.feed_router)
     app.include_router(world_routes.router)
