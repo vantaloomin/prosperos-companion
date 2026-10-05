@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import type { Companion } from '../../types'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../api'
+import type { Companion, Today } from '../../types'
+import { availabilityShort } from '../today/today'
 
 function localTime(timezone: string, now: Date) {
   try {
@@ -12,12 +15,15 @@ export function ConversationHeader({ companion }: { companion: Companion }) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30_000); return () => window.clearInterval(timer) }, [])
   const time = localTime(timezone, now)
+  // Their routine explains a slow reply; it never blocks sending (PRD C5).
+  const today = useQuery({ queryKey: ['today'], queryFn: () => api<Today>('/today'), staleTime: 60_000, refetchInterval: 5 * 60_000 })
+  const activity = today.data ? availabilityShort(today.data.availability) : null
   return (
     <header className="conversation-header">
       <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>
       <div>
         <h1>{name}</h1>
-        <p className="subtle">{[time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
+        <p className="subtle">{[activity, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
       </div>
     </header>
   )
