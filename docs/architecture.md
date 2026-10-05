@@ -89,6 +89,11 @@ moment it is chosen: the time it spent frozen, or before a fork was first chosen
 simulated, and switching is not an absence for the absence mood. `GET /api/timelines` lists them
 (the first is labelled "Original"); `PATCH /api/timelines/{id}` renames one or clears its draft.
 
+In the interface, each of your messages has **Edit from here**, which opens the edit with a choice
+to switch now or keep the new timeline for later. The branch button in the conversation header
+lists timelines and switches between them after a confirmation. After switching to an edit, its
+words wait in the message box; switching away again takes them out unsent.
+
 **Memory across timelines** (`companion/lineage.py`). Memories are not copied. A timeline sees its
 own memories plus those its ancestors formed before the fork point, so relationship history before
 an edit carries over and nothing after it does. Real-user profile facts (`user_fact`, `plan`,

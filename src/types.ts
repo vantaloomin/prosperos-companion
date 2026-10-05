@@ -17,7 +17,29 @@ export interface Message {
   character_version_id: string | null
   created_at: string
   completed_at: string | null
+  /** For a message copied into an alternate timeline, the message it was first written as. */
+  origin_id?: string | null
 }
+
+export interface Timeline {
+  id: string
+  label: string
+  status: 'active' | 'frozen'
+  active: boolean
+  parent_id: string | null
+  fork_message_id: string | null
+  forked_at: string | null
+  created_at: string
+  activated_at: string | null
+  frozen_at: string | null
+  /** The edited words of a historical edit, waiting to be sent on this timeline. */
+  draft: string | null
+  messages: number
+  last_message_at: string | null
+  latest_text: string
+}
+
+export interface TimelineList { active_id: string; timelines: Timeline[]; stopped_reply_ids?: string[] }
 
 export interface History { timeline_id: string; messages: Message[] }
 

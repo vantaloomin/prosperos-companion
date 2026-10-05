@@ -208,7 +208,14 @@ textarea { resize: vertical; line-height: 1.6; }
 .search-snippet { overflow-wrap: anywhere; }
 .search-snippet mark { background: var(--accent-tint); color: inherit; font-weight: 600; border-radius: 3px; padding: 0 2px; }
 .message.found { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 4px; }
+/* Timelines */
+.timeline-intro { flex: 1; margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.timeline-row { display: flex; align-items: center; gap: 12px; }
+.timeline-row .search-result { flex: 1; min-width: 0; }
+.timeline-current { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; padding: 0 12px; }
+.timeline-current svg { width: 16px; height: 16px; }
 @media (max-width: 720px) {
+  .timeline-row { flex-direction: column; align-items: stretch; gap: 4px; }
   .search-bar { padding: 10px 12px; }
   .search-results { padding: 0 12px 12px; }
 }

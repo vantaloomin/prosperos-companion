@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, RotateCcw, Square } from 'lucide-react'
+import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { shownAttempt, statusNote, type Turn } from './turns'
 
@@ -13,6 +13,7 @@ interface Props {
   onStop: (replyId: string) => void
   onRemember: (message: Message) => void
   onDecline: (message: Message) => void
+  onEdit: (message: Message) => void
   /** A message found by search: shown even when it is not the default attempt, and marked. */
   highlight?: string | null
 }
@@ -21,13 +22,13 @@ function Paragraphs({ text }: { text: string }) {
   return <>{text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</>
 }
 
-export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, highlight }: Props) {
+export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, highlight }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <UserMessage message={turn.user} found={highlight === turn.user.id} onRemember={onRemember} onDecline={onDecline} />
+      <UserMessage message={turn.user} found={highlight === turn.user.id} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} />
@@ -43,7 +44,7 @@ export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, on
   )
 }
 
-function UserMessage({ message, found, onRemember, onDecline }: { message: Message; found: boolean; onRemember: (message: Message) => void; onDecline: (message: Message) => void }) {
+function UserMessage({ message, found, onRemember, onDecline, onEdit }: { message: Message; found: boolean; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   return (
     <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
       <header>
@@ -52,6 +53,7 @@ function UserMessage({ message, found, onRemember, onDecline }: { message: Messa
           {!message.redacted && <>
             <button type="button" className="text-button" onClick={() => onRemember(message)}><BookmarkPlus aria-hidden="true" />Remember this</button>
             <button type="button" className="text-button" onClick={() => onDecline(message)}><BookmarkX aria-hidden="true" />Don't remember this</button>
+            <button type="button" className="text-button" onClick={() => onEdit(message)}><GitBranch aria-hidden="true" />Edit from here</button>
           </>}
           <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
         </span>
