@@ -661,3 +661,24 @@ export interface Generation {
   images: GeneratedImage[]
   created_at: string
 }
+
+export interface ClosenessJoke { memory_id: string; subject: string; value: string }
+export interface ClosenessMilestone { level: number; on: string; days: number; moments: number }
+/** Worked out from shared history each time (PRD M4): never a hidden score. */
+export interface Closeness {
+  level: number
+  name: string
+  grown_level: number
+  held_level: number | null
+  relationship: string
+  stages: string[]
+  days_talked: number
+  shared_moments: number
+  counted_moments: number
+  first_day: string | null
+  counted_from: string | null
+  nickname: string
+  history: ClosenessMilestone[]
+  jokes: ClosenessJoke[]
+  joke_candidates: (ClosenessJoke & { days: number })[]
+}

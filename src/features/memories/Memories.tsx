@@ -13,6 +13,8 @@ import { ContextReceipt } from './ContextReceipt'
 import { LookedUp } from './LookedUp'
 import { Suggestions } from './Suggestions'
 import { MergeProposals } from './MergeProposals'
+import { Closeness } from './Closeness'
+import { CLOSENESS_KEY } from './closenessText'
 import { PREVIEW_KEY } from './receiptRows'
 import { LAYERS, REMEMBER_KEY, groupMemories, layerTitle, type RememberRequest } from './memoryGroups'
 
@@ -43,6 +45,7 @@ export function Memories({ companion }: { companion: Companion }) {
       const result = await action()
       setFeedback({ tone: 'info', text: done })
       void client.invalidateQueries({ queryKey: PREVIEW_KEY })
+      void client.invalidateQueries({ queryKey: CLOSENESS_KEY })
       await client.invalidateQueries({ queryKey: MEMORIES_KEY })
       return result
     } catch (error) {
@@ -73,7 +76,8 @@ export function Memories({ companion }: { companion: Companion }) {
     },
   }
   const remember = (memory: NewMemory) => run(() => api<Memory>('/memories', memory), `${name} will remember “${memory.subject}”.`)
-  const groups = groupMemories(memories.data ?? [])
+  const all = memories.data ?? []
+  const groups = groupMemories(all)
 
   return (
     <section className="page">
@@ -87,7 +91,8 @@ export function Memories({ companion }: { companion: Companion }) {
       {adding && <RememberForm name={name} request={request} onSave={remember} onCancel={() => setAdding(false)} />}
       <Suggestions name={name} run={run} />
       <MergeProposals run={run} />
-      <ContextReceipt name={name} memories={memories.data ?? []} />
+      <Closeness name={name} memories={all} run={run} />
+      <ContextReceipt name={name} memories={all} />
       <LookedUp name={name} />
       <div className="memory-toolbar"><Toggle label="Show earlier values" checked={history} onChange={setHistory} /></div>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
@@ -99,7 +104,7 @@ export function Memories({ companion }: { companion: Companion }) {
           <h2 id={`layer-${group.layer}`}>{layerTitle(group.layer, name)}</h2>
           <p className="subtle">{LAYERS.find((item) => item.id === group.layer)?.hint}</p>
           <ul className="memory-list">
-            {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={memories.data ?? []} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
+            {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={all} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
           </ul>
         </section>
       ))}

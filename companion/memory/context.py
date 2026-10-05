@@ -17,7 +17,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import vectors
+from companion.memory import closeness, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -46,6 +46,7 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
             'relationship_mood': 'Your current mood about time apart',
+            'closeness': 'How close you two are (from your shared history; the user can see and change it)',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
@@ -370,6 +371,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     conversation = fit_conversation(packet, recent)
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
+    closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory, stamp(now)))
