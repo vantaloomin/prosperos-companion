@@ -161,7 +161,9 @@ reviewed events above: a batch uses the precomputed entry for each slot it simul
 reveals an upcoming entry. Changing the character rebuilds the companion's upcoming entries. The chat context lists the companion's next few
 upcoming entries within a day as likely intentions, so "what are you doing tonight?" gets an answer
 that matches what later happens; the companion is told they have not happened and may change, and
-mentioning them commits nothing. Slots
+mentioning them commits nothing. On a public holiday in the city's
+calendar, a work or study block becomes a day off: the entry's block has `kind: "leisure"`, a label
+such as "Thanksgiving (day off)" and `holiday`, and events simulated from it carry that block. Slots
 inside a pause are marked skipped. Background reconciles extend the agenda only when background
 activity is on.
 

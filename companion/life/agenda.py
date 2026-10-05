@@ -16,11 +16,13 @@ from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import circle, composer, routine
 from companion.workspace import overlapping_pause
+from companion.world import generators
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
 COMPANION = 'companion'
 BUSY = {'work', 'study', 'sleep'}
+WORKING = {'work', 'study'}
 
 
 def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
@@ -79,29 +81,46 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         return 0
     schedule, _default = routine.blocks(definition)
     recent = recent_activities(connection, timeline_id, subject, stamp(start))
+    days_off = public_holidays(world, definition, start, end)
     written = 0
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
             continue
-        entry = None
-        if slot.block.kind not in routine.RESTING:
+        block, entry = holiday_block(slot.block.view(), days_off.get(slot.local_date.isoformat())), None
+        if block['kind'] not in routine.RESTING:
             company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
-            entry = composer.compose(slot.view(), definition, world, seed_for(timeline_id, subject, slot.key),
-                                     recent[-3:], company)
+            entry = composer.compose({**slot.view(), 'block': block}, definition, world,
+                                     seed_for(timeline_id, subject, slot.key), recent[-3:], company)
             if entry:
                 recent.append(entry['activity'])
         connection.execute(
             'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
             'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (identifier(), timeline_id, subject, slot.key, stamp(slot.starts_at), stamp(slot.ends_at),
-             slot.local_date.isoformat(), encode(slot.block.view()), encode(entry) if entry else None, basis,
+             slot.local_date.isoformat(), encode(block), encode(entry) if entry else None, basis,
              stamp(now)))
         written += 1
     connection.execute('INSERT INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?) '
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',
                        (timeline_id, subject, stamp(end)))
     return written
+
+
+def public_holidays(world, definition, start, end) -> dict[str, str]:
+    """Local dates of public holidays in the companion's city, with their names (from the world data)."""
+    data = circle.city_data(definition, world)
+    if not data:
+        return {}
+    found = generators.holidays(data, (start - timedelta(days=1)).date(), (end + timedelta(days=1)).date())
+    return {item['date']: item['name'] for item in found if item['kind'] == 'public'}
+
+
+def holiday_block(block: dict, holiday: str | None) -> dict:
+    """On a public holiday, a work or study block becomes a day off named after the holiday."""
+    if not holiday or block['kind'] not in WORKING:
+        return block
+    return {**block, 'kind': 'leisure', 'label': f'{holiday} (day off)', 'holiday': holiday}
 
 
 def recent_activities(connection, timeline_id, subject, before) -> list[str]:
