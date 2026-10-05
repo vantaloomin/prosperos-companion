@@ -73,6 +73,7 @@ export interface WorkspaceSettings {
   user_timezone: string
   automatic_memory: boolean
   sensitive_memory: boolean
+  model_memory_suggestions?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean

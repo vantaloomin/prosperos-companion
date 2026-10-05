@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   share_profile_across_timelines INTEGER NOT NULL DEFAULT 1
     CHECK (share_profile_across_timelines IN (0, 1)),
   background_activity INTEGER NOT NULL DEFAULT 0 CHECK (background_activity IN (0, 1)),
+  model_memory_suggestions INTEGER NOT NULL DEFAULT 0 CHECK (model_memory_suggestions IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,
@@ -158,7 +159,9 @@ CREATE TABLE IF NOT EXISTS memory_jobs (
   status TEXT NOT NULL CHECK (status IN ('queued', 'done', 'stale', 'skipped', 'failed')),
   queued_at TEXT NOT NULL,
   finished_at TEXT,
-  error TEXT
+  error TEXT,
+  -- Model suggestions for this message, when enabled: NULL (not yet), done, skipped, failed or stale.
+  model_status TEXT
 );
 CREATE INDEX IF NOT EXISTS memory_jobs_status ON memory_jobs(status, queued_at);
 

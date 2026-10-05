@@ -158,6 +158,14 @@ the user's timezone (`companion/memory/dates.py`); an ambiguous one is kept but 
   extraction from the message and deletes memories extracted from it automatically; the transcript
   stays.
 
+**Model suggestions.** Off by default, and only with automatic memory on, the user can let the
+model suggest more (`model_memory_suggestions`). Messages in which the rules found nothing, of six
+words or more, go to the chat connection in batches of eight at maintenance priority, so a
+conversation interrupts them. Each answer must name a message in the batch and take most of its
+words from that message, or it is dropped. Survivors wait as `model_guess` suggestions; keeping one
+makes it `confirmed`, and nothing the model says is ever committed on its own. A malformed answer
+marks the batch failed; changed permissions make it stale. Each message is sent once.
+
 **Supersession.** Single-valued subjects (`preferred_name`, `home_city`, `work`, `birthday`,
 `favourite_*`) hold one current value. A new current value ends the earlier one at its start
 (`applies_until`, `ended_by_id`), which stays as history: "I moved to Boston" ends Chicago, "I might
@@ -262,6 +270,6 @@ reference cleared. Enabling memory or background activity requires marking the r
 
 ## Not yet built
 
-Timeline forking, model-proposed memory suggestions, MCP tools, LoRA training, reference images
+Timeline forking, MCP tools, LoRA training, reference images
 for image requests, durable cross-process scheduling, restore into an existing workspace, and a
 Windows installer (the install and launch scripts need Python and Node already present).

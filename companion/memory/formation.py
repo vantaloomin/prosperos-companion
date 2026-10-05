@@ -72,13 +72,14 @@ def update_plan(connection, companion, fields, timestamp) -> dict | None:
                           applies_from=fields['applies_from'], dates_uncertain=fields['dates_uncertain'] or None)
 
 
-def commit(connection, companion, fields, sources, timestamp, origin) -> tuple[dict | None, str]:
+def commit(connection, companion, fields, sources, timestamp, origin, authority='stated') -> tuple[dict | None, str]:
     """Validate against current state and write. Returns (memory, outcome code)."""
     if fields.get('target') and fields['value'] == '':
         memory = update_plan(connection, companion, fields, timestamp)
         return memory, 'plan_updated' if memory else 'no_matching_plan'
     data = {key: value for key, value in fields.items() if key not in {'target', 'excerpt'}}
-    memory, created = records.insert(connection, companion, data, now=timestamp, origin=origin, sources=sources)
+    memory, created = records.insert(connection, companion, data, now=timestamp, origin=origin, authority=authority,
+                                     sources=sources)
     return memory, 'committed' if created else 'duplicate'
 
 
@@ -241,8 +242,9 @@ def accept(database, candidate_id) -> dict:
                 409)
         companion = require_current(connection)
         timestamp = database.now()
-        memory, outcome = commit(connection, companion, decode(row['proposal']), [message['id']], timestamp,
-                                 'suggestion')
+        fields = decode(row['proposal'])
+        authority = 'confirmed' if row['source'] == 'model' else 'stated'
+        memory, outcome = commit(connection, companion, fields, [message['id']], timestamp, 'suggestion', authority)
         resolve(connection, candidate_id, 'committed' if memory else 'dismissed', memory, outcome, timestamp)
         log(connection, timestamp, 'accepted', memory_id=memory and memory['id'], candidate_id=candidate_id,
             message_id=message['id'], detail=outcome)
