@@ -40,6 +40,8 @@ RAIL = {'subway', 'light-rail', 'commuter-rail', 'streetcar', 'monorail', 'tram'
 LINES = {'bus', 'ferry', 'water-taxi', 'boat', 'airship', 'stagecoach'}
 PRIVATE = ('car', 'carriage', 'horse', 'bike-share')
 DEFAULT_SPEEDS = {'walk': 4.5, 'car': 25, 'rideshare': 25, 'bus': 13, 'carriage': 10, 'horse': 12, 'tram': 15}
+# Modes held up by road works (companion/world/changes.py marks a neighborhood's `works`).
+ROAD = {'car', 'rideshare', 'bus', 'bike-share', 'carriage', 'horse', 'stagecoach', 'streetcar', 'tram'}
 OVERHEAD = {'walk': 0, 'car': 6, 'rideshare': 8, 'bus': 9, 'ferry': 10, 'water-taxi': 10, 'bike-share': 3}
 
 
@@ -172,9 +174,19 @@ def commute(data: dict, origin: str, destination: str, mode: str | None = None) 
     elif mode in RAIL or mode in LINES:
         line = next((item for item in shared if item['kind'] == mode), None)
     speed = data['speeds'].get(mode) or DEFAULT_SPEEDS.get(mode, 4.5)
-    minutes = round(km / speed * 60 + OVERHEAD.get(mode, 8))
-    return {'from': origin, 'to': destination, 'mode': mode, 'line': line['name'] if line else None,
+    works = _works(start, end, mode)
+    minutes = round(km / speed * 60 + OVERHEAD.get(mode, 8)) + sum(item['delay'] for item in works)
+    trip = {'from': origin, 'to': destination, 'mode': mode, 'line': line['name'] if line else None,
             'distance_km': km, 'minutes': max(minutes, 3), 'estimate': True}
+    return trip | ({'works': [item['summary'] for item in works]} if works else {})
+
+
+def _works(start: dict, end: dict, mode: str) -> list[dict]:
+    """Road works at either end of a trip by road, once each."""
+    if mode not in ROAD:
+        return []
+    found = {hood['works']['id']: hood['works'] for hood in (start, end) if hood.get('works')}
+    return list(found.values())
 
 
 # --- Outings and meals ---
