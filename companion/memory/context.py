@@ -26,6 +26,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
+from companion.world import newcomers
 
 RECENT_MESSAGES = 24
 RECALL_LIMIT = 8
@@ -47,6 +48,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
+            'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
+                     'only what is listed here)',
             'relationship_mood': 'Your current mood about time apart',
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
@@ -64,6 +67,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
             'storylines': "What is going on in your life and your people's lives (decided: bring it up the way "
                           'a friend would, never contradict it, and never invent how an unfolding one ends)',
+            'newcomers': 'Names for anyone new you mention who is not listed above (a new coworker, a neighbor); '
+                         'use one of these that fits their age rather than making a name up',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
                      'never ask the user for money and never treat it as theirs)',
             'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
@@ -399,13 +404,23 @@ def offer_life(packet, connection, timeline_id, version, now):
         packet.offer('city_news', identity, text)
 
 
+def offer_attachments(packet, connection, latest, photo):
+    """The feed post the user is replying to, and the photo this reply sends."""
+    post = linked_post(connection, latest['id']) if latest else None
+    if post:
+        packet.offer('feed_reference', post['id'], post_text(post))
+    if photo:
+        packet.offer('photo', photo['post_id'], photo['text'])
+
+
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
-          semantic: dict | None = None, outside: list[dict] | None = None) -> dict:
+          semantic: dict | None = None, outside: list[dict] | None = None, photo: dict | None = None) -> dict:
     """Assemble the next reply's inputs from the active timeline's saved state.
 
     `until_seq` is the message being answered, so an alternative never sees the reply it replaces.
     `semantic` ({model, vector}) adds an embedding ranking of the same eligible pool; without it
-    recall is keyword-only. `outside` holds the current-context lookups made for this message.
+    recall is keyword-only. `outside` holds the current-context lookups made for this message, and
+    `photo` the moment a photo sent with this reply shows (companion/images/photos.py).
     """
     timeline_id, version = companion['active_timeline_id'], companion['version']
     groups = partition(eligible(connection, companion, timeline_id, stamp(now)))
@@ -428,10 +443,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory, stamp(now)))
     offer_life(packet, connection, timeline_id, version, now)
+    packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
-    post = linked_post(connection, latest['id']) if latest else None
-    if post:
-        packet.offer('feed_reference', post['id'], post_text(post))
+    offer_attachments(packet, connection, latest, photo)
     block = agenda.current(connection, timeline_id, agenda.COMPANION, now) if outside else None
     doing = block.get('label') if block else None
     for identity, text in lookups.context_lines(outside or [], now, settings(connection)['user_timezone'], doing):

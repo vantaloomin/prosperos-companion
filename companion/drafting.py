@@ -19,9 +19,9 @@ from companion.models import CharacterDefinition, EmotionalTrait, RoutineBlock
 from companion.providers.scheduling import Work
 from companion.text_models import config_for, key_for
 from companion.traits import ABSENCE_WORDS
-from companion.world import catalog, custom, generators
+from companion.world import catalog, custom, generators, naming
 
-PROMPT_VERSION = 'character-draft-1'
+PROMPT_VERSION = 'character-draft-2'
 PROMPTS = Path(__file__).parent / 'prompts'
 # Requested by the user and waited on, so it goes ahead of background life and memory work.
 DRAFTING = Work(5, 'character drafting')
@@ -138,12 +138,64 @@ def careers_text(offered: dict[str, dict]) -> str:
                      for key, career in sorted(offered.items()))
 
 
-def names_text(data: dict | None, seed: str) -> str:
-    if data is None:
-        return 'Unless the user named them, choose a plain name that fits their age and background.'
-    names = dict.fromkeys(generators.name(data, seed=f'{seed}-{index}')['full'] for index in range(8))
-    return ('Unless the user named them, choose one of these names, which are common where they live, or a '
-            'similar one: ' + ', '.join(names) + '.')
+NO_CITY = naming.DEFAULT_CITY
+DECADES = {'twent': 25, 'thirt': 35, 'fort': 45, 'fift': 55, 'sixt': 65, 'sevent': 75}
+
+
+def age_value(text: str) -> int | None:
+    """The age a quick-start pick means ("thirties", "34", "sixty or older"), if any."""
+    text = (text or '').lower()
+    if found := re.search(r'\d{2}', text):
+        return int(found[0])
+    return next((age for stem, age in DECADES.items() if stem in text), None)
+
+
+def names_text(data: dict | None, seed: str, age: str = '') -> str:
+    """Names drawn from what people of their age and city were actually called, for the model to choose from."""
+    data, wanted = data or NO_CITY, age_value(age)
+    ages = [wanted + offset for offset in (-3, 0, 2, -1, 3, 1, -2, 0)] if wanted else [26, 31, 36, 41, 46, 51, 56, 29]
+    names = {generators.name(data, seed=f'{seed}-{index}', age=max(18, value))['full']: value
+             for index, value in enumerate(ages)}
+    listed = ', '.join(names) if wanted else ', '.join(f'{full} (about {value})' for full, value in names.items())
+    others = ', '.join(dict.fromkeys(
+        generators.name(data, seed=f'{seed}-other-{index}', age=max(18, (wanted or 38) + offset))['given']
+        for index, offset in enumerate((28, 26, -2, 3, -5, 30))))
+    return ('Unless the user named them, choose one of these names, which people their age commonly have where '
+            f'they live: {listed}. For family and friends their background mentions, use ordinary given names '
+            f'such as {others}.')
+
+
+def invented_problem(found: list[str], data: dict | None, seed: str) -> str:
+    spare = ', '.join(generators.name(data or NO_CITY, seed=f'{seed}-spare-{index}')['given'] for index in range(4))
+    return (f'it used names that read as made up ({", ".join(found)}). Real people are rarely called that; use '
+            f'ordinary names such as {spare}.')
+
+
+def replace_invented(value, found: list[str], data: dict | None, seed: str):
+    """The text with each invented-sounding name swapped for an ordinary one, the same one each time."""
+    if not found:
+        return value
+    swaps = {word: generators.name(data or NO_CITY, seed=f'{seed}-swap-{word.casefold()}')[
+        'family' if word.casefold() in {item.casefold() for item in naming.data()['invented']['family']} else 'given']
+        for word in found}
+    pattern = re.compile(r'\b(' + '|'.join(map(re.escape, swaps)) + r')\b')
+    if isinstance(value, str):
+        return pattern.sub(lambda match: swaps[match[0]], value)
+    if isinstance(value, list):
+        return [replace_invented(item, found, data, seed) for item in value]
+    if isinstance(value, dict):
+        return {key: replace_invented(item, found, data, seed) for key, item in value.items()}
+    return value
+
+
+def checked_names(value, allowed: str, data: dict | None, seed: str, final: bool):
+    """A model's text with no invented-sounding names: refused on the first reply, swapped out on the retry.
+
+    Names the user typed or the world data contains are allowed (a user may want an Elara)."""
+    found = naming.invented_in(json.dumps(value, ensure_ascii=False), allowed)
+    if found and not final:
+        raise Unusable(invented_problem(found, data, seed))
+    return replace_invented(value, found, data, seed)
 
 
 def edges_allowed(body) -> bool:
@@ -299,6 +351,8 @@ class Draft:
     def __call__(self, raw: dict, final: bool) -> dict:
         definition = {key: text_value(raw.get(key), limit) for key, limit in TEXT_LIMITS.items()}
         definition |= {key: list_value(raw.get(key), *limits) for key, limits in LIST_LIMITS.items()}
+        allowed = naming.allowed_words(self.body.name, self.body.idea, self.body.vibe, self.data)
+        definition = checked_names(definition, allowed, self.data, self.seed, final)
         definition['name'] = self.body.name.strip() or definition['name']
         missing = [key for key in REQUIRED if not definition[key]]
         if missing:
@@ -333,7 +387,7 @@ async def draft(state, body) -> dict:
     offered = careers(data)
     system = fill(template('character-draft.md', state.database), rules=template('character-rules.md', state.database),
                   picks=picks_text(body),
-                  city=city_text(data), careers=careers_text(offered), names=names_text(data, seed),
+                  city=city_text(data), careers=careers_text(offered), names=names_text(data, seed, body.age),
                   emotional=EDGES if edges_allowed(body) else NO_EDGES)
     return await ask(state, config, system, DRAFT_TOKENS, Draft(body, data, offered, seed))
 
@@ -374,5 +428,11 @@ async def redo_field(state, body) -> dict:
     system = fill(template('character-field.md', state.database), rules=template('character-rules.md', state.database),
                   character=character_json(body.definition), city=city_text(data), emotional=FIELD_EDGES,
                   field=body.field, field_guide=guide['guide'], request=request, field_shape=guide['shape'])
-    value = await ask(state, config, system, FIELD_TOKENS, lambda raw, final: field_value(body.field, raw, final))
+    allowed = naming.allowed_words(character_json(body.definition), body.request, data)
+    seed = identifier()
+
+    def shape(raw, final):
+        return checked_names(field_value(body.field, raw, final), allowed, data, seed, final)
+
+    value = await ask(state, config, system, FIELD_TOKENS, shape)
     return {'field': body.field, 'value': value, 'prompt_version': PROMPT_VERSION}

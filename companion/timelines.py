@@ -207,6 +207,11 @@ def copy_posts(connection, posts, ids, new_id):
     insert(connection, 'message_post_links', [
         {'message_id': ids[link['message_id']], 'post_id': ids[link['post_id']]}
         for link in links if link['message_id'] in ids and link['post_id'] in ids])
+    sent = many(connection, 'SELECT * FROM chat_photos')
+    insert(connection, 'chat_photos', [
+        {**photo, 'message_id': ids[photo['message_id']], 'post_id': ids[photo['post_id']],
+         'event_key': remap(photo['event_key'], ids)}
+        for photo in sent if photo['message_id'] in ids and photo['post_id'] in ids])
 
 
 # Switching --------------------------------------------------------------------------------------

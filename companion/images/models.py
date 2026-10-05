@@ -18,8 +18,6 @@ class BackendFields(Input):
     # ComfyUI workflow in API format with {{prompt}}, {{negative}}, {{seed}}, {{width}} and {{height}}.
     workflow: str | None = Field(default=None, max_length=200000)
     cli_path: str | None = Field(default=None, max_length=1000)
-    # Codex only: `native` runs `codex exec`; `imagegen_cli` runs the optional chatgpt-imagegen CLI.
-    method: Literal['native', 'imagegen_cli'] | None = None
     api_style: Literal['images', 'chat'] | None = None
     api_key: str | None = Field(default=None, max_length=4000)
     controlled_machine: bool | None = None
@@ -41,6 +39,8 @@ class ImageSettingsUpdate(Input):
     daily_limit: int | None = Field(default=None, ge=0, le=24)
     queue_limit: int | None = Field(default=None, ge=1, le=20)
     fallback: bool | None = None
+    chat_photos: bool | None = None
+    unprompted_photos: bool | None = None
     aspect: Aspect | None = None
     style: str | None = Field(default=None, max_length=500)
 

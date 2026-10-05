@@ -1,6 +1,7 @@
 import { memo, useEffect, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
+import { ChatPhoto } from './ChatPhoto'
 import { isHeld } from './held'
 import { LinkNotes } from './LinkNotes'
 import { shownAttempt, statusDetail, type Turn } from './turns'
@@ -100,7 +101,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} />
       </header>
       <ReplyBody text={held ? message.held_line ?? '' : text} name={name} streaming={streaming} bursts={bursts && !held} />
-      {note && !held && <p className="reply-status" role="note">{note}</p>}
+      {!held && <ReplyExtras message={message} name={name} note={note} />}
     </article>
   )
 }
@@ -121,10 +122,20 @@ function ReplyTools({ message, position, streaming, onPage, onStop }: Pick<Reply
   )
 }
 
+/** What follows a reply once it shows: the picture it sent and a note on how it ended. */
+function ReplyExtras({ message, name, note }: { message: Message; name: string; note: string | null }) {
+  return (
+    <>
+      {message.photo && <ChatPhoto message={message} name={name} />}
+      {note && <p className="reply-status" role="note">{note}</p>}
+    </>
+  )
+}
+
 function ReplyBody({ text, name, streaming, bursts }: { text: string; name: string; streaming: boolean; bursts: boolean }) {
   return (
     <div className={bursts ? 'prose bursts' : 'prose'}>
-      {text ? <Paragraphs text={text} bursts={bursts} /> : streaming ? <p className="typing subtle">{name} is typing…</p> : null}
+      {text ? <Paragraphs text={text} bursts={bursts} /> : streaming ? <p className="typing subtle">{name} is writing…</p> : null}
     </div>
   )
 }

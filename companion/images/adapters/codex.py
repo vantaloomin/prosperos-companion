@@ -1,51 +1,38 @@
 """The Codex/ChatGPT subscription path (PRD F8).
 
-By default the app asks the Codex CLI itself for the picture. Codex has a built-in, stable
+The app asks the Codex CLI itself for the picture. Codex has a built-in, stable
 `image_generation` feature (checked on codex-cli 0.160.1): its `image_gen` tool runs under the
 user's `codex login` and saves a PNG under `$CODEX_HOME/generated_images/<thread id>/`. The app
 runs one `codex exec` turn per image with the prompt on stdin, in an empty scratch folder, with a
 read-only sandbox, without the user's Codex config or rules, and without saving the session. It
 then finds the saved PNG from the turn's JSON events or that folder.
 
-`chatgpt-imagegen` (the one-file CLI used by Darling Blades) remains an optional method for people
-who have it; it calls the same image tool directly.
-
-Either way: the app never reads, stores or exports the login token (it only checks that the login
-file exists, and `codex login status` in the check), requests run strictly one at a time
-(parallel calls racing the token refresh invalidated the credential in Darling Blades), an
-authentication error stops the Codex queue until the user signs in again, the raw output stays on
-disk until it passes the image check, and nothing is retried automatically.
+The app never reads, stores or exports the login token (it only checks that the login file
+exists, and `codex login status` in the check), requests run strictly one at a time (parallel
+calls racing the token refresh invalidated the credential in Darling Blades), an authentication
+error stops the Codex queue until the user signs in again, the raw output stays on disk until it
+passes the image check, and nothing is retried automatically.
 """
 import asyncio
 import json
 import os
 import shutil
-import sys
 import tempfile
 import time
 from pathlib import Path
 
 from companion.images.adapters.base import AdapterError, Check, ImageResult
 
-NATIVE, IMAGEGEN_CLI = 'native', 'imagegen_cli'
-METHODS = (NATIVE, IMAGEGEN_CLI)
-TIMEOUT_SECONDS = {NATIVE: 600, IMAGEGEN_CLI: 300}
+TIMEOUT_SECONDS = 600
 VERIFIED_SIZES = {(1024, 1024), (1536, 1024), (1024, 1536)}
 LOGIN_STEP = 'Run "codex login" in a terminal on this computer, then choose "Signed in again" in Settings.'
 AUTH_SIGNS = ('auth.json', 'codex login', 'not logged in', 'access_token', 'refresh_token', 'token refresh',
               'http 401', 'http 403', '401 unauthorized', 'unauthorized', 'reauthentication', 'sign in again')
 REFUSAL_SIGNS = ('content policy', 'content_policy', 'safety system', 'moderation', 'policy violation')
-NATIVE_PROMPT = ('Use your built-in image generation tool to create exactly one {width}x{height} image from the '
-                 'description below. Do not run shell commands, read or edit files, or ask questions. After the '
-                 'image is generated, reply with the single word DONE.\n\nDescription:\n{prompt}\n\nAvoid: {negative}')
+PROMPT = ('Use your built-in image generation tool to create exactly one {width}x{height} image from the '
+          'description below. Do not run shell commands, read or edit files, or ask questions. After the '
+          'image is generated, reply with the single word DONE.\n\nDescription:\n{prompt}\n\nAvoid: {negative}')
 SERIAL = asyncio.Lock()
-
-
-def method_of(config) -> str:
-    """Backends saved before the native method existed point `cli_path` at chatgpt-imagegen."""
-    if config.get('method') in METHODS:
-        return config['method']
-    return IMAGEGEN_CLI if 'imagegen' in Path(config.get('cli_path') or '').name.casefold() else NATIVE
 
 
 def codex_home() -> Path:
@@ -58,16 +45,10 @@ def logged_in() -> bool:
 
 def locate(config) -> str | None:
     configured = (config.get('cli_path') or '').strip()
-    if configured:
+    # A location saved for the retired chatgpt-imagegen method is not a Codex CLI.
+    if configured and 'imagegen' not in Path(configured).name.casefold():
         return configured if Path(configured).is_file() else None
-    return shutil.which('codex' if method_of(config) == NATIVE else 'chatgpt-imagegen')
-
-
-def command(cli: str, method: str) -> list[str]:
-    """`codex` is a native launcher; chatgpt-imagegen is a Python script run with this interpreter."""
-    if method == NATIVE or Path(cli).suffix.lower() in {'.exe', '.cmd', '.bat'}:
-        return [cli]
-    return [sys.executable, cli]
+    return shutil.which('codex')
 
 
 def failure(text: str) -> AdapterError:
@@ -139,33 +120,29 @@ class CodexAdapter:
     def __init__(self, timeout_seconds=None):
         self.timeout_seconds = timeout_seconds
 
-    def budget(self, method) -> int:
-        return self.timeout_seconds or TIMEOUT_SECONDS[method]
+    def budget(self) -> int:
+        return self.timeout_seconds or TIMEOUT_SECONDS
 
     async def generate(self, request) -> ImageResult:
-        method = method_of(request.config)
         cli = locate(request.config)
         if cli is None:
-            name = 'Codex CLI' if method == NATIVE else 'chatgpt-imagegen CLI'
-            raise AdapterError('unavailable', f'The {name} was not found. Install it or set its location in Settings.')
+            raise AdapterError('unavailable', 'The Codex CLI was not found. Install it or set its location in Settings.')
         if not logged_in():
             raise AdapterError('auth', f'Codex is not signed in on this computer. {LOGIN_STEP}')
         if (request.width, request.height) not in VERIFIED_SIZES:
             raise AdapterError('incompatible', 'Codex only makes 1024x1024, 1536x1024 or 1024x1536 images.')
         async with SERIAL:
-            if method == NATIVE:
-                return await self.native(cli, request)
-            return await self.imagegen_cli(cli, request)
+            return await self.native(cli, request)
 
     async def native(self, cli, request) -> ImageResult:
         raw = request.raw_dir / f'{request.job_id}.png'
-        prompt = NATIVE_PROMPT.format(width=request.width, height=request.height, prompt=request.prompt,
-                                      negative=request.negative or 'nothing in particular')
+        prompt = PROMPT.format(width=request.width, height=request.height, prompt=request.prompt,
+                               negative=request.negative or 'nothing in particular')
         with tempfile.TemporaryDirectory(prefix='companion-codex-') as scratch:
-            args = [*command(cli, NATIVE), 'exec', '--json', '--skip-git-repo-check', '--ephemeral',
+            args = [cli, 'exec', '--json', '--skip-git-repo-check', '--ephemeral',
                     '--ignore-user-config', '--ignore-rules', '--sandbox', 'read-only', '--cd', scratch, '-']
             started = time.time()
-            returncode, stdout, stderr = await self.run(args, prompt.encode('utf-8'), self.budget(NATIVE))
+            returncode, stdout, stderr = await self.run(args, prompt.encode('utf-8'), self.budget())
         parsed = events(stdout)
         image = find_image(parsed, started)
         if image is None:
@@ -175,18 +152,6 @@ class CodexAdapter:
         thread = next((event.get('thread_id') for event in parsed if event.get('type') == 'thread.started'), None)
         return ImageResult(raw.read_bytes(), model='Codex image_gen', workflow='codex exec', raw_path=raw,
                            remote_id=thread)
-
-    async def imagegen_cli(self, cli, request) -> ImageResult:
-        raw = request.raw_dir / f'{request.job_id}.png'
-        budget = self.budget(IMAGEGEN_CLI)
-        args = [*command(cli, IMAGEGEN_CLI), request.prompt, '-o', str(raw), '--size',
-                f'{request.width}x{request.height}', '--format', 'png', '--quiet', '--no-progress',
-                '--timeout', str(budget)]
-        returncode, _stdout, stderr = await self.run(args, None, budget)
-        if returncode != 0 or not raw.is_file():
-            raise failure(stderr)
-        return ImageResult(raw.read_bytes(), model='ChatGPT image generation', workflow='chatgpt-imagegen',
-                           raw_path=raw)
 
     async def run(self, args, stdin: bytes | None, budget) -> tuple[int, str, str]:
         process = await asyncio.create_subprocess_exec(
@@ -224,25 +189,20 @@ class CodexAdapter:
 
     async def check(self, backend, config, key=None) -> Check:
         """Finds the CLI, reads its version and sign-in state; sends no prompt and spends no quota."""
-        method = method_of(config)
         cli = locate(config)
         if cli is None:
-            if method == NATIVE:
-                return Check(False, 'The Codex CLI was not found.',
-                             ['Install it with "npm i -g @openai/codex", or enter the full path to codex.'])
-            return Check(False, 'The chatgpt-imagegen CLI was not found.',
-                         ['Install it, or enter the full path to the chatgpt-imagegen script.'])
+            return Check(False, 'The Codex CLI was not found.',
+                         ['Install it with "npm i -g @openai/codex", or enter the full path to codex.'])
         details = [f'CLI: {cli}']
         try:
-            details.append(await self.output([*command(cli, method), '--version']) or 'version unknown')
-            if method == NATIVE:
-                status = await self.output([cli, 'login', 'status'])
-                details.append(status.splitlines()[-1] if status else 'sign-in state unknown')
+            details.append(await self.output([cli, '--version']) or 'version unknown')
+            status = await self.output([cli, 'login', 'status'])
+            details.append(status.splitlines()[-1] if status else 'sign-in state unknown')
         except (OSError, TimeoutError):
             return Check(False, 'The CLI could not be started.', details)
-        if not logged_in() or (method == NATIVE and 'not logged in' in details[-1].casefold()):
+        if not logged_in() or 'not logged in' in details[-1].casefold():
             return Check(False, 'Codex is not signed in on this computer.', [*details, LOGIN_STEP])
-        if method == NATIVE and 'api key' in details[-1].casefold():
+        if 'api key' in details[-1].casefold():
             return Check(True, 'Codex is signed in with an API key, so images are billed to that key, not your '
                          'ChatGPT plan. Run "codex login" to use your plan instead.', details)
         return Check(True, 'The CLI is installed and a Codex login exists. This path is experimental.', details)

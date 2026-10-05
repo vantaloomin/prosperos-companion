@@ -98,6 +98,8 @@ ADDED_COLUMNS = (
     ('messages', 'held_until', 'TEXT'),
     ('messages', 'held_line', 'TEXT'),
     ('messages', 'held_notified', 'TEXT'),
+    ('image_settings', 'chat_photos', 'INTEGER NOT NULL DEFAULT 1 CHECK (chat_photos IN (0, 1))'),
+    ('image_settings', 'unprompted_photos', 'INTEGER NOT NULL DEFAULT 1 CHECK (unprompted_photos IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

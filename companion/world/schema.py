@@ -187,6 +187,9 @@ class NameGroup(Record):
     masculine: list[Text] = Field(default_factory=list)
     neutral: list[Text] = Field(default_factory=list)
     family: list[Text] = Field(min_length=1)
+    # In modern settings, the shares of given names drawn from each culture's popular names for the person's
+    # birth year (given_names.json) instead of the lists above. `local` is the city's own country.
+    cultures: dict[Id, float] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def check(self):
@@ -355,6 +358,51 @@ class Names(Record):
             groups = self.banks.get(entry.bank)
             if groups is None or not set(entry.mix) <= set(groups):
                 raise ValueError(f'Era {era} names an unknown bank or group.')
+        return self
+
+
+class Cohort(Record):
+    """The most popular given names for babies born in these years, most popular first."""
+    start: int = Field(ge=1800, le=2100)
+    end: int = Field(ge=1800, le=2100)
+    estimate: bool
+    feminine: list[Text] = Field(min_length=1)
+    masculine: list[Text] = Field(min_length=1)
+
+
+class Culture(Record):
+    name: Text
+    sources: list[Source] = Field(min_length=1)
+    # Most common family names, most common first; empty when people take the city group's family names.
+    surnames: list[Text] = Field(default_factory=list)
+    cohorts: list[Cohort] = Field(min_length=1)
+
+
+class InventedNames(Record):
+    given: list[Text]
+    family: list[Text]
+
+
+class GivenNames(Record):
+    schema_version: Literal[1]
+    # Ages count back from this year, so a name never changes with the clock.
+    present_year: int = Field(ge=1900, le=2100)
+    cultures: dict[Id, Culture] = Field(min_length=1)
+    # Country names (lower case) to the culture whose names are local there.
+    countries: dict[str, Id]
+    invented: InventedNames
+
+    @model_validator(mode='after')
+    def check(self):
+        unknown = set(self.countries.values()) - set(self.cultures)
+        if unknown:
+            raise ValueError(f'Countries name unknown cultures: {sorted(unknown)}.')
+        blocked = {word.casefold() for word in [*self.invented.given, *self.invented.family]}
+        for key, culture in self.cultures.items():
+            words = {word.casefold() for cohort in culture.cohorts for word in [*cohort.feminine, *cohort.masculine]}
+            words |= {word.casefold() for word in culture.surnames}
+            if clash := words & blocked:
+                raise ValueError(f'{key} lists invented-sounding names: {sorted(clash)}.')
         return self
 
 

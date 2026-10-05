@@ -1,4 +1,4 @@
-import type { BackendKind, CodexMethod, HostedProvider, ImageJob, ImageStatus, PostImage } from '../../types'
+import type { BackendKind, HostedProvider, ImageJob, ImageStatus, PostImage } from '../../types'
 
 export const imageFile = (jobId: string) => `/api/images/jobs/${encodeURIComponent(jobId)}/file`
 
@@ -51,11 +51,6 @@ export const BACKEND_KINDS: { id: BackendKind; label: string; hint: string }[] =
   { id: 'comfyui', label: 'ComfyUI', hint: 'A ComfyUI server you run. On this computer it can also make NSFW images.' },
   { id: 'codex', label: 'Codex (ChatGPT subscription)', hint: "Experimental. Uses the Codex CLI's built-in image generation under your own codex login. Safe images only." },
   { id: 'hosted', label: 'Image API', hint: 'OpenRouter, Google or another provider, with your own API key. Safe images only.' },
-]
-
-export const CODEX_METHODS: { id: CodexMethod; label: string; hint: string }[] = [
-  { id: 'native', label: 'Codex CLI built-in', hint: 'Runs one codex exec turn per image with Codex\'s own image tool. Uses your ChatGPT plan\'s Codex limits.' },
-  { id: 'imagegen_cli', label: 'chatgpt-imagegen CLI', hint: 'The optional one-file CLI from Darling Blades, if you already use it. It uses the same codex login.' },
 ]
 
 export const PROVIDERS: { id: HostedProvider; label: string }[] = [

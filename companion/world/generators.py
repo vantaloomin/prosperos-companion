@@ -13,7 +13,7 @@ import hashlib
 from datetime import date, timedelta
 
 from companion.errors import DomainError
-from companion.world import catalog
+from companion.world import catalog, naming
 
 COSTS = ['free', '$', '$$', '$$$', '$$$$']
 SEASONS = {12: 'winter', 1: 'winter', 2: 'winter', 3: 'spring', 4: 'spring', 5: 'spring', 6: 'summer',
@@ -447,25 +447,58 @@ RETIRED_SCHEDULE = [
 
 
 def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | None = None,
-         family: str | None = None) -> dict:
-    """A resident's name from the city's name groups. `family` keeps a relative's family name."""
+         family: str | None = None, age: int | None = None) -> dict:
+    """A resident's name from the city's name groups. `family` keeps a relative's family name.
+
+    In modern settings a group linked to cultures takes the given name from what babies were called around
+    the person's birth year (`age` years before the data's present year; a seeded adult age without one),
+    and the family name from that culture when it lists its own.
+    """
     groups, mix = catalog.name_groups(data)
     group = group if group in groups else pick(seed, 'name-group', list(mix), list(mix.values()))
     names = groups[group]
     if pronouns not in PRONOUNS:
         modern = data['era'] in ('modern', 'future', 'other')
         pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], [47, 47, 6 if modern else 2])
-    pools = [names[GIVEN[pronouns]]] if pronouns in GIVEN else [names['neutral']]
-    if names['neutral'] and unit(seed, 'neutral-name') < 0.12:
-        pools.insert(0, names['neutral'])
-    pools += [names['feminine'] + names['masculine'] + names['neutral']]
-    given = pick(seed, 'given', next(pool for pool in pools if pool))
+    links = naming.links(names, data)
+    if family:
+        # A relative's given name comes from a culture that fits the family name they share.
+        links = {key: weight for key, weight in links.items() if not naming.culture(key)['surnames']
+                 or naming.base_family(key, family) in naming.culture_surnames(key)}
+    culture = pick(seed, 'culture', list(links), list(links.values())) if links else None
+    if culture:
+        age = age if age is not None else 22 + round(unit(seed, 'name-age') * 42)
+        given = _given_for(seed, culture, naming.present_year() - age, pronouns)
+    else:
+        pools = [names[GIVEN[pronouns]]] if pronouns in GIVEN else [names['neutral']]
+        if names['neutral'] and unit(seed, 'neutral-name') < 0.12:
+            pools.insert(0, names['neutral'])
+        pools += [names['feminine'] + names['masculine'] + names['neutral']]
+        given = pick(seed, 'given', next(pool for pool in pools if pool))
+    surnames = naming.culture(culture)['surnames'] if culture else []
+    if not family and surnames:
+        family = pick(seed, 'family', surnames, naming.rank_weights(surnames))
+    if culture and family:
+        family = naming.gendered(culture, naming.base_family(culture, family), pronouns)
     if not family:
         # Most residents' family names come from the same heritage group; some from anywhere in the city.
         other = pick(seed, 'family-group', list(mix), list(mix.values()))
         family = pick(seed, 'family', names['family'] if unit(seed, 'mixed') >= 0.2 else groups[other]['family'])
     return {'given': given, 'family': family, 'full': f'{given} {family}', 'pronouns': PRONOUNS[pronouns],
-            'group': group}
+            'group': group, 'culture': culture}
+
+
+def _given_for(seed: str, culture: str, born: int, pronouns: str) -> str:
+    """A given name popular within a few years of `born`, ranked by popularity."""
+    year = born + round((unit(seed, 'birth-year') * 2 - 1) * naming.SPREAD)
+    found = naming.cohort(culture, year)
+    if pronouns in GIVEN:
+        pool = found[GIVEN[pronouns]]
+    else:
+        # Names given to both girls and boys that year, else the name they were given at birth from either list.
+        shared = [item for item in found['feminine'] if item in set(found['masculine'])]
+        pool = shared or found[pick(seed, 'neutral-list', ['feminine', 'masculine'])]
+    return pick(seed, 'given', pool, naming.rank_weights(pool))
 
 
 def _age(seed: str, career: str | None, around: int | None, role: str) -> int:
@@ -525,7 +558,7 @@ def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None 
     age = age or _age(seed, career, around_age, role)
     person = {'id': f'{role}-{hashlib.sha256(seed.encode()).hexdigest()[:8]}', 'role': role,
               'closeness': ROLES[role][0],
-              'name': name(data, seed=seed, group=group, family=family), 'age': age, 'local': local,
+              'name': name(data, seed=seed, group=group, family=family, age=age), 'age': age, 'local': local,
               'home': None, 'job': None, 'schedule': None, 'haunts': []}
     if not local:
         return person | provenance(data, [])
@@ -573,7 +606,7 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
         roles = [*roles, 'friend', 'friend']
     if not family:
         chosen = name(data, seed=f'{seed}:family', group=group)
-        family, group = chosen['family'], group or chosen['group']
+        family, group = naming.base_family(chosen['culture'], chosen['family']), group or chosen['group']
     people, used, taken = [], set(), {employer} - {None}
     for index, role in enumerate(roles[:size]):
         member_seed, related = f'{seed}:{role}:{index}', ROLES[role][2]
@@ -592,7 +625,7 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
         while person['name']['full'] in used and retry < 5:
             retry += 1
             person['name'] = name(data, seed=f'{member_seed}:{retry}', family=family if related else None,
-                                  group=person['name']['group'])
+                                  group=person['name']['group'], age=person['age'])
         used.add(person['name']['full'])
         people.append(person)
     refs = list(dict.fromkeys(ref for person in people for ref in person['refs']))

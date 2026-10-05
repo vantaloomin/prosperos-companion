@@ -61,6 +61,12 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.disruptions.ACTIVE', False)
 
 
+@pytest.fixture(autouse=True)
+def no_unasked_pictures(monkeypatch):
+    """Unasked chat pictures are a seeded chance; test_chat_photos turns them on where it needs them."""
+    monkeypatch.setattr('companion.images.photos.UNASKED', False)
+
+
 @pytest.fixture
 def clock():
     return FixedClock(START)
