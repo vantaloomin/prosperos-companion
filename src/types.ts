@@ -143,6 +143,8 @@ export interface Memory {
   dates_uncertain?: boolean
   /** False once its applicable period has ended; it stays as history. */
   current?: boolean
+  /** False for a memory from another timeline, which the current conversation does not use. */
+  in_timeline?: boolean
 }
 
 /** A fact found in one of your messages, waiting for you to keep or decline it. */

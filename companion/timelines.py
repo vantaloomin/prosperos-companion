@@ -17,10 +17,12 @@ import re
 from companion.characters import require_current
 from companion.database import identifier, many, one, optional
 from companion.errors import require
+from companion.life import feed
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
 FROZEN_EVENT = 'The timeline was frozen before this event was reviewed.'
 FROZEN_RUN = 'The timeline was frozen before this batch finished.'
+FROZEN_IMAGE = 'The timeline was set aside before this image started.'
 
 
 def view(connection, row: dict, active_id: str) -> dict:
@@ -215,6 +217,12 @@ def freeze(connection, timeline_id, timestamp) -> list[str]:
     connection.execute("UPDATE life_runs SET status='failed', error=?, finished_at=?, lease_until=NULL "
                        "WHERE timeline_id=? AND status IN ('planned','running','interrupted')",
                        (FROZEN_RUN, timestamp, timeline_id))
+    # Images not started yet are cancelled; one already being made finishes on the frozen post only.
+    for job in many(connection, "SELECT id, post_id FROM image_jobs WHERE timeline_id=? AND status='queued'",
+                    (timeline_id,)):
+        connection.execute("UPDATE image_jobs SET status='cancelled', error=?, error_code='cancelled', finished_at=? "
+                           'WHERE id=?', (FROZEN_IMAGE, timestamp, job['id']))
+        feed.apply_image(connection, job['post_id'], job['id'], 'cancelled', timestamp, error=FROZEN_IMAGE)
     # Hidden upcoming entries are rebuilt from the moment the timeline is chosen again.
     connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND status='upcoming'", (timeline_id,))
     connection.execute('UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=?', (timestamp, timeline_id))
