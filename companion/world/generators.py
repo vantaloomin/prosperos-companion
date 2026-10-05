@@ -584,6 +584,21 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
 # --- Grounding text ---
 
 @detached
+def price(data: dict, item: str, *, seed: str) -> dict:
+    """One plausible price for an everyday purchase, within the city's typical range."""
+    found = next((entry for entry in data['prices'] if entry['id'] == item), None)
+    if not found:
+        raise DomainError(f'{data["name"]} has no price for {item!r}.', 404, 'unknown_price')
+    low, high = found['low'], found['high']
+    # Prices under ten keep two decimals (cents, or pence written as fractions of a shilling); larger ones
+    # round to whole units.
+    amount = low + unit(seed, 'price', item) * (high - low)
+    amount = round(amount, 2) if high < 10 else round(amount)
+    return {'price': found, 'amount': amount, 'currency': data['currency'], 'estimate': True,
+            'city': data['id'], 'data_version': data['data_version'], 'refs': [item], 'sources': [found['source']]}
+
+
+@detached
 def local_color(data: dict, *, seed: str, kinds: list[str] | None = None, day: date | None = None,
                 count: int = 3) -> list[dict]:
     """A few things locals eat, drink, say or do, for flavour. Seasonal items appear only in season on `day`."""
@@ -601,6 +616,11 @@ def facts(data: dict, neighborhood: str | None = None, limit: int = 8) -> list[s
         lines.append(f'{hood["name"]}: {hood["summary"]}')
         for place in catalog.places(data, neighborhood=neighborhood)[:limit]:
             lines.append(f'{place["name"]} ({place["kind"]}): {place["summary"]}')
+    if data['prices']:
+        symbol = data['currency']['symbol']
+        lines.append('Typical prices: ' + '; '.join(
+            f'{item["item"]} {symbol}{item["low"]:g}–{symbol}{item["high"]:g}' + (f' {item["per"]}' if item['per'] else '')
+            for item in data['prices'][:limit]))
     for item in data['local_color'][:limit]:
         lines.append(f'Local {item["kind"]}: {item["name"]}: {item["summary"]}')
     return lines

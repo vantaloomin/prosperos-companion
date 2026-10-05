@@ -5040,5 +5040,119 @@
    ],
    "source": "curated-2026-10"
   }
+ ],
+ "prices": [
+  {
+   "id": "coffee",
+   "item": "Coffee",
+   "low": 2,
+   "high": 3.5,
+   "per": "a cup",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "latte",
+   "item": "Latte",
+   "low": 4.5,
+   "high": 6.5,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "breakfast-sandwich",
+   "item": "Egg and cheese sandwich",
+   "low": 5,
+   "high": 9,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cheap-lunch",
+   "item": "Cheap lunch",
+   "low": 10,
+   "high": 17,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dinner",
+   "item": "Mid-range dinner",
+   "low": 30,
+   "high": 55,
+   "per": "for one",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "beer",
+   "item": "Pint of beer",
+   "low": 6,
+   "high": 9,
+   "per": "a pint",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cocktail",
+   "item": "Cocktail",
+   "low": 12,
+   "high": 16,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "groceries",
+   "item": "Groceries",
+   "low": 70,
+   "high": 110,
+   "per": "a week, one person",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "transit",
+   "item": "Bus or Light Rail fare",
+   "low": 2,
+   "high": 2,
+   "per": "one way",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rideshare",
+   "item": "Rideshare across town",
+   "low": 12,
+   "high": 25,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "movie",
+   "item": "Movie ticket",
+   "low": 13,
+   "high": 17,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gym",
+   "item": "Gym membership",
+   "low": 25,
+   "high": 60,
+   "per": "a month",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "crab-cake",
+   "item": "Crab cake platter",
+   "low": 20,
+   "high": 38,
+   "per": "jumbo lump",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "steamed-crabs",
+   "item": "Steamed blue crabs",
+   "low": 60,
+   "high": 120,
+   "per": "a dozen, by size and season",
+   "source": "curated-2026-10"
+  }
  ]
 }

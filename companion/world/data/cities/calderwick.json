@@ -3795,5 +3795,119 @@
    "seasons": [],
    "source": "curated-2026-10"
   }
+ ],
+ "prices": [
+  {
+   "id": "beer",
+   "item": "Pint of bitter",
+   "low": 0.17,
+   "high": 0.25,
+   "per": "a pint, 2d.-3d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "loaf",
+   "item": "Loaf of bread",
+   "low": 0.42,
+   "high": 0.5,
+   "per": "4 lb, 5d.-6d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pie-and-peas",
+   "item": "Pie and peas",
+   "low": 0.17,
+   "high": 0.33,
+   "per": "2d.-4d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "eating-house",
+   "item": "Eating-house dinner",
+   "low": 0.5,
+   "high": 1.5,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "inn",
+   "item": "Commercial inn",
+   "low": 1.5,
+   "high": 3,
+   "per": "a night",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "board",
+   "item": "Board and lodging",
+   "low": 10,
+   "high": 15,
+   "per": "a week's board",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tram",
+   "item": "Tram fare",
+   "low": 0.08,
+   "high": 0.17,
+   "per": "one way, 1d.-2d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tube-post",
+   "item": "Pneumatic post letter",
+   "low": 0.08,
+   "high": 0.17,
+   "per": "across town, 1d.-2d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "newspaper",
+   "item": "Newspaper",
+   "low": 0.04,
+   "high": 0.08,
+   "per": "a halfpenny or a penny",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "music-hall",
+   "item": "Music-hall seat",
+   "low": 0.25,
+   "high": 1.5,
+   "per": "gallery to stalls",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tobacco",
+   "item": "Twist tobacco",
+   "low": 0.25,
+   "high": 0.33,
+   "per": "an ounce, 3d.-4d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "baths",
+   "item": "Public baths",
+   "low": 0.17,
+   "high": 0.5,
+   "per": "2d. plunge to 6d. private bath",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "clogs",
+   "item": "Clogs",
+   "low": 3,
+   "high": 5,
+   "per": "a pair",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wage",
+   "item": "Labourer's wage",
+   "low": 3,
+   "high": 4.5,
+   "per": "a day",
+   "source": "curated-2026-10"
+  }
  ]
 }

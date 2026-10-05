@@ -43,6 +43,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -623,6 +627,22 @@ CITY = {
               'to be redeemed on Saturday payday; "Uncle\'s" is the pawnbroker.', ['uncle-dicks']),
         color('clogger', 'The clogger', 'shop', 'Most of the town walks on clogs, and the clogger cuts alder soles, '
               'fits the uppers and nails on fresh irons while you sit in your stockings.', ['ogdens-clogger']),
+    ],
+    'prices': [
+        price('beer', 'Pint of bitter', 0.17, 0.25, 'a pint, 2d.-3d.'),
+        price('loaf', 'Loaf of bread', 0.42, 0.5, '4 lb, 5d.-6d.'),
+        price('pie-and-peas', 'Pie and peas', 0.17, 0.33, '2d.-4d.'),
+        price('eating-house', 'Eating-house dinner', 0.5, 1.5),
+        price('inn', 'Commercial inn', 1.5, 3, 'a night'),
+        price('board', 'Board and lodging', 10, 15, "a week's board"),
+        price('tram', 'Tram fare', 0.08, 0.17, 'one way, 1d.-2d.'),
+        price('tube-post', 'Pneumatic post letter', 0.08, 0.17, 'across town, 1d.-2d.'),
+        price('newspaper', 'Newspaper', 0.04, 0.08, 'a halfpenny or a penny'),
+        price('music-hall', 'Music-hall seat', 0.25, 1.5, 'gallery to stalls'),
+        price('tobacco', 'Twist tobacco', 0.25, 0.33, 'an ounce, 3d.-4d.'),
+        price('baths', 'Public baths', 0.17, 0.5, '2d. plunge to 6d. private bath'),
+        price('clogs', 'Clogs', 3, 5, 'a pair'),
+        price('wage', "Labourer's wage", 3, 4.5, 'a day'),
     ],
 }
 

@@ -25,6 +25,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -705,6 +709,22 @@ CITY = {
         color('ravens', 'Baltimore Ravens', 'team', 'The NFL team, named for Poe\'s poem, plays at M&T Bank Stadium; '
               'Purple Friday sees the whole city wear purple before game days.',
               ['ravens-stadium'], ['fall', 'winter']),
+    ],
+    'prices': [
+        price('coffee', 'Coffee', 2, 3.5, 'a cup'),
+        price('latte', 'Latte', 4.5, 6.5),
+        price('breakfast-sandwich', 'Egg and cheese sandwich', 5, 9),
+        price('cheap-lunch', 'Cheap lunch', 10, 17),
+        price('dinner', 'Mid-range dinner', 30, 55, 'for one'),
+        price('beer', 'Pint of beer', 6, 9, 'a pint'),
+        price('cocktail', 'Cocktail', 12, 16),
+        price('groceries', 'Groceries', 70, 110, 'a week, one person'),
+        price('transit', 'Bus or Light Rail fare', 2, 2, 'one way'),
+        price('rideshare', 'Rideshare across town', 12, 25),
+        price('movie', 'Movie ticket', 13, 17),
+        price('gym', 'Gym membership', 25, 60, 'a month'),
+        price('crab-cake', 'Crab cake platter', 20, 38, 'jumbo lump'),
+        price('steamed-crabs', 'Steamed blue crabs', 60, 120, 'a dozen, by size and season'),
     ],
 }
 

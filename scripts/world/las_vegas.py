@@ -25,6 +25,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -734,6 +738,22 @@ CITY = {
         color('unlv-rebels', 'UNLV Runnin\' Rebels', 'team', 'UNLV basketball, national champions in 1990, plays at '
               'the Thomas & Mack Center, and the city still remembers the Tarkanian years.',
               ['thomas-and-mack'], ['fall', 'winter']),
+    ],
+    'prices': [
+        price('coffee', 'Coffee', 2.5, 4.5, 'a cup'),
+        price('latte', 'Latte', 5, 7.5, 'more on the Strip'),
+        price('breakfast-sandwich', 'Breakfast sandwich', 6, 10),
+        price('cheap-lunch', 'Cheap lunch', 11, 18, 'off-Strip'),
+        price('dinner', 'Mid-range dinner', 35, 70, 'for one, off-Strip to Strip'),
+        price('beer', 'Pint of beer', 7, 12, 'off-Strip to Strip'),
+        price('cocktail', 'Cocktail', 14, 25),
+        price('groceries', 'Groceries', 75, 110, 'a week, one person'),
+        price('bus', 'RTC bus fare', 2, 6, 'one ride; Strip routes cost more'),
+        price('monorail', 'Monorail ride', 5.5, 5.5, 'one way'),
+        price('rideshare', 'Rideshare across town', 15, 35),
+        price('buffet', 'Casino buffet', 30, 80, 'dinner'),
+        price('show', 'Show ticket', 60, 200, 'a Strip production show'),
+        price('gym', 'Gym membership', 25, 60, 'a month'),
     ],
 }
 

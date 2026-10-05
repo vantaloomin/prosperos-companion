@@ -49,6 +49,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -659,6 +663,22 @@ CITY = {
                 month=12, day=25),
         holiday('st-stephens-day', 'St. Stephen\'s Day', 'public', 'The second day of Christmas, for visiting '
                 'and riding out the horses.', month=12, day=26),
+    ],
+    'prices': [
+        price('beer', 'Mug of beer', 0.5, 1),
+        price('wine', 'Glass of wine', 1, 3),
+        price('loaf', 'Rye loaf', 1, 2),
+        price('gingerbread', 'Gingerbread', 0.25, 1, 'a piece'),
+        price('meal', 'Meal at the Ratskeller', 3, 6),
+        price('inn', 'Bed at the inn', 4, 8, 'a night'),
+        price('board', 'Board and lodging', 15, 25, "a week's board"),
+        price('ferry', 'Ferry crossing', 0.25, 0.5, 'one way'),
+        price('cart-hire', 'Horse and cart', 12, 24, 'a day'),
+        price('bath', 'Bathhouse', 1, 2, 'a bath'),
+        price('tobacco', 'Pipe tobacco', 1, 2, 'a packet'),
+        price('clogs', 'Wooden shoes', 4, 8, 'a pair'),
+        price('goose', 'Goose at market', 12, 24, 'for Martinmas'),
+        price('wage', "Labourer's wage", 6, 10, 'a day'),
     ],
 }
 

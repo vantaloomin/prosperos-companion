@@ -193,3 +193,11 @@ def list_local_color(request: Request, city_id: str, seed: str | None = None, da
     if seed is None:
         return data['local_color']
     return generators.local_color(data, seed=seed, kinds=kind, day=day, count=count)
+
+
+@router.get('/cities/{city_id}/prices')
+def list_prices(request: Request, city_id: str, item: str | None = None, seed: str | None = None):
+    data = city(request, city_id)
+    if item and seed is not None:
+        return generators.price(data, item, seed=seed)
+    return {'currency': data['currency'], 'prices': data['prices']}

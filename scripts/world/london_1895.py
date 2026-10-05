@@ -55,6 +55,10 @@ def color(id, name, kind, summary, places=(), seasons=()):
             'seasons': list(seasons), 'source': S}
 
 
+def price(id, item, low, high, per=''):
+    return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 SOLO = ['solo']
@@ -727,6 +731,22 @@ CITY = {
         color('county-cricket', 'Surrey and Middlesex cricket', 'team', 'County cricket at the Oval (Surrey) and '
               'Lord\'s (Middlesex) draws big summer crowds, and W. G. Grace\'s run-making is the talk of 1895.',
               seasons=['summer']),
+    ],
+    'prices': [
+        price('beer', 'Pint of beer', 0.17, 0.25, 'a pint, 2d.-3d.'),
+        price('loaf', 'Quartern loaf', 0.42, 0.5, '4 lb, 5d.-6d.'),
+        price('coffee-stall', 'Coffee at a stall', 0.08, 0.17, 'a mug, 1d.-2d.'),
+        price('chophouse', 'Chophouse dinner', 1, 2.5, 'chop, potatoes, bread and beer'),
+        price('lodging-house', 'Common lodging-house bed', 0.33, 0.5, 'a night, 4d.-6d.'),
+        price('hotel', 'Hotel room', 4, 12, 'a night'),
+        price('board', 'Board and lodging', 15, 25, "a week's board"),
+        price('hansom', 'Hansom cab', 1, 2.5, 'a short ride; 1s. the first two miles'),
+        price('omnibus', 'Omnibus fare', 0.08, 0.5, 'one way, 1d.-6d.'),
+        price('newspaper', 'Daily paper', 0.04, 0.25, 'halfpenny papers to The Times at 3d.'),
+        price('music-hall', 'Music-hall seat', 0.5, 3, 'gallery to stalls'),
+        price('theatre', 'West End theatre stall', 7.5, 10.5, '7s. 6d. to half a guinea'),
+        price('tobacco', 'Shag tobacco', 0.25, 0.33, 'an ounce, 3d.-4d.'),
+        price('boots', 'Working boots', 8, 15, 'a pair'),
     ],
 }
 

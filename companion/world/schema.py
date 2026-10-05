@@ -240,6 +240,23 @@ class LocalColor(Record):
     source: Id
 
 
+class Price(Record):
+    """A typical price range for an everyday purchase, in the city's currency. Estimates for fiction."""
+    id: Id
+    item: Text
+    low: float = Field(ge=0)
+    high: float = Field(ge=0)
+    # What the price is for, when it isn't obvious: "a pint", "one way", "a week's board".
+    per: str = Field(default='', max_length=80)
+    source: Id
+
+    @model_validator(mode='after')
+    def check(self):
+        if self.low > self.high:
+            raise ValueError(f'Price {self.id} runs low to high.')
+        return self
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -277,6 +294,7 @@ class City(Record):
     careers: list[Career] = Field(default_factory=list, max_length=200)
     names: CityNames | None = None
     local_color: list[LocalColor] = Field(default_factory=list, max_length=100)
+    prices: list[Price] = Field(default_factory=list, max_length=60)
     # A shared holiday calendar ('none' for no shared one); by default chosen from the era and country.
     calendar: Id | None = None
     # Holidays particular to this city, beside its calendar's.
@@ -292,7 +310,7 @@ class City(Record):
             raise ValueError(f'Duplicate ids {sorted({i for i in ids if ids.count(i) > 1})}.')
         cited = [(item.id, item.source) for item in records]
         cited += [('climate', self.climate.source)] if self.climate else []
-        cited += [(item.id, item.source) for item in self.local_color]
+        cited += [(item.id, item.source) for item in [*self.local_color, *self.prices]]
         missing = [name for name, source in cited if source not in self.sources]
         if missing:
             raise ValueError(f'Unknown sources cited by {missing}.')

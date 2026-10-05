@@ -3934,5 +3934,119 @@
    ],
    "source": "curated-2026-10"
   }
+ ],
+ "prices": [
+  {
+   "id": "ale",
+   "item": "Ale",
+   "low": 1,
+   "high": 1.5,
+   "per": "a gallon",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "loaf",
+   "item": "Loaf of bread",
+   "low": 0.25,
+   "high": 0.5,
+   "per": "a farthing or halfpenny loaf",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pie",
+   "item": "Pie from a cookshop",
+   "low": 0.5,
+   "high": 1,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "inn-meal",
+   "item": "Meal at an inn",
+   "low": 1,
+   "high": 3,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wine",
+   "item": "Wine",
+   "low": 4,
+   "high": 8,
+   "per": "a gallon",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "inn-bed",
+   "item": "Bed at an inn",
+   "low": 0.5,
+   "high": 1,
+   "per": "a night, often shared",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "board",
+   "item": "Board and lodging",
+   "low": 6,
+   "high": 10,
+   "per": "a week's board",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "stabling",
+   "item": "Stabling a horse",
+   "low": 1,
+   "high": 2,
+   "per": "a night",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "horse-hire",
+   "item": "Hired horse",
+   "low": 6,
+   "high": 12,
+   "per": "a day",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "toll",
+   "item": "Bridge toll",
+   "low": 0.25,
+   "high": 1,
+   "per": "on foot to a laden cart",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bath",
+   "item": "Bathhouse",
+   "low": 0.5,
+   "high": 1,
+   "per": "a bath",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "candles",
+   "item": "Tallow candles",
+   "low": 1,
+   "high": 1.5,
+   "per": "a pound",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shoes",
+   "item": "Shoes",
+   "low": 4,
+   "high": 8,
+   "per": "a pair",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wage",
+   "item": "Labourer's wage",
+   "low": 2,
+   "high": 4,
+   "per": "a day",
+   "source": "curated-2026-10"
+  }
  ]
 }

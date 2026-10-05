@@ -64,6 +64,7 @@ generators.schedule(career, seed)           # weekly routine blocks only
 generators.home(data, seed=..., bedrooms='one_bedroom', budget=1400, vibe='arts', near='mount-vernon')
 generators.facts(data, neighborhood='hampden')  # short lines to ground a prompt, including local colour
 generators.local_color(data, seed=..., kinds=['dish'], day=..., count=3)  # dishes, sayings, customs, teams
+generators.price(data, 'pint-of-beer', seed=...)  # one amount within the city's typical range
 
 # People: the companion's social circle and anyone else in the city.
 generators.circle(data, seed=..., size=6, home='canton', age=31, career='teacher', employer=None,
@@ -108,6 +109,12 @@ A city may set `names` to pick another `bank`, weight groups with `mix`, or add 
 the seasons they belong to. `local_color` picks a few for a seed, in season on `day`, so the model can
 mention crab feasts or a ventanita coffee without inventing them.
 
+**Prices.** Each city with money lists typical prices for everyday things (`prices`: coffee, a pint,
+a fare, a week's groceries, a night's lodging) as `low`–`high` ranges in its own currency, with a
+`per` note where needed. Historical settings use their own units (shillings with pence noted,
+silver pennies, 1880s dollars, groschen). `facts()` includes them and `price()` picks one amount, so
+the model never has to guess what something costs. Oz has no money and no prices.
+
 **Holidays.** Each city keeps a shared calendar chosen from its era and country (`catalog.calendar_id`):
 `us` for modern US cities, `us-1880s` for the frontier, `uk-victorian` for Victorian and steampunk
 England, `medieval-england` for medieval settings, and none otherwise (Oz has none). A city may name
@@ -143,6 +150,7 @@ need `x-companion-client: workspace`. Every `{id}` may be a built-in city or one
 | `/api/world/cities/{id}/places?kind=&neighborhood=&tag=&good_for=` | Matching places |
 | `/api/world/cities/{id}/conditions?day=YYYY-MM-DD&seed=` | `{"conditions": … \| null, "annual_events": […], "holidays": […]}` |
 | `/api/world/cities/{id}/local-color?seed=&day=&kind=&count=` | All local colour, or a seeded pick when `seed` is given |
+| `/api/world/cities/{id}/prices?item=&seed=` | `{"currency", "prices"}`, or one `price` with an `amount` when `item` and `seed` are given |
 | `/api/world/cities/{id}/holidays?start=&end=` | `{"calendar": id \| null, "holidays": [… with "date"]}` (at most 400 days) |
 | `/api/world/cities/{id}/careers` | Careers this city offers |
 | `/api/world/cities/{id}/commute?from=&to=&mode=` | A commute estimate |

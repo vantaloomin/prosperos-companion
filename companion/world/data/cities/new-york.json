@@ -6529,5 +6529,119 @@
    ],
    "source": "curated-2026-10"
   }
+ ],
+ "prices": [
+  {
+   "id": "coffee",
+   "item": "Deli coffee",
+   "low": 2,
+   "high": 3.5,
+   "per": "a cup",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "latte",
+   "item": "Latte",
+   "low": 5.5,
+   "high": 7.5,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bagel",
+   "item": "Bagel with cream cheese",
+   "low": 4,
+   "high": 7,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pizza-slice",
+   "item": "Pizza slice",
+   "low": 1.5,
+   "high": 4.5,
+   "per": "a plain slice",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cheap-lunch",
+   "item": "Cheap lunch",
+   "low": 13,
+   "high": 20,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dinner",
+   "item": "Mid-range dinner",
+   "low": 45,
+   "high": 80,
+   "per": "for one",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "beer",
+   "item": "Pint of beer",
+   "low": 8,
+   "high": 11,
+   "per": "a pint",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cocktail",
+   "item": "Cocktail",
+   "low": 16,
+   "high": 22,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "groceries",
+   "item": "Groceries",
+   "low": 90,
+   "high": 140,
+   "per": "a week, one person",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "transit",
+   "item": "Subway or bus fare",
+   "low": 2.9,
+   "high": 3,
+   "per": "one way",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rideshare",
+   "item": "Rideshare across town",
+   "low": 20,
+   "high": 40,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "movie",
+   "item": "Movie ticket",
+   "low": 18,
+   "high": 24,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gym",
+   "item": "Gym membership",
+   "low": 30,
+   "high": 120,
+   "per": "a month",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "haircut",
+   "item": "Haircut",
+   "low": 30,
+   "high": 60,
+   "per": "",
+   "source": "curated-2026-10"
+  }
  ]
 }

@@ -5021,5 +5021,119 @@
    ],
    "source": "curated-2026-10"
   }
+ ],
+ "prices": [
+  {
+   "id": "coffee",
+   "item": "Coffee",
+   "low": 2.5,
+   "high": 4.5,
+   "per": "a cup",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "latte",
+   "item": "Latte",
+   "low": 5,
+   "high": 7.5,
+   "per": "more on the Strip",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "breakfast-sandwich",
+   "item": "Breakfast sandwich",
+   "low": 6,
+   "high": 10,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cheap-lunch",
+   "item": "Cheap lunch",
+   "low": 11,
+   "high": 18,
+   "per": "off-Strip",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dinner",
+   "item": "Mid-range dinner",
+   "low": 35,
+   "high": 70,
+   "per": "for one, off-Strip to Strip",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "beer",
+   "item": "Pint of beer",
+   "low": 7,
+   "high": 12,
+   "per": "off-Strip to Strip",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cocktail",
+   "item": "Cocktail",
+   "low": 14,
+   "high": 25,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "groceries",
+   "item": "Groceries",
+   "low": 75,
+   "high": 110,
+   "per": "a week, one person",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bus",
+   "item": "RTC bus fare",
+   "low": 2,
+   "high": 6,
+   "per": "one ride; Strip routes cost more",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "monorail",
+   "item": "Monorail ride",
+   "low": 5.5,
+   "high": 5.5,
+   "per": "one way",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rideshare",
+   "item": "Rideshare across town",
+   "low": 15,
+   "high": 35,
+   "per": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "buffet",
+   "item": "Casino buffet",
+   "low": 30,
+   "high": 80,
+   "per": "dinner",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "show",
+   "item": "Show ticket",
+   "low": 60,
+   "high": 200,
+   "per": "a Strip production show",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gym",
+   "item": "Gym membership",
+   "low": 25,
+   "high": 60,
+   "per": "a month",
+   "source": "curated-2026-10"
+  }
  ]
 }

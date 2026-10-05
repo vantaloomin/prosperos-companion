@@ -4458,5 +4458,119 @@
    ],
    "source": "curated-2026-10"
   }
+ ],
+ "prices": [
+  {
+   "id": "beer",
+   "item": "Pint of beer",
+   "low": 0.17,
+   "high": 0.25,
+   "per": "a pint, 2d.-3d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "loaf",
+   "item": "Quartern loaf",
+   "low": 0.42,
+   "high": 0.5,
+   "per": "4 lb, 5d.-6d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coffee-stall",
+   "item": "Coffee at a stall",
+   "low": 0.08,
+   "high": 0.17,
+   "per": "a mug, 1d.-2d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chophouse",
+   "item": "Chophouse dinner",
+   "low": 1,
+   "high": 2.5,
+   "per": "chop, potatoes, bread and beer",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lodging-house",
+   "item": "Common lodging-house bed",
+   "low": 0.33,
+   "high": 0.5,
+   "per": "a night, 4d.-6d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hotel",
+   "item": "Hotel room",
+   "low": 4,
+   "high": 12,
+   "per": "a night",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "board",
+   "item": "Board and lodging",
+   "low": 15,
+   "high": 25,
+   "per": "a week's board",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hansom",
+   "item": "Hansom cab",
+   "low": 1,
+   "high": 2.5,
+   "per": "a short ride; 1s. the first two miles",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "omnibus",
+   "item": "Omnibus fare",
+   "low": 0.08,
+   "high": 0.5,
+   "per": "one way, 1d.-6d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "newspaper",
+   "item": "Daily paper",
+   "low": 0.04,
+   "high": 0.25,
+   "per": "halfpenny papers to The Times at 3d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "music-hall",
+   "item": "Music-hall seat",
+   "low": 0.5,
+   "high": 3,
+   "per": "gallery to stalls",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "theatre",
+   "item": "West End theatre stall",
+   "low": 7.5,
+   "high": 10.5,
+   "per": "7s. 6d. to half a guinea",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tobacco",
+   "item": "Shag tobacco",
+   "low": 0.25,
+   "high": 0.33,
+   "per": "an ounce, 3d.-4d.",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "boots",
+   "item": "Working boots",
+   "low": 8,
+   "high": 15,
+   "per": "a pair",
+   "source": "curated-2026-10"
+  }
  ]
 }
