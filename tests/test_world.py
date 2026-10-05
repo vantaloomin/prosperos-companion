@@ -266,3 +266,8 @@ def test_private_city_packs_load_from_a_local_folder(client, tmp_path, monkeypat
 def test_packs_are_not_committed():
     ignored = (Path(__file__).parent.parent / '.gitignore').read_text(encoding='utf-8')
     assert '/private-cities/' in ignored and catalog.CHECKOUT_PACKS.name == 'private-cities'
+
+
+def test_small_currency_rents_use_the_whole_range():
+    rents = {generators.home(catalog.city('camelot'), seed=seed)['rent'] for seed in SEEDS}
+    assert len(rents) > 3

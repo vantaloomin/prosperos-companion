@@ -319,7 +319,9 @@ def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | 
     if chosen['rent']:
         low, high = chosen['rent'][bedrooms]
         top = max(low, min(high, budget)) if budget is not None else high
-        result |= {'rent': low + round(unit(seed, 'rent') * (top - low) / 25) * 25, 'rent_range': [low, high]}
+        # Round to a step that suits the currency: dollars by 25, shillings or pennies by 5 or 1.
+        step = 25 if high >= 400 else 5 if high >= 40 else 1
+        result |= {'rent': low + round(unit(seed, 'rent') * (top - low) / step) * step, 'rent_range': [low, high]}
     return result | provenance(data, [chosen['id']])
 
 
