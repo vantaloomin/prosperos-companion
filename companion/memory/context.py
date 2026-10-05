@@ -48,6 +48,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
+            'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
+                     'only what is listed here)',
             'relationship_mood': 'Your current mood about time apart',
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
@@ -369,13 +371,23 @@ def offer_life(packet, connection, timeline_id, version, now):
         packet.offer('city_news', identity, text)
 
 
+def offer_attachments(packet, connection, latest, photo):
+    """The feed post the user is replying to, and the photo this reply sends."""
+    post = linked_post(connection, latest['id']) if latest else None
+    if post:
+        packet.offer('feed_reference', post['id'], post_text(post))
+    if photo:
+        packet.offer('photo', photo['post_id'], photo['text'])
+
+
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
-          semantic: dict | None = None, outside: list[dict] | None = None) -> dict:
+          semantic: dict | None = None, outside: list[dict] | None = None, photo: dict | None = None) -> dict:
     """Assemble the next reply's inputs from the active timeline's saved state.
 
     `until_seq` is the message being answered, so an alternative never sees the reply it replaces.
     `semantic` ({model, vector}) adds an embedding ranking of the same eligible pool; without it
-    recall is keyword-only. `outside` holds the current-context lookups made for this message.
+    recall is keyword-only. `outside` holds the current-context lookups made for this message, and
+    `photo` the moment a photo sent with this reply shows (companion/images/photos.py).
     """
     timeline_id, version = companion['active_timeline_id'], companion['version']
     groups = partition(eligible(connection, companion, timeline_id, stamp(now)))
@@ -400,9 +412,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_life(packet, connection, timeline_id, version, now)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
-    post = linked_post(connection, latest['id']) if latest else None
-    if post:
-        packet.offer('feed_reference', post['id'], post_text(post))
+    offer_attachments(packet, connection, latest, photo)
     block = agenda.current(connection, timeline_id, agenda.COMPANION, now) if outside else None
     doing = block.get('label') if block else None
     for identity, text in lookups.context_lines(outside or [], now, settings(connection)['user_timezone'], doing):
