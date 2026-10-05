@@ -8,6 +8,7 @@ import { Field, TextArea, TextInput } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, timezones } from './definition'
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
 import { FieldHelp } from './FieldHelp'
+import { TextingFields } from './TextingFields'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { QuickStart } from './QuickStart'
@@ -94,6 +95,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
         {help('personality', 'their personality')}
         <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} hint="How they talk: rhythm, humour, words they like." />
         {help('voice', 'their voice')}
+        <TextingFields value={definition.texting} onChange={(texting) => set({ texting })} />
         <TextArea label="Skills" value={texts.skills} onChange={setText('skills')} rows={4} hint="One per line. Concrete things they are good at, and a few they are only middling at." />
         {help('skills', 'their skills')}
         <TextArea label="Flaws" value={texts.flaws} onChange={setText('flaws')} rows={4} hint="One per line. Real flaws that show up in conversation make them feel like a person." />

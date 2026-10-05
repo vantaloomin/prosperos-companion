@@ -60,6 +60,8 @@ export function LifeSettings({ name }: { name: string }) {
         hint="What happens is always built from their routine and city. With this on, your model rewrites it in their voice; off, plain wording is used and no model calls are made." />
       <Toggle label={`Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
         hint={`${name} may start a conversation: to ask how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
+      <Toggle label={`Reply at ${name}'s pace`} checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
+        hint={`At work, ${name} sends a quick holding text and the full reply comes a little later; asleep, it waits until they wake. You can always show it at once, and writing again shows it.`} />
       <BirthdayField saved={data.user_birthday} onSave={(value) => save({ user_birthday: value }, value ? 'Birthday saved.' : 'Birthday forgotten.')} name={name} />
       <DramaSlider name={name} value={data.drama} onChange={(value) => void save({ drama: value })} />
       <div className="form-grid">

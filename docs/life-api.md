@@ -372,6 +372,28 @@ companion message with `reply_to: null`; the chat shows it before the user's nex
 next reply sees it. With notifications on it is announced (kind `message`) before any waiting
 posts. A forked timeline keeps the triggers its parent already used.
 
+## Texting rhythm
+
+How the companion texts is part of their definition: `texting: {bursts, lowercase, typos}`, all off
+by default (`companion/texting.py`). The character section of the context tells the model the style.
+A complete reply is then restyled by fixed rules: all lowercase except links, and with typos on, a
+seeded one reply in eight gets one swapped pair of letters and a `*word` line after it. Bursts are
+blank-line separated parts, shown as separate bubbles in the Bubbles chat style.
+
+With the Life setting `paced_replies` on (off by default), a reply to a message sent while the
+companion is at work or asleep is written at once but held (`companion/life/pacing.py`). The message
+carries `held_until` and `held_line`: at work a short holding line ("in a meeting, give me a bit")
+and the full reply 8 to 45 minutes later, never after the work block ends; asleep no line and the
+reply when they wake (at most ten hours). The day that counts is the precomputed agenda's, so a
+holiday or a sick day is not work. It is never a lockout:
+
+```http
+POST /api/conversation/messages/{id}/show     # the held reply, shown now
+```
+
+and sending another message shows every reply held before it. A held reply that shows while the
+app is in the background is announced like a first message, unless the user has written since.
+
 ## Routine
 
 ```http

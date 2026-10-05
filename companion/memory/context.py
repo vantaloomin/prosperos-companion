@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from companion import self_facts
+from companion import self_facts, texting
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
@@ -144,6 +144,8 @@ def character_text(version) -> str:
         lines.append(FLAWS + '; '.join(definition['flaws']))
     if definition.get('interests'):
         lines.append('Interests: ' + ', '.join(definition['interests']))
+    if style := texting.instruction(definition):
+        lines.append(style)
     return '\n'.join(lines)
 
 

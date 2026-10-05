@@ -20,7 +20,13 @@ export interface Message {
   completed_at: string | null
   /** For a message copied into an alternate timeline, the message it was first written as. */
   origin_id?: string | null
+  /** A reply held while the companion was busy shows at this time (companion/life/pacing.py). */
+  held_until?: string | null
+  /** What they sent meanwhile ("in a meeting, give me a bit"); none while asleep. */
+  held_line?: string | null
 }
+
+export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
 
 export interface Timeline {
   id: string
@@ -79,6 +85,7 @@ export interface CharacterDefinition {
   schedule: RoutineBlock[]
   life_themes: string[]
   money: MoneySetup
+  texting?: TextingStyle
 }
 
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'
@@ -257,6 +264,8 @@ export interface LifeSettings {
   circle_size: number
   /** "MM-DD" or empty; filled in when the user says it in chat. */
   user_birthday: string
+  /** Replies wait while the companion is at work or asleep. */
+  paced_replies: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
 }

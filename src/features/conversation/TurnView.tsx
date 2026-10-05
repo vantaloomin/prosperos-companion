@@ -1,6 +1,7 @@
-import { memo, useState, type ReactNode } from 'react'
-import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
+import { memo, useEffect, useState, type ReactNode } from 'react'
+import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Eye, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
+import { heldNote, isHeld } from './held'
 import { LinkNotes } from './LinkNotes'
 import { shownAttempt, statusDetail, type Turn } from './turns'
 
@@ -15,26 +16,30 @@ interface Props {
   onRemember: (message: Message) => void
   onDecline: (message: Message) => void
   onEdit: (message: Message) => void
+  /** Show a held reply now. */
+  onShow: (message: Message) => void
+  /** Their texting style sends short bursts: each paragraph is its own bubble. */
+  bursts: boolean
   /** A message found by search: shown even when it is not the default attempt, and marked. */
   highlight?: string | null
 }
 
-function Paragraphs({ text }: { text: string }) {
-  return <>{text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</>
+function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }) {
+  return <>{text.split(/\n{2,}/).map((part, index) => <p key={index} className={bursts ? 'burst' : undefined}>{part}</p>)}</>
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
-export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, highlight }: Props) {
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, onShow, bursts, highlight }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} />
+      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} bursts={bursts} />
       <TurnUser turn={turn} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
-          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} />
+          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onShow={onShow} bursts={bursts} />
       )}
       {isLatest && !busy && turn.user && <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} onRetry={() => { setChosen(null); onRetry(turn.user!.id) }} />}
     </>
@@ -50,8 +55,8 @@ function RetryAction({ label, onRetry }: { label: string; onRetry: () => void })
 }
 
 /** Messages the companion sent first: shown like replies, with no versions to page through. */
-function Leads({ messages, name, highlight, onStop }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void }) {
-  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} />)}</>
+function Leads({ messages, name, highlight, onStop, bursts }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void; bursts: boolean }) {
+  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} bursts={bursts} />)}</>
 }
 
 function TurnUser({ turn, highlight, onRemember, onDecline, onEdit }: { turn: Turn; highlight?: string | null; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
@@ -80,9 +85,12 @@ function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }:
   )
 }
 
-function Reply({ message, found, name, text, position, onPage, onStop }: { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void }) {
+interface ReplyProps { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void; onShow?: (message: Message) => void; bursts: boolean }
+
+function Reply({ message, found, name, text, position, onPage, onStop, onShow, bursts }: ReplyProps) {
   const note = statusDetail(message)
   const streaming = message.status === 'streaming'
+  const held = useHeld(message)
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
       <Avatar name={name} />
@@ -100,11 +108,35 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
           {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
         </span>
       </header>
-      <div className="prose">
-        {text ? <Paragraphs text={text} /> : streaming ? <p className="typing subtle">{name} is writing…</p> : null}
-      </div>
+      {held ? <Held message={message} name={name} onShow={onShow} /> : (
+        <div className={bursts ? 'prose bursts' : 'prose'}>
+          {text ? <Paragraphs text={text} bursts={bursts} /> : streaming ? <p className="typing subtle">{name} is typing…</p> : null}
+        </div>
+      )}
       {note && <p className="reply-status" role="note">{note}</p>}
     </article>
+  )
+}
+
+/** True until the reply's time comes; re-renders once at that moment. */
+function useHeld(message: Message): boolean {
+  const [now, setNow] = useState(() => Date.now())
+  const held = isHeld(message, now)
+  useEffect(() => {
+    if (!held) return undefined
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.min(Date.parse(message.held_until!) - now + 500, 2 ** 31 - 1))
+    return () => window.clearTimeout(timer)
+  }, [held, message.held_until, now])
+  return held
+}
+
+/** A held reply: the holding line they sent meanwhile, when the full reply shows, and Show now. */
+function Held({ message, name, onShow }: { message: Message; name: string; onShow?: (message: Message) => void }) {
+  return (
+    <div className="prose held">
+      {message.held_line && <p>{message.held_line}</p>}
+      <p className="subtle">{heldNote(message, name)} {onShow && <button type="button" className="text-button" onClick={() => onShow(message)}><Eye aria-hidden="true" />Show now</button>}</p>
+    </div>
   )
 }
 

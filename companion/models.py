@@ -42,6 +42,13 @@ class EmotionalTrait(Input):
     note: str = Field(default='', max_length=500)
 
 
+class TextingStyle(Input):
+    """How the companion texts (companion/texting.py); all off is texting like anyone else."""
+    bursts: bool = False
+    lowercase: bool = False
+    typos: bool = False
+
+
 class MoneySetup(Input):
     """How the companion's money works (companion/life/money.py). Everything else comes from city data."""
     # A career id from the world data; empty guesses one from who they are, else an ordinary wage.
@@ -78,6 +85,7 @@ class CharacterDefinition(Input):
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
     # "MM-DD"; empty picks a date from the companion's id (companion/life/occasions.py).
+    texting: TextingStyle = Field(default_factory=TextingStyle)
     birthday: str = Field(default='', pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
     money: MoneySetup = Field(default_factory=MoneySetup)
 
@@ -205,6 +213,8 @@ class LifeSettingsUpdate(Input):
     # Storylines from quiet (0) through realistic and dramatic to soap opera (3).
     drama: int | None = Field(default=None, ge=0, le=3)
     # "MM-DD", or empty to forget it (companion/life/occasions.py).
+    # Replies wait while the companion is at work or asleep (companion/life/pacing.py).
+    paced_replies: bool | None = None
     user_birthday: str | None = Field(default=None, pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
 
 

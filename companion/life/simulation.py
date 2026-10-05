@@ -32,7 +32,7 @@ from companion.workspace import overlapping_pause
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
-FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first')
+FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
 
