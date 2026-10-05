@@ -11,6 +11,7 @@ the request or the stream: closing a stream never stops a reply, only Stop does.
 import asyncio
 from dataclasses import dataclass, field
 
+from companion import self_facts
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -312,6 +313,8 @@ class Conversation:
             if status == 'complete':
                 connection.execute('UPDATE messages SET active=0 WHERE reply_to=?', (attempt['reply_to'],))
                 connection.execute('UPDATE messages SET active=1 WHERE id=?', (attempt_id,))
+                self_facts.note(connection, one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,)),
+                                self.database.now())
 
 
 def still_current(connection, attempt, companion) -> bool:

@@ -13,6 +13,7 @@ import { LifeFields } from './LifeFields'
 import { QuickStart } from './QuickStart'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
+import { SelfFacts } from './SelfFacts'
 
 interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
 
@@ -116,6 +117,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
           <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{companion ? 'Save new version' : 'Create companion'}</button>
         </div>
       </form>
+      {companion && <SelfFacts name={companion.version.name} />}
       {companion && <Versions current={companion.active_version_id} />}
     </section>
   )

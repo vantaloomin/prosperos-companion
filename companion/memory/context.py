@@ -8,6 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from companion import self_facts
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
@@ -51,6 +52,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
+            'self_facts': 'What you have said about yourself before (fiction about you, not the user; stay consistent '
+                          'with it: you may add new details but never contradict these)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
@@ -380,6 +383,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     conversation = fit_conversation(packet, recent)
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
+    for identity, text in self_facts.context_lines(connection, timeline_id):
+        packet.offer('self_facts', identity, text)
     closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

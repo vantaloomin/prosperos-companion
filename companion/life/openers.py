@@ -14,7 +14,7 @@ an ordinary companion message with no `reply_to`, so the next reply sees it in t
 from dataclasses import dataclass
 from datetime import timedelta
 
-from companion import notifications
+from companion import notifications, self_facts
 from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import encode, identifier, many, one, optional, settings
@@ -253,6 +253,7 @@ class Openers:
                                 wording, timestamp))
             notifications.enqueue_message(connection, message_id, timestamp)
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
+            self_facts.note(connection, row, timestamp)
         return {'state': 'sent', 'kind': trigger.kind, 'message': message_view(row)}
 
 

@@ -899,3 +899,22 @@ CREATE TABLE IF NOT EXISTS openers (
   UNIQUE (timeline_id, trigger_key)
 );
 CREATE INDEX IF NOT EXISTS openers_message ON openers(message_id);
+
+-- What the companion said about themselves (companion/self_facts.py): fiction about the character,
+-- tied to the message it came from, noted automatically and kept or removed by the user.
+CREATE TABLE IF NOT EXISTS self_facts (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  key TEXT NOT NULL,
+  category TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  value TEXT NOT NULL,
+  statement TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('noted', 'kept', 'rejected', 'conflict')),
+  conflicts_with TEXT,
+  created_at TEXT NOT NULL,
+  decided_at TEXT,
+  UNIQUE (message_id, key)
+);
+CREATE INDEX IF NOT EXISTS self_facts_message ON self_facts(message_id);

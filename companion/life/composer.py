@@ -204,18 +204,30 @@ LEANINGS = {
 LEANING_WEIGHT = 3
 
 
-def leanings(definition: dict) -> set[str]:
-    """Activity keys the character's interests and life themes point toward."""
+def matching(phrases) -> set[str]:
+    """Activity keys whose stems the words in these phrases match."""
     words = set()
-    for phrase in [*definition.get('interests', ()), *definition.get('life_themes', ())]:
+    for phrase in phrases:
         words |= {word.strip('.,;:!?()"\'').casefold() for word in phrase.split()}
     return {key for key, stems in LEANINGS.items()
             if any(word == stem or len(stem) > 3 and word.startswith(stem) for word in words for stem in stems)}
 
 
+def leanings(definition: dict) -> set[str]:
+    """Activity keys the character's interests, life themes and own stated likes point toward."""
+    tastes = definition.get('self_tastes') or {}
+    return matching([*definition.get('interests', ()), *definition.get('life_themes', ()), *tastes.get('likes', ())])
+
+
+def aversions(definition: dict) -> set[str]:
+    """Activity keys the character has said they dislike ("I hate running")."""
+    return matching((definition.get('self_tastes') or {}).get('dislikes', ()))
+
+
 def choose(rng, options, definition: dict):
-    """An activity, with the character's interests weighing in. Without a matching interest the
-    choice is uniform, exactly as before interests counted."""
+    """An activity, with the character's interests weighing in and stated dislikes left out. Without
+    a matching interest the choice is uniform, exactly as before interests counted."""
+    options = [option for option in options if option.key not in aversions(definition)] or options
     favored = leanings(definition)
     if not favored & {option.key for option in options}:
         return rng.choice(options)

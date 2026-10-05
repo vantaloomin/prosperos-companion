@@ -728,3 +728,18 @@ export interface Closeness {
   jokes: ClosenessJoke[]
   joke_candidates: (ClosenessJoke & { days: number })[]
 }
+
+/** Something the companion said about themselves (companion/self_facts.py). */
+export interface SelfFact {
+  id: string
+  message_id: string
+  category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy'
+  label: string
+  subject: string
+  value: string
+  statement: string
+  status: 'noted' | 'kept' | 'conflict'
+  conflicts_with: string | null
+  created_at: string
+  decided_at: string | null
+}
