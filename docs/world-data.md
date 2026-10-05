@@ -12,7 +12,7 @@ Built-in cities come in three kinds (`setting`):
 | Setting | Cities |
 | --- | --- |
 | `real` | Baltimore, New York, Miami, San Diego, Las Vegas |
-| `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) and Camelot (Malory, Tennyson and other public-domain Arthurian sources). Settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
+| `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
 | `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, and Calderwick, an industrial canal city with a steampunk lean. |
 
 Users can also build their own cities (see [Building a city](#building-a-city)). `GET /api/world/cities`
