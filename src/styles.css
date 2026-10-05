@@ -63,7 +63,6 @@ textarea { resize: vertical; line-height: 1.6; }
 .transcript { flex: 1; overflow-y: auto; overflow-anchor: none; }
 .transcript:focus-visible { outline-offset: -3px; }
 .reading-column { max-width: 760px; margin: 0 auto; padding: 24px 32px 32px; }
-.empty-conversation { text-align: center; padding: 48px 0; }
 .load-earlier { display: block; margin: 0 auto 24px; }
 .message { margin-bottom: 28px; }
 .message > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; min-height: 28px; }
@@ -240,3 +239,14 @@ textarea { resize: vertical; line-height: 1.6; }
 .rename-form { display: grid; gap: 6px; }
 .rename-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .rename-row input { flex: 1; min-width: 140px; }
+
+/* First conversation */
+.getting-started { padding: 24px 0; display: grid; gap: 12px; }
+.getting-started h2 { font-size: 1.2rem; }
+.getting-started ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.getting-started li { display: flex; gap: 12px; align-items: flex-start; }
+.getting-started li > svg { flex-shrink: 0; width: 20px; height: 20px; margin-top: 2px; color: var(--muted); }
+.getting-started li.done > svg { color: var(--accent); }
+.getting-started li p { margin: 0; }
+.getting-started .step-label { font-weight: 600; }
+.getting-started .text-button { padding-left: 0; margin-top: 4px; }
