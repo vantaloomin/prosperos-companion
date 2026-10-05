@@ -24,11 +24,15 @@ export interface Message {
   photo?: ChatPhoto | null
 }
 
-/** A photo a reply sent: the image of the feed post for the moment it shows. */
+/** A picture a reply sent: a photo, selfie or view of the moment (shared with its feed post), or a meme. */
 export interface ChatPhoto {
   message_id: string
   post_id: string
+  kind: 'moment' | 'selfie' | 'view' | 'meme'
   summary: string
+  /** A meme's captions, drawn over the picture. */
+  top_text: string
+  bottom_text: string
   status: ImageStatus
   job_id: string | null
   ref: string | null

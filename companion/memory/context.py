@@ -47,9 +47,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
-            'photo': 'What you are doing right now (from your day; still happening). You are sending the user a '
-                     'photo of this moment with this reply: mention it naturally, and describe only what is '
-                     'listed here',
+            'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
+                     'only what is listed here)',
             'relationship_mood': 'Your current mood about time apart',
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "

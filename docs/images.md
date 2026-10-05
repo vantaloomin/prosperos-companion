@@ -96,12 +96,23 @@ seed where the backend takes one, the output size and usage.
 - Images are saved in `images/` beside the workspace database. Backups hold the job records but
   not the image files. A restored workspace has its image keys cleared and automatic images off.
 
-## Photos in chat
+## Photos, selfies and memes in chat
 
 Asked what they're up to ("what are you up to?", "wyd", "send me a pic"), the companion can answer
-with a photo of the moment (`companion/images/photos.py`). The app decides from a fixed list of
+with a photo of the moment (`companion/images/photos.py`). "Send me a selfie" gets a selfie of the
+same moment, "a pic of the view" a first-person photo with nobody in it (and so no likeness), and
+"send me a meme", "make me laugh" or "cheer me up" a meme. The app decides from a fixed list of
 phrasings, not the model, and a question about another time ("tomorrow", "tonight", "been up to")
-asks for nothing.
+asks for no photo.
+
+- A selfie or view is another version of the moment's picture, on the same post. Each reply keeps
+  the version it sent, the feed shows the newest, and asking again for the same kind in the same
+  moment shows the one already made.
+- A meme is a joke, not an event. Its captions come from templates that fit the companion's day
+  (`companion/images/memes.py`: what their routine has them doing, rain, late night or morning), and
+  the last few are not repeated. The picture is the companion pulling a face or a simple fictional
+  scene, made square on a post of its own that never reaches the feed. The interface draws the
+  captions over it; the image model is never asked for text. Captions are classified with the rest.
 
 - The photo shows the companion's current routine slot, composed the way the simulation will
   compose it: the same agenda entry, plan and seed, and the wording prepared ahead for that entry
@@ -117,8 +128,8 @@ asks for nothing.
 - A reply that sends a photo gets one context section with the moment, so it can mention the photo.
   Asking again in the same slot shows the same photo without making another.
 - `chat_photos` in the image settings turns it off (on by default; it still needs a backend).
-- In the chat, each style shows the photo under the reply with a line while it is on its way.
-  The Visual novel stage also shows the latest photo behind the portrait.
+- In the chat, each style shows the picture under the reply with a line while it is on its way.
+  The Visual novel stage also shows the latest photo (not meme) behind the portrait.
 
 ## Interface
 
@@ -154,7 +165,7 @@ All writes need the `x-companion-client: workspace` header.
 | `POST /api/images/jobs/{id}/retry` | `{current_settings?, backend_id?}` |
 | `POST /api/images/jobs/{id}/select` | Make a finished version the post's image |
 | `GET /api/images/jobs/{id}/file` | The image file |
-| `GET /api/images/photos/{message_id}` | The photo a reply sent: `{post_id, summary, status, job_id, ref, error, in_feed}` |
+| `GET /api/images/photos/{message_id}` | The picture a reply sent: `{post_id, kind, summary, top_text, bottom_text, status, job_id, ref, error, in_feed}` |
 
 A post's `image` is `{status, job_id, ref, error, updated_at}`: `ref` is the id of the job whose
 file is shown, which can differ from `job_id` while a replacement is queued, running or failed.

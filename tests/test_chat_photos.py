@@ -6,7 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from companion.identity import CLIENT_HEADER
-from companion.images.photos import asks_for_photo
+from companion.images import memes
+from companion.images.photos import asked_kind, asks_for_photo
 from companion.main import create_app
 from companion.providers.vault import MemoryVault
 from tests.conftest import reconcile, send, set_life
@@ -40,8 +41,8 @@ def ask(client, text='what are you up to?', client_id='ask-0001'):
 
 def photo_section(provider) -> str:
     system = provider.requests[-1]['system']
-    return system.split('## What you are doing right now', 1)[1].split('##', 1)[0] if \
-        '## What you are doing right now' in system else ''
+    return system.split('## A picture you are sending', 1)[1].split('##', 1)[0] if \
+        '## A picture you are sending' in system else ''
 
 
 def set_appearance(client, appearance):
@@ -157,3 +158,82 @@ def test_a_fork_keeps_the_photo_on_the_copied_reply(client, life):
     history = client.get('/api/conversation').json()['messages']
     copied = next(message for message in history if message['role'] == 'companion' and message['photo'])
     assert copied['id'] != reply['id'] and copied['photo']['status'] == 'completed'
+
+
+@pytest.mark.parametrize(('text', 'kind'), [
+    ('send me a selfie', 'selfie'), ('can I see your face?', 'selfie'), ('pic of you rn?', 'selfie'),
+    ('send me a pic of the view', 'view'), ("show me what you're seeing", 'view'),
+    ('send me a meme', 'meme'), ('got any memes?', 'meme'), ('cheer me up', 'meme'), ('make me laugh', 'meme'),
+    ('wyd', 'moment'), ('send me a selfie tomorrow', None)])
+def test_which_picture_a_message_asks_for(text, kind):
+    assert asked_kind(text) == kind
+
+
+def jobs_for(client, photo):
+    return client.get(f"/api/images/jobs?post_id={photo['post_id']}").json()['jobs']
+
+
+def test_a_selfie_is_a_new_version_of_the_moment_and_each_reply_keeps_its_own(client, life, adapters):
+    local_comfy(client)
+    plain = ask(client)
+    drain(client)
+    selfie = ask(client, 'send me a selfie!', 'ask-0002')
+    drain(client)
+    assert selfie['photo']['post_id'] == plain['photo']['post_id'] and selfie['photo']['kind'] == 'selfie'
+    assert adapters['comfyui'].requests[-1].prompt.startswith('A selfie Mira is taking')
+    first = client.get(f"/api/images/photos/{plain['id']}").json()
+    second = client.get(f"/api/images/photos/{selfie['id']}").json()
+    assert first['ref'] and second['ref'] and first['ref'] != second['ref']
+    # Asking for a selfie again in the same moment shows the same one.
+    again = ask(client, 'another selfie?', 'ask-0003')['photo']
+    assert again['job_id'] == second['job_id'] and len(adapters['comfyui'].requests) == 2
+
+
+def test_a_view_leaves_the_companion_out(client, life, adapters):
+    set_appearance(client, 'Freckles and a red scarf')
+    local_comfy(client)
+    photo = ask(client, 'send me a pic of the view', 'ask-0001')['photo']
+    assert photo['kind'] == 'view'
+    drain(client)
+    assert 'red scarf' not in adapters['comfyui'].requests[-1].prompt
+
+
+def test_a_meme_is_a_joke_that_never_reaches_the_feed(client, life, clock, provider, adapters):
+    local_comfy(client)
+    reply = ask(client, 'send me a meme', 'ask-0001')
+    photo = reply['photo']
+    assert photo['kind'] == 'meme' and photo['top_text'] and photo['bottom_text']
+    assert photo['top_text'] in photo_section(provider)
+    drain(client)
+    assert client.get(f"/api/images/photos/{reply['id']}").json()['status'] == 'completed'
+    request = adapters['comfyui'].requests[-1]
+    assert photo['top_text'] not in request.prompt  # Captions are drawn by the interface.
+    set_life(client, automatic_events=True)
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    assert all(post['id'] != photo['post_id'] for post in client.get('/api/feed').json()['posts'])
+    # Another meme is a new one, not a repeat.
+    other = ask(client, 'another meme pls', 'ask-0002')['photo']
+    assert other['post_id'] != photo['post_id'] and other['top_text'] != photo['top_text']
+
+
+def test_memes_are_classified_like_any_picture(client, life, adapters):
+    set_appearance(client, 'Tall, in lingerie')
+    add_backend(client, kind='hosted', provider='google', base_url='https://example.test/v1', model='image',
+                api_key='key')
+    reply = ask(client, 'send me a meme', 'ask-0001')
+    # Either a scene meme with no likeness, safe for the hosted backend, or none at all: never NSFW to Google.
+    drain(client)
+    for request in adapters['hosted'].requests:
+        assert 'lingerie' not in request.prompt
+    if reply['photo']:
+        assert reply['photo']['kind'] == 'meme'
+
+
+def test_meme_templates_fit_the_day_and_vary():
+    work = {'kind': 'work', 'label': 'Work', 'place': 'the office', 'rain': False}
+    chosen = {memes.choose(work, 14, f'seed-{index}')['top'] for index in range(30)}
+    assert len(chosen) > 3
+    assert memes.choose(None, 3, 'x')['top']
+    recent = [template.top for template in memes.SITUATIONS['work'] + memes.ANYTIME]
+    assert memes.choose(work, 14, 'y', recent)['top']

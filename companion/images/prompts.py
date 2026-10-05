@@ -73,19 +73,56 @@ def stale(connection, inputs) -> bool:
     return False
 
 
-def build_moment(connection, moment, image_settings) -> dict:
+# How a chat photo frames the moment: the default photo, a selfie, or what they can see.
+FRAMINGS = {
+    'moment': '',
+    'selfie': "A selfie {name} is taking right now at arm's length with a phone's front camera, face and "
+              'shoulders in frame, looking into the lens.',
+    'view': 'A phone photo of what {name} can see right now, first-person point of view, nobody in focus.',
+}
+
+
+def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     """The frozen inputs of a chat photo: the companion's current slot as the simulation composes
     it, before it is an event. The moment's wording goes into `captions`, so classification covers
-    it (F6), and `events` stays empty: there is no event yet to go stale."""
+    it (F6), and `events` stays empty: there is no event yet to go stale. A view leaves the
+    companion out of the picture, so it carries no likeness."""
     companion = require_current(connection)
     definition = companion['version']['definition']
     scene_text = {key: moment[key] for key in ('summary', 'caption', 'mood', 'place')}
-    return {'prompt_version': PROMPT_VERSION,
-            'prompt': compose(definition['name'], definition.get('appearance', ''), [scene_text],
-                              image_settings['style']),
-            'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
-            'seed': random.SystemRandom().randrange(1, 2**31),
+    appearance = '' if framing == 'view' else definition.get('appearance', '')
+    prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'])
+    if FRAMINGS[framing]:
+        prompt = f"{FRAMINGS[framing].format(name=definition['name'])} {prompt}"
+    likeness = current_for_images(connection)
+    if framing == 'view':
+        likeness = {**likeness, 'lora': None}
+    return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
+            'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
+            'moment': moment, **likeness}
+
+
+def build_meme(connection, meme, image_settings) -> dict:
+    """The frozen inputs of a meme picture. Its captions are drawn over the picture by the interface,
+    never asked of the image model, and they are classified with the rest (F6)."""
+    companion = require_current(connection)
+    definition = companion['version']['definition']
+    if meme['subject']:
+        prompt = f"Reaction-meme style photo, simple and centered: {meme['subject']}. A fictional scene."
+        likeness = {**current_for_images(connection), 'lora': None}
+    else:
+        person = f"{definition['name']}, {definition.get('appearance', '').strip().rstrip('.')}".rstrip(', ')
+        prompt = (f"Reaction-meme style photo, simple and centered: {person}, with a {meme['expression']} "
+                  f"expression{meme['where']}. A fictional moment, room above and below the face.")
+        likeness = current_for_images(connection)
+    return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
+            'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],
+            'meme': meme, **likeness}
+
+
+def base_inputs(companion, definition, image_settings) -> dict:
+    return {'prompt_version': PROMPT_VERSION, 'negative': NEGATIVE, 'style': image_settings['style'],
+            'aspect': image_settings['aspect'], 'seed': random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
-            'events': [], 'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
-            'moment': moment, 'marked_nsfw': False, **current_for_images(connection)}
+            'events': [], 'marked_nsfw': False}

@@ -945,12 +945,18 @@ CREATE TABLE IF NOT EXISTS world_change_dismissals (
   dismissed_at TEXT NOT NULL
 );
 
--- A photo the companion sent with a chat reply: the image of the post keyed to the slot it shows
--- (companion/images/photos.py). The post is the feed's, so the chat and the feed share one picture.
+-- A picture the companion sent with a chat reply (companion/images/photos.py): a photo, selfie or
+-- view of the current moment, made on the post keyed to the slot it shows so the chat and the feed
+-- share one picture, or a meme on a post of its own that never reaches the feed. `job_id` is the
+-- version this reply showed.
 CREATE TABLE IF NOT EXISTS chat_photos (
   message_id TEXT PRIMARY KEY REFERENCES messages(id),
   post_id TEXT NOT NULL REFERENCES feed_posts(id),
-  event_key TEXT NOT NULL,
+  job_id TEXT REFERENCES image_jobs(id),
+  kind TEXT NOT NULL DEFAULT 'moment' CHECK (kind IN ('moment', 'selfie', 'view', 'meme')),
+  event_key TEXT NOT NULL DEFAULT '',
   summary TEXT NOT NULL,
+  top_text TEXT NOT NULL DEFAULT '',
+  bottom_text TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL
 );

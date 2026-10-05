@@ -1,24 +1,25 @@
-"""Photos in chat: asked what they are up to, the companion can answer with a photo of the moment.
+"""Pictures in chat: asked what they are up to, or for a selfie or a meme, the companion can send one.
 
-The app decides when, not the model: a fixed set of phrasings asks for one, the way lookups are
-chosen (X3). The photo shows the companion's current routine slot composed exactly as the
-simulation will compose it (the same agenda entry, plan and seed), so the reply, the photo and the
-event that slot becomes all tell one account. The image is made on a feed post keyed to that
-future event (`feed.PHOTO_KEY`); when the simulation writes the event it joins that post, so the
-feed shows the same picture and the event exists once. Until then the post has no event and stays
-out of the feed.
+The app decides when, not the model: fixed phrasings ask for a picture, the way lookups are chosen
+(X3). A photo, selfie or view shows the companion's current routine slot composed exactly as the
+simulation will compose it (the same agenda entry, plan and seed), so the reply, the picture and the
+event that slot becomes all tell one account. It is made on a feed post keyed to that future event
+(`feed.PHOTO_KEY`); when the simulation writes the event it joins that post, so the feed shows the
+same picture and the event exists once. Until then the post has no event and stays out of the feed.
+A meme is a joke, not an event: its captions come from templates (`memes.py`) and its picture is
+made on a post of its own that never reaches the feed.
 
-Every photo goes through the same classification and routing as any other image (F6): NSFW only to
-a local backend, the prohibited tier nowhere, and anything uncertain counts as NSFW. A request with
-nowhere to go sends no photo, and nothing here ever holds up the reply.
+Every picture goes through the same classification and routing as any other image (F6): NSFW only
+to a local backend, the prohibited tier nowhere, and anything uncertain counts as NSFW. A request
+with nowhere to go sends nothing, and nothing here ever holds up the reply.
 """
 import re
 
 from companion import events
 from companion.characters import require_current
 from companion.clock import parse, zone
-from companion.database import many, one, optional, settings
-from companion.images import jobs, prompts
+from companion.database import decode, many, one, optional, settings
+from companion.images import jobs, memes, prompts
 from companion.life import agenda, feed, routine, simulation
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
 from companion.text_models import config_for
@@ -31,16 +32,34 @@ ASKS = re.compile(
     r"|show me (?:what|where) (?:you(?:'re| are)|u r)"
     r"|(?:pic|picture|photo|selfie)s? (?:or it didn'?t happen|of (?:what|where) (?:you|u)))",
     re.IGNORECASE)
+SELFIE = re.compile(r"\bselfies?\b|\b(?:pic|picture|photo)s? of (?:you|u|yourself|your face)\b"
+                    r"|\bsee (?:your face|you)\b", re.IGNORECASE)
+VIEW = re.compile(r"\b(?:pic|picture|photo|show me)\b.{0,20}\b(?:the view|your view|what you(?:'re| are)? see"
+                  r"(?:ing)?|where you are|around you)\b", re.IGNORECASE)
+MEME = re.compile(r"\bmemes?\b|\bmake me (?:laugh|smile)\b|\bcheer me up\b|\bi need a laugh\b",
+                  re.IGNORECASE)
 # Asking about another time is not asking what they are doing now.
 ELSEWHEN = re.compile(r"\b(?:tomorrow|tonight|later|yesterday|last (?:night|week|weekend)|earlier|next|this "
                       r"(?:weekend|evening|afternoon)|on (?:mon|tues|wednes|thurs|fri|satur|sun)day|been up to)\b",
                       re.IGNORECASE)
-SHOWN = ('queued', 'running', 'completed')
-RESTARTED = ('none', 'cancelled', 'interrupted')
+
+
+def asked_kind(text: str) -> str | None:
+    """Which picture a message asks for: 'meme', 'selfie', 'view', 'moment', or None."""
+    text = text or ''
+    if MEME.search(text):
+        return 'meme'
+    if ELSEWHEN.search(text):
+        return None
+    if SELFIE.search(text):
+        return 'selfie'
+    if VIEW.search(text):
+        return 'view'
+    return 'moment' if ASKS.search(text) else None
 
 
 def asks_for_photo(text: str) -> bool:
-    return bool(ASKS.search(text or '')) and not ELSEWHEN.search(text or '')
+    return asked_kind(text) is not None
 
 
 def wording(connection, composed, prepared) -> dict:
@@ -66,38 +85,78 @@ class ChatPhotos:
         self.life = life
 
     def for_message(self, user, attempt_id) -> dict | None:
-        """The photo this reply sends, recorded against the reply, or None. Never raises."""
-        if not asks_for_photo(user['text']):
+        """The picture this reply sends, recorded against the reply, or None. Never raises."""
+        kind = asked_kind(user['text'])
+        if kind is None:
             return None
         try:
-            return self.send(attempt_id)
-        except Exception:  # noqa: BLE001 - the reply goes ahead without a photo.
+            return self.send(kind, attempt_id)
+        except Exception:  # noqa: BLE001 - the reply goes ahead without a picture.
             return None
 
-    def send(self, attempt_id) -> dict | None:
+    def send(self, kind, attempt_id) -> dict | None:
         now = self.database.clock.now()
         with self.database.connect() as connection:
             if not jobs.image_settings(connection)['chat_photos'] or settings(connection)['paused_at']:
                 return None
-            moment = self.moment(connection, require_current(connection), now)
-            inputs = moment and prompts.build_moment(connection, moment, jobs.image_settings(connection))
-        if moment is None:
-            return None
-        post = self.post_for(moment)
+            companion = require_current(connection)
+            moment = self.moment(connection, companion, now)
+            local_hour = now.astimezone(zone(companion['version']['timezone'])).hour
+            recent = recent_memes(connection, companion['active_timeline_id'])
+        if kind == 'meme':
+            return self.send_meme(attempt_id, moment, memes.choose(moment, local_hour, attempt_id, recent),
+                                  companion['active_timeline_id'])
+        return self.send_moment(attempt_id, moment, kind) if moment else None
+
+    def send_moment(self, attempt_id, moment, kind) -> dict | None:
+        with self.database.connect() as connection:
+            inputs = prompts.build_moment(connection, moment, jobs.image_settings(connection), kind)
+        post = self.post_for(moment['timeline_id'], feed.PHOTO_KEY + moment['event_key'], moment['ends_at'])
         if post['status'] == 'removed':
             return None
-        if post['image_status'] in RESTARTED:
-            if not jobs.routable(self.database, inputs):
-                return None
-            jobs.enqueue(self.database, post['id'], 'manual', inputs=inputs)
-            self.images.wake()
-        elif post['image_status'] not in SHOWN:
-            return None  # It failed for this moment already; the feed post offers a retry once it shows.
+        job_id = self.shown_job(post['id'], kind) or self.make(post['id'], inputs)
+        if job_id is None:
+            return None
+        self.record(attempt_id, post['id'], job_id, kind, moment['event_key'], moment['summary'])
+        return {'post_id': post['id'], 'text': moment_text(moment, kind)}
+
+    def send_meme(self, attempt_id, moment, meme, timeline_id) -> dict | None:
+        with self.database.connect() as connection:
+            inputs = prompts.build_meme(connection, meme, jobs.image_settings(connection))
+        post = self.post_for(timeline_id, f'meme:{attempt_id}', self.database.now())
+        job_id = self.make(post['id'], inputs)
+        if job_id is None:
+            return None
+        summary = meme['subject'] or f"you, looking {meme['expression']}"
+        self.record(attempt_id, post['id'], job_id, 'meme', '', summary, meme['top'], meme['bottom'])
+        return {'post_id': post['id'], 'text': f"- A meme you made to share (a joke, not something that happened): "
+                                               f"a picture of {summary}, captioned «{meme['top']}» / "
+                                               f"«{meme['bottom']}»."}
+
+    def shown_job(self, post_id, kind) -> str | None:
+        """A picture of this moment already made or on its way that answers the ask: any for a plain
+        photo, the same framing for a selfie or a view. Asking again never makes another."""
+        with self.database.connect() as connection:
+            for job in many(connection, "SELECT id, inputs FROM image_jobs WHERE post_id=? AND status IN "
+                            "('queued', 'running', 'completed') ORDER BY created_at DESC, rowid DESC", (post_id,)):
+                if kind == 'moment' or decode(job['inputs']).get('framing', 'moment') == kind:
+                    return job['id']
+        return None
+
+    def make(self, post_id, inputs) -> str | None:
+        """Queue the picture if some backend may take it (F6); None when nothing may."""
+        if not jobs.routable(self.database, inputs):
+            return None
+        job = jobs.enqueue(self.database, post_id, 'manual', inputs=inputs)
+        self.images.wake()
+        return job['id']
+
+    def record(self, attempt_id, post_id, job_id, kind, event_key, summary, top='', bottom=''):
         with self.database.connect(write=True) as connection:
-            connection.execute('INSERT OR REPLACE INTO chat_photos (message_id, post_id, event_key, summary, '
-                               'created_at) VALUES (?, ?, ?, ?, ?)',
-                               (attempt_id, post['id'], moment['event_key'], moment['summary'], self.database.now()))
-        return {'post_id': post['id'], 'text': moment_text(moment)}
+            connection.execute('INSERT OR REPLACE INTO chat_photos (message_id, post_id, job_id, kind, event_key, '
+                               'summary, top_text, bottom_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                               (attempt_id, post_id, job_id, kind, event_key, summary, top, bottom,
+                                self.database.now()))
 
     def moment(self, connection, companion, now) -> dict | None:
         """What the companion is doing right now, if anything worth a photo: the current slot,
@@ -121,30 +180,45 @@ class ChatPhotos:
         until = parse(shown['ends_at']).astimezone(zone(version['timezone'])).strftime('%H:%M')
         return {'event_key': key, 'summary': words['summary'], 'caption': words['post'],
                 'mood': composed.get('mood', ''), 'place': place_text(composed.get('place')),
-                'label': shown['block']['label'], 'until': until, 'timeline_id': timeline_id,
+                'label': shown['block']['label'], 'kind': shown['block']['kind'], 'until': until,
+                'rain': bool((composed.get('weather') or {}).get('rain')), 'timeline_id': timeline_id,
                 'ends_at': shown['ends_at']}
 
-    def post_for(self, moment) -> dict:
-        """The post the slot's event will join, made once."""
+    def post_for(self, timeline_id, key, occurs_at) -> dict:
+        """The post a picture is made on, made once: for a moment, the one its event will join."""
         with self.database.connect(write=True) as connection:
-            post_id = feed.create(connection, moment['timeline_id'], 'event', feed.PHOTO_KEY + moment['event_key'],
-                                  [], moment['ends_at'], self.database.now())
+            post_id = feed.create(connection, timeline_id, 'event', key, [], occurs_at, self.database.now())
             return one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
 
 
-def moment_text(moment) -> str:
-    return f"- {moment['summary']} ({moment['label'].lower()}, until {moment['until']} your time)"
+def recent_memes(connection, timeline_id, limit=6) -> list[str]:
+    rows = many(connection, "SELECT photo.top_text FROM chat_photos photo JOIN messages message ON "
+                "message.id=photo.message_id WHERE photo.kind='meme' AND message.timeline_id=? "
+                'ORDER BY photo.created_at DESC LIMIT ?', (timeline_id, limit))
+    return [row['top_text'] for row in rows]
+
+
+LEADS = {'moment': 'A photo of what you are doing right now', 'selfie': 'A selfie you are taking right now',
+         'view': 'A photo of what you can see right now'}
+
+
+def moment_text(moment, kind='moment') -> str:
+    return (f"- {LEADS[kind]} (from your day; still happening): {moment['summary']} "
+            f"({moment['label'].lower()}, until {moment['until']} your time)")
 
 
 def view(row) -> dict:
-    return {'message_id': row['message_id'], 'post_id': row['post_id'], 'summary': row['summary'],
-            'status': row['image_status'], 'job_id': row['image_job_id'], 'ref': row['image_ref'],
-            'error': row['image_error'], 'in_feed': row['in_feed'] > 0}
+    done = row['job_status'] == 'completed' and row['output_file'] is not None
+    return {'message_id': row['message_id'], 'post_id': row['post_id'], 'kind': row['kind'],
+            'summary': row['summary'], 'top_text': row['top_text'], 'bottom_text': row['bottom_text'],
+            'status': row['job_status'] or 'failed', 'job_id': row['job_id'], 'ref': row['job_id'] if done else None,
+            'error': row['job_error'], 'in_feed': row['in_feed'] > 0}
 
 
-SELECT = ('SELECT photo.message_id, photo.post_id, photo.summary, post.image_status, post.image_job_id, '
-          'post.image_ref, post.image_error, (SELECT COUNT(*) FROM feed_post_events link '
-          'WHERE link.post_id=post.id) AS in_feed FROM chat_photos photo JOIN feed_posts post ON post.id=photo.post_id '
+SELECT = ('SELECT photo.*, job.status AS job_status, job.output_file, job.error AS job_error, '
+          '(SELECT COUNT(*) FROM feed_post_events link WHERE link.post_id=post.id) AS in_feed '
+          'FROM chat_photos photo JOIN feed_posts post ON post.id=photo.post_id '
+          'LEFT JOIN image_jobs job ON job.id=photo.job_id '
           "WHERE post.status!='removed' AND photo.message_id IN ")
 
 
