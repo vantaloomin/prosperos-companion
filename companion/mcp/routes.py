@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 
 from companion.mcp import lookups, services
 from companion.mcp.lookups import BACKGROUND_DEADLINE
-from companion.models import ContextLocation, ContextLookup, ContextService, ToolApproval, ToolMapping
+from companion.models import ContextBuiltin, ContextLocation, ContextLookup, ContextService, ToolApproval, ToolMapping
 
 router = APIRouter(prefix='/api/context')
 
@@ -25,6 +25,12 @@ def update_location(request: Request, body: ContextLocation):
 @router.post('/services')
 def create_service(request: Request, body: ContextService):
     return services.create_service(db(request), request.app.state.vault, body)
+
+
+@router.post('/services/builtin')
+def create_builtin(request: Request, body: ContextBuiltin):
+    """Add a server that ships with the app, such as the keyless weather server."""
+    return services.create_builtin(db(request), request.app.state.vault, body.kind)
 
 
 @router.put('/services/{service_id}')

@@ -30,15 +30,34 @@ export function ContextSettings({ name }: { name: string }) {
         </p>
       </div>
       <LocationForm data={data} setResult={setResult} />
-      {data.services.length === 0 && <p className="subtle">No lookup service is set up. {name} answers from what they already know.</p>}
+      {data.services.length === 0 && <p className="subtle">No lookup service is set up. {name} answers from what they already know. The built-in weather server needs no key or account.</p>}
       <ol className="backend-list">
         {data.services.map((service) => <ServiceRow key={service.id} service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}
       </ol>
       {adding ? <AddService onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-        : <div className="form-actions"><button type="button" className="button" onClick={() => setAdding(true)}>Add a lookup service</button></div>}
+        : <div className="form-actions">
+          {!data.services.some((service) => service.builtin === 'weather') && <AddBuiltinWeather refresh={refresh} setResult={setResult} />}
+          <button type="button" className="button" onClick={() => setAdding(true)}>Add a lookup service</button>
+        </div>}
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
+}
+
+/** The keyless weather server that ships with the app: added and checked in one step, still off until you approve it. */
+function AddBuiltinWeather({ refresh, setResult }: { refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+  const [busy, setBusy] = useState(false)
+  const add = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const created = await api<ContextServiceInfo>('/context/services/builtin', { kind: 'weather' })
+      const checked = await api<ContextServiceInfo>(`/context/services/${created.id}/check`, {})
+      setResult(checked.check_error ? { tone: 'error', text: `Added, but the check failed: ${checked.check_error}` } : { tone: 'info', text: 'Added the built-in weather server. Review and turn on its weather lookup below.' })
+      await refresh()
+    } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not added.') }) } finally { setBusy(false) }
+  }
+  return <button type="button" className="button primary" aria-disabled={busy} onClick={() => void add()}>Add the built-in weather server</button>
 }
 
 function LocationForm({ data, setResult }: { data: Overview; setResult: (result: Result) => void }) {
@@ -74,12 +93,13 @@ function LocationForm({ data, setResult }: { data: Overview; setResult: (result:
 }
 
 function ServiceSummary({ service }: { service: ContextServiceInfo }) {
-  const where = service.transport === 'http' ? service.url : (service.command ?? []).join(' ')
+  const where = service.builtin === 'weather' ? 'Ships with the app; asks Open-Meteo, or the National Weather Service for US places when Open-Meteo fails'
+    : service.transport === 'http' ? service.url : (service.command ?? []).join(' ')
   const server = service.server_info ? `${service.server_info.name} · MCP ${service.server_info.protocol}` : ''
   return <>
     <div className="backend-title">
       <strong>{service.name}</strong>
-      <span className="badge">{service.transport === 'http' ? 'HTTP' : 'Local program'}</span>
+      <span className="badge">{service.builtin ? 'Built in' : service.transport === 'http' ? 'HTTP' : 'Local program'}</span>
       {service.mappings.some((mapping) => mapping.enabled && mapping.approved) && <span className="badge">On</span>}
     </div>
     <p className="subtle">{[where, service.has_key ? 'key saved' : '', server].filter(Boolean).join(' · ')}</p>

@@ -4,8 +4,8 @@
 
 The Companion can look up real weather, news and local events through
 [Model Context Protocol](https://modelcontextprotocol.io) servers the user configures
-(PRD X1–X3). Nothing is built in and nothing runs by default: there are no bundled services, paid
-APIs or keys. The code is in `companion/mcp/`.
+(PRD X1–X3). Nothing runs by default and nothing needs a paid API or key. One server ships with the
+app, a keyless weather server; any other service the user adds. The code is in `companion/mcp/`.
 
 ## How it works
 
@@ -113,6 +113,27 @@ says the companion may want to go or plan to, but has not attended any of them u
 committed events say so. A real event can inspire a plan or an imagined outing; it never becomes a
 life event or proof of attendance by itself (PRD X intro, T7).
 
+## The built-in weather server
+
+`companion/mcp/servers/weather.py` is a small read-only MCP server that ships with the app. Settings
+offers **Add the built-in weather server**, which adds and checks it in one step; its weather lookup
+then needs the same disclosure and confirmation as any other service. The app runs it with its own
+Python (`python -I companion/mcp/servers/weather.py`), so it works from a checkout or the installed
+bundle with nothing else installed. It is stored as the command `@builtin:weather`.
+
+| | |
+| --- | --- |
+| Tool | `get_forecast(location, latitude?, longitude?)`; the suggested mapping sends only `location` (your city or region as typed) |
+| Finding the place | [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api), searching the city name; text after a comma (state, US state abbreviation or country) chooses among matches |
+| Forecast | [Open-Meteo](https://open-meteo.com) for today: conditions, high, low, chance of precipitation and the current temperature, in °F |
+| Fallback | The [National Weather Service](https://www.weather.gov/documentation/services-web-api) API, only for US places (or coordinates) when Open-Meteo fails |
+| Result | Text such as "Baltimore, Maryland, US: light rain, high 61°F, low 52°F, 70% chance of precipitation, now 58°F", plus `high_f`, `low_f`, `condition`, `precipitation_chance`, `temperature_f`, `source`, so real weather for the companion's day reads it directly |
+| Network | Only the place name or coordinates are sent. 8-second timeout, no redirects, User-Agent `ProsperoCompanion/1.0 (built-in weather server)` as the NWS asks. It starts with the same minimal environment as other local programs, plus proxy and certificate settings; never the app's keys |
+
+Open-Meteo's free API is for non-commercial use and its data is licensed CC BY 4.0, so every result
+carries "Weather data by Open-Meteo.com (CC BY 4.0)". A commercial distribution of the app would need
+an Open-Meteo subscription or a different source. NWS data is public domain.
+
 ## Interface
 
 Settings has a **Real-world lookups** section: your location, the services, a suggested tool for
@@ -126,6 +147,7 @@ sent, where, when, and whether it still counts as current, with delete.
 | --- | --- |
 | `GET /api/context` | Location, services with their mappings and disclosures, and the source and timing labels |
 | `PUT /api/context/location` | `{user_place, user_latitude, user_longitude}` |
+| `POST /api/context/services/builtin` | `{kind: weather}`: add the built-in weather server (once) |
 | `POST /api/context/services` | `{name, transport: stdio\|http, command: [program, args…], url, secret, secret_name}` |
 | `PUT`, `DELETE /api/context/services/{id}` | Edit (`clear_secret` removes the key) or remove a service |
 | `POST /api/context/services/{id}/check` | Connect and list tools; returns `suggestions` per category |
@@ -154,9 +176,11 @@ tools. CI runs these combinations on Linux and Windows:
 | Official MCP Python SDK 2.3.0 | Streamable HTTP | Event stream | Stateful | Passes |
 | Official MCP Python SDK 2.3.0 | Streamable HTTP | JSON | Stateless | Passes |
 | Official MCP Python SDK 2.3.0 | Streamable HTTP | Event stream | Stateless | Passes |
+| Built-in weather server | stdio | — | — | Passes, against recorded Open-Meteo and NWS answers |
 
 Each SDK case lists tools, calls a tool and checks that a tool error is reported as a failure.
-No public weather, news or events server has been tested yet: the development environment blocks
-outbound access to them. Not supported: the older HTTP+SSE transport (2024-11-05), the 2026-07-28
+No public weather, news or events server has been tested yet, and the built-in weather server has
+not yet reached the live Open-Meteo or NWS APIs: the development environment blocks outbound access to
+them, so its tests use recorded answers (`tests/test_weather_server.py`). Not supported: the older HTTP+SSE transport (2024-11-05), the 2026-07-28
 single-exchange HTTP revision, OAuth sign-in, resources, prompts and any tool that writes, posts,
 reads private inboxes or calendars, or makes transactions (out of scope for the first release).

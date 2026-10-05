@@ -214,6 +214,10 @@ class ContextService(Input):
     clear_secret: bool = False
 
 
+class ContextBuiltin(Input):
+    kind: Literal['weather']
+
+
 class ToolArgument(Input):
     source: Literal['place', 'latitude', 'longitude', 'topic', 'date', 'literal']
     value: str | int | float | bool | None = None
