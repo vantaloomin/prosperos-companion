@@ -116,14 +116,23 @@ def require_idle(connection, companion_id):
                           'app closed. Stop it before training again.', 409, 'busy_unknown')
     image = connection.execute("SELECT 1 FROM image_jobs WHERE status='running' AND backend_kind='comfyui'").fetchone()
     require(image is None, 'An image is being made on ComfyUI. Start training when it finishes.', 409)
+    evaluating = connection.execute("SELECT 1 FROM lora_evaluations WHERE status='running'").fetchone()
+    require(evaluating is None, 'An evaluation is rendering on ComfyUI. Start training when it finishes.', 409)
 
 
-def dataset_for(connection) -> list[dict]:
+def dataset_for(connection, database) -> list[dict]:
     items = references.rows(connection)
     review = references.review(items)
     if not review['ready']:
         raise DomainError(' '.join(review['blocking']), 409, 'dataset_not_ready')
-    return [item for item in items if item['role'] == 'train']
+    pictures = [item for item in items if item['role'] == 'train']
+    folder = references.directory(database)
+    missing = [item for item in pictures if not (folder / (item['crop_file'] or item['file'])).is_file()]
+    if missing:
+        # A restored backup holds the records but not the pictures.
+        raise DomainError(f'{len(missing)} training picture(s) are missing from this workspace. Add them again.',
+                          409, 'dataset_not_ready')
+    return pictures
 
 
 def check_content(appearance_text: str, captions: list[str]):
@@ -145,7 +154,7 @@ def create(database, body) -> dict:
         if not status['ok']:
             raise DomainError(' '.join(status['problems']), 409, 'trainer_not_ready')
         require_idle(connection, companion['id'])
-        pictures = dataset_for(connection)
+        pictures = dataset_for(connection, database)
         captions = [expand(item['caption'], body.trigger) for item in pictures]
         classification = check_content(companion['version']['definition'].get('appearance', ''), captions)
         run_id = identifier()

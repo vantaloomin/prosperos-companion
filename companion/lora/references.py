@@ -95,7 +95,9 @@ def listing(database) -> dict:
     duplicates = {}
     for first, second in near_pairs(items):
         duplicates.setdefault(second['id'], first['id'])
-    return {'references': [{**view(item), 'similar_to': duplicates.get(item['id'])} for item in items],
+    folder = directory(database)
+    return {'references': [{**view(item), 'similar_to': duplicates.get(item['id']),
+                            'missing': not (folder / item['file']).is_file()} for item in items],
             'review': review(items)}
 
 

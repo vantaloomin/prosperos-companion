@@ -110,6 +110,44 @@ model is local.
   alive, its pid is kept and no new run starts until it is gone. Closing the app normally ends the
   trainer.
 
+## Evaluate
+
+An evaluation renders a fixed set (version 1) on the first enabled ComfyUI server on this
+computer, because only ComfyUI applies the adapter. Each prompt has a fixed seed and is rendered
+twice: with the adapter (`<trigger>, <name>`) and, for comparison, from the text description alone.
+
+| Key | Prompt (after "Natural photograph.") | Seed | Shape |
+| --- | --- | --- | --- |
+| `portrait` | head and shoulders portrait, plain background, soft even light | 1101 | portrait |
+| `full_body` | full-body photo standing in a plain studio, whole outfit visible | 1102 | portrait |
+| `cafe` | reading at a small café table, candid photograph | 1103 | landscape |
+| `street` | walking along a city street in the afternoon | 1104 | landscape |
+| `golden_hour` | outdoors at golden hour, warm backlight | 1105 | square |
+| `night_lamp` | indoors at night lit by a single table lamp | 1106 | square |
+| `expression` | laughing, close-up of the face | 1107 | square |
+| `traits` | close-up showing the appearance description | 1108 | portrait |
+
+- Every request is classified like any image request; a Prohibited one is recorded as refused and
+  never sent. NSFW is allowed because only a local server is used.
+- Every output, its prompt, seed, size, workflow, model and strength, and every failure are kept
+  and listed. The user can mark an image good or weak; nothing is hidden or ranked away.
+- Held-out evaluation references are listed with the evaluation for side-by-side comparison. They
+  are never sent to ComfyUI or used as inputs.
+- Evaluation does not start while training runs, and training does not start while an evaluation
+  renders. After a restart, unfinished images are marked interrupted.
+
+## Recover and export
+
+- Backups carry every adapter that has not been removed (`lora/adapters/` in the archive, stored
+  uncompressed and listed with its SHA-256 in the manifest). Restore checks each digest. Reference
+  pictures, training folders and images are not in backups; a restored workspace lists missing
+  pictures and refuses to train until they are added again.
+- **Export** gives a zip with the adapter, `adapter.json` (format, base model, trigger word,
+  digest, origin, the run's options and a dataset summary of counts, rights and picture digests)
+  and `LICENSE-NOTICE.txt`. It never includes pictures, captions or local paths. A Krea 2 adapter
+  is named `Krea-<name>.safetensors`, as the Krea 2 Community License asks of redistributed
+  derivatives.
+
 ## API
 
 All writes need the `x-companion-client: workspace` header. Uploads send the file itself as the
@@ -138,3 +176,10 @@ request body.
 | `GET /api/lora/runs/{id}/log` | The trainer's console output |
 | `POST /api/lora/runs/{id}/cancel`, `/resume`, `/restart` | Stop, continue from a verified checkpoint, or begin again |
 | `POST /api/lora/runs/{id}/keep` | `{step}`: make a verified checkpoint an adapter |
+| `GET /api/lora/evaluations?adapter_id=` | Evaluations with every image, plus the prompt set |
+| `POST /api/lora/evaluations` | `{adapter_id, strength?, include_baseline?}` |
+| `GET /api/lora/evaluations/{id}` | One evaluation |
+| `POST /api/lora/evaluations/{id}/cancel` | Stop rendering; finished images stay |
+| `PUT /api/lora/evaluation-images/{id}/rating` | `{rating: '' \| 'good' \| 'weak'}` |
+| `GET /api/lora/evaluation-images/{id}/file` | The rendered image |
+| `GET /api/lora/adapters/{id}/export` | The export zip |
