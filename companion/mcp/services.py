@@ -24,6 +24,9 @@ CATEGORIES = {
              'purposes': ('conversation',)},
     'local_events': {'label': 'Local events', 'keywords': ('event', 'concert', 'festival', 'things to do', 'happening'),
                      'purposes': ('conversation', 'companion_city')},
+    # A fallback for links the app cannot read on this computer, such as pages that need a browser.
+    'link': {'label': 'Reading links', 'keywords': ('fetch', 'scrape', 'crawl', 'extract', 'url', 'webpage'),
+             'purposes': ('conversation',), 'when': 'When a link you paste in chat cannot be read on this computer'},
 }
 PURPOSES = {
     'conversation': 'When you ask about it in chat, for your location (or the topic you name)',
@@ -37,6 +40,7 @@ SOURCES = {
     'topic': 'Up to six words naming what you asked about, taken from your message',
     'date': 'Today\'s date where the lookup applies',
     'literal': 'A fixed value you chose',
+    'url': 'The link you pasted in chat',
 }
 # Schema property names that each source can fill, best first.
 FILLS = {
@@ -45,6 +49,7 @@ FILLS = {
     'longitude': ('longitude', 'lon', 'lng', 'long'),
     'topic': ('topic', 'query', 'q', 'keywords', 'keyword', 'search', 'term', 'subject'),
     'date': ('date', 'day', 'start_date', 'startdate', 'from'),
+    'url': ('url', 'urls', 'link', 'links', 'href', 'uri'),
 }
 NEVER_SENT = ('your conversation', 'your memories', 'your name', 'the companion\'s character',
               'API keys of other services')
@@ -83,8 +88,17 @@ def mapping_view(row: dict, service: dict, place: dict) -> dict:
 
 
 def place_settings(connection) -> dict:
-    return one(connection, 'SELECT user_place, user_latitude, user_longitude, updated_at FROM context_settings '
-               'WHERE id=1')
+    row = one(connection, 'SELECT user_place, user_latitude, user_longitude, read_links, updated_at '
+              'FROM context_settings WHERE id=1')
+    return {**row, 'read_links': bool(row['read_links'])}
+
+
+def update_links(database, body) -> dict:
+    """Whether links pasted in chat are opened on this computer so the companion can talk about them."""
+    with database.connect(write=True) as connection:
+        connection.execute('UPDATE context_settings SET read_links=?, updated_at=? WHERE id=1',
+                           (int(body.read_links), database.now()))
+        return place_settings(connection)
 
 
 def overview(database) -> dict:
@@ -264,6 +278,8 @@ def suggestions(tools: list[dict]) -> dict:
             best = max(scored)[1]
             tool = next(item for item in tools if item['name'] == best)
             arguments, missing = infer_arguments(category, tool['input_schema'])
+            if category == 'link' and not any(item['source'] == 'url' for item in arguments.values()):
+                continue  # A tool that cannot be given the link cannot read it.
             found[category] = {'tool': best, 'arguments': arguments, 'missing': missing}
     return found
 
@@ -277,7 +293,8 @@ def schema_properties(schema: dict) -> tuple[dict, list[str]]:
 def infer_arguments(category: str, schema: dict) -> tuple[dict, list[str]]:
     """Fill only properties a known source matches. Optional unmatched ones are left out (minimal disclosure)."""
     properties, required = schema_properties(schema)
-    wanted = ['place', 'latitude', 'longitude', 'date'] + (['topic'] if category == 'news' else [])
+    wanted = ['url'] if category == 'link' else \
+        ['place', 'latitude', 'longitude', 'date'] + (['topic'] if category == 'news' else [])
     arguments = {}
     for source in wanted:
         for name in properties:
@@ -287,7 +304,7 @@ def infer_arguments(category: str, schema: dict) -> tuple[dict, list[str]]:
                 # A weather or events tool may call its location field "query"; news queries are topics.
                 arguments[name] = {'source': source}
                 break
-    if category != 'news':
+    if category in {'weather', 'local_events'}:
         for name in required:
             if name not in arguments and name.lower() in FILLS['topic']:
                 arguments[name] = {'source': 'place'}
@@ -314,6 +331,10 @@ def check_mapping(service: dict, category: str, body):
         require(argument.source != 'literal' or argument.value is not None, f'Choose a value for {name}.', 422)
         require(argument.source != 'topic' or category in {'news', 'local_events'},
                 'Only news and event lookups can send a topic.', 422)
+        require((argument.source == 'url') == (category == 'link') or argument.source == 'literal',
+                'Only link reading sends the link, and it sends nothing about your location.', 422)
+    require(category != 'link' or any(item.source == 'url' for item in body.arguments.values()),
+            'Choose which argument receives the link.', 422)
     missing = [name for name in required if name not in body.arguments]
     require(not missing, f"The tool requires {', '.join(missing)}.", 422)
 
@@ -351,7 +372,8 @@ def disclosure(service: dict, mapping: dict, place: dict) -> dict:
     """What a lookup sends, to where and when, with today's values as examples, plus its digest."""
     arguments, run_in = decode(mapping['arguments']), decode(mapping['run_in'])
     examples = {'place': place['user_place'] or '(not set)', 'latitude': place['user_latitude'],
-                'longitude': place['user_longitude'], 'topic': 'for example "the Orioles"', 'date': 'today'}
+                'longitude': place['user_longitude'], 'topic': 'for example "the Orioles"', 'date': 'today',
+                'url': 'for example https://example.com/story'}
     sends = []
     for name, argument in sorted(arguments.items()):
         source = argument['source']
@@ -365,7 +387,9 @@ def disclosure(service: dict, mapping: dict, place: dict) -> dict:
     lines += [f"It sends {item['argument']}: {item['description'].lower()} (now: {item['example']})." for item in sends]
     if not sends:
         lines.append('It sends no arguments.')
-    lines += [f'It runs {PURPOSES[purpose][0].lower()}{PURPOSES[purpose][1:]}.' for purpose in sorted(run_in)]
+    when = CATEGORIES[mapping['category']].get('when')
+    lines += [f'It runs {text[0].lower()}{text[1:]}.' for text in
+              ([when] if when else [PURPOSES[purpose] for purpose in sorted(run_in)])]
     lines.append('It never sends ' + ', '.join(NEVER_SENT) + '. The service\'s own terms and retention apply.')
     return {'digest': digest, 'destination': basis['destination'], 'transport': service['transport'],
             'tool': mapping['tool'], 'category': mapping['category'], 'sends': sends, 'run_in': sorted(run_in),

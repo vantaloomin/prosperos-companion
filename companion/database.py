@@ -5,6 +5,7 @@ other non-empty SQLite file is refused rather than silently gaining Companion ta
 """
 import hashlib
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
@@ -82,6 +83,7 @@ ADDED_COLUMNS = (
     ('messages', 'origin_id', 'TEXT'),
     ('workspace_settings', 'user_timezone_source',
      "TEXT NOT NULL DEFAULT 'default' CHECK (user_timezone_source IN ('default', 'pc', 'chosen'))"),
+    ('context_settings', 'read_links', 'INTEGER NOT NULL DEFAULT 1 CHECK (read_links IN (0, 1))'),
 )
 
 
@@ -94,6 +96,7 @@ def initialize(connection, timestamp: str):
     claim_identity(connection)
     connection.executescript(SCHEMA)
     add_columns(connection)
+    widen_context_categories(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     backfill_subject_keys(connection)
     from companion.text_models import adopt_legacy
@@ -129,6 +132,20 @@ def add_columns(connection):
         existing = {row[1] for row in connection.execute(f'PRAGMA table_info({table})')}
         if column not in existing:
             connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+
+
+def widen_context_categories(connection):
+    """Workspaces from before link reading limited lookup categories with a CHECK, which SQLite cannot alter:
+    the table is copied into the current definition, keeping every mapping."""
+    row = connection.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='context_tools'").fetchone()
+    if not row or "'local_events')" not in row[0]:
+        return
+    definition = re.search(r'CREATE TABLE IF NOT EXISTS context_tools \((.*?)\n\);', SCHEMA, re.S).group(1)
+    columns = 'service_id, category, tool, arguments, run_in, enabled, approved, updated_at'
+    connection.execute(f'CREATE TABLE context_tools_widened ({definition})')
+    connection.execute(f'INSERT INTO context_tools_widened ({columns}) SELECT {columns} FROM context_tools')
+    connection.execute('DROP TABLE context_tools')
+    connection.execute('ALTER TABLE context_tools_widened RENAME TO context_tools')
 
 
 def backfill_subject_keys(connection):

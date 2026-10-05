@@ -4,8 +4,9 @@
 
 The Companion can look up real weather, news and local events through
 [Model Context Protocol](https://modelcontextprotocol.io) servers the user configures
-(PRD X1–X3). Nothing runs by default and nothing needs a paid API or key. One server ships with the
-app, a keyless weather server; any other service the user adds. The code is in `companion/mcp/`.
+(PRD X1–X3), and read links the user pastes. Nothing needs a paid API or key. Lookups run only once the
+user turns them on; reading pasted links is on by default and can be turned off. One server ships with
+the app, a keyless weather server; any other service the user adds. The code is in `companion/mcp/`.
 
 ## How it works
 
@@ -32,6 +33,7 @@ app, a keyless weather server; any other service the user adds. The code is in `
 | `topic` | Up to six words naming what the user asked about ("news about the harbor bridge") |
 | `date` | Today's date where the lookup applies |
 | `literal` | A fixed value the user chose (for example units) |
+| `url` | The link the user pasted (link reading only; a tool that takes a list, such as `urls`, gets a list of one) |
 
 The conversation, memories, the user's name, the character definition and other services' keys
 are never sent. A local program starts with only the environment variables it needs to run (such as
@@ -46,6 +48,7 @@ The model is never given tools. The app decides, with fixed rules on the user's 
 | Weather | mentions the weather, forecast, rain, snow, temperature, an umbrella… | The user's location |
 | News | mentions news, headlines or current events; "news about X" sends X as the topic | No location |
 | Local events | mentions events, concerts, festivals or things to do, with "near me", "tonight", "this weekend"… | The user's location |
+| Reading links | contains a link that this computer could not read (see [Links you paste](#links-you-paste)) | Sends only the link |
 
 When the message asks about the companion's whereabouts ("what's the weather like where you
 are?"), weather and events target the companion's city instead, but only for mappings that allow
@@ -113,6 +116,46 @@ says the companion may want to go or plan to, but has not attended any of them u
 committed events say so. A real event can inspire a plan or an imagined outing; it never becomes a
 life event or proof of attendance by itself (PRD X intro, T7).
 
+## Links you paste
+
+A link in the user's message is its own trigger: the app opens it so the companion can talk about
+it. It is on by default (**Open links I paste** in Settings) and reads at most two links per message.
+The model is never given a fetch tool. `companion/mcp/links.py` does the reading on the user's
+computer:
+
+| Link | How it is read |
+| --- | --- |
+| Reddit post (including `/s/` share links and `redd.it`, which redirect to one) | Reddit's public JSON view of the post: title, subreddit, author, score, text and the top five comments |
+| Subreddit (`reddit.com/r/name`) | The subreddit's current hot posts, by title |
+| X or Twitter post (`x.com/user/status/id`) | X's public oEmbed endpoint (`publish.twitter.com/oembed`): the post's text, author and date; not replies or images |
+| X profile, search or other X page | Not read: X shows them only to signed-in users |
+| YouTube video | YouTube's oEmbed endpoint: the title and channel only |
+| Any other page | The page's HTML: title, description and the paragraph text, preferring `<article>`/`<main>` and leaving out navigation, scripts, headers and footers |
+
+Limits: 6 seconds and 1.5 MB per page, four redirects, 6,000 characters kept, 30 links an hour, and a
+read link stays fresh (reused, not fetched again) for six hours. Only `http` and `https` links to public
+addresses are opened: a link whose host is or resolves to this computer, the local network, a
+link-local or any other private address is refused, and so is every redirect to one, so a pasted link
+cannot reach the app itself or a router. (A host that changes its DNS answer between the check and the
+request is not caught.) PDFs, images, video and pages that only render in a browser are not read.
+
+When a page cannot be read on this computer, an enabled **Reading links** mapping (a fetch tool on an
+MCP service, such as Parallel's `web_fetch` or Firecrawl's scrape) is tried next. It runs only then,
+sends only the link and needs the same disclosure and confirmation as other lookups.
+
+What the companion is told:
+
+- **Read:** the page's text, quoted, under the outside-information heading, saying the companion has
+  looked at the link and can talk about it.
+- **Not read:** that the link would not open for them and they have not seen it, so they must not
+  guess, summarise or pretend to know what it says. They give a brief in-character reason, matched to
+  what their simulated day says they are doing right now (a blocked site on a work network, bad signal
+  while out, a page that just won't load), and ask what it says. The real reason is not given to the
+  model, so error codes never reach the chat.
+
+Under the user's message, a small out-of-character note says **Opened example.com** or **Couldn't
+load example.com: the real reason**, so the user always knows what happened.
+
 ## The built-in weather server
 
 `companion/mcp/servers/weather.py` is a small read-only MCP server that ships with the app. Settings
@@ -147,6 +190,7 @@ sent, where, when, and whether it still counts as current, with delete.
 | --- | --- |
 | `GET /api/context` | Location, services with their mappings and disclosures, and the source and timing labels |
 | `PUT /api/context/location` | `{user_place, user_latitude, user_longitude}` |
+| `PUT /api/context/links` | `{read_links}`: whether links pasted in chat are opened |
 | `POST /api/context/services/builtin` | `{kind: weather}`: add the built-in weather server (once) |
 | `POST /api/context/services` | `{name, transport: stdio\|http, command: [program, args…], url, secret, secret_name}` |
 | `PUT`, `DELETE /api/context/services/{id}` | Edit (`clear_secret` removes the key) or remove a service |

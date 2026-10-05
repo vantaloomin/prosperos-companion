@@ -378,7 +378,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     post = linked_post(connection, latest['id']) if latest else None
     if post:
         packet.offer('feed_reference', post['id'], post_text(post))
-    for identity, text in lookups.context_lines(outside or [], now, settings(connection)['user_timezone']):
+    block = agenda.current(connection, timeline_id, agenda.COMPANION, now) if outside else None
+    doing = block.get('label') if block else None
+    for identity, text in lookups.context_lines(outside or [], now, settings(connection)['user_timezone'], doing):
         packet.offer('outside', identity, text)
     events = lookups.fresh_city_events(connection, now)
     if events and events['id'] not in {item['id'] for item in outside or []}:

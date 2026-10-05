@@ -69,13 +69,13 @@ async def lifespan(app):
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
                life_tasks=True, world=None, embedder=None, image_adapters=None,
-               context_transports=None, trainer_spawn=None) -> FastAPI:
+               context_transports=None, trainer_spawn=None, link_reader=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
     app.state.vault = vault or SystemVault()
     world = observed_weather.ObservedWorld(world or CatalogWorld(app.state.database), app.state.database)
-    app.state.lookups = Lookups(app.state.database, app.state.vault, world, context_transports)
+    app.state.lookups = Lookups(app.state.database, app.state.vault, world, context_transports, link_reader)
     app.state.lookups.listeners.append(lambda observation: observed_weather.apply(app.state.database, observation))
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder,
                                           lookups=app.state.lookups)

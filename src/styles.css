@@ -73,6 +73,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .prose p { white-space: pre-wrap; margin-bottom: 1em; }
 .prose p:last-child { margin-bottom: 0; }
 .message-user .prose { color: #cfc9bd; }
+.link-notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; list-style: none; padding: 0; }
+.link-note { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); font-size: 0.75rem; color: var(--muted); }
+.link-note.failed { color: var(--danger); border-color: #98655888; }
 .message-companion.inactive .prose { color: var(--muted); }
 .reply-tools { display: flex; align-items: center; gap: 10px; }
 .pager { display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; color: var(--muted); }

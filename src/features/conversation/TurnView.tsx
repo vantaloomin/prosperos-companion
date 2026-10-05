@@ -1,6 +1,7 @@
 import { memo, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
+import { LinkNotes } from './LinkNotes'
 import { shownAttempt, statusDetail, type Turn } from './turns'
 
 interface Props {
@@ -29,7 +30,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <UserMessage message={turn.user} found={highlight === turn.user.id} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
+      <UserMessage message={turn.user} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} />
@@ -45,7 +46,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
   )
 })
 
-function UserMessage({ message, found, onRemember, onDecline, onEdit }: { message: Message; found: boolean; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
+function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }: { message: Message; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   return (
     <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
       <header>
@@ -60,6 +61,7 @@ function UserMessage({ message, found, onRemember, onDecline, onEdit }: { messag
         </span>
       </header>
       <div className="prose">{message.redacted ? <p className="subtle">This message was deleted.</p> : <Paragraphs text={message.text} />}</div>
+      <LinkNotes message={message} settled={settled} />
     </article>
   )
 }
