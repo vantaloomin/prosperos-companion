@@ -362,7 +362,8 @@ def offer_life(packet, connection, timeline_id, version, now):
         packet.offer('body', today, body.text(day['body']))
     for person in agenda.circle_view(connection, timeline_id, now):
         packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
-    for identity, text in money.context_lines(version['definition'], today):
+    budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
+    for identity, text in money.context_lines(version['definition'], today, budget_home):
         packet.offer('money', identity, text)
     offer_home(packet, connection, timeline_id, today)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
