@@ -694,7 +694,9 @@ if args == ["--version"]:
 if args == ["login", "status"]:
     print({"apikey": "Logged in using an API key - sk-***", "out": "Not logged in"}.get(mode, "Logged in using ChatGPT"))
     sys.exit(0)
-pathlib.Path(os.environ["FAKE_CLI_LOG"]).write_text(" ".join(args) + "\\n" + sys.stdin.read())
+# Codex reads its prompt as UTF-8 whatever the console code page is.
+pathlib.Path(os.environ["FAKE_CLI_LOG"]).write_text(" ".join(args) + "\\n" + sys.stdin.buffer.read().decode("utf-8"),
+                                                    encoding="utf-8")
 emit = lambda event: print(json.dumps(event), flush=True)
 emit({"type": "thread.started", "thread_id": "thread-1"})
 emit({"type": "turn.started"})
@@ -739,7 +741,7 @@ def native_request(fake_codex):
 
 def test_codex_native_runs_one_exec_turn_and_copies_the_saved_image(fake_codex):
     result = asyncio.run(CodexAdapter().generate(native_request(fake_codex)))
-    args, prompt = fake_codex['log'].read_text().split('\n', 1)
+    args, prompt = fake_codex['log'].read_text(encoding='utf-8').split('\n', 1)
     assert args.startswith('exec --json --skip-git-repo-check --ephemeral --ignore-user-config --ignore-rules '
                            '--sandbox read-only --cd ') and args.endswith(' -')
     assert '1024x1536' in prompt and 'A café' in prompt and 'Avoid: text' in prompt
