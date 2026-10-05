@@ -5427,6 +5427,302 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "orwashers",
+   "name": "Orwasher's Bakery",
+   "kind": "cafe",
+   "neighborhood": "upper-east-side",
+   "summary": "East 78th Street bread bakery founded in 1916, known for rye, challah and filled doughnuts.",
+   "tags": [
+    "bakery",
+    "historic",
+    "bread"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "omonia-cafe",
+   "name": "Omonia Cafe",
+   "kind": "cafe",
+   "neighborhood": "astoria",
+   "summary": "Greek pastry shop and cafe on Broadway since the 1970s, open late for baklava, galaktoboureko and frappés.",
+   "tags": [
+    "greek",
+    "pastry",
+    "dessert"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "greek-pastry",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "brooklyn-roasting",
+   "name": "Brooklyn Roasting Company",
+   "kind": "cafe",
+   "neighborhood": "dumbo",
+   "summary": "Roaster's big cafe on Jay Street under the Manhattan Bridge, with long tables for laptops.",
+   "tags": [
+    "coffee",
+    "roastery",
+    "laptop"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cafe-grumpy-chelsea",
+   "name": "Café Grumpy",
+   "kind": "cafe",
+   "neighborhood": "chelsea",
+   "summary": "Local coffee roaster's original shop on West 20th Street.",
+   "tags": [
+    "coffee",
+    "roaster",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "west-side-ymca",
+   "name": "West Side YMCA",
+   "kind": "fitness",
+   "neighborhood": "upper-west-side",
+   "summary": "Big 1930 Y on West 63rd Street off Central Park, with two pools, a running track and courts.",
+   "tags": [
+    "gym",
+    "pool",
+    "historic"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "harlem-ymca",
+   "name": "Harlem YMCA",
+   "kind": "fitness",
+   "neighborhood": "harlem",
+   "summary": "Historic Y on West 135th Street, a Harlem Renaissance meeting place, with a pool and gym.",
+   "tags": [
+    "gym",
+    "pool",
+    "historic"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "asser-levy",
+   "name": "Asser Levy Recreation Center",
+   "kind": "fitness",
+   "neighborhood": "kips-bay",
+   "summary": "City rec center in a 1908 bathhouse on East 23rd Street, with indoor and outdoor pools and a weight room.",
+   "tags": [
+    "rec-center",
+    "pool",
+    "historic"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mccarren-park-pool",
+   "name": "McCarren Park Pool",
+   "kind": "fitness",
+   "neighborhood": "williamsburg",
+   "summary": "Huge 1936 public pool, reopened in 2012, free to use in summer.",
+   "tags": [
+    "pool",
+    "swimming",
+    "free"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "astoria-park-pool",
+   "name": "Astoria Park Pool",
+   "kind": "fitness",
+   "neighborhood": "astoria",
+   "summary": "The city's oldest and largest public pool, built in 1936 under the Triborough Bridge.",
+   "tags": [
+    "pool",
+    "swimming",
+    "free"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "park-slope-armory-ymca",
+   "name": "Park Slope Armory YMCA",
+   "kind": "fitness",
+   "neighborhood": "park-slope",
+   "summary": "Y in a converted armory on Eighth Avenue, with a pool and an indoor track.",
+   "tags": [
+    "gym",
+    "pool",
+    "track"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gleasons-gym",
+   "name": "Gleason's Gym",
+   "kind": "fitness",
+   "neighborhood": "dumbo",
+   "summary": "Boxing gym founded in the Bronx in 1937 and in Dumbo since the 1980s, open to amateurs as well as pros.",
+   "tags": [
+    "boxing",
+    "historic",
+    "training"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [

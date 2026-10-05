@@ -703,6 +703,40 @@ CITY = {
         place('belmont-library', 'NYPL Belmont Library', 'library', 'belmont', 'Branch library with the Enrico Fermi '
               'Cultural Center\'s Italian-American collection.', ['books', 'italian', 'history'], 'free', 'indoor',
               ALL, DAY),
+        # Everyday routines: coffee and pastry stops and places to work out.
+        place('orwashers', 'Orwasher\'s Bakery', 'cafe', 'upper-east-side', 'East 78th Street bread bakery founded '
+              'in 1916, known for rye, challah and filled doughnuts.', ['bakery', 'historic', 'bread'], '$',
+              'indoor', ALL, DAY, cuisine='bakery'),
+        place('omonia-cafe', 'Omonia Cafe', 'cafe', 'astoria', 'Greek pastry shop and cafe on Broadway since the '
+              '1970s, open late for baklava, galaktoboureko and frappés.', ['greek', 'pastry', 'dessert'], '$',
+              'indoor', ALL, ['afternoon', 'evening'], cuisine='greek-pastry'),
+        place('brooklyn-roasting', 'Brooklyn Roasting Company', 'cafe', 'dumbo', 'Roaster\'s big cafe on Jay '
+              'Street under the Manhattan Bridge, with long tables for laptops.', ['coffee', 'roastery', 'laptop'],
+              '$', 'indoor', ['solo', 'friends', 'coworkers'], DAY, cuisine='coffee'),
+        place('cafe-grumpy-chelsea', 'Café Grumpy', 'cafe', 'chelsea', 'Local coffee roaster\'s original shop on '
+              'West 20th Street.', ['coffee', 'roaster', 'local'], '$', 'indoor', ['solo', 'friends'], DAY,
+              cuisine='coffee'),
+        place('west-side-ymca', 'West Side YMCA', 'fitness', 'upper-west-side', 'Big 1930 Y on West 63rd Street off '
+              'Central Park, with two pools, a running track and courts.', ['gym', 'pool', 'historic'], '$$',
+              'indoor', ALL, ['morning', 'evening']),
+        place('harlem-ymca', 'Harlem YMCA', 'fitness', 'harlem', 'Historic Y on West 135th Street, a Harlem '
+              'Renaissance meeting place, with a pool and gym.', ['gym', 'pool', 'historic'], '$', 'indoor', ALL,
+              ['morning', 'evening']),
+        place('asser-levy', 'Asser Levy Recreation Center', 'fitness', 'kips-bay', 'City rec center in a 1908 '
+              'bathhouse on East 23rd Street, with indoor and outdoor pools and a weight room.',
+              ['rec-center', 'pool', 'historic'], '$', 'mixed', ALL, ['morning', 'evening']),
+        place('mccarren-park-pool', 'McCarren Park Pool', 'fitness', 'williamsburg', 'Huge 1936 public pool, '
+              'reopened in 2012, free to use in summer.', ['pool', 'swimming', 'free'], 'free', 'outdoor', ALL,
+              ['morning', 'afternoon'], ['summer']),
+        place('astoria-park-pool', 'Astoria Park Pool', 'fitness', 'astoria', 'The city\'s oldest and largest '
+              'public pool, built in 1936 under the Triborough Bridge.', ['pool', 'swimming', 'free'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon'], ['summer']),
+        place('park-slope-armory-ymca', 'Park Slope Armory YMCA', 'fitness', 'park-slope', 'Y in a converted armory '
+              'on Eighth Avenue, with a pool and an indoor track.', ['gym', 'pool', 'track'], '$', 'indoor', ALL,
+              ['morning', 'evening']),
+        place('gleasons-gym', 'Gleason\'s Gym', 'fitness', 'dumbo', 'Boxing gym founded in the Bronx in 1937 and in '
+              'Dumbo since the 1980s, open to amateurs as well as pros.', ['boxing', 'historic', 'training'], '$$',
+              'indoor', ['solo', 'friends'], ['morning', 'evening']),
     ],
     'colleges': [
         college('columbia', 'Columbia University', 'research-university', 'morningside-heights', 'large',

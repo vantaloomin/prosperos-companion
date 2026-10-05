@@ -604,6 +604,34 @@ CITY = {
         place('amelia-earhart-park', 'Amelia Earhart Park', 'park', 'miami-gardens', 'Large county park with lakes, '
               'a farm village, a skate park and mountain-bike trails.', ['lakes', 'skate', 'kids'], '$', 'outdoor',
               ALL, DAY),
+        # Everyday routines: coffee and pastry stops and places to work out.
+        place('los-pinarenos', 'Los Pinareños Frutería', 'cafe', 'little-havana', 'Calle Ocho fruit stand open '
+              'since the 1960s, selling Cuban coffee, fresh juices and batidos.', ['coffee', 'juice', 'cuban'], '$',
+              'outdoor', ALL, DAY, cuisine='cuban'),
+        place('threefold-cafe', 'Threefold Cafe', 'cafe', 'coral-gables', 'Australian-run cafe on Giralda Avenue '
+              'serving flat whites and brunch.', ['coffee', 'brunch', 'australian'], '$$', 'mixed', ALL, DAY,
+              cuisine='cafe'),
+        place('last-carrot', 'The Last Carrot', 'cafe', 'coconut-grove', 'Small health-food counter on Grand '
+              'Avenue since the 1970s, known for juices and spinach pies.', ['juice', 'vegetarian', 'local'], '$',
+              'indoor', ALL, DAY, cuisine='vegetarian'),
+        place('all-day', 'All Day', 'cafe', 'downtown', 'Downtown coffee shop on North Miami Avenue serving '
+              'espresso and all-day breakfast.', ['coffee', 'breakfast', 'laptop'], '$', 'indoor',
+              ['solo', 'friends', 'coworkers'], DAY, cuisine='coffee'),
+        place('pura-vida', 'Pura Vida', 'cafe', 'south-beach', 'Miami Beach health cafe for smoothies, acai bowls '
+              'and coffee.', ['smoothies', 'healthy', 'coffee'], '$$', 'mixed', ['solo', 'friends'], DAY,
+              cuisine='cafe'),
+        place('crandon-tennis', 'Crandon Park Tennis Center', 'fitness', 'key-biscayne', 'County tennis center with '
+              'hard and clay courts, long home of the Miami Open.', ['tennis', 'courts', 'lessons'], '$', 'outdoor',
+              ['solo', 'friends', 'family'], ['morning', 'evening']),
+        place('coconut-grove-sailing-club', 'Coconut Grove Sailing Club', 'fitness', 'coconut-grove', 'Member club '
+              'on Biscayne Bay at Dinner Key, with sailing lessons and races.', ['sailing', 'bayfront', 'lessons'],
+              '$$', 'outdoor', ['solo', 'friends', 'family'], ['morning', 'afternoon']),
+        place('biltmore-golf', 'Biltmore Golf Course', 'fitness', 'coral-gables', 'City-owned 1925 Donald Ross '
+              'course beside the Biltmore Hotel.', ['golf', 'historic'], '$$', 'outdoor', ['solo', 'friends'],
+              ['morning', 'afternoon']),
+        place('flamingo-park', 'Flamingo Park', 'fitness', 'south-beach', 'City park with a public pool, tennis '
+              'center, running track and ball fields.', ['pool', 'tennis', 'track'], '$', 'outdoor', ALL,
+              ['morning', 'evening']),
     ],
     'colleges': [
         {'id': 'um', 'name': 'University of Miami', 'type': 'research-university', 'neighborhood': 'coral-gables',

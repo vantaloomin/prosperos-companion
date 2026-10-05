@@ -4850,6 +4850,241 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "los-pinarenos",
+   "name": "Los Pinareños Frutería",
+   "kind": "cafe",
+   "neighborhood": "little-havana",
+   "summary": "Calle Ocho fruit stand open since the 1960s, selling Cuban coffee, fresh juices and batidos.",
+   "tags": [
+    "coffee",
+    "juice",
+    "cuban"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "cuban",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "threefold-cafe",
+   "name": "Threefold Cafe",
+   "kind": "cafe",
+   "neighborhood": "coral-gables",
+   "summary": "Australian-run cafe on Giralda Avenue serving flat whites and brunch.",
+   "tags": [
+    "coffee",
+    "brunch",
+    "australian"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "cafe",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "last-carrot",
+   "name": "The Last Carrot",
+   "kind": "cafe",
+   "neighborhood": "coconut-grove",
+   "summary": "Small health-food counter on Grand Avenue since the 1970s, known for juices and spinach pies.",
+   "tags": [
+    "juice",
+    "vegetarian",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "vegetarian",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "all-day",
+   "name": "All Day",
+   "kind": "cafe",
+   "neighborhood": "downtown",
+   "summary": "Downtown coffee shop on North Miami Avenue serving espresso and all-day breakfast.",
+   "tags": [
+    "coffee",
+    "breakfast",
+    "laptop"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pura-vida",
+   "name": "Pura Vida",
+   "kind": "cafe",
+   "neighborhood": "south-beach",
+   "summary": "Miami Beach health cafe for smoothies, acai bowls and coffee.",
+   "tags": [
+    "smoothies",
+    "healthy",
+    "coffee"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "cafe",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "crandon-tennis",
+   "name": "Crandon Park Tennis Center",
+   "kind": "fitness",
+   "neighborhood": "key-biscayne",
+   "summary": "County tennis center with hard and clay courts, long home of the Miami Open.",
+   "tags": [
+    "tennis",
+    "courts",
+    "lessons"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coconut-grove-sailing-club",
+   "name": "Coconut Grove Sailing Club",
+   "kind": "fitness",
+   "neighborhood": "coconut-grove",
+   "summary": "Member club on Biscayne Bay at Dinner Key, with sailing lessons and races.",
+   "tags": [
+    "sailing",
+    "bayfront",
+    "lessons"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "biltmore-golf",
+   "name": "Biltmore Golf Course",
+   "kind": "fitness",
+   "neighborhood": "coral-gables",
+   "summary": "City-owned 1925 Donald Ross course beside the Biltmore Hotel.",
+   "tags": [
+    "golf",
+    "historic"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "flamingo-park",
+   "name": "Flamingo Park",
+   "kind": "fitness",
+   "neighborhood": "south-beach",
+   "summary": "City park with a public pool, tennis center, running track and ball fields.",
+   "tags": [
+    "pool",
+    "tennis",
+    "track"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [
