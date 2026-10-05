@@ -251,6 +251,8 @@ export interface LifeSettings {
   texts_first: boolean
   texts_daily: number
   texts_gap_hours: number
+  /** 0 sizes the circle by how sociable the companion is. */
+  circle_size: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -352,9 +354,15 @@ export interface CirclePerson {
   local?: boolean
   closeness?: string
   haunts?: string[]
+  works_with_companion?: boolean
+  /** Who they know inside the circle and how. */
+  knows?: CircleTie[]
   now: RoutineBlock | null
   recent: DiaryEntry[]
 }
+
+export interface CircleTie { id: string; name: string; how: string }
+export interface CircleRoom { people: number; target: number; sociability: 'quiet' | 'usual' | 'social' }
 
 export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
 

@@ -6,7 +6,7 @@ import { Notice } from '../../components/Feedback'
 import { TextInput, Toggle } from '../../components/Fields'
 
 const KEY = ['life-settings']
-type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'texts_gap_hours'
+type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'texts_gap_hours' | 'circle_size'
 
 const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: string }[] = [
   { key: 'catch_up_max_events', label: 'Most events when you return', min: 0, max: 6, hint: 'However long you were away.' },
@@ -16,6 +16,7 @@ const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: s
   { key: 'background_daily_events', label: 'Most background events a day', min: 0, max: 8, hint: '' },
   { key: 'texts_daily', label: 'Most first messages a day', min: 1, max: 6, hint: '' },
   { key: 'texts_gap_hours', label: 'Quiet hours after talking before they message first', min: 1, max: 24, hint: '' },
+  { key: 'circle_size', label: 'People in their circle', min: 0, max: 12, hint: '0 decides by how sociable they are: 4 for a homebody, 5 usually, 10 for a social butterfly. Add people from Today.' },
 ]
 
 export function LifeSettings({ name }: { name: string }) {

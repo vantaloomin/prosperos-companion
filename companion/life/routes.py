@@ -140,6 +140,27 @@ def read_circle(request: Request, include_removed: bool = False):
         return agenda.circle_view(connection, companion['active_timeline_id'], now, include_removed)
 
 
+@router.get('/circle/room')
+def circle_room(request: Request):
+    """How many people the circle has and how many it should have, for the offer to add more."""
+    with db(request).connect() as connection:
+        return circle.room(connection, require_current(connection))
+
+
+@router.post('/circle/grow')
+def grow_circle(request: Request):
+    """Add people to a circle assembled smaller than it should be now (a sociable companion, or a
+    bigger circle size in Settings). Nobody already there changes."""
+    database, engine = db(request), request.app.state.life
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        circle.grow(connection, companion, engine.world, now)
+        if simulation.may_extend(settings(connection), 'return'):
+            agenda.extend(connection, companion, engine.world, now)
+        return agenda.circle_view(connection, companion['active_timeline_id'], now)
+
+
 @router.patch('/circle/{person_id}')
 def rename_person(request: Request, person_id: str, body: PersonUpdate):
     return circle_change(request, person_id,

@@ -90,6 +90,7 @@ ADDED_COLUMNS = (
     ('life_settings', 'texts_first', 'INTEGER NOT NULL DEFAULT 0 CHECK (texts_first IN (0, 1))'),
     ('life_settings', 'texts_daily', 'INTEGER NOT NULL DEFAULT 2'),
     ('life_settings', 'texts_gap_hours', 'INTEGER NOT NULL DEFAULT 3'),
+    ('life_settings', 'circle_size', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

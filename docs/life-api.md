@@ -194,6 +194,31 @@ them. Entries that already happened keep the earlier name. Social events can nam
 who is free at the time: the event's `details.with` is `{id, name}` or `null`. The chat context
 lists the circle with each person's current block and latest diary entry.
 
+### Circle size and who knows whom
+
+How many people the circle has depends on the companion. Words in their identity, personality,
+interests and themes decide how sociable they are (`social butterfly`, `outgoing`, `extroverted`
+against `shy`, `introvert`, `homebody`; a negated word such as "not shy" doesn't count): 4 people
+for a quiet one, 5 usually and 10 for a sociable one. The Life setting `circle_size` (0 to 12, 0 = decide
+from the character) overrides it. A sociable circle fills in as close friend, longtime friend, coworker,
+sibling, parent, new friend, a second coworker, friend, the other parent, a second new friend, cousin
+and friend. Parents and siblings are named as the companion would say it (`mom`, `dad`, `sister`,
+`brother`) when their pronouns say which. A coworker in a sociable circle works where the companion
+works: their `schedule` has the companion's work blocks, `career` reads "Works with {name}" and
+`works_with_companion` is `true`. A companion with no work block has friends instead of coworkers.
+
+```http
+GET  /api/life/circle/room     # {people, target, sociability}
+POST /api/life/circle/grow     # adds people up to the target; 409 when the circle is already full
+```
+
+A circle assembled smaller than its target (an existing companion, or a size raised in Settings)
+grows with `grow`: missing roles first, nobody already there changes. Each person also has `knows`:
+the other active members they know (`{id, name, how}`), derived from roles and a seed, so it is the
+same on every read. `how` is `family`, `married` or `divorced` (the two parents), `coworkers`, `old
+friends`, `known for years` (an old friend and the family) or `friends`. The chat context adds it to
+each person's line ("Married to Rui. Knows Ana (family).").
+
 ## Precomputed agenda
 
 Every reconcile also brings a hidden agenda up to date, without a model (PRD T9). The agenda holds

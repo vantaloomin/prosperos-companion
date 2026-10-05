@@ -198,6 +198,8 @@ class LifeSettingsUpdate(Input):
     texts_first: bool | None = None
     texts_daily: int | None = Field(default=None, ge=1, le=6)
     texts_gap_hours: int | None = Field(default=None, ge=1, le=24)
+    # 0 sizes the circle by how sociable the companion is (companion/life/circle.py).
+    circle_size: int | None = Field(default=None, ge=0, le=12)
 
 
 class NotificationSettingsUpdate(Input):

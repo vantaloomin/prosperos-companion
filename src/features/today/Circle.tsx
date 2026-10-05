@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Pencil, RotateCcw, UserMinus } from 'lucide-react'
+import { BookOpen, Pencil, RotateCcw, UserMinus, UserPlus } from 'lucide-react'
 import { api } from '../../api'
-import type { CirclePerson, DiaryEntry } from '../../types'
+import type { CirclePerson, CircleRoom, DiaryEntry } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { displayName, personFacts, personNow, personWork } from './circleText'
+import { displayName, personFacts, personNow, personTies, personWork } from './circleText'
 import { eventWhen } from './todayText'
 
 const CIRCLE_KEY = ['circle']
@@ -45,7 +45,22 @@ export function Circle({ name }: { name: string }) {
       {circle.isSuccess && circle.data.length > 0 && (
         <ul className="person-list">{circle.data.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
       )}
+      {circle.isSuccess && <MorePeople name={name} act={act} />}
     </section>
+  )
+}
+
+/** Offered when the circle is smaller than it should be: a sociable companion, or a bigger size in Settings. */
+function MorePeople({ name, act }: { name: string; act: Act }) {
+  const room = useQuery({ queryKey: [...CIRCLE_KEY, 'room'], queryFn: () => api<CircleRoom>('/life/circle/room') })
+  if (!room.data || room.data.people >= room.data.target) return null
+  const missing = room.data.target - room.data.people
+  const why = room.data.sociability === 'social' ? `${name} is the sociable type` : `Their circle size in Settings is ${room.data.target}`
+  return (
+    <div className="person-actions">
+      <p className="subtle">{why}, so there is room for {missing} more {missing === 1 ? 'person' : 'people'}: coworkers, old and new friends, family. Nobody already here changes.</p>
+      <button type="button" className="button" onClick={() => void act(() => api('/life/circle/grow', {}), `${missing === 1 ? 'Someone new is' : `${missing} new people are`} now part of ${name}'s life.`)}><UserPlus aria-hidden="true" />Add {missing === 1 ? 'one person' : `${missing} people`}</button>
+    </div>
   )
 }
 
@@ -91,6 +106,7 @@ function PersonDetails({ person, work }: { person: CirclePerson; work: string | 
   return <>
     <p>{personNow(person)}</p>
     {work && <p className="subtle">{work}</p>}
+    {personTies(person) && <p className="subtle">{personTies(person)}</p>}
     {person.haunts && person.haunts.length > 0 && <p className="subtle">Often at {person.haunts.join(', ')}</p>}
     {person.recent.length > 0 && <ul className="diary-list">{person.recent.map((entry) => <DiaryLine key={entry.slot} entry={entry} />)}</ul>}
   </>

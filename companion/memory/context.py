@@ -13,7 +13,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
-from companion.life import agenda, body, money, recommendations
+from companion.life import agenda, body, circle, money, recommendations
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
@@ -154,7 +154,11 @@ def person_text(person) -> str:
     text = f"- {person['name']} ({person['role']})"
     if person['career']:
         text += f": {person['career']}" + (f" at {person['employer']}" if person['employer'] else '')
+    if person.get('works_with_companion'):
+        text = f"- {person['name']} ({person['role']}): works with you"
     text += '.' if person.get('local', True) else '. Lives out of town.'
+    if person.get('knows'):
+        text += ' ' + circle.ties_text(person['knows'])
 
     if person.get('birthday_today'):
         text += ' Today is their birthday.'

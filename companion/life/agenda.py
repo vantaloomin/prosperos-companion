@@ -292,11 +292,12 @@ def forget_person(connection, timeline_id, person_id, now):
 
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
-    result = []
+    result, known = [], circle.ties(circle.people(connection, timeline_id))
     for row in circle.people(connection, timeline_id, include_removed):
         person = circle.view(row)
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' else None
-        result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3)})
+        result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),
+                       'knows': known.get(row['id'], [])})
     return result
 
 
