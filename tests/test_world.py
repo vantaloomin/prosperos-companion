@@ -426,3 +426,13 @@ def test_local_color_is_seeded_and_seasonal():
     assert any(line.startswith('Local saying: Hon') for line in generators.facts(data))
     with pytest.raises(ValidationError, match='unknown places'):
         catalog.prepare(plain(baltimore()) | {'local_color': [item | {'places': ['atlantis']}]})
+
+
+def test_generator_results_do_not_share_cached_data():
+    data = baltimore()
+    outing = generators.outing(data, seed='s')
+    outing['place']['name'] = 'Changed'
+    job = generators.job(data, 'teacher', seed='s')
+    job['career']['name'] = 'Changed'
+    assert all(place['name'] != 'Changed' for place in catalog.city('baltimore')['places'])
+    assert catalog.careers_for(catalog.city('baltimore'))['teacher']['name'] != 'Changed'
