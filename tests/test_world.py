@@ -1,5 +1,8 @@
 import copy
+import json
+import runpy
 from datetime import date
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -32,6 +35,13 @@ def test_generated_schedules_are_valid_character_routines(city_id):
     for career in catalog.careers():
         blocks = generators.job(catalog.city(city_id), career, seed=career)['schedule']
         CharacterDefinition(name='Mira', schedule=blocks)
+
+
+@pytest.mark.parametrize('city_id', CITIES)
+def test_shipped_json_matches_its_source_script(city_id):
+    script = Path(__file__).parent.parent / 'scripts' / 'world' / f'{city_id.replace("-", "_")}.py'
+    written = json.loads((catalog.DATA / 'cities' / f'{city_id}.json').read_text(encoding='utf-8'))
+    assert runpy.run_path(str(script))['CITY'] == json.loads(json.dumps(written)), 'Rerun the script.'
 
 
 def test_validation_rejects_broken_references():

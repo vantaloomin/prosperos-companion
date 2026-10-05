@@ -338,6 +338,13 @@ CITY = {
         {'id': 'four-seasons-baltimore', 'name': 'Four Seasons Hotel Baltimore', 'sector': 'hospitality',
          'neighborhood': 'harbor-east', 'size': 'medium', 'summary': 'Luxury waterfront hotel.',
          'careers': ['hotel-front-desk', 'event-planner', 'line-cook', 'server', 'bartender'], 'source': S},
+        {'id': 'center-stage', 'name': 'Baltimore Center Stage', 'sector': 'entertainment',
+         'neighborhood': 'mount-vernon', 'size': 'small', 'summary': 'Maryland\'s state theatre, in a converted '
+         'school building on North Calvert Street.', 'careers': ['actor', 'performer', 'event-planner'],
+         'source': S},
+        {'id': 'everyman-theatre', 'name': 'Everyman Theatre', 'sector': 'entertainment', 'neighborhood': 'downtown',
+         'size': 'small', 'summary': 'Resident-company theatre on Fayette Street.', 'careers': ['actor', 'performer'],
+         'source': S},
         {'id': 'towson-u-employer', 'name': 'Towson University', 'sector': 'education', 'neighborhood': 'towson',
          'size': 'large', 'summary': 'A large public university campus.', 'careers': ['professor',
          'graduate-student'], 'source': S},
