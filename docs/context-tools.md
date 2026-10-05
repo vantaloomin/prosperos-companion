@@ -104,6 +104,15 @@ Entries already under way keep their weather. The day's weather then carries `ob
 tool, time), and the reply's context gives it under "Today's real weather where you live (looked up
 by the app…)" with its source and time, instead of the typical-weather heading.
 
+## Real events in the companion's city
+
+A local-events mapping that allows companion lookups is also asked, on the same background ticks
+(at most every twelve hours, the events freshness), for the companion's real city. While that
+result is fresh, every reply's context lists it under "Real events listed for your city", which
+says the companion may want to go or plan to, but has not attended any of them unless its
+committed events say so. A real event can inspire a plan or an imagined outing; it never becomes a
+life event or proof of attendance by itself (PRD X intro, T7).
+
 ## Interface
 
 Settings has a **Real-world lookups** section: your location, the services, a suggested tool for

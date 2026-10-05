@@ -260,6 +260,14 @@ class Lookups:
                                         (observation_id,)), now)
 
 
+def fresh_city_events(connection, now) -> dict | None:
+    """The latest fresh local-events lookup for the companion's city, for imagining an outing."""
+    row = optional(connection, "SELECT * FROM context_observations WHERE category='local_events' AND "
+                   "purpose='companion_city' AND status='ok' AND fresh_until>? ORDER BY retrieved_at DESC, rowid DESC "
+                   'LIMIT 1', (stamp(now),))
+    return observation_view(row, now) if row else None
+
+
 def listing(database, limit=100) -> dict:
     now = database.clock.now()
     with database.connect() as connection:
