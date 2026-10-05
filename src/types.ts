@@ -25,6 +25,10 @@ export interface SendResult {
   connection: 'ready' | 'not_configured'
 }
 
+export type Intensity = 'mild' | 'moderate' | 'strong'
+
+export interface EmotionalTrait { name: string; intensity: Intensity; note: string }
+
 export interface CharacterDefinition {
   name: string
   identity: string
@@ -37,7 +41,11 @@ export interface CharacterDefinition {
   location: string
   relationship: Relationship
   absence_reaction: string
+  emotional_traits: EmotionalTrait[]
   timezone: string
+  /** Edited by the life simulation's routine tools; kept as-is when the character form saves. */
+  schedule?: unknown[]
+  life_themes?: string[]
 }
 
 export interface CharacterVersion {

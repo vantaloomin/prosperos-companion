@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS relationship_moods (
   kind TEXT NOT NULL CHECK (kind IN ('absence')),
   away_from TEXT NOT NULL,
   away_until TEXT NOT NULL,
-  intensity INTEGER NOT NULL CHECK (intensity BETWEEN 1 AND 5),
+  intensity INTEGER NOT NULL CHECK (intensity BETWEEN 1 AND 3),
   traits TEXT NOT NULL,
   character_version_id TEXT NOT NULL REFERENCES character_versions(id),
   created_at TEXT NOT NULL,

@@ -78,12 +78,16 @@ memories qualify, and source messages of excluded memories are kept out of raw r
 receipt stored with each reply lists included and omitted identities, never content, so deleting
 a memory leaves nothing readable behind in old receipts.
 
-How the companion reacts to time apart is up to the character: a free-text `absence_reaction` and
-opt-in `emotional_traits` with intensities (`companion/traits.py`). With neither, the companion is
-neutral about absence. A return after a day or more records a visible, resettable absence mood
-(`relationship_moods`, `companion/life/mood.py`) only when the character has an absence trait. The
-mood never exceeds the trait's intensity and stops applying once the trait is removed. Product
-controls such as pause, settings and export stay neutral either way.
+How the companion reacts to time apart (`absence_reaction`) and its emotional traits
+(`emotional_traits`: a name such as jealousy or guilt over absence, an intensity of mild, moderate
+or strong, and an optional note) are part of the character definition (C6). A new character has
+none. With neither, the companion is told to be neutral about absence. With traits but a
+non-romantic framing, it is told never to express jealousy or possessiveness as romantic
+exclusivity. A return after a day or more records a visible, resettable absence mood
+(`relationship_moods`, `companion/life/mood.py`) only when a trait's name speaks of absence,
+guilt, missing the user, neediness or sulking (`companion/traits.py`). The mood never exceeds that
+trait's intensity and stops applying once the trait is removed. Product controls such as pause,
+settings and export stay neutral either way.
 
 ## Life simulation (T1–T7)
 

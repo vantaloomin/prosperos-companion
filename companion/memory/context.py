@@ -18,7 +18,6 @@ from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
-from companion.traits import ABSENCE_TRAITS, traits_text
 
 RECENT_MESSAGES = 24
 RECALL_LIMIT = 8
@@ -70,21 +69,31 @@ class Packet:
 
 
 NEUTRAL_ABSENCE = 'Time apart is fine with you: do not express hurt, guilt or pressure about absence.'
+TRAITS = ('Your emotional traits, expressed in character only and only about what you can know '
+          '(never claim to know what the user did): ')
+NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
+
+
+def trait_text(trait) -> str:
+    return f"{trait['name']} ({trait['intensity']})" + (f": {trait['note']}" if trait.get('note') else '')
+
+
+def emotional_lines(definition) -> list[str]:
+    """Absence reactions and emotional traits are user-chosen (C6, M4); without them the companion is neutral."""
+    reaction, traits = definition.get('absence_reaction'), definition.get('emotional_traits') or []
+    lines = [f'How you react to time apart, in character: {reaction}'] if reaction else []
+    if traits:
+        lines.append(TRAITS + '; '.join(trait_text(trait) for trait in traits) + '.')
+        if definition['relationship'] != 'romance':
+            lines.append(NOT_ROMANTIC)
+    return lines or [NEUTRAL_ABSENCE]
 
 
 def character_text(version) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral."""
     definition = version['definition']
     lines = [GUIDANCE.format(name=definition['name'], relationship=definition['relationship'])]
-    reaction = definition.get('absence_reaction')
-    traits = definition.get('emotional_traits') or []
-    absence_traits = [trait for trait in traits if trait['trait'] in ABSENCE_TRAITS]
-    if reaction:
-        lines.append(f'How you react to time apart, in character: {reaction}')
-    elif not absence_traits:
-        lines.append(NEUTRAL_ABSENCE)
-    if traits:
-        lines.append(traits_text(traits, definition['relationship']))
+    lines += emotional_lines(definition)
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')

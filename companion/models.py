@@ -9,6 +9,7 @@ PlanStatus = Literal['proposed', 'agreed', 'postponed', 'cancelled', 'completed'
 EventKind = Literal['routine', 'plan', 'ordinary', 'thread']
 BlockKind = Literal['work', 'study', 'errand', 'leisure', 'social', 'rest', 'sleep']
 ClockTime = Annotated[str, Field(pattern=r'^([01][0-9]|2[0-3]):[0-5][0-9]$')]
+Intensity = Literal['mild', 'moderate', 'strong']
 
 
 class Input(BaseModel):
@@ -35,9 +36,10 @@ class RoutineBlock(Input):
 
 
 class EmotionalTrait(Input):
-    """An opt-in trait with an intensity from 1 (faint) to 5 (strong) (PRD C6)."""
-    trait: Literal['jealousy', 'guilt_over_absence', 'possessiveness', 'neediness', 'sulking']
-    intensity: int = Field(default=2, ge=1, le=5)
+    """An opt-in trait such as jealousy or guilt over absence (PRD C6). None are enabled by default."""
+    name: str = Field(min_length=1, max_length=60)
+    intensity: Intensity = 'mild'
+    note: str = Field(default='', max_length=500)
 
 
 class CharacterDefinition(Input):
@@ -53,20 +55,12 @@ class CharacterDefinition(Input):
     relationship: Relationship = 'friendship'
     # Empty means neutral about absence. Jealousy, guilt or missing the user are opt-in traits.
     absence_reaction: str = Field(default='', max_length=2000)
-    # None by default; the user adds them deliberately (PRD C6).
-    emotional_traits: list[EmotionalTrait] = Field(default_factory=list, max_length=5)
+    emotional_traits: list[EmotionalTrait] = Field(default_factory=list, max_length=12)
     timezone: str = Field(default='UTC', max_length=64)
     # Structured routine for the life simulation; empty uses a gentle default day.
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
-
-    @model_validator(mode='after')
-    def distinct_traits(self):
-        names = [trait.trait for trait in self.emotional_traits]
-        if len(names) != len(set(names)):
-            raise ValueError('Each emotional trait can be chosen once.')
-        return self
 
 
 class CharacterRevision(Input):

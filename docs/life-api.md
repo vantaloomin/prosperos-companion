@@ -216,24 +216,18 @@ A post:
 
 ## Emotional traits and absence mood
 
-Traits are part of the character definition and are empty by default (PRD C6):
+Traits are part of the character definition (`emotional_traits`, empty by default; see PRD C6):
+each has a `name`, an `intensity` of `mild`, `moderate` or `strong`, and an optional `note`.
 
-```json
-"emotional_traits": [{"trait": "guilt_over_absence", "intensity": 3}, {"trait": "jealousy", "intensity": 2}]
-```
-
-`trait` is one of `jealousy`, `guilt_over_absence`, `possessiveness`, `neediness`, `sulking`, each
-at most once; `intensity` is 1 (faint) to 5 (strong). A change applies from the next reply. Jealousy
-and possessiveness are never expressed as romantic exclusivity unless `relationship` is `romance`.
-
-When the user returns at least a day after their last message and the character has
-`guilt_over_absence`, `neediness` or `sulking`, the return records a mood (PRD M4).
+When the user returns at least a day after their last message and a trait's name speaks of
+absence, guilt, missing the user, neediness or sulking, the return records a mood (PRD M4).
 `GET /api/today` shows it as `mood`, which is `null` otherwise:
 
 ```json
-"mood": {"id": "…", "kind": "absence", "intensity": 3, "away_hours": 72,
-         "away_from": "…", "away_until": "…", "traits": ["guilt_over_absence"],
-         "created_at": "…", "expires_at": "…", "recorded_traits": [{"trait": "guilt_over_absence", "intensity": 3}]}
+"mood": {"id": "…", "kind": "absence", "intensity": "moderate", "away_hours": 72,
+         "away_from": "…", "away_until": "…", "traits": ["guilt over absence"],
+         "created_at": "…", "expires_at": "…",
+         "recorded_traits": [{"name": "guilt over absence", "intensity": "moderate", "note": ""}]}
 ```
 
 - The intensity never exceeds the current trait's intensity, however long the absence.
