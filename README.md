@@ -1,5 +1,9 @@
 # Prospero Companion
 
-A standalone companion application derived from the Companion Mode concept in [Prospero's Study](https://github.com/vantaloomin/prosperos-study). It is at the product-definition stage; no application code exists yet.
+A standalone companion application derived from the Companion Mode concept in [Prospero's Study](https://github.com/vantaloomin/prosperos-study). The backend backbone exists: workspace identity, character versions, conversation, typed personal memory, committed life events and backups. There is no interface yet.
 
 - [Product requirements (draft)](docs/product-requirements.md)
+- [Backbone architecture](docs/architecture.md)
+- [Development](docs/development.md)
+
+Licensed under the GNU Affero General Public License v3.0, matching the Study code it reuses.

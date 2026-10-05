@@ -1,0 +1,180 @@
+"""Local HTTP API for the Companion backbone."""
+from fastapi import APIRouter, Request
+
+from companion import backup, characters, conversation, events, workspace
+from companion.identity import APP_ID, VERSION
+from companion.memory import records
+from companion.models import (
+    CharacterDefinition,
+    CharacterRevision,
+    ConnectionUpdate,
+    EventCorrection,
+    EventProposal,
+    MemoryCorrection,
+    MemoryCreate,
+    MemoryDelete,
+    MessageCreate,
+    SettingsUpdate,
+)
+
+router = APIRouter(prefix='/api')
+
+
+def db(request: Request):
+    return request.app.state.database
+
+
+@router.get('/health')
+def health():
+    return {'app_id': APP_ID, 'version': VERSION}
+
+
+@router.get('/settings')
+def read_settings(request: Request):
+    return workspace.read(db(request))
+
+
+@router.put('/settings')
+def update_settings(request: Request, body: SettingsUpdate):
+    return workspace.update(db(request), body)
+
+
+@router.post('/pause')
+def pause(request: Request):
+    return workspace.pause(db(request))
+
+
+@router.post('/resume')
+def resume(request: Request):
+    return workspace.resume(db(request))
+
+
+@router.get('/connection')
+def read_connection(request: Request):
+    return {'connection': conversation.read_connection(db(request))}
+
+
+@router.put('/connection')
+def save_connection(request: Request, body: ConnectionUpdate):
+    return conversation.save_connection(db(request), request.app.state.vault, body)
+
+
+@router.get('/companion')
+def read_companion(request: Request):
+    with db(request).connect() as connection:
+        return {'companion': characters.current(connection)}
+
+
+@router.post('/companion')
+def create_companion(request: Request, body: CharacterDefinition):
+    return characters.create(db(request), body)
+
+
+@router.post('/companion/versions')
+def revise_companion(request: Request, body: CharacterRevision):
+    return characters.revise(db(request), body)
+
+
+@router.get('/companion/versions')
+def companion_versions(request: Request):
+    return characters.versions(db(request))
+
+
+@router.get('/conversation')
+def read_conversation(request: Request, before_seq: int | None = None, limit: int = 100):
+    return conversation.history(db(request), before_seq, min(max(limit, 1), 500))
+
+
+@router.post('/conversation/messages')
+async def send_message(request: Request, body: MessageCreate):
+    return await request.app.state.conversation.send(body)
+
+
+@router.post('/conversation/messages/{message_id}/alternatives')
+async def alternative(request: Request, message_id: str):
+    return await request.app.state.conversation.alternative(message_id)
+
+
+@router.post('/conversation/replies/{attempt_id}/stop')
+def stop_reply(request: Request, attempt_id: str):
+    return {'stopped': request.app.state.conversation.stop(attempt_id)}
+
+
+@router.post('/conversation/messages/{message_id}/decline-memory')
+def decline_memory(request: Request, message_id: str):
+    return records.decline(db(request), message_id)
+
+
+@router.get('/context/preview')
+def context_preview(request: Request):
+    return conversation.context_preview(db(request))
+
+
+@router.get('/memories')
+def list_memories(request: Request, history: bool = False):
+    return records.listing(db(request), history)
+
+
+@router.post('/memories')
+def remember(request: Request, body: MemoryCreate):
+    return records.remember(db(request), body)
+
+
+@router.post('/memories/{memory_id}/correct')
+def correct_memory(request: Request, memory_id: str, body: MemoryCorrection):
+    return records.correct(db(request), memory_id, body)
+
+
+@router.post('/memories/{memory_id}/confirm')
+def confirm_memory(request: Request, memory_id: str):
+    return records.confirm(db(request), memory_id)
+
+
+@router.post('/memories/{memory_id}/exclude')
+def exclude_memory(request: Request, memory_id: str):
+    return records.set_flag(db(request), memory_id, status='excluded')
+
+
+@router.post('/memories/{memory_id}/include')
+def include_memory(request: Request, memory_id: str):
+    return records.set_flag(db(request), memory_id, status='active')
+
+
+@router.post('/memories/{memory_id}/pin')
+def pin_memory(request: Request, memory_id: str, pinned: bool = True):
+    return records.set_flag(db(request), memory_id, pinned=pinned)
+
+
+@router.post('/memories/{memory_id}/delete')
+def delete_memory(request: Request, memory_id: str, body: MemoryDelete):
+    return records.delete(db(request), memory_id, body.delete_sources)
+
+
+@router.get('/events')
+def list_events(request: Request, history: bool = False):
+    return events.listing(db(request), history)
+
+
+@router.post('/events')
+def propose_event(request: Request, body: EventProposal):
+    return events.propose(db(request), body)
+
+
+@router.post('/events/{event_id}/commit')
+def commit_event(request: Request, event_id: str):
+    return events.commit(db(request), event_id)
+
+
+@router.post('/events/{event_id}/reject')
+def reject_event(request: Request, event_id: str):
+    return events.reject(db(request), event_id)
+
+
+@router.post('/events/{event_id}/correct')
+def correct_event(request: Request, event_id: str, body: EventCorrection):
+    return events.correct(db(request), event_id, body)
+
+
+@router.post('/backups')
+def create_backup(request: Request):
+    return backup.create(db(request), db(request).path.parent / 'backups')
