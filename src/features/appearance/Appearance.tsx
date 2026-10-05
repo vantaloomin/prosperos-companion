@@ -21,12 +21,15 @@ export function Appearance({ companion, go }: { companion: Companion; go: (view:
       </header>
       <nav className="stepper" aria-label="LoRA steps">
         {STEPS.map((item, index) => (
-          <button key={item.id} type="button" aria-current={step === item.id ? 'step' : undefined} onClick={() => setStep(item.id)}>
+          <button key={item.id} id={`step-${item.id}`} type="button" aria-current={step === item.id ? 'step' : undefined} onClick={() => setStep(item.id)}>
             <span aria-hidden="true">{index + 1}</span>{item.label}
           </button>
         ))}
       </nav>
-      <StepView step={step} setStep={setStep} />
+      <section aria-labelledby="step-heading">
+        <h2 id="step-heading" className="visually-hidden">{STEPS.find((item) => item.id === step)?.label}</h2>
+        <StepView step={step} setStep={setStep} />
+      </section>
     </section>
   )
 }
@@ -34,7 +37,8 @@ export function Appearance({ companion, go }: { companion: Companion; go: (view:
 function StepView({ step, setStep }: { step: Step; setStep: (step: Step) => void }) {
   if (step === 'prepare') return <Prepare />
   if (step === 'review') return <Review />
-  if (step === 'configure') return <Configure onStarted={() => setStep('train')} />
+  // Starting a run removes the focused Start button; continue from the Train step in the stepper.
+  if (step === 'configure') return <Configure onStarted={() => { setStep('train'); document.getElementById('step-train')?.focus() }} />
   if (step === 'train') return <Train />
   if (step === 'evaluate') return <Evaluate />
   return <Adopt />
