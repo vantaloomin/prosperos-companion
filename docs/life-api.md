@@ -87,6 +87,13 @@ composed activity, such as `walk` or `groceries`), `place` (`{id, name, kind, ci
 from the world data, or `null`), `local_date`, `timezone`, `post` (a caption in the companion's
 voice), `mood` and `weather` (below, or `null`).
 
+### Interests
+
+The character's `interests` and `life_themes` make matching activities about three times as likely
+as the others in the same block: "books" leans toward reading, the library and browsing shops,
+"jazz" toward shows, "baking" toward cooking at home. Matching is by word, without a model, so a
+character with no matching words keeps the even mix.
+
 ### Weather
 
 Each day has typical weather for the companion's city, drawn from the world data's monthly climate
