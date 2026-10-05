@@ -9,6 +9,7 @@ import { REMEMBER_KEY } from '../memories/memoryGroups'
 import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
 import { ConversationSearch } from './ConversationSearch'
+import { GettingStarted } from './GettingStarted'
 import { TurnView } from './TurnView'
 import { applyFinished, groupTurns, mergeMessages, streamingIds } from './turns'
 import { useReplyStream } from './useReplyStream'
@@ -147,7 +148,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {history.isPending && <Loading label="Loading the conversation" />}
           {history.isError && <Notice tone="error">{history.error.message}</Notice>}
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
-          {history.isSuccess && turns.length === 0 && <p className="empty-conversation subtle">This is the start of your conversation with {name}. Say hello whenever you like.</p>}
+          {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
             <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} highlight={found?.id} />
           ))}
