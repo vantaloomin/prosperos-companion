@@ -39,17 +39,17 @@
  "sources": {
   "curated-2026-10": {
    "kind": "curated",
-   "title": "San Diego places and neighbourhoods written for Prospero Companion",
+   "title": "San Diego places and neighborhoods written for Prospero Companion",
    "license": "CC0-1.0",
    "retrieved": "2026-10-05",
-   "note": "Well-known public places, institutions and employers from general knowledge. Businesses open and close and rents move: treat this as a snapshot for fiction. Rents are rounded estimates of typical 2025 asking ranges, not listings. Coordinates are approximate neighbourhood centres."
+   "note": "Well-known public places, institutions and employers from general knowledge. Businesses open and close and rents move: treat this as a snapshot for fiction. Rents are rounded estimates of typical 2025 asking ranges, not listings. Coordinates are approximate neighborhood centers."
   },
   "curated-climate-2026-10": {
    "kind": "curated",
    "title": "Approximate monthly climate for San Diego (Lindbergh Field)",
    "license": "CC0-1.0",
    "retrieved": "2026-10-05",
-   "note": "Rounded values in line with NOAA 1991-2020 normals for San Diego International Airport (Lindbergh Field); the coast is cooler and inland neighbourhoods warmer. Refresh with scripts/world when network access to NOAA is available."
+   "note": "Rounded values in line with NOAA 1991-2020 normals for San Diego International Airport (Lindbergh Field); the coast is cooler and inland neighborhoods warmer. Refresh with scripts/world when network access to NOAA is available."
   }
  },
  "neighborhoods": [
@@ -333,7 +333,7 @@
   {
    "id": "south-park",
    "name": "South Park",
-   "summary": "A small, leafy neighbourhood of craftsman houses and independent shops on the east side of Balboa Park.",
+   "summary": "A small, leafy neighborhood of craftsman houses and independent shops on the east side of Balboa Park.",
    "vibe": [
     "quiet",
     "leafy",
@@ -711,7 +711,7 @@
   {
    "id": "old-town",
    "name": "Old Town",
-   "summary": "Where the city began: adobe buildings, Mexican restaurants and the main transit centre on the way to the beaches.",
+   "summary": "Where the city began: adobe buildings, Mexican restaurants and the main transit center on the way to the beaches.",
    "vibe": [
     "historic",
     "touristy",
@@ -750,7 +750,7 @@
   {
    "id": "barrio-logan",
    "name": "Barrio Logan",
-   "summary": "A historically Mexican-American neighbourhood under the Coronado Bridge, known for Chicano Park murals, galleries and the shipyards beside it.",
+   "summary": "A historically Mexican-American neighborhood under the Coronado Bridge, known for Chicano Park murals, galleries and the shipyards beside it.",
    "vibe": [
     "chicano-culture",
     "arts",
@@ -904,7 +904,7 @@
   {
    "id": "linda-vista",
    "name": "Linda Vista",
-   "summary": "A diverse, modest neighbourhood on the mesa above Mission Valley, home to the University of San Diego.",
+   "summary": "A diverse, modest neighborhood on the mesa above Mission Valley, home to the University of San Diego.",
    "vibe": [
     "diverse",
     "affordable",
@@ -965,7 +965,7 @@
    "id": "mts-bus",
    "name": "MTS buses",
    "kind": "bus",
-   "summary": "The Metropolitan Transit System bus network, the only transit to the beach neighbourhoods.",
+   "summary": "The Metropolitan Transit System bus network, the only transit to the beach neighborhoods.",
    "source": "curated-2026-10"
   },
   {
@@ -1179,7 +1179,7 @@
    "neighborhood": "downtown",
    "summary": "The main downtown hall for touring Broadway shows and the opera.",
    "tags": [
-    "theatre",
+    "theater",
     "broadway"
    ],
    "cost": "$$$",
@@ -1444,7 +1444,7 @@
    "name": "Fleet Science Center",
    "kind": "museum",
    "neighborhood": "bankers-hill",
-   "summary": "Hands-on science museum with a dome theatre.",
+   "summary": "Hands-on science museum with a dome theater.",
    "tags": [
     "science",
     "kids",
@@ -1470,7 +1470,7 @@
    "name": "San Diego Natural History Museum",
    "kind": "museum",
    "neighborhood": "bankers-hill",
-   "summary": "\"The Nat\": fossils, regional wildlife and a giant-screen theatre.",
+   "summary": "\"The Nat\": fossils, regional wildlife and a giant-screen theater.",
    "tags": [
     "science",
     "dinosaurs",
@@ -1550,9 +1550,9 @@
    "name": "The Old Globe",
    "kind": "venue",
    "neighborhood": "bankers-hill",
-   "summary": "Respected theatre in Balboa Park known for its summer Shakespeare festival.",
+   "summary": "Respected theater in Balboa Park known for its summer Shakespeare festival.",
    "tags": [
-    "theatre",
+    "theater",
     "shakespeare"
    ],
    "cost": "$$$",
@@ -1600,7 +1600,7 @@
    "name": "University Avenue bars in Hillcrest",
    "kind": "nightlife",
    "neighborhood": "hillcrest",
-   "summary": "The centre of San Diego's gay nightlife, with bars and dance clubs around the Hillcrest sign.",
+   "summary": "The center of San Diego's gay nightlife, with bars and dance clubs around the Hillcrest sign.",
    "tags": [
     "lgbtq",
     "bars",
@@ -1650,7 +1650,7 @@
    "name": "The Observatory North Park",
    "kind": "venue",
    "neighborhood": "north-park",
-   "summary": "Restored 1920s theatre hosting touring rock and indie bands.",
+   "summary": "Restored 1920s theater hosting touring rock and indie bands.",
    "tags": [
     "live-music",
     "concerts"
@@ -1976,7 +1976,7 @@
    "name": "Hodad's",
    "kind": "restaurant",
    "neighborhood": "ocean-beach",
-   "summary": "Burger joint on Newport Avenue covered in licence plates and surf stickers.",
+   "summary": "Burger joint on Newport Avenue covered in license plates and surf stickers.",
    "tags": [
     "burgers",
     "line",
@@ -2808,6 +2808,1838 @@
    "seasons": [],
    "cuisine": "japanese",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "kansas-city-barbeque",
+   "name": "Kansas City Barbeque",
+   "kind": "restaurant",
+   "neighborhood": "downtown",
+   "summary": "Bayside barbecue joint and bar where the piano scene in Top Gun was filmed.",
+   "tags": [
+    "bbq",
+    "dive-bar",
+    "movie-history"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "solo"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "bbq",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "horton-plaza-park",
+   "name": "Horton Plaza Park",
+   "kind": "park",
+   "neighborhood": "gaslamp",
+   "summary": "Plaza with an old fountain, splash jets and lunch kiosks at the top of the Gaslamp.",
+   "tags": [
+    "plaza",
+    "fountain",
+    "lunch-break"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "davis-horton-house",
+   "name": "Davis-Horton House Museum",
+   "kind": "museum",
+   "neighborhood": "gaslamp",
+   "summary": "The oldest surviving building in New Town, with walking tours of the Gaslamp's history.",
+   "tags": [
+    "history",
+    "tours"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spreckels-theatre",
+   "name": "Spreckels Theatre",
+   "kind": "venue",
+   "neighborhood": "gaslamp",
+   "summary": "Ornate 1912 theater on Broadway for concerts, comedy and touring shows.",
+   "tags": [
+    "theater",
+    "concerts",
+    "historic"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cafe-sevilla",
+   "name": "Café Sevilla",
+   "kind": "restaurant",
+   "neighborhood": "gaslamp",
+   "summary": "Long-running Spanish restaurant with tapas, paella, flamenco shows and salsa nights.",
+   "tags": [
+    "tapas",
+    "flamenco",
+    "dancing"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "spanish",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "american-comedy-co",
+   "name": "American Comedy Co.",
+   "kind": "venue",
+   "neighborhood": "gaslamp",
+   "summary": "Basement comedy club on Sixth Avenue with touring headliners and open mics.",
+   "tags": [
+    "comedy",
+    "late-night"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "basic-bar-pizza",
+   "name": "Basic Bar & Pizza",
+   "kind": "restaurant",
+   "neighborhood": "east-village",
+   "summary": "Warehouse bar serving thin-crust New Haven-style pizza, busy before Padres games.",
+   "tags": [
+    "pizza",
+    "beer",
+    "game-day"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "pizza",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fault-line-park",
+   "name": "Fault Line Park",
+   "kind": "park",
+   "neighborhood": "east-village",
+   "summary": "Small new park with a playground, dog area and lawn among the East Village towers.",
+   "tags": [
+    "dogs",
+    "playground",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "half-door-brewing",
+   "name": "Half Door Brewing Co.",
+   "kind": "bar",
+   "neighborhood": "east-village",
+   "summary": "Irish-style brewpub in an old house a block from Petco Park.",
+   "tags": [
+    "brewery",
+    "pub",
+    "game-day"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "friends",
+    "solo"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "irish-pub",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "filippis",
+   "name": "Filippi's Pizza Grotto",
+   "kind": "restaurant",
+   "neighborhood": "little-italy",
+   "summary": "Family Italian deli and red-sauce restaurant on India Street since 1950, with Chianti bottles on the ceiling.",
+   "tags": [
+    "pizza",
+    "italian",
+    "old-school"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "italian",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "amici-park",
+   "name": "Amici Park",
+   "kind": "park",
+   "neighborhood": "little-italy",
+   "summary": "Neighborhood park with bocce courts, a small amphitheatre and a dog run.",
+   "tags": [
+    "bocce",
+    "dogs",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hob-nob-hill",
+   "name": "Hob Nob Hill",
+   "kind": "restaurant",
+   "neighborhood": "bankers-hill",
+   "summary": "Comfort-food coffee shop on First Avenue serving breakfasts and pot roast since 1944.",
+   "tags": [
+    "diner",
+    "breakfast",
+    "historic"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "american-diner",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hash-house-a-go-go",
+   "name": "Hash House a Go Go",
+   "kind": "restaurant",
+   "neighborhood": "hillcrest",
+   "summary": "Brunch spot on Fifth Avenue known for enormous plates and weekend waits.",
+   "tags": [
+    "brunch",
+    "big-portions"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bread-and-cie",
+   "name": "Bread & Cie",
+   "kind": "cafe",
+   "neighborhood": "hillcrest",
+   "summary": "Artisan bakery and cafe on University Avenue for sandwiches and loaves to take home.",
+   "tags": [
+    "bakery",
+    "coffee",
+    "sandwiches"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mission-hills-hillcrest-library",
+   "name": "Mission Hills-Hillcrest Library",
+   "kind": "library",
+   "neighborhood": "hillcrest",
+   "summary": "Modern branch library with a rooftop terrace and community rooms.",
+   "tags": [
+    "books",
+    "study",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "caffe-calabria",
+   "name": "Caffè Calabria",
+   "kind": "cafe",
+   "neighborhood": "north-park",
+   "summary": "Roaster and Italian-style coffee bar on 30th Street, with Neapolitan pizza at night.",
+   "tags": [
+    "coffee",
+    "roaster",
+    "pizza"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "italian-cafe",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "north-park-library",
+   "name": "North Park Branch Library",
+   "kind": "library",
+   "neighborhood": "north-park",
+   "summary": "Neighborhood branch library on 30th Street.",
+   "tags": [
+    "books",
+    "quiet",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "toronado-san-diego",
+   "name": "Toronado",
+   "kind": "bar",
+   "neighborhood": "north-park",
+   "summary": "Beer bar on 30th Street with a long draught list of local and Belgian beers.",
+   "tags": [
+    "beer",
+    "craft-beer"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "solo"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hamiltons-tavern",
+   "name": "Hamilton's Tavern",
+   "kind": "bar",
+   "neighborhood": "south-park",
+   "summary": "Corner beer bar with a famous tap list, pinball and pub food.",
+   "tags": [
+    "craft-beer",
+    "pub",
+    "local"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "solo"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "american-pub",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "station-tavern",
+   "name": "Station Tavern",
+   "kind": "restaurant",
+   "neighborhood": "south-park",
+   "summary": "Burger and beer spot with a big family-friendly patio by the old streetcar stop.",
+   "tags": [
+    "burgers",
+    "patio",
+    "family"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "burgers",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "golden-hill-park",
+   "name": "Golden Hill Park",
+   "kind": "park",
+   "neighborhood": "south-park",
+   "summary": "Hilly southeastern corner of Balboa Park with a playground, picnic areas and a disc golf course.",
+   "tags": [
+    "playground",
+    "picnic",
+    "disc-golf"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "morley-field",
+   "name": "Morley Field Sports Complex",
+   "kind": "fitness",
+   "neighborhood": "south-park",
+   "summary": "Balboa Park sports area with a public pool, tennis courts, disc golf and the velodrome.",
+   "tags": [
+    "pool",
+    "tennis",
+    "disc-golf"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "grape-street-dog-park",
+   "name": "Grape Street Dog Park",
+   "kind": "park",
+   "neighborhood": "south-park",
+   "summary": "Big off-leash meadow on the edge of Balboa Park where neighbours meet with their dogs.",
+   "tags": [
+    "dogs",
+    "off-leash",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "family",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "blind-lady-ale-house",
+   "name": "Blind Lady Ale House",
+   "kind": "restaurant",
+   "neighborhood": "normal-heights",
+   "summary": "Neighborhood beer hall on Adams Avenue with wood-fired pizza and long shared tables.",
+   "tags": [
+    "pizza",
+    "craft-beer",
+    "local"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "pizza",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lestats-adams",
+   "name": "Lestat's Coffee House",
+   "kind": "cafe",
+   "neighborhood": "normal-heights",
+   "summary": "Twenty-four-hour coffee house with an attached small venue for open mics and acoustic shows.",
+   "tags": [
+    "coffee",
+    "late-night",
+    "open-mic"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "cafe",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "polite-provisions",
+   "name": "Polite Provisions",
+   "kind": "bar",
+   "neighborhood": "normal-heights",
+   "summary": "Apothecary-style cocktail bar at Adams and 30th, with a soda fountain look.",
+   "tags": [
+    "cocktails",
+    "date-night"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kensington-normal-heights-library",
+   "name": "Kensington-Normal Heights Library",
+   "kind": "library",
+   "neighborhood": "normal-heights",
+   "summary": "Small neighborhood branch library on Adams Avenue.",
+   "tags": [
+    "books",
+    "quiet",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kate-sessions-park",
+   "name": "Kate Sessions Park",
+   "kind": "park",
+   "neighborhood": "pacific-beach",
+   "summary": "Hilltop park with sweeping views over Mission Bay, popular for sunsets, kites and dogs.",
+   "tags": [
+    "views",
+    "sunset",
+    "dogs"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pacific-beach-library",
+   "name": "Pacific Beach/Taylor Branch Library",
+   "kind": "library",
+   "neighborhood": "pacific-beach",
+   "summary": "Branch library on Grand Avenue with a reading garden.",
+   "tags": [
+    "books",
+    "quiet",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "konos-cafe",
+   "name": "Kono's Cafe",
+   "kind": "restaurant",
+   "neighborhood": "pacific-beach",
+   "summary": "Cheap, busy breakfast counter across from Crystal Pier with ocean views and breakfast burritos.",
+   "tags": [
+    "breakfast",
+    "cheap",
+    "views"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "american-breakfast",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-mission-mission-beach",
+   "name": "The Mission",
+   "kind": "restaurant",
+   "neighborhood": "mission-beach",
+   "summary": "Laid-back breakfast spot on Mission Boulevard with Latin and Asian twists on brunch.",
+   "tags": [
+    "breakfast",
+    "brunch",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "californian",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mission-bay-aquatic-center",
+   "name": "Mission Bay Aquatic Center",
+   "kind": "fitness",
+   "neighborhood": "mission-beach",
+   "summary": "Public watersports center on the bay with kayak, paddleboard and sailing rentals and classes.",
+   "tags": [
+    "kayaking",
+    "paddleboard",
+    "sailing"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "la-jolla-library",
+   "name": "La Jolla/Riford Library",
+   "kind": "library",
+   "neighborhood": "la-jolla",
+   "summary": "Branch library in the village with a quiet reading garden and an art gallery.",
+   "tags": [
+    "books",
+    "quiet",
+    "art"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "warwicks",
+   "name": "Warwick's",
+   "kind": "shopping",
+   "neighborhood": "la-jolla",
+   "summary": "Family-owned bookstore on Girard Avenue, among the oldest in the country, with frequent author events.",
+   "tags": [
+    "books",
+    "indie",
+    "events"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rose-canyon",
+   "name": "Rose Canyon Open Space",
+   "kind": "trail",
+   "neighborhood": "university-city",
+   "summary": "Creek trail through a sycamore canyon under the trolley line, used by runners and dog walkers.",
+   "tags": [
+    "trail",
+    "running",
+    "dogs"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "university-community-library",
+   "name": "University Community Library",
+   "kind": "library",
+   "neighborhood": "university-city",
+   "summary": "Branch library on Governor Drive serving families and students.",
+   "tags": [
+    "books",
+    "kids",
+    "study"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "doyle-community-park",
+   "name": "Doyle Community Park",
+   "kind": "park",
+   "neighborhood": "university-city",
+   "summary": "Park with a recreation center, fields and a playground beside the library.",
+   "tags": [
+    "playground",
+    "sports",
+    "rec-center"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "regents-pizzeria",
+   "name": "Regents Pizzeria",
+   "kind": "restaurant",
+   "neighborhood": "university-city",
+   "summary": "Neighborhood pizza and beer spot near UCSD, popular with students and families.",
+   "tags": [
+    "pizza",
+    "students",
+    "casual"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "pizza",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "torrey-pines-golf",
+   "name": "Torrey Pines Golf Course",
+   "kind": "fitness",
+   "neighborhood": "sorrento-valley",
+   "summary": "Municipal clifftop golf course that hosts PGA Tour events and sells tee times to residents.",
+   "tags": [
+    "golf",
+    "views"
+   ],
+   "cost": "$$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "penasquitos-canyon",
+   "name": "Los Peñasquitos Canyon Preserve",
+   "kind": "trail",
+   "neighborhood": "sorrento-valley",
+   "summary": "Canyon trail to a small waterfall, used by hikers, runners and mountain bikers.",
+   "tags": [
+    "hiking",
+    "waterfall",
+    "mountain-biking"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "torrey-pines-state-beach",
+   "name": "Torrey Pines State Beach",
+   "kind": "beach",
+   "neighborhood": "sorrento-valley",
+   "summary": "Long beach beneath sandstone cliffs, reached by a lot at the bottom of the reserve.",
+   "tags": [
+    "beach",
+    "cliffs",
+    "walk"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "karl-strauss-sorrento",
+   "name": "Karl Strauss Brewing Company",
+   "kind": "restaurant",
+   "neighborhood": "sorrento-valley",
+   "summary": "Brewery restaurant with a garden patio, a lunch and after-work spot for biotech workers.",
+   "tags": [
+    "brewery",
+    "after-work",
+    "patio"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "coworkers",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "american-pub",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "san-diego-river-trail",
+   "name": "San Diego River Trail",
+   "kind": "trail",
+   "neighborhood": "mission-valley",
+   "summary": "Paved path along the river through Mission Valley, used by commuters and runners.",
+   "tags": [
+    "running",
+    "cycling",
+    "river"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mission-valley-library",
+   "name": "Mission Valley Library",
+   "kind": "library",
+   "neighborhood": "mission-valley",
+   "summary": "Large branch library by the river with study rooms and a big children's area.",
+   "tags": [
+    "books",
+    "study",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "westfield-mission-valley",
+   "name": "Westfield Mission Valley",
+   "kind": "shopping",
+   "neighborhood": "mission-valley",
+   "summary": "Outdoor mall with discount stores, groceries and a cinema.",
+   "tags": [
+    "errands",
+    "mall"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mission-san-diego",
+   "name": "Mission Basilica San Diego de Alcalá",
+   "kind": "landmark",
+   "neighborhood": "mission-valley",
+   "summary": "The first of the California missions, with gardens, a museum and an active parish.",
+   "tags": [
+    "history",
+    "church",
+    "gardens"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "old-town-mexican-cafe",
+   "name": "Old Town Mexican Café",
+   "kind": "restaurant",
+   "neighborhood": "old-town",
+   "summary": "Busy Mexican restaurant where women make tortillas by hand in the front window.",
+   "tags": [
+    "mexican",
+    "margaritas",
+    "tortillas"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "mexican",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "presidio-park",
+   "name": "Presidio Park",
+   "kind": "park",
+   "neighborhood": "old-town",
+   "summary": "Hilltop park above Old Town with lawns, trails and the Serra Museum on the site of the first Spanish fort.",
+   "tags": [
+    "history",
+    "views",
+    "picnic"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "whaley-house",
+   "name": "Whaley House",
+   "kind": "museum",
+   "neighborhood": "old-town",
+   "summary": "1857 brick house museum famous for its ghost stories and evening tours.",
+   "tags": [
+    "history",
+    "haunted"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "family",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cesar-chavez-park",
+   "name": "Cesar Chavez Park",
+   "kind": "park",
+   "neighborhood": "barrio-logan",
+   "summary": "Small waterfront park with a fishing pier looking across the bay at the shipyards and Coronado.",
+   "tags": [
+    "waterfront",
+    "fishing",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "logan-heights-library",
+   "name": "Logan Heights Branch Library",
+   "kind": "library",
+   "neighborhood": "barrio-logan",
+   "summary": "Bilingual neighborhood library with homework help and murals.",
+   "tags": [
+    "books",
+    "bilingual",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "salud-tacos",
+   "name": "Salud!",
+   "kind": "restaurant",
+   "neighborhood": "barrio-logan",
+   "summary": "Taco shop on Logan Avenue with lowrider culture on the walls and late hours on weekends.",
+   "tags": [
+    "tacos",
+    "local",
+    "late-night"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "mexican",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "claytons-coffee-shop",
+   "name": "Clayton's Coffee Shop",
+   "kind": "restaurant",
+   "neighborhood": "coronado",
+   "summary": "Retro horseshoe-counter diner on Orange Avenue with jukeboxes at the stools.",
+   "tags": [
+    "diner",
+    "breakfast",
+    "retro"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "american-diner",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coronado-library",
+   "name": "Coronado Public Library",
+   "kind": "library",
+   "neighborhood": "coronado",
+   "summary": "Handsome city library with a Spanish-style reading room by Spreckels Park.",
+   "tags": [
+    "books",
+    "quiet",
+    "historic"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spreckels-park",
+   "name": "Spreckels Park",
+   "kind": "park",
+   "neighborhood": "coronado",
+   "summary": "Town green with a playground, summer concerts and an art fair.",
+   "tags": [
+    "playground",
+    "concerts",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coronado-ferry-landing",
+   "name": "Coronado Ferry Landing",
+   "kind": "shopping",
+   "neighborhood": "coronado",
+   "summary": "Bayside shops and restaurants where the ferry from downtown docks, with skyline views.",
+   "tags": [
+    "ferry",
+    "views",
+    "shops"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dumpling-inn",
+   "name": "Dumpling Inn",
+   "kind": "restaurant",
+   "neighborhood": "kearny-mesa",
+   "summary": "Small, long-running dumpling house in the Convoy district.",
+   "tags": [
+    "dumplings",
+    "chinese"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "chinese",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "zion-market",
+   "name": "Zion Market",
+   "kind": "market",
+   "neighborhood": "kearny-mesa",
+   "summary": "Large Korean supermarket with a food court and banchan counter.",
+   "tags": [
+    "grocery",
+    "korean",
+    "food-court"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "korean",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "serra-mesa-kearny-mesa-library",
+   "name": "Serra Mesa-Kearny Mesa Library",
+   "kind": "library",
+   "neighborhood": "kearny-mesa",
+   "summary": "Branch library with study rooms and a children's area.",
+   "tags": [
+    "books",
+    "study",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "viejas-arena",
+   "name": "Viejas Arena",
+   "kind": "venue",
+   "neighborhood": "college-area",
+   "summary": "SDSU's arena for Aztecs basketball and touring concerts.",
+   "tags": [
+    "basketball",
+    "concerts",
+    "students"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sdsu-campus",
+   "name": "San Diego State University campus",
+   "kind": "landmark",
+   "neighborhood": "college-area",
+   "summary": "Mission Revival campus around Hepner Hall's bell tower, with a student union and free galleries.",
+   "tags": [
+    "campus",
+    "architecture",
+    "students"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "college-rolando-library",
+   "name": "College-Rolando Library",
+   "kind": "library",
+   "neighborhood": "college-area",
+   "summary": "Branch library on Montezuma Road used by students and neighbours.",
+   "tags": [
+    "books",
+    "study",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pal-joeys",
+   "name": "Pal Joey's",
+   "kind": "bar",
+   "neighborhood": "college-area",
+   "summary": "Old neighborhood dive bar with live bands, pool tables and cheap drinks.",
+   "tags": [
+    "dive-bar",
+    "live-music",
+    "pool-tables"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "solo"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lake-murray",
+   "name": "Lake Murray",
+   "kind": "trail",
+   "neighborhood": "college-area",
+   "summary": "Reservoir with a paved shoreline path of about three miles, busy with walkers, runners and anglers.",
+   "tags": [
+    "running",
+    "walk",
+    "fishing"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tecolote-canyon",
+   "name": "Tecolote Canyon Natural Park",
+   "kind": "trail",
+   "neighborhood": "linda-vista",
+   "summary": "Canyon park with a nature center and dirt trails running north from Mission Bay.",
+   "tags": [
+    "hiking",
+    "nature",
+    "dogs"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "linda-vista-library",
+   "name": "Linda Vista Library",
+   "kind": "library",
+   "neighborhood": "linda-vista",
+   "summary": "Branch library with collections in Vietnamese, Spanish and other languages.",
+   "tags": [
+    "books",
+    "multilingual",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "usd-campus",
+   "name": "University of San Diego campus",
+   "kind": "landmark",
+   "neighborhood": "linda-vista",
+   "summary": "Spanish Renaissance-style campus on the mesa with the Immaculata church and bay views.",
+   "tags": [
+    "campus",
+    "architecture",
+    "views"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "linda-vista-rec-center",
+   "name": "Linda Vista Recreation Center",
+   "kind": "fitness",
+   "neighborhood": "linda-vista",
+   "summary": "City recreation center with a gym, fields and youth sports leagues.",
+   "tags": [
+    "rec-center",
+    "sports",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "linda-vista-skate-park",
+   "name": "Linda Vista Skate Park",
+   "kind": "park",
+   "neighborhood": "linda-vista",
+   "summary": "Public concrete skate park with bowls and street features.",
+   "tags": [
+    "skate",
+    "teens"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [
@@ -3004,7 +4836,7 @@
    "sector": "defense",
    "neighborhood": "point-loma",
    "size": "large",
-   "summary": "Navy research and engineering centre with campuses on Point Loma and in Old Town.",
+   "summary": "Navy research and engineering center with campuses on Point Loma and in Old Town.",
    "careers": [
     "defense-engineer",
     "software-engineer",
@@ -3137,7 +4969,7 @@
    "sector": "healthcare",
    "neighborhood": "hillcrest",
    "size": "large",
-   "summary": "Scripps Health hospital and trauma centre in Hillcrest.",
+   "summary": "Scripps Health hospital and trauma center in Hillcrest.",
    "careers": [
     "registered-nurse",
     "night-nurse",
@@ -3223,7 +5055,7 @@
    "sector": "government",
    "neighborhood": "downtown",
    "size": "large",
-   "summary": "County agencies, courts and the District Attorney, centred on the County Administration Center.",
+   "summary": "County agencies, courts and the District Attorney, centered on the County Administration Center.",
    "careers": [
     "government-analyst",
     "social-worker",
@@ -3348,7 +5180,7 @@
    "sector": "arts",
    "neighborhood": "bankers-hill",
    "size": "small",
-   "summary": "Regional theatre in Balboa Park.",
+   "summary": "Regional theater in Balboa Park.",
    "careers": [
     "actor",
     "performer"

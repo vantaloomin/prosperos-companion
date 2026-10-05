@@ -39,10 +39,10 @@
  "sources": {
   "curated-2026-10": {
    "kind": "curated",
-   "title": "Miami places and neighbourhoods written for Prospero Companion",
+   "title": "Miami places and neighborhoods written for Prospero Companion",
    "license": "CC0-1.0",
    "retrieved": "2026-10-05",
-   "note": "Well-known public places, institutions and employers from general knowledge, covering the City of Miami plus Miami Beach and nearby municipalities people treat as neighbourhoods (Coral Gables, Key Biscayne, Doral, Aventura, Miami Gardens). Businesses open and close and rents move: treat this as a snapshot for fiction. Rents are rounded estimates of typical asking ranges, not listings. Coordinates are approximate neighbourhood centres."
+   "note": "Well-known public places, institutions and employers from general knowledge, covering the City of Miami plus Miami Beach and nearby municipalities people treat as neighborhoods (Coral Gables, Key Biscayne, Doral, Aventura, Miami Gardens). Businesses open and close and rents move: treat this as a snapshot for fiction. Rents are rounded estimates of typical asking ranges, not listings. Coordinates are approximate neighborhood centers."
   },
   "curated-climate-2026-10": {
    "kind": "curated",
@@ -56,7 +56,7 @@
   {
    "id": "brickell",
    "name": "Brickell",
-   "summary": "The financial district: a dense wall of glass condo and office towers along Brickell Avenue and the bay, with rooftop bars and Brickell City Centre.",
+   "summary": "The financial district: a dense wall of glass condo and office towers along Brickell Avenue and the bay, with rooftop bars and Brickell City Center.",
    "vibe": [
     "finance",
     "high-rise",
@@ -372,7 +372,7 @@
   {
    "id": "overtown",
    "name": "Overtown",
-   "summary": "Historic Black neighbourhood once called the Harlem of the South, now mixing public housing, churches and new development near downtown.",
+   "summary": "Historic Black neighborhood once called the Harlem of the South, now mixing public housing, churches and new development near downtown.",
    "vibe": [
     "historic",
     "black-history",
@@ -489,7 +489,7 @@
   {
    "id": "coconut-grove",
    "name": "Coconut Grove",
-   "summary": "Miami's oldest neighbourhood: leafy, bayside and bohemian-turned-affluent, with marinas, sailing clubs and a walkable village centre.",
+   "summary": "Miami's oldest neighborhood: leafy, bayside and bohemian-turned-affluent, with marinas, sailing clubs and a walkable village center.",
    "vibe": [
     "leafy",
     "waterfront",
@@ -689,7 +689,7 @@
   {
    "id": "north-beach",
    "name": "North Beach",
-   "summary": "A calmer, more local stretch of Miami Beach with MiMo-style low-rise apartments, reaching up toward Surfside and Bal Harbour.",
+   "summary": "A calmer, more local stretch of Miami Beach with MiMo-style low-rise apartments, reaching up toward Surfside and Bal Harbor.",
    "vibe": [
     "beach",
     "local",
@@ -807,7 +807,7 @@
   {
    "id": "westchester",
    "name": "Westchester and University Park",
-   "summary": "Cuban-American suburban neighbourhoods around Florida International University's main campus.",
+   "summary": "Cuban-American suburban neighborhoods around Florida International University's main campus.",
    "vibe": [
     "suburban",
     "students",
@@ -1233,7 +1233,7 @@
    "name": "The Fillmore Miami Beach",
    "kind": "venue",
    "neighborhood": "south-beach",
-   "summary": "Concert and comedy theatre in the former Jackie Gleason Theater.",
+   "summary": "Concert and comedy theater in the former Jackie Gleason Theater.",
    "tags": [
     "concerts",
     "comedy"
@@ -1467,10 +1467,10 @@
   },
   {
    "id": "bal-harbour-shops",
-   "name": "Bal Harbour Shops",
+   "name": "Bal Harbor Shops",
    "kind": "shopping",
    "neighborhood": "north-beach",
-   "summary": "Open-air luxury mall in the village of Bal Harbour, just north of North Beach.",
+   "summary": "Open-air luxury mall in the village of Bal Harbor, just north of North Beach.",
    "tags": [
     "luxury",
     "fashion",
@@ -1739,9 +1739,9 @@
    "name": "Adrienne Arsht Center for the Performing Arts",
    "kind": "venue",
    "neighborhood": "downtown",
-   "summary": "The main performing arts centre, hosting touring Broadway, opera, ballet and the Florida Grand Opera.",
+   "summary": "The main performing arts center, hosting touring Broadway, opera, ballet and the Florida Grand Opera.",
    "tags": [
-    "theatre",
+    "theater",
     "broadway",
     "opera",
     "ballet"
@@ -1812,7 +1812,7 @@
   },
   {
    "id": "brickell-city-centre",
-   "name": "Brickell City Centre",
+   "name": "Brickell City Center",
    "kind": "shopping",
    "neighborhood": "brickell",
    "summary": "Multi-level open-air mall with a food hall, cinema and offices.",
@@ -2003,7 +2003,7 @@
    "name": "Gramps",
    "kind": "bar",
    "neighborhood": "wynwood",
-   "summary": "Neighbourhood bar with a big back patio, drag brunch and live music.",
+   "summary": "Neighborhood bar with a big back patio, drag brunch and live music.",
    "tags": [
     "bar",
     "patio",
@@ -2177,7 +2177,7 @@
    "name": "Little Haiti Cultural Complex",
    "kind": "venue",
    "neighborhood": "little-haiti",
-   "summary": "Arts centre with a gallery, theatre and the monthly Sounds of Little Haiti music night.",
+   "summary": "Arts center with a gallery, theater and the monthly Sounds of Little Haiti music night.",
    "tags": [
     "haitian",
     "music",
@@ -2533,7 +2533,7 @@
    "name": "CocoWalk",
    "kind": "shopping",
    "neighborhood": "coconut-grove",
-   "summary": "Open-air shopping and dining centre in the heart of Coconut Grove.",
+   "summary": "Open-air shopping and dining center in the heart of Coconut Grove.",
    "tags": [
     "shopping",
     "restaurants"
@@ -2804,7 +2804,7 @@
    "name": "Rickenbacker Causeway",
    "kind": "trail",
    "neighborhood": "key-biscayne",
-   "summary": "The causeway to Key Biscayne, the city's favourite road-cycling and running route with skyline views.",
+   "summary": "The causeway to Key Biscayne, the city's favorite road-cycling and running route with skyline views.",
    "tags": [
     "cycling",
     "running",
@@ -3011,6 +3011,1845 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "simpson-park",
+   "name": "Simpson Park",
+   "kind": "park",
+   "neighborhood": "brickell",
+   "summary": "Shady tropical hardwood hammock with a short nature trail, a quiet escape a few blocks from the towers.",
+   "tags": [
+    "nature",
+    "shade",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "family",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "brickell-key-loop",
+   "name": "Brickell Key loop",
+   "kind": "trail",
+   "neighborhood": "brickell",
+   "summary": "Flat waterfront path around the island of Brickell Key, the neighborhood's jogging and dog-walking circuit.",
+   "tags": [
+    "running",
+    "waterfront",
+    "dogs"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "perricones",
+   "name": "Perricone's Marketplace & Cafe",
+   "kind": "restaurant",
+   "neighborhood": "brickell",
+   "summary": "Italian restaurant and market in an old Vermont barn under the trees, known for its Sunday brunch.",
+   "tags": [
+    "italian",
+    "brunch",
+    "garden"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "italian",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "blackbird-ordinary",
+   "name": "Blackbird Ordinary",
+   "kind": "bar",
+   "neighborhood": "brickell",
+   "summary": "Cocktail bar with a back patio, the neighborhood's after-work and late-night standby.",
+   "tags": [
+    "cocktails",
+    "patio",
+    "after-work"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "friends",
+    "coworkers",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "venetian-causeway",
+   "name": "Venetian Causeway",
+   "kind": "trail",
+   "neighborhood": "edgewater",
+   "summary": "Low causeway of drawbridges and little islands from the mainland to Miami Beach, popular with runners and cyclists.",
+   "tags": [
+    "running",
+    "cycling",
+    "views"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "blue-collar",
+   "name": "Blue Collar",
+   "kind": "restaurant",
+   "neighborhood": "edgewater",
+   "summary": "Small diner-style restaurant in the MiMo district up Biscayne Boulevard with braises, burgers and a veggie board.",
+   "tags": [
+    "comfort-food",
+    "brunch",
+    "local"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "jimmys-eastside-diner",
+   "name": "Jimmy's Eastside Diner",
+   "kind": "restaurant",
+   "neighborhood": "edgewater",
+   "summary": "Old-fashioned breakfast diner on Biscayne Boulevard with a loyal neighborhood and LGBTQ+ crowd.",
+   "tags": [
+    "diner",
+    "breakfast",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "american-diner",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wynwood-brewing",
+   "name": "Wynwood Brewing Company",
+   "kind": "bar",
+   "neighborhood": "wynwood",
+   "summary": "The neighborhood's first craft brewery, with a taproom and food trucks outside.",
+   "tags": [
+    "brewery",
+    "beer",
+    "food-trucks"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coyo-taco",
+   "name": "Coyo Taco",
+   "kind": "restaurant",
+   "neighborhood": "wynwood",
+   "summary": "Taqueria with a speakeasy bar out back that stays busy late into the night.",
+   "tags": [
+    "tacos",
+    "late-night"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "date",
+    "solo"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "mexican",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shops-at-midtown",
+   "name": "The Shops at Midtown Miami",
+   "kind": "shopping",
+   "neighborhood": "midtown",
+   "summary": "Open-air big-box center with Target and other errand stores.",
+   "tags": [
+    "errands",
+    "groceries"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sugarcane",
+   "name": "Sugarcane Raw Bar Grill",
+   "kind": "restaurant",
+   "neighborhood": "midtown",
+   "summary": "Busy small-plates restaurant with a raw bar, robata grill and weekend brunch.",
+   "tags": [
+    "small-plates",
+    "brunch",
+    "cocktails"
+   ],
+   "cost": "$$$",
+   "setting": "mixed",
+   "good_for": [
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "latin-asian",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "buena-vista-deli",
+   "name": "Buena Vista Deli",
+   "kind": "cafe",
+   "neighborhood": "midtown",
+   "summary": "French bakery-cafe in Buena Vista with croissants, quiche and sidewalk tables.",
+   "tags": [
+    "bakery",
+    "coffee",
+    "french"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "french-bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "roberto-clemente-park",
+   "name": "Roberto Clemente Park",
+   "kind": "park",
+   "neighborhood": "midtown",
+   "summary": "City park with ball fields, basketball courts and a playground just west of Midtown.",
+   "tags": [
+    "sports",
+    "playground",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "flys-eye-dome",
+   "name": "Fly's Eye Dome",
+   "kind": "landmark",
+   "neighborhood": "design-district",
+   "summary": "Buckminster Fuller's geodesic dome in Palm Court, the district's free-to-wander public art center.",
+   "tags": [
+    "art",
+    "architecture",
+    "free"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "date",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "libreri-mapou",
+   "name": "Libreri Mapou",
+   "kind": "shopping",
+   "neighborhood": "little-haiti",
+   "summary": "Haitian bookstore with books in Kreyol, French and English and occasional readings and drumming.",
+   "tags": [
+    "books",
+    "haitian",
+    "culture"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "little-haiti-soccer-park",
+   "name": "Little Haiti Soccer Park",
+   "kind": "park",
+   "neighborhood": "little-haiti",
+   "summary": "Community park with lit soccer fields, a running track and a playground.",
+   "tags": [
+    "soccer",
+    "running",
+    "playground"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "churchills-pub",
+   "name": "Churchill's Pub",
+   "kind": "venue",
+   "neighborhood": "little-haiti",
+   "summary": "Long-running dive and punk club with noise, rock and jazz nights.",
+   "tags": [
+    "live-music",
+    "punk",
+    "dive-bar"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "friends",
+    "solo"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chez-le-bebe",
+   "name": "Chez Le Bebe",
+   "kind": "restaurant",
+   "neighborhood": "little-haiti",
+   "summary": "Family Haitian restaurant serving griot, stewed goat and rice and beans.",
+   "tags": [
+    "haitian",
+    "cheap",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "haitian",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lemon-city-library",
+   "name": "Lemon City Branch Library",
+   "kind": "library",
+   "neighborhood": "little-haiti",
+   "summary": "Miami-Dade branch library with Haitian Creole collections and kids' programs.",
+   "tags": [
+    "books",
+    "haitian",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lyric-theater-overtown",
+   "name": "Historic Lyric Theater",
+   "kind": "venue",
+   "neighborhood": "overtown",
+   "summary": "Restored 1913 theater run by the Black Archives, once the center of Overtown's \"Little Broadway\".",
+   "tags": [
+    "history",
+    "theater",
+    "black-history"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "jackson-soul-food",
+   "name": "Jackson Soul Food",
+   "kind": "restaurant",
+   "neighborhood": "overtown",
+   "summary": "Family-run breakfast and soul food spot on Northwest 3rd Avenue since the 1940s.",
+   "tags": [
+    "soul-food",
+    "breakfast",
+    "historic"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "soul-food",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gibson-park",
+   "name": "Gibson Park",
+   "kind": "park",
+   "neighborhood": "overtown",
+   "summary": "Rebuilt community park with a pool, ball field and indoor recreation center.",
+   "tags": [
+    "pool",
+    "rec-center",
+    "sports"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mount-zion-baptist",
+   "name": "Historic Mount Zion Baptist Church",
+   "kind": "landmark",
+   "neighborhood": "overtown",
+   "summary": "Stately church founded in 1896, a pillar of Overtown's history.",
+   "tags": [
+    "history",
+    "church",
+    "architecture"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "family",
+    "solo"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "culmer-overtown-library",
+   "name": "Culmer/Overtown Branch Library",
+   "kind": "library",
+   "neighborhood": "overtown",
+   "summary": "Neighborhood branch library with computers and after-school help.",
+   "tags": [
+    "books",
+    "kids",
+    "computers"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "allapattah-produce-market",
+   "name": "Allapattah produce markets",
+   "kind": "market",
+   "neighborhood": "allapattah",
+   "summary": "Wholesale-and-retail produce warehouses along NW 22nd Avenue selling tropical fruit by the case.",
+   "tags": [
+    "produce",
+    "cheap",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "allapattah-library",
+   "name": "Allapattah Branch Library",
+   "kind": "library",
+   "neighborhood": "allapattah",
+   "summary": "Miami-Dade branch library with bilingual programs.",
+   "tags": [
+    "books",
+    "bilingual",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "duarte-park",
+   "name": "Juan Pablo Duarte Park",
+   "kind": "park",
+   "neighborhood": "allapattah",
+   "summary": "Neighborhood park with ball fields and a playground, busy with Dominican families on weekends.",
+   "tags": [
+    "sports",
+    "playground",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bakehouse-art-complex",
+   "name": "Bakehouse Art Complex",
+   "kind": "museum",
+   "neighborhood": "allapattah",
+   "summary": "Former bakery turned into dozens of artist studios and galleries with open studio days.",
+   "tags": [
+    "art",
+    "studios",
+    "free"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "miami-river-greenway",
+   "name": "Miami River Greenway",
+   "kind": "trail",
+   "neighborhood": "health-district",
+   "summary": "Riverside walkway past boatyards, fishing boats and bridges between downtown and the Civic Center.",
+   "tags": [
+    "waterfront",
+    "walk",
+    "boats"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lummus-park-river",
+   "name": "Lummus Park Historic District",
+   "kind": "park",
+   "neighborhood": "health-district",
+   "summary": "Small riverside park holding the city's oldest buildings, the Wagner House and Fort Dallas.",
+   "tags": [
+    "history",
+    "shade",
+    "river"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "casablanca-seafood",
+   "name": "Casablanca Seafood Bar & Grill",
+   "kind": "restaurant",
+   "neighborhood": "health-district",
+   "summary": "Fish market and dock restaurant on the Miami River, serving the day's catch.",
+   "tags": [
+    "seafood",
+    "river",
+    "fish-market"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "seafood",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kiki-on-the-river",
+   "name": "Kiki on the River",
+   "kind": "restaurant",
+   "neighborhood": "health-district",
+   "summary": "Greek restaurant on the Miami River with a party crowd on weekend afternoons.",
+   "tags": [
+    "greek",
+    "waterfront",
+    "party"
+   ],
+   "cost": "$$$",
+   "setting": "mixed",
+   "good_for": [
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "greek",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spring-garden",
+   "name": "Spring Garden Historic District",
+   "kind": "landmark",
+   "neighborhood": "health-district",
+   "summary": "Quiet 1920s houses along Wagner Creek behind the hospital campus.",
+   "tags": [
+    "history",
+    "walk",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "barnacle",
+   "name": "The Barnacle Historic State Park",
+   "kind": "park",
+   "neighborhood": "coconut-grove",
+   "summary": "The Grove's oldest house on a wooded bayfront lawn, with picnics and moonlight concerts.",
+   "tags": [
+    "history",
+    "picnic",
+    "bayfront"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kennedy-park",
+   "name": "David T. Kennedy Park",
+   "kind": "park",
+   "neighborhood": "coconut-grove",
+   "summary": "Bayfront park with a fitness course, dog park and views over the water.",
+   "tags": [
+    "running",
+    "dogs",
+    "bayfront"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coconut-grove-library",
+   "name": "Coconut Grove Branch Library",
+   "kind": "library",
+   "neighborhood": "coconut-grove",
+   "summary": "Historic coral rock library on the bay, one of the oldest in Miami-Dade.",
+   "tags": [
+    "books",
+    "historic",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "greenstreet-cafe",
+   "name": "GreenStreet Cafe",
+   "kind": "restaurant",
+   "neighborhood": "coconut-grove",
+   "summary": "Sidewalk cafe in the center of the Grove, a people-watching spot from breakfast to late drinks.",
+   "tags": [
+    "brunch",
+    "sidewalk",
+    "people-watching"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "montys-raw-bar",
+   "name": "Monty's Raw Bar",
+   "kind": "bar",
+   "neighborhood": "coconut-grove",
+   "summary": "Tiki-hut marina bar with stone crabs, happy-hour deals and live music.",
+   "tags": [
+    "tiki",
+    "happy-hour",
+    "waterfront"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "havana-harrys",
+   "name": "Havana Harry's",
+   "kind": "restaurant",
+   "neighborhood": "coral-gables",
+   "summary": "Casual, generous Cuban restaurant favoured by local families.",
+   "tags": [
+    "cuban",
+    "family"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "cuban",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coral-gables-library",
+   "name": "Coral Gables Branch Library",
+   "kind": "library",
+   "neighborhood": "coral-gables",
+   "summary": "Mediterranean Revival branch library with a courtyard and a big children's room.",
+   "tags": [
+    "books",
+    "quiet",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rusty-pelican",
+   "name": "Rusty Pelican",
+   "kind": "restaurant",
+   "neighborhood": "key-biscayne",
+   "summary": "Bayside restaurant on Virginia Key with skyline views from the causeway.",
+   "tags": [
+    "views",
+    "brunch",
+    "waterfront"
+   ],
+   "cost": "$$$",
+   "setting": "mixed",
+   "good_for": [
+    "date",
+    "family",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "seafood",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "village-green-park",
+   "name": "Village Green Park",
+   "kind": "park",
+   "neighborhood": "key-biscayne",
+   "summary": "The island's central park with ball fields, a playground and village events.",
+   "tags": [
+    "playground",
+    "sports",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "key-biscayne-library",
+   "name": "Key Biscayne Branch Library",
+   "kind": "library",
+   "neighborhood": "key-biscayne",
+   "summary": "Small island branch library next to the village green.",
+   "tags": [
+    "books",
+    "quiet",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arthur-godfrey-road",
+   "name": "Arthur Godfrey Road",
+   "kind": "shopping",
+   "neighborhood": "mid-beach",
+   "summary": "The 41st Street main drag of kosher bakeries, delis, banks and everyday shops.",
+   "tags": [
+    "errands",
+    "kosher",
+    "local"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "roasters-n-toasters",
+   "name": "Roasters 'n Toasters",
+   "kind": "restaurant",
+   "neighborhood": "mid-beach",
+   "summary": "Jewish deli for corned beef, matzo ball soup and big breakfasts.",
+   "tags": [
+    "deli",
+    "breakfast"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "jewish-deli",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "indian-beach-park",
+   "name": "Indian Beach Park",
+   "kind": "park",
+   "neighborhood": "mid-beach",
+   "summary": "Beachfront park with a playground and shady picnic spots on the boardwalk.",
+   "tags": [
+    "beach",
+    "playground",
+    "picnic"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "scott-rakow-center",
+   "name": "Scott Rakow Youth Center",
+   "kind": "fitness",
+   "neighborhood": "mid-beach",
+   "summary": "City recreation center with an ice rink, pool, gym and bowling.",
+   "tags": [
+    "rec-center",
+    "skating",
+    "kids"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cafe-prima-pasta",
+   "name": "Café Prima Pasta",
+   "kind": "restaurant",
+   "neighborhood": "north-beach",
+   "summary": "Long-running Argentine-Italian trattoria on 71st Street with fresh pasta and sidewalk tables.",
+   "tags": [
+    "italian",
+    "pasta",
+    "local"
+   ],
+   "cost": "$$",
+   "setting": "mixed",
+   "good_for": [
+    "date",
+    "family",
+    "friends"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "italian",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "north-shore-library",
+   "name": "North Shore Branch Library",
+   "kind": "library",
+   "neighborhood": "north-beach",
+   "summary": "Branch library on Collins Avenue a block from the sand.",
+   "tags": [
+    "books",
+    "quiet"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "normandy-village-market",
+   "name": "Normandy Village Marketplace",
+   "kind": "market",
+   "neighborhood": "north-beach",
+   "summary": "Saturday farmers market around the Normandy Isle fountain.",
+   "tags": [
+    "farmers-market",
+    "saturday",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "doral-legacy-park",
+   "name": "Doral Legacy Park",
+   "kind": "park",
+   "neighborhood": "doral",
+   "summary": "Large city park with a community center, water play, fields and a walking path.",
+   "tags": [
+    "playground",
+    "sports",
+    "rec-center"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "doral-library",
+   "name": "Doral Branch Library",
+   "kind": "library",
+   "neighborhood": "doral",
+   "summary": "Miami-Dade branch library with bilingual story times and study space.",
+   "tags": [
+    "books",
+    "bilingual",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "miami-international-mall",
+   "name": "Miami International Mall",
+   "kind": "shopping",
+   "neighborhood": "doral",
+   "summary": "Enclosed suburban mall by the Dolphin Expressway, a cool place to walk on hot afternoons.",
+   "tags": [
+    "mall",
+    "errands"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kendall-indian-hammocks",
+   "name": "Kendall Indian Hammocks Park",
+   "kind": "park",
+   "neighborhood": "kendall",
+   "summary": "Large county park with sports fields, a playground and shady hammock trails.",
+   "tags": [
+    "sports",
+    "trail",
+    "playground"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kendall-library",
+   "name": "Kendall Branch Library",
+   "kind": "library",
+   "neighborhood": "kendall",
+   "summary": "Suburban branch library used for homework help and story times.",
+   "tags": [
+    "books",
+    "kids",
+    "study"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "tropical-park",
+   "name": "Tropical Park",
+   "kind": "park",
+   "neighborhood": "westchester",
+   "summary": "Big county park on Bird Road with lakes, an equestrian center, tennis and a running track.",
+   "tags": [
+    "running",
+    "lakes",
+    "sports"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "frost-art-museum",
+   "name": "Patricia & Phillip Frost Art Museum",
+   "kind": "museum",
+   "neighborhood": "westchester",
+   "summary": "Free art museum on FIU's campus with Latin American and contemporary work.",
+   "tags": [
+    "art",
+    "free",
+    "campus"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "westchester-library",
+   "name": "Westchester Regional Library",
+   "kind": "library",
+   "neighborhood": "westchester",
+   "summary": "Large regional library on Coral Way with study rooms and Spanish-language collections.",
+   "tags": [
+    "books",
+    "study",
+    "bilingual"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "islas-canarias",
+   "name": "Islas Canarias Restaurant",
+   "kind": "restaurant",
+   "neighborhood": "westchester",
+   "summary": "Family Cuban restaurant famous for its ham croquetas.",
+   "tags": [
+    "cuban",
+    "croquetas",
+    "family"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "cuban",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bird-bowl",
+   "name": "Bird Bowl",
+   "kind": "venue",
+   "neighborhood": "westchester",
+   "summary": "Old-school bowling alley on Bird Road with leagues, billiards and a bar.",
+   "tags": [
+    "bowling",
+    "retro",
+    "leagues"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "founders-park",
+   "name": "Founders Park",
+   "kind": "park",
+   "neighborhood": "aventura",
+   "summary": "Aventura's main park with a playground, fields and a bayside walk.",
+   "tags": [
+    "playground",
+    "sports",
+    "bayfront"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "aventura-arts-center",
+   "name": "Aventura Arts & Cultural Center",
+   "kind": "venue",
+   "neighborhood": "aventura",
+   "summary": "Small performing arts center with concerts, comedy and touring shows.",
+   "tags": [
+    "theater",
+    "concerts"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "family",
+    "friends"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ne-dade-aventura-library",
+   "name": "Northeast Dade-Aventura Branch Library",
+   "kind": "library",
+   "neighborhood": "aventura",
+   "summary": "Branch library beside the city hall complex.",
+   "tags": [
+    "books",
+    "quiet",
+    "kids"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "oleta-river",
+   "name": "Oleta River State Park",
+   "kind": "park",
+   "neighborhood": "aventura",
+   "summary": "Mangrove park with mountain-bike trails, kayak rentals and a small beach.",
+   "tags": [
+    "kayaking",
+    "mountain-biking",
+    "nature"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bourbon-steak-aventura",
+   "name": "Bourbon Steak",
+   "kind": "restaurant",
+   "neighborhood": "aventura",
+   "summary": "Michael Mina's steakhouse at the Turnberry resort, the area's special-occasion dinner.",
+   "tags": [
+    "steak",
+    "special-occasion"
+   ],
+   "cost": "$$$$",
+   "setting": "indoor",
+   "good_for": [
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "steakhouse",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "betty-ferguson-complex",
+   "name": "Betty T. Ferguson Recreational Complex",
+   "kind": "fitness",
+   "neighborhood": "miami-gardens",
+   "summary": "City recreation complex with a pool, gym, fields and a community center.",
+   "tags": [
+    "rec-center",
+    "pool",
+    "sports"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "north-dade-library",
+   "name": "North Dade Regional Library",
+   "kind": "library",
+   "neighborhood": "miami-gardens",
+   "summary": "Large regional library with study rooms, computers and teen programs.",
+   "tags": [
+    "books",
+    "study",
+    "teens"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "rolling-oaks-park",
+   "name": "Rolling Oaks Park",
+   "kind": "park",
+   "neighborhood": "miami-gardens",
+   "summary": "Neighborhood park with ball fields, a playground and youth football on autumn evenings.",
+   "tags": [
+    "sports",
+    "playground",
+    "local"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "amelia-earhart-park",
+   "name": "Amelia Earhart Park",
+   "kind": "park",
+   "neighborhood": "miami-gardens",
+   "summary": "Large county park with lakes, a farm village, a skate park and mountain-bike trails.",
+   "tags": [
+    "lakes",
+    "skate",
+    "kids"
+   ],
+   "cost": "$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [
@@ -3133,7 +4972,7 @@
    "known_for": [
     "dance",
     "music",
-    "theatre",
+    "theater",
     "visual-arts"
    ],
    "source": "curated-2026-10"
@@ -3162,7 +5001,7 @@
    "sector": "healthcare",
    "neighborhood": "health-district",
    "size": "large",
-   "summary": "The University of Miami's academic medical system, including the Sylvester cancer centre and research labs.",
+   "summary": "The University of Miami's academic medical system, including the Sylvester cancer center and research labs.",
    "careers": [
     "registered-nurse",
     "physician-resident",
@@ -3393,7 +5232,7 @@
    "sector": "hospitality",
    "neighborhood": "mid-beach",
    "size": "medium",
-   "summary": "Luxury hotel with its own theatre for cabaret shows.",
+   "summary": "Luxury hotel with its own theater for cabaret shows.",
    "careers": [
     "hotel-front-desk",
     "server",
@@ -3423,7 +5262,7 @@
    "sector": "entertainment",
    "neighborhood": "downtown",
    "size": "medium",
-   "summary": "The main performing arts centre.",
+   "summary": "The main performing arts center.",
    "careers": [
     "performer",
     "musician",
@@ -3514,7 +5353,7 @@
     "entertainment",
     "education"
    ],
-   "summary": "County government, Miami Dade College, the arena, the arts centre and PortMiami.",
+   "summary": "County government, Miami Dade College, the arena, the arts center and PortMiami.",
    "source": "curated-2026-10"
   },
   {

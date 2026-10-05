@@ -1506,6 +1506,802 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "palace-kitchen-door",
+   "name": "The palace kitchen door",
+   "kind": "restaurant",
+   "neighborhood": "palace-grounds",
+   "summary": "Everyday city kitchen door behind the palace where the cooks hand out bowls of soup and warm rolls at noon.",
+   "tags": [
+    "lunch",
+    "soup",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "soup and bread",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fountain-court",
+   "name": "The fountain court",
+   "kind": "square",
+   "neighborhood": "palace-grounds",
+   "summary": "Everyday city courtyard by the palace laundry, with a fountain and stone benches where servants and neighbours eat their lunch.",
+   "tags": [
+    "fountain",
+    "benches",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wheelwrights-yard",
+   "name": "The wheelwright's yard",
+   "kind": "workshop",
+   "neighborhood": "gate-quarter",
+   "summary": "Everyday city yard just inside the gate where wagon wheels and axles cracked on the country roads are mended.",
+   "tags": [
+    "craft",
+    "wagons",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gate-quarter-washhouse",
+   "name": "The travellers' washhouse",
+   "kind": "fitness",
+   "neighborhood": "gate-quarter",
+   "summary": "Everyday city washhouse with hot tubs and clean towels for travellers who arrive dusty from the road.",
+   "tags": [
+    "bath",
+    "travellers",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "apple-cart",
+   "name": "The Apple Cart",
+   "kind": "tavern",
+   "neighborhood": "market-square",
+   "summary": "Everyday city tavern on the corner of Market Square where wagon drivers drink cider and eat cold pork before the long ride home.",
+   "tags": [
+    "tavern",
+    "cider",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "cider and pork",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "weighing-house",
+   "name": "The weighing house",
+   "kind": "landmark",
+   "neighborhood": "market-square",
+   "summary": "Everyday city hall with a great beam scale, where farmers weigh their loads and a clerk writes down what each country sent.",
+   "tags": [
+    "market",
+    "scales",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "polishers-table",
+   "name": "The Polishers' Table",
+   "kind": "restaurant",
+   "neighborhood": "cutters-row",
+   "summary": "Everyday city cookshop where cutters and goldsmiths eat mutton pies and pea soup at one long table at midday.",
+   "tags": [
+    "lunch",
+    "pies",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "pies and soup",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cutters-green",
+   "name": "Cutters' green",
+   "kind": "square",
+   "neighborhood": "cutters-row",
+   "summary": "Everyday city patch of grass with a drinking fountain at the end of the row, where apprentices play marbles at noon.",
+   "tags": [
+    "square",
+    "marbles",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "oven-street-dairy",
+   "name": "The Oven Street dairy",
+   "kind": "market",
+   "neighborhood": "oven-street",
+   "summary": "Everyday city dairy where milk, butter and soft cheese are handed out from the counter at first light.",
+   "tags": [
+    "milk",
+    "cheese",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "dairy",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "flour-loft",
+   "name": "The flour loft",
+   "kind": "workshop",
+   "neighborhood": "oven-street",
+   "summary": "Everyday city loft where flour from the country mills is sifted and sacked for the bakehouses, and children slide on the empty sacks.",
+   "tags": [
+    "flour",
+    "craft",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-thimble",
+   "name": "The Thimble",
+   "kind": "tavern",
+   "neighborhood": "needle-hill",
+   "summary": "Everyday city tavern of tailors and dyers, small and warm, with green ale and a long argument about cloth every night.",
+   "tags": [
+    "tavern",
+    "tailors",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ale and toasted cheese",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "needle-hill-tea-garden",
+   "name": "Needle Hill tea garden",
+   "kind": "cafe",
+   "neighborhood": "needle-hill",
+   "summary": "Everyday city tea garden on the top of the rise, with a view over the drying lines and lemon cake on a tray.",
+   "tags": [
+    "tea",
+    "views",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "tea and cakes",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "needle-hill-laundry",
+   "name": "The Needle Hill laundry",
+   "kind": "workshop",
+   "neighborhood": "needle-hill",
+   "summary": "Everyday city laundry of coppers and mangles where neighbours wash on Mondays and the steam fogs the windows.",
+   "tags": [
+    "laundry",
+    "neighbours",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "close-bindery",
+   "name": "The Close bindery",
+   "kind": "workshop",
+   "neighborhood": "bookbinders-close",
+   "summary": "Everyday city bindery with its door propped open, where worn library books are restitched and anyone may learn to sew a notebook.",
+   "tags": [
+    "books",
+    "craft",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pump-square-pie-shop",
+   "name": "Mrs Gubbin's pie shop",
+   "kind": "restaurant",
+   "neighborhood": "pump-square",
+   "summary": "Everyday city pie shop on the corner of the square, with pork pies, apple turnovers and a queue of children after school.",
+   "tags": [
+    "pies",
+    "children",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "pies",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "toy-mender",
+   "name": "The toy mender",
+   "kind": "workshop",
+   "neighborhood": "pump-square",
+   "summary": "Everyday city workshop where an old carpenter glues dolls, restrings tops and repaints wooden soldiers for the square's children.",
+   "tags": [
+    "toys",
+    "children",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "family",
+    "solo"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "yellow-kettle",
+   "name": "The Yellow Kettle",
+   "kind": "cafe",
+   "neighborhood": "winkie-street",
+   "summary": "Everyday city breakfast room run by Winkie tinsmiths' wives, with porridge, fried bread and tea in tin mugs.",
+   "tags": [
+    "breakfast",
+    "winkie",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "breakfast",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "winkie-street-stalls",
+   "name": "Winkie Street stalls",
+   "kind": "market",
+   "neighborhood": "winkie-street",
+   "summary": "Everyday city street market where Winkie farmers hand out yellow apples, honey and buttercup cheese from their carts.",
+   "tags": [
+    "market",
+    "winkie",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "produce",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "winkie-street-baths",
+   "name": "Winkie Street baths",
+   "kind": "fitness",
+   "neighborhood": "winkie-street",
+   "summary": "Everyday city bathhouse with a big tin tub heated from the forge next door, much used by tinsmiths at the end of the day.",
+   "tags": [
+    "bath",
+    "tinsmiths",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "red-shutter",
+   "name": "The Red Shutter",
+   "kind": "tavern",
+   "neighborhood": "quadling-lane",
+   "summary": "Everyday city tavern run by a Quadling family, red-painted inside, with cherry cordial for children and stronger drink for the rest.",
+   "tags": [
+    "tavern",
+    "quadling",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "Quadling country cooking",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "quadling-dance-yard",
+   "name": "The Quadling dance yard",
+   "kind": "venue",
+   "neighborhood": "quadling-lane",
+   "summary": "Everyday city yard strung with red lanterns where families dance the Quadling reels on play-day evenings.",
+   "tags": [
+    "dancing",
+    "music",
+    "quadling",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "evening"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "quadling-lane-wash-green",
+   "name": "Quadling Lane wash green",
+   "kind": "square",
+   "neighborhood": "quadling-lane",
+   "summary": "Everyday city green where washing is laid out to bleach, with a pump at one end and children at the other.",
+   "tags": [
+    "washing",
+    "children",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gillikin-seed-shed",
+   "name": "The seed shed",
+   "kind": "market",
+   "neighborhood": "gillikin-gardens",
+   "summary": "Everyday city shed where allotment keepers swap seeds, cuttings and spare onions, with the swaps chalked on a board.",
+   "tags": [
+    "gardening",
+    "seeds",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gillikin-oatcake-oven",
+   "name": "The Gillikin oatcake oven",
+   "kind": "cafe",
+   "neighborhood": "gillikin-gardens",
+   "summary": "Everyday city bakehouse with a purple door where Gillikin oatcakes and plum buns come out hot every morning.",
+   "tags": [
+    "bakery",
+    "gillikin",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "brass-button",
+   "name": "The Brass Button",
+   "kind": "tavern",
+   "neighborhood": "barracks-corner",
+   "summary": "Everyday city tavern by the barracks where officers outnumber privates at the bar, as they do on the parade ground.",
+   "tags": [
+    "tavern",
+    "army",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "evening",
+    "late"
+   ],
+   "seasons": [],
+   "cuisine": "ale and sausages",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "officers-reading-room",
+   "name": "The officers' reading room",
+   "kind": "library",
+   "neighborhood": "barracks-corner",
+   "summary": "Everyday city reading room in a wing of the barracks nobody needs, now open to the whole neighbourhood.",
+   "tags": [
+    "books",
+    "quiet",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "barracks-plunge",
+   "name": "The barracks plunge",
+   "kind": "fitness",
+   "neighborhood": "barracks-corner",
+   "summary": "Everyday city cold plunge pool built for an army that never filled it, where the neighbours swim on hot afternoons.",
+   "tags": [
+    "swimming",
+    "cold",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "halfway-well",
+   "name": "The halfway well",
+   "kind": "square",
+   "neighborhood": "yellow-brick-road",
+   "summary": "Everyday roadside well with a bench and a tin cup on a chain, where walkers on the yellow brick road stop to drink.",
+   "tags": [
+    "well",
+    "road",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "cider-barn",
+   "name": "The cider barn",
+   "kind": "workshop",
+   "neighborhood": "yellow-brick-road",
+   "summary": "Everyday farm barn with a cider press where neighbours bring apples in the fall and leave with a jug.",
+   "tags": [
+    "cider",
+    "farm",
+    "everyday"
+   ],
+   "cost": "free",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "cuisine": "cider",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [

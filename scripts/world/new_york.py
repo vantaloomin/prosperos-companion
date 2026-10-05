@@ -45,7 +45,7 @@ CORE = ['subway', 'mta-bus', 'citi-bike']
 CITY = {
     'schema_version': 1, 'id': 'new-york', 'name': 'New York', 'region': 'New York', 'country': 'US',
     'timezone': 'America/New_York', 'aliases': ['NYC', 'New York City', 'The Big Apple', 'New York, NY'],
-    'summary': 'The largest city in the United States: five boroughs of dense neighbourhoods tied together by a '
+    'summary': 'The largest city in the United States: five boroughs of dense neighborhoods tied together by a '
                '24-hour subway, home to Wall Street, Broadway, world-class museums and food from everywhere.',
     'lat': 40.71, 'lon': -74.01,
     'speeds': {'walk': 4.5, 'car': 18, 'rideshare': 18, 'bus': 10, 'subway': 25, 'ferry': 20,
@@ -55,12 +55,12 @@ CITY = {
                        'italian': 0.9, 'irish': 0.7, 'caribbean': 1, 'south-asian': 0.7, 'slavic': 0.6, 'arabic': 0.3,
                        'west-african': 0.4}},
     'sources': {
-        S: {'kind': 'curated', 'title': 'New York places and neighbourhoods written for Prospero Companion',
+        S: {'kind': 'curated', 'title': 'New York places and neighborhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',
             'note': 'Well-known public places, institutions and employers from general knowledge. Businesses open '
                     'and close and rents move fast here: treat this as a snapshot for fiction. Rents are rounded '
                     'estimates of typical 2025 asking ranges, not listings. Coordinates are approximate '
-                    'neighbourhood centres.'},
+                    'neighborhood centers.'},
         CLIMATE: {'kind': 'curated', 'title': 'Approximate monthly climate for New York (Central Park)',
                   'license': 'CC0-1.0', 'retrieved': '2026-10-05',
                   'note': 'Rounded values in line with NOAA 1991-2020 normals for Central Park; refresh with '
@@ -102,7 +102,7 @@ CITY = {
              ([2900, 3600], [3700, 4700], [4800, 6800]), ['apartment-tower', 'walk-up', 'co-op'], 'high',
              CORE + ['nyc-ferry']),
         hood('midtown', 'Midtown', 'The skyscraper core: Times Square, the Theater District, Rockefeller Center, '
-             'Grand Central and Penn Station, busiest on weekdays.', ['business', 'touristy', 'theatre', 'central'],
+             'Grand Central and Penn Station, busiest on weekdays.', ['business', 'touristy', 'theater', 'central'],
              40.755, -73.984, 'very-high', ([3000, 3900], [4000, 5200], [5300, 7800]),
              ['apartment-tower', 'condo'], 'high', CORE + ['path', 'lirr', 'metro-north']),
         hood('hudson-yards', 'Hudson Yards', 'A new district of glass towers, offices and a mall built over the '
@@ -118,11 +118,11 @@ CITY = {
              ['affluent', 'museums', 'medical', 'residential'], 40.773, -73.957, 'high',
              ([2400, 3100], [3200, 4300], [4300, 6800]), ['co-op', 'prewar-apartment', 'walk-up', 'townhouse'],
              'high', CORE + ['nyc-ferry']),
-        hood('morningside-heights', 'Morningside Heights', 'The academic neighbourhood around Columbia University '
+        hood('morningside-heights', 'Morningside Heights', 'The academic neighborhood around Columbia University '
              'and the Cathedral of St. John the Divine.', ['academic', 'students', 'quiet'], 40.808, -73.962,
              'mid', ([2100, 2800], [2800, 3600], [3400, 4800]), ['prewar-apartment', 'student-housing'], 'high',
              CORE),
-        hood('harlem', 'Harlem', 'Brownstone blocks with deep African American and Latino cultural history, centred '
+        hood('harlem', 'Harlem', 'Brownstone blocks with deep African American and Latino cultural history, centered '
              'on 125th Street and the Apollo.', ['historic', 'music', 'brownstones', 'food'], 40.811, -73.946,
              'mid', ([2000, 2600], [2500, 3300], [3100, 4300]), ['brownstone', 'prewar-apartment', 'public-housing'],
              'high', CORE + ['metro-north']),
@@ -136,7 +136,7 @@ CITY = {
              'beside Brooklyn Bridge Park.', ['views', 'waterfront', 'upscale', 'photogenic'], 40.703, -73.989,
              'very-high', ([3400, 4200], [4300, 5800], [6000, 8500]), ['loft', 'condo'], 'high',
              CORE + ['nyc-ferry']),
-        hood('downtown-brooklyn', 'Downtown Brooklyn', 'Brooklyn\'s civic and office centre, now dense with rental '
+        hood('downtown-brooklyn', 'Downtown Brooklyn', 'Brooklyn\'s civic and office center, now dense with rental '
              'towers, beside Fort Greene, Barclays Center and BAM.', ['business', 'new-build', 'central',
              'students'], 40.693, -73.987, 'high', ([3000, 3700], [3700, 4700], [4700, 6300]),
              ['apartment-tower', 'brownstone'], 'high', CORE + ['lirr']),
@@ -151,7 +151,7 @@ CITY = {
              -73.985, 'low', ([1600, 2100], [1900, 2500], [2300, 3100]), ['apartment-tower', 'public-housing'],
              'medium', ['subway', 'mta-bus']),
         # Queens
-        hood('astoria', 'Astoria', 'A diverse, food-loving neighbourhood of Greek tavernas, beer gardens and '
+        hood('astoria', 'Astoria', 'A diverse, food-loving neighborhood of Greek tavernas, beer gardens and '
              'two-family houses near the East River.', ['diverse', 'food', 'young-professional', 'neighbourly'],
              40.764, -73.923, 'mid', ([2100, 2700], [2500, 3300], [3000, 4000]),
              ['walk-up', 'two-family-house', 'apartment'], 'high', CORE + ['nyc-ferry']),
@@ -159,7 +159,7 @@ CITY = {
              'views, plus warehouses, film studios and MoMA PS1.', ['new-build', 'views', 'waterfront', 'arts'],
              40.746, -73.949, 'very-high', ([3200, 3900], [4000, 5000], [5200, 7200]), ['apartment-tower', 'condo'],
              'high', CORE + ['nyc-ferry', 'lirr']),
-        hood('flushing', 'Flushing', 'A busy Chinese and Korean commercial centre around Main Street, beside '
+        hood('flushing', 'Flushing', 'A busy Chinese and Korean commercial center around Main Street, beside '
              'Flushing Meadows Corona Park with Citi Field and the US Open grounds.',
              ['diverse', 'food', 'busy', 'family'], 40.759, -73.830, 'mid', ([1800, 2400], [2200, 2900],
              [2700, 3600]), ['apartment', 'co-op', 'single-family'], 'high', ['subway', 'mta-bus', 'lirr']),
@@ -178,7 +178,7 @@ CITY = {
          'with lettered and numbered lines across Manhattan, Brooklyn, Queens and the Bronx.', 'source': S},
         {'id': 'mta-bus', 'name': 'MTA New York City buses', 'kind': 'bus', 'summary': 'Local, Select Bus Service '
          'and express routes in all five boroughs; slow in Manhattan traffic.', 'source': S},
-        {'id': 'nyc-ferry', 'name': 'NYC Ferry', 'kind': 'ferry', 'summary': 'East River and harbour ferry routes '
+        {'id': 'nyc-ferry', 'name': 'NYC Ferry', 'kind': 'ferry', 'summary': 'East River and harbor ferry routes '
          'linking Wall Street, Midtown, Brooklyn, Queens, the Bronx and the Rockaways.', 'source': S},
         {'id': 'staten-island-ferry', 'name': 'Staten Island Ferry', 'kind': 'ferry', 'summary': 'Free 24-hour '
          'ferry from Whitehall Terminal to St. George, passing the Statue of Liberty.', 'source': S},
@@ -200,7 +200,7 @@ CITY = {
               'the footprints of the towers, with an underground museum.', ['history', 'memorial', 'rainy-day'],
               '$$', 'mixed', ['solo', 'family', 'friends'], DAY),
         place('staten-island-ferry-ride', 'Staten Island Ferry ride', 'attraction', 'financial-district', 'A free '
-              'harbour crossing with views of the skyline and the Statue of Liberty.', ['free', 'views', 'water'],
+              'harbor crossing with views of the skyline and the Statue of Liberty.', ['free', 'views', 'water'],
               'free', 'mixed', ALL, ['morning', 'afternoon', 'evening']),
         place('dead-rabbit', 'The Dead Rabbit', 'bar', 'financial-district', 'Irish-style taproom and cocktail '
               'parlour on Water Street, a regular on world best-bar lists.', ['cocktails', 'irish', 'pub'], '$$$',
@@ -272,8 +272,8 @@ CITY = {
         place('times-square', 'Times Square', 'landmark', 'midtown', 'Neon billboards, crowds and costumed '
               'characters at the crossroads of the Theater District.', ['iconic', 'touristy', 'lights'], 'free',
               'outdoor', ALL, ['afternoon', 'evening', 'late']),
-        place('broadway-theatres', 'Broadway theatres', 'venue', 'midtown', 'Around forty large theatres in the '
-              'blocks around Times Square staging musicals and plays eight times a week.', ['theatre', 'musicals',
+        place('broadway-theatres', 'Broadway theaters', 'venue', 'midtown', 'Around forty large theaters in the '
+              'blocks around Times Square staging musicals and plays eight times a week.', ['theater', 'musicals',
               'iconic'], '$$$$', 'indoor', ['date', 'friends', 'family'], ['afternoon', 'evening']),
         place('rockefeller-center', 'Rockefeller Center', 'landmark', 'midtown', 'Art Deco complex with the '
               'Top of the Rock observation deck, a winter ice rink and the Christmas tree.', ['art-deco', 'views',
@@ -325,7 +325,7 @@ CITY = {
               'still-unfinished Episcopal cathedral on Amsterdam Avenue.', ['architecture', 'quiet', 'history'],
               '$', 'indoor', ['solo', 'family', 'date'], DAY),
         # Harlem
-        place('apollo-theater', 'Apollo Theater', 'venue', 'harlem', 'Historic 125th Street theatre famous for '
+        place('apollo-theater', 'Apollo Theater', 'venue', 'harlem', 'Historic 125th Street theater famous for '
               'its Wednesday Amateur Night.', ['music', 'history', 'comedy'], '$$', 'indoor', ['friends', 'date',
               'family'], ['evening']),
         place('sylvias', 'Sylvia\'s', 'restaurant', 'harlem', 'Soul food restaurant on Lenox Avenue since 1962, '
@@ -394,7 +394,7 @@ CITY = {
               'World\'s Fair grounds with the Unisphere, the Queens Museum and lakes.', ['park', 'unisphere',
               'history'], 'free', 'outdoor', ALL, DAY),
         place('usta-tennis-center', 'USTA Billie Jean King National Tennis Center', 'stadium', 'flushing', 'Home '
-              'of the US Open, with Arthur Ashe Stadium at its centre.', ['tennis', 'sports'], '$$$', 'outdoor',
+              'of the US Open, with Arthur Ashe Stadium at its center.', ['tennis', 'sports'], '$$$', 'outdoor',
               ['friends', 'family', 'date'], ['afternoon', 'evening'], ['summer']),
         place('citi-field', 'Citi Field', 'stadium', 'flushing', 'The New York Mets\' ballpark beside Flushing '
               'Meadows.', ['baseball', 'sports'], '$$', 'outdoor', ALL, ['afternoon', 'evening'],
@@ -409,6 +409,291 @@ CITY = {
         place('bronx-zoo', 'Bronx Zoo', 'attraction', 'belmont', 'One of the largest city zoos in the country, '
               'in Bronx Park beside Belmont.', ['animals', 'kids', 'big'], '$$', 'outdoor', ['family', 'date',
               'friends'], DAY, WARM),
+        # Everyday neighborhood spots: cafes, diners, pubs, libraries, parks and markets.
+        place('fraunces-tavern', 'Fraunces Tavern', 'restaurant', 'financial-district', 'Colonial-era tavern where '
+              'Washington said farewell to his officers, now a pub and restaurant above a small museum.',
+              ['historic', 'pub', 'museum'], '$$', 'indoor', ['friends', 'coworkers', 'family'],
+              ['afternoon', 'evening'], cuisine='american-pub'),
+        place('the-battery', 'The Battery', 'park', 'financial-district', 'Harbor-front park at Manhattan\'s tip '
+              'with gardens, a bikeway, the SeaGlass Carousel and lunch-break benches.', ['waterfront', 'gardens',
+              'lunch-break'], 'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('stone-street', 'Stone Street', 'nightlife', 'financial-district', 'Cobblestone lane lined with pubs '
+              'whose picnic tables fill with after-work Wall Street crowds.', ['after-work', 'outdoor-drinking',
+              'cobblestones'], '$$', 'outdoor', ['coworkers', 'friends'], NIGHT, WARM),
+        place('fanelli-cafe', 'Fanelli Cafe', 'bar', 'soho', 'Old corner saloon on Prince Street, a bar since the '
+              'nineteenth century, with burgers and checked tablecloths.', ['historic', 'pub', 'burgers'], '$$',
+              'indoor', ['friends', 'solo', 'date'], ['afternoon', 'evening', 'late'], cuisine='american-pub'),
+        place('mcnally-jackson-soho', 'McNally Jackson Books', 'shopping', 'soho', 'Independent bookstore on Prince '
+              'Street with deep fiction shelves and author readings.', ['books', 'readings', 'indie'], '$', 'indoor',
+              ['solo', 'date', 'friends'], ['morning', 'afternoon', 'evening']),
+        place('dominique-ansel', 'Dominique Ansel Bakery', 'cafe', 'soho', 'French bakery on Spring Street, home '
+              'of the Cronut and a pretty back garden.', ['bakery', 'pastry', 'cronut'], '$$', 'mixed', ALL, DAY,
+              cuisine='french-bakery'),
+        place('housing-works-bookstore', 'Housing Works Bookstore Cafe', 'cafe', 'soho', 'Volunteer-run used '
+              'bookstore and cafe on Crosby Street whose proceeds support people with HIV and homelessness.',
+              ['books', 'used', 'coffee', 'charity'], '$', 'indoor', ['solo', 'friends', 'date'], DAY,
+              cuisine='cafe'),
+        place('tenement-museum', 'Tenement Museum', 'museum', 'lower-east-side', 'Guided tours through restored '
+              'Orchard Street tenement apartments of immigrant families.', ['history', 'immigration', 'tours'],
+              '$$', 'indoor', ['solo', 'family', 'date'], DAY),
+        place('seward-park', 'Seward Park', 'park', 'lower-east-side', 'Neighborhood park with a playground, '
+              'chess tables and handball courts, beside the old Forward Building.', ['playground', 'chess',
+              'local'], 'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('seward-park-library', 'NYPL Seward Park Library', 'library', 'lower-east-side', 'Historic Carnegie '
+              'branch library facing the park, busy with students and Chinese-language readers.',
+              ['books', 'study', 'historic'], 'free', 'indoor', ALL, DAY),
+        place('mercury-lounge', 'Mercury Lounge', 'venue', 'lower-east-side', 'Small, long-running rock club on '
+              'Houston Street where many bands play their first New York shows.', ['live-music', 'indie', 'rock'],
+              '$$', 'indoor', ['friends', 'solo', 'date'], NIGHT),
+        place('kossars', 'Kossar\'s Bagels & Bialys', 'cafe', 'lower-east-side', 'Old Grand Street bakery making '
+              'bialys and bagels since the 1930s.', ['bagels', 'bakery', 'historic'], '$', 'indoor', ALL,
+              ['morning'], cuisine='jewish-bakery'),
+        place('tompkins-square-park', 'Tompkins Square Park', 'park', 'east-village', 'The East Village\'s '
+              'backyard: dog run, basketball, chess, a Saturday Greenmarket and buskers.', ['dogs', 'local',
+              'greenmarket'], 'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('ottendorfer-library', 'NYPL Ottendorfer Library', 'library', 'east-village', 'One of the oldest '
+              'public library buildings in Manhattan, an ornate branch on Second Avenue.', ['books', 'historic',
+              'quiet'], 'free', 'indoor', ALL, DAY),
+        place('bh-dairy', 'B&H Dairy', 'restaurant', 'east-village', 'Narrow kosher dairy lunch counter serving '
+              'blintzes, pierogi and challah toast since the 1940s.', ['lunch-counter', 'cheap', 'historic'], '$',
+              'indoor', ['solo', 'friends'], ['morning', 'afternoon'], cuisine='jewish-dairy'),
+        place('momofuku-noodle-bar', 'Momofuku Noodle Bar', 'restaurant', 'east-village', 'David Chang\'s ramen '
+              'and pork-bun counter on First Avenue.', ['ramen', 'buns'], '$$', 'indoor', ['friends', 'date',
+              'solo'], ['afternoon', 'evening'], cuisine='asian-american'),
+        place('comedy-cellar', 'Comedy Cellar', 'venue', 'greenwich-village', 'Basement comedy club on MacDougal '
+              'Street where well-known comics drop in unannounced.', ['comedy', 'late-night'], '$$', 'indoor',
+              ['friends', 'date'], NIGHT),
+        place('jefferson-market-library', 'NYPL Jefferson Market Library', 'library', 'greenwich-village',
+              'Victorian Gothic former courthouse turned branch library, with a garden next door.',
+              ['books', 'architecture', 'garden'], 'free', 'indoor', ALL, DAY),
+        place('chelsea-galleries', 'Chelsea gallery district', 'museum', 'chelsea', 'Hundreds of free contemporary '
+              'art galleries in old warehouses between Tenth and Eleventh Avenues.', ['art', 'free', 'walk'],
+              'free', 'indoor', ['solo', 'date', 'friends'], ['afternoon']),
+        place('cookshop', 'Cookshop', 'restaurant', 'chelsea', 'Seasonal American restaurant on Tenth Avenue by the '
+              'High Line, a neighborhood brunch favorite.', ['brunch', 'seasonal', 'patio'], '$$$', 'mixed',
+              ['date', 'friends'], ['morning', 'afternoon', 'evening'], cuisine='american'),
+        place('muhlenberg-library', 'NYPL Muhlenberg Library', 'library', 'chelsea', 'Branch library on West 23rd '
+              'Street with computers, study tables and kids\' programs.', ['books', 'quiet', 'kids'], 'free',
+              'indoor', ALL, DAY),
+        place('shake-shack-madison-square', 'Shake Shack Madison Square Park', 'restaurant', 'flatiron', 'The '
+              'original burger kiosk in the park, with a lunchtime line and outdoor tables.', ['burgers', 'outdoor',
+              'lunch'], '$', 'outdoor', ALL, ['afternoon', 'evening'], cuisine='burgers'),
+        place('eataly-flatiron', 'Eataly Flatiron', 'market', 'flatiron', 'Big Italian food hall and grocery on '
+              'Fifth Avenue with counters for pasta, pizza and espresso.', ['italian', 'grocery', 'food-hall'], '$$',
+              'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='italian'),
+        place('old-town-bar', 'Old Town Bar', 'bar', 'flatiron', 'Wood-panelled 1890s tavern on East 18th Street '
+              'with booths, burgers and a dumbwaiter.', ['historic', 'pub', 'burgers'], '$$', 'indoor',
+              ['friends', 'solo', 'coworkers'], NIGHT, cuisine='american-pub'),
+        place('kips-bay-library', 'NYPL Kips Bay Library', 'library', 'kips-bay', 'Neighborhood branch library on '
+              'Third Avenue used by students and hospital staff.', ['books', 'quiet', 'study'], 'free', 'indoor',
+              ALL, DAY),
+        place('kalustyans', 'Kalustyan\'s', 'market', 'kips-bay', 'Packed spice and specialty grocery on Lexington '
+              'Avenue\'s "Curry Hill", with a small upstairs deli.', ['grocery', 'spices', 'indian'], '$', 'indoor',
+              ALL, ['morning', 'afternoon', 'evening']),
+        place('st-vartan-park', 'St. Vartan Park', 'park', 'kips-bay', 'Neighborhood park with a playground, '
+              'ball courts and a turf field on First Avenue.', ['playground', 'sports', 'local'], 'free', 'outdoor',
+              ALL, ['morning', 'afternoon', 'evening']),
+        place('sarges-deli', 'Sarge\'s Deli', 'restaurant', 'kips-bay', 'Old-school Jewish deli on Third Avenue in '
+              'Murray Hill with towering pastrami sandwiches.', ['deli', 'pastrami', 'old-school'], '$$', 'indoor',
+              ALL, ['morning', 'afternoon', 'evening', 'late'], cuisine='jewish-deli'),
+        place('petes-tavern', 'Pete\'s Tavern', 'bar', 'kips-bay', 'Gramercy saloon that claims to be the oldest '
+              'continuously operating bar in the city.', ['historic', 'pub'], '$$', 'indoor',
+              ['friends', 'date', 'coworkers'], NIGHT, cuisine='american-pub'),
+        place('bryant-park', 'Bryant Park', 'park', 'midtown', 'Midtown\'s lunchtime lawn behind the library, with '
+              'movable chairs, a carousel and a winter skating rink.', ['lunch-break', 'lawn', 'skating'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('nypl-schwarzman', 'New York Public Library main branch', 'library', 'midtown', 'The Beaux-Arts '
+              'Stephen A. Schwarzman Building with its stone lions and the Rose Main Reading Room.',
+              ['books', 'architecture', 'quiet', 'iconic'], 'free', 'indoor', ALL, DAY),
+        place('mercado-little-spain', 'Mercado Little Spain', 'restaurant', 'hudson-yards', 'José Andrés\'s Spanish '
+              'food hall under the Hudson Yards towers, with tapas counters and a bar.', ['food-hall', 'tapas'],
+              '$$', 'indoor', ['friends', 'coworkers', 'date'], ['afternoon', 'evening'], cuisine='spanish'),
+        place('the-shed', 'The Shed', 'venue', 'hudson-yards', 'Arts center with a sliding shell hosting '
+              'exhibitions, concerts and performances.', ['arts', 'performance'], '$$', 'indoor',
+              ['friends', 'date', 'solo'], ['afternoon', 'evening']),
+        place('shops-at-hudson-yards', 'The Shops at Hudson Yards', 'shopping', 'hudson-yards', 'Multi-level mall '
+              'of chain stores and restaurants, a warm place to walk in winter.', ['mall', 'errands'], '$$$',
+              'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('bella-abzug-park', 'Bella Abzug Park', 'park', 'hudson-yards', 'Narrow mid-block park running '
+              'north from Hudson Yards with lawns, fountains and food kiosks.', ['lawn', 'lunch-break', 'dogs'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('zabars', 'Zabar\'s', 'market', 'upper-west-side', 'Crowded Broadway gourmet grocery for smoked fish, '
+              'coffee and cheese, with a cafe counter next door.', ['grocery', 'deli', 'iconic'], '$$', 'indoor',
+              ALL, ['morning', 'afternoon', 'evening']),
+        place('barney-greengrass', 'Barney Greengrass', 'restaurant', 'upper-west-side', 'The "Sturgeon King", an '
+              'Amsterdam Avenue appetizing shop and restaurant for lox and eggs.', ['brunch', 'smoked-fish',
+              'historic'], '$$', 'indoor', ALL, DAY, cuisine='jewish-deli'),
+        place('riverside-park', 'Riverside Park', 'park', 'upper-west-side', 'Long Hudson-front park with running '
+              'paths, dog runs and playgrounds below Riverside Drive.', ['running', 'waterfront', 'dogs'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('carl-schurz-park', 'Carl Schurz Park', 'park', 'upper-east-side', 'Quiet riverside park by Gracie '
+              'Mansion with a promenade over the East River and a busy dog run.', ['waterfront', 'dogs', 'quiet'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('lexington-candy-shop', 'Lexington Candy Shop', 'restaurant', 'upper-east-side', 'Luncheonette from '
+              '1925 with a soda fountain, egg creams and diner breakfasts.', ['diner', 'historic', 'milkshakes'], '$',
+              'indoor', ALL, DAY, cuisine='american-diner'),
+        place('jg-melon', 'J.G. Melon', 'bar', 'upper-east-side', 'Cash-only corner pub on Third Avenue famous for '
+              'its burgers and cottage fries.', ['burgers', 'pub', 'classic'], '$$', 'indoor', ['friends', 'date',
+              'solo'], ['afternoon', 'evening', 'late'], cuisine='american-pub'),
+        place('67th-street-library', 'NYPL 67th Street Library', 'library', 'upper-east-side', 'Carnegie branch '
+              'library on East 67th Street.', ['books', 'quiet', 'historic'], 'free', 'indoor', ALL, DAY),
+        place('toms-restaurant-morningside', 'Tom\'s Restaurant', 'restaurant', 'morningside-heights', 'Columbia '
+              'students\' diner on Broadway, whose sign was used as Monk\'s Café on Seinfeld.', ['diner', 'students',
+              'cheap'], '$', 'indoor', ALL, ['morning', 'afternoon', 'evening', 'late'], cuisine='american-diner'),
+        place('hungarian-pastry-shop', 'Hungarian Pastry Shop', 'cafe', 'morningside-heights', 'Dim, cosy cafe on '
+              'Amsterdam Avenue where Columbia students write papers over pastries for hours.', ['pastry', 'study',
+              'students'], '$', 'mixed', ['solo', 'friends', 'date'], ['morning', 'afternoon', 'evening'],
+              cuisine='hungarian-pastry'),
+        place('book-culture', 'Book Culture', 'shopping', 'morningside-heights', 'Independent bookstore near '
+              'Columbia with academic titles, fiction and readings.', ['books', 'students', 'indie'], '$', 'indoor',
+              ['solo', 'friends'], ['morning', 'afternoon', 'evening']),
+        place('morningside-park', 'Morningside Park', 'park', 'morningside-heights', 'Steep cliffside park between '
+              'the Heights and Harlem with a pond, ball fields and a Saturday farmers market.', ['local',
+              'playground', 'farmers-market'], 'free', 'outdoor', ALL, DAY),
+        place('riverside-church', 'Riverside Church', 'landmark', 'morningside-heights', 'Gothic church tower over '
+              'the Hudson with a famous carillon and a long activist history.', ['architecture', 'history',
+              'music'], 'free', 'indoor', ['solo', 'family'], DAY),
+        place('schomburg-center', 'Schomburg Center for Research in Black Culture', 'library', 'harlem', 'NYPL '
+              'research library and exhibition space on Malcolm X Boulevard devoted to the African diaspora.',
+              ['books', 'black-history', 'exhibits'], 'free', 'indoor', ['solo', 'friends', 'family'], DAY),
+        place('marcus-garvey-park', 'Marcus Garvey Park', 'park', 'harlem', 'Rocky park with a fire watchtower, '
+              'an amphitheatre for summer concerts and a Saturday drum circle.', ['music', 'playground', 'local'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('amy-ruths', 'Amy Ruth\'s', 'restaurant', 'harlem', 'Soul food restaurant on West 116th Street known '
+              'for chicken and waffles named after famous Harlemites.', ['soul-food', 'chicken-and-waffles'], '$$',
+              'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='soul-food'),
+        place('red-rooster', 'Red Rooster', 'restaurant', 'harlem', 'Marcus Samuelsson\'s Lenox Avenue restaurant '
+              'with comfort food, a lively bar and live music downstairs.', ['soul-food', 'live-music', 'brunch'],
+              '$$$', 'indoor', ['date', 'friends', 'family'], ['afternoon', 'evening'], cuisine='american-southern'),
+        place('mccarren-park', 'McCarren Park', 'park', 'williamsburg', 'Williamsburg and Greenpoint\'s shared park '
+              'with a running track, a big public pool and a Saturday Greenmarket.', ['running', 'pool', 'dogs'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('brooklyn-brewery', 'Brooklyn Brewery', 'bar', 'williamsburg', 'Brewery taproom on North 11th Street '
+              'with weekend tours and long shared tables.', ['brewery', 'beer', 'tours'], '$$', 'indoor',
+              ['friends', 'date'], ['afternoon', 'evening']),
+        place('domino-park', 'Domino Park', 'park', 'williamsburg', 'Waterfront park beside the old Domino Sugar '
+              'refinery with a taco stand, volleyball and skyline views.', ['waterfront', 'views', 'volleyball'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('janes-carousel', 'Jane\'s Carousel', 'attraction', 'dumbo', 'Restored 1920s carousel in a glass '
+              'pavilion on the river below the Brooklyn Bridge.', ['carousel', 'kids', 'views'], '$', 'indoor',
+              ['family', 'date'], DAY),
+        place('grimaldis', 'Grimaldi\'s', 'restaurant', 'dumbo', 'Coal-oven pizzeria under the Brooklyn Bridge with '
+              'a line of visitors outside.', ['pizza', 'touristy'], '$$', 'indoor', ALL, ['afternoon', 'evening'],
+              cuisine='pizza'),
+        place('brooklyn-heights-promenade', 'Brooklyn Heights Promenade', 'landmark', 'downtown-brooklyn', 'Esplanade '
+              'above the BQE with the classic view of Lower Manhattan.', ['views', 'walk', 'skyline'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('fort-greene-park', 'Fort Greene Park', 'park', 'downtown-brooklyn', 'Hilly park with tennis courts, '
+              'a Saturday Greenmarket and the Prison Ship Martyrs\' Monument.', ['tennis', 'greenmarket', 'dogs'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('bam', 'Brooklyn Academy of Music', 'venue', 'downtown-brooklyn', 'Performing arts center with '
+              'theater, dance, opera and a repertory cinema.', ['theater', 'film', 'dance'], '$$', 'indoor',
+              ['date', 'friends', 'solo'], ['afternoon', 'evening']),
+        place('dekalb-market-hall', 'DeKalb Market Hall', 'market', 'downtown-brooklyn', 'Basement food hall under '
+              'City Point with dozens of counters, including a Katz\'s outpost.', ['food-hall', 'lunch'], '$',
+              'indoor', ALL, ['afternoon', 'evening']),
+        place('brooklyn-central-library', 'Brooklyn Public Library Central Library', 'library', 'park-slope',
+              'Art Deco main library at Grand Army Plaza with a cafe and big reading rooms.',
+              ['books', 'architecture', 'study'], 'free', 'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('grand-army-plaza-greenmarket', 'Grand Army Plaza Greenmarket', 'market', 'park-slope', 'Saturday '
+              'farmers market at the park\'s main entrance, the neighborhood\'s weekly grocery run.',
+              ['farmers-market', 'saturday', 'produce'], '$', 'outdoor', ALL, ['morning']),
+        place('community-bookstore', 'Community Bookstore', 'shopping', 'park-slope', 'Long-running independent '
+              'bookstore on Seventh Avenue with a resident cat.', ['books', 'indie', 'kids'], '$', 'indoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('union-hall', 'Union Hall', 'bar', 'park-slope', 'Fifth Avenue bar with indoor bocce courts, '
+              'fireplaces and a basement venue for comedy and music.', ['bocce', 'comedy', 'live-music'], '$$',
+              'indoor', ['friends', 'date'], NIGHT),
+        place('toms-restaurant-brooklyn', 'Tom\'s Restaurant', 'restaurant', 'park-slope', 'Prospect Heights diner '
+              'open since the 1930s, known for lemon-ricotta pancakes and weekend lines.', ['diner', 'breakfast',
+              'historic'], '$', 'indoor', ALL, DAY, cuisine='american-diner'),
+        place('brooklyn-botanic-garden', 'Brooklyn Botanic Garden', 'garden', 'park-slope', 'Garden beside Prospect '
+              'Park with a Japanese hill-and-pond garden and spring cherry blossoms.', ['flowers', 'cherry-blossoms',
+              'quiet'], '$$', 'outdoor', ALL, DAY, WARM),
+        place('maria-hernandez-park', 'Maria Hernandez Park', 'park', 'bushwick', 'Neighborhood park with a dog '
+              'run, handball courts and weekend vendors.', ['dogs', 'local', 'playground'], 'free', 'outdoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('bushwick-collective', 'The Bushwick Collective', 'landmark', 'bushwick', 'Blocks of large street '
+              'murals around Troutman Street and Saint Nicholas Avenue, repainted regularly.',
+              ['street-art', 'walk', 'free'], 'free', 'outdoor', ['friends', 'solo', 'date'], ['afternoon']),
+        place('bushwick-library', 'Brooklyn Public Library Bushwick Branch', 'library', 'bushwick', 'Restored '
+              'Carnegie branch library on Bushwick Avenue.', ['books', 'historic', 'kids'], 'free', 'indoor', ALL,
+              DAY),
+        place('totonnos', 'Totonno\'s Pizzeria Napolitano', 'restaurant', 'coney-island', 'Coal-oven pizzeria on '
+              'Neptune Avenue run by the same family since 1924.', ['pizza', 'historic'], '$$', 'indoor', ALL,
+              ['afternoon', 'evening'], cuisine='pizza'),
+        place('maimonides-park', 'Maimonides Park', 'stadium', 'coney-island', 'Minor-league ballpark of the '
+              'Brooklyn Cyclones by the boardwalk, with summer fireworks nights.', ['baseball', 'cheap', 'family'],
+              '$', 'outdoor', ALL, ['afternoon', 'evening'], ['summer']),
+        place('ny-aquarium', 'New York Aquarium', 'attraction', 'coney-island', 'Aquarium on the boardwalk with '
+              'sea lions, sharks and penguins.', ['animals', 'kids'], '$$', 'mixed', ['family', 'date'], DAY),
+        place('coney-island-library', 'Brooklyn Public Library Coney Island Branch', 'library', 'coney-island',
+              'Neighborhood branch library on Mermaid Avenue.', ['books', 'kids', 'quiet'], 'free', 'indoor', ALL,
+              DAY),
+        place('astoria-park', 'Astoria Park', 'park', 'astoria', 'Riverside park under the Hell Gate and RFK bridges '
+              'with the city\'s biggest public pool, a track and tennis courts.', ['pool', 'running', 'views'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('taverna-kyclades', 'Taverna Kyclades', 'restaurant', 'astoria', 'Busy Ditmars Boulevard Greek '
+              'seafood taverna with grilled octopus and long waits.', ['greek', 'seafood'], '$$', 'indoor', ALL,
+              ['afternoon', 'evening'], cuisine='greek'),
+        place('socrates-sculpture-park', 'Socrates Sculpture Park', 'park', 'astoria', 'Riverfront outdoor sculpture '
+              'park with free summer movies and a weekend market.', ['art', 'waterfront', 'free'], 'free', 'outdoor',
+              ALL, DAY, WARM),
+        place('gantry-plaza', 'Gantry Plaza State Park', 'park', 'long-island-city', 'Waterfront park with restored '
+              'rail gantries, the Pepsi-Cola sign and Midtown skyline views.', ['waterfront', 'views', 'skyline'],
+              'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('hunters-point-library', 'Hunters Point Library', 'library', 'long-island-city', 'Queens Public '
+              'Library branch in a striking concrete building by the river with skyline-facing windows.',
+              ['books', 'architecture', 'views'], 'free', 'indoor', ALL, DAY),
+        place('manducatis', 'Manducatis', 'restaurant', 'long-island-city', 'Old family-run Italian restaurant on '
+              'Jackson Avenue with home-style cooking and a deep wine cellar.', ['italian', 'old-school', 'family'],
+              '$$', 'indoor', ['family', 'date', 'friends'], DINNER, cuisine='italian'),
+        place('dutch-kills', 'Dutch Kills', 'bar', 'long-island-city', 'Dim cocktail bar on Jackson Avenue with '
+              'hand-cut ice and wooden booths.', ['cocktails', 'speakeasy'], '$$', 'indoor', ['date', 'friends'],
+              NIGHT),
+        place('flushing-library', 'Queens Public Library at Flushing', 'library', 'flushing', 'One of the busiest '
+              'libraries in the country, with books in Chinese, Korean and many other languages.',
+              ['books', 'multilingual', 'study'], 'free', 'indoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('queens-botanical-garden', 'Queens Botanical Garden', 'garden', 'flushing', 'Neighborhood botanical '
+              'garden with a rose garden, an arboretum and seasonal festivals.', ['flowers', 'quiet', 'kids'], '$',
+              'outdoor', ALL, DAY, WARM),
+        place('queens-museum', 'Queens Museum', 'museum', 'flushing', 'Museum in Flushing Meadows famous for the '
+              'Panorama, a scale model of every building in the city.', ['art', 'history', 'rainy-day'], '$',
+              'indoor', ALL, DAY),
+        place('new-world-mall', 'New World Mall food court', 'market', 'flushing', 'Basement food court with '
+              'stalls for hand-pulled noodles, dumplings and malatang, beside a large Asian supermarket.',
+              ['food-court', 'chinese', 'grocery'], '$', 'indoor', ALL, ['morning', 'afternoon', 'evening'],
+              cuisine='chinese'),
+        place('nan-xiang', 'Nan Xiang Xiao Long Bao', 'restaurant', 'flushing', 'Busy soup-dumpling restaurant on '
+              'Prince Street.', ['dumplings', 'chinese'], '$', 'indoor', ALL, ['morning', 'afternoon', 'evening'],
+              cuisine='shanghainese'),
+        place('joyce-kilmer-park', 'Joyce Kilmer Park', 'park', 'concourse', 'Green square on the Grand Concourse '
+              'opposite the courthouse with the Lorelei fountain.', ['local', 'benches', 'history'], 'free',
+              'outdoor', ALL, ['morning', 'afternoon', 'evening']),
+        place('bronx-museum', 'Bronx Museum of the Arts', 'museum', 'concourse', 'Free contemporary art museum on the '
+              'Grand Concourse focused on artists of color and Bronx stories.', ['art', 'free', 'rainy-day'],
+              'free', 'indoor', ALL, DAY),
+        place('yankee-tavern', 'Yankee Tavern', 'bar', 'concourse', 'Old bar near the stadium, packed before and '
+              'after Yankees games.', ['sports', 'game-day', 'historic'], '$', 'indoor', ['friends', 'solo'],
+              ['afternoon', 'evening', 'late'], cuisine='american-pub'),
+        place('court-deli', 'Court Deli', 'restaurant', 'concourse', 'Long-running deli on East 161st Street '
+              'serving pastrami and corned beef to jurors, lawyers and fans.', ['deli', 'lunch', 'game-day'], '$',
+              'indoor', ALL, DAY, cuisine='jewish-deli'),
+        place('bronx-terminal-market', 'Bronx Terminal Market', 'shopping', 'concourse', 'Big-box shopping center '
+              'by the Major Deegan for groceries and errands.', ['errands', 'mall'], '$$', 'indoor', ALL,
+              ['morning', 'afternoon', 'evening']),
+        place('dominicks', 'Dominick\'s', 'restaurant', 'belmont', 'Arthur Avenue institution with no menus, no '
+              'bills and communal tables; the waiters tell you what there is.', ['italian', 'old-school'], '$$',
+              'indoor', ['family', 'friends'], DINNER, cuisine='italian'),
+        place('madonia-brothers', 'Madonia Brothers Bakery', 'cafe', 'belmont', 'Family bakery since 1918 known for '
+              'olive bread and cannoli filled to order.', ['bakery', 'cannoli'], '$', 'indoor', ALL, DAY,
+              cuisine='italian-bakery'),
+        place('nybg', 'New York Botanical Garden', 'garden', 'belmont', 'Huge garden with a Victorian glasshouse, '
+              'old-growth forest and the holiday train show.', ['flowers', 'forest', 'holiday'], '$$$', 'mixed', ALL,
+              DAY),
+        place('belmont-library', 'NYPL Belmont Library', 'library', 'belmont', 'Branch library with the Enrico Fermi '
+              'Cultural Center\'s Italian-American collection.', ['books', 'italian', 'history'], 'free', 'indoor',
+              ALL, DAY),
     ],
     'colleges': [
         college('columbia', 'Columbia University', 'research-university', 'morningside-heights', 'large',
@@ -439,7 +724,7 @@ CITY = {
                 ['medicine', 'biomedical-research']),
     ],
     'employers': [
-        employer('nyu-langone', 'NYU Langone Health', 'healthcare', 'kips-bay', 'large', 'Academic medical centre '
+        employer('nyu-langone', 'NYU Langone Health', 'healthcare', 'kips-bay', 'large', 'Academic medical center '
                  'on First Avenue and one of the city\'s largest employers.', ['registered-nurse', 'night-nurse',
                  'physician-resident', 'pharmacist', 'medical-researcher', 'social-worker']),
         employer('mount-sinai', 'The Mount Sinai Hospital', 'healthcare', 'upper-east-side', 'large', 'Flagship '
@@ -479,7 +764,7 @@ CITY = {
                  'department store on 34th Street, which also produces the Thanksgiving Day Parade.',
                  ['retail-associate', 'fashion-assistant', 'event-planner', 'marketing-coordinator']),
         employer('shubert-organization', 'The Shubert Organization', 'entertainment', 'midtown', 'medium',
-                 'Owner and operator of many Broadway theatres.', ['actor', 'performer', 'musician',
+                 'Owner and operator of many Broadway theaters.', ['actor', 'performer', 'musician',
                  'marketing-coordinator']),
         employer('msg-entertainment', 'Madison Square Garden Entertainment', 'entertainment', 'midtown', 'large',
                  'Runs the Garden, Radio City Music Hall and the Rockettes\' Christmas Spectacular.',
@@ -529,7 +814,7 @@ CITY = {
          'neighborhoods': ['upper-east-side', 'kips-bay'], 'sectors': ['healthcare', 'biotech', 'education'],
          'summary': 'Hospital rows along York and First Avenues, plus the Alexandria Center for Life Science.',
          'source': S},
-        {'id': 'outer-borough-centres', 'name': 'Downtown Brooklyn and Long Island City',
+        {'id': 'outer-borough-centers', 'name': 'Downtown Brooklyn and Long Island City',
          'neighborhoods': ['downtown-brooklyn', 'long-island-city'],
          'sectors': ['technology', 'creative', 'government', 'education', 'logistics', 'construction'],
          'summary': 'Back offices, courts, colleges, film studios and warehouses just across the East River.',
@@ -557,7 +842,7 @@ CITY = {
     'annual_events': [
         event('fashion-week', 'New York Fashion Week', [2, 9], None, 'Runway shows and showroom presentations at '
               'venues around Manhattan each February and September.'),
-        event('tribeca-festival', 'Tribeca Festival', [6], None, 'Film festival with premieres and talks, centred '
+        event('tribeca-festival', 'Tribeca Festival', [6], None, 'Film festival with premieres and talks, centered '
               'on Tribeca in Lower Manhattan.'),
         event('nyc-pride-march', 'NYC Pride March', [6], 'greenwich-village', 'The last Sunday in June, ending in '
               'the Village near the Stonewall Inn.'),

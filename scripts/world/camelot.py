@@ -283,6 +283,107 @@ CITY = {
         place('guildhall-undercroft', 'the Guildhall undercroft', 'venue', 'cheapside', 'A vaulted room under the '
               'Guildhall where minstrels, storytellers and the guild players perform on winter evenings.',
               ['music', 'stories', 'plays'], '$', 'indoor', ADULT + ['family'], DINNER, ['fall', 'winter']),
+        # More everyday places, so every ward has somewhere to eat, drink and meet
+        place('castle-buttery', 'the buttery hatch', 'restaurant', 'castle-ward', 'The hatch by the castle kitchens '
+              'where the butler hands out bread, cheese and ale to the household, and the broken meats of the high '
+              'table go to the poor.', ['bread', 'ale', 'household'], 'free', 'indoor', ['solo', 'coworkers'],
+              ['morning', 'afternoon'], cuisine='English'),
+        place('castle-well-court', 'the well court', 'square', 'castle-ward', 'A cobbled yard round the castle well '
+              'where grooms, laundresses and pages draw water and trade the gossip of the court.',
+              ['well', 'gossip', 'servants'], 'free', 'outdoor', ALL, DAY),
+        place('the-mitre', 'the Mitre', 'tavern', 'minster-close', 'A quiet alehouse just outside the Close gate, '
+              'kept by a former verger, where clerks and choirmen drink after evensong.',
+              ['ale', 'clerks', 'quiet'], '$', 'indoor', ADULT, NIGHT),
+        place('song-school-door', 'the song school door', 'venue', 'minster-close', 'A long room by the cloister '
+              'where the choirboys practise plainsong each morning and anyone may stand at the door and listen.',
+              ['music', 'chant', 'choir'], 'free', 'indoor', ALL, ['morning']),
+        place('pudding-wifes-stall', 'the pudding wife\'s stall', 'cafe', 'shambles', 'A trestle at the foot of the '
+              'Shambles selling hot black puddings, sausages and tripe from a pan over coals.',
+              ['sausages', 'cheap', 'hot-food'], '$', 'outdoor', ['solo', 'friends'], DAY, cuisine='English'),
+        place('cutlers-cookstall', 'the cutlers\' cookstall', 'cafe', 'smithgate', 'A cookstall against the forge '
+              'wall where smiths buy hot pasties and mulled ale between heats.', ['pasties', 'cheap', 'hot-food'],
+              '$', 'outdoor', ['solo', 'friends', 'coworkers'], DAY, cuisine='English'),
+        place('west-gate-conduit', 'the west gate conduit', 'square', 'smithgate', 'A stone cistern fed by a pipe '
+              'from the hill spring, where apprentices fill buckets for the quenching tubs and wives fill jugs.',
+              ['water', 'meeting-place', 'neighbours'], 'free', 'outdoor', ALL, DAY),
+        place('fishergate-net-lofts', 'the net lofts', 'workshop', 'fishergate', 'Lofts over the fish stalls where '
+              'old fishermen and their wives mend eel nets and weave traps from willow.', ['nets', 'craft',
+              'river'], 'free', 'indoor', ['solo', 'friends'], DAY),
+        place('fishergate-water-stairs', 'the water stairs', 'docks', 'fishergate', 'Stone steps down to the Cam '
+              'where watermen wait in their boats to row folk across or down to Bridgefoot for a halfpenny.',
+              ['river', 'boats', 'watermen'], '$', 'outdoor', ALL, DAY),
+        place('fishergate-smokehouse', 'the smokehouse', 'market', 'fishergate', 'A blackened shed where herring and '
+              'eels are hung over oak smoke and sold by the dozen from the door.', ['fish', 'smoked', 'market'],
+              '$', 'mixed', ['solo', 'family'], ['morning', 'afternoon'], cuisine='smoked fish'),
+        place('bridgefoot-ropewalk', 'the ropewalk', 'workshop', 'bridgefoot', 'A long open shed along the river '
+              'where ropers walk backwards twisting hemp into tow ropes for the barges.', ['rope', 'craft',
+              'river'], 'free', 'mixed', ['solo', 'friends', 'family'], DAY),
+        place('weavers-hall', 'the weavers\' hall', 'guildhall', 'southgate', 'A plain timber hall where the '
+              'weavers\' guild searches cloth for faults, settles quarrels and holds its feast on St Blaise\'s day.',
+              ['guild', 'cloth', 'feasts'], 'free', 'indoor', ['solo', 'coworkers'], DAY),
+        place('the-bull', 'the Bull', 'tavern', 'barkers-end', 'A tanners\' alehouse by the river with a strong '
+              'fire, strong ale and no complaints about the smell.', ['ale', 'tanners', 'cheap'], '$', 'indoor',
+              ADULT, NIGHT),
+        place('curriers-row', 'Curriers\' Row', 'workshop', 'barkers-end', 'Open sheds where tanned hides are '
+              'shaved, oiled and dressed into leather for saddles, shoes and buckets.', ['leather', 'craft'],
+              '$', 'mixed', ['solo', 'friends'], DAY),
+        place('washing-stones', 'the washing stones', 'square', 'barkers-end', 'Flat stones on the riverbank above '
+              'the tan pits where women beat linen with paddles and spread it on the grass to dry.',
+              ['laundry', 'river', 'neighbours'], 'free', 'outdoor', ['solo', 'friends', 'family'], DAY, WARM),
+        place('st-clements-chapel', 'St Clement\'s chapel', 'temple', 'barkers-end', 'A small chapel of ease '
+              'outside the walls, so the tanners need not carry their smell up to the town churches.',
+              ['chapel', 'parish', 'small'], 'free', 'indoor', ['solo', 'family'], ['morning']),
+        place('the-wheatsheaf', 'the Wheatsheaf', 'tavern', 'mill-end', 'The millers\' and carters\' alehouse by '
+              'the ford, with a bench outside for waiting on the ferry.', ['ale', 'carters', 'river'], '$',
+              'mixed', ['solo', 'friends', 'family'], ['afternoon', 'evening'], cuisine='English'),
+        place('mill-ferry-landing', 'the ferry landing', 'docks', 'mill-end', 'The rope ferry\'s wooden landing '
+              'above the weir, where folk wait with baskets and the ferryman takes a farthing.',
+              ['ferry', 'river', 'waiting'], '$', 'outdoor', ALL, DAY),
+        place('mill-pond', 'the mill pond', 'park', 'mill-end', 'The still water behind the weir, with willows, '
+              'moorhens and boys fishing for roach when the miller is not looking.', ['fishing', 'willows',
+              'quiet'], 'free', 'outdoor', ALL, DAY, WARM),
+        place('the-cross-keys', 'the Cross Keys', 'tavern', 'st-giles', 'An alehouse outside the east gate where '
+              'travellers arriving after the gate shuts can eat, drink and sleep on the settles.',
+              ['ale', 'travellers', 'late'], '$', 'indoor', ADULT, NIGHT, cuisine='English'),
+        place('st-giles-well', 'St Giles\'s well', 'square', 'st-giles', 'A walled spring by the hospital said to '
+              'ease sore eyes, where neighbours draw water and the sick sit in the sun.', ['well', 'healing',
+              'neighbours'], 'free', 'outdoor', ALL, DAY),
+        place('east-gate-cookshop', 'the east gate cookshop', 'restaurant', 'st-giles', 'A cookshop in a cottage '
+              'front selling pottage, bacon and oatcakes to carters and visitors to the infirmary.',
+              ['pottage', 'cheap', 'travellers'], '$', 'indoor', ALL, ['morning', 'afternoon'], cuisine='English'),
+        place('abbey-brewhouse', 'the abbey brewhouse', 'tavern', 'abbey-precinct', 'The brewhouse by the abbey '
+              'gate where the lay brothers sell good ale by the jug to the abbey\'s tenants.', ['ale', 'abbey',
+              'brewing'], '$', 'mixed', ['solo', 'friends', 'family'], ['afternoon', 'evening']),
+        place('abbey-fishponds', 'the abbey fishponds', 'park', 'abbey-precinct', 'Three stepped ponds of carp '
+              'and bream, with a path round them where the novices walk and townsfolk come to feed the swans.',
+              ['ponds', 'walk', 'swans'], 'free', 'outdoor', ALL, DAY, WARM),
+        place('the-horseshoe', 'the Horseshoe', 'tavern', 'tiltyard-meads', 'An alehouse on the edge of the meads '
+              'full of horse dealers, grooms and squires, busiest on fair and tourney days.',
+              ['ale', 'horses', 'squires'], '$', 'mixed', ADULT, ['afternoon', 'evening']),
+        place('saddlers-sheds', 'the saddlers\' sheds', 'workshop', 'tiltyard-meads', 'A row of sheds by the '
+              'horse lines where saddles, girths and harness are stitched and mended while you wait.',
+              ['leather', 'horses', 'craft'], '$', 'mixed', ['solo', 'friends'], DAY),
+        place('st-andrews-woolston', 'St Andrew\'s, Woolston', 'temple', 'woolston', 'The village church of '
+              'flint and thatch, with a church ale in the nave at Whitsun.', ['church', 'village', 'church-ale'],
+              'free', 'indoor', ALL, ['morning']),
+        place('woolston-common-oven', 'the common oven', 'cafe', 'woolston', 'The village oven by the green where '
+              'wives bake their loaves on Saturdays and swap news while the bread rises.', ['bread', 'village',
+              'neighbours'], '$', 'indoor', ALL, ['morning'], cuisine='bread'),
+        place('woolston-smithy', 'the Woolston smithy', 'workshop', 'woolston', 'The village forge where '
+              'ploughshares are sharpened and oxen are shod, with men waiting on the bench outside.',
+              ['forge', 'village', 'ploughs'], '$', 'mixed', ['solo', 'friends'], DAY),
+        place('the-holly-bush', 'the Holly Bush', 'tavern', 'forest-side', 'A cottage alehouse with a holly bush '
+              'over the door, where charcoal burners and swineherds drink by a peat fire.',
+              ['ale', 'forest', 'fire'], '$', 'indoor', ['solo', 'friends'], NIGHT),
+        place('charcoal-hearths', 'the charcoal hearths', 'workshop', 'forest-side', 'Turf-covered stacks '
+              'smouldering in a clearing for days, watched by colliers who sleep in a hut beside them.',
+              ['charcoal', 'forest', 'craft'], 'free', 'outdoor', ['solo', 'friends'], DAY),
+        place('forest-hermitage', 'the hermitage', 'temple', 'forest-side', 'A hermit\'s cell and chapel at the '
+              'forest edge, of the kind Malory\'s knights are always finding, where any traveller may ask for '
+              'bread and a blessing.', ['hermit', 'chapel', 'malory'], 'free', 'indoor', ['solo'], DAY),
+        place('verderers-lodge', 'the verderer\'s lodge', 'landmark', 'forest-side', 'The timber lodge where the '
+              'verderer holds his court for forest offences and grants leave to gather fallen wood and pannage.',
+              ['forest', 'court', 'firewood'], 'free', 'mixed', ['solo', 'family'], DAY),
     ],
     'colleges': [
         {'id': 'abbey-school', 'name': 'St Mary\'s Abbey school', 'type': 'seminary', 'neighborhood':

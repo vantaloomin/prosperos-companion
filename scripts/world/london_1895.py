@@ -333,6 +333,147 @@ CITY = {
         place('kew-gardens', 'Royal Botanic Gardens, Kew', 'garden', 'kew', 'Palm House, Temperate House and '
               'pagoda, a penny admission and a long day out by steamer or train.', ['plants', 'glasshouses',
               'outing'], '$', 'mixed', ALL, DAY),
+        # Everyday places in every neighbourhood. Tag 'invented' marks small businesses made up for fiction.
+        place('marylebone-church', 'St Marylebone Parish Church', 'temple', 'marylebone', 'The big classical '
+              'parish church on the Marylebone Road where the Brownings married, with a choir on Sundays.',
+              ['church', 'parish', 'music'], 'free', 'indoor', ALL, DAY),
+        place('marylebone-baths', 'St Marylebone Public Baths', 'fitness', 'marylebone', 'Parish baths and '
+              'wash-houses on the Marylebone Road: a swimming bath, slipper baths and a laundry for households.',
+              ['swimming', 'baths', 'laundry'], '$', 'indoor', ['solo', 'friends', 'family'], DAY),
+        place('blandford-street-chop-house', 'Dawson\'s chop house, Blandford Street', 'restaurant', 'marylebone',
+              'A plain chop house off Baker Street with high-backed boxes, mutton chops, kidneys and a pint of '
+              'stout for lodgers and cabmen.', ['chop-house', 'cheap', 'invented'], '$', 'indoor',
+              ['solo', 'friends', 'coworkers'], ['afternoon', 'evening'], cuisine='English chops'),
+        place('shepherd-market', 'Shepherd Market', 'market', 'mayfair', 'A small village of lanes off Curzon '
+              'Street with a butcher, a dairy, a pub and cheap rooms, where Mayfair\'s servants do their own '
+              'shopping.', ['shops', 'servants', 'village'], '$', 'mixed', ALL, DAY),
+        place('st-stephens-tavern', 'St Stephen\'s Tavern', 'tavern', 'westminster', 'A pub on Bridge Street '
+              'facing the Clock Tower, with a division bell so members of Parliament can finish their drinks.',
+              ['pub', 'parliament', 'gossip'], '$', 'indoor', ADULT, ['afternoon', 'evening']),
+        place('army-and-navy-stores', 'Army and Navy Stores', 'shopping', 'westminster', 'The great co-operative '
+              'store on Victoria Street, for members and their friends, selling everything from tea to tents.',
+              ['department-store', 'groceries', 'members'], '$$', 'indoor', ALL, DAY),
+        place('great-smith-street-baths', 'Westminster Public Baths, Great Smith Street', 'fitness', 'westminster',
+              'New parish baths with a swimming bath, private hot baths and a public wash-house behind the Abbey.',
+              ['swimming', 'baths', 'laundry'], '$', 'indoor', ['solo', 'friends', 'family'], DAY),
+        place('ye-olde-cock-tavern', 'Ye Olde Cock Tavern', 'tavern', 'fleet-street', 'Old Fleet Street chop house '
+              'and tavern, moved across the road when the bank took its site, still serving chops and stout to '
+              'lawyers and printers.', ['pub', 'chops', 'press'], '$', 'indoor', ADULT, ['afternoon', 'evening'],
+              cuisine='English chops'),
+        place('st-bride-foundation', 'St Bride Foundation Institute', 'library', 'fleet-street', 'New institute '
+              'in Bride Lane for the printing trades, with a technical library, a reading room and swimming baths.',
+              ['books', 'printing', 'baths'], '$', 'indoor', ['solo', 'friends', 'coworkers'], ALLDAY),
+        place('temple-gardens', 'Inner Temple Garden', 'garden', 'fleet-street', 'Lawns and flower borders between '
+              'the barristers\' chambers and the Embankment, a quiet place to eat a sandwich.',
+              ['garden', 'quiet', 'law'], 'free', 'outdoor', ['solo', 'friends', 'date'], DAY, WARM),
+        place('simpsons-tavern', 'Simpson\'s Tavern', 'restaurant', 'the-city', 'Old chop house up Ball Court off '
+              'Cornhill where clerks crowd the benches at one o\'clock for chops, stewed cheese and beer.',
+              ['chop-house', 'lunch', 'clerks'], '$', 'indoor', ['solo', 'friends', 'coworkers'], ['afternoon'],
+              cuisine='English chops'),
+        place('guildhall-library', 'Guildhall Library', 'library', 'the-city', 'The Corporation\'s free reference '
+              'library in the Guildhall, full of maps, directories and London history, open to all.',
+              ['books', 'free', 'history'], 'free', 'indoor', ['solo'], DAY),
+        place('ten-bells', 'The Ten Bells', 'tavern', 'whitechapel', 'Corner pub on Commercial Street opposite '
+              'Christ Church, Spitalfields, crowded with market porters and weavers\' descendants.',
+              ['pub', 'market', 'east-end'], '$', 'indoor', ADULT, NIGHT),
+        place('spitalfields-market', 'Spitalfields Market', 'market', 'whitechapel', 'The fruit and vegetable '
+              'market in its new buildings by Christ Church, busy with carts from before dawn.',
+              ['produce', 'early', 'carts'], '$', 'mixed', ['solo', 'friends', 'family'], ['morning']),
+        place('whitechapel-library', 'Whitechapel Public Library', 'library', 'whitechapel', 'New free library on '
+              'the High Street with a newsroom and reading room, much used by young immigrants learning English.',
+              ['books', 'free', 'newsroom'], 'free', 'indoor', ['solo', 'friends', 'family'], ALLDAY),
+        place('goulston-street-baths', 'Goulston Street Baths and Wash-houses', 'fitness', 'whitechapel', 'Early '
+              'public baths and wash-houses where women do the family washing and men pay a penny for a bath.',
+              ['baths', 'laundry', 'cheap'], '$', 'indoor', ['solo', 'family'], DAY),
+        place('prospect-of-whitby', 'The Prospect of Whitby', 'tavern', 'limehouse', 'Old riverside pub on Wapping '
+              'Wall with a flagstone floor, a pewter bar and a balcony over the Thames.',
+              ['pub', 'river', 'old'], '$', 'indoor', ADULT, NIGHT),
+        place('chrisp-street-market', 'Chrisp Street market', 'market', 'limehouse', 'Poplar\'s street market of '
+              'costers\' barrows selling vegetables, fish, crockery and cheap clothes to dockers\' wives.',
+              ['street-market', 'cheap', 'east-end'], '$', 'outdoor', ['solo', 'family'], DAY),
+        place('poplar-baths', 'Poplar Public Baths', 'fitness', 'limehouse', 'Parish baths on the East India Dock '
+              'Road with a swimming bath, slipper baths and a wash-house for dock families.',
+              ['swimming', 'baths', 'laundry'], '$', 'indoor', ['solo', 'friends', 'family'], DAY),
+        place('museum-tavern', 'The Museum Tavern', 'tavern', 'bloomsbury', 'Pub on Great Russell Street opposite '
+              'the British Museum gates, full of readers, students and porters at lunchtime.',
+              ['pub', 'students', 'lunch'], '$', 'indoor', ADULT, ['afternoon', 'evening']),
+        place('the-lamb', 'The Lamb', 'tavern', 'bloomsbury', 'Small pub in Lamb\'s Conduit Street with snob '
+              'screens at the bar, used by hospital staff and clerks from the Inns of Court.',
+              ['pub', 'snob-screens', 'local'], '$', 'indoor', ADULT, NIGHT),
+        place('mudies-library', 'Mudie\'s Select Library', 'library', 'bloomsbury', 'The great circulating library '
+              'on New Oxford Street, where a guinea a year lets you borrow the new three-volume novels.',
+              ['books', 'novels', 'subscription'], '$$', 'indoor', ['solo', 'friends'], DAY),
+        place('the-anchor-bankside', 'The Anchor, Bankside', 'tavern', 'southwark', 'Riverside pub by the Barclay '
+              'Perkins brewery, with draymen at the bar and a view across to St Paul\'s.',
+              ['pub', 'river', 'brewery'], '$', 'indoor', ADULT, ['afternoon', 'evening']),
+        place('st-saviours-southwark', 'St Saviour\'s Church, Southwark', 'temple', 'southwark', 'The old priory '
+              'church by London Bridge, its nave being rebuilt, with a parish of market men and hop factors.',
+              ['church', 'old', 'parish'], 'free', 'indoor', ALL, DAY),
+        place('southwark-park', 'Southwark Park', 'park', 'southwark', 'A people\'s park in Rotherhithe with a '
+              'lake, a bandstand and cricket pitches, near the Surrey Docks.', ['park', 'bandstand', 'cricket'],
+              'free', 'outdoor', ALL, DAY, WARM),
+        place('old-vic', 'Royal Victoria Hall', 'venue', 'lambeth', 'Miss Cons\'s temperance music hall on the '
+              'Waterloo Road: cheap concerts, ballads and lantern lectures, with coffee instead of gin.',
+              ['music-hall', 'temperance', 'lectures'], '$', 'indoor', ALL, ['evening']),
+        place('vauxhall-park', 'Vauxhall Park', 'park', 'lambeth', 'Small new public park off the South Lambeth '
+              'Road with flower beds, benches and a playground for the neighbouring terraces.',
+              ['park', 'children', 'new'], 'free', 'outdoor', ALL, DAY, WARM),
+        place('lower-marsh-eel-pie-shop', 'Pie and eel shop, Lower Marsh', 'restaurant', 'lambeth', 'Marble '
+              'tables and sawdust on the floor, serving hot meat pies, mashed potato and stewed eels with green '
+              'liquor.', ['pies', 'eels', 'cheap', 'invented'], '$', 'indoor', ALL, ['afternoon', 'evening'],
+              cuisine='Pie and eels'),
+        place('st-barnabas-pimlico', 'St Barnabas, Pimlico', 'temple', 'pimlico', 'High church in Church Street '
+              'with a choir school and incense, popular with servants and lodgers on Sunday evenings.',
+              ['church', 'choir', 'high-church'], 'free', 'indoor', ALL, ['morning', 'evening']),
+        place('victoria-station', 'Victoria Station', 'landmark', 'pimlico', 'Two railway termini side by side, '
+              'for Brighton and for the Continent, with bookstalls, a refreshment room and a cab yard.',
+              ['railway', 'travel', 'bookstall'], 'free', 'indoor', ALL, ALLDAY),
+        place('lupus-street-coffee-house', 'Coffee house, Lupus Street', 'cafe', 'pimlico', 'A clean coffee house '
+              'with high-backed boxes, serving coffee, rashers and toast to clerks before the omnibus.',
+              ['coffee', 'breakfast', 'cheap', 'invented'], '$', 'indoor', ['solo', 'friends'], DAY,
+              cuisine='Coffee and breakfasts'),
+        place('warwick-way-laundry', 'Mrs Pratt\'s laundry, Warwick Way', 'workshop', 'pimlico', 'A hand laundry '
+              'of coppers, mangles and drying lines that collects lodgers\' collars and shirts by the dozen.',
+              ['laundry', 'local', 'invented'], '$', 'indoor', ['solo'], DAY),
+        place('royal-hospital-chelsea', 'Royal Hospital Chelsea', 'landmark', 'chelsea', 'Wren\'s home for old '
+              'soldiers, whose pensioners in scarlet coats show visitors the chapel and the great hall.',
+              ['history', 'soldiers', 'gardens'], 'free', 'mixed', ALL, DAY),
+        place('kings-head-eight-bells', 'The King\'s Head and Eight Bells', 'tavern', 'chelsea', 'Old corner pub '
+              'on Cheyne Walk by the river, used by painters, watermen and pensioners.',
+              ['pub', 'river', 'artists'], '$', 'indoor', ADULT, ['afternoon', 'evening']),
+        place('carlyles-house', 'Carlyle\'s House', 'museum', 'chelsea', 'Thomas Carlyle\'s plain brick house in '
+              'Cheyne Row, newly opened to visitors with his books, pipes and soundproof study.',
+              ['writers', 'history', 'new'], '$', 'indoor', ['solo', 'friends'], DAY),
+        place('chelsea-public-library', 'Chelsea Public Library', 'library', 'chelsea', 'Free library in Manresa '
+              'Road with a reading room, newspapers and a good shelf of art books for the studio crowd.',
+              ['books', 'free', 'art'], 'free', 'indoor', ['solo', 'family'], ALLDAY),
+        place('the-grenadier', 'The Grenadier', 'tavern', 'kensington', 'Small pub hidden in Wilton Row mews, said '
+              'to have been the Guards\' officers\' mess, with a sentry box outside.',
+              ['pub', 'mews', 'hidden'], '$', 'indoor', ADULT, NIGHT),
+        place('brompton-oratory', 'The Brompton Oratory', 'temple', 'kensington', 'The new Italianate Catholic '
+              'church on the Brompton Road, known for its music at Sunday high mass.',
+              ['church', 'music', 'catholic'], 'free', 'indoor', ALL, DAY),
+        place('jack-straws-castle', 'Jack Straw\'s Castle', 'inn', 'hampstead', 'Weatherboarded inn at the top of '
+              'the Heath by the Whitestone Pond, with chops, ale and a view of the whole of London.',
+              ['pub', 'heath', 'views'], '$', 'indoor', ALL, ['afternoon', 'evening'], cuisine='English'),
+        place('hampstead-parish-church', 'St John-at-Hampstead', 'temple', 'hampstead', 'The village parish church '
+              'at the end of Church Row, with Constable buried in the churchyard.',
+              ['church', 'village', 'churchyard'], 'free', 'indoor', ALL, DAY),
+        place('heath-bathing-ponds', 'Hampstead Heath bathing ponds', 'fitness', 'hampstead', 'The old reservoir '
+              'ponds on the Heath where men bathe before work, in all weathers if they are hardy.',
+              ['swimming', 'ponds', 'early'], 'free', 'outdoor', ['solo', 'friends'], ['morning'], WARM),
+        place('richmond-park', 'Richmond Park', 'park', 'kew', 'The royal deer park on the hill above Richmond, '
+              'with herds of red and fallow deer, ponds and long rides for walkers and riders.',
+              ['deer', 'walk', 'riding'], 'free', 'outdoor', ALL, DAY),
+        place('maids-of-honour', 'Newens\' Maids of Honour tea shop', 'cafe', 'kew', 'Bakery and tea room on the '
+              'Kew Road, famous for the little curd tarts called maids of honour.', ['tea', 'cakes', 'outing'],
+              '$', 'indoor', ALL, DAY, cuisine='Tea and cakes'),
+        place('kew-green', 'Kew Green', 'square', 'kew', 'The village green by the gardens\' main gate, with '
+              'cricket on summer Saturdays and St Anne\'s church at one end.', ['cricket', 'green', 'village'],
+              'free', 'outdoor', ALL, DAY, WARM),
+        place('richmond-boat-hire', 'Boat hire at Richmond Bridge', 'attraction', 'kew', 'Boatmen\'s rafts by the '
+              'bridge hiring skiffs and punts by the hour for rowing up toward Petersham and Teddington.',
+              ['boating', 'river', 'summer'], '$', 'outdoor', ['friends', 'date', 'family'], DAY, ['summer']),
     ],
     'colleges': [
         college('ucl', 'University College London', 'research-university', 'bloomsbury', 'medium',
