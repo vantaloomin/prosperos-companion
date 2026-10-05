@@ -220,6 +220,10 @@ class ContextLinks(Input):
     read_links: bool
 
 
+class ContextPreset(Input):
+    preset: Literal['parallel', 'exa', 'firecrawl']
+
+
 class ContextBuiltin(Input):
     kind: Literal['weather']
 

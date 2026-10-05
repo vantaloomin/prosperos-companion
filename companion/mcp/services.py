@@ -27,7 +27,18 @@ CATEGORIES = {
     # A fallback for links the app cannot read on this computer, such as pages that need a browser.
     'link': {'label': 'Reading links', 'keywords': ('fetch', 'scrape', 'crawl', 'extract', 'url', 'webpage'),
              'purposes': ('conversation',), 'when': 'When a link you paste in chat cannot be read on this computer'},
+    'web_search': {'label': 'Web search', 'keywords': ('search', 'web'), 'purposes': ('conversation',),
+                   'when': 'When you ask in chat to search or look something up, with what you asked for'},
 }
+# Hosted search services that work without a key (checked 2026-10-05; each one's own terms and limits apply).
+PRESETS = {
+    'parallel': {'name': 'Parallel Search', 'url': 'https://search.parallel.ai/mcp'},
+    'exa': {'name': 'Exa', 'url': 'https://mcp.exa.ai/mcp'},
+    'firecrawl': {'name': 'Firecrawl', 'url': 'https://mcp.firecrawl.dev/v2/mcp'},
+}
+# Categories that may send a topic, and those that send nothing about where the user is.
+TOPIC_CATEGORIES = {'news', 'local_events', 'web_search'}
+PLACELESS = {'link', 'web_search'}
 PURPOSES = {
     'conversation': 'When you ask about it in chat, for your location (or the topic you name)',
     'companion_city': "For the companion's city, when it is a real place: in chat when you ask about where "
@@ -47,7 +58,8 @@ FILLS = {
     'place': ('location', 'city', 'place', 'locality', 'address', 'region', 'area', 'where'),
     'latitude': ('latitude', 'lat'),
     'longitude': ('longitude', 'lon', 'lng', 'long'),
-    'topic': ('topic', 'query', 'q', 'keywords', 'keyword', 'search', 'term', 'subject'),
+    'topic': ('topic', 'query', 'q', 'keywords', 'keyword', 'search', 'term', 'subject', 'objective',
+              'search_queries', 'queries', 'question'),
     'date': ('date', 'day', 'start_date', 'startdate', 'from'),
     'url': ('url', 'urls', 'link', 'links', 'href', 'uri'),
 }
@@ -175,6 +187,16 @@ def create_builtin(database, vault, kind: str) -> dict:
                                                           command=command))
 
 
+def create_preset(database, vault, preset: str) -> dict:
+    """Add a hosted search service by its known address. It is checked like any other and nothing is enabled."""
+    require(preset in PRESETS, 'Unknown service.', 404)
+    spec = PRESETS[preset]
+    with database.connect() as connection:
+        taken = optional(connection, 'SELECT id FROM context_services WHERE url=?', (spec['url'],))
+    require(taken is None, f"{spec['name']} is already added.", 409)
+    return create_service(database, vault, ContextService(name=spec['name'], transport='http', url=spec['url']))
+
+
 def builtin_kind(row: dict) -> str | None:
     command = decode(row['command']) if row['transport'] == 'stdio' else None
     if command and len(command) == 1 and command[0].startswith(BUILTIN_PREFIX):
@@ -280,6 +302,8 @@ def suggestions(tools: list[dict]) -> dict:
             arguments, missing = infer_arguments(category, tool['input_schema'])
             if category == 'link' and not any(item['source'] == 'url' for item in arguments.values()):
                 continue  # A tool that cannot be given the link cannot read it.
+            if category == 'web_search' and not any(item['source'] == 'topic' for item in arguments.values()):
+                continue
             found[category] = {'tool': best, 'arguments': arguments, 'missing': missing}
     return found
 
@@ -290,20 +314,23 @@ def schema_properties(schema: dict) -> tuple[dict, list[str]]:
     return properties, required
 
 
+def wanted_sources(category: str) -> list[str]:
+    if category in PLACELESS:
+        return ['url'] if category == 'link' else ['topic']
+    return ['place', 'latitude', 'longitude', 'date'] + (['topic'] if category == 'news' else [])
+
+
 def infer_arguments(category: str, schema: dict) -> tuple[dict, list[str]]:
     """Fill only properties a known source matches. Optional unmatched ones are left out (minimal disclosure)."""
     properties, required = schema_properties(schema)
-    wanted = ['url'] if category == 'link' else \
-        ['place', 'latitude', 'longitude', 'date'] + (['topic'] if category == 'news' else [])
     arguments = {}
-    for source in wanted:
+    for source in wanted_sources(category):
         for name in properties:
-            if name in arguments:
-                continue
-            if name.lower() in FILLS[source]:
+            if name not in arguments and name.lower() in FILLS[source]:
                 # A weather or events tool may call its location field "query"; news queries are topics.
                 arguments[name] = {'source': source}
-                break
+                if source != 'topic':
+                    break  # One field per value, except a search's objective and queries, which both take it.
     if category in {'weather', 'local_events'}:
         for name in required:
             if name not in arguments and name.lower() in FILLS['topic']:
@@ -329,12 +356,15 @@ def check_mapping(service: dict, category: str, body):
         require(name in properties or not properties, f'The tool has no argument called {name}.', 422)
         require(argument.source in SOURCES, f'Unknown source for {name}.', 422)
         require(argument.source != 'literal' or argument.value is not None, f'Choose a value for {name}.', 422)
-        require(argument.source != 'topic' or category in {'news', 'local_events'},
-                'Only news and event lookups can send a topic.', 422)
-        require((argument.source == 'url') == (category == 'link') or argument.source == 'literal',
-                'Only link reading sends the link, and it sends nothing about your location.', 422)
+        require(argument.source != 'topic' or category in TOPIC_CATEGORIES,
+                'Only news, event and search lookups can send a topic.', 422)
+        require(category not in PLACELESS or argument.source not in {'place', 'latitude', 'longitude'},
+                f"{CATEGORIES[category]['label']} never sends your location.", 422)
+        require(argument.source != 'url' or category == 'link', 'Only link reading sends the link.', 422)
     require(category != 'link' or any(item.source == 'url' for item in body.arguments.values()),
             'Choose which argument receives the link.', 422)
+    require(category != 'web_search' or any(item.source == 'topic' for item in body.arguments.values()),
+            'Choose which argument receives what you asked to search for.', 422)
     missing = [name for name in required if name not in body.arguments]
     require(not missing, f"The tool requires {', '.join(missing)}.", 422)
 

@@ -31,3 +31,13 @@ test('link reading sends only the link, and its records name the link', () => {
   assert.equal(sourcesFor('news').includes('url'), false)
   assert.equal(observationSummary(base).title, 'Link: https://www.reddit.com/r/baltimore/comments/abc/x/')
 })
+
+test('web search sends only what you asked for and says when it runs', async () => {
+  const { canTry, purposeLabel, SEARCH_PRESETS } = await import('../../src/features/settings/contextTools.ts')
+  assert.deepEqual(sourcesFor('web_search'), ['topic', 'literal'])
+  assert.equal(purposeLabel('web_search', 'conversation', 'Mira'), 'When you ask in chat to search or look something up')
+  assert.equal(purposeLabel('weather', 'companion_city', 'Mira'), "For Mira's city, when it is a real place")
+  assert.equal(canTry('web_search'), false)
+  assert.equal(canTry('weather'), true)
+  assert.deepEqual(SEARCH_PRESETS.map((preset) => preset.url), ['https://search.parallel.ai/mcp', 'https://mcp.exa.ai/mcp', 'https://mcp.firecrawl.dev/v2/mcp'])
+})

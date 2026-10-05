@@ -107,6 +107,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .field > label, .traits legend { font-size: 0.875rem; font-weight: 500; color: #d6d0c4; }
 .field small, .toggle small { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
 .form-actions { display: flex; gap: 12px; align-items: center; }
+.preset-list { display: grid; gap: 10px; list-style: none; padding: 0; margin: 0; }
+.preset-list li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .traits { min-width: 0; border: 1px solid var(--border); border-radius: 9px; padding: 16px; margin: 0; display: flex; flex-direction: column; gap: 12px; }
 .traits legend { padding: 0 6px; }
 .trait-row > * { min-width: 0; }

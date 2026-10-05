@@ -1,8 +1,8 @@
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextPurpose, ContextTool, MappingSuggestion, Observation, ToolArgument } from '../../types'
 
 export const CONTEXT_KEY = ['context-tools']
-export const CATEGORY_ORDER: ContextCategory[] = ['weather', 'news', 'local_events', 'link']
-export const CATEGORY_LABELS: Record<ContextCategory, string> = { weather: 'Weather', news: 'News and recent events', local_events: 'Local events', link: 'Reading links' }
+export const CATEGORY_ORDER: ContextCategory[] = ['weather', 'news', 'local_events', 'web_search', 'link']
+export const CATEGORY_LABELS: Record<ContextCategory, string> = { weather: 'Weather', news: 'News and recent events', local_events: 'Local events', link: 'Reading links', web_search: 'Web search' }
 export const SOURCE_LABELS: Record<ArgumentSource, string> = {
   place: 'Your city or region', latitude: 'Latitude', longitude: 'Longitude', topic: 'Topic you asked about', date: "Today's date", literal: 'A fixed value', url: 'The link you pasted',
 }
@@ -17,6 +17,25 @@ export function serviceBody(draft: ServiceDraft): Record<string, unknown> {
   return { ...base, command: [draft.program.trim(), ...args] }
 }
 
+/** Hosted search services that work without a key; each is added and checked, and stays off until approved. */
+export const SEARCH_PRESETS = [
+  { id: 'parallel', name: 'Parallel Search', url: 'https://search.parallel.ai/mcp', note: 'Web search and page reading; free without a key, at lower limits.' },
+  { id: 'exa', name: 'Exa', url: 'https://mcp.exa.ai/mcp', note: 'Web search and page reading; free without a key, rate-limited.' },
+  { id: 'firecrawl', name: 'Firecrawl', url: 'https://mcp.firecrawl.dev/v2/mcp', note: 'Search and page scraping; a small free allowance without a key.' },
+] as const
+
+/** The label for when a mapping runs, in the editor. */
+export function purposeLabel(category: ContextCategory, purpose: ContextPurpose, name: string): string {
+  if (category === 'link') return 'When a link you paste cannot be read on this computer'
+  if (category === 'web_search') return 'When you ask in chat to search or look something up'
+  return purpose === 'conversation' ? 'When you ask about it in chat' : `For ${name}'s city, when it is a real place`
+}
+
+/** Categories with a "try it" button: those that look up a place, not a link or a search. */
+export function canTry(category: ContextCategory): boolean {
+  return category !== 'link' && category !== 'web_search'
+}
+
 export interface MappingDraft { tool: string; arguments: Record<string, ToolArgument>; run_in: ContextPurpose[] }
 
 /** Start from the saved mapping, else the app's suggestion, else the first tool with nothing mapped. */
@@ -26,9 +45,10 @@ export function initialMapping(tools: ContextTool[], saved?: ContextMapping, sug
   return { tool: tools[0]?.name ?? '', arguments: {}, run_in: ['conversation'] }
 }
 
-/** Sources a category may send: only news and events can send a topic, and only link reading sends the link. */
+/** Sources a category may send: only news, events and search send a topic, and only link reading sends the link. */
 export function sourcesFor(category: ContextCategory): ArgumentSource[] {
   if (category === 'link') return ['url', 'literal']
+  if (category === 'web_search') return ['topic', 'literal']
   const all: ArgumentSource[] = ['place', 'latitude', 'longitude', 'topic', 'date', 'literal']
   return category === 'weather' ? all.filter((source) => source !== 'topic') : all
 }

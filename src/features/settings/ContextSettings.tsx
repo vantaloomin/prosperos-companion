@@ -5,7 +5,7 @@ import { api } from '../../api'
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextOverview, ContextPurpose, ContextServiceInfo, MappingSuggestion, Observation, ToolArgument } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
-import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SOURCE_LABELS, canSave, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
+import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SEARCH_PRESETS, SOURCE_LABELS, canSave, canTry, purposeLabel, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
 
 type Result = { tone: 'info' | 'error'; text: string } | null
 type Overview = ContextOverview
@@ -35,6 +35,7 @@ export function ContextSettings({ name }: { name: string }) {
       <ol className="backend-list">
         {data.services.map((service) => <ServiceRow key={service.id} service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}
       </ol>
+      <SearchPresets data={data} refresh={refresh} setResult={setResult} />
       {adding ? <AddService onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
         : <div className="form-actions">
           {!data.services.some((service) => service.builtin === 'weather') && <AddBuiltinWeather refresh={refresh} setResult={setResult} />}
@@ -42,6 +43,36 @@ export function ContextSettings({ name }: { name: string }) {
         </div>}
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
+  )
+}
+
+/** One-click hosted search services. Adding one connects and lists its tools; nothing is searched until approved. */
+function SearchPresets({ data, refresh, setResult }: { data: Overview; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+  const [busy, setBusy] = useState(false)
+  const missing = SEARCH_PRESETS.filter((preset) => !data.services.some((service) => service.url === preset.url))
+  if (missing.length === 0) return null
+  const add = async (preset: string, label: string) => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const created = await api<ContextServiceInfo>('/context/services/preset', { preset })
+      const checked = await api<ContextServiceInfo>(`/context/services/${created.id}/check`, {})
+      setResult(checked.check_error ? { tone: 'error', text: `Added ${label}, but the check failed: ${checked.check_error}` } : { tone: 'info', text: `Added ${label}. Review and turn on its web search or link reading below.` })
+      await refresh()
+    } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not added.') }) } finally { setBusy(false) }
+  }
+  return (
+    <div className="form-stack">
+      <p className="subtle">Web search: add a hosted search service that works without a key. Searches send only what you asked to look up.</p>
+      <ul className="preset-list">
+        {missing.map((preset) => (
+          <li key={preset.id}>
+            <button type="button" className="button" aria-disabled={busy} onClick={() => void add(preset.id, preset.name)}>Add {preset.name}</button>
+            <span className="subtle">{preset.note}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -210,7 +241,7 @@ function SavedMapping({ category, mapping, path, name, busy, act, onEdit }: Save
         hint={on ? undefined : 'Turning it on confirms what it sends, as described above. Any later change asks again.'} />
       {tried && <TryResults items={tried} />}
       <div className="post-actions">
-        {on && category !== 'link' && mapping.run_in.map((purpose) => (
+        {on && canTry(category) && mapping.run_in.map((purpose) => (
           <button key={purpose} type="button" className="text-button" aria-disabled={busy} onClick={() => void tryNow(purpose)}>
             {purpose === 'conversation' ? 'Try it for your location' : `Try it for ${name}'s city`}
           </button>
@@ -262,7 +293,7 @@ function MappingEditor({ category, service, data, name, draft: initial, busy, on
           onValue={(value) => setDraft({ ...draft, arguments: { ...draft.arguments, [property]: { source: 'literal', value } } })} />
       ))}
       {data.categories[category].purposes.map((purpose) => (
-        <Toggle key={purpose} label={category === 'link' ? 'When a link you paste cannot be read on this computer' : purpose === 'conversation' ? 'When you ask about it in chat' : `For ${name}'s city, when it is a real place`}
+        <Toggle key={purpose} label={purposeLabel(category, purpose, name)}
           hint={data.purposes[purpose]} checked={draft.run_in.includes(purpose)} onChange={(value) => setDraft(withPurpose(draft, purpose, value))} />
       ))}
       {missing.length > 0 && <p className="subtle">The tool needs {missing.join(', ')}.</p>}

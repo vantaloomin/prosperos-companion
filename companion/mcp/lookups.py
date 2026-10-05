@@ -22,7 +22,7 @@ from companion.mcp.client import ToolFailure, open_session
 from companion.mcp.services import CATEGORIES, active_mappings, destination, place_settings, transport_for
 
 FRESH_FOR = {'weather': timedelta(hours=1), 'news': timedelta(hours=3), 'local_events': timedelta(hours=12),
-             'link': timedelta(hours=6)}
+             'link': timedelta(hours=6), 'web_search': timedelta(hours=1)}
 HOURLY_LIMIT = 20
 DAILY_LIMIT = 100
 FAILURE_PAUSE = timedelta(minutes=5)
@@ -33,12 +33,13 @@ BACKGROUND_DEADLINE = 20.0
 SERVICES_PER_CATEGORY = 2
 MAX_CONTENT = 2000
 # A linked page is read in full enough to talk about; other lookups are short answers.
-MAX_CONTENT_FOR = {'link': links.MAX_TEXT}
+MAX_CONTENT_FOR = {'link': links.MAX_TEXT, 'web_search': 4000}
 LINK_DEADLINE = 10.0
 LINKS_PER_HOUR = 30
 # Links read on this computer have no MCP service; their records carry this name instead.
 LINK_READER = {'id': None, 'name': 'This computer (link reader)'}
 TOPIC_WORDS = 6
+SEARCH_WORDS = 12
 
 WEATHER = re.compile(r"\b(weather|forecast|raining|rainy|snowing|snowy|temperature|umbrella|stormy?|sunny|"
                      r"how (hot|cold|warm) is it|humid)\b", re.I)
@@ -48,6 +49,12 @@ NEARBY = re.compile(r"\b(near( me| here|by)?|around here|in town|local(ly)?|this
                     re.I)
 THERE = re.compile(r"\b(where you (are|live)|your (city|town|place|end|neck of the woods)|over there|by you)\b", re.I)
 TOPIC = re.compile(r"\bnews\s+(?:about|on|regarding|for|from)\s+([^?.!,;:\n]{2,80})", re.I)
+# "search for X", "google X", "look up X", "search reddit for X", "search the web for X"
+# Only as a request ("can you google…", "please search…", a sentence starting with it), so "I work at Google" or
+# "look up at the stars" never searches.
+SEARCH = re.compile(r"(?:^|[.!?]\s+|\b(?:can|could|would|will)\s+you\s+(?:please\s+)?|\bplease\s+|\b(?:go|to)\s+)"
+                    r"(?:search|google|look\s+up(?!\s+(?:at|to|from|and)\b))\s+(?:(?:the\s+)?(?:web|internet|online)\s+)?"
+                    r"(?:(reddit|twitter)\s+)?(?:for\s+|about\s+|on\s+)?([^?!.\n]{2,160})", re.I)
 
 
 def triggers(text: str) -> list[dict]:
@@ -62,7 +69,21 @@ def triggers(text: str) -> list[dict]:
         found.append({'category': 'news', 'purpose': 'conversation', 'topic': topic})
     if EVENTS.search(text) and (NEARBY.search(text) or purpose == 'companion_city'):
         found.append({'category': 'local_events', 'purpose': purpose, 'topic': None})
+    if topic := search_topic(text):
+        found.append({'category': 'web_search', 'purpose': 'conversation', 'topic': topic})
     return found
+
+
+def search_topic(text: str) -> str | None:
+    """What the user asked to search for, up to twelve words, with the site they named (Reddit, Twitter)."""
+    match = SEARCH.search(links.URL.sub(' ', text))
+    if not match:
+        return None
+    words = match.group(2).split()[:SEARCH_WORDS]
+    if not words:
+        return None
+    site = {'reddit': 'Reddit', 'twitter': 'X (Twitter)'}.get((match.group(1) or '').lower())
+    return ' '.join(words) + (f' on {site}' if site else '')
 
 
 def clean(text: str, limit: int = MAX_CONTENT) -> str:
@@ -236,6 +257,8 @@ class Lookups:
             where = target(connection, purpose, self.world, self.now()) if mappings else None
         if not mappings or where is None:
             return []
+        if category == 'web_search':
+            where = {**where, 'label': topic or ''}  # A search is about what was asked, not where the user is.
         results = await asyncio.gather(*(self.one(item['service'], item['mapping'], where, purpose, topic, deadline)
                                          for item in mappings))
         return [item for batch in results for item in batch]
@@ -423,6 +446,10 @@ def context_lines(observations: list[dict], now, user_timezone: str, doing: str 
                 age = age_text((now - when).total_seconds())
                 lines.append((item['id'], f'- Out of date: the latest {label} lookup{place} is from {age} ago '
                                           f'({source}). Do not describe it as current: {quoted}'))
+        elif item['category'] == 'web_search':
+            lines.append((item['id'], f'- The web search{place} did not work, so you have seen no results: do not '
+                                      'invent any. Say, in character, that you could not look it up just now, '
+                                      'and carry on.'))
         else:
             reason = item['error'] or 'it did not complete'
             lines.append((item['id'], f'- The {label} lookup{place} did not succeed ({reason}). You do not '
