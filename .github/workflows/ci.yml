@@ -15,7 +15,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    # The Windows runner takes 8-15 minutes for the full suite when hosted runners are busy.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
