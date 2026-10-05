@@ -304,6 +304,35 @@ Call `POST /api/today/seen` once the user has looked at Today, so the next visit
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
 and `plans` have the same shape as `GET /api/events`.
 
+### Money
+
+```http
+GET /api/today/money
+```
+
+The companion's budget on their local today, from `companion/life/money.py`. It is computed, not
+stored: the career's pay tier (`definition.money.career`, else a career named in who they are, else an
+ordinary wage), the home city's rents, prices and currency, and `definition.money.style`
+(`careful`, `balanced` or `spender`). The same character and date always give the same answer, and
+the model only phrases it (chat context section "Your money").
+
+- **Pay**: modern US cities pay a monthly take-home by pay tier, a little higher where rents are
+  higher; other cities use their `wage` price, else a multiple of a typical rent. Pay comes every
+  other Friday where rent is monthly and every Saturday where it is weekly.
+- **Rent**: a neighbourhood named in their location, else one whose rent tier fits their pay. When
+  rent would take more than 45% of pay they take a smaller place, or a room in a shared one.
+- **Pay period**: fun money runs down through the period. A seeded splurge may land on or after
+  payday, and now and then a surprise bill. `tight` marks the low stretch; `cant_afford` lists the
+  outings that cost more than what is left.
+- **Saving**: `goal` is the user's `saving_for` and `goal` amount (counted from `goal_since`), or a
+  seeded everyday goal for each half of the year.
+
+Where the setting has no money (Oz) or no known city, `available` is `false` with a `reason`.
+
+The composer calls `money.affordable(definition, activity_key, local_date)` once per option: an
+outing they cannot afford that day gives way to a free activity (a walk, cooking at home). If
+nothing is affordable the routine happens as before.
+
 ## Feed
 
 ```http
