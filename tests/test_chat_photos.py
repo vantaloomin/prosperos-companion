@@ -66,7 +66,9 @@ def test_other_questions_do_not(text):
     assert not asks_for_photo(text)
 
 
-def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, clock, provider, adapters):
+def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, clock, provider, adapters, monkeypatch):
+    # A cold seeded by the companion's random id would turn the pictured moment into a sick day.
+    monkeypatch.setattr('companion.life.body.COLD_CHANCE', {'winter': 0, 'other': 0})
     local_comfy(client)
     reply = ask(client)
     photo = reply['photo']
