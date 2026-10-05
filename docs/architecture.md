@@ -355,6 +355,13 @@ as external data, and listed in the reply's receipt under `outside`. Details, li
 transports are in [current context tools](context-tools.md). A same-day lookup for the companion's
 real city can replace that day's typical weather in the life simulation (`ObservedWorld`).
 
+## Import from Prospero's Study
+
+`companion/imports/` opens a Study database read-only, lists its characters, shows a review of
+exactly what one character would become, and creates the companion with new ids only when the
+reviewed token still matches. Attribution goes to `study_imports`. See
+[Study import](study-import.md).
+
 ## Not yet built
 
 A branch map of timelines, LoRA training, reference images
