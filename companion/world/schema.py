@@ -202,6 +202,32 @@ class CityNames(Record):
     groups: dict[Id, NameGroup] = Field(default_factory=dict)
 
 
+class Holiday(Record):
+    """One holiday, by exactly one rule: a fixed date, the nth weekday of a month, or days from Easter."""
+    id: Id
+    name: Text
+    kind: Literal['public', 'observance', 'feast']
+    summary: Text
+    month: int | None = Field(default=None, ge=1, le=12)
+    day: int | None = Field(default=None, ge=1, le=31)
+    # Monday is 0. `nth` counts from 1, or -1 for the last in the month.
+    weekday: int | None = Field(default=None, ge=0, le=6)
+    nth: int | None = Field(default=None, ge=-1, le=5)
+    easter: int | None = Field(default=None, ge=-70, le=70)
+
+    @model_validator(mode='after')
+    def check(self):
+        shapes = {
+            'fixed': self.month is not None and self.day is not None and self.weekday is None and self.nth is None,
+            'weekday': self.month is not None and self.day is None and self.weekday is not None
+            and self.nth not in (None, 0),
+            'easter': self.easter is not None and self.month is None,
+        }
+        if sum(shapes.values()) != 1 or (self.easter is not None and (self.weekday, self.nth) != (None, None)):
+            raise ValueError(f'Holiday {self.id} needs one rule: month and day, month weekday and nth, or easter.')
+        return self
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -238,6 +264,10 @@ class City(Record):
     # Careers particular to this city or its setting, beside the shared catalogue.
     careers: list[Career] = Field(default_factory=list, max_length=200)
     names: CityNames | None = None
+    # A shared holiday calendar ('none' for no shared one); by default chosen from the era and country.
+    calendar: Id | None = None
+    # Holidays particular to this city, beside its calendar's.
+    holidays: list[Holiday] = Field(default_factory=list, max_length=100)
 
     @model_validator(mode='after')
     def check(self):
@@ -290,3 +320,14 @@ class Names(Record):
             if groups is None or not set(entry.mix) <= set(groups):
                 raise ValueError(f'Era {era} names an unknown bank or group.')
         return self
+
+
+class HolidayCalendar(Record):
+    name: Text
+    holidays: list[Holiday] = Field(min_length=1)
+
+
+class Holidays(Record):
+    schema_version: Literal[1]
+    source: Source
+    calendars: dict[Id, HolidayCalendar] = Field(min_length=1)

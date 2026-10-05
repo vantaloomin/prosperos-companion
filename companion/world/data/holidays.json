@@ -1,0 +1,499 @@
+{
+ "schema_version": 1,
+ "source": {
+  "kind": "curated",
+  "title": "Holiday calendars written for Prospero Companion",
+  "license": "CC0-1.0",
+  "retrieved": "2026-10-05",
+  "note": "Public holidays and observances from general knowledge. Moved weekend dates (\"observed\" days) and religious holidays on lunar calendars are not included."
+ },
+ "calendars": {
+  "us": {
+   "name": "United States (current)",
+   "holidays": [
+    {
+     "id": "new-years-day",
+     "name": "New Year's Day",
+     "kind": "public",
+     "month": 1,
+     "day": 1,
+     "summary": "A slow day after the night before; most things closed."
+    },
+    {
+     "id": "mlk-day",
+     "name": "Martin Luther King Jr. Day",
+     "kind": "public",
+     "month": 1,
+     "weekday": 0,
+     "nth": 3,
+     "summary": "Federal holiday with days of service and marches; schools and government offices close."
+    },
+    {
+     "id": "valentines-day",
+     "name": "Valentine's Day",
+     "kind": "observance",
+     "month": 2,
+     "day": 14,
+     "summary": "Restaurants book up; cards and flowers."
+    },
+    {
+     "id": "presidents-day",
+     "name": "Presidents' Day",
+     "kind": "public",
+     "month": 2,
+     "weekday": 0,
+     "nth": 3,
+     "summary": "Federal holiday; government offices and many schools close, and stores run sales."
+    },
+    {
+     "id": "st-patricks-day",
+     "name": "St. Patrick's Day",
+     "kind": "observance",
+     "month": 3,
+     "day": 17,
+     "summary": "Green beer, parades and crowded pubs."
+    },
+    {
+     "id": "easter",
+     "name": "Easter Sunday",
+     "kind": "observance",
+     "easter": 0,
+     "summary": "Church services, egg hunts and family brunch."
+    },
+    {
+     "id": "mothers-day",
+     "name": "Mother's Day",
+     "kind": "observance",
+     "month": 5,
+     "weekday": 6,
+     "nth": 2,
+     "summary": "Brunch reservations and calls home."
+    },
+    {
+     "id": "memorial-day",
+     "name": "Memorial Day",
+     "kind": "public",
+     "month": 5,
+     "weekday": 0,
+     "nth": -1,
+     "summary": "The unofficial start of summer: cookouts, beaches and remembrance of the war dead."
+    },
+    {
+     "id": "fathers-day",
+     "name": "Father's Day",
+     "kind": "observance",
+     "month": 6,
+     "weekday": 6,
+     "nth": 3,
+     "summary": "Cookouts and calls home."
+    },
+    {
+     "id": "juneteenth",
+     "name": "Juneteenth",
+     "kind": "public",
+     "month": 6,
+     "day": 19,
+     "summary": "Marks the end of slavery in the United States; festivals and cookouts."
+    },
+    {
+     "id": "independence-day",
+     "name": "Independence Day",
+     "kind": "public",
+     "month": 7,
+     "day": 4,
+     "summary": "Fireworks, cookouts and a day off."
+    },
+    {
+     "id": "labor-day",
+     "name": "Labor Day",
+     "kind": "public",
+     "month": 9,
+     "weekday": 0,
+     "nth": 1,
+     "summary": "The unofficial end of summer and a long weekend."
+    },
+    {
+     "id": "halloween",
+     "name": "Halloween",
+     "kind": "observance",
+     "month": 10,
+     "day": 31,
+     "summary": "Costumes, trick-or-treating and parties."
+    },
+    {
+     "id": "veterans-day",
+     "name": "Veterans Day",
+     "kind": "public",
+     "month": 11,
+     "day": 11,
+     "summary": "Federal holiday; government offices and banks close."
+    },
+    {
+     "id": "thanksgiving",
+     "name": "Thanksgiving",
+     "kind": "public",
+     "month": 11,
+     "weekday": 3,
+     "nth": 4,
+     "summary": "A big family meal, football and travel; most things close."
+    },
+    {
+     "id": "christmas-eve",
+     "name": "Christmas Eve",
+     "kind": "observance",
+     "month": 12,
+     "day": 24,
+     "summary": "Last-minute shopping and family gatherings; many offices close early."
+    },
+    {
+     "id": "christmas",
+     "name": "Christmas Day",
+     "kind": "public",
+     "month": 12,
+     "day": 25,
+     "summary": "Presents and family; almost everything closes."
+    },
+    {
+     "id": "new-years-eve",
+     "name": "New Year's Eve",
+     "kind": "observance",
+     "month": 12,
+     "day": 31,
+     "summary": "Parties and countdowns at midnight."
+    }
+   ]
+  },
+  "us-1880s": {
+   "name": "United States in the 1880s",
+   "holidays": [
+    {
+     "id": "new-years-day",
+     "name": "New Year's Day",
+     "kind": "public",
+     "month": 1,
+     "day": 1,
+     "summary": "Calls on friends and an open house in the parlour."
+    },
+    {
+     "id": "washingtons-birthday",
+     "name": "Washington's Birthday",
+     "kind": "public",
+     "month": 2,
+     "day": 22,
+     "summary": "Speeches, a ball and a day off for banks and offices."
+    },
+    {
+     "id": "easter",
+     "name": "Easter Sunday",
+     "kind": "observance",
+     "easter": 0,
+     "summary": "Church in new clothes and a big dinner after."
+    },
+    {
+     "id": "decoration-day",
+     "name": "Decoration Day",
+     "kind": "public",
+     "month": 5,
+     "day": 30,
+     "summary": "Veterans and townsfolk decorate soldiers' graves with flowers, with a procession and speeches."
+    },
+    {
+     "id": "independence-day",
+     "name": "Independence Day",
+     "kind": "public",
+     "month": 7,
+     "day": 4,
+     "summary": "The biggest day of the year: parade, oration, races, a barbecue and fireworks."
+    },
+    {
+     "id": "thanksgiving",
+     "name": "Thanksgiving Day",
+     "kind": "public",
+     "month": 11,
+     "weekday": 3,
+     "nth": -1,
+     "summary": "Proclaimed each year for the last Thursday of November: church, turkey and a shooting match."
+    },
+    {
+     "id": "christmas",
+     "name": "Christmas Day",
+     "kind": "public",
+     "month": 12,
+     "day": 25,
+     "summary": "Church, a tree, presents and a big dinner."
+    }
+   ]
+  },
+  "uk-victorian": {
+   "name": "England in the 1890s",
+   "holidays": [
+    {
+     "id": "new-years-day",
+     "name": "New Year's Day",
+     "kind": "observance",
+     "month": 1,
+     "day": 1,
+     "summary": "Not a holiday in England; Scots keep Hogmanay."
+    },
+    {
+     "id": "lady-day",
+     "name": "Lady Day",
+     "kind": "feast",
+     "month": 3,
+     "day": 25,
+     "summary": "A quarter day: rents fall due and servants' terms change."
+    },
+    {
+     "id": "shrove-tuesday",
+     "name": "Shrove Tuesday",
+     "kind": "observance",
+     "easter": -47,
+     "summary": "Pancake day, with football in some towns."
+    },
+    {
+     "id": "good-friday",
+     "name": "Good Friday",
+     "kind": "public",
+     "easter": -2,
+     "summary": "Shops shut, hot cross buns and church."
+    },
+    {
+     "id": "easter",
+     "name": "Easter Sunday",
+     "kind": "observance",
+     "easter": 0,
+     "summary": "Church and a family dinner."
+    },
+    {
+     "id": "easter-monday",
+     "name": "Easter Monday",
+     "kind": "public",
+     "easter": 1,
+     "summary": "A bank holiday: excursion trains, fairs and Hampstead Heath crowded with day-trippers."
+    },
+    {
+     "id": "queens-birthday",
+     "name": "The Queen's Birthday",
+     "kind": "observance",
+     "month": 5,
+     "day": 24,
+     "summary": "Flags, a royal salute and, in the colonies, a holiday."
+    },
+    {
+     "id": "whit-monday",
+     "name": "Whit Monday",
+     "kind": "public",
+     "easter": 50,
+     "summary": "A bank holiday: Whit walks, Sunday-school treats and excursions."
+    },
+    {
+     "id": "midsummer-day",
+     "name": "Midsummer Day",
+     "kind": "feast",
+     "month": 6,
+     "day": 24,
+     "summary": "A quarter day when rents fall due."
+    },
+    {
+     "id": "august-bank-holiday",
+     "name": "August Bank Holiday",
+     "kind": "public",
+     "month": 8,
+     "weekday": 0,
+     "nth": 1,
+     "summary": "The first Monday in August: seaside trips, crowded trains and fairs."
+    },
+    {
+     "id": "michaelmas",
+     "name": "Michaelmas",
+     "kind": "feast",
+     "month": 9,
+     "day": 29,
+     "summary": "A quarter day; goose for dinner and hiring fairs."
+    },
+    {
+     "id": "bonfire-night",
+     "name": "Guy Fawkes Night",
+     "kind": "observance",
+     "month": 11,
+     "day": 5,
+     "summary": "Bonfires, guys carried through the streets and fireworks."
+    },
+    {
+     "id": "christmas",
+     "name": "Christmas Day",
+     "kind": "public",
+     "month": 12,
+     "day": 25,
+     "summary": "Church, a goose or a joint, plum pudding and family."
+    },
+    {
+     "id": "boxing-day",
+     "name": "Boxing Day",
+     "kind": "public",
+     "month": 12,
+     "day": 26,
+     "summary": "A bank holiday: Christmas boxes for tradesmen and servants, and the pantomime season opens."
+    }
+   ]
+  },
+  "medieval-england": {
+   "name": "Medieval England",
+   "holidays": [
+    {
+     "id": "twelfth-night",
+     "name": "Twelfth Night",
+     "kind": "feast",
+     "month": 1,
+     "day": 5,
+     "summary": "The last night of Christmas: a bean in the cake makes a king for the evening."
+    },
+    {
+     "id": "epiphany",
+     "name": "Epiphany",
+     "kind": "feast",
+     "month": 1,
+     "day": 6,
+     "summary": "The end of the twelve days of Christmas."
+    },
+    {
+     "id": "plough-monday",
+     "name": "Plough Monday",
+     "kind": "observance",
+     "month": 1,
+     "weekday": 0,
+     "nth": 2,
+     "summary": "Ploughboys drag a decorated plough round the town begging for pennies before work starts again."
+    },
+    {
+     "id": "candlemas",
+     "name": "Candlemas",
+     "kind": "feast",
+     "month": 2,
+     "day": 2,
+     "summary": "Candles blessed in church and carried in procession."
+    },
+    {
+     "id": "shrove-tuesday",
+     "name": "Shrove Tuesday",
+     "kind": "feast",
+     "easter": -47,
+     "summary": "Feasting, cock-throwing and football before Lent."
+    },
+    {
+     "id": "ash-wednesday",
+     "name": "Ash Wednesday",
+     "kind": "feast",
+     "easter": -46,
+     "summary": "Lent begins: no meat until Easter."
+    },
+    {
+     "id": "lady-day",
+     "name": "Lady Day",
+     "kind": "feast",
+     "month": 3,
+     "day": 25,
+     "summary": "The Annunciation and the start of the year; a quarter day."
+    },
+    {
+     "id": "palm-sunday",
+     "name": "Palm Sunday",
+     "kind": "feast",
+     "easter": -7,
+     "summary": "Procession with yew and willow for palms."
+    },
+    {
+     "id": "good-friday",
+     "name": "Good Friday",
+     "kind": "feast",
+     "easter": -2,
+     "summary": "Creeping to the cross; a day of fasting."
+    },
+    {
+     "id": "easter",
+     "name": "Easter Day",
+     "kind": "feast",
+     "easter": 0,
+     "summary": "Lent ends: meat, eggs and ale, and a day free of work."
+    },
+    {
+     "id": "hock-monday",
+     "name": "Hock Monday",
+     "kind": "observance",
+     "easter": 8,
+     "summary": "The women of the town rope the men and let them go for a forfeit; the men return the favour next day."
+    },
+    {
+     "id": "may-day",
+     "name": "May Day",
+     "kind": "observance",
+     "month": 5,
+     "day": 1,
+     "summary": "Bringing in the may at dawn, a maypole and dancing."
+    },
+    {
+     "id": "ascension",
+     "name": "Ascension Day",
+     "kind": "feast",
+     "easter": 39,
+     "summary": "Beating the bounds of the parish."
+    },
+    {
+     "id": "whitsun",
+     "name": "Whitsunday (Pentecost)",
+     "kind": "feast",
+     "easter": 49,
+     "summary": "A great feast; the king holds court and church ales are brewed."
+    },
+    {
+     "id": "midsummer-eve",
+     "name": "St John's Eve",
+     "kind": "feast",
+     "month": 6,
+     "day": 23,
+     "summary": "Bonfires on the hills and watch fires in the town."
+    },
+    {
+     "id": "lammas",
+     "name": "Lammas",
+     "kind": "feast",
+     "month": 8,
+     "day": 1,
+     "summary": "Loaf-mass: bread from the first wheat blessed in church."
+    },
+    {
+     "id": "michaelmas",
+     "name": "Michaelmas",
+     "kind": "feast",
+     "month": 9,
+     "day": 29,
+     "summary": "Rents and reeves' accounts due, and a goose for dinner."
+    },
+    {
+     "id": "all-hallows",
+     "name": "All Hallows",
+     "kind": "feast",
+     "month": 11,
+     "day": 1,
+     "summary": "Bells rung for the dead through the night before."
+    },
+    {
+     "id": "martinmas",
+     "name": "Martinmas",
+     "kind": "feast",
+     "month": 11,
+     "day": 11,
+     "summary": "Beasts slaughtered and salted for winter; a feast of fresh meat."
+    },
+    {
+     "id": "christmas",
+     "name": "Christmas Day",
+     "kind": "feast",
+     "month": 12,
+     "day": 25,
+     "summary": "Twelve days of feasting, games and no work in the fields."
+    }
+   ]
+  }
+ }
+}

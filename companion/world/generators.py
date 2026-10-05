@@ -8,7 +8,7 @@ and `sources`, so an event can record exactly which facts it was built from. The
 phrases these facts; it never has to invent a place, employer, rent or commute.
 """
 import hashlib
-from datetime import date
+from datetime import date, timedelta
 
 from companion.errors import DomainError
 from companion.world import catalog
@@ -82,6 +82,61 @@ def conditions(data: dict, day: date, seed: str = '') -> dict | None:
 def annual_events(data: dict, day: date) -> list[dict]:
     """Recurring events usually held in this month. Exact dates vary year to year."""
     return [event for event in data['annual_events'] if day.month in event['months']]
+
+
+def easter(year: int) -> date:
+    """Western (Gregorian) Easter Sunday, by the anonymous Gregorian computus."""
+    a, b, c = year % 19, year // 100, year % 100
+    d, e = divmod(b, 4)
+    g = (8 * b + 13) // 25
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    m = (32 + 2 * e + 2 * i - h - k) % 7
+    n = (a + 11 * h + 22 * m) // 451
+    month, day = divmod(h + m - 7 * n + 114, 31)
+    return date(year, month, day + 1)
+
+
+def holiday_date(holiday: dict, year: int) -> date | None:
+    """The date a holiday falls on in this year, or None when its rule names no such day (31 June, a 5th Monday)."""
+    if holiday['easter'] is not None:
+        return easter(year) + timedelta(days=holiday['easter'])
+    month = holiday['month']
+    if holiday['day'] is not None:
+        try:
+            return date(year, month, holiday['day'])
+        except ValueError:
+            return None
+    following = date(year + month // 12, month % 12 + 1, 1)
+    if holiday['nth'] > 0:
+        first = date(year, month, 1)
+        found = first + timedelta(days=(holiday['weekday'] - first.weekday()) % 7 + 7 * (holiday['nth'] - 1))
+        return found if found < following else None
+    last = following - timedelta(days=1)
+    return last - timedelta(days=(last.weekday() - holiday['weekday']) % 7)
+
+
+def city_holidays(data: dict) -> list[dict]:
+    """The city's shared calendar's holidays, then its own (which win on a shared id)."""
+    shared = catalog.holiday_calendars().get(catalog.calendar_id(data) or '', {}).get('holidays', [])
+    return list(({item['id']: item for item in shared} | {item['id']: item for item in data['holidays']}).values())
+
+
+def holidays(data: dict, start: date, end: date | None = None) -> list[dict]:
+    """Holidays from `start` to `end` inclusive (just `start` when no end is given), in date order.
+
+    Each item is the holiday record plus its `date`. `public` holidays close most offices and schools.
+    """
+    end = end or start
+    if end < start or (end - start).days > 400:
+        raise DomainError('A holiday range runs forward and spans at most 400 days.', 422)
+    found = []
+    for item in city_holidays(data):
+        for year in range(start.year, end.year + 1):
+            day = holiday_date(item, year)
+            if day and start <= day <= end:
+                found.append(item | {'date': day.isoformat()})
+    return sorted(found, key=lambda item: (item['date'], item['id']))
 
 
 # --- Getting around ---
