@@ -6,6 +6,7 @@ import { SETTINGS_KEY, type View } from '../../companion'
 import type { Companion, LifeEvent, PauseRecord, Today as TodayData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { Circle } from './Circle'
+import { CorrectEvent, type EventCorrection } from './CorrectEvent'
 import { EventItem } from './EventItem'
 import { availabilityText, moodText, pauseToFill } from './todayText'
 
@@ -36,6 +37,15 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
     void client.invalidateQueries({ queryKey: ['feed'] })
   }, keep ? `Kept. It is now part of ${name}'s life.` : 'Discarded. It will not be mentioned.')
   const resume = () => act(async () => { client.setQueryData(SETTINGS_KEY, await api('/resume', {})) }, `Resumed. ${name}'s life picks up from now.`)
+  const correct = async (event: LifeEvent, correction: EventCorrection) => {
+    let saved = false
+    await act(async () => {
+      await api(`/events/${event.id}/correct`, correction)
+      saved = true
+      void client.invalidateQueries({ queryKey: ['feed'] })
+    }, 'Corrected. The earlier version is kept.')
+    return saved
+  }
   const resetMood = (id: string) => act(() => api(`/today/mood/${id}/reset`, {}), 'Mood reset.')
 
   if (today.isPending) return <Loading label="Loading today" />
@@ -72,7 +82,11 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
         </Section>
       )}
       <Section id="changes" title={data.last_seen_at ? 'Since you were last here' : 'Recently'} empty={`Nothing new in ${name}'s life yet. Quiet stretches are normal.`}>
-        {data.changes.map((event) => <EventItem key={event.id} event={event} />)}
+        {data.changes.map((event) => (
+          <EventItem key={event.id} event={event}>
+            {event.status === 'committed' && <CorrectEvent event={event} onSave={(correction) => correct(event, correction)} />}
+          </EventItem>
+        ))}
       </Section>
       <Plans data={data} name={name} />
       <Routine data={data} name={name} go={go} />
