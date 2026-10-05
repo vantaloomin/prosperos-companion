@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle
+from companion.life import circle, money
 from companion.world import catalog, generators
 
 COMPANION = 'companion'
@@ -140,18 +140,42 @@ def place_item(seed: str, definition: dict, data: dict | None) -> dict:
     if not data:
         return {'kind': 'home', 'name': 'an apartment', 'variety': 'apartment',
                 'details': {'description': 'an apartment', 'features': features, 'city': definition.get('location', '')}}
+    budget = money.profile(definition) if data['id'] == (money.city_for(definition) or {}).get('id') else None
+    if budget:
+        return budgeted(seed, data, budget, features)
     match = catalog.resolve(definition.get('location') or '')
     near = match['neighborhood'] if match and match['city'] == data['id'] else None
     bedrooms = generators.pick(seed, 'bedrooms', list(SIZES), [3, 5, 2])
     found = generators.home(data, seed=seed, bedrooms=bedrooms, near=near)
-    housing = housing_text(found['housing'])
-    name = f'{SIZES[bedrooms]} in {article(housing)}' if modern(data) else article(housing)
+    name = home_name(found['housing'], bedrooms, data)
     hood = found['neighborhood']['name']
     return {'kind': 'home', 'name': name, 'variety': found['housing'], 'details': {
         'description': f'{name} in {hood}', 'neighborhood': hood, 'city': data['name'], 'bedrooms': bedrooms,
         'rent': found['rent'], 'rent_range': found['rent_range'], 'currency': found['currency'],
         'rent_period': found['rent_period'], 'estimate': True, 'features': features, 'refs': found['refs'],
         'sources': found['sources'], 'data_version': found['data_version']}}
+
+
+def home_name(housing: str, bedrooms: str, data: dict) -> str:
+    text = housing_text(housing)
+    if bedrooms == 'shared':
+        plural = article(text) == text
+        return 'a shared room' if plural else f'a room in a shared {text}' if modern(data) else f'a shared room in {article(text)}'
+    return f'{SIZES[bedrooms]} in {article(text)}' if modern(data) else article(text)
+
+
+def budgeted(seed: str, data: dict, budget, features: list[str]) -> dict:
+    """The home the budget (companion/life/money.py) already pays rent on: its neighbourhood, size and
+    rent, so chat, the budget and this panel agree. Only the kind of building and its quirks are new."""
+    hood = next(hood for hood in data['neighborhoods'] if hood['name'] == budget.neighborhood)
+    housing = generators.pick(seed, 'housing', hood['housing'])
+    name = home_name(housing, budget.unit, data)
+    step = 25 if budget.rent >= 400 else 5 if budget.rent >= 40 else 1
+    return {'kind': 'home', 'name': name, 'variety': housing, 'details': {
+        'description': f"{name} in {hood['name']}", 'neighborhood': hood['name'], 'city': data['name'],
+        'bedrooms': budget.unit, 'rent': int(round(budget.rent / step) * step), 'rent_range': None,
+        'currency': data['currency'], 'rent_period': data['rent_period'], 'estimate': True, 'rent_from': 'budget',
+        'features': features, 'refs': [hood['id']], 'sources': [hood['source']], 'data_version': data['data_version']}}
 
 
 def pet_item(seed: str, era_modern: bool, label: str = 'pet') -> dict:
@@ -494,7 +518,8 @@ def image_hint(connection, timeline_id: str, event: dict) -> str:
 
 
 def money_text(home: dict) -> str:
-    if not home.get('rent'):
+    """Rent, unless the budget section already states it."""
+    if not home.get('rent') or home.get('rent_from') == 'budget':
         return ''
     currency = home.get('currency') or {}
     symbol = currency.get('symbol', '$') if isinstance(currency, dict) else '$'

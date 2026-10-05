@@ -197,7 +197,8 @@ lists the circle with each person's current block and latest diary entry.
 ## Home and belongings
 
 `companion/life/home.py` gives the companion a home and things they live with, assembled once per
-timeline without a model: a home from the city's housing and rent data (`generators.home`), maybe a
+timeline without a model: the home the budget (`money.py`) pays rent on, same neighbourhood, size and rent
+(else one from `generators.home`), plus the kind of building and its quirks; maybe a
 pet, a few plants, a way to get around (a car is less likely in a city with a subway; earlier eras
 ride or cycle) and a few favourite things weighted toward their interests. Every two weeks a seeded
 draw may change one thing on one day: a new plant, a plant lost, the car into the shop for a few

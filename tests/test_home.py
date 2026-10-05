@@ -5,7 +5,7 @@ import pytest
 from conftest import reconcile
 
 from companion.database import decode
-from companion.life import composer, home
+from companion.life import composer, home, money
 from companion.world.source import CatalogWorld
 
 DAYS = [{'key': 'day', 'label': 'Day', 'kind': 'leisure', 'start': '09:00', 'end': '17:00'},
@@ -40,8 +40,10 @@ def test_assembly_is_deterministic_and_uses_the_city_data():
     assert any(home.assemble(f'home:t{n}', MIRA, data) != first for n in range(2, 6))
     place = first[0]
     assert place['kind'] == 'home' and place['details']['city'] == 'Baltimore'
-    low, high = place['details']['rent_range']
-    assert low <= place['details']['rent'] <= high and place['details']['estimate'] is True
+    # The budget already pays rent on a home, so this is that home: same neighbourhood, size and rent.
+    budget = money.profile(MIRA)
+    assert place['details']['rent_from'] == 'budget' and place['details']['neighborhood'] == budget.neighborhood
+    assert place['details']['bedrooms'] == budget.unit and abs(place['details']['rent'] - budget.rent) <= 13
     assert {item['kind'] for item in first} <= set(home.KINDS)
     assert sum(item['kind'] == 'favorite' for item in first) >= 2
 
