@@ -88,6 +88,11 @@ def read_conversation(request: Request, before_seq: int | None = None, limit: in
     return conversation.history(db(request), before_seq, min(max(limit, 1), 500))
 
 
+@router.get('/conversation/search')
+def search_conversation(request: Request, q: str = ''):
+    return conversation.search(db(request), q)
+
+
 @router.post('/conversation/messages')
 async def send_message(request: Request, body: MessageCreate, wait: bool = True):
     return await request.app.state.conversation.send(body, wait)

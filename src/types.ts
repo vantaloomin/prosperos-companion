@@ -21,6 +21,9 @@ export interface Message {
 
 export interface History { timeline_id: string; messages: Message[] }
 
+export interface SearchResult { id: string; seq: number; role: 'user' | 'companion'; text: string; status: Message['status']; reply_to: string | null; created_at: string }
+export interface SearchResults { query: string; results: SearchResult[]; more: boolean }
+
 export interface SendResult {
   message: Message
   reply: Message | null

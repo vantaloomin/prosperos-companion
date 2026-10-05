@@ -124,3 +124,14 @@ def test_stop_keeps_partial_text_as_cancelled(app, connected):
     reply = asyncio.run(scenario())['reply']
     assert reply['status'] == 'cancelled'
     assert reply['text'] == 'Partial '
+
+
+def test_search_finds_both_sides_newest_first_ignoring_case(client, connected):
+    send(client, 'The STRAßE by the harbour', 'client-0001')
+    send(client, 'Unrelated', 'client-0002')
+    send(client, 'harbour again', 'client-0003')
+    results = client.get('/api/conversation/search', params={'q': 'Harbour'}).json()['results']
+    assert [result['text'] for result in results] == ['harbour again', 'The STRAßE by the harbour']
+    assert len(client.get('/api/conversation/search', params={'q': 'strasse'}).json()['results']) == 1
+    assert len(client.get('/api/conversation/search', params={'q': 'hello AGAIN'}).json()['results']) == 3
+    assert client.get('/api/conversation/search', params={'q': ' a '}).status_code == 422

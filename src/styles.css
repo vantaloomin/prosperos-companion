@@ -192,3 +192,21 @@ textarea { resize: vertical; line-height: 1.6; }
 .day-pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .schedule-themes { grid-column: 1 / -1; }
 @media (max-width: 720px) { .schedule-row { grid-template-columns: 1fr 1fr 32px; } .schedule-row > input:first-child { grid-column: 1 / 3; } .schedule-row > select { grid-column: 1 / 3; } }
+
+/* Conversation search */
+.conversation-title { flex: 1; min-width: 0; }
+.conversation-search { border-bottom: 1px solid var(--border); background: var(--surface); max-height: 50dvh; overflow-y: auto; }
+.search-bar { display: flex; gap: 8px; align-items: center; max-width: 760px; margin: 0 auto; padding: 12px 32px; }
+.search-bar input { flex: 1; min-width: 0; }
+.search-results { max-width: 760px; margin: 0 auto; padding: 0 32px 14px; }
+.search-results ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.search-result { display: grid; gap: 4px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; }
+.search-result:hover, .search-result:focus-visible { background: var(--accent-tint); }
+.search-meta { display: flex; gap: 10px; font-size: .85rem; color: var(--muted); }
+.search-snippet { overflow-wrap: anywhere; }
+.search-snippet mark { background: var(--accent-tint); color: inherit; font-weight: 600; border-radius: 3px; padding: 0 2px; }
+.message.found { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 4px; }
+@media (max-width: 720px) {
+  .search-bar { padding: 10px 12px; }
+  .search-results { padding: 0 12px 12px; }
+}

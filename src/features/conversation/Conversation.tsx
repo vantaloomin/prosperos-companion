@@ -1,19 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
-import type { Companion, History, Message, SendResult } from '../../types'
+import type { Companion, History, Message, SearchResult, SendResult } from '../../types'
 import { HISTORY_KEY, type View } from '../../companion'
 import { Loading, Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { REMEMBER_KEY } from '../memories/memoryGroups'
 import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
+import { ConversationSearch } from './ConversationSearch'
 import { TurnView } from './TurnView'
 import { applyFinished, groupTurns, mergeMessages, streamingIds } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { useDraft } from './useDraft'
 
 const PAGE = 100
+const JUMP_PAGE = 500
+
+/** Load older pages until the message at `seq` is present, so a search result can be shown in place. */
+async function loadBack(oldest: number | undefined, seq: number, onPage: (messages: Message[]) => void) {
+  while (oldest !== undefined && oldest > seq) {
+    const page = await api<History>(`/conversation?limit=${JUMP_PAGE}&before_seq=${oldest}`)
+    onPage(page.messages)
+    if (page.messages.length === 0) return
+    oldest = page.messages[0].seq
+  }
+}
 
 function ReplyFollower({ id, onText, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
   useReplyStream(id, { onText, onDone, onLost })
@@ -29,6 +41,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string; settings?: boolean } | null>(null)
   const [exhausted, setExhausted] = useState(false)
   const [declining, setDeclining] = useState<Message | null>(null)
+  const [found, setFound] = useState<{ id: string; at: number } | null>(null)
   const draft = useDraft()
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
@@ -51,6 +64,13 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     const element = transcript.current
     if (element && pinned.current) element.scrollTop = element.scrollHeight
   }, [messages, live])
+  // Bring a search result into view once its page is rendered, and move focus to it for keyboard and screen reader users.
+  useEffect(() => {
+    const element = found ? document.getElementById(`message-${found.id}`) : null
+    if (!element) return
+    element.scrollIntoView({ block: 'center' })
+    element.focus({ preventScroll: true })
+  }, [found])
   const onScroll = () => {
     const element = transcript.current
     if (element) pinned.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80
@@ -60,6 +80,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     update((current) => mergeMessages(current, [result.message, result.reply]))
     if (result.connection === 'not_configured') setNotice({ tone: 'info', text: `Your message is saved. Connect a model in Settings so ${name} can reply.`, settings: true })
     else setNotice(null)
+    setFound(null)
     pinned.current = true
   }
   const fail = (error: unknown) => setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work. Please try again.', settings: error instanceof ApiError && error.code === 'not_configured' })
@@ -99,6 +120,18 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     } catch (error) { fail(error) }
   }
 
+  const jumpTo = async (result: SearchResult) => {
+    try {
+      await loadBack(messages[0]?.seq, result.seq, (page) => {
+        update((current) => mergeMessages(current, page))
+        if (page.length < JUMP_PAGE) setExhausted(true)
+      })
+    } catch (error) { fail(error); return false }
+    pinned.current = false
+    setFound({ id: result.id, at: Date.now() })
+    return true
+  }
+
   const turns = groupTurns(messages)
   const following = streamingIds(messages)
   const latestUserId = turns.at(-1)?.user.id
@@ -107,7 +140,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   return (
     <section className="conversation" aria-label={`Conversation with ${name}`}>
-      <ConversationHeader companion={companion} />
+      <ConversationTop companion={companion} onJump={jumpTo} />
       {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onDone={onDone} onLost={onLost} />)}
       <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
@@ -116,7 +149,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <p className="empty-conversation subtle">This is the start of your conversation with {name}. Say hello whenever you like.</p>}
           {turns.map((turn) => (
-            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} />
+            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} highlight={found?.id} />
           ))}
         </div>
       </div>
@@ -126,6 +159,15 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       <Composer name={name} draft={draft} streaming={streaming} onSend={send} onStop={() => following.forEach((id) => void stop(id))} />
     </section>
   )
+}
+
+function ConversationTop({ companion, onJump }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean> }) {
+  const [searching, setSearching] = useState(false)
+  const pick = async (result: SearchResult) => { if (await onJump(result)) setSearching(false) }
+  return <>
+    <ConversationHeader companion={companion} searching={searching} onSearch={() => setSearching((open) => !open)} />
+    {searching && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setSearching(false)} />}
+  </>
 }
 
 function ConversationNotice({ notice, go }: { notice: { tone: 'info' | 'error'; text: string; settings?: boolean }; go: (view: View) => void }) {
