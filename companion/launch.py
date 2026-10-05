@@ -1,0 +1,123 @@
+"""One foreground server that opens the browser and safely reuses its own running copy.
+
+Adapted from prosperos-study scripts/launch_interface.py at bbcbde4: Companion identity, port and
+health check; the server factory is companion.main:create_app.
+"""
+import argparse
+import json
+import os
+import socket
+import threading
+import time
+import urllib.error
+import urllib.request
+import webbrowser
+from pathlib import Path
+
+from companion.identity import APP_ID, APP_NAME, DEFAULT_PORT
+
+ROOT = Path(__file__).resolve().parent.parent
+HOST = '127.0.0.1'
+
+
+def probe(url) -> str:
+    """'ready' when a Companion answers at url, 'foreign' for anything else, 'waiting' when nothing does."""
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(url + 'api/health', timeout=0.4) as response:
+            body = json.loads(response.read(4096))
+        return 'ready' if isinstance(body, dict) and body.get('app_id') == APP_ID else 'foreign'
+    except (urllib.error.HTTPError, ValueError):
+        return 'foreign'
+    except (urllib.error.URLError, OSError):
+        return 'waiting'
+
+
+def open_interface(url):
+    try:
+        if webbrowser.open(url):
+            return
+    except OSError:
+        pass
+    print(f'Open {url} in your browser.', flush=True)
+
+
+def reuse(url, no_browser, wait=10.0) -> int:
+    """The port is taken: reuse it only if it is this app, and never stop another process."""
+    deadline = time.monotonic() + wait
+    while time.monotonic() < deadline:
+        state = probe(url)
+        if state == 'ready':
+            print(f'{APP_NAME} is already running at {url} Reusing it; no second server was started.', flush=True)
+            if not no_browser:
+                open_interface(url)
+            return 0
+        if state == 'foreign':
+            break
+        time.sleep(0.1)
+    print(f'Cannot start: {url} is used by another program. Nothing was stopped. Close it or choose another '
+          'port with --port, then retry.', flush=True)
+    return 1
+
+
+def reserve_port(port):
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        if os.name == 'nt':
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        listener.bind((HOST, port))
+        return listener
+    except OSError:
+        listener.close()
+        return None
+
+
+def open_when_ready(server, stopped, url):
+    while not stopped.wait(0.1):
+        if server.started:
+            open_interface(url)
+            return
+
+
+def serve(listener, url, port, no_browser) -> int:
+    import uvicorn
+
+    config = uvicorn.Config('companion.main:create_app', factory=True, host=HOST, port=port, access_log=False,
+                            timeout_graceful_shutdown=10)
+    server = uvicorn.Server(config)
+    stopped = threading.Event()
+    if not no_browser:
+        threading.Thread(target=open_when_ready, args=(server, stopped, url), daemon=True).start()
+    print(f'{APP_NAME}: {url}\nKeep this window open while you use it. Press Ctrl+C to stop.', flush=True)
+    try:
+        server.run(sockets=[listener])
+        return 0 if server.started else 1
+    except KeyboardInterrupt:
+        return 0
+    finally:
+        stopped.set()
+        listener.close()
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--port', type=int, default=DEFAULT_PORT)
+    parser.add_argument('--no-browser', action='store_true')
+    args = parser.parse_args(argv)
+    if not 1024 <= args.port <= 65535:
+        parser.error('Choose a port between 1024 and 65535.')
+    os.chdir(ROOT)
+    if not (ROOT / 'dist' / 'index.html').is_file():
+        print(f"The interface is not built. Run {'install.bat' if os.name == 'nt' else 'npm run build'} first.",
+              flush=True)
+        return 1
+    url = f'http://{HOST}:{args.port}/'
+    listener = reserve_port(args.port)
+    if listener is None:
+        return reuse(url, args.no_browser)
+    with listener:
+        return serve(listener, url, args.port, args.no_browser)
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

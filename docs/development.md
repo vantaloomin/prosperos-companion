@@ -15,6 +15,19 @@ python -m venv .venv
 
 Writes require the `x-companion-client: workspace` header, which the local interface sends.
 
+## Installing on Windows
+
+Double-click `install.bat` once. It finds Python 3.12+ and Node.js 22.12+ (installing them with
+WinGet if they are missing), creates `.venv`, installs the locked dependencies and builds the
+interface. Then double-click `launch.bat`: it starts the Companion on http://127.0.0.1:8775 and
+opens it in the browser. Keep its window open while using the app; close it or press Ctrl+C to
+stop. Launching again while it runs reuses the running copy, and a port taken by another program
+is never stopped. `install.ps1 -CheckOnly` verifies an existing installation. CI runs the
+installer and a launch on Windows.
+
+On Linux or macOS, follow the commands above and below, then run
+`.venv/bin/python -m companion.launch`.
+
 ## Interface
 
 Node 22 or newer. `npm run build` writes `dist/`, which the backend serves at
@@ -68,6 +81,8 @@ changes made.
 | `src/api.ts` | `src/api.ts` | Companion client header; offline and error codes |
 | `src/styles.css` (palette, type, focus) | `src/styles.css` | Companion layout; one palette |
 | `eslint.config.js`, `tsconfig.json` | same files | Companion paths |
+| `companion/launch.py` | `scripts/launch_interface.py` | Companion identity, port and health check |
+| `install.bat`, `install.ps1`, `launch.bat`, `start.ps1` | same files | Companion name, checks and launcher |
 
 The Study's `assemble_memory` was not copied: it assumes an accepted Story path. The Companion
 context builder in `companion/memory/context.py` replaces it.
