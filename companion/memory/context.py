@@ -393,7 +393,8 @@ def offer_life(packet, connection, timeline_id, version, now):
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     offer_day(packet, connection, timeline_id, version, now, today)
     offer_people(packet, connection, timeline_id, version, now, today)
-    for identity, text in money.context_lines(version['definition'], today):
+    budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
+    for identity, text in money.context_lines(version['definition'], today, budget_home):
         packet.offer('money', identity, text)
     for item in recommendations.progress(connection, timeline_id):
         packet.offer('recommendations', item['id'], recommendations.context_text(item))

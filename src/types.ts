@@ -131,7 +131,9 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   style: SpendingStyle
   career: { id: string; name: string; pay: string; guessed: boolean } | null
   housing: { unit: string; label: string; neighborhood: string }
-  budget: { income: number; rent: number; essentials: number; fun: number; saving: number }
+  budget: { income: number; rent: number; upkeep: number; essentials: number; fun: number; saving: number }
+  rent_from: 'home' | 'budget'
+  bought: MoneyHappening[]
   payday: { last: string; next: string; cycle_days: number; today: boolean }
   left: number
   fun_cycle: number
@@ -141,7 +143,7 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   surprise: MoneyHappening | null
   cant_afford: string[]
   goal: { label: string; amount: number; saved: number; share: number; custom: boolean; since: string; stalled: boolean }
-  text: { income: string; rent: string; essentials: string; fun: string; saving: string; left: string }
+  text: { income: string; rent: string; upkeep: string; essentials: string; fun: string; saving: string; left: string }
 })
 
 export interface CharacterVersion {
