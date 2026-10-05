@@ -1,6 +1,7 @@
 import type { RoutineBlock } from './features/character/schedule'
 
 export type Relationship = 'friendship' | 'romance' | 'mentor' | 'family' | 'other'
+export type ChatStyle = 'feed' | 'bubbles' | 'community' | 'retro' | 'novel'
 export type ReplyStatus = 'complete' | 'streaming' | 'incomplete' | 'cancelled' | 'failed' | 'withheld'
 
 export interface Message {
@@ -102,6 +103,10 @@ export interface WorkspaceSettings {
   automatic_memory: boolean
   sensitive_memory: boolean
   model_memory_suggestions?: boolean
+  /** How the chat looks; the messages and every action are the same in each style. */
+  chat_style?: ChatStyle
+  /** Retro IM door, away and message sounds; off unless turned on. */
+  chat_sounds?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean

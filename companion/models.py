@@ -111,6 +111,8 @@ class SettingsUpdate(Input):
     share_profile_across_timelines: bool | None = None
     background_activity: bool | None = None
     model_memory_suggestions: bool | None = None
+    chat_style: Literal['feed', 'bubbles', 'community', 'retro', 'novel'] | None = None
+    chat_sounds: bool | None = None
     review_complete: bool | None = None
 
 

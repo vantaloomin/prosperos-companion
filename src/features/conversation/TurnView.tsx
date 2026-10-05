@@ -49,6 +49,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
 function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }: { message: Message; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   return (
     <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
+      <Avatar name="You" />
       <header>
         <span className="speaker">You</span>
         <span className="message-actions">
@@ -71,9 +72,11 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
   const streaming = message.status === 'streaming'
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
+      <Avatar name={name} />
       <header>
         <span className="speaker">{name}</span>
         <span className="reply-tools">
+          <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
           {position && (
             <span className="pager" role="group" aria-label="Reply versions">
               <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>
@@ -90,6 +93,11 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
       {note && <p className="reply-status" role="note">{note}</p>}
     </article>
   )
+}
+
+/** Shown by the Community style; the other styles hide it. Decorative, since the article is already named. */
+function Avatar({ name }: { name: string }) {
+  return <span className="avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
 }
 
 /** Marked unavailable rather than disabled at either end, so paging to the first or last version keeps keyboard focus on it. */

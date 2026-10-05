@@ -18,6 +18,10 @@ import { applyFinished, groupTurns, liveFor, mergeMessages, replyAnnouncement, s
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
+import { useChatStyle } from './useChatStyle'
+import { playCue } from './imSounds'
+import { useDoorSounds } from './useDoorSounds'
+import { NovelStage } from './NovelStage'
 
 const PAGE = 100
 const JUMP_PAGE = 500
@@ -42,6 +46,10 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
   const name = companion.version.name
+  const chat = useChatStyle()
+  const sounds = useRef(chat.sounds)
+  useEffect(() => { sounds.current = chat.sounds })
+  useDoorSounds(chat.sounds)
 
   const timeline = useCurrentTimeline(draft, () => setNotice(null))
   const update = useCallback((change: (messages: Message[]) => Message[]) => {
@@ -53,6 +61,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     update((current) => applyFinished(current, reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     setAnnouncement(replyAnnouncement(name, reply))
+    if (sounds.current && reply.status === 'complete') playCue('message')
   }, [update, name])
   const onLost = useCallback(() => { void client.invalidateQueries({ queryKey: HISTORY_KEY }) }, [client])
 
@@ -159,8 +168,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const hasEarlier = !exhausted && messages.length >= PAGE
 
   return (
-    <section className="conversation" aria-label={`Conversation with ${name}`}>
-      <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} />
+    <section className={`conversation chat-${chat.style}`} aria-label={`Conversation with ${name}`}>
+      <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} />
       {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onDone={onDone} onLost={onLost} />)}
       <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
@@ -185,7 +194,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   )
 }
 
-function ConversationTop({ companion, onJump, timeline }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null }) {
+function ConversationTop({ companion, onJump, timeline, stage }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean }) {
   const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
   const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
   const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
@@ -196,6 +205,7 @@ function ConversationTop({ companion, onJump, timeline }: { companion: Companion
       timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} />
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
+    {stage && <NovelStage name={companion.version.name} />}
   </>
 }
 

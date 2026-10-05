@@ -21,6 +21,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   {
     id: 'general', label: 'General', sections: [
       { heading: 'time-heading', title: 'Your time', keywords: 'timezone time zone clock date quiet hours pc' },
+      { heading: 'appearance-heading', title: 'Appearance', keywords: 'appearance chat style look feed bubbles texting community avatars retro im messenger visual novel portrait sounds' },
       { heading: 'activity-heading', title: 'Pause', keywords: 'pause resume stop freeze' },
       { heading: 'background-heading', title: 'Background activity', keywords: 'background running open simulation' },
     ],

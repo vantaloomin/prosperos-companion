@@ -2,8 +2,10 @@ import { useEffect, useState, type RefObject } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { GitBranch, Search } from 'lucide-react'
 import { api } from '../../api'
-import type { Companion, Today } from '../../types'
+import type { ChatStyle, Companion, Today } from '../../types'
 import { availabilityShort } from '../today/todayText'
+import { CHAT_STYLES } from './chatStyles'
+import { useChatStyle } from './useChatStyle'
 
 function localTime(timezone: string, now: Date) {
   try {
@@ -28,8 +30,19 @@ export function ConversationHeader({ companion, searching, searchButton, onSearc
         <h1>{name}</h1>
         <p className="subtle">{[timeline, activity, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
       </div>
+      <ChatStyleSwitch />
       <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
       <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
     </header>
+  )
+}
+
+/** The quick switch; Settings has the same choice with a description of each style and the sounds option. */
+function ChatStyleSwitch() {
+  const chat = useChatStyle()
+  return (
+    <select className="chat-style-switch" aria-label="Chat style" value={chat.style} onChange={(event) => void chat.save({ chat_style: event.target.value as ChatStyle })}>
+      {CHAT_STYLES.map((style) => <option key={style.id} value={style.id}>{style.label}</option>)}
+    </select>
   )
 }

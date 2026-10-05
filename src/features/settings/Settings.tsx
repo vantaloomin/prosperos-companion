@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import { Search } from 'lucide-react'
 import type { Companion } from '../../types'
 import { Backups } from './Backups'
+import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
 import { LifeSettings } from './LifeSettings'
@@ -61,7 +62,7 @@ function useLanding() {
 function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion | null }) {
   const name = companion?.version.name ?? ''
   const content: Record<SettingsTab, ReactNode> = {
-    general: <><TimezoneSettings /><PauseSettings /><BackgroundSettings /></>,
+    general: <><TimezoneSettings /><ChatStyleSettings /><PauseSettings /><BackgroundSettings /></>,
     models: <><ModelSettings /><PromptSettings /></>,
     life: <><LifeSettings name={name} /><Cities /></>,
     memory: <MemorySettings />,
