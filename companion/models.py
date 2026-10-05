@@ -150,6 +150,20 @@ class LifeSettingsUpdate(Input):
     background_daily_events: int | None = Field(default=None, ge=0, le=8)
 
 
+class NotificationSettingsUpdate(Input):
+    """Desktop notifications (PRD compute and job control). The cap's ceiling is the tested maximum."""
+    enabled: bool | None = None
+    quiet_start: str | None = Field(default=None, max_length=5)
+    quiet_end: str | None = Field(default=None, max_length=5)
+    preview: Literal['full', 'name', 'private'] | None = None
+    daily_cap: int | None = Field(default=None, ge=1, le=6)
+    min_gap_minutes: int | None = Field(default=None, ge=30, le=720)
+
+
+class NotificationCheck(Input):
+    focused: bool = False
+
+
 class ContextLocation(Input):
     """The user's own city or region, typed by hand (PRD X1). Coordinates are optional."""
     user_place: str = Field(default='', max_length=120)

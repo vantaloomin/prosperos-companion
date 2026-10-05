@@ -573,3 +573,19 @@ export interface Evaluation {
   created_at: string
   install?: { installed: boolean; note: string }
 }
+
+export type NotificationPreview = 'full' | 'name' | 'private'
+
+export interface NotificationSettings {
+  enabled: boolean
+  quiet_start: string
+  quiet_end: string
+  preview: NotificationPreview
+  daily_cap: number
+  min_gap_minutes: number
+  queued: number
+}
+
+export interface DesktopNotification { id: string; kind: 'post' | 'digest'; post_ids: string[]; title: string; body: string }
+
+export interface NotificationCheck { notification: DesktopNotification | null; held: string | null }

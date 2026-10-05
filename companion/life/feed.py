@@ -78,20 +78,23 @@ def create(connection, timeline_id, kind, key, event_ids, occurs_at, timestamp, 
     return post_id
 
 
-def publish_run(connection, run, results, timestamp):
-    """One digest for a return batch, one post per event for a background batch (T5)."""
+def publish_run(connection, run, results, timestamp) -> list[str]:
+    """One digest for a return batch, one post per event for a background batch (T5). Returns the
+    background batch's posts, which may be announced as notifications."""
     event_ids = [result['event_id'] for result in results
                  if result.get('event_id') and result['outcome'] in {'proposed', 'committed'}]
     if not event_ids:
-        return
-    if run['mode'] == 'return':
+        return []
+    if run['mode'] != 'background':
         create(connection, run['timeline_id'], 'digest', f"digest:{run['id']}", event_ids, run['window_end'],
                timestamp, run['id'])
-        return
+        return []
+    posts = []
     for event_id in event_ids:
         event = one(connection, 'SELECT ends_at FROM life_events WHERE id=?', (event_id,))
-        create(connection, run['timeline_id'], 'event', f'event:{event_id}', [event_id], event['ends_at'],
-               timestamp, run['id'])
+        posts.append(create(connection, run['timeline_id'], 'event', f'event:{event_id}', [event_id],
+                            event['ends_at'], timestamp, run['id']))
+    return posts
 
 
 def post_event(database, event_id, intro='') -> dict:

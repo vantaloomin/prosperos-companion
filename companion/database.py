@@ -94,7 +94,8 @@ def initialize(connection, timestamp: str):
     add_columns(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     backfill_subject_keys(connection)
-    for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings'):
+    for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings',
+                  'notification_settings'):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))
     connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',
                            (('schema_version', str(SCHEMA_VERSION)), ('schema_digest', schema_digest()),

@@ -731,3 +731,36 @@ CREATE TABLE IF NOT EXISTS lora_eval_images (
   finished_at TEXT
 );
 CREATE INDEX IF NOT EXISTS lora_eval_images_evaluation ON lora_eval_images(evaluation_id, position);
+
+-- Desktop notifications (PRD compute and job control): off by default; quiet hours, preview
+-- privacy and a frequency cap. Settings never depend on the character's traits.
+CREATE TABLE IF NOT EXISTS notification_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+  quiet_start TEXT NOT NULL DEFAULT '22:00',
+  quiet_end TEXT NOT NULL DEFAULT '08:00',
+  preview TEXT NOT NULL DEFAULT 'name' CHECK (preview IN ('full', 'name', 'private')),
+  daily_cap INTEGER NOT NULL DEFAULT 3,
+  min_gap_minutes INTEGER NOT NULL DEFAULT 120,
+  updated_at TEXT NOT NULL
+);
+
+-- One per post a background batch published while notifications were on. Several waiting at
+-- delivery collapse into one digest delivery.
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL UNIQUE REFERENCES feed_posts(id),
+  status TEXT NOT NULL CHECK (status IN ('queued', 'delivered', 'digested', 'dropped', 'cancelled')),
+  delivery_id TEXT,
+  reason TEXT,
+  created_at TEXT NOT NULL,
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS notifications_status ON notifications(status, created_at);
+
+CREATE TABLE IF NOT EXISTS notification_deliveries (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL CHECK (kind IN ('post', 'digest')),
+  post_count INTEGER NOT NULL,
+  delivered_at TEXT NOT NULL
+);
