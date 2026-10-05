@@ -32,6 +32,7 @@ function ConnectionForm({ saved }: { saved: Connection | null }) {
   const set = (key: keyof typeof form) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (saving) return
     setSaving(true)
     try {
       const body = { base_url: form.base_url.trim(), model: form.model.trim(), api_key: form.api_key || null,
@@ -63,7 +64,7 @@ function ConnectionForm({ saved }: { saved: Connection | null }) {
         <TextInput label="Time limit (seconds)" type="number" value={form.timeout_seconds} onChange={set('timeout_seconds')} required />
       </div>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
-      <div className="form-actions"><button type="submit" className="button primary" disabled={saving || !form.model.trim() || !form.base_url.trim()}>Save connection</button></div>
+      <div className="form-actions"><button type="submit" className="button primary" aria-disabled={saving} disabled={!form.model.trim() || !form.base_url.trim()}>Save connection</button></div>
     </form>
   )
 }

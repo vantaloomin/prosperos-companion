@@ -17,7 +17,9 @@ export function Backups() {
   const [busy, setBusy] = useState(false)
   const [datasets, setDatasets] = useState(false)
   const [confirming, setConfirming] = useState<string | null>(null)
+  // Busy controls are marked, not disabled: disabling the focused control would drop keyboard focus.
   const run = async (action: () => Promise<unknown>, fallback: string) => {
+    if (busy) return
     setBusy(true)
     try { await action() } catch (error) {
       setResult({ tone: 'error', text: error instanceof Error ? error.message : fallback })
@@ -45,13 +47,13 @@ export function Backups() {
       </div>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       {pending && (
-        <Notice action={<button type="button" className="text-button" disabled={busy} onClick={() => void cancel()}>Cancel</button>}>
+        <Notice action={<button type="button" className="text-button" aria-disabled={busy} onClick={() => void cancel()}>Cancel</button>}>
           {pending.name} will be restored the next time the Companion starts. Close it and start it again to finish.
         </Notice>
       )}
       <Toggle label="Include reference pictures" checked={datasets} onChange={setDatasets}
         hint="The pictures you collected to train a character adapter. Leave this off to keep them out of the backup; the adapters themselves are always included." />
-      <div className="form-actions"><button type="button" className="button" disabled={busy} onClick={() => void backup()}><Archive aria-hidden="true" />Back up now</button></div>
+      <div className="form-actions"><button type="button" className="button" aria-disabled={busy} onClick={() => void backup()}><Archive aria-hidden="true" />Back up now</button></div>
       {list.isError && <Notice tone="error">{list.error.message}</Notice>}
       {list.data && list.data.backups.length > 0 && (
         <div className="form-stack">
@@ -63,7 +65,7 @@ export function Backups() {
                 {backupLabel(entry, formatDate)}{' '}
                 {entry.readable && pending?.name !== entry.name && (confirming === entry.name
                   ? <>
-                      <button type="button" className="text-button" disabled={busy} onClick={() => void choose(entry.name)}>Restore on next start</button>{' '}
+                      <button type="button" className="text-button" aria-disabled={busy} onClick={() => void choose(entry.name)}>Restore on next start</button>{' '}
                       <button type="button" className="text-button" onClick={() => setConfirming(null)}>Keep current</button>
                     </>
                   : <button type="button" className="text-button" onClick={() => setConfirming(entry.name)}><RotateCcw aria-hidden="true" />Restore…</button>)}

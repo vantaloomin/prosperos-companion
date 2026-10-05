@@ -136,7 +136,9 @@ function RunCard({ run }: { run: TrainingRun }) {
   const client = useQueryClient()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Busy buttons are marked, not disabled: disabling the focused button would drop keyboard focus.
   const act = async (path: string, body: unknown = {}) => {
+    if (busy) return
     setBusy(true)
     try { await api(`/lora/runs/${run.id}/${path}`, body); setError(null) } catch (failed) { setError(failure(failed, 'That did not work.')) } finally { setBusy(false) }
     await client.invalidateQueries({ queryKey: RUNS_KEY })
@@ -154,7 +156,7 @@ function RunCard({ run }: { run: TrainingRun }) {
         <ul className="plain-list">{run.checkpoints.map((item) => (
           <li key={item.file} className="checkpoint-line">
             <span className={item.verified ? 'subtle' : 'error-text'}>{checkpointLine(item)}</span>
-            {item.verified && !item.final && run.status !== 'running' && <button type="button" className="text-button" disabled={busy} onClick={() => void act('keep', { step: item.step })}>Keep as adapter</button>}
+            {item.verified && !item.final && run.status !== 'running' && <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act('keep', { step: item.step })}>Keep as adapter</button>}
           </li>
         ))}</ul>
       )}
@@ -164,11 +166,11 @@ function RunCard({ run }: { run: TrainingRun }) {
 }
 
 function RunActions({ run, busy, act }: { run: TrainingRun; busy: boolean; act: (path: string) => Promise<void> }) {
-  if (run.status === 'running') return <div className="post-actions"><button type="button" className="text-button" disabled={busy} onClick={() => void act('cancel')}>Cancel training</button></div>
+  if (run.status === 'running') return <div className="post-actions"><button type="button" className="text-button" aria-disabled={busy} onClick={() => void act('cancel')}>Cancel training</button></div>
   return (
     <div className="post-actions">
-      {run.resumable && <button type="button" className="text-button" disabled={busy} onClick={() => void act('resume')}>Resume from the last checked checkpoint</button>}
-      {run.restartable && <button type="button" className="text-button" disabled={busy} onClick={() => void act('restart')}>Restart from the beginning</button>}
+      {run.resumable && <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act('resume')}>Resume from the last checked checkpoint</button>}
+      {run.restartable && <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act('restart')}>Restart from the beginning</button>}
     </div>
   )
 }
