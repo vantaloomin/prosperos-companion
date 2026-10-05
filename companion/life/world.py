@@ -3,7 +3,7 @@
 Events are assembled from the routine and real places, not invented by a model. A world source
 answers "which places of these kinds are in this city", and the composer picks among them
 deterministically. The city datasets live in their own modules; any object with a matching
-`places` method can be passed to `create_app(world=...)`.
+`places` method (and optionally `weather`) can be passed to `create_app(world=...)`.
 
 Place kinds the composer asks for: park, cafe, restaurant, bar, museum, attraction, market,
 grocery, library, college, gym, beach, waterfront, venue, bookstore, shop.
@@ -35,6 +35,9 @@ class WorldSource(Protocol):
         """Places of any of these kinds in the city, in a stable order. Unknown cities give []. A
         source may leave out places closed at `day_part` (morning, afternoon, evening, late) or out
         of season on `day`."""
+
+    # Optional: `weather(city, day) -> dict | None` with season, high_f, low_f, rain and note. A source
+    # without it has no weather, and every day is treated as fair.
 
 
 class EmptyWorld:

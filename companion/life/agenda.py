@@ -82,12 +82,18 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     schedule, _default = routine.blocks(definition)
     recent = recent_activities(connection, timeline_id, subject, stamp(start))
     days_off = public_holidays(world, definition, start, end)
+    skies = {}
     written = 0
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
             continue
-        block, entry = holiday_block(slot.block.view(), days_off.get(slot.local_date.isoformat())), None
+        local_date = slot.local_date.isoformat()
+        if local_date not in skies:
+            skies[local_date] = composer.weather(world, definition, local_date)
+        block, entry = holiday_block(slot.block.view(), days_off.get(local_date)), None
+        if skies[local_date]:
+            block['weather'] = skies[local_date]
         if block['kind'] not in routine.RESTING:
             company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
             entry = composer.compose({**slot.view(), 'block': block}, definition, world,
@@ -201,6 +207,21 @@ def current(connection, timeline_id, subject, now) -> dict | None:
     row = optional(connection, 'SELECT * FROM life_agenda WHERE timeline_id=? AND subject=? AND starts_at<=? '
                    'AND ends_at>? LIMIT 1', (timeline_id, subject, stamp(now), stamp(now)))
     return decode(row['block']) if row else None
+
+
+def weather_on(connection, timeline_id, local_date) -> dict | None:
+    """The typical weather recorded for the companion's city on a local date, if the agenda has it."""
+    row = optional(connection, "SELECT json_extract(block, '$.weather') AS weather FROM life_agenda WHERE "
+                   "timeline_id=? AND subject=? AND local_date=? AND json_extract(block, '$.weather') IS NOT NULL "
+                   'LIMIT 1', (timeline_id, COMPANION, local_date))
+    return decode(row['weather']) if row else None
+
+
+def weather_text(conditions: dict) -> str:
+    text = f"High {conditions['high_f']}°F, low {conditions['low_f']}°F, "
+    text += 'with rain.' if conditions['rain'] else 'dry.'
+    # The month's note can describe sunshine, so it is left out on a rainy day.
+    return text if conditions['rain'] else f"{text} {conditions['note']}"
 
 
 def forget_person(connection, timeline_id, person_id, now):

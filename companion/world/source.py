@@ -4,7 +4,7 @@ from typing import Sequence
 
 from companion.life.world import Place
 from companion.world import catalog, custom
-from companion.world.generators import SEASONS
+from companion.world.generators import SEASONS, conditions
 
 # The composer's place kinds, answered from this data's place kinds (and tags, for waterfronts and books).
 KINDS = {
@@ -29,6 +29,11 @@ class CatalogWorld:
             return catalog.city(city, extra)
         match = catalog.resolve(city, extra)
         return catalog.city(match['city'], extra) if match else None
+
+    def weather(self, city: str, day: date) -> dict | None:
+        """Typical weather for the date from the city's monthly climate, the same for everyone there."""
+        data = self.find(city)
+        return conditions(data, day) if data else None
 
     def places(self, city: str, kinds: Sequence[str], *, day_part: str | None = None,
                day: date | None = None) -> list[Place]:
