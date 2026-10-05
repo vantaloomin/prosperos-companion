@@ -1,0 +1,71 @@
+name: Package
+
+# Builds the self-contained Windows bundle and launches it on a runner without Python or Node.
+# The bundle is a workflow artifact only: nothing here tags or publishes a release.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the interface
+        run: |
+          npm ci
+          npm run build
+      - name: Build the bundle
+        run: python scripts/package/build_bundle.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle
+          path: |
+            build/package/*.zip
+            build/package/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  clean-launch:
+    needs: bundle
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      # Only the smoke test script is checked out; the app comes from the bundle.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/package
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-bundle
+          path: ${{ runner.temp }}\download
+      - name: Verify the checksum and unpack into a path with spaces
+        shell: pwsh
+        run: |
+          $download = Join-Path $env:RUNNER_TEMP 'download'
+          foreach ($line in Get-Content (Join-Path $download 'SHA256SUMS.txt')) {
+            $expected, $name = $line -split '\s+', 2
+            $actual = (Get-FileHash (Join-Path $download $name) -Algorithm SHA256).Hash.ToLower()
+            if ($actual -ne $expected) { throw "$name does not match SHA256SUMS.txt" }
+            Expand-Archive -LiteralPath (Join-Path $download $name) -DestinationPath (Join-Path $env:RUNNER_TEMP 'Clean User Apps')
+          }
+      - name: Launch on a machine without Python or Node
+        shell: pwsh
+        run: scripts/package/smoke-test.ps1 -Bundle "$env:RUNNER_TEMP\Clean User Apps\ProsperoCompanion"

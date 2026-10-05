@@ -28,6 +28,33 @@ installer and a launch on Windows.
 On Linux or macOS, follow the commands above and below, then run
 `.venv/bin/python -m companion.launch`.
 
+## Windows bundle
+
+`python scripts/package/build_bundle.py` (after `npm run build`) assembles a self-contained
+Windows x64 bundle in `build/package/`: `ProsperoCompanion-<version>-win-x64.zip` and
+`SHA256SUMS.txt`. Inside, `Prospero Companion.cmd` starts the app with its own Python runtime, so
+the machine needs neither Python, Node nor Prospero's Study.
+
+| Part | Contents |
+| --- | --- |
+| `runtime/` | Python 3.12.10 from the python.org NuGet package, pinned by SHA-256, with the locked runtime dependencies as Windows wheels; pip and build headers removed |
+| `app/` | `companion/`, the built interface in `dist/`, and `LICENSE` |
+| `bundle.json` | Version, schema version, commit and the SHA-256 of every file |
+
+The runtime's `python312._pth` fixes its import paths and the launcher runs it with `-I`, so
+`PYTHONPATH`, `PYTHONHOME`, user site-packages and any other Python on the machine are ignored.
+The workspace still lives in `%LOCALAPPDATA%\ProsperoCompanion`, separate from the program files.
+
+The `Package` workflow builds the bundle on Windows and uploads it as a workflow artifact; it never
+tags or publishes a release. A second job downloads it onto a fresh runner, checks the checksum,
+unpacks it into a path with spaces and runs `scripts/package/smoke-test.ps1`: with no Python or
+Node on `PATH`, poisoned Python variables and the Study's port 8765 taken, the app must verify
+against `bundle.json`, answer on 8775, serve the interface, run on its bundled runtime, keep its
+workspace and backups in its own data directory, and reuse the running copy on a second launch.
+
+The bundle is not code signed yet, so Windows SmartScreen may warn on first launch. Signing is an
+open release decision.
+
 ## Interface
 
 Node 22 or newer. `npm run build` writes `dist/`, which the backend serves at
