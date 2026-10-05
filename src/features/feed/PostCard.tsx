@@ -3,6 +3,7 @@ import { EyeOff, Eye, MessageCircle, Trash2 } from 'lucide-react'
 import type { FeedPost, Reaction } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { REACTIONS } from './feedState'
+import { PostImage } from './PostImage'
 
 export interface PostActions {
   react: (post: FeedPost, reaction: Reaction) => void
@@ -10,6 +11,7 @@ export interface PostActions {
   remove: (post: FeedPost) => void
   discuss: (post: FeedPost, text: string) => Promise<boolean>
   saw: (post: FeedPost) => void
+  refresh: () => void
 }
 
 const when = (value: string) => new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
@@ -42,6 +44,7 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
           {event.caption !== event.summary && <p className="subtle">{event.summary}</p>}
         </div>
       ))}
+      <PostImage post={post} onChange={actions.refresh} />
       <div className="post-actions">
         <span className="reactions" role="group" aria-label="React">
           {REACTIONS.map((reaction) => (

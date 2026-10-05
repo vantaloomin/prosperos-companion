@@ -4,6 +4,7 @@ import { api } from '../../api'
 import type { BackupResult, Companion } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { ConnectionSettings } from './ConnectionSettings'
+import { ImageSettings } from './ImageSettings'
 import { LifeSettings } from './LifeSettings'
 import { WorkspaceSettings } from './WorkspaceSettings'
 
@@ -14,6 +15,7 @@ export function Settings({ companion }: { companion: Companion | null }) {
       <ConnectionSettings />
       {companion && <WorkspaceSettings />}
       {companion && <LifeSettings name={companion.version.name} />}
+      {companion && <ImageSettings />}
       {companion && <Backups />}
     </section>
   )

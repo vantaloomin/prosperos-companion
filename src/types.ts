@@ -216,7 +216,7 @@ export interface FeedPost {
   occurs_at: string
   created_at: string
   events: { id: string; summary: string; caption: string; mood: string | null; label: string | null; kind: string; starts_at: string; ends_at: string; revision: number }[]
-  image: { status: string; error: string | null }
+  image: PostImage
 }
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
@@ -254,4 +254,70 @@ export interface CirclePerson {
   haunts?: string[]
   now: RoutineBlock | null
   recent: DiaryEntry[]
+}
+
+export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
+
+export interface PostImage { status: ImageStatus; job_id: string | null; ref: string | null; error: string | null; updated_at: string | null }
+
+export type BackendKind = 'comfyui' | 'codex' | 'hosted'
+export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'other'
+
+export interface ImageBackend {
+  id: string
+  kind: BackendKind
+  provider: string
+  label: string
+  enabled: boolean
+  position: number
+  base_url: string
+  model: string
+  api_style: 'images' | 'chat' | null
+  cli_path: string
+  custom_workflow: boolean
+  has_key: boolean
+  controlled_machine: boolean
+  concurrency: number
+  local: boolean
+  accepts_nsfw: boolean
+  blocked_reason: string | null
+  disclosure: string | null
+  disclosure_accepted: boolean
+  experimental: boolean
+}
+
+export interface ImageSettings { automatic_images: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+
+export interface BackendCheck { ok: boolean; summary: string; details: string[] }
+
+export interface ImageJob {
+  id: string
+  post_id: string
+  status: Exclude<ImageStatus, 'none'>
+  trigger: 'manual' | 'automatic' | 'retry' | 'fallback'
+  retry_of: string | null
+  classification: 'safe' | 'nsfw' | 'prohibited'
+  classification_reasons: string[]
+  routing_reason: string
+  backend_id: string | null
+  backend_label: string | null
+  backend_kind: BackendKind | null
+  provider: string | null
+  model: string | null
+  workflow: string | null
+  identity_method: string | null
+  seed: number | null
+  width: number | null
+  height: number | null
+  usage: Record<string, unknown> | null
+  error: string | null
+  error_code: string | null
+  waiting_for: string | null
+  has_image: boolean
+  prompt: string
+  marked_nsfw: boolean
+  current: boolean
+  retry_original_available: boolean
+  created_at: string
+  finished_at: string | null
 }

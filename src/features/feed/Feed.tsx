@@ -8,6 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { Toggle } from '../../components/Fields'
 import { PostCard, type PostActions } from './PostCard'
 import { ReadBatcher, joinPages, nextReaction } from './feedState'
+import { isActive } from './imageState'
 
 export function Feed({ companion, go }: { companion: Companion; go: (view: View) => void }) {
   const client = useQueryClient()
@@ -19,6 +20,8 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
     queryFn: ({ pageParam }) => api<FeedPage>(`/feed?limit=20&hidden=${hidden}${pageParam ? `&before=${encodeURIComponent(pageParam)}` : ''}`),
     initialPageParam: '',
     getNextPageParam: (last) => last.next_before ?? undefined,
+    // While an image is being made, look again every few seconds.
+    refetchInterval: (query) => query.state.data?.pages.some((page) => page.posts.some((post) => isActive(post.image.status))) ? 3000 : false,
   })
   const name = companion.version.name
   const posts = joinPages(feed.data?.pages ?? [])
@@ -37,6 +40,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
   }
   const actions: PostActions = {
     saw: (post) => batcher.saw(post.id),
+    refresh: () => void client.invalidateQueries({ queryKey: ['feed'] }),
     react: (post, reaction) => void run(async () => replace(await api<FeedPost>(`/feed/${post.id}/reaction`, { reaction: nextReaction(post.reaction, reaction) }))),
     hide: (post, hide) => void run(async () => { await api(`/feed/${post.id}/${hide ? 'hide' : 'unhide'}`, {}); await client.invalidateQueries({ queryKey: ['feed'] }) }),
     remove: (post) => void run(async () => { await api(`/feed/${post.id}/remove`, {}); await client.invalidateQueries({ queryKey: ['feed'] }) }),
