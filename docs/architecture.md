@@ -22,6 +22,8 @@ can never be confused.
 | `memory_declines`, `deletion_markers` | Don't-remember choices and non-content deletion markers | Block re-extraction and reintroduction |
 | `memory_jobs`, `memory_candidates`, `memory_activity` | Queued extraction, extracted candidates and suggestions, and an activity log of identities and reason codes | Candidates are not memories until committed |
 | `workspace_settings`, `pauses` | Permissions, memory revision and pause intervals | Revisions make queued work detectably stale |
+| `context_settings`, `context_services`, `context_tools` | The user's own location, MCP servers and confirmed tool mappings (X1) | A mapping runs only while its confirmed disclosure still matches |
+| `context_observations`, `context_uses` | Every lookup attempt and which reply used it (X2, X3) | External data with freshness; never a personal memory |
 
 ## Revisions and stale work
 
@@ -268,8 +270,17 @@ workspace. Restore only targets a new path, checks the format marker and digest,
 restored workspace paused with automatic memory and background activity off and its saved key
 reference cleared. Enabling memory or background activity requires marking the review complete.
 
+## Current context (X1–X3)
+
+`companion/mcp/` looks up real weather, news and local events through MCP servers the user
+configures, under a disclosure the user confirms. The app decides when to look something up from
+the user's message; the model never gets tools. Lookups are recorded in `context_observations`
+with their tool, arguments, destination, location and freshness, quoted into the reply's context
+as external data, and listed in the reply's receipt under `outside`. Details, limits and the tested
+transports are in [current context tools](context-tools.md).
+
 ## Not yet built
 
-Timeline forking, MCP tools, LoRA training, reference images
+Timeline forking, LoRA training, reference images
 for image requests, durable cross-process scheduling, restore into an existing workspace, and a
 Windows installer (the install and launch scripts need Python and Node already present).
