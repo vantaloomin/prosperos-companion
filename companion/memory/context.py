@@ -364,8 +364,7 @@ def offer_life(packet, connection, timeline_id, version, now):
         packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
     for identity, text in money.context_lines(version['definition'], today):
         packet.offer('money', identity, text)
-    for identity, text in home.context_lines(connection, timeline_id, date.fromisoformat(today)):
-        packet.offer('home', identity, text)
+    offer_home(packet, connection, timeline_id, today)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
@@ -381,6 +380,11 @@ def offer_attachments(packet, connection, latest, photo):
         packet.offer('feed_reference', post['id'], post_text(post))
     if photo:
         packet.offer('photo', photo['post_id'], photo['text'])
+
+
+def offer_home(packet, connection, timeline_id, today: str):
+    for identity, text in home.context_lines(connection, timeline_id, date.fromisoformat(today)):
+        packet.offer('home', identity, text)
 
 
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
