@@ -764,3 +764,23 @@ CREATE TABLE IF NOT EXISTS notification_deliveries (
   post_count INTEGER NOT NULL,
   delivered_at TEXT NOT NULL
 );
+
+-- Where an imported companion came from: a reviewed copy of one Prospero's Study character
+-- version. Study ids are kept only as attribution; every local row has a new id.
+CREATE TABLE IF NOT EXISTS study_imports (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  character_version_id TEXT NOT NULL REFERENCES character_versions(id),
+  workspace_path TEXT NOT NULL,
+  database_path TEXT NOT NULL,
+  study_version TEXT NOT NULL DEFAULT '',
+  schema_fingerprint TEXT NOT NULL,
+  source_character_id TEXT NOT NULL,
+  source_version_id TEXT NOT NULL,
+  source_version_number INTEGER NOT NULL,
+  source_name TEXT NOT NULL,
+  review_token TEXT NOT NULL,
+  fields TEXT NOT NULL,
+  artwork TEXT NOT NULL,
+  imported_at TEXT NOT NULL
+);

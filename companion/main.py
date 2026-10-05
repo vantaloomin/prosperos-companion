@@ -16,6 +16,7 @@ from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
 from companion.images import jobs as image_jobs
 from companion.images import routes as image_routes
 from companion.images.runner import ImageRunner
+from companion.imports import routes as import_routes
 from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
 from companion.lora import evaluation as lora_evaluation
@@ -101,6 +102,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(image_routes.router)
     app.include_router(context_routes.router)
     app.include_router(lora_routes.router)
+    app.include_router(import_routes.router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

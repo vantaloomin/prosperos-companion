@@ -24,18 +24,22 @@ def require_current(connection) -> dict:
 
 
 def create(database, definition) -> dict:
-    zone(definition.timezone)
     with database.connect(write=True) as connection:
-        require(current(connection) is None, 'This workspace already has a companion.', 409)
-        timestamp = database.now()
-        companion_id, timeline_id = identifier(), identifier()
-        connection.execute('INSERT INTO companions (id, created_at) VALUES (?, ?)', (companion_id, timestamp))
-        version_id = insert_version(connection, companion_id, 1, definition, '', timestamp)
-        connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
-                           (timeline_id, companion_id, timestamp))
-        connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
-                           (version_id, timeline_id, companion_id))
-        return current(connection)
+        return create_in(connection, database.now(), definition)
+
+
+def create_in(connection, timestamp, definition, note='') -> dict:
+    """The first companion, inside the caller's write transaction."""
+    zone(definition.timezone)
+    require(current(connection) is None, 'This workspace already has a companion.', 409)
+    companion_id, timeline_id = identifier(), identifier()
+    connection.execute('INSERT INTO companions (id, created_at) VALUES (?, ?)', (companion_id, timestamp))
+    version_id = insert_version(connection, companion_id, 1, definition, note, timestamp)
+    connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
+                       (timeline_id, companion_id, timestamp))
+    connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
+                       (version_id, timeline_id, companion_id))
+    return current(connection)
 
 
 def revise(database, body) -> dict:

@@ -9,6 +9,7 @@ import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, gu
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { scheduleProblems } from './schedule'
+import { StudyImport } from './StudyImport'
 
 export function Character({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   const [saved, setSaved] = useState<number | null>(null)
@@ -85,7 +86,7 @@ function CharacterForm({ companion, go, saved, onSaved }: { companion: Companion
 }
 
 function CharacterHeading({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
-  return (
+  return (<>
     <header className="page-header">
       <div>
         <h1>{companion ? companion.version.name : 'Create your companion'}</h1>
@@ -93,7 +94,8 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
       </div>
       {companion && <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>}
     </header>
-  )
+    {!companion && <StudyImport />}
+  </>)
 }
 
 function SaveFeedback({ result, saved, onReload }: { result: { tone: 'info' | 'error'; text: string; conflict?: boolean } | null; saved: number | null; onReload: () => void }) {

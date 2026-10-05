@@ -215,3 +215,16 @@ class TimelineFork(Input):
 class TimelineUpdate(Input):
     label: str | None = Field(default=None, max_length=80)
     clear_draft: bool | None = None
+
+
+class StudyWorkspace(Input):
+    """A Prospero's Study folder or its SQLite database file, opened read-only."""
+    path: str = Field(min_length=1, max_length=2000)
+
+
+class StudyCharacter(StudyWorkspace):
+    character_id: str = Field(min_length=1, max_length=100)
+
+
+class StudyImport(StudyCharacter):
+    review_token: str = Field(min_length=64, max_length=64)
