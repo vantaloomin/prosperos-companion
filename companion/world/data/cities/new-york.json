@@ -24,6 +24,22 @@
   "commuter-rail": 50,
   "bike-share": 13
  },
+ "names": {
+  "mix": {
+   "hispanic": 3,
+   "anglo": 2.5,
+   "black-american": 2,
+   "jewish": 1.2,
+   "east-asian": 1.5,
+   "italian": 0.9,
+   "irish": 0.7,
+   "caribbean": 1,
+   "south-asian": 0.7,
+   "slavic": 0.6,
+   "arabic": 0.3,
+   "west-african": 0.4
+  }
+ },
  "sources": {
   "curated-2026-10": {
    "kind": "curated",

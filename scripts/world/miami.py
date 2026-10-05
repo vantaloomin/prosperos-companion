@@ -35,6 +35,9 @@ CITY = {
     'lat': 25.77, 'lon': -80.19,
     'speeds': {'walk': 4.5, 'car': 28, 'rideshare': 28, 'bus': 12, 'subway': 35, 'monorail': 15,
                'commuter-rail': 60, 'bike-share': 13},
+    # Rough heritage weights for residents' names (estimates, not census figures).
+    'names': {'mix': {'hispanic': 7, 'anglo': 1.2, 'black-american': 1, 'caribbean': 1.5, 'jewish': 0.4,
+                       'italian': 0.2, 'east-asian': 0.2, 'south-asian': 0.2}},
     'sources': {
         S: {'kind': 'curated', 'title': 'Miami places and neighbourhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',

@@ -21,6 +21,20 @@
   "bus": 12,
   "monorail": 20
  },
+ "names": {
+  "mix": {
+   "anglo": 3.5,
+   "hispanic": 3,
+   "black-american": 1.2,
+   "east-asian": 1.2,
+   "italian": 0.3,
+   "irish": 0.3,
+   "jewish": 0.3,
+   "south-asian": 0.2,
+   "slavic": 0.2,
+   "caribbean": 0.1
+  }
+ },
  "sources": {
   "curated-2026-10": {
    "kind": "curated",

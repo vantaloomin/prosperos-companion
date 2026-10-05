@@ -50,6 +50,10 @@ CITY = {
     'lat': 40.71, 'lon': -74.01,
     'speeds': {'walk': 4.5, 'car': 18, 'rideshare': 18, 'bus': 10, 'subway': 25, 'ferry': 20,
                'commuter-rail': 50, 'bike-share': 13},
+    # Rough heritage weights for residents' names (estimates, not census figures).
+    'names': {'mix': {'hispanic': 3, 'anglo': 2.5, 'black-american': 2, 'jewish': 1.2, 'east-asian': 1.5,
+                       'italian': 0.9, 'irish': 0.7, 'caribbean': 1, 'south-asian': 0.7, 'slavic': 0.6, 'arabic': 0.3,
+                       'west-african': 0.4}},
     'sources': {
         S: {'kind': 'curated', 'title': 'New York places and neighbourhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',

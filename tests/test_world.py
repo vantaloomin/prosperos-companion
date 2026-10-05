@@ -282,3 +282,79 @@ def test_the_world_source_filters_by_time_of_day_and_season():
     assert 'The Maryland Zoo' not in {place.name for place in winter}
     assert 'The Maryland Zoo' in {place.name for place in world.places('baltimore', ['attraction'],
                                                                         day=date(2026, 6, 15))}
+
+
+def test_shipped_names_match_their_script_and_every_era_has_a_bank():
+    script = Path(__file__).parent.parent / 'scripts' / 'world' / 'names.py'
+    written = json.loads((catalog.DATA / 'names.json').read_text(encoding='utf-8'))
+    assert runpy.run_path(str(script))['NAMES'] == written, 'Rerun the script.'
+    for city_id in CITIES:
+        groups, mix = catalog.name_groups(catalog.city(city_id))
+        assert mix and set(mix) <= set(groups)
+
+
+@pytest.mark.parametrize('city_id', CITIES)
+def test_circles_are_deterministic_and_coherent(city_id):
+    data = catalog.city(city_id)
+    hood = data['neighborhoods'][0]['id']
+    employer = data['employers'][0]['id'] if data['employers'] else None
+    for seed in SEEDS[:8]:
+        result = generators.circle(data, seed=seed, size=12, home=hood, age=30, employer=employer)
+        assert result == generators.circle(data, seed=seed, size=12, home=hood, age=30, employer=employer)
+        people = result['people']
+        assert len(people) == 12 and len({person['name']['full'] for person in people}) == 12
+        assert len({person['id'] for person in people}) == 12
+        for person in people:
+            if person['role'] in ('parent', 'sibling'):
+                assert person['name']['family'] == result['family']
+            if person['role'] == 'neighbor':
+                assert person['home']['neighborhood']['id'] == hood
+            if person['role'] == 'coworker' and employer:
+                assert person['job']['employer']['id'] == employer
+            if person['role'] == 'parent':
+                assert person['age'] >= 30 + 24
+            if person['local'] and person['schedule']:
+                CharacterDefinition(name=person['name']['given'], schedule=person['schedule'])
+            assert len(person['haunts']) <= 3
+        assert result['refs'] and result['sources']
+
+
+def test_residents_follow_their_arguments():
+    data = baltimore()
+    nurse = generators.resident(data, seed='n', career='registered-nurse', age=41, near='canton')
+    assert nurse['job']['career']['id'] == 'registered-nurse' and nurse['age'] == 41
+    assert nurse['job']['commute']['from'] == nurse['home']['neighborhood']['id']
+    retired = generators.resident(data, seed='r', age=72)
+    assert retired['job'] is None and retired['schedule'] == generators.RETIRED_SCHEDULE
+    away = generators.resident(data, seed='a', role='parent', local=False, family='Okafor')
+    assert away['home'] is None and away['name']['family'] == 'Okafor'
+    student = generators.resident(data, seed='s', career='undergraduate')
+    assert 18 <= student['age'] <= 22 and student['job']['employer']['fit'] == 'college'
+    with pytest.raises(DomainError):
+        generators.resident(data, seed='x', role='rival')
+    with pytest.raises(DomainError):
+        generators.resident(data, seed='x', employer='atlantis')
+
+
+def test_names_follow_the_city_bank_and_its_own_groups():
+    miami = catalog.city('miami')
+    groups = [generators.name(miami, seed=seed)['group'] for seed in SEEDS]
+    assert groups.count('hispanic') > len(SEEDS) / 3
+    whitlock = catalog.city('whitlock')
+    assert all(generators.name(whitlock, seed=seed)['group'] in catalog.names()['banks']['frontier'] for seed in SEEDS)
+    raw = plain(baltimore()) | {'names': {'groups': {'harbor': {'feminine': ['Wren'], 'family': ['Tidewell']}}}}
+    custom = catalog.prepare(raw)
+    assert {generators.name(custom, seed=seed)['full'] for seed in SEEDS[:5]} == {'Wren Tidewell'}
+    with pytest.raises(ValueError):
+        catalog.prepare(plain(baltimore()) | {'names': {'bank': 'atlantis'}})
+
+
+def test_people_api(client):
+    circle = client.get('/api/world/cities/baltimore/generate/circle',
+                        params={'seed': 's', 'size': 4, 'home': 'canton', 'age': 31, 'career': 'teacher'}).json()
+    assert [person['role'] for person in circle['people']] == ['close-friend', 'coworker', 'sibling', 'friend']
+    assert circle['people'][1]['job']['career']['id'] == 'teacher'
+    person = client.get('/api/world/cities/whitlock/generate/resident', params={'seed': 's', 'role': 'mentor'})
+    assert person.status_code == 200 and person.json()['role'] == 'mentor'
+    assert client.get('/api/world/cities/baltimore/generate/circle', params={'seed': 's', 'size': 40}).status_code == 422
+    assert 'modern' in client.get('/api/world/names').json()['banks']

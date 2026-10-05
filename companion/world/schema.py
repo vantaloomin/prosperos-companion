@@ -181,6 +181,27 @@ class Currency(Record):
     name: Annotated[str, Field(min_length=1, max_length=40)] = 'US dollars'
 
 
+class NameGroup(Record):
+    """Given and family names that commonly go together, for one heritage in one period."""
+    feminine: list[Text] = Field(default_factory=list)
+    masculine: list[Text] = Field(default_factory=list)
+    neutral: list[Text] = Field(default_factory=list)
+    family: list[Text] = Field(min_length=1)
+
+    @model_validator(mode='after')
+    def check(self):
+        if not (self.feminine or self.masculine or self.neutral):
+            raise ValueError('A name group needs some given names.')
+        return self
+
+
+class CityNames(Record):
+    """How a city names its residents: a shared bank (its era's by default), group weights, and its own groups."""
+    bank: Id | None = None
+    mix: dict[Id, float] = Field(default_factory=dict)
+    groups: dict[Id, NameGroup] = Field(default_factory=dict)
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -216,6 +237,7 @@ class City(Record):
     annual_events: list[AnnualEvent] = Field(default_factory=list, max_length=200)
     # Careers particular to this city or its setting, beside the shared catalogue.
     careers: list[Career] = Field(default_factory=list, max_length=200)
+    names: CityNames | None = None
 
     @model_validator(mode='after')
     def check(self):
@@ -248,3 +270,23 @@ class Careers(Record):
     schema_version: Literal[1]
     source: Source
     careers: list[Career] = Field(min_length=10)
+
+
+class EraNames(Record):
+    bank: Id
+    mix: dict[Id, float] = Field(default_factory=dict)
+
+
+class Names(Record):
+    schema_version: Literal[1]
+    source: Source
+    banks: dict[Id, dict[Id, NameGroup]] = Field(min_length=1)
+    eras: dict[Era, EraNames]
+
+    @model_validator(mode='after')
+    def check(self):
+        for era, entry in self.eras.items():
+            groups = self.banks.get(entry.bank)
+            if groups is None or not set(entry.mix) <= set(groups):
+                raise ValueError(f'Era {era} names an unknown bank or group.')
+        return self

@@ -239,52 +239,55 @@ def _free_time(start: str, end: str, bed: str) -> tuple[str, str] | None:
     return _clock(begin), _clock(min(sleep, begin + 4 * 60))
 
 
-def job(data: dict, career_id: str, *, seed: str, home: str | None = None) -> dict:
+def job(data: dict, career_id: str, *, seed: str, home: str | None = None, employer: str | None = None) -> dict:
     """An employer, workplace neighborhood, weekly schedule and commute for a career in this city.
 
     Named employers come from the data. Careers the data has no employer for work at a fitting place
     (a cafe for a barista) or at an unnamed employer in a matching career hub, so nothing is invented.
+    `employer` names a record (employer, college or place) to work at, such as a coworker's.
     """
     career = catalog.careers_for(data).get(career_id)
     if not career:
         raise DomainError(f'{data["name"]} has no career {career_id!r}.', 404, 'unknown_career')
-    employers = [item for item in data['employers'] if career_id in item['careers']]
-    refs = []
-    if employers:
-        chosen = pick(seed, 'employer', employers)
-        employer = {'id': chosen['id'], 'name': chosen['name'], 'named': True, 'summary': chosen['summary'],
-                    'fit': 'employer'}
-        hood = chosen['neighborhood']
-        refs.append(chosen['id'])
-    elif career_id in STUDY and data['colleges']:
-        chosen = pick(seed, 'college', data['colleges'])
-        employer = {'id': chosen['id'], 'name': chosen['name'], 'named': True,
-                    'summary': f'Known for {", ".join(chosen["known_for"][:3]).replace("-", " ")}.', 'fit': 'college'}
-        hood = chosen['neighborhood']
-        refs.append(chosen['id'])
-    elif places := [place for place in data['places'] if place['kind'] in
-                    WORKPLACE_KINDS.get(career_id, SECTOR_KINDS.get(career['sector'], ()))]:
-        chosen = pick(seed, 'workplace', places)
-        employer = {'id': chosen['id'], 'name': chosen['name'], 'named': True, 'summary': chosen['summary'],
-                    'fit': 'workplace'}
-        hood = chosen['neighborhood']
-        refs.append(chosen['id'])
-    else:
-        matching = [hub for hub in data['career_hubs'] if career['sector'] in hub['sectors']]
-        hub = pick(seed, 'hub', matching or data['career_hubs'])
-        hood = pick(seed, 'hub-neighborhood', hub['neighborhoods'] if hub else
-                    [item['id'] for item in data['neighborhoods']])
-        place_name = catalog.neighborhood(data, hood)['name']
-        employer = {'id': None, 'name': f'a workplace in {place_name}' + (f' ({hub["name"]})' if hub else ''),
-                    'named': False, 'summary': hub['summary'] if hub else '', 'fit': 'hub' if matching else 'weak'}
-        refs.extend([hub['id']] if hub else [])
-    refs.append(hood)
-    result = {'career': career, 'employer': employer, 'neighborhood': catalog.neighborhood(data, hood),
-              'schedule': schedule(career, seed, employer['name'] if employer['named'] else ''), 'commute': None}
+    chosen, hood, refs = _workplace(data, career, seed, employer)
+    refs = [*refs, hood]
+    result = {'career': career, 'employer': chosen, 'neighborhood': catalog.neighborhood(data, hood),
+              'schedule': schedule(career, seed, chosen['name'] if chosen['named'] else ''), 'commute': None}
     if home:
         result['commute'] = commute(data, home, hood)
         refs.append(home)
     return result | provenance(data, refs)
+
+
+def _named(record: dict, fit: str, summary: str | None = None) -> tuple[dict, str, list[str]]:
+    employer = {'id': record['id'], 'name': record['name'], 'named': True,
+                'summary': record['summary'] if summary is None else summary, 'fit': fit}
+    return employer, record['neighborhood'], [record['id']]
+
+
+def _workplace(data: dict, career: dict, seed: str, given: str | None) -> tuple[dict, str, list[str]]:
+    record = catalog.find(data, given) if given else None
+    if given and not (record and 'neighborhood' in record):
+        raise DomainError(f'{data["name"]} has no workplace {given!r}.', 404, 'unknown_workplace')
+    if record:
+        summary = record.get('summary') or f'Known for {", ".join(record["known_for"][:3]).replace("-", " ")}.'
+        return _named(record, 'given', summary)
+    if employers := [item for item in data['employers'] if career['id'] in item['careers']]:
+        return _named(pick(seed, 'employer', employers), 'employer')
+    if career['id'] in STUDY and data['colleges']:
+        chosen = pick(seed, 'college', data['colleges'])
+        return _named(chosen, 'college', f'Known for {", ".join(chosen["known_for"][:3]).replace("-", " ")}.')
+    if places := [place for place in data['places'] if place['kind'] in
+                  WORKPLACE_KINDS.get(career['id'], SECTOR_KINDS.get(career['sector'], ()))]:
+        return _named(pick(seed, 'workplace', places), 'workplace')
+    matching = [hub for hub in data['career_hubs'] if career['sector'] in hub['sectors']]
+    hub = pick(seed, 'hub', matching or data['career_hubs'])
+    hood = pick(seed, 'hub-neighborhood', hub['neighborhoods'] if hub else
+                [item['id'] for item in data['neighborhoods']])
+    place_name = catalog.neighborhood(data, hood)['name']
+    employer = {'id': None, 'name': f'a workplace in {place_name}' + (f' ({hub["name"]})' if hub else ''),
+                'named': False, 'summary': hub['summary'] if hub else '', 'fit': 'hub' if matching else 'weak'}
+    return employer, hood, [hub['id']] if hub else []
 
 
 # --- Housing ---
@@ -323,6 +326,174 @@ def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | 
         step = 25 if high >= 400 else 5 if high >= 40 else 1
         result |= {'rent': low + round(unit(seed, 'rent') * (top - low) / step) * step, 'rent_range': [low, high]}
     return result | provenance(data, [chosen['id']])
+
+
+# --- People ---
+
+PRONOUNS = {'she': 'she/her', 'he': 'he/him', 'they': 'they/them'}
+GIVEN = {'she': 'feminine', 'he': 'masculine'}
+HAUNTS = ('cafe', 'bar', 'tavern', 'inn', 'restaurant', 'park', 'garden', 'fitness', 'library', 'market',
+          'beach', 'square', 'trail')
+AGES = {'undergraduate': (18, 22), 'graduate-student': (23, 31), 'physician-resident': (26, 33)}
+RETIRED_AT = 67
+ROLES = {
+    # Role: (closeness, age offset range from the companion, shares the family name)
+    'close-friend': ('close', (-4, 4), False), 'friend': ('regular', (-7, 7), False),
+    'coworker': ('regular', (-12, 12), False), 'neighbor': ('occasional', (-20, 25), False),
+    'old-classmate': ('occasional', (-1, 1), False), 'mentor': ('occasional', (12, 30), False),
+    'sibling': ('close', (-8, 8), True), 'parent': ('close', (24, 36), True), 'cousin': ('occasional', (-10, 10), None),
+}
+# The order a circle fills in, so a small circle has the closest people.
+CIRCLE = ('close-friend', 'coworker', 'sibling', 'friend', 'parent', 'neighbor', 'friend', 'cousin', 'old-classmate',
+          'friend', 'mentor', 'coworker')
+RETIRED_SCHEDULE = [
+    {'key': 'sleep', 'label': 'Asleep', 'kind': 'sleep', 'days': list(range(7)), 'start': '22:30', 'end': '06:30',
+     'themes': []},
+    {'key': 'day', 'label': 'Retired', 'kind': 'leisure', 'days': list(range(7)), 'start': '09:00', 'end': '17:00',
+     'themes': []},
+]
+
+
+def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | None = None,
+         family: str | None = None) -> dict:
+    """A resident's name from the city's name groups. `family` keeps a relative's family name."""
+    groups, mix = catalog.name_groups(data)
+    group = group if group in groups else pick(seed, 'name-group', list(mix), list(mix.values()))
+    names = groups[group]
+    if pronouns not in PRONOUNS:
+        modern = data['era'] in ('modern', 'future', 'other')
+        pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], [47, 47, 6 if modern else 2])
+    pools = [names[GIVEN[pronouns]]] if pronouns in GIVEN else [names['neutral']]
+    if names['neutral'] and unit(seed, 'neutral-name') < 0.12:
+        pools.insert(0, names['neutral'])
+    pools += [names['feminine'] + names['masculine'] + names['neutral']]
+    given = pick(seed, 'given', next(pool for pool in pools if pool))
+    if not family:
+        # Most residents' family names come from the same heritage group; some from anywhere in the city.
+        other = pick(seed, 'family-group', list(mix), list(mix.values()))
+        family = pick(seed, 'family', names['family'] if unit(seed, 'mixed') >= 0.2 else groups[other]['family'])
+    return {'given': given, 'family': family, 'full': f'{given} {family}', 'pronouns': PRONOUNS[pronouns],
+            'group': group}
+
+
+def _age(seed: str, career: str | None, around: int | None, role: str) -> int:
+    offsets = ROLES[role][1]
+    if around is None and role in ('parent', 'sibling', 'cousin', 'mentor', 'old-classmate'):
+        # Relatives and mentors are placed relative to someone; without an age, assume a companion of 33.
+        around = 33
+    if career in AGES:
+        low, high = AGES[career]
+    elif around is not None:
+        low, high = max(18, around + offsets[0]), max(18, around + offsets[1])
+    else:
+        low, high = 22, 64
+    # Two draws averaged lean towards the middle of the range.
+    return low + round((unit(seed, 'age-a') + unit(seed, 'age-b')) / 2 * (high - low))
+
+
+def _career_for(data: dict, seed: str, age: int, employer: str | None) -> str | None:
+    if age >= RETIRED_AT:
+        return None
+    record = catalog.find(data, employer) if employer else None
+    offered = catalog.careers_for(data)
+    if record and record.get('careers'):
+        options = [career for career in record['careers'] if career in offered]
+    else:
+        options = [career for career, value in offered.items()
+                   if AGES.get(career, (0, 99))[0] <= age <= AGES.get(career, (0, 99))[1]]
+    return pick(seed, 'career', sorted(options)) if options else None
+
+
+def _haunts(data: dict, seed: str, hood: str, count: int = 3) -> list[dict]:
+    """Regular spots near home: in the neighborhood or the closest ones, favouring the nearest."""
+    near = [hood] + [item['id'] for item in catalog.nearby(data, hood, 3)]
+    scored = []
+    for place in data['places']:
+        if place['kind'] in HAUNTS and place['neighborhood'] in near and place['cost'] in ('free', '$', '$$'):
+            weight = 3.0 if place['neighborhood'] == hood else 1.0
+            scored.append((-(unit(seed, 'haunt', place['id']) ** (1 / weight)), place['id'], place))
+    return [{'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'neighborhood': place['neighborhood']}
+            for _, _, place in sorted(scored)[:count]]
+
+
+def resident(data: dict, *, seed: str, role: str = 'friend', career: str | None = None, age: int | None = None,
+             near: str | None = None, employer: str | None = None, family: str | None = None,
+             group: str | None = None, around_age: int | None = None, local: bool = True) -> dict:
+    """One person in the city: name, age, home, job with commute, weekly schedule and regular haunts.
+
+    `near` puts their home close to a neighborhood (a neighbor's is the same one); `employer` makes them
+    work at that record; `family` and `group` keep a relative's family name and heritage. `local=False`
+    gives someone who lives out of town, with no home, job or schedule here.
+    """
+    if role not in ROLES:
+        raise DomainError(f'Role is one of {", ".join(ROLES)}.', 422)
+    age = age or _age(seed, career, around_age, role)
+    person = {'id': f'{role}-{hashlib.sha256(seed.encode()).hexdigest()[:8]}', 'role': role,
+              'closeness': ROLES[role][0],
+              'name': name(data, seed=seed, group=group, family=family), 'age': age, 'local': local,
+              'home': None, 'job': None, 'schedule': None, 'haunts': []}
+    if not local:
+        return person | provenance(data, [])
+    career = career or _career_for(data, seed, age, employer)
+    bedrooms = pick(seed, 'bedrooms', list(BEDROOMS), [3, 5, 2] if age < 35 else [1, 4, 5])
+    if role == 'neighbor' and near:
+        place = home(data, seed=seed, bedrooms=bedrooms, near=near)
+        place = place if place['neighborhood']['id'] == near else _home_in(data, seed, bedrooms, near)
+    else:
+        place = home(data, seed=seed, bedrooms=bedrooms, near=near)
+    hood = place['neighborhood']['id']
+    person |= {'home': place, 'haunts': _haunts(data, seed, hood)}
+    refs = [hood, *[spot['id'] for spot in person['haunts']]]
+    if career:
+        work = job(data, career, seed=seed, home=hood, employer=employer)
+        person |= {'job': work, 'schedule': work['schedule']}
+        refs += work['refs']
+    else:
+        person['schedule'] = RETIRED_SCHEDULE if age >= RETIRED_AT else []
+    return person | provenance(data, list(dict.fromkeys(refs)))
+
+
+def _home_in(data: dict, seed: str, bedrooms: str, hood_id: str) -> dict:
+    """A home in exactly this neighborhood, for a next-door neighbor."""
+    single = data | {'neighborhoods': [catalog.neighborhood(data, hood_id)]}
+    return home(single, seed=seed, bedrooms=bedrooms)
+
+
+def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age: int | None = None,
+           career: str | None = None, employer: str | None = None, family: str | None = None,
+           group: str | None = None) -> dict:
+    """The people around a companion: friends, coworkers, family and neighbors, closest first.
+
+    Pass what is known about the companion (home neighborhood, age, career, workplace, family name and
+    heritage group) so coworkers share their workplace (or their career, when only that is known),
+    neighbors live nearby and relatives share a name. Without a career or workplace there are no coworkers.
+    """
+    if not 1 <= size <= len(CIRCLE):
+        raise DomainError(f'A circle has 1 to {len(CIRCLE)} people.', 422)
+    roles = [role for role in CIRCLE if role != 'coworker' or employer or career]
+    if not (employer or career):
+        roles = [*roles, 'friend', 'friend']
+    family = family or name(data, seed=f'{seed}:family', group=group)['family']
+    people, used = [], set()
+    for index, role in enumerate(roles[:size]):
+        member_seed, related = f'{seed}:{role}:{index}', ROLES[role][2]
+        if related is None:
+            related = unit(member_seed, 'shares-name') < 0.5
+        local = role not in ('parent', 'sibling', 'cousin') or unit(member_seed, 'local') < 0.6
+        person = resident(data, seed=member_seed, role=role, around_age=age, local=local,
+                          near=home if role in ('neighbor', 'parent', 'sibling') else None,
+                          employer=employer if role == 'coworker' else None,
+                          career=career if role == 'coworker' and not employer else None,
+                          family=family if related else None, group=group if role in ('parent', 'sibling') else None)
+        retry = 0
+        while person['name']['full'] in used and retry < 5:
+            retry += 1
+            person['name'] = name(data, seed=f'{member_seed}:{retry}', family=family if related else None,
+                                  group=person['name']['group'])
+        used.add(person['name']['full'])
+        people.append(person)
+    refs = list(dict.fromkeys(ref for person in people for ref in person['refs']))
+    return {'family': family, 'people': people} | provenance(data, refs)
 
 
 # --- Grounding text ---

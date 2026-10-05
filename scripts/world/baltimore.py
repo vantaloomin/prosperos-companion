@@ -35,6 +35,9 @@ CITY = {
     'lat': 39.29, 'lon': -76.61,
     'speeds': {'walk': 4.5, 'car': 25, 'rideshare': 25, 'bus': 13, 'light-rail': 20, 'subway': 28,
                'commuter-rail': 45, 'water-taxi': 10},
+    # Rough heritage weights for residents' names (estimates, not census figures).
+    'names': {'mix': {'black-american': 6, 'anglo': 3, 'hispanic': 0.8, 'irish': 0.5, 'italian': 0.4, 'jewish': 0.5,
+                       'slavic': 0.4, 'east-asian': 0.4, 'south-asian': 0.3, 'west-african': 0.4, 'caribbean': 0.2}},
     'sources': {
         S: {'kind': 'curated', 'title': 'Baltimore places and neighbourhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-05',
