@@ -47,7 +47,9 @@ Alternatives keep the earlier wording; they are offered for the latest message o
 ### Streaming replies
 
 Sending (or asking for an alternative) with `?wait=false` returns as soon as the user's message
-and the reply attempt are saved; the attempt is `streaming`. The client then follows
+and the reply attempt are saved; the attempt is `streaming`. The query embedding, current-context lookups
+and context assembly happen afterwards in the reply's own task, so a slow service or background work
+never delays acceptance. A context that cannot fit marks the attempt `failed` with the reason. The client then follows
 `GET /api/conversation/replies/{id}/events`, a server-sent event stream with three events:
 
 | Event | Data |
@@ -133,7 +135,8 @@ deletes its vectors; excluded memories and their source messages never enter the
 vectors are never ranked. The receipt records whether semantic recall took part.
 
 Eligibility is applied before ranking: only active, non-tentative, in-scope, currently applicable
-memories qualify, and source messages of excluded memories are kept out of raw recall too. The
+memories qualify, and source messages of excluded memories are kept out of raw recall too. A companion reply to an excluded
+or deleted message leaves context with it, since a reply usually repeats what it answered. The
 receipt stored with each reply lists included and omitted identities, never content, so deleting
 a memory leaves nothing readable behind in old receipts.
 

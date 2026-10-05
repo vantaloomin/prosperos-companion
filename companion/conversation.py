@@ -221,8 +221,9 @@ class Conversation:
             return []
 
     async def respond(self, user, wait: bool = True) -> dict:
-        semantic, outside = await asyncio.gather(self.query_vector(user), self.outside(user))
-        prepared = self.prepare(user, semantic, outside)
+        """The attempt is saved before anything waits on a model service, so `wait=false` returns at once;
+        recall and lookups for the reply happen in its own task (PRD responsiveness target)."""
+        prepared = self.prepare(user)
         if prepared['connection'] != 'ready':
             self.after_turn()
             return {'message': message_view(user), 'reply': None, 'connection': prepared['connection']}
@@ -269,7 +270,7 @@ class Conversation:
                 live.listeners.discard(queue)
         yield 'done', self.reply(attempt_id)
 
-    def prepare(self, user, semantic=None, outside=None) -> dict:
+    def prepare(self, user) -> dict:
         with self.database.connect(write=True) as connection:
             config = optional(connection, 'SELECT * FROM connection WHERE id=1')
             if config is None:
@@ -277,27 +278,42 @@ class Conversation:
             companion = require_current(connection)
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
-            packet = context.build(connection, companion, self.database.clock.now(),
-                                   config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic,
-                                   outside)
             attempt_id = identifier()
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
-                'character_version_id, memory_revision, receipt, created_at) '
-                "VALUES (?, ?, ?, 'companion', '', ?, 'streaming', 0, ?, ?, ?, ?)",
+                'character_version_id, memory_revision, created_at) '
+                "VALUES (?, ?, ?, 'companion', '', ?, 'streaming', 0, ?, ?, ?)",
                 (attempt_id, user['timeline_id'], next_seq(connection, user['timeline_id']), user['id'],
-                 companion['active_version_id'], settings(connection)['memory_revision'], encode(packet['receipt']),
-                 self.database.now()))
-        return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'packet': packet}
+                 companion['active_version_id'], settings(connection)['memory_revision'], self.database.now()))
+        return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user}
+
+    async def assemble(self, prepared) -> dict:
+        """Build the reply's inputs and record the memory revision and character version they reflect,
+        so a change made after this point withholds the reply (M9)."""
+        user = prepared['user']
+        semantic, outside = await asyncio.gather(self.query_vector(user), self.outside(user))
+        config = prepared['config']
+        with self.database.connect(write=True) as connection:
+            companion = require_current(connection)
+            require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
+                    409)
+            packet = context.build(connection, companion, self.database.clock.now(),
+                                   config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic,
+                                   outside)
+            connection.execute('UPDATE messages SET memory_revision=?, character_version_id=?, receipt=? WHERE id=?',
+                               (settings(connection)['memory_revision'], companion['active_version_id'],
+                                encode(packet['receipt']), prepared['attempt_id']))
+        return packet
 
     async def generate(self, prepared, publish=lambda _text: None):
         text, status, error = [], 'complete', None
         try:
             key = credential_for(self.vault, prepared['config']['credential_ref'])
             with self.scheduler.foreground_work():
+                packet = await self.assemble(prepared)
                 async with self.scheduler.reserve(prepared['config'], CONVERSATION):
-                    async for chunk in self.provider.stream(prepared['config'], key, prepared['packet']['system'],
-                                                            prepared['packet']['messages']):
+                    async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
+                                                            packet['messages']):
                         text.append(chunk.text)
                         publish(chunk.text)
                         if chunk.finish_reason in INCOMPLETE:
