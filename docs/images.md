@@ -85,6 +85,18 @@ size and usage.
 - Images are saved in `images/` beside the workspace database. Backups hold the job records but
   not the image files. A restored workspace has its image keys cleared and automatic images off.
 
+## Interface
+
+Settings has an **Images** section: add a ComfyUI server, a Codex backend or an image API, accept
+what it receives, order, check, enable or remove each one, and set automatic images, fallback,
+the daily limit, the shape and a style line. A blocked Codex backend shows the sign-in step and a
+**Signed in again** button. In the Feed, each post shows its image, a line saying what is
+happening, and **Make an image**, **New version**, **Cancel image** or **Retry**. **Image details**
+lists every request for the post with its backend, model, likeness method, content check,
+routing, seed and prompt, lets the user pick between finished versions, and can mark the next
+request NSFW so it stays local. The feed refreshes every few seconds while an image is in progress.
+Display logic that needs no browser is in `src/features/feed/imageState.ts`.
+
 ## API
 
 All writes need the `x-companion-client: workspace` header.
