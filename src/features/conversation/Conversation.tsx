@@ -11,6 +11,8 @@ import { ConversationHeader } from './ConversationHeader'
 import { ConversationSearch } from './ConversationSearch'
 import { GettingStarted } from './GettingStarted'
 import { TurnView } from './TurnView'
+import { EditDialog, TimelinePanel } from './Timelines'
+import { useCurrentTimeline } from './useTimelines'
 import { applyFinished, groupTurns, mergeMessages, streamingIds } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { useDraft } from './useDraft'
@@ -42,12 +44,14 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string; settings?: boolean } | null>(null)
   const [exhausted, setExhausted] = useState(false)
   const [declining, setDeclining] = useState<Message | null>(null)
+  const [editing, setEditing] = useState<Message | null>(null)
   const [found, setFound] = useState<{ id: string; at: number } | null>(null)
   const draft = useDraft()
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
   const name = companion.version.name
 
+  const timeline = useCurrentTimeline(draft, () => setNotice(null))
   const update = useCallback((change: (messages: Message[]) => Message[]) => {
     client.setQueryData<History>(HISTORY_KEY, (current) => current && { ...current, messages: change(current.messages) })
   }, [client])
@@ -152,7 +156,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   return (
     <section className="conversation" aria-label={`Conversation with ${name}`}>
-      <ConversationTop companion={companion} onJump={jumpTo} />
+      <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} />
       {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onDone={onDone} onLost={onLost} />)}
       <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
@@ -161,28 +165,36 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} highlight={found?.id} />
+            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} onEdit={setEditing} highlight={found?.id} />
           ))}
         </div>
       </div>
       <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
-      {notice && <ConversationNotice notice={notice} go={go} />}
+      <ConversationNotice notice={notice} go={go} />
+      {editing && <EditDialog message={editing} name={name} onClose={() => setEditing(null)} onDone={() => {
+        setEditing(null)
+        setNotice({ tone: 'info', text: `You're on the new timeline. Your edited message is in the box below; send it when you're ready.` })
+      }} />}
       {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
       <Composer name={name} draft={draft} streaming={streaming} onSend={send} onStop={() => following.forEach((id) => void stop(id))} />
     </section>
   )
 }
 
-function ConversationTop({ companion, onJump }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean> }) {
-  const [searching, setSearching] = useState(false)
-  const pick = async (result: SearchResult) => { if (await onJump(result)) setSearching(false) }
+function ConversationTop({ companion, onJump, timeline }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null }) {
+  const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
+  const pick = async (result: SearchResult) => { if (await onJump(result)) setOpen(null) }
+  const toggle = (panel: 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
-    <ConversationHeader companion={companion} searching={searching} onSearch={() => setSearching((open) => !open)} />
-    {searching && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setSearching(false)} />}
+    <ConversationHeader companion={companion} searching={open === 'search'} onSearch={() => toggle('search')}
+      timeline={timeline} browsing={open === 'timelines'} onTimelines={() => toggle('timelines')} />
+    {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
+    {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
   </>
 }
 
-function ConversationNotice({ notice, go }: { notice: { tone: 'info' | 'error'; text: string; settings?: boolean }; go: (view: View) => void }) {
+function ConversationNotice({ notice, go }: { notice: { tone: 'info' | 'error'; text: string; settings?: boolean } | null; go: (view: View) => void }) {
+  if (!notice) return null
   return (
     <div className="conversation-notice">
       <Notice tone={notice.tone} action={notice.settings ? <button type="button" className="text-button" onClick={() => go('settings')}>Open Settings</button> : undefined}>{notice.text}</Notice>

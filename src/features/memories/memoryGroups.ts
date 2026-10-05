@@ -56,6 +56,7 @@ export function statusLabels(memory: Memory): string[] {
   if (memory.current === false && memory.status !== 'superseded' && !memory.plan_status) labels.push('No longer current')
   if (memory.dates_uncertain) labels.push('Dates uncertain')
   if (memory.origin === 'automatic') labels.push('Saved automatically')
+  if (memory.in_timeline === false) labels.push('Another timeline')
   return labels
 }
 

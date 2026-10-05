@@ -81,13 +81,18 @@ first written as (`origin_id`), and their embeddings are copied too, so recall n
 
 `POST /api/timelines/{id}/activate` is the explicit choice. The previously active timeline is
 frozen and its pending work reconciled: unreviewed events are rejected, unfinished batches stop,
-the hidden upcoming agenda is dropped, and replies still being written there are stopped. The
-memory and permission revisions both advance, so anything that finishes later is revalidated and
-withheld or rejected (T7); background proposals name the timeline they were planned for, so a late
+the hidden upcoming agenda is dropped, images not yet started are cancelled, and replies still
+being written there are stopped. The memory and permission revisions both advance, so anything
+that finishes later is revalidated and withheld or rejected (T7); background proposals name the timeline they were planned for, so a late
 one lands on the frozen timeline and fails its commit check. A timeline's life resumes from the
 moment it is chosen: the time it spent frozen, or before a fork was first chosen, is never
 simulated, and switching is not an absence for the absence mood. `GET /api/timelines` lists them
 (the first is labelled "Original"); `PATCH /api/timelines/{id}` renames one or clears its draft.
+
+In the interface, each of your messages has **Edit from here**, which opens the edit with a choice
+to switch now or keep the new timeline for later. The branch button in the conversation header
+lists timelines and switches between them after a confirmation. After switching to an edit, its
+words wait in the message box; switching away again takes them out unsent.
 
 **Memory across timelines** (`companion/lineage.py`). Memories are not copied. A timeline sees its
 own memories plus those its ancestors formed before the fork point, so relationship history before
@@ -98,7 +103,8 @@ experiences, relationship history and the companion's fictional life always stay
 timeline (M6). Changing the setting advances the memory revision. Choices about a message reach all
 of its copies: Don't remember this, an excluded memory's source block, and deleting a memory with
 its source messages apply to the original and every copy, so a fork never brings back words the
-user removed elsewhere (M12).
+user removed elsewhere (M12). The Memories view lists every memory, marking those from another
+timeline that the current conversation does not use (`in_timeline: false`).
 
 ## Context builder (M10)
 
