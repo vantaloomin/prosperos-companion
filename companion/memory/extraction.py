@@ -58,7 +58,7 @@ NOT_THINGS = {'you', 'it', 'that', 'this', 'them', 'him', 'her', 'those', 'these
 CLAUSE_END = re.compile(r'\s+(?:because|but|although|though|so|and i|and my|when|since|if)\b.*$', re.IGNORECASE)
 PLAN_NOUNS = ('interview', 'appointment', 'exam', 'meeting', 'date', 'flight', 'trip', 'party', 'wedding',
               'concert', 'game', 'match', 'presentation', 'deadline', 'holiday', 'vacation', 'birthday party',
-              'dinner', 'call', 'move', 'surgery', 'class', 'test')
+              'dinner', 'call', 'move', 'surgery', 'class', 'test', 'visit')
 PLAN_NOUN = '(' + '|'.join(sorted(PLAN_NOUNS, key=len, reverse=True)) + ')'
 TEMPORARY = r'(tired|exhausted|sick|ill|unwell|busy|stressed|swamped|overwhelmed|travel(?:l)?ing|away|' \
             r'on holiday|on vacation|off work|working late|in a rush|sleepy|hungover|sad|down|happy|excited|nervous)'
@@ -101,6 +101,12 @@ def subject_key(subject: str) -> str:
 
 def single_valued(key: str) -> bool:
     return key in SINGLE_VALUED or key.startswith('favourite_')
+
+
+def named(text: str) -> bool:
+    """A capitalised word after "my sister" is a name, not a date word or "I'm"."""
+    first = text.split()[0].casefold()
+    return first not in NOT_PLACE and not first.startswith(('i\'', 'i’'))
 
 
 def place(text: str) -> str:
@@ -256,6 +262,11 @@ def personal_rules(statement):
         relation = match.group(1).lower()
         yield Candidate('user_fact', relation.capitalize(), match.group(2), 'relation', text,
                         subject_key=f'relation_{relation}_{match.group(2).casefold()}')
+    elif (match := re.search(rf"\bmy {RELATIONS},? {NAME}\b", text, re.IGNORECASE)) and named(match.group(2)):
+        # "My sister Jo is visiting": the name follows the relation directly.
+        relation = match.group(1).lower()
+        yield Candidate('user_fact', relation.capitalize(), match.group(2), 'relation', text,
+                        subject_key=f'relation_{relation}_{match.group(2).casefold()}')
     elif match := re.search(rf"\bi have an? {RELATIONS}(?: (?:named|called) {NAME})?", text, re.IGNORECASE):
         relation = match.group(1).lower()
         value = f'A {relation} named {match.group(2)}' if match.group(2) else f'Has a {relation}'
@@ -289,6 +300,16 @@ def plan_rules(statement):
         start, _end, uncertain = statement.bounds() if status == 'postponed' else (None, None, False)
         yield Candidate('plan', update.group(1).capitalize(), '', 'plan_update', text, plan_status=status,
                         applies_from=start, dates_uncertain=uncertain, target=update.group(1).lower())
+        return
+    visit = re.search(rf"\b(?:my {RELATIONS},?(?: {NAME})?|{NAME}) (?:is|are|'s|will be|'ll be) (?:visiting|"
+                      rf"coming (?:over|to visit|to stay|to see (?:me|us))|staying with (?:me|us)|flying in)\b", text,
+                      re.IGNORECASE)
+    if visit and statement.span() is not None:
+        start, _end, uncertain = statement.bounds()
+        who = next((name for name in (visit.group(2), visit.group(3)) if name and named(name)), None) or \
+            f'my {(visit.group(1) or "guest").lower()}'
+        yield Candidate('plan', f'Visit from {who}', text, 'visit', text, plan_status='agreed', applies_from=start,
+                        dates_uncertain=uncertain, target='visit')
         return
     match = re.search(rf"\bi(?:'ve| have)? (?:got )?(?:an? |my )?{PLAN_NOUN}\b", text, re.IGNORECASE) or \
         re.search(rf"\bi(?:'m| am) (?:going|flying|heading|travel(?:l)?ing|driving) to {PLACE}", text, re.IGNORECASE)

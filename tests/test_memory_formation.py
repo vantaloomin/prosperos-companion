@@ -1,5 +1,5 @@
 """Automatic extraction, suggestions and the per-message memory controls (PRD M7, M12)."""
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from conftest import send
 
@@ -226,3 +226,22 @@ def test_a_stated_change_or_a_deliberate_remember_replaces_directly(client, conn
     send(client, 'I live in Bergen', 'client-0004')
     client.post(f"/api/conversation/messages/{message['id']}/remember")
     assert ('Home city', 'Oslo') in values(client)
+
+
+def test_a_named_relative_visiting_forms_the_person_and_the_dated_plan(client, connected):
+    enable(client)
+    send(client, 'My sister Jo is visiting next Saturday.', 'client-0001')
+    run(client)
+    found = {item['subject']: item for item in memories(client)}
+    assert found['Sister']['value'] == 'Jo'
+    visit = found['Visit from Jo']
+    assert visit['layer'] == 'plan' and visit['plan_status'] == 'agreed' and visit['applies_from']
+    send(client, 'My visit got cancelled.', 'client-0002')
+    run(client)
+    assert {item['subject']: item for item in memories(client)}['Visit from Jo']['plan_status'] == 'cancelled'
+
+
+def test_words_after_a_relation_that_are_not_names_are_ignored():
+    stated = datetime(2026, 10, 5, 12, tzinfo=UTC)
+    for text in ('My sister Saturday is visiting.', "My dad I'm sure is fine."):
+        assert not [item for item in extraction.extract(text, stated, 'UTC') if item.rule == 'relation']
