@@ -8,6 +8,8 @@ version picks a first name, a role and a career's routine. Their days advance th
 (companion/life/agenda.py). They are fictional supporting characters: never the user, never a
 real person, and never a source of facts about the user. The user can rename or remove them.
 """
+from datetime import date, timedelta
+
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
@@ -82,9 +84,15 @@ def from_city(data: dict, definition: dict, timeline_id: str) -> list[dict]:
     return result
 
 
+def birthday(person_id: str) -> str:
+    """A person's birthday as "MM-DD", seeded by their id (never 29 February)."""
+    return (date(2001, 1, 1) + timedelta(days=int(generators.unit(person_id, 'birthday') * 365))).strftime('%m-%d')
+
+
 def view(row: dict) -> dict:
     return {'id': row['id'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
-            'revision': row['revision'], **decode(row['details']), 'schedule': decode(row['schedule'])}
+            'revision': row['revision'], **decode(row['details']), 'birthday': birthday(row['id']),
+            'schedule': decode(row['schedule'])}
 
 
 def ensure(connection, companion: dict, world, now) -> list[dict]:

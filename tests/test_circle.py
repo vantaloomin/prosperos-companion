@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from conftest import life_reply, reconcile, set_life
 
-from companion.clock import parse, stamp
+from companion.clock import parse, stamp, zone
 from companion.database import decode
 from companion.life import agenda, circle, composer
 from companion.world.source import CatalogWorld
@@ -365,3 +365,31 @@ def test_the_companion_goes_out_for_a_city_festival(client, baltimore, provider,
     assert evening['activity'] != 'festival'
     client.post('/api/conversation/messages', json={'text': 'Anything on today?', 'client_id': 'festival-01'})
     assert 'Annual events in the city today: Fells Point Fun Festival' in provider.requests[-1]['system']
+
+
+def test_the_companion_celebrates_a_friends_birthday(client, baltimore, provider, clock, monkeypatch):
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    tomorrow = (clock.now() + timedelta(days=1)).astimezone(zone('America/New_York')).date()
+    monkeypatch.setattr(circle, 'birthday', lambda _person_id: tomorrow.strftime('%m-%d'))
+    reconcile(client)
+    people = {person['id']: person for person in client.get('/api/life/circle').json()}
+    assert all(person['birthday'] == tomorrow.strftime('%m-%d') for person in people.values())
+    entries = [decode(row['entry']) for row in rows(client, subject='companion', local_date=tomorrow.isoformat())
+               if row['entry']]
+    celebrations = [entry for entry in entries if entry['activity'] == 'birthday']
+    assert len(celebrations) == 1 and celebrations[0]['with']['id'] in people
+    assert people[celebrations[0]['with']['id']]['name'] in celebrations[0]['summary']
+    clock.instant = datetime.combine(tomorrow, datetime.min.time(), tzinfo=UTC) + timedelta(hours=16)
+    client.post('/api/conversation/messages', json={'text': 'Any news?', 'client_id': 'birthday-01'})
+    assert 'Today is their birthday.' in provider.requests[-1]['system']
+
+
+def test_a_relative_out_of_town_gets_a_call():
+    slot = {'key': 'out@2026-10-05', 'local_date': '2026-10-05', 'block': EVENING_OUT[1]}
+    composed = composer.birthday(slot, {'name': 'Mira'}, CatalogWorld(), 'seed', (),
+                                 [{'id': 'p1', 'name': 'Aunt Rosa', 'local': False}], None)
+    assert composed['activity'] == 'birthday' and composed['place'] is None
+    assert 'Aunt Rosa' in composed['summary'] and ('called' in composed['summary'] or 'phone' in composed['summary'])
+    assert composer.birthday(slot, {'name': 'Mira'}, CatalogWorld(), 'seed', ('birthday',),
+                             [{'id': 'p1', 'name': 'Aunt Rosa', 'local': False}], None) is None
