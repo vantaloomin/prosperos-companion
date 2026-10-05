@@ -29,12 +29,21 @@ function StudyHealth {
 }
 
 $studyLog = Join-Path ([System.IO.Path]::GetTempPath()) 'study.log'
-$studyApp = Start-Process -FilePath (Join-Path $Study '.venv\Scripts\python.exe') -ArgumentList 'scripts\launch_interface.py', '--no-browser' `
-  -WorkingDirectory $Study -RedirectStandardOutput $studyLog -PassThru -WindowStyle Hidden
+$studyErrors = Join-Path ([System.IO.Path]::GetTempPath()) 'study-errors.log'
+# Started the way the Study's own start.ps1 does, as a module from its checkout.
+$studyApp = Start-Process -FilePath (Join-Path $Study '.venv\Scripts\python.exe') -ArgumentList '-m', 'scripts.launch_interface', '--no-browser' `
+  -WorkingDirectory $Study -RedirectStandardOutput $studyLog -RedirectStandardError $studyErrors -PassThru -WindowStyle Hidden
 try {
   $health = $null
-  foreach ($attempt in 1..120) { $health = StudyHealth; if ($health) { break }; Start-Sleep -Milliseconds 500 }
-  if (-not $health) { Get-Content -LiteralPath $studyLog -ErrorAction SilentlyContinue; throw 'The Study did not start.' }
+  foreach ($attempt in 1..120) {
+    $health = StudyHealth
+    if ($health -or $studyApp.HasExited) { break }
+    Start-Sleep -Milliseconds 500
+  }
+  if (-not $health) {
+    Get-Content -LiteralPath $studyLog, $studyErrors -ErrorAction SilentlyContinue
+    throw 'The Study did not start.'
+  }
   Check ($health.application -eq 'Roleplay') "Prospero's Study runs on 8765"
 
   $process = Start-Process -FilePath $Setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER' -PassThru -Wait
@@ -58,6 +67,6 @@ try {
   $tables = & (Join-Path $installed 'runtime\python.exe') -I -c $probe (Join-Path $studyData 'roleplay.sqlite3')
   Check ($LASTEXITCODE -eq 0 -and $tables -and $tables -notmatch 'app_identity') "the Study's database never gains the Companion marker"
 } finally {
-  & "$env:SystemRoot\System32\taskkill.exe" /T /F /PID $studyApp.Id | Out-Null
+  if (-not $studyApp.HasExited) { & "$env:SystemRoot\System32\taskkill.exe" /T /F /PID $studyApp.Id | Out-Null }
 }
 Write-Host 'Beside-the-Study test passed.'
