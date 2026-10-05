@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { deletePreviewText, earlierVersions, groupMemories, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
+import { correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -42,4 +42,23 @@ test('the delete preview names what goes and what stays', () => {
   assert.deepEqual(deletePreviewText(preview, false), [])
   assert.deepEqual(deletePreviewText(preview, true), ['2 messages will show as deleted in your conversation.',
     '1 conversation summary quoting them will be removed.', "Also from those messages, and kept: Sister's city."])
+})
+
+test('a past open plan asks whether it happened; an unclear date asks for the date', () => {
+  const now = new Date('2026-10-05T12:00:00Z')
+  assert.equal(followUp(memory('trip', { layer: 'plan', plan_status: 'agreed', applies_from: '2026-10-01T00:00:00Z' }), now), 'outcome')
+  assert.equal(followUp(memory('trip', { layer: 'plan', plan_status: 'completed', applies_from: '2026-10-01T00:00:00Z' }), now), null)
+  assert.equal(followUp(memory('trip', { layer: 'plan', plan_status: 'agreed', applies_from: '2026-11-01T00:00:00Z', dates_uncertain: true }), now), 'date')
+  assert.equal(followUp(memory('trip', { status: 'excluded', dates_uncertain: true }), now), null)
+})
+
+test('a correction sends only what changed, and resends uncertain dates to confirm them', () => {
+  const plan = memory('trip', { layer: 'plan', value: 'Lisbon', plan_status: 'agreed', applies_from: new Date('2026-11-01T00:00').toISOString() })
+  const draft = { value: 'Lisbon', plan_status: 'agreed' as const, from: dayInput(plan.applies_from), until: '' }
+  assert.equal(draft.from, '2026-11-01')
+  assert.equal(correction(plan, draft), null)
+  assert.deepEqual(correction(plan, { ...draft, plan_status: 'completed' }), { value: 'Lisbon', plan_status: 'completed', applies_from: undefined, applies_until: undefined })
+  const confirmed = correction({ ...plan, dates_uncertain: true }, draft)
+  assert.equal(confirmed?.applies_from, plan.applies_from)
+  assert.equal(correction(plan, { ...draft, value: '  ' }), null)
 })
