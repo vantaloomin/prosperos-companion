@@ -12,7 +12,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
-from companion.life import agenda
+from companion.life import agenda, body
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
@@ -50,6 +50,7 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
+            'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
                           'never as done, and they may change)',
@@ -148,6 +149,8 @@ def person_text(person) -> str:
         text += ' Today is their birthday.'
     if person['now']:
         text += f" Right now: {person['now']['label'].lower()}."
+        if (person['now'].get('body') or {}).get('state'):
+            text += f" Feeling {person['now']['body']['state']} ({person['now']['body']['because']})."
     if person['recent']:
         latest = person['recent'][0]
         shared = latest.get('with_companion')
@@ -340,6 +343,8 @@ def offer_life(packet, connection, timeline_id, version, now):
         packet.offer('weather', today, agenda.weather_text(day['weather']))
     if day['happenings']:
         packet.offer('weather', f'{today}:events', agenda.happenings_text(day['happenings']))
+    if day['body']:
+        packet.offer('body', today, body.text(day['body']))
     for person in agenda.circle_view(connection, timeline_id, now):
         packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { availabilityShort, availabilityText, moodText, pauseToFill } from '../../src/features/today/todayText.ts'
+import { availabilityShort, availabilityText, bodyText, moodText, pauseToFill } from '../../src/features/today/todayText.ts'
 
 test('availability explains, without locking anything', () => {
   const today = { companion_timezone: 'UTC', availability: { state: 'asleep' as const, label: 'Asleep', until: '2026-10-06T06:00:00+00:00' } }
@@ -25,4 +25,10 @@ test('only an ended pause that was not filled in is offered', () => {
 test('the header gets a few words', () => {
   assert.equal(availabilityShort({ state: 'working', label: 'Bakery shift', until: null }), 'Busy: bakery shift')
   assert.equal(availabilityShort({ state: 'asleep', label: 'Asleep', until: null }), 'Asleep')
+})
+
+test('how the companion feels today reads as one line', () => {
+  assert.equal(bodyText({ state: 'tired', because: 'after drinks at The Owl last night' }, 'Mira'), 'Mira is tired: after drinks at The Owl last night.')
+  assert.equal(bodyText({ state: 'sick', because: 'came down with a cold' }, 'Mira'), 'Mira is under the weather: came down with a cold.')
+  assert.equal(bodyText(null, 'Mira'), '')
 })

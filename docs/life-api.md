@@ -209,7 +209,16 @@ that matches what later happens; the companion is told they have not happened an
 mentioning them commits nothing. On a public holiday in the city's
 calendar, a work or study block becomes a day off: the entry's block has `kind: "leisure"`, a label
 such as "Thanksgiving (day off)" and `holiday`, and events simulated from it carry that block. Slots
-inside a pause are marked skipped. Background reconciles extend the agenda only when background
+inside a pause are marked skipped.
+
+Each day also carries how its subject feels physically (`companion/life/body.py`), worked out from
+the day before with no model and seeded by the subject and date: a late night out can leave them
+`tired` or `hungover`, a hectic shift `worn out`, a workout `sore`, and now and then a cold
+(`sick`, more often in winter) lasts two or three days. Every block that day gets
+`body: {state, because}`. A cold turns work or study into a sick day and leisure into "Home sick"
+(`kind: "rest"`, `sick_day: true`), and a sick circle member is not free for plans. A low day keeps
+leisure and social time to calm activities at home or nearby. Events carry `details.body`, Today's
+`day.body` shows it and the chat context gets one line about it. Background reconciles extend the agenda only when background
 activity is on.
 
 ## Limits and permissions
@@ -298,7 +307,7 @@ POST /api/today/seen
 | `last_run` | The most recent batch, or `null` |
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
 | `last_seen_at` | When the user last marked Today as seen |
-| `day` | The companion's local day: `{date, weather, happenings, birthdays}`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
+| `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
 
 Call `POST /api/today/seen` once the user has looked at Today, so the next visit's `changes`
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`

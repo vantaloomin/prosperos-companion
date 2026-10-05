@@ -256,7 +256,11 @@ export interface Today {
   clock_behind: boolean
   mood: AbsenceMood | null
   last_seen_at: string | null
+  day: { date: string; body: BodyState | null }
 }
+
+/** How the companion feels physically today, carried over from the day before. */
+export interface BodyState { state: 'sick' | 'hungover' | 'tired' | 'worn out' | 'sore'; because: string }
 
 export interface PauseRecord { id: string; started_at: string; ended_at: string | null; catch_up_requested_at: string | null; catch_up_run_id: string | null }
 
