@@ -141,6 +141,19 @@ def candidates(connection, companion, through, now, lookback_hours) -> list[rout
     return result
 
 
+def plan_for(connection, timeline_id, slot_key) -> dict | None:
+    return optional(connection, "SELECT * FROM life_events WHERE timeline_id=? AND kind='plan' AND status='committed' "
+                    "AND json_extract(details, '$.target_slot')=? ORDER BY revision DESC LIMIT 1",
+                    (timeline_id, slot_key))
+
+
+def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
+    """Slots a committed plan names come first, so a plan happens when its time comes."""
+    planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)][:count]
+    rest = spread([slot for slot in slots if slot not in planned], count - len(planned), seed)
+    return sorted(planned + rest, key=lambda slot: slot.starts_at)
+
+
 def spread(slots: list, count: int, seed: str) -> list:
     """One slot from each of `count` consecutive groups, so a batch covers the window evenly."""
     if count <= 0 or not slots:
@@ -205,7 +218,8 @@ def plan_run(connection, owner, mode, now, companion, workspace, life, position)
     else:
         limit = life['catch_up_max_events']
     through = parse(position['simulated_through'])
-    plan = spread(candidates(connection, companion, through, now, life['catch_up_lookback_hours']), limit, run_key)
+    plan = choose(connection, timeline_id, candidates(connection, companion, through, now,
+                                                      life['catch_up_lookback_hours']), limit, run_key)
     run_id = insert_run(connection, owner, companion, workspace, mode, run_key, position['simulated_through'],
                         timestamp, plan, now)
     save_cursor(connection, timeline_id, timestamp, timestamp)
@@ -240,8 +254,8 @@ def plan_pause(connection, owner, pause_id, now) -> dict:
     connection.execute('INSERT OR IGNORE INTO pause_catch_ups (pause_id, requested_at) VALUES (?, ?)',
                        (pause_id, stamp(now)))
     start, end = parse(pause['started_at']), parse(pause['ended_at'])
-    plan = spread(candidates(connection, companion, start, end, life['catch_up_lookback_hours']),
-                  life['catch_up_max_events'], run_key)
+    plan = choose(connection, companion['active_timeline_id'], candidates(
+        connection, companion, start, end, life['catch_up_lookback_hours']), life['catch_up_max_events'], run_key)
     run_id = insert_run(connection, owner, companion, workspace, 'return', run_key, pause['started_at'],
                         pause['ended_at'], plan, now)
     return {'state': 'started', 'run_id': run_id}
@@ -342,6 +356,7 @@ class LifeEngine:
             config = optional(connection, 'SELECT * FROM connection WHERE id=1')
             existing = optional(connection, 'SELECT * FROM life_events WHERE idempotency_key=?', (key,))
             recent = events.committed(connection, run['timeline_id'])[-5:]
+            plan = plan_for(connection, run['timeline_id'], slot['key'])
         if existing:
             return self.settle(events.view(existing), life)
         if workspace['permission_revision'] != run['permission_revision'] or workspace['paused_at']:
@@ -349,8 +364,11 @@ class LifeEngine:
         if companion['active_timeline_id'] != run['timeline_id']:
             return {'slot': slot['key'], 'outcome': 'skipped', 'reason': 'The timeline is no longer active.'}
         version = companion['version']
-        composed = composer.compose(slot, version['definition'], self.world, key,
-                                    [decode(event['details']).get('activity') for event in recent])
+        if plan:
+            composed = composer.fulfil(events.view(plan), version['definition'])
+        else:
+            composed = composer.compose(slot, version['definition'], self.world, key,
+                                        [decode(event['details']).get('activity') for event in recent])
         if composed is None:
             return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.'}
         written, phrasing = await self.phrase(config, life, version, slot, composed)
@@ -360,7 +378,7 @@ class LifeEngine:
             details={'slot': slot['key'], 'block': block['key'], 'label': block['label'],
                      'block_kind': block['kind'], 'activity': composed['activity'], 'place': composed['place'],
                      'local_date': slot['local_date'], 'timezone': version['timezone'],
-                     'post': written['post'], 'mood': composed['mood']},
+                     'post': written['post'], 'mood': composed['mood'], 'fulfils': composed.get('fulfils')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
@@ -370,7 +388,31 @@ class LifeEngine:
             events.reject(self.database, event['id'])
             return {'slot': slot['key'], 'outcome': 'rejected', 'event_id': event['id'],
                     'reason': 'The character changed while this event was written.'}
-        return self.settle(event, life)
+        result = self.settle(event, life)
+        if result['outcome'] in {'proposed', 'committed'} and not plan:
+            result.update(self.plan_ahead(run, slot, version, life, key))
+        return result
+
+    def plan_ahead(self, run, slot, version, life, key) -> dict:
+        """At most one plan per event, for an upcoming slot; it waits for review like any event."""
+        now = self.now()
+        schedule, _default = routine.blocks(version['definition'])
+        future = [item.view() for item in routine.slots(schedule, version['timezone'], now + timedelta(days=1),
+                                                        now + timedelta(days=7))]
+        planned = composer.plan_ahead(version['definition'], self.world, key, future)
+        if planned is None:
+            return {}
+        target = planned['target']
+        event = events.propose(self.database, EventProposal(
+            idempotency_key=f"plan:{run['timeline_id']}:{slot['key']}", kind='plan', summary=planned['summary'],
+            details={'target_slot': target['key'], 'label': target['block']['label'], 'activity': planned['activity'],
+                     'place': planned['place'], 'local_date': target['local_date'],
+                     'timezone': version['timezone'], 'post': '', 'mood': ''},
+            starts_at=target['starts_at'], ends_at=target['ends_at'],
+            inputs={'run_id': run['id'], 'mode': run['mode'], 'made_during': slot['key'], 'world': self.world.name,
+                    'composer_version': planned['composer_version'], 'character_version_id': version['id']}))
+        settled = self.settle(event, life)
+        return {'plan_event_id': event['id'], 'plan_outcome': settled['outcome']}
 
     async def phrase(self, config, life, version, slot, composed) -> tuple[dict, dict]:
         """Template wording unless the user allows model phrasing and a model is connected. Any

@@ -96,8 +96,9 @@ def life_reply(system, messages):
 
 @pytest.fixture
 def life(provider, connected, monkeypatch):
-    """A connected model that phrases events, and no randomly quiet slots, so counts are exact."""
+    """A connected model that phrases events, with no randomly quiet slots or plans, so counts are exact."""
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
     provider.respond = life_reply
     return provider
 

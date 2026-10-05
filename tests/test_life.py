@@ -235,6 +235,7 @@ def test_character_change_while_writing_rejects_the_event(app, client, life, clo
 
 def test_without_a_model_events_use_template_wording(client, companion, clock, provider, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
     clock.advance(timedelta(days=1))
     run = reconcile(client)['run']
     assert [item['outcome'] for item in run['results']] == ['proposed'] * 3
@@ -262,6 +263,7 @@ def test_model_phrasing_can_be_turned_off(client, life, clock, provider):
 
 def test_places_come_from_the_world_source(tmp_path, clock, provider, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
     world = StaticWorld([Place('patterson', 'Patterson Park', 'park', 'baltimore', 'Highlandtown'),
                          Place('artifact', 'Artifact Coffee', 'cafe', 'baltimore', 'Hampden'),
                          Place('walters', 'The Walters Art Museum', 'museum', 'baltimore', 'Mount Vernon'),
@@ -330,3 +332,25 @@ def test_a_paused_interval_can_be_caught_up_once_on_request(client, life, clock)
     assert again['state'] == 'already_done' and again['run']['id'] == first['run']['id']
     assert client.get('/api/life/pauses').json()[0]['catch_up_run_id'] == first['run']['id']
     assert len(client.get('/api/events').json()) == 3
+
+
+def test_a_plan_is_not_an_outing_until_its_slot_happens(client, life, clock, monkeypatch):
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 1)
+    set_life(client, automatic_events=True, catch_up_max_events=1)
+    clock.advance(timedelta(days=1))
+    result = reconcile(client)['run']['results'][0]
+    assert result['plan_outcome'] == 'committed'
+    plan = next(event for event in all_events(client) if event['id'] == result['plan_event_id'])
+    assert plan['kind'] == 'plan' and 'is planning to' in plan['summary']
+    assert parse(plan['starts_at']) > clock.now()
+    today = client.get('/api/today').json()
+    assert [item['id'] for item in today['plans']['companion']] == [plan['id']]
+    # Nothing has happened yet: the only ordinary event is the one the plan was made during.
+    assert len([event for event in all_events(client) if event['kind'] == 'ordinary']) == 1
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
+    clock.instant = parse(plan['ends_at']) + timedelta(hours=5)
+    reconcile(client)
+    fulfilled = [event for event in all_events(client) if event['details'].get('fulfils') == plan['id']]
+    assert len(fulfilled) == 1 and fulfilled[0]['summary'].endswith('as planned.')
+    assert fulfilled[0]['details']['slot'] == plan['details']['target_slot']
+    assert client.get('/api/today').json()['plans']['companion'] == []
