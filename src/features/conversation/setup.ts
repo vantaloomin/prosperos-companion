@@ -9,7 +9,7 @@ export function setupSteps(companion: Companion, connection: Connection | null):
   const { home_city: city, schedule } = companion.version.definition
   return [
     { id: 'character', label: `Create ${name}`, detail: 'Personality, voice and relationship framing. You can revise them any time.', done: true, optional: false, view: 'character' },
-    { id: 'connection', label: 'Connect a text model', detail: connection ? `Using ${connection.model} through ${connection.provider_name}.` : `A hosted service such as OpenAI, Anthropic or OpenRouter, your Codex login, or a model on this computer. Until then your messages are saved and ${name} replies once it is connected.`, done: !!connection, optional: false, view: 'settings' },
+    { id: 'connection', label: 'Connect a text model', detail: connection ? `Using ${connection.model} through ${connection.provider_name}.` : `A hosted service such as OpenAI, Anthropic or OpenRouter, your Codex login, or a model on this computer. Until then your messages are saved and ${name} replies once it is connected.`, done: !!connection, optional: false, view: 'settings/models' },
     { id: 'life', label: `Give ${name} a home and a routine`, detail: 'A city and a weekly routine make their days, posts and replies fit together. Without them they still talk normally.', done: !!city && schedule.length > 0, optional: true, view: 'character' },
   ]
 }

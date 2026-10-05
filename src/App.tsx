@@ -7,6 +7,7 @@ import { Character } from './features/character/Character'
 import { Appearance } from './features/appearance/Appearance'
 import { Memories } from './features/memories/Memories'
 import { Settings } from './features/settings/Settings'
+import type { SettingsTab } from './features/settings/sections'
 import { Today } from './features/today/Today'
 import { Feed } from './features/feed/Feed'
 import { useReconcile } from './features/today/useReconcile'
@@ -24,7 +25,11 @@ const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || id === 'appearance' ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || id === 'appearance' || id.startsWith('settings/') ? id as View : 'conversation'
+}
+
+function isCurrent(id: View, view: View) {
+  return view === id || (id === 'character' && view === 'appearance') || (id === 'settings' && view.startsWith('settings/'))
 }
 
 export default function App() {
@@ -38,6 +43,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', sync)
   }, [])
   const go = useCallback((next: View) => { window.history.pushState(null, '', `#${next}`); setView(next) }, [])
+  // Switching Settings tabs keeps the address deep-linkable without filling the back button with tabs.
+  const openTab = useCallback((tab: SettingsTab) => { window.history.replaceState(null, '', `#settings/${tab}`); setView(`settings/${tab}`) }, [])
   useNotifications(!!companion.data, go)
   useFocusOnViewChange(view)
   return (
@@ -45,7 +52,7 @@ export default function App() {
       <a className="skip-link" href="#main">Skip to content</a>
       <nav className="app-nav" aria-label="Views">
         {VIEWS.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" aria-current={view === id || (id === 'character' && view === 'appearance') ? 'page' : undefined} onClick={() => go(id)}>
+          <button key={id} type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
             <Icon aria-hidden="true" /><span>{label}</span>
           </button>
         ))}
@@ -53,7 +60,7 @@ export default function App() {
       <main id="main" className="app-main" tabIndex={-1}>
         {companion.isPending ? <Loading label="Opening your companion" />
           : companion.isError ? <Notice tone="error">{companion.error.message}</Notice>
-            : <CurrentView view={view} companion={companion.data ?? null} go={go} />}
+            : <CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} />}
       </main>
     </div>
   )
@@ -71,8 +78,10 @@ function useFocusOnViewChange(view: View) {
   }, [view])
 }
 
-function CurrentView({ view, companion, go }: { view: View; companion: Companion | null; go: (view: View) => void }) {
-  if (view === 'settings') return <Settings companion={companion} />
+interface CurrentViewProps { view: View; companion: Companion | null; go: (view: View) => void; openTab: (tab: SettingsTab) => void }
+
+function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
+  if (view === 'settings' || view.startsWith('settings/')) return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
   if (view === 'character') return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
   if (view === 'appearance') return <Appearance companion={companion} go={go} />

@@ -36,7 +36,7 @@ export function QuickStart({ onDraft, onManual, go }: Props) {
       <h2 id="quick-start-title"><Sparkles aria-hidden="true" />Start with an idea</h2>
       <p className="subtle">Describe them in a line or two and your text model drafts the rest: their job, week, skills, flaws and how they talk. Everything is optional, and you review the whole draft before anything is saved.</p>
       {connection.isSuccess && !connected && (
-        <Notice action={<button type="button" className="text-button" onClick={() => go('settings')}>Open Settings</button>}>Drafting uses your text model, and none is connected yet. You can still fill in the form yourself.</Notice>
+        <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button>}>Drafting uses your text model, and none is connected yet. You can still fill in the form yourself.</Notice>
       )}
       <form className="form-stack" onSubmit={submit}>
         <TextArea label="Who are they?" value={request.idea} onChange={(idea) => set({ idea })} maxLength={2000} rows={2}
