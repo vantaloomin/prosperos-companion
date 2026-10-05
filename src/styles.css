@@ -64,7 +64,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .transcript:focus-visible { outline-offset: -3px; }
 .reading-column { max-width: 760px; margin: 0 auto; padding: 24px 32px 32px; }
 .load-earlier { display: block; margin: 0 auto 24px; }
-.message { margin-bottom: 28px; }
+.message { margin-bottom: 28px; content-visibility: auto; contain-intrinsic-size: auto 150px; }
 .message > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; min-height: 28px; }
 .speaker { font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
 .message-companion .speaker { color: var(--accent); }

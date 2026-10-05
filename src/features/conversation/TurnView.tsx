@@ -98,6 +98,9 @@ function classes(base: string, flags: Record<string, boolean>) {
   return [base, ...Object.keys(flags).filter((flag) => flags[flag])].join(' ')
 }
 
+// One formatter for every message: making one per message cost more than the rest of a long transcript's render.
+const TIME = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+
 function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+  return TIME.format(new Date(value))
 }
