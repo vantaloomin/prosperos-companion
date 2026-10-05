@@ -1,16 +1,37 @@
 """Request bodies. Input mirrors prosperos-study server/models.py at bbcbde4."""
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Relationship = Literal['friendship', 'romance', 'mentor', 'family', 'other']
 Layer = Literal['user_fact', 'shared_experience', 'plan', 'temporary', 'relationship', 'companion_life']
 PlanStatus = Literal['proposed', 'agreed', 'postponed', 'cancelled', 'completed']
 EventKind = Literal['routine', 'plan', 'ordinary', 'thread']
+BlockKind = Literal['work', 'study', 'errand', 'leisure', 'social', 'rest', 'sleep']
+ClockTime = Annotated[str, Field(pattern=r'^([01][0-9]|2[0-3]):[0-5][0-9]$')]
 
 
 class Input(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+
+
+class RoutineBlock(Input):
+    """One recurring part of the companion's day, in the companion's timezone (PRD T2)."""
+    key: str = Field(default='', max_length=60, pattern=r'^[a-z0-9-]*$')
+    label: str = Field(min_length=1, max_length=120)
+    kind: BlockKind = 'leisure'
+    days: list[int] = Field(default_factory=lambda: list(range(7)), min_length=1, max_length=7)
+    start: ClockTime
+    end: ClockTime
+    themes: list[str] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode='after')
+    def check(self):
+        if self.start == self.end:
+            raise ValueError('A routine block must not start and end at the same time.')
+        if any(day < 0 or day > 6 for day in self.days) or len(set(self.days)) != len(self.days):
+            raise ValueError('Days are distinct weekday numbers from 0 (Monday) to 6 (Sunday).')
+        return self
 
 
 class CharacterDefinition(Input):
@@ -27,6 +48,10 @@ class CharacterDefinition(Input):
     # Empty means neutral about absence. Jealousy, guilt or missing the user are opt-in traits.
     absence_reaction: str = Field(default='', max_length=2000)
     timezone: str = Field(default='UTC', max_length=64)
+    # Structured routine for the life simulation; empty uses a gentle default day.
+    schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
+    # Themes automatic events may draw on (PRD T3).
+    life_themes: list[str] = Field(default_factory=list, max_length=20)
 
 
 class CharacterRevision(Input):
@@ -97,3 +122,14 @@ class EventProposal(Input):
 class EventCorrection(Input):
     summary: str = Field(min_length=1, max_length=2000)
     details: dict = Field(default_factory=dict)
+
+
+class LifeSettingsUpdate(Input):
+    """Catch-up and background limits (PRD T3–T5). Ceilings are the tested maximums."""
+    automatic_events: bool | None = None
+    catch_up_on_return: bool | None = None
+    catch_up_max_events: int | None = Field(default=None, ge=0, le=6)
+    catch_up_lookback_hours: int | None = Field(default=None, ge=6, le=336)
+    return_gap_hours: int | None = Field(default=None, ge=1, le=48)
+    background_interval_minutes: int | None = Field(default=None, ge=15, le=1440)
+    background_daily_events: int | None = Field(default=None, ge=0, le=8)

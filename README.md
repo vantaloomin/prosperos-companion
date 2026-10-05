@@ -5,5 +5,6 @@ A standalone companion application derived from the Companion Mode concept in [P
 - [Product requirements (draft)](docs/product-requirements.md)
 - [Backbone architecture](docs/architecture.md)
 - [Development](docs/development.md)
+- [Life simulation API](docs/life-api.md)
 
 Licensed under the GNU Affero General Public License v3.0, matching the Study code it reuses.
