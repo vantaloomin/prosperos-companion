@@ -125,6 +125,7 @@ class SettingsUpdate(Input):
     model_memory_suggestions: bool | None = None
     chat_style: Literal['feed', 'bubbles', 'community', 'retro', 'novel'] | None = None
     chat_sounds: bool | None = None
+    ask_about_people: bool | None = None
     review_complete: bool | None = None
 
 

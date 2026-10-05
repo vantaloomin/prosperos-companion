@@ -944,3 +944,17 @@ CREATE TABLE IF NOT EXISTS world_change_dismissals (
   city_id TEXT NOT NULL,
   dismissed_at TEXT NOT NULL
 );
+
+-- People in the user's real life the companion has heard about (companion/memory/people.py). Everything said
+-- about them is an ordinary memory carrying memories.person_id, so consent, correction, exclusion and deletion
+-- work as for any memory; a person with no memories left is removed with the last one.
+CREATE TABLE IF NOT EXISTS user_people (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  name TEXT,
+  relation TEXT,
+  last_mentioned_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS user_people_companion ON user_people(companion_id);

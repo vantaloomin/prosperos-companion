@@ -139,6 +139,8 @@ export interface WorkspaceSettings {
   automatic_memory: boolean
   sensitive_memory: boolean
   model_memory_suggestions?: boolean
+  /** Now and then the companion may ask about people you mentioned. On unless turned off. */
+  ask_about_people?: boolean
   /** How the chat looks; the messages and every action are the same in each style. */
   chat_style?: ChatStyle
   /** Retro IM door, away and message sounds; off unless turned on. */
@@ -197,6 +199,20 @@ export interface Memory {
   current?: boolean
   /** False for a memory from another timeline, which the current conversation does not use. */
   in_timeline?: boolean
+  /** Set on what you said about someone in your life; see Person. */
+  person_id?: string | null
+}
+
+/** Someone in your real life the companion has heard about. What they know is ordinary memories carrying person_id. */
+export interface Person {
+  id: string
+  name: string | null
+  relation: string | null
+  /** The name, or "Your mum" while the name is not known. */
+  label: string
+  last_mentioned_at: string | null
+  created_at: string
+  memory_ids: string[]
 }
 
 /** A fact found in one of your messages, waiting for you to keep or decline it. */

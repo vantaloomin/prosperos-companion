@@ -562,3 +562,12 @@ textarea { resize: vertical; line-height: 1.6; }
   .novel-stage { flex-basis: clamp(120px, 28dvh, 300px); }
 }
 .money-goal { width: 100%; accent-color: var(--accent); }
+
+/* People in your life (Memories). */
+.people-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.person { margin-top: 16px; }
+.person-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.person-heading h3 { margin: 0; font-size: 1.05rem; }
+.person-heading small { font-weight: normal; margin-left: 6px; }
+.person-form { margin: 12px 0; max-width: 420px; }
+.person-heading .memory-actions { flex-direction: row; }

@@ -90,6 +90,8 @@ ADDED_COLUMNS = (
     ('life_settings', 'texts_first', 'INTEGER NOT NULL DEFAULT 0 CHECK (texts_first IN (0, 1))'),
     ('life_settings', 'texts_daily', 'INTEGER NOT NULL DEFAULT 2'),
     ('life_settings', 'texts_gap_hours', 'INTEGER NOT NULL DEFAULT 3'),
+    ('memories', 'person_id', 'TEXT'),
+    ('workspace_settings', 'ask_about_people', 'INTEGER NOT NULL DEFAULT 1 CHECK (ask_about_people IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -111,6 +113,7 @@ def initialize(connection, timestamp: str):
     widen_context_categories(connection)
     widen_checks(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
+    connection.execute('CREATE INDEX IF NOT EXISTS memories_person ON memories(person_id)')
     backfill_subject_keys(connection)
     from companion.text_models import adopt_legacy
     adopt_legacy(connection, timestamp)

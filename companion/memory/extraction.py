@@ -9,14 +9,14 @@ import re
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 
-from companion.memory import dates
+from companion.memory import dates, people_rules
 
 EXTRACTOR_VERSION = 'rules-v1'
 
 # Subjects that hold one current value: a new current value ends the previous one (M8).
 SINGLE_VALUED = {'preferred_name', 'home_city', 'work', 'birthday'}
 # Rules and words that say a value changed, so a new value may replace the current one (M8).
-CHANGE_RULES = {'moved', 'new_job'}
+CHANGE_RULES = {'moved', 'new_job', 'person_moved'}
 CHANGE_MARKER = re.compile(r'\b(?:now|these days|nowadays|any ?more|from now on|currently|changed|switched|new|'
                            r'instead|no longer|since)\b', re.IGNORECASE)
 SUBJECT_KEYS = {
@@ -100,6 +100,8 @@ def subject_key(subject: str) -> str:
 
 
 def single_valued(key: str) -> bool:
+    if key.startswith('person.'):
+        return key.rsplit('.', 1)[-1] in people_rules.SINGLE_TOPICS
     return key in SINGLE_VALUED or key.startswith('favourite_')
 
 
@@ -258,19 +260,6 @@ def personal_rules(statement):
     if match := re.search(r"\bmy birthday is (?:on )?" + THING, text, re.IGNORECASE):
         if value := thing(match.group(1)):
             yield Candidate('user_fact', 'Birthday', value, 'birthday', text)
-    if match := re.search(rf"\bmy {RELATIONS}(?:'s name)? is (?:called |named )?{NAME}", text, re.IGNORECASE):
-        relation = match.group(1).lower()
-        yield Candidate('user_fact', relation.capitalize(), match.group(2), 'relation', text,
-                        subject_key=f'relation_{relation}_{match.group(2).casefold()}')
-    elif (match := re.search(rf"\bmy {RELATIONS},? {NAME}\b", text, re.IGNORECASE)) and named(match.group(2)):
-        # "My sister Jo is visiting": the name follows the relation directly.
-        relation = match.group(1).lower()
-        yield Candidate('user_fact', relation.capitalize(), match.group(2), 'relation', text,
-                        subject_key=f'relation_{relation}_{match.group(2).casefold()}')
-    elif match := re.search(rf"\bi have an? {RELATIONS}(?: (?:named|called) {NAME})?", text, re.IGNORECASE):
-        relation = match.group(1).lower()
-        value = f'A {relation} named {match.group(2)}' if match.group(2) else f'Has a {relation}'
-        yield Candidate('user_fact', relation.capitalize(), value, 'relation', text)
 
 
 def temporary_rule(statement):
@@ -326,15 +315,37 @@ RULES = (name_rule, place_rules, work_rule, boundary_rule, preference_rules, per
          plan_rules)
 
 
-def extract(text: str, stated: datetime, timezone: str) -> list[Candidate]:
-    """Candidates from one user message, in sentence order, without duplicates."""
-    found, seen = [], set()
+def person_candidate(found, sentence) -> Candidate:
+    """A fact about someone in the user's life; formation matches the reference to a stored person."""
+    reference = found.reference
+    if found.topic == 'who':
+        subject = (reference.relation or 'Someone').capitalize()
+    else:
+        subject = f'{reference.label}: {people_rules.TOPIC_LABELS[found.topic]}'
+    rule = 'person_moved' if found.changed else f'person_{found.topic}'
+    return Candidate('user_fact', subject, found.value, rule, sentence, sensitive=found.grief,
+                     subject_key=f'person.{reference.key}.{found.topic}',
+                     extra={'person': reference.as_dict(), 'topic': found.topic, 'grief': found.grief})
+
+
+def extract(text: str, stated: datetime, timezone: str, people: dict | None = None,
+            exclude: tuple = ()) -> list[Candidate]:
+    """Candidates from one user message, in sentence order, without duplicates.
+
+    `people` maps the names of people the user already mentioned to their relation, so "Jo got
+    promoted" is recognised once Jo is known; `exclude` holds names that are never the user's people
+    (the companion's own).
+    """
+    found, seen, previous = [], set(), None
     for sentence in sentences(text):
         statement = Statement(sentence, stated, timezone)
-        for rule in RULES:
-            for candidate in rule(statement):
-                identity = (candidate.layer, candidate.subject_key, candidate.value.casefold(), candidate.rule)
-                if identity not in seen:
-                    seen.add(identity)
-                    found.append(replace(candidate))
+        about_people, previous = people_rules.scan(sentence, people or {}, previous,
+                                                   tuple(name.casefold() for name in exclude))
+        candidates = [candidate for rule in RULES for candidate in rule(statement)]
+        candidates += [person_candidate(item, sentence) for item in about_people]
+        for candidate in candidates:
+            identity = (candidate.layer, candidate.subject_key, candidate.value.casefold(), candidate.rule)
+            if identity not in seen:
+                seen.add(identity)
+                found.append(replace(candidate))
     return found

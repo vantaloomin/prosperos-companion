@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
-import type { Memory } from '../../src/types.ts'
+import { correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
+import type { Memory, Person } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
   return { id, layer: 'user_fact', subject: id, value: 'v', reality: 'real', authority: 'stated', status: 'active', boundary: false, pinned: false,
@@ -71,4 +71,24 @@ test('a conflicting suggestion names the value it would replace', () => {
 test('a memory from another timeline is marked', () => {
   assert.ok(statusLabels(memory('m', { in_timeline: false })).includes('Another timeline'))
   assert.ok(!statusLabels(memory('m', { in_timeline: true })).includes('Another timeline'))
+})
+
+function person(id: string, extra: Partial<Person> = {}): Person {
+  return { id, name: null, relation: null, label: id, last_mentioned_at: null, created_at: '2026-10-05T12:00:00Z', memory_ids: [], ...extra }
+}
+
+test('what you said about people is grouped by person, who they are first, and not under About you', () => {
+  const all = [memory('mine'), memory('jo-likes', { subject: 'Jo: Likes', person_id: 'jo', subject_key: 'person.jo.likes' }),
+    memory('jo-who', { subject: 'Sister', person_id: 'jo', subject_key: 'person.jo.who' }),
+    memory('jo-old', { subject: 'Jo: Work', person_id: 'jo', status: 'superseded' })]
+  assert.deepEqual(groupMemories(all)[0].current.map((item) => item.id), ['mine'])
+  const [jo, ...rest] = groupPeople([person('jo', { name: 'Jo', relation: 'sister' }), person('nobody')], all)
+  assert.deepEqual(jo.current.map((item) => item.id), ['jo-who', 'jo-likes'])
+  assert.equal(rest.length, 0, 'someone with nothing current left is not listed')
+})
+
+test('a person is described by relation, or by what is still unknown', () => {
+  assert.equal(personLine(person('a', { name: 'Jo', relation: 'sister' })), 'Your sister')
+  assert.equal(personLine(person('b', { relation: 'mum' })), 'Name not known yet')
+  assert.equal(personLine(person('c', { name: 'Sam' })), 'Relation not known yet')
 })

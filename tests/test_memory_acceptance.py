@@ -95,7 +95,9 @@ def test_personal_memory_over_twelve_months(client, connected, clock):
     assert 'Home city: Boston' in profile
     assert 'Chicago' not in profile and 'Seattle' not in profile
     assert 'Favourite tea: hojicha' in profile and 'genmaicha' not in profile
-    assert 'Sister: Ana' in profile, 'a months-old fact stays in the profile'
+    people = section(system, "People in the user's real life (what the user told you about them; you have never met "
+                             'them, so never invent details about them or claim to know them yourself)')
+    assert "Ana (the user's sister)" in people, 'a months-old fact stays in the context'
     assert 'Might move to Denver [proposed]' in commitments
     assert 'Interview' in commitments and 'outcome not confirmed' in commitments, \
         'the date passing does not prove the interview happened'
@@ -203,7 +205,7 @@ def test_forgetting_and_restore(client, app, connected, tmp_path, clock):
     client.post(f"/api/memories/{sister['id']}/exclude")
     say(client, 'What is my sister called again, Ana?')
     request = client.get('/api/context/preview').json()
-    assert 'Sister: Ana' not in request['system']
+    assert 'Ana' not in request['system']
     assert 'My sister is called Ana' not in str(request)
 
     # A backup taken now still holds what is about to be deleted.
