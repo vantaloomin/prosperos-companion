@@ -4,7 +4,7 @@
 
 A LoRA is a small adapter that teaches an image model what one character looks like. The
 Companion guides the whole job (PRD "Character LoRA maker requirements"): gather reference
-pictures, review them, train, evaluate, then deliberately adopt the result for future images. An
+pictures, review them, train with AI Toolkit, evaluate, then deliberately adopt the result for future images. An
 adapter trained elsewhere can be imported instead, and a character can always stay on its text
 description. The code is in `companion/lora/`; files live in `lora/` beside the workspace database.
 
@@ -50,6 +50,66 @@ description. The code is in `companion/lora/`; files live in `lora/` beside the 
 - Removing an adapter deletes its file but keeps its record, because images may name it. The
   adopted adapter cannot be removed.
 
+## Configure and train
+
+**The target trainer is [AI Toolkit](https://github.com/ostris/ai-toolkit) at commit `ecee894`
+(2026-09-27), training Krea 2 through its built-in `krea2` architecture. This is not verified on
+hardware**: it was written from that commit's source and has only run against the stand-in
+trainer in `tests/stand_in_trainer/`. The app never installs AI Toolkit or downloads weights.
+
+- The user names AI Toolkit's own Python interpreter, its checkout folder and the base model
+  (default `krea/Krea-2-Raw`: train on Raw, generate on Turbo). The check only looks for the files
+  (`run.py`, `extensions_built_in/diffusion_models/krea2`); it runs nothing.
+- Before training, the user accepts a disclosure: training is local and pictures never leave the
+  computer, but AI Toolkit downloads whatever the config names that is not in its Hugging Face
+  cache (Krea 2 Raw is gated, so it needs the license accepted and `HF_TOKEN` in AI Toolkit's
+  `.env`; also the Qwen3-VL 4B text encoder and the Qwen image VAE). A local folder as the base
+  model avoids the base model download. The user also confirms the pictures show a fictional
+  adult character.
+- The page states the community-reported requirements, marked unverified: a 16 to 24 GB NVIDIA
+  GPU, about 40 to 45 minutes on an RTX 3090, up to most of a day on 12 GB, tens of gigabytes of
+  disk, and disputed step counts (3,000 or more reported to overfit).
+- Training refuses a dataset the review blocks, and classifies the appearance and every caption
+  with the image classifier: NSFW may train locally, Prohibited never trains.
+- A run freezes its dataset (each picture's digest, caption with the trigger word in place,
+  rights and source), its options and the exact config. Captions are written with the trigger
+  word substituted, because AI Toolkit does not add it when text embeddings are cached.
+
+The generated config (`lora/runs/<run>/config.json`, JSON, which AI Toolkit accepts):
+
+| Key | Value |
+| --- | --- |
+| `job`, `process[0].type` | `extension`, `sd_trainer` |
+| `model` | `name_or_path` from settings, `arch: krea2`, `quantize` and `quantize_te` on, `low_vram` optional |
+| `network` | LoKr by default (`lokr_full_rank: true`, `lokr_factor: -1`), or LoRA with `linear` = `linear_alpha` = rank |
+| `train` | batch 1, 1,500 steps, `adamw8bit` at 1e-4, bf16, flowmatch, gradient checkpointing, cached text embeddings, sampling off (evaluation happens in ComfyUI) |
+| `datasets[0]` | the run's `dataset/` folder, `.txt` captions, latents cached, resolution `[512, 1024]` (or `[512]`) |
+| `save` | float16 every 250 steps, keeping 4 |
+
+Running: `<python> run.py <config.json>` in the AI Toolkit folder, as a child process in its own
+process group. One run trains at a time, a run does not start while ComfyUI is making an image,
+and local ComfyUI images wait while a trainer runs. Chat continues, but shares the GPU if the chat
+model is local.
+
+- **Progress** is the step count AI Toolkit's progress bar printed (`120/1500 [`), shown only when
+  it has printed one. There is no time estimate. The last 60 lines of output are kept with the
+  run; the full log is in `lora/runs/<run>/trainer.log`.
+- **Cancel** sends Ctrl+C (Ctrl+Break on Windows), waits 20 seconds, then ends the process. On
+  Windows only the trainer process is ended; worker processes it started may need closing by
+  hand. Training cannot pause.
+- **Checkpoints** are AI Toolkit's `<name>_<step>.safetensors` files. Each is checked as
+  safetensors and hashed when the trainer exits. A verified checkpoint can be kept as its own
+  adapter.
+- **Resume** reruns the same config after a failure, cancellation or interruption, only when a
+  verified checkpoint exists. AI Toolkit continues from the newest file in its folder, so any file
+  that failed the check is moved to `set-aside/` first. **Restart** begins again from step 0 and
+  moves the earlier checkpoints to `discarded-attempt-<n>/`; nothing is deleted.
+- A run that exits cleanly with a verified final file becomes an adapter. It is not adopted;
+  the user evaluates and chooses. Any other ending is `failed` with the exit code and last line.
+- After the app restarts, a run that was training becomes `interrupted`. If its process is still
+  alive, its pid is kept and no new run starts until it is gone. Closing the app normally ends the
+  trainer.
+
 ## API
 
 All writes need the `x-companion-client: workspace` header. Uploads send the file itself as the
@@ -71,3 +131,10 @@ request body.
 | `DELETE /api/lora/adapters/{id}` | Remove the file, keep the record |
 | `GET /api/lora/appearance` | `current` and every adopted version |
 | `POST /api/lora/appearance` | `{method, adapter_id?, strength?, note?}`; returns `install` for a LoRA |
+| `GET /api/lora/trainer` | The target trainer, `verified: false`, disclosure, requirements, defaults and the file check |
+| `GET /api/lora/runs` | Runs, newest first |
+| `POST /api/lora/runs` | `{name, trigger, network?, rank?, steps?, learning_rate?, save_every?, resolution?, low_vram?, attest_fictional_adult, accept_disclosure}` |
+| `GET /api/lora/runs/{id}` | State, reported progress, checkpoints, log tail, frozen dataset and config |
+| `GET /api/lora/runs/{id}/log` | The trainer's console output |
+| `POST /api/lora/runs/{id}/cancel`, `/resume`, `/restart` | Stop, continue from a verified checkpoint, or begin again |
+| `POST /api/lora/runs/{id}/keep` | `{step}`: make a verified checkpoint an adapter |

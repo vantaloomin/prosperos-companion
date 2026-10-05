@@ -19,6 +19,7 @@ from companion.images.runner import ImageRunner
 from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
 from companion.lora import routes as lora_routes
+from companion.lora import training as lora_training
 from companion.mcp import routes as context_routes
 from companion.mcp import weather as observed_weather
 from companion.mcp.lookups import Lookups
@@ -51,17 +52,19 @@ async def invalid_request(_request: Request, error: RequestValidationError):
 async def lifespan(app):
     recover(app.state.database)
     image_jobs.recover(app.state.database)
+    lora_training.recover(app.state.database)
     tasks = [asyncio.create_task(app.state.life.run_forever()),
              asyncio.create_task(app.state.images.run_forever())] if app.state.life_tasks else []
     app.state.memory.kick()
     yield
+    app.state.training.shutdown()
     for task in tasks:
         task.cancel()
 
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
                life_tasks=True, world=None, embedder=None, image_adapters=None,
-               context_transports=None) -> FastAPI:
+               context_transports=None, trainer_spawn=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     app.state.vault = vault or SystemVault()
@@ -79,6 +82,9 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.life.lookups = app.state.lookups
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
+    app.state.training = lora_training.TrainingRunner(app.state.database, trainer_spawn)
+    # Local ComfyUI images wait while a trainer holds the GPU (compute and job control).
+    app.state.images.gpu_busy = lambda: app.state.training.active
     app.state.life_tasks = life_tasks
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', '127.0.0.1', 'testserver'])
     app.middleware('http')(guard_writes)

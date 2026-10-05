@@ -1,10 +1,10 @@
 """LoRA maker API: references, adapters and appearance versions."""
 from fastapi import APIRouter, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 
 from companion.errors import DomainError
-from companion.lora import appearance, references
-from companion.lora.models import Adopt, LoraSettingsUpdate, ReferenceUpdate
+from companion.lora import appearance, references, training
+from companion.lora.models import Adopt, KeepCheckpoint, LoraSettingsUpdate, ReferenceUpdate, RunCreate
 
 router = APIRouter(prefix='/api/lora')
 
@@ -102,3 +102,58 @@ def read_appearance(request: Request):
 @router.post('/appearance')
 def adopt(request: Request, body: Adopt):
     return appearance.adopt(db(request), body)
+
+
+def runner(request: Request) -> training.TrainingRunner:
+    return request.app.state.training
+
+
+@router.get('/trainer')
+def describe_trainer(request: Request):
+    return training.describe(db(request))
+
+
+@router.get('/runs')
+def list_runs(request: Request):
+    return {'runs': training.listing(db(request))}
+
+
+@router.post('/runs')
+async def create_run(request: Request, body: RunCreate):
+    run = training.create(db(request), body)
+    runner(request).start(run['id'])
+    return run
+
+
+@router.get('/runs/{run_id}')
+def read_run(request: Request, run_id: str):
+    return training.get(db(request), run_id)
+
+
+@router.get('/runs/{run_id}/log', response_class=PlainTextResponse)
+def run_log(request: Request, run_id: str):
+    with db(request).connect() as connection:
+        run = training.get_row(connection, run_id)
+    path = training.run_folder(db(request), run) / 'trainer.log'
+    return path.read_text(encoding='utf-8', errors='replace')[-200_000:] if path.is_file() else ''
+
+
+@router.post('/runs/{run_id}/cancel')
+async def cancel_run(request: Request, run_id: str):
+    return await runner(request).cancel(run_id)
+
+
+@router.post('/runs/{run_id}/resume')
+async def resume_run(request: Request, run_id: str):
+    return runner(request).resume(run_id)
+
+
+@router.post('/runs/{run_id}/restart')
+async def restart_run(request: Request, run_id: str):
+    return runner(request).restart(run_id)
+
+
+@router.post('/runs/{run_id}/keep')
+def keep_checkpoint(request: Request, run_id: str, body: KeepCheckpoint):
+    """Make a verified intermediate checkpoint an adapter, to evaluate or adopt."""
+    return training.keep(db(request), run_id, body.step)

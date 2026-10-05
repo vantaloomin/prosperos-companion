@@ -46,6 +46,8 @@ class ImageRunner:
         self.scheduler = scheduler
         self.tasks: dict[str, tuple[asyncio.Task, dict]] = {}
         self.wakeup: asyncio.Event | None = None
+        # Set by the app: true while a LoRA trainer holds the local GPU.
+        self.gpu_busy = lambda: False
 
     def wake(self):
         if self.wakeup:
@@ -71,6 +73,8 @@ class ImageRunner:
         if backend['kind'] == 'codex':
             return any(meta['kind'] == 'codex' for meta in running)
         if backend['kind'] == 'comfyui' and self.scheduler is not None and self.scheduler.foreground:
+            return True
+        if backend['kind'] == 'comfyui' and backends.is_local(backend) and self.gpu_busy():
             return True
         return sum(meta['id'] == backend['id'] for meta in running) >= backend['concurrency']
 
