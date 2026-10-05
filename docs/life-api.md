@@ -37,6 +37,17 @@ A batch synthesizes fiction *now* for routine slots that ended while the user wa
 `created_at` is when it ran; each event's `starts_at`/`ends_at` is when the fictional moment
 happened. Never word this as the companion having been active while the app was closed.
 
+### Preparing while the user types
+
+Call `POST /api/life/prepare` (no body) when the user starts typing or the window sits idle;
+debouncing to once every few seconds is plenty. It returns at once with `{"state": "started"}` or
+`{"state": "in_progress"}` and never delays anything. In the background it brings the agenda up to
+date and, when a model is connected and `phrase_with_model` is on, phrases the companion's next
+couple of upcoming agenda entries at background priority. A conversation reply interrupts it. When
+one of those slots is later simulated, the batch uses the prepared wording without another model
+call (the event's `inputs.prepared` is `true`), provided the model, address and prompt version are
+unchanged. A server running with background activity on prepares after each tick as well.
+
 ### Batch (`run`) shape
 
 ```json
