@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { memo, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { shownAttempt, statusDetail, type Turn } from './turns'
@@ -22,7 +22,8 @@ function Paragraphs({ text }: { text: string }) {
   return <>{text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</>
 }
 
-export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, highlight }: Props) {
+/** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, highlight }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
@@ -42,7 +43,7 @@ export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, on
       )}
     </>
   )
-}
+})
 
 function UserMessage({ message, found, onRemember, onDecline, onEdit }: { message: Message; found: boolean; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   return (

@@ -14,7 +14,7 @@ import { GettingStarted } from './GettingStarted'
 import { TurnView } from './TurnView'
 import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
-import { applyFinished, groupTurns, mergeMessages, replyAnnouncement, streamingIds } from './turns'
+import { applyFinished, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
@@ -142,7 +142,17 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     return true
   }
 
-  const turns = groupTurns(messages)
+  // Stable handlers and turns, so a streaming reply re-renders its own turn rather than the whole transcript.
+  const handlers = useRef({ retry, stop, remember })
+  useEffect(() => { handlers.current = { retry, stop, remember } })
+  const turnActions = useMemo(() => ({
+    retry: (id: string) => void handlers.current.retry(id),
+    stop: (id: string) => void handlers.current.stop(id),
+    remember: (message: Message) => void handlers.current.remember(message),
+    decline: setDeclining,
+    edit: setEditing,
+  }), [])
+  const turns = useMemo(() => groupTurns(messages), [messages])
   const following = streamingIds(messages)
   const latestUserId = turns.at(-1)?.user.id
   const streaming = following.length > 0
@@ -159,7 +169,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} onEdit={setEditing} highlight={found?.id} />
+            <TurnView key={turn.user.id} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} highlight={found?.id} />
           ))}
         </div>
       </div>

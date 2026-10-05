@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyFinished, defaultAttempt, groupTurns, mergeMessages, replyAnnouncement, streamingIds } from '../../src/features/conversation/turns.ts'
+import { applyFinished, defaultAttempt, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds } from '../../src/features/conversation/turns.ts'
 import { editDraft, newDraft, readDraft, writeDraft } from '../../src/features/conversation/draft.ts'
 import type { Message } from '../../src/types.ts'
 
@@ -60,4 +60,12 @@ test('a finished reply is announced with the words shown under it, without repea
   assert.equal(replyAnnouncement('Mira', message('r', 2, { role: 'companion', status: 'complete' })), 'Mira replied.')
   assert.equal(replyAnnouncement('Mira', message('r', 2, { role: 'companion', status: 'cancelled', error: 'Stopped.' })), 'You stopped this reply.')
   assert.equal(replyAnnouncement('Mira', message('r', 2, { role: 'companion', status: 'failed', error: 'The model timed out.' })), 'This reply failed. The model timed out.')
+})
+
+test('only the turn being streamed sees the live text; the others keep the same empty map', () => {
+  const [quiet, streaming] = groupTurns([message('u1', 1), reply('r1', 2, 'u1'), message('u2', 3), reply('r2', 4, 'u2')])
+  const live = { r2: 'Hello' }
+  assert.equal(liveFor(streaming, live), live)
+  assert.equal(liveFor(quiet, live), liveFor(quiet, { r2: 'Hello again' }))
+  assert.deepEqual(liveFor(quiet, live), {})
 })

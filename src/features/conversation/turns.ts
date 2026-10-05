@@ -76,3 +76,13 @@ export function shownAttempt(turn: Turn, isLatest: boolean, chosen: string | nul
   const pick = (id?: string | null) => (id ? turn.attempts.find((attempt) => attempt.id === id) : undefined)
   return pick(chosen) ?? pick(highlight) ?? defaultAttempt(turn, isLatest)
 }
+
+const NO_LIVE: Record<string, string> = {}
+
+/**
+ * The streamed text a turn needs: the live map for a turn with an attempt being written, else one
+ * shared empty map, so a memoized turn that is not streaming keeps equal props and skips re-rendering.
+ */
+export function liveFor(turn: Turn, live: Record<string, string>): Record<string, string> {
+  return turn.attempts.some((attempt) => attempt.id in live) ? live : NO_LIVE
+}
