@@ -86,20 +86,26 @@ try {
 } finally { & taskkill.exe /PID $dev.Id /T /F | Out-Null }
 Check (Wait-State 'stopped') 'closing dev mode stops its backend'
 
-# update: fast-forward from a local origin, then reinstall
-git config --global user.email 'ci@example.invalid'
-git config --global user.name 'CI'
+# update: fast-forward from a local origin, then reinstall. CI checkouts are shallow, so the
+# local origin accepts shallow pushes.
+function Invoke-TestGit([string[]]$Arguments) {
+  & git @Arguments | Out-Host
+  if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') failed" }
+}
+Invoke-TestGit @('config', '--global', 'user.email', 'ci@example.invalid')
+Invoke-TestGit @('config', '--global', 'user.name', 'CI')
 $remote = Join-Path $temp 'update-origin.git'
 $clone = Join-Path $temp 'update-clone'
-git init --quiet --bare $remote
-git checkout --quiet -B main
-git push --quiet $remote HEAD:refs/heads/main
-git clone --quiet --branch main $remote $clone
+Invoke-TestGit @('init', '--quiet', '--bare', $remote)
+Invoke-TestGit @('-C', $remote, 'config', 'receive.shallowUpdate', 'true')
+Invoke-TestGit @('checkout', '--quiet', '-B', 'main')
+Invoke-TestGit @('push', '--quiet', $remote, 'HEAD:refs/heads/main')
+Invoke-TestGit @('clone', '--quiet', '--branch', 'main', $remote, $clone)
 Set-Content -LiteralPath (Join-Path $clone 'update-marker.txt') -Value 'pulled'
-git -C $clone add update-marker.txt
-git -C $clone commit --quiet -m 'Marker for the update test'
-git -C $clone push --quiet origin main
-git remote set-url origin $remote
+Invoke-TestGit @('-C', $clone, 'add', 'update-marker.txt')
+Invoke-TestGit @('-C', $clone, 'commit', '--quiet', '-m', 'Marker for the update test')
+Invoke-TestGit @('-C', $clone, 'push', '--quiet', 'origin', 'main')
+Invoke-TestGit @('remote', 'set-url', 'origin', $remote)
 Check ((Invoke-Bat 'update.bat') -eq 0) 'update.bat pulls main and reinstalls'
 Check (Test-Path -LiteralPath (Join-Path $CompanionRoot 'update-marker.txt')) 'the new commit was pulled'
 Check (Test-Path -LiteralPath 'dist\index.html') 'the interface was rebuilt'
@@ -108,5 +114,5 @@ try {
   Check (Wait-State 'running') 'the Companion launches after updating'
   Check ((Invoke-Bat 'update.bat') -eq 1) 'update.bat refuses while the Companion runs'
 } finally { & taskkill.exe /PID $app.Id /T /F | Out-Null }
-git checkout --quiet -b elsewhere
+Invoke-TestGit @('checkout', '--quiet', '-b', 'elsewhere')
 Check ((Invoke-Bat 'update.bat') -eq 1) 'update.bat refuses a branch other than main'
