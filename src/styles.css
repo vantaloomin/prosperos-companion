@@ -148,3 +148,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .message-actions .text-button { opacity: 0; font-size: 0.75rem; }
 .message:hover .message-actions .text-button, .message:focus-within .message-actions .text-button { opacity: 1; }
 @media (hover: none) { .message-actions .text-button { opacity: .8; } }
+
+.settings > .notice { max-width: 760px; margin-bottom: 16px; }
+.settings-section { padding: 24px 0; border-top: 1px solid var(--border); }
+.settings-section:first-of-type { border-top: 0; padding-top: 0; }
+.settings-section h2 { margin-bottom: 6px; }

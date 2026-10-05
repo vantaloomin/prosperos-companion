@@ -109,3 +109,15 @@ export interface Memory {
 }
 
 export interface DeleteResult { deleted_memory_ids: string[]; redacted_message_ids: string[]; linked_memory_ids: string[] }
+
+export interface LifeSettings {
+  automatic_events: boolean
+  catch_up_on_return: boolean
+  catch_up_max_events: number
+  catch_up_lookback_hours: number
+  return_gap_hours: number
+  background_interval_minutes: number
+  background_daily_events: number
+}
+
+export interface BackupResult { path: string; created_at: string; database_bytes: number }
