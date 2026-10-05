@@ -129,6 +129,21 @@ the life composer. The minimum is one source, one neighbourhood and one place.
 Built-in cities cannot be changed or deleted, only copied. A user city's `data_version` is a hash
 of its content, so editing it changes the version later events record.
 
+## City packs
+
+A city pack is one city JSON file (the same schema) dropped into a pack folder. Packs load at start,
+read-only like built-in cities (copy one to edit it), and can be personal or private: a pack marked
+`"distribution": "private"` is meant for its owner only, such as fan cities of settings owned by
+others. Pack folders:
+
+- `private-cities/` in the checkout (gitignored, so packs there are never committed)
+- `city-packs/` in the workspace data directory (`%LOCALAPPDATA%\ProsperoCompanion\city-packs` on Windows)
+- or the folders in `COMPANION_CITY_PACKS` (separated by `;` on Windows, `:` elsewhere), instead of both
+
+`GET /api/world/packs` lists the folders, the packs loaded and any file that failed validation with
+the reason; `POST /api/world/packs/reload` rereads them without restarting. A pack cannot reuse a
+built-in city's id.
+
 ## Adding or refreshing a built-in city
 
 1. Copy `scripts/world/baltimore.py`, keep its two source records, and fill in the city.

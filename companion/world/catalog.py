@@ -2,11 +2,15 @@
 import hashlib
 import json
 import math
+import os
 import re
 from functools import cache
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from companion.errors import DomainError
+from companion.identity import data_dir
 from companion.world.schema import Careers, City
 
 DATA = Path(__file__).parent / 'data'
@@ -40,16 +44,54 @@ def prepare(raw: bytes | str | dict) -> dict:
     return data
 
 
+PACKS_ENV = 'COMPANION_CITY_PACKS'
+# Personal city packs (PRD W5), such as private fan cities. The checkout's folder is gitignored.
+CHECKOUT_PACKS = Path(__file__).resolve().parents[2] / 'private-cities'
+
+
+def pack_dirs() -> list[Path]:
+    """Folders searched for city packs: `COMPANION_CITY_PACKS` (os.pathsep-separated) or the defaults."""
+    if os.environ.get(PACKS_ENV):
+        return [Path(item) for item in os.environ[PACKS_ENV].split(os.pathsep) if item]
+    return [CHECKOUT_PACKS, data_dir() / 'city-packs']
+
+
 @cache
-def cities() -> dict[str, dict]:
-    """The built-in cities shipped with the app."""
-    result = {}
+def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
+    result, errors = {}, []
     for path in sorted((DATA / 'cities').glob('*.json')):
         data = prepare(path.read_bytes())
         if data['id'] != path.stem:
             raise ValueError(f'{path.name} holds city {data["id"]}.')
-        result[data['id']] = data | {'builtin': True}
-    return result
+        result[data['id']] = data | {'builtin': True, 'origin': 'builtin'}
+    for folder in pack_dirs():
+        for path in sorted(folder.glob('*.json')) if folder.is_dir() else []:
+            try:
+                data = prepare(path.read_bytes())
+            except (ValidationError, ValueError, OSError) as error:
+                errors.append({'file': str(path), 'error': str(error)[:2000]})
+                continue
+            if data['id'] in result:
+                errors.append({'file': str(path), 'error': f'City id {data["id"]!r} is already loaded.'})
+                continue
+            result[data['id']] = data | {'builtin': False, 'origin': 'pack', 'pack_file': str(path)}
+    return result, tuple(errors)
+
+
+def cities() -> dict[str, dict]:
+    """Built-in cities shipped with the app, then any city packs found in the pack folders. Read-only."""
+    return _library()[0]
+
+
+def packs() -> dict:
+    """What the pack folders hold, for the interface and for troubleshooting a pack that did not load."""
+    loaded = [summary(data) | {'file': data['pack_file']} for data in cities().values() if data['origin'] == 'pack']
+    return {'folders': [str(folder) for folder in pack_dirs()], 'loaded': loaded, 'errors': list(_library()[1])}
+
+
+def reload() -> dict:
+    _library.cache_clear()
+    return packs()
 
 
 def city(city_id: str, extra: dict[str, dict] | None = None) -> dict:
@@ -65,7 +107,8 @@ def summary(data: dict) -> dict:
             'data_version')
     return {key: data[key] for key in keys} | {
         'counts': {key: len(data[key]) for key in ('neighborhoods', 'places', 'colleges', 'employers',
-                                                   'annual_events')}, 'builtin': data.get('builtin', False)}
+                                                   'annual_events')}, 'builtin': data.get('builtin', False),
+        'origin': data.get('origin', 'user'), 'distribution': data['distribution']}
 
 
 def neighborhood(data: dict, hood_id: str) -> dict:

@@ -47,6 +47,16 @@ def resolve(request: Request, text: str = Query(max_length=200)):
     return {'match': catalog.resolve(text, user_cities(request))}
 
 
+@router.get('/packs')
+def read_packs():
+    return catalog.packs()
+
+
+@router.post('/packs/reload')
+def reload_packs():
+    return catalog.reload()
+
+
 @router.get('/template')
 def read_template(request: Request):
     return custom.template(request.app.state.database.now()[:10])

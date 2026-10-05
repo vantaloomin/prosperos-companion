@@ -12,12 +12,18 @@ from companion.models import CharacterDefinition
 from companion.world import catalog, generators
 from companion.world.schema import City
 
-CITIES = sorted(catalog.cities())
+CITIES = sorted(key for key, value in catalog.cities().items() if value['origin'] == 'builtin')
+DERIVED = ('data_version', 'builtin', 'origin', 'pack_file')
 SEEDS = [f'seed-{index}' for index in range(60)]
 
 
 def baltimore():
     return catalog.city('baltimore')
+
+
+def plain(data):
+    """A city as written, without the fields the loader adds."""
+    return {key: value for key, value in copy.deepcopy(data).items() if key not in DERIVED}
 
 
 @pytest.mark.parametrize('city_id', CITIES)
@@ -47,14 +53,12 @@ def test_shipped_json_matches_its_source_script(city_id):
 
 
 def test_validation_rejects_broken_references():
-    raw = copy.deepcopy(baltimore())
-    raw.pop('data_version'), raw.pop('builtin')
+    raw = plain(baltimore())
     City.model_validate(raw)
     raw['places'][0] = raw['places'][0] | {'neighborhood': 'atlantis'}
     with pytest.raises(ValidationError, match='atlantis|neighborhoods'):
         City.model_validate(raw)
-    raw = copy.deepcopy(baltimore())
-    raw.pop('data_version'), raw.pop('builtin')
+    raw = plain(baltimore())
     raw['colleges'][0] = raw['colleges'][0] | {'source': 'made-up'}
     with pytest.raises(ValidationError, match='sources'):
         City.model_validate(raw)
@@ -220,9 +224,7 @@ def test_copying_a_built_in_city_and_living_in_a_user_city(app, client):
 
 
 def test_settings_without_money_or_climate_still_generate():
-    raw = copy.deepcopy(baltimore())
-    for key in ('data_version', 'builtin'):
-        raw.pop(key)
+    raw = plain(baltimore())
     raw |= {'id': 'storybook', 'setting': 'original', 'era': 'fantasy', 'climate': None, 'employers': [],
             'career_hubs': [], 'speeds': {'walk': 4.5, 'horse': 12},
             'careers': [{'id': 'baker-fantasy', 'name': 'Baker', 'sector': 'food', 'schedule': 'early', 'pay': '$',
@@ -236,3 +238,31 @@ def test_settings_without_money_or_climate_still_generate():
     assert generators.conditions(data, date(2026, 1, 1)) is None
     with pytest.raises(DomainError):
         generators.job(data, 'software-engineer', seed='x')
+
+
+def test_private_city_packs_load_from_a_local_folder(client, tmp_path, monkeypatch):
+    pack = plain(baltimore()) | {'id': 'harbor-town', 'name': 'Harbor Town', 'aliases': [],
+                                  'setting': 'fictional', 'distribution': 'private'}
+    (tmp_path / 'harbor-town.json').write_text(json.dumps(pack), encoding='utf-8')
+    (tmp_path / 'broken.json').write_text('{"id": "broken"}', encoding='utf-8')
+    monkeypatch.setenv(catalog.PACKS_ENV, str(tmp_path))
+    try:
+        report = client.post('/api/world/packs/reload').json()
+        assert [item['id'] for item in report['loaded']] == ['harbor-town']
+        assert report['loaded'][0]['distribution'] == 'private' and report['loaded'][0]['origin'] == 'pack'
+        assert report['errors'][0]['file'].endswith('broken.json')
+        assert client.get('/api/world/cities/harbor-town/generate/job',
+                          params={'career': 'teacher', 'seed': 's'}).status_code == 200
+        assert client.delete('/api/world/cities/harbor-town').status_code == 409
+        assert client.post('/api/world/cities', json=pack).status_code == 409
+        copied = client.post('/api/world/cities/harbor-town/copy', json={'id': 'my-harbor', 'name': 'Mine'})
+        assert copied.status_code == 200 and copied.json()['origin'] == 'user'
+    finally:
+        monkeypatch.delenv(catalog.PACKS_ENV)
+        catalog.reload()
+    assert 'harbor-town' not in catalog.cities()
+
+
+def test_packs_are_not_committed():
+    ignored = (Path(__file__).parent.parent / '.gitignore').read_text(encoding='utf-8')
+    assert '/private-cities/' in ignored and catalog.CHECKOUT_PACKS.name == 'private-cities'
