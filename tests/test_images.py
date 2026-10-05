@@ -293,6 +293,31 @@ def test_a_corrected_event_makes_queued_work_stale(client, companion, clock, ada
     assert 'dog' in fresh['prompt']
 
 
+def test_a_finished_image_of_a_corrected_event_is_marked_outdated(client, companion, clock, adapters):
+    """One event through post, image and correction (acceptance: chat and feed coherence)."""
+    local_comfy(client)
+    clock.advance(timedelta(hours=2))
+    start = clock.now() - timedelta(hours=1)
+    event = ok(client.post('/api/events', json={
+        'idempotency_key': 'event-place', 'kind': 'ordinary', 'summary': 'Mira had a coffee at The Charmery.',
+        'details': {'post': 'Quiet corner.', 'place': {'id': 'the-charmery', 'name': 'The Charmery', 'kind': 'cafe'}},
+        'starts_at': start.isoformat(), 'ends_at': (start + timedelta(minutes=30)).isoformat()}))
+    ok(client.post(f"/api/events/{event['id']}/commit"))
+    post = ok(client.post('/api/feed/posts', json={'event_id': event['id']}))
+    generate(client, post)
+    drain(client)
+    assert post_image(client, post)['outdated'] is False
+    ok(client.post(f"/api/events/{event['id']}/correct",
+                   json={'summary': 'Mira had a coffee at Artifact Coffee.', 'details': event['details']}))
+    image = post_image(client, post)
+    assert image['status'] == 'completed' and image['outdated'] is True
+    preview = ok(client.post('/api/images/preview', json={'post_id': post['id']}))
+    assert 'Artifact Coffee' in preview['prompt'] and 'Charmery' not in preview['prompt']
+    generate(client, post)
+    drain(client)
+    assert post_image(client, post)['outdated'] is False
+
+
 def test_rechecked_at_dispatch_when_the_request_becomes_nsfw(client, companion, clock, adapters):
     hosted = add_backend(client, kind='hosted', provider='openai', model='gpt-image-1', api_key='k')
     post = make_post(client, clock)

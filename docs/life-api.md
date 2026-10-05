@@ -324,7 +324,7 @@ A post:
   "events": [{"id": "…", "summary": "Walked to the harbour market.", "caption": "Lovely light today.",
               "mood": "content", "label": "Morning", "kind": "ordinary",
               "starts_at": "…", "ends_at": "…", "revision": 1}],
-  "image": {"status": "none", "job_id": null, "ref": null, "error": null, "updated_at": null}
+  "image": {"status": "none", "job_id": null, "ref": null, "error": null, "updated_at": null, "outdated": false}
 }
 ```
 
@@ -337,7 +337,9 @@ A post:
 - `occurs_at` is the fictional time the post is about; `created_at` is when it was written.
 - `image.status` is `none`, `queued`, `running`, `completed`, `failed`, `cancelled` or
   `interrupted`; `image.ref` is the job whose file is shown. Render the text whatever the image
-  state. See [image generation](images.md).
+  state. `image.outdated` is true when the shown picture was made from an event version that has
+  since been corrected or withdrawn; say so rather than presenting it as the corrected moment. See
+  [image generation](images.md).
 - Hide is reversible. Remove clears the post for good but leaves its events in the companion's
   life and conversation. Removed posts are not listed or exported.
 - `discuss` sends a chat message linked to the post and returns the same shape as

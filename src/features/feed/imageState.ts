@@ -14,10 +14,16 @@ const LINES: Partial<Record<ImageStatus, Line>> = {
   interrupted: (image) => image.error ?? 'The app closed before the image was made.',
 }
 
+export const OUTDATED = 'This picture shows the moment before it was corrected. Make a new version to match.'
+
 /** One plain line about the post's current image job, or null when there is nothing to say. */
 export function imageLine(image: PostImage, waitingFor?: string | null): string | null {
-  return LINES[image.status]?.(image, waitingFor) ?? null
+  return LINES[image.status]?.(image, waitingFor) ?? (image.outdated ? OUTDATED : null)
 }
+
+/** Alt text that never presents a picture of an earlier version as the corrected moment. */
+export const imageAlt = (image: PostImage, summary: string) =>
+  image.outdated ? `Illustration of an earlier version of this moment, before it was corrected` : `Illustration: ${summary}`
 
 const TIERS: Record<ImageJob['classification'], string> = { safe: 'Safe', nsfw: 'NSFW (local only)', prohibited: 'Not allowed' }
 
