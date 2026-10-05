@@ -389,3 +389,74 @@ CREATE TABLE IF NOT EXISTS agenda_cursors (
   through TEXT NOT NULL,
   PRIMARY KEY (timeline_id, subject)
 );
+
+-- Image generation (PRD F3–F9). Every backend is off until the user configures it; text never
+-- waits for an image.
+CREATE TABLE IF NOT EXISTS image_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  automatic_images INTEGER NOT NULL DEFAULT 0 CHECK (automatic_images IN (0, 1)),
+  automatic_since TEXT,
+  daily_limit INTEGER NOT NULL DEFAULT 3,
+  queue_limit INTEGER NOT NULL DEFAULT 6,
+  fallback INTEGER NOT NULL DEFAULT 0 CHECK (fallback IN (0, 1)),
+  aspect TEXT NOT NULL DEFAULT 'landscape' CHECK (aspect IN ('square', 'landscape', 'portrait')),
+  style TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+-- A configured backend. Secrets live in the OS vault under `credential_ref`, never here.
+CREATE TABLE IF NOT EXISTS image_backends (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL CHECK (kind IN ('comfyui', 'codex', 'hosted')),
+  provider TEXT NOT NULL,
+  label TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  position INTEGER NOT NULL,
+  config TEXT NOT NULL DEFAULT '{}',
+  credential_ref TEXT,
+  -- The user marked a non-loopback ComfyUI address as a machine they control (F6).
+  controlled_machine INTEGER NOT NULL DEFAULT 0 CHECK (controlled_machine IN (0, 1)),
+  concurrency INTEGER NOT NULL DEFAULT 1,
+  -- Set when the backend must not run until the user acts, such as signing in to Codex again (F8).
+  blocked_reason TEXT,
+  disclosure_accepted_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- One image request. `inputs` freezes what was asked so a retry can repeat it exactly (F4).
+CREATE TABLE IF NOT EXISTS image_jobs (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL REFERENCES feed_posts(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  status TEXT NOT NULL CHECK (status IN
+    ('queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')),
+  trigger TEXT NOT NULL CHECK (trigger IN ('manual', 'automatic', 'retry', 'fallback')),
+  retry_of TEXT REFERENCES image_jobs(id),
+  inputs TEXT NOT NULL,
+  character_version_id TEXT NOT NULL REFERENCES character_versions(id),
+  classification TEXT NOT NULL CHECK (classification IN ('safe', 'nsfw', 'prohibited')),
+  classification_reasons TEXT NOT NULL DEFAULT '[]',
+  classifier TEXT NOT NULL,
+  routing_reason TEXT NOT NULL,
+  backend_id TEXT,
+  backend_kind TEXT,
+  provider TEXT,
+  model TEXT,
+  workflow TEXT,
+  identity_method TEXT,
+  seed INTEGER,
+  remote_id TEXT,
+  output_file TEXT,
+  raw_file TEXT,
+  width INTEGER,
+  height INTEGER,
+  usage TEXT,
+  error TEXT,
+  error_code TEXT,
+  created_at TEXT NOT NULL,
+  started_at TEXT,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS image_jobs_post ON image_jobs(post_id, created_at);
+CREATE INDEX IF NOT EXISTS image_jobs_status ON image_jobs(status, created_at);

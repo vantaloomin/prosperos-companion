@@ -13,6 +13,9 @@ from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.errors import DomainError
 from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
+from companion.images import jobs as image_jobs
+from companion.images import routes as image_routes
+from companion.images.runner import ImageRunner
 from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
 from companion.memory.worker import MemoryWorker
@@ -43,15 +46,17 @@ async def invalid_request(_request: Request, error: RequestValidationError):
 @asynccontextmanager
 async def lifespan(app):
     recover(app.state.database)
-    task = asyncio.create_task(app.state.life.run_forever()) if app.state.life_tasks else None
+    image_jobs.recover(app.state.database)
+    tasks = [asyncio.create_task(app.state.life.run_forever()),
+             asyncio.create_task(app.state.images.run_forever())] if app.state.life_tasks else []
     app.state.memory.kick()
     yield
-    if task:
+    for task in tasks:
         task.cancel()
 
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
-               life_tasks=True, world=None, embedder=None) -> FastAPI:
+               life_tasks=True, world=None, embedder=None, image_adapters=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     app.state.vault = vault or SystemVault()
@@ -61,6 +66,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.conversation.after_turn = app.state.memory.kick
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world or CatalogWorld(app.state.database))
+    app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
+                                   app.state.conversation.scheduler)
     app.state.life_tasks = life_tasks
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', '127.0.0.1', 'testserver'])
     app.middleware('http')(guard_writes)
@@ -71,6 +78,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(life_routes.today_router)
     app.include_router(life_routes.feed_router)
     app.include_router(world_routes.router)
+    app.include_router(image_routes.router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

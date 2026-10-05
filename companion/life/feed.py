@@ -199,9 +199,19 @@ def set_image(database, post_id, job_id, status, ref=None, error=None) -> dict:
     with database.connect(write=True) as connection:
         post = one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
         require(post['status'] != 'removed', 'This post was removed.', 409)
-        if status != 'queued':
-            require(post['image_job_id'] == job_id, 'This image job is no longer current for the post.', 409)
-        connection.execute('UPDATE feed_posts SET image_status=?, image_job_id=?, image_ref=COALESCE(?, image_ref), '
-                           'image_error=?, image_updated_at=? WHERE id=?',
-                           (status, job_id, ref, error, database.now(), post_id))
+        applied = apply_image(connection, post_id, job_id, status, database.now(), ref, error,
+                              replace=status == 'queued')
+        require(applied, 'This image job is no longer current for the post.', 409)
         return post_view(connection, one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,)))
+
+
+def apply_image(connection, post_id, job_id, status, timestamp, ref=None, error=None, replace=False) -> bool:
+    """Record a job's state on its post inside the caller's transaction. Only the post's current
+    job may change it unless `replace` makes this job current. Returns whether it applied."""
+    post = one(connection, 'SELECT status, image_job_id FROM feed_posts WHERE id=?', (post_id,))
+    if post['status'] == 'removed' or (not replace and post['image_job_id'] != job_id):
+        return False
+    connection.execute('UPDATE feed_posts SET image_status=?, image_job_id=?, image_ref=COALESCE(?, image_ref), '
+                       'image_error=?, image_updated_at=? WHERE id=?',
+                       (status, job_id, ref, error, timestamp, post_id))
+    return True

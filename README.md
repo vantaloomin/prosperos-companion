@@ -9,5 +9,6 @@ On Windows, double-click `install.bat` once, then `launch.bat` to open the app. 
 - [Development](docs/development.md)
 - [Life simulation API](docs/life-api.md)
 - [World data](docs/world-data.md)
+- [Image generation](docs/images.md)
 
 Licensed under the GNU Affero General Public License v3.0, matching the Study code it reuses.

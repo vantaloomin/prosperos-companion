@@ -220,11 +220,18 @@ account of every event and a correction reaches all three. A return batch publis
 post and a background batch one post per event; posts wait until at least one of their events is
 committed. Read state, hide/remove, reactions, export and links from chat messages
 (`message_post_links`) live beside the posts. A message linked to a post adds that post to the
-next reply's context. The image columns are a hook for the later image job, which may only
-complete the job currently recorded on the post.
+next reply's context. The image columns record the post's current image job, which only that
+job may change ([image generation](images.md)).
 
 `companion/life/today.py` assembles the Today view and records the last visit (`visits`), which
 only moves forward.
+
+## Images (F3–F9)
+
+`companion/images/` classifies each request locally before dispatch, routes NSFW to a local
+ComfyUI only and refuses Prohibited requests everywhere, then runs it on a ComfyUI server, the
+Codex CLI or a hosted image API. Jobs freeze their inputs and record provenance; a late result
+never replaces the post's chosen image. See [image generation](images.md).
 
 ## Backups
 
@@ -235,6 +242,6 @@ reference cleared. Enabling memory or background activity requires marking the r
 
 ## Not yet built
 
-Timeline forking, model-proposed memory suggestions, MCP tools, image generation
-and LoRA training, durable cross-process scheduling, restore into an existing workspace, and a
+Timeline forking, model-proposed memory suggestions, MCP tools, LoRA training, reference images
+for image requests, durable cross-process scheduling, restore into an existing workspace, and a
 Windows installer (the install and launch scripts need Python and Node already present).
