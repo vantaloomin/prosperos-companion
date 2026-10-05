@@ -105,6 +105,44 @@ thread is open at a time, and the batch result for the slot carries `thread_even
 `thread_outcome`. `GET /api/today` lists committed open threads whose outcome is not committed yet
 under `plans.threads`.
 
+## Social circle
+
+The companion has a small circle of supporting people (PRD T8). Each is assembled from the city
+data and a seed, without a model: a first name, how they know the companion, a job and that job's
+weekly routine. The circle is created the first time it is needed. Its members are fictional
+supporting characters, never the user and never a source of facts about the user.
+
+```http
+GET   /api/life/circle                     # ?include_removed=true also lists removed people
+PATCH /api/life/circle/{id}                {"name": "Rowan"}
+POST  /api/life/circle/{id}/remove
+POST  /api/life/circle/{id}/restore
+GET   /api/life/circle/{id}/diary          # ?before=<starts_at>&limit=20, newest first
+```
+
+A person is `{id, name, role, status, revision, career, employer, neighborhood, city, refs, sources,
+data_version, schedule, now, recent}`. `now` is the routine block they are in right now (for example
+`{"label": "Registered nurse", "kind": "work", ...}`) or `null`. `recent` is the newest three diary
+entries. A diary entry is `{subject, slot, starts_at, ends_at, local_date, block, entry, status}`,
+where `entry` holds `summary`, `activity`, `place`, `mood` and `post`. Renaming, removing or
+restoring someone rebuilds their upcoming entries and the companion's upcoming entries that name
+them. Entries that already happened keep the earlier name. Social events can name a circle member
+who is free at the time: the event's `details.with` is `{id, name}` or `null`. The chat context
+lists the circle with each person's current block and latest diary entry.
+
+## Precomputed agenda
+
+Every reconcile also brings a hidden agenda up to date, without a model (PRD T9). The agenda holds
+the routine of the companion and of each circle member, composed slot by slot a week ahead and
+seeded by the slot. When the app opens after time away, the whole gap is filled in at once, up to
+30 days back. A server left running advances the same agenda in small steps, and both reach the same
+entries. Upcoming entries are never returned by the API. Circle members' past entries are their
+diary. The companion's past entries become part of their account only through the capped,
+reviewed events above: a batch uses the precomputed entry for each slot it simulates, and a plan
+reveals an upcoming entry. Changing the character rebuilds the companion's upcoming entries. Slots
+inside a pause are marked skipped. Background reconciles extend the agenda only when background
+activity is on.
+
 ## Limits and permissions
 
 ```http

@@ -23,11 +23,14 @@ class Activity:
     captions: tuple[str, ...]
     moods: tuple[str, ...]
     generic: str = ''
+    together: tuple[str, ...] = ()
 
 
-def activity(key, place_kinds, summaries, captions, moods, generic='') -> Activity:
-    """`generic` stands in for " at <place>" when the world has no matching place."""
-    return Activity(key, tuple(place_kinds), tuple(summaries), tuple(captions), tuple(moods), generic)
+def activity(key, place_kinds, summaries, captions, moods, generic='', together=()) -> Activity:
+    """`generic` stands in for " at <place>" when the world has no matching place. `together` are
+    summaries naming a circle member ({friend}) who is free at the time."""
+    return Activity(key, tuple(place_kinds), tuple(summaries), tuple(captions), tuple(moods), generic,
+                    tuple(together))
 
 
 # {name} is the companion, {label} the routine block, {at} " at <place>" or "", {place} the place
@@ -63,11 +66,14 @@ CATALOG = {
     'social': (
         activity('dinner', ('restaurant',), ['{name} met an old friend for dinner{at}.',
                                              '{name} caught up with friends over food{at}.'],
-                 ['Good food, better company.', 'We closed the place down.'], ['happy', 'warm'], ''),
+                 ['Good food, better company.', 'We closed the place down.'], ['happy', 'warm'], '',
+                 ['{name} had dinner with {friend}{at}.', '{name} caught up with {friend} over food{at}.']),
         activity('drinks', ('bar',), ['{name} met a couple of friends for drinks{at}.'],
-                 ['One drink turned into three stories.', 'Laughed too much.'], ['cheerful'], ''),
+                 ['One drink turned into three stories.', 'Laughed too much.'], ['cheerful'], '',
+                 ['{name} met {friend} for drinks{at}.']),
         activity('show', ('venue',), ['{name} went to see a show{at} with a friend.'],
-                 ['Still humming it.', 'Live music hits different.'], ['excited'], ''),
+                 ['Still humming it.', 'Live music hits different.'], ['excited'], '',
+                 ['{name} went to see a show{at} with {friend}.']),
     ),
     'leisure': (
         activity('walk', ('park', 'waterfront', 'beach'), ['{name} went for a long walk{at}.',
@@ -104,8 +110,9 @@ def find_places(world, definition: dict, kinds) -> list:
     return world.places(city, kinds) if city and kinds else []
 
 
-def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()) -> dict | None:
-    """The event for one slot, or None when the slot stays quiet."""
+def compose(slot: dict, definition: dict, world, seed: str, recent_activities=(), company=()) -> dict | None:
+    """The event for one slot, or None when the slot stays quiet. `company` are circle members
+    free at the time ({id, name}); a social activity may name one of them."""
     rng = random.Random(seed)
     block = slot['block']
     options = CATALOG.get(block['kind'])
@@ -120,10 +127,14 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
               'at': f' at {place.name}' if place else chosen.generic, 'place': place.name if place else '',
               'area': f' in {place.neighborhood}' if place and place.neighborhood and place.neighborhood not in
               place.name else ''}
-    summary = rng.choice(chosen.summaries).format(**values)
+    friend = company[int(rng.random() * len(company))] if company and chosen.together else None
+    if friend:
+        summary = rng.choice(chosen.together).format(**values, friend=friend['name'])
+    else:
+        summary = rng.choice(chosen.summaries).format(**values)
     return {'summary': summary[0].upper() + summary[1:], 'post': rng.choice(chosen.captions),
             'mood': rng.choice(chosen.moods), 'activity': chosen.key, 'place': place.view() if place else None,
-            'composer_version': COMPOSER_VERSION}
+            'with': friend, 'composer_version': COMPOSER_VERSION}
 
 
 # Plans (PRD T2): a planned outing is not a completed outing. A plan names a future routine slot;
@@ -146,35 +157,58 @@ def find_activity(key) -> Activity:
     return next(option for options in CATALOG.values() for option in options if option.key == key)
 
 
-def plan_ahead(definition: dict, world, seed: str, future_slots: list[dict]) -> dict | None:
-    """Sometimes, a plan for one upcoming leisure or social slot."""
+PLANNABLE_TOGETHER = {
+    'dinner': ('have dinner with {friend}{at}', 'had dinner with {friend}{at}'),
+    'drinks': ('meet {friend} for drinks{at}', 'met {friend} for drinks{at}'),
+    'show': ('see a show{at} with {friend}', 'saw a show{at} with {friend}'),
+}
+
+
+def outing_text(key: str, tense: int, at: str, friend: dict | None) -> str:
+    if friend and key in PLANNABLE_TOGETHER:
+        return PLANNABLE_TOGETHER[key][tense].format(at=at, friend=friend['name'])
+    return PLANNABLE[key][tense].format(at=at)
+
+
+def plan_ahead(definition: dict, world, seed: str, future_slots: list[dict], upcoming=None) -> dict | None:
+    """Sometimes, a plan for one upcoming leisure or social slot. `upcoming` maps slot keys to the
+    precomputed agenda entry (None when that slot is quiet), so a plan reveals what was already
+    going to happen instead of contradicting it."""
+    upcoming = upcoming or {}
     rng = random.Random(f'plan:{seed}')
-    targets = [slot for slot in future_slots if slot['block']['kind'] in PLANNING_KINDS]
+    targets = [slot for slot in future_slots if slot['block']['kind'] in PLANNING_KINDS and (
+        slot['key'] not in upcoming or (upcoming[slot['key']] or {}).get('activity') in PLANNABLE)]
     if not targets or rng.random() >= PLAN_SHARE:
         return None
     target = rng.choice(targets)
-    options = [option for option in CATALOG[target['block']['kind']] if option.key in PLANNABLE]
-    chosen = rng.choice(options)
-    places = find_places(world, definition, chosen.place_kinds)
-    place = rng.choice(places) if places else None
-    at = f' at {place.name}' if place else chosen.generic
+    entry = upcoming.get(target['key'])
+    if entry:
+        chosen, place, friend = find_activity(entry['activity']), entry['place'], entry.get('with')
+    else:
+        options = [option for option in CATALOG[target['block']['kind']] if option.key in PLANNABLE]
+        chosen = rng.choice(options)
+        places = find_places(world, definition, chosen.place_kinds)
+        place = rng.choice(places).view() if places else None
+        friend = None
+    at = f" at {place['name']}" if place else chosen.generic
     day = date.fromisoformat(target['local_date']).strftime('%A')
-    summary = f"{definition['name']} is planning to {PLANNABLE[chosen.key][0].format(at=at)} on {day} " \
+    summary = f"{definition['name']} is planning to {outing_text(chosen.key, 0, at, friend)} on {day} " \
               f"({target['block']['label'].lower()})."
-    return {'summary': summary, 'activity': chosen.key, 'place': place.view() if place else None,
+    return {'summary': summary, 'activity': chosen.key, 'place': place, 'with': friend,
             'target': target, 'composer_version': COMPOSER_VERSION}
 
 
 def fulfil(plan: dict, definition: dict) -> dict:
     """The outing a committed plan described, happening in its slot."""
     details = plan['details']
-    place = details.get('place')
+    place, friend = details.get('place'), details.get('with')
     chosen = find_activity(details['activity'])
     at = f" at {place['name']}" if place else chosen.generic
-    summary = f"{definition['name']} {PLANNABLE[chosen.key][1].format(at=at)}, as planned."
+    summary = f"{definition['name']} {outing_text(chosen.key, 1, at, friend)}, as planned."
     rng = random.Random(f"fulfil:{plan['id']}")
     return {'summary': summary, 'post': rng.choice(chosen.captions), 'mood': rng.choice(chosen.moods),
-            'activity': chosen.key, 'place': place, 'composer_version': COMPOSER_VERSION, 'fulfils': plan['id']}
+            'activity': chosen.key, 'place': place, 'with': friend, 'composer_version': COMPOSER_VERSION,
+            'fulfils': plan['id']}
 
 
 # Unresolved threads (PRD T2): a small open question in the companion's life that settles a few days

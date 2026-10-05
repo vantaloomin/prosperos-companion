@@ -12,6 +12,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import many, settings
 from companion.errors import DomainError
 from companion.events import committed
+from companion.life import agenda
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.memory.budget import token_estimate
@@ -36,6 +37,7 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
             'relationship_mood': 'Your current mood about time apart',
+            'circle': 'People in your life (fictional supporting characters, not the user)',
             'recalled': 'Possibly relevant memories'}
 
 
@@ -105,6 +107,17 @@ def character_text(version) -> str:
 def post_text(post) -> str:
     lines = [f"- {event['starts_at'][:16]}: {event['summary']} (caption: {event['caption']})" for event in post['events']]
     return '\n'.join(([post['intro']] if post['intro'] else []) + lines)
+
+
+def person_text(person) -> str:
+    """One circle member: who they are, where they are now and their latest happened entry."""
+    work = person['career'] + (f" at {person['employer']}" if person['employer'] else '')
+    text = f"- {person['name']} ({person['role']}): {work}."
+    if person['now']:
+        text += f" Right now: {person['now']['label'].lower()}."
+    if person['recent']:
+        text += f" Recently: {person['recent'][0]['entry']['summary']}"
+    return text
 
 
 def local_time(instant: datetime, timezone: str) -> str:
@@ -219,6 +232,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory))
+    for person in agenda.circle_view(connection, timeline_id, now):
+        packet.offer('circle', person['id'], person_text(person))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
         packet.offer('companion_life', event['id'], f"- {event['starts_at'][:16]}: {event['summary']}")
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
