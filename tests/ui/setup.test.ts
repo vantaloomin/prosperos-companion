@@ -12,7 +12,7 @@ test('a new companion still needs a model and, optionally, a home and routine', 
 
 test('steps complete from the saved connection and definition', () => {
   const block = { key: 'w', label: 'Work', kind: 'work', days: [0], start: '09:00', end: '17:00', themes: [] }
-  const steps = setupSteps(companion({ home_city: 'baltimore', schedule: [block] }), { model: 'qwen', base_url: 'http://localhost:1234/v1' } as Connection)
+  const steps = setupSteps(companion({ home_city: 'baltimore', schedule: [block] }), { model: 'qwen', base_url: 'http://localhost:1234/v1', provider_name: 'Local / LM Studio' } as Connection)
   assert.ok(steps.every((step) => step.done))
-  assert.equal(steps[1].detail, 'Using qwen at http://localhost:1234/v1.')
+  assert.equal(steps[1].detail, 'Using qwen through Local / LM Studio.')
 })

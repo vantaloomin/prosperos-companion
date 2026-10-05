@@ -120,13 +120,13 @@ timeline that the current conversation does not use (`in_timeline: false`).
 4. Current profile facts (pinned first), open plans, and unexpired temporary circumstances.
 5. The companion's latest committed events.
 6. Older turns and episodic memories, ranked by the Study's lexical retrieval and rank fusion.
-   When the connection names an embedding model, an embedding ranking of the same eligible pool
+   When the recall profile names an embedding model, an embedding ranking of the same eligible pool
    joins the fusion, so a related memory is found without shared words ("puppy" finds "hound").
 
 ### Semantic recall
 
-Nothing is downloaded: embeddings come from the connection's own `/embeddings` endpoint with the
-optional `embedding_model`. The message being answered is embedded at conversation priority with a
+Nothing is downloaded: embeddings come from the `/embeddings` endpoint of the profile doing
+semantic recall in Settings > Models ([Models](models.md)), with its optional `embedding_model`. The message being answered is embedded at conversation priority with a
 two-second limit; any failure means keyword recall only, and the reply goes ahead. After each turn
 `MemoryWorker` embeds memories and messages that lack a vector, in batches at maintenance priority.
 `memory_vectors` keys each vector by owner, model and the digest of the exact text embedded, so an

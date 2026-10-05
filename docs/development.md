@@ -192,10 +192,18 @@ changes made.
 | `companion/memory/chunks.py` | `server/memory/chunks.py` | No persistent cache format |
 | `companion/memory/cache.py` | `server/memory/cache.py` | Persistent index backing removed |
 | `companion/memory/budget.py` | `server/memory/budget.py` | Estimates plain text |
-| `companion/providers/scheduling.py` | `server/providers/scheduling.py` | Companion work kinds; one connection type |
-| `companion/providers/chat.py` | `server/providers/http.py` | OpenAI-compatible streaming only |
-| `companion/providers/vault.py` | `server/providers/vault.py` | Companion credential service; in-memory vault for tests |
+| `companion/providers/scheduling.py` | `server/providers/scheduling.py` | Companion work kinds |
+| `companion/providers/chat.py` | `server/providers/http.py`, `completion.py` | Conversation messages; token-limit and filter stops stay visible incomplete replies |
+| `companion/providers/config.py` | `server/providers/config.py` | No LM Studio native protocol; Companion environment fallbacks |
+| `companion/providers/capabilities.py` | `server/providers/capabilities.py` | No native protocol or safety margin |
+| `companion/providers/requests.py` | `server/providers/requests.py` | System text plus alternating messages |
+| `companion/providers/events.py` | `server/providers/events.py` | Companion `Chunk` with a normalized finish reason |
+| `companion/providers/discovery.py`, `discovery_errors.py` | same files | No native model list |
+| `companion/providers/codex.py` | `server/providers/codex.py` | Conversation sent as one transcript |
+| `companion/providers/vault.py` | `server/providers/vault.py` | Companion credential service; delete; in-memory vault for tests |
 | `companion/providers/urls.py` | `server/providers/config.py` | URL checks only |
+| `companion/text_models.py`, `text_model_routes.py` | `server/profiles.py`, `profile_routes.py`, `roles.py` | Unversioned profiles; workspace job assignments |
+| `src/features/settings/models/` | `src/features/models/` | Opens in Settings, not a dialog; no native protocol |
 | `companion/database.py`, `errors.py`, `models.py` | `server/database.py`, `errors.py`, `models.py` | Identity marker and Companion helpers |
 | `src/api.ts` | `src/api.ts` | Companion client header; offline and error codes |
 | `src/styles.css` (palette, type, focus) | `src/styles.css` | Companion layout; one palette |
