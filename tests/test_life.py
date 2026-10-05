@@ -3,52 +3,24 @@
 Every case drives a substitute clock; the host clock is never changed.
 """
 import asyncio
-import json
 from datetime import UTC, date, datetime, timedelta
 
-import pytest
+from conftest import life_reply, reconcile, set_life
 
 from companion import characters
 from companion.clock import parse
 from companion.life import routine
 from companion.main import create_app
 from companion.models import CharacterRevision
-from companion.providers.chat import Chunk
 from companion.providers.vault import MemoryVault
-
-
-def life_reply(system, messages):
-    if 'ordinary moment' not in system:
-        return [Chunk('Hello again.'), Chunk('', 'stop')]
-    heading = messages[-1]['content'].splitlines()[0]
-    payload = {'summary': f'Event for {heading}', 'post': 'Lovely light today.', 'mood': 'content'}
-    return [Chunk(json.dumps(payload)), Chunk('', 'stop')]
-
-
-@pytest.fixture
-def life(provider, connected):
-    provider.respond = life_reply
-    return provider
 
 
 def life_requests(provider):
     return [request for request in provider.requests if 'ordinary moment' in request['system']]
 
 
-def reconcile(client):
-    response = client.post('/api/life/reconcile', json={'mode': 'return'})
-    assert response.status_code == 200, response.text
-    return response.json()
-
-
 def all_events(client):
     return client.get('/api/events?history=true').json()
-
-
-def set_life(client, **values):
-    response = client.put('/api/life/settings', json=values)
-    assert response.status_code == 200, response.text
-    return response.json()
 
 
 def revise_character(client, **changes):

@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import UTC, datetime
 
 import pytest
@@ -80,5 +81,31 @@ def connected(client, companion):
 
 def send(client, text, client_id):
     response = client.post('/api/conversation/messages', json={'text': text, 'client_id': client_id})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def life_reply(system, messages):
+    if 'ordinary moment' not in system:
+        return [Chunk('Hello again.'), Chunk('', 'stop')]
+    heading = messages[-1]['content'].splitlines()[0]
+    payload = {'summary': f'Event for {heading}', 'post': 'Lovely light today.', 'mood': 'content'}
+    return [Chunk(json.dumps(payload)), Chunk('', 'stop')]
+
+
+@pytest.fixture
+def life(provider, connected):
+    provider.respond = life_reply
+    return provider
+
+
+def reconcile(client):
+    response = client.post('/api/life/reconcile', json={'mode': 'return'})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def set_life(client, **values):
+    response = client.put('/api/life/settings', json=values)
     assert response.status_code == 200, response.text
     return response.json()

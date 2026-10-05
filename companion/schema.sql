@@ -204,3 +204,47 @@ CREATE TABLE IF NOT EXISTS life_runs (
   finished_at TEXT
 );
 CREATE INDEX IF NOT EXISTS life_runs_timeline ON life_runs(timeline_id, created_at);
+
+-- Private feed (PRD F1, F2, F4). A post shows committed events by reference, so a corrected
+-- event changes the post too, and a rejected proposal never appears.
+CREATE TABLE IF NOT EXISTS feed_posts (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('event', 'digest')),
+  idempotency_key TEXT NOT NULL UNIQUE,
+  run_id TEXT REFERENCES life_runs(id),
+  intro TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'visible' CHECK (status IN ('visible', 'hidden', 'removed')),
+  reaction TEXT,
+  occurs_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  read_at TEXT,
+  removed_at TEXT,
+  -- Hook for a later image job: state of the post's illustration, never blocking its text.
+  image_status TEXT NOT NULL DEFAULT 'none' CHECK (image_status IN
+    ('none', 'queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')),
+  image_job_id TEXT,
+  image_ref TEXT,
+  image_error TEXT,
+  image_updated_at TEXT
+);
+CREATE INDEX IF NOT EXISTS feed_posts_order ON feed_posts(timeline_id, occurs_at, id);
+
+CREATE TABLE IF NOT EXISTS feed_post_events (
+  post_id TEXT NOT NULL REFERENCES feed_posts(id),
+  event_id TEXT NOT NULL REFERENCES life_events(id),
+  position INTEGER NOT NULL,
+  PRIMARY KEY (post_id, event_id)
+);
+
+-- A chat message written in reply to a post (PRD F1).
+CREATE TABLE IF NOT EXISTS message_post_links (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  post_id TEXT NOT NULL REFERENCES feed_posts(id)
+);
+
+-- When the user last looked at Today; only moves forward.
+CREATE TABLE IF NOT EXISTS visits (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  last_seen_at TEXT NOT NULL
+);

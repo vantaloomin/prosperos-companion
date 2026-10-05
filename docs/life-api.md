@@ -123,3 +123,79 @@ The schedule is part of the character definition (`POST /api/companion`,
 `kind` is one of `work`, `study`, `errand`, `leisure`, `social`, `rest`, `sleep`; nothing is
 simulated in `sleep` blocks. `days` are 0 (Monday) to 6 (Sunday), all days by default. An `end` at
 or before `start` crosses midnight. `key` is optional and derived from the label.
+
+## Today
+
+```http
+GET  /api/today
+POST /api/today/seen
+```
+
+`GET /api/today` returns everything the Today view needs in one call:
+
+| Field | Meaning |
+| --- | --- |
+| `now`, `user_timezone`, `companion_timezone`, `companion_local_time` | Clock context for display |
+| `availability` | `{state, label, until}`; `state` is `free`, `working`, `out` or `asleep`, from the current routine block. It explains a slow or short reply and never blocks sending (PRD C5). |
+| `routine` | `{default_schedule, current, next}`, as in `GET /api/life/routine` |
+| `changes` | Events committed since `last_seen_at`, newest first (the latest ten on a first visit) |
+| `review` | Proposed events waiting for the user's commit or reject, oldest first |
+| `plans` | `shared`: the user's open plans from memory; `companion`: the companion's upcoming committed plans; `threads`: unresolved threads |
+| `feed_unread` | Unread feed posts |
+| `last_run` | The most recent batch, or `null` |
+| `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
+| `last_seen_at` | When the user last marked Today as seen |
+
+Call `POST /api/today/seen` once the user has looked at Today, so the next visit's `changes`
+start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
+and `plans` have the same shape as `GET /api/events`.
+
+## Feed
+
+```http
+GET  /api/feed?limit=20&before=…&hidden=false
+GET  /api/feed/{post_id}
+POST /api/feed/read                {"post_ids": ["…"]}   (omit the body to mark everything read)
+POST /api/feed/{post_id}/reaction  {"reaction": "heart"} (heart, laugh, wow, sad, hug, or null to clear)
+POST /api/feed/{post_id}/hide
+POST /api/feed/{post_id}/unhide
+POST /api/feed/{post_id}/remove
+POST /api/feed/{post_id}/discuss   {"text": "…", "client_id": "…"}
+POST /api/feed/posts               {"event_id": "…", "intro": "…"}
+GET  /api/feed/export
+```
+
+`GET /api/feed` returns `{posts, next_before, unread}`, newest first. Pass `next_before` as
+`before` to load older posts; it is `null` at the end of the history. `hidden=true` includes
+hidden posts. Opening the feed does not mark anything read; call `POST /api/feed/read` for the
+posts the user actually saw, so a new post never steals focus or silently disappears from unread.
+
+A post:
+
+```json
+{
+  "id": "…", "kind": "digest", "intro": "", "status": "visible", "read": false, "read_at": null,
+  "reaction": null, "occurs_at": "…", "created_at": "…",
+  "events": [{"id": "…", "summary": "Walked to the harbour market.", "caption": "Lovely light today.",
+              "mood": "content", "label": "Morning", "kind": "ordinary",
+              "starts_at": "…", "ends_at": "…", "revision": 1}],
+  "image": {"status": "none", "job_id": null, "ref": null, "error": null, "updated_at": null}
+}
+```
+
+- `kind` is `digest` (one per catch-up batch, covering its events) or `event` (one event, from
+  background activity or an explicit post).
+- A post shows events by reference, always at their current committed revision. Correcting an
+  event changes every post that shows it. Proposed events appear only once committed, and
+  rejected ones never do, so a post with nothing committed is left out of the feed.
+- `caption` is the companion's own line for the moment, falling back to the summary.
+- `occurs_at` is the fictional time the post is about; `created_at` is when it was written.
+- `image.status` is `none`, `queued`, `running`, `completed`, `failed`, `cancelled` or
+  `interrupted`. Image generation is not built yet: render the text whatever the image state.
+- Hide is reversible. Remove clears the post for good but leaves its events in the companion's
+  life and conversation. Removed posts are not listed or exported.
+- `discuss` sends a chat message linked to the post and returns the same shape as
+  `POST /api/conversation/messages`. The reply is written knowing which post the user meant.
+- `POST /api/feed/posts` posts an event committed by other means; it is idempotent per event.
+- `export` returns `{format: "prospero-companion-feed", version, exported_at, companion, posts}`,
+  oldest first, hidden posts included.

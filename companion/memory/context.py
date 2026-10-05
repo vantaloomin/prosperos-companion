@@ -12,6 +12,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import many, settings
 from companion.errors import DomainError
 from companion.events import committed
+from companion.life.feed import linked_post
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.hybrid_recall import hybrid_hits
@@ -32,6 +33,7 @@ GUIDANCE = (
 HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'What you know about the user',
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
+            'feed_reference': 'Your feed post the user is replying to',
             'recalled': 'Possibly relevant memories'}
 
 
@@ -79,6 +81,11 @@ def character_text(version) -> str:
     if definition.get('interests'):
         lines.append('Interests: ' + ', '.join(definition['interests']))
     return '\n'.join(lines)
+
+
+def post_text(post) -> str:
+    lines = [f"- {event['starts_at'][:16]}: {event['summary']} (caption: {event['caption']})" for event in post['events']]
+    return '\n'.join(([post['intro']] if post['intro'] else []) + lines)
 
 
 def local_time(instant: datetime, timezone: str) -> str:
@@ -193,7 +200,11 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
             packet.offer(section, memory['id'], memory_text(memory))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
         packet.offer('companion_life', event['id'], f"- {event['starts_at'][:16]}: {event['summary']}")
-    query = next((message['text'] for message in reversed(recent) if message['role'] == 'user'), '')
+    latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
+    post = linked_post(connection, latest['id']) if latest else None
+    if post:
+        packet.offer('feed_reference', post['id'], post_text(post))
+    query = latest['text'] if latest else ''
     for identity, text in recalled(groups['recallable'], older, query):
         packet.offer('recalled', identity, text)
     return render(packet, conversation)
