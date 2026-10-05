@@ -61,6 +61,8 @@ export interface CharacterDefinition {
   identity: string
   personality: string
   voice: string
+  skills: string[]
+  flaws: string[]
   interests: string[]
   background: string
   appearance: string

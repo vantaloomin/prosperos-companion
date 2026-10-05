@@ -4,21 +4,24 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from companion import backup, characters, conversation, events, notifications, restore, timelines, workspace
+from companion import backup, characters, conversation, drafting, events, notifications, restore, timelines, workspace
 from companion.identity import APP_ID, VERSION
 from companion.memory import consolidation, formation, records
 from companion.models import (
     CharacterDefinition,
+    CharacterDraftRequest,
     CharacterRevision,
     ConnectionUpdate,
     EventCorrection,
     EventProposal,
+    FieldDraftRequest,
     MemoryCorrection,
     MemoryCreate,
     MemoryDelete,
     MessageCreate,
     NotificationCheck,
     NotificationSettingsUpdate,
+    PromptUpdate,
     SettingsUpdate,
     TimelineFork,
     TimelineUpdate,
@@ -75,6 +78,32 @@ def read_companion(request: Request):
 @router.post('/companion')
 def create_companion(request: Request, body: CharacterDefinition):
     return characters.create(db(request), body)
+
+
+@router.post('/companion/draft')
+async def draft_companion(request: Request, body: CharacterDraftRequest):
+    """A drafted definition for the form to review; nothing is saved."""
+    return await drafting.draft(request.app.state, body)
+
+
+@router.post('/companion/draft/field')
+async def draft_field(request: Request, body: FieldDraftRequest):
+    return await drafting.redo_field(request.app.state, body)
+
+
+@router.get('/prompts')
+def read_prompts(request: Request):
+    return drafting.prompts(db(request))
+
+
+@router.put('/prompts/{name}')
+def save_prompt(request: Request, name: str, body: PromptUpdate):
+    return drafting.save_prompt(db(request), name, body.text)
+
+
+@router.delete('/prompts/{name}')
+def reset_prompt(request: Request, name: str):
+    return drafting.reset_prompt(db(request), name)
 
 
 @router.post('/companion/versions')

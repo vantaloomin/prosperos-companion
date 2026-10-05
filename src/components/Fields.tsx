@@ -15,8 +15,8 @@ export function Field({ label, hint, children }: FieldProps) {
   )
 }
 
-export function TextArea({ label, hint, value, onChange, rows = 3, maxLength }: { label: string; hint?: ReactNode; value: string; onChange: (value: string) => void; rows?: number; maxLength?: number }) {
-  return <Field label={label} hint={hint}>{(id, describedBy) => <textarea id={id} rows={rows} value={value} maxLength={maxLength} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
+export function TextArea({ label, hint, value, onChange, rows = 3, maxLength, placeholder }: { label: string; hint?: ReactNode; value: string; onChange: (value: string) => void; rows?: number; maxLength?: number; placeholder?: string }) {
+  return <Field label={label} hint={hint}>{(id, describedBy) => <textarea id={id} rows={rows} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
 }
 
 export function TextInput({ label, hint, value, onChange, required, maxLength, list, type = 'text', placeholder }: { label: string; hint?: ReactNode; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; list?: string; type?: string; placeholder?: string }) {
