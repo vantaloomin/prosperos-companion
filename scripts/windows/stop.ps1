@@ -13,7 +13,9 @@ try {
         throw 'Prospero Companion answers, but its process could not be found. Close its window instead.'
     } else {
         # /T also ends the worker a development backend started with --reload.
-        & taskkill.exe /PID $state.ProcessId /T /F | Out-Null
+        $ErrorActionPreference = 'Continue'
+        & taskkill.exe /PID $state.ProcessId /T /F 2>&1 | Out-Null
+        $ErrorActionPreference = 'Stop'
         foreach ($attempt in 1..40) {
             if ((Get-CompanionState $Port).State -eq 'stopped') { break }
             Start-Sleep -Milliseconds 250

@@ -9,6 +9,8 @@ try {
     if (-not (Test-Path -LiteralPath 'dist\index.html')) { throw 'The interface is not built. Double-click install.bat first.' }
     $arguments = @('-m', 'companion.launch', '--port', [string]$Port)
     if ($NoBrowser) { $arguments += '--no-browser' }
+    # The server logs to stderr; judge it by exit code, not by what it writes (see install.ps1).
+    $ErrorActionPreference = 'Continue'
     & $python @arguments
     $result = $LASTEXITCODE
 } catch {

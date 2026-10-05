@@ -42,7 +42,8 @@ $temp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath
 # status and stop
 Check ((Invoke-Bat 'status.bat') -eq 1) 'status.bat reports a stopped Companion with exit code 1'
 Check ((Invoke-Bat 'stop.bat') -eq 0) 'stop.bat with nothing running succeeds and stops nothing'
-$app = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $CompanionRoot 'start.ps1'), '-NoBrowser', '-NoPause' -PassThru
+# Captured output, as when another program starts it: the server's log lines on stderr must not stop it.
+$app = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $CompanionRoot 'start.ps1'), '-NoBrowser', '-NoPause' -PassThru -RedirectStandardOutput (Join-Path $temp 'launch-out.txt') -RedirectStandardError (Join-Path $temp 'launch-err.txt')
 try {
   Check (Wait-State 'running') 'launch answers on 8775'
   Check ((Invoke-Bat 'status.bat') -eq 0) 'status.bat reports the running Companion with exit code 0'
@@ -74,7 +75,7 @@ Check ((New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $desktop 
 Check (Test-Path -LiteralPath (Join-Path $desktop 'Prospero Companion (checkout).lnk')) 'the checkout shortcut gets its own name'
 
 # dev: backend plus Vite, with /api forwarded to the backend
-$dev = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'dev.ps1'), '-NoBrowser' -PassThru
+$dev = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'dev.ps1'), '-NoBrowser' -PassThru -RedirectStandardOutput (Join-Path $temp 'dev-out.txt') -RedirectStandardError (Join-Path $temp 'dev-err.txt')
 try {
   Check (Wait-State 'running') 'dev mode starts the backend on 8775'
   $page = $null
@@ -109,6 +110,21 @@ Invoke-TestGit @('remote', 'set-url', 'origin', $remote)
 Check ((Invoke-Bat 'update.bat') -eq 0) 'update.bat pulls main and reinstalls'
 Check (Test-Path -LiteralPath (Join-Path $CompanionRoot 'update-marker.txt')) 'the new commit was pulled'
 Check (Test-Path -LiteralPath 'dist\index.html') 'the interface was rebuilt'
+# A host that captures stderr (a terminal tool, a scheduled task) must not turn npm's notices into
+# failures: Windows PowerShell 5.1 wraps captured native stderr as errors. npm logs to stderr.
+$env:npm_config_loglevel = 'http'
+$previous = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+& cmd.exe /d /c (Join-Path $CompanionRoot 'update.bat') -NoPause 2>&1 | ForEach-Object { "$_" } | Out-Host
+$code = $LASTEXITCODE
+Check ($code -eq 0) 'update.bat succeeds when its stderr is captured and npm writes to it'
+# Calling the script directly with its errors redirected (as terminal tools do) makes Windows
+# PowerShell 5.1 hand every native stderr line to the script as an error record.
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '$(Join-Path $PSScriptRoot 'update.ps1')' -NoPause 2>&1 | ForEach-Object { `"`$_`" }; exit `$LASTEXITCODE" | Out-Host
+$code = $LASTEXITCODE
+$ErrorActionPreference = $previous
+Remove-Item Env:npm_config_loglevel
+Check ($code -eq 0) 'update.ps1 succeeds when called with its error stream redirected'
 $app = Start-Process -FilePath $python -ArgumentList '-m', 'companion.launch', '--no-browser' -PassThru -NoNewWindow
 try {
   Check (Wait-State 'running') 'the Companion launches after updating'

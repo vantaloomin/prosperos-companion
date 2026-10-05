@@ -5,7 +5,10 @@ Set-Location -LiteralPath $PSScriptRoot
 
 function Invoke-Checked {
     param([string]$Executable, [string[]]$Arguments)
-    & $Executable @Arguments | Out-Host
+    # Judge tools by exit code. When this window's stderr is captured, Windows PowerShell 5.1 turns
+    # npm and pip notices into errors, which 'Stop' would make fatal.
+    $ErrorActionPreference = 'Continue'
+    & $Executable @Arguments 2>&1 | ForEach-Object { "$_" } | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "$Executable failed with exit code $LASTEXITCODE. Fix the error above and rerun install.bat." }
 }
 
@@ -17,6 +20,7 @@ function Find-Executable {
 
 function Test-Python {
     param([string]$Executable, [string[]]$Prefix = @())
+    $ErrorActionPreference = 'Continue'
     if (-not $Executable -or -not (Test-Path -LiteralPath $Executable)) { return }
     if ($Executable -match 'Microsoft\\WindowsApps\\python[0-9.]*\.exe$') { return }
     try {
@@ -41,6 +45,7 @@ function Find-Python {
 function Find-Node {
     $executable = Find-Executable 'node.exe'
     if (-not $executable) { return }
+    $ErrorActionPreference = 'Continue'
     try {
         $version = & $executable -p 'process.versions.node' 2>$null
         if ($LASTEXITCODE -eq 0 -and [version]$version -ge [version]'22.12.0') { return $executable }
