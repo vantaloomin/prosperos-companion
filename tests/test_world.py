@@ -436,3 +436,22 @@ def test_generator_results_do_not_share_cached_data():
     job['career']['name'] = 'Changed'
     assert all(place['name'] != 'Changed' for place in catalog.city('baltimore')['places'])
     assert catalog.careers_for(catalog.city('baltimore'))['teacher']['name'] != 'Changed'
+
+
+def test_city_checker(tmp_path, capsys, monkeypatch):
+    from companion.world import check
+
+    good = tmp_path / 'good.json'
+    good.write_text(json.dumps(plain(baltimore()) | {'id': 'good-city'}), encoding='utf-8')
+    thin = plain(baltimore()) | {'id': 'thin-city', 'employers': [], 'career_hubs': [], 'climate': None, 'local_color': []}
+    thin['places'] = [place for place in thin['places'] if place['neighborhood'] == 'canton']
+    (tmp_path / 'thin.json').write_text(json.dumps(thin), encoding='utf-8')
+    assert check.main([str(tmp_path)]) == 0
+    output = capsys.readouterr().out
+    assert 'OK' in output and 'fewer than two places' in output and 'No climate' in output
+    (tmp_path / 'broken.json').write_text('{"id": "x"}', encoding='utf-8')
+    assert check.main([str(tmp_path), '--json']) == 1
+    results = {Path(item['file']).name: item for item in json.loads(capsys.readouterr().out)}
+    assert results['broken.json']['errors'] and results['good.json']['warnings'] == []
+    monkeypatch.setenv(catalog.PACKS_ENV, str(tmp_path / 'no-packs'))
+    assert check.main([]) == 0

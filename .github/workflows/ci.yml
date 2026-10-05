@@ -29,6 +29,8 @@ jobs:
         run: python -m ruff check .
       - name: Test
         run: python -m pytest -q
+      - name: Check city data
+        run: python -m companion.world.check
 
   mcp-interop:
     # The MCP client against servers built with the official MCP Python SDK (not an app dependency).
