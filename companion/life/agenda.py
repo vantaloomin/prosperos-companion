@@ -15,7 +15,7 @@ from datetime import timedelta
 from companion import self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import body, circle, composer, disruptions, occasions, recommendations, routine, storylines
+from companion.life import body, circle, composer, disruptions, home, occasions, recommendations, routine, storylines
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -129,6 +129,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                  if subject == COMPANION else None) or composer.compose(
             {**slot.view(), 'block': block}, definition, world, seed, recent[-3:], company, celebrants)
         entry = disruptions.entry_with(entry, shift, definition['name'])
+        entry = home.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition, scope['world'],
+                           scope['now'])
         if entry:
             recent.append(entry['activity'])
     connection.execute(

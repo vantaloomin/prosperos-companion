@@ -285,6 +285,11 @@ textarea { resize: vertical; line-height: 1.6; }
 .rename-form { display: grid; gap: 6px; }
 .rename-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .rename-row input { flex: 1; min-width: 140px; }
+.home-panel { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; display: grid; gap: 12px; }
+.home-panel h2 { margin: 0; }
+.home-panel > .button { justify-self: start; }
+.home-add select, .rename-form select { max-width: 280px; }
+.home-changes h3 { font-size: 1rem; margin: 4px 0; }
 
 /* First conversation */
 .getting-started { padding: 24px 0; display: grid; gap: 12px; }

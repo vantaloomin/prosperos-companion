@@ -218,6 +218,42 @@ the other active members they know (`{id, name, how}`), derived from roles and a
 same on every read. `how` is `family`, `married` or `divorced` (the two parents), `coworkers`, `old
 friends`, `known for years` (an old friend and the family) or `friends`. The chat context adds it to
 each person's line ("Married to Rui. Knows Ana (family).").
+## Home and belongings
+
+`companion/life/home.py` gives the companion a home and things they live with, assembled once per
+timeline without a model: the home the budget (`money.py`) pays rent on, same neighbourhood, size and rent
+(else one from `generators.home`), plus the kind of building and its quirks; maybe a
+pet, a few plants, a way to get around (a car is less likely in a city with a subway; earlier eras
+ride or cycle) and a few favourite things weighted toward their interests. Every two weeks a seeded
+draw may change one thing on one day: a new plant, a plant lost, the car into the shop for a few
+days, a new favourite thing, a vet visit, an adopted pet, rearranged furniture. Evolving in steps or
+all at once gives the same log.
+
+- **Events.** `agenda.extend_subject` calls `home.touch` once per companion entry (the only hook in
+  the life sim). It appends one plain sentence to the summary: the day's change, or now and then a
+  belonging that fits the activity (the dog on a walk, watering a plant while cooking, riding the
+  bike to the shops). `entry.home` records `{items, change, sentence}`. Circle entries are untouched.
+- **Images.** `images/prompts.build` adds `home.image_hint`: the room for a moment at home, and how a
+  belonging named in the event looks.
+- **Chat.** The context has a "Your home and belongings" section with today's inventory, any repair
+  under way and the last three weeks of changes.
+- **Money.** `home.monthly_costs(connection, timeline_id, day)` returns `{rent, rent_period, currency,
+  estimate, pets, vehicles}`; `home.purchases(connection, timeline_id, start, end)` returns the
+  changes that cost something (`spend` is `$` or `$$`). Read these rather than the tables.
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/api/life/home?include_removed=` | | `{today, items, removed, changes, costs, varieties}` |
+| POST | `/api/life/home/items` | `{kind, name, description?, variety?}` | the same view |
+| PATCH | `/api/life/home/items/{id}` | `{name?, description?, variety?}` | the same view |
+| POST | `/api/life/home/items/{id}/remove` / `restore` | | the same view |
+
+An item is `{id, kind, name, variety, description, origin: generated|change|user, since, until,
+edited, revision, out_of_action}`; the home also has `neighborhood, city, features, rent,
+rent_range, currency, rent_period, estimate`. `variety` is a pet's species or a vehicle's type
+(`varieties` lists the choices). The home itself can be edited but not removed. Any edit forgets
+the seeded changes still ahead and rebuilds the upcoming agenda entries that mention the home;
+moments that already happened keep what they said. A fork keeps the home as it was at the fork.
 
 ## Precomputed agenda
 

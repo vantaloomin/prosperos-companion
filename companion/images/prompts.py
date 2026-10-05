@@ -8,7 +8,7 @@ import random
 from companion.characters import require_current
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import feed
+from companion.life import feed, home
 from companion.lora.appearance import current_for_images
 
 PROMPT_VERSION = 1
@@ -31,14 +31,14 @@ def scene(connection, post_id) -> list[dict]:
     return result
 
 
-def compose(name, appearance, events, style) -> str:
+def compose(name, appearance, events, style, setting='') -> str:
     """A digest is illustrated by its first event; one picture of several outings would invent a
     moment that never happened."""
     event = events[0]
     where = f" at {event['place']}" if event['place'] and event['place'] not in event['summary'] else ''
     person = f'{name}, {appearance.strip().rstrip(".")}' if appearance.strip() else name
     parts = [f'{style or DEFAULT_STYLE}. A fictional everyday moment.', f'{person}.',
-             f"{event['summary'].rstrip('.')}{where}.", event['caption'].strip()]
+             f"{event['summary'].rstrip('.')}{where}.", setting, event['caption'].strip()]
     if event['mood']:
         parts.append(f"Mood: {event['mood']}.")
     return ' '.join(part for part in parts if part)
@@ -54,7 +54,8 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     require(events, 'This post has no committed event to illustrate yet.', 409)
     definition = companion['version']['definition']
     return {'prompt_version': PROMPT_VERSION,
-            'prompt': compose(definition['name'], definition.get('appearance', ''), events, image_settings['style']),
+            'prompt': compose(definition['name'], definition.get('appearance', ''), events, image_settings['style'],
+                              home.image_hint(connection, post['timeline_id'], events[0])),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),

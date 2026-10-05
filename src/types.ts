@@ -817,3 +817,35 @@ export interface Storyline {
 }
 
 export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null }
+export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
+
+export interface HomeItem {
+  id: string
+  kind: HomeKind
+  name: string
+  variety: string
+  description: string
+  origin: 'generated' | 'change' | 'user'
+  since: string
+  until: string | null
+  edited: boolean
+  revision: number
+  neighborhood?: string
+  city?: string
+  features?: string[]
+  rent?: number | null
+  rent_period?: 'month' | 'week'
+  currency?: { code: string; symbol: string; name: string }
+  out_of_action?: string | null
+}
+
+export interface HomeChange { local_date: string; kind: string; text: string }
+
+export interface HomeView {
+  today: string
+  items: HomeItem[]
+  removed: HomeItem[]
+  changes: HomeChange[]
+  costs: { rent: number | null; rent_period: string } | null
+  varieties: { pet: string[]; vehicle: string[] }
+}

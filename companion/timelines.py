@@ -17,7 +17,7 @@ import re
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import feed
+from companion.life import feed, home
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
 FROZEN_EVENT = 'The timeline was frozen before this event was reviewed.'
@@ -145,6 +145,7 @@ def copy_history(connection, parent_id, new_id, message):
         'idempotency_key': copied_key(row['idempotency_key'], ids, new_id), 'details': remap(row['details'], ids),
     } for row in events])
     insert(connection, 'circle_people', [{**row, 'id': ids[row['id']], 'timeline_id': new_id} for row in people])
+    home.copy(connection, parent_id, new_id, cutoff, ids)
     copy_posts(connection, posts, ids, new_id)
     # Triggers already used before the fork stay used, so the copy is not texted about them again.
     insert(connection, 'openers', [{**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids[row['message_id']],
