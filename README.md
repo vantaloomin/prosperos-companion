@@ -2,7 +2,7 @@
 
 A standalone companion application derived from the Companion Mode concept in [Prospero's Study](https://github.com/vantaloomin/prosperos-study). The backend covers workspace identity, character versions, conversation, typed personal memory, committed life events and backups. The local interface covers conversation with streaming replies, character creation and editing, memories, settings, Today and the private Feed.
 
-On Windows, double-click `install.bat` once, then `launch.bat` to open the app. See [Development](docs/development.md) for other systems.
+On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrator rights, no Python or Node needed) and start Prospero Companion from the Start menu. Until releases are published, the setup is a build artifact of the `Package` workflow. From a checkout, double-click `install.bat` once, then `launch.bat`. See [Development](docs/development.md) for other systems.
 
 - [Product requirements (draft)](docs/product-requirements.md)
 - [Backbone architecture](docs/architecture.md)

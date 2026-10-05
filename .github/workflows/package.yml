@@ -1,6 +1,7 @@
 name: Package
 
-# Builds the self-contained Windows bundle and launches it on a runner without Python or Node.
+# Builds the self-contained Windows bundle and its per-user installer, then launches the bundle and
+# installs, upgrades and uninstalls the setup on runners without Python or Node.
 # The bundle is a workflow artifact only: nothing here tags or publishes a release.
 
 on:
@@ -69,3 +70,68 @@ jobs:
       - name: Launch on a machine without Python or Node
         shell: pwsh
         run: scripts/package/smoke-test.ps1 -Bundle "$env:RUNNER_TEMP\Clean User Apps\ProsperoCompanion"
+
+  installer:
+    needs: bundle
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/package
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-bundle
+          path: ${{ runner.temp }}\download
+      - name: Build the per-user setup
+        shell: pwsh
+        run: |
+          $download = Join-Path $env:RUNNER_TEMP 'download'
+          $zip = Get-ChildItem -LiteralPath $download -Filter '*.zip' | Select-Object -First 1
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath (Join-Path $env:RUNNER_TEMP 'bundle')
+          $source = Join-Path $env:RUNNER_TEMP 'bundle\ProsperoCompanion'
+          $version = (Get-Content -LiteralPath (Join-Path $source 'bundle.json') -Raw | ConvertFrom-Json).version
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $iscc)) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup could not be installed.' }
+          }
+          $output = Join-Path $env:RUNNER_TEMP 'release'
+          & $iscc /Q "/DAppVersion=$version" "/DSourceDir=$source" "/DOutputDir=$output" scripts\package\companion.iss
+          if ($LASTEXITCODE -ne 0) { throw 'ISCC failed.' }
+          Copy-Item -LiteralPath $zip.FullName -Destination $output
+          Get-ChildItem -LiteralPath $output -File | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content -LiteralPath (Join-Path $output 'SHA256SUMS.txt') -Encoding ascii
+          Get-Content -LiteralPath (Join-Path $output 'SHA256SUMS.txt')
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: ${{ runner.temp }}\release\*
+          if-no-files-found: error
+          retention-days: 14
+
+  install-upgrade-uninstall:
+    needs: installer
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/package
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: ${{ runner.temp }}\release
+      - name: Install, upgrade and uninstall without Python or Node
+        shell: pwsh
+        run: |
+          $release = Join-Path $env:RUNNER_TEMP 'release'
+          foreach ($line in Get-Content (Join-Path $release 'SHA256SUMS.txt')) {
+            $expected, $name = $line -split '\s+', 2
+            if ((Get-FileHash (Join-Path $release $name) -Algorithm SHA256).Hash.ToLower() -ne $expected) { throw "$name does not match SHA256SUMS.txt" }
+          }
+          $setup = Get-ChildItem -LiteralPath $release -Filter '*-setup.exe' | Select-Object -First 1
+          scripts/package/installer-test.ps1 -Setup $setup.FullName

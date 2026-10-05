@@ -52,7 +52,27 @@ Node on `PATH`, poisoned Python variables and the Study's port 8765 taken, the a
 against `bundle.json`, answer on 8775, serve the interface, run on its bundled runtime, keep its
 workspace and backups in its own data directory, and reuse the running copy on a second launch.
 
-The bundle is not code signed yet, so Windows SmartScreen may warn on first launch. Signing is an
+### Per-user installer
+
+`scripts/package/companion.iss` wraps the unpacked bundle in an Inno Setup installer,
+`ProsperoCompanion-<version>-win-x64-setup.exe`. It installs into
+`%LOCALAPPDATA%\Programs\Prospero Companion` without administrator rights, adds a Start menu
+shortcut (a desktop shortcut is optional) and a per-user uninstall entry, and offers to close a
+running Companion before replacing files. An upgrade clears the old `app/` and `runtime/` first so
+modules a release drops do not linger. The workspace in `%LOCALAPPDATA%\ProsperoCompanion` is
+never installed, replaced or removed: uninstalling keeps it, and the app upgrades it on first open
+as described under [Upgrades](#upgrades).
+
+```powershell
+ISCC.exe /DAppVersion=0.1.0 /DSourceDir=build\package\ProsperoCompanion /DOutputDir=build\package scripts\package\companion.iss
+```
+
+The `Package` workflow builds the setup from the bundle artifact, publishes both with one
+`SHA256SUMS.txt` as the `windows-release` artifact, and runs `scripts/package/installer-test.ps1`
+on a fresh runner: install, launch, install again as an upgrade, launch, restore a backup with the
+installed launcher, launch, uninstall, with no Python or Node on `PATH`.
+
+The bundle and setup are not code signed yet, so Windows SmartScreen may warn on first launch. Signing is an
 open release decision.
 
 ## Interface
