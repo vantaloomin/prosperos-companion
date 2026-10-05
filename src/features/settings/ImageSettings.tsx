@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { BackendCheck, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, PROVIDERS, disclosureFor } from '../feed/imageState'
 
@@ -19,6 +20,7 @@ export function ImageSettings() {
   const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<{ backends: ImageBackend[] }>('/images/backends') })
   const [result, setResult] = useState<Result>(null)
   const [adding, setAdding] = useState(false)
+  const addButton = useReturnFocus<HTMLButtonElement>(adding)
   const save = async (change: Partial<Limits>, done?: string) => {
     try {
       client.setQueryData(SETTINGS_KEY, await api<Limits>('/images/settings', change, 'PUT'))
@@ -43,7 +45,7 @@ export function ImageSettings() {
         {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
       </ol>
       {adding ? <AddBackend onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-        : <div className="form-actions"><button type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
+        : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
@@ -165,7 +167,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
   return (
     <form className="form-stack backend-form" onSubmit={submit}>
       <Field label="Kind" hint={BACKEND_KINDS.find((item) => item.id === kind)?.hint}>{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={kind} onChange={(event) => chooseKind(event.target.value as BackendKind)}>
+        <select id={id} aria-describedby={describedBy} value={kind} autoFocus onChange={(event) => chooseKind(event.target.value as BackendKind)}>
           {BACKEND_KINDS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
       )}</Field>
