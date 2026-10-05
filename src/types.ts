@@ -189,3 +189,33 @@ export interface CitySummary { id: string; name: string; region: string; country
 
 export interface ContextReceipt { budget_tokens: number; estimated_tokens: number; included: Record<string, string[]>; omitted: Record<string, string[]> }
 export interface ContextPreview { system: string; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
+
+export interface DiaryEntry {
+  subject: string
+  slot: string
+  starts_at: string
+  ends_at: string
+  local_date: string
+  block: string
+  entry: { summary: string; activity?: string; place?: string | null; mood?: string | null; post?: unknown }
+  status: string
+}
+export interface CirclePerson {
+  id: string
+  name: string
+  role: string
+  status: 'active' | 'removed'
+  revision: number
+  career: string | null
+  employer: string | null
+  neighborhood: string | null
+  city: string | null
+  full_name?: string
+  pronouns?: string
+  age?: number
+  local?: boolean
+  closeness?: string
+  haunts?: string[]
+  now: RoutineBlock | null
+  recent: DiaryEntry[]
+}
