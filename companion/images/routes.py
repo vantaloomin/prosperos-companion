@@ -14,6 +14,7 @@ from companion.images.models import (
     JobRetry,
     Preview,
 )
+from companion.lora.appearance import current_for_images
 
 router = APIRouter(prefix='/api/images')
 
@@ -69,9 +70,12 @@ def delete_backend(request: Request, backend_id: str):
 async def check_backend(request: Request, backend_id: str):
     with db(request).connect() as connection:
         backend = backends.get(connection, backend_id)
+        lora = current_for_images(connection)['lora'] if backend['kind'] == 'comfyui' and \
+            connection.execute('SELECT 1 FROM companions').fetchone() else None
     key = request.app.state.vault.get(backend['credential_ref']) if backend['credential_ref'] else None
     adapter = runner(request).adapters[backend['kind']]
-    return (await adapter.check(backend, decode(backend['config']), key)).view()
+    config = {**decode(backend['config']), **({'lora_name': lora['comfy_name']} if lora else {})}
+    return (await adapter.check(backend, config, key)).view()
 
 
 @router.post('/backends/{backend_id}/unblock')

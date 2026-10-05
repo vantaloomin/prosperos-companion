@@ -18,6 +18,7 @@ from companion.images import routes as image_routes
 from companion.images.runner import ImageRunner
 from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
+from companion.lora import routes as lora_routes
 from companion.mcp import routes as context_routes
 from companion.mcp.lookups import Lookups
 from companion.memory.worker import MemoryWorker
@@ -87,6 +88,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(world_routes.router)
     app.include_router(image_routes.router)
     app.include_router(context_routes.router)
+    app.include_router(lora_routes.router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

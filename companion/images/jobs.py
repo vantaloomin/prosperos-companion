@@ -65,6 +65,7 @@ def view(connection, job) -> dict:
             'error_code': job['error_code'], 'waiting_for': waiting, 'has_image': job['output_file'] is not None,
             'prompt': inputs['prompt'], 'negative': inputs['negative'], 'aspect': inputs['aspect'],
             'character_version_id': job['character_version_id'], 'marked_nsfw': inputs.get('marked_nsfw', False),
+            'appearance_version': inputs.get('appearance_version', 0),
             'current': bool(post and post['image_job_id'] == job['id']),
             'retry_original_available': not prompts.stale(connection, inputs),
             'created_at': job['created_at'], 'started_at': job['started_at'], 'finished_at': job['finished_at']}

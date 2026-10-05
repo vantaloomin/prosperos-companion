@@ -23,6 +23,8 @@ from companion.images.adapters.base import AdapterError, Check, ImageResult
 TEMPLATE = Path(__file__).parent.parent / 'workflows' / 'krea2-turbo.json'
 TEMPLATE_NAME = 'krea2-turbo (unverified)'
 NUMERIC = {'{{seed}}', '{{width}}', '{{height}}'}
+MODEL_KEYS = ('unet_name', 'ckpt_name')
+LORA_NODE = 'prospero-lora'
 
 
 def parse_workflow(text: str) -> dict:
@@ -57,6 +59,21 @@ def fill(value, values: dict):
     return value
 
 
+def with_lora(graph: dict, lora: dict) -> dict:
+    """Insert a LoraLoaderModelOnly after the workflow's model loader and point everything that
+    used the loader's model at it instead. LoKr files load through the same node."""
+    source = next((node_id for node_id, node in graph.items()
+                   if any(key in node.get('inputs', {}) for key in MODEL_KEYS)), None)
+    if source is None:
+        raise AdapterError('incompatible', 'The workflow has no model loader to attach the adopted LoRA to.')
+    rewired = {node_id: {**node, 'inputs': {key: [LORA_NODE, 0] if value == [source, 0] else value
+                                            for key, value in node.get('inputs', {}).items()}}
+               for node_id, node in graph.items()}
+    rewired[LORA_NODE] = {'class_type': 'LoraLoaderModelOnly', 'inputs': {
+        'model': [source, 0], 'lora_name': lora['comfy_name'], 'strength_model': lora['strength']}}
+    return rewired
+
+
 def output_images(entry) -> list[dict]:
     images = []
     for output in (entry.get('outputs') or {}).values():
@@ -84,9 +101,15 @@ class ComfyAdapter:
 
     async def generate(self, request) -> ImageResult:
         workflow, name = workflow_for(request.config)
-        values = {'{{prompt}}': request.prompt, '{{negative}}': request.negative, '{{seed}}': request.seed,
+        prompt = request.prompt
+        if request.lora and request.lora.get('trigger'):
+            prompt = f"{request.lora['trigger']}, {prompt}"
+        values = {'{{prompt}}': prompt, '{{negative}}': request.negative, '{{seed}}': request.seed,
                   '{{width}}': request.width, '{{height}}': request.height}
         graph = fill(workflow, values)
+        if request.lora:
+            graph = with_lora(graph, request.lora)
+            name = f"{name} + LoRA {request.lora['comfy_name']}"
         async with self.client(request.config['base_url']) as client:
             prompt_id = await self.submit(client, graph)
             try:
@@ -112,7 +135,7 @@ class ComfyAdapter:
     @staticmethod
     def model_name(workflow) -> str | None:
         for node in workflow.values():
-            for key in ('unet_name', 'ckpt_name'):
+            for key in MODEL_KEYS:
                 if isinstance(node.get('inputs', {}).get(key), str):
                     return node['inputs'][key]
         return None
@@ -161,6 +184,19 @@ class ComfyAdapter:
         except (httpx.HTTPError, ValueError):
             pass
 
+    @staticmethod
+    def lora_problems(info, lora_name) -> list[str]:
+        """The adopted LoRA must be in ComfyUI's loras folder under the name images will ask for."""
+        if not lora_name:
+            return []
+        spec = info.get('LoraLoaderModelOnly')
+        if spec is None:
+            return ['Missing node: LoraLoaderModelOnly, which applies the adopted LoRA.']
+        options = (spec.get('input', {}).get('required') or {}).get('lora_name', [None])[0]
+        if isinstance(options, list) and lora_name not in options:
+            return [f'The adopted LoRA {lora_name} is not in ComfyUI\'s loras folder.']
+        return []
+
     async def check(self, backend, config, key=None) -> Check:
         """Ask the server which nodes and model files it has; nothing is queued or downloaded."""
         try:
@@ -184,6 +220,7 @@ class ComfyAdapter:
                 options = required.get(key_name, [None])[0]
                 if isinstance(value, str) and isinstance(options, list) and value not in options:
                     missing.append(f'Missing file or option for {node["class_type"]}.{key_name}: {value}.')
+        missing += self.lora_problems(info, config.get('lora_name'))
         if missing:
             return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing)
         return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses.')

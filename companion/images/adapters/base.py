@@ -26,6 +26,8 @@ class ImageRequest:
     config: dict
     key: str | None = None
     raw_dir: Path | None = None
+    # The adopted LoRA frozen with the job; only a ComfyUI backend applies it.
+    lora: dict | None = None
 
 
 @dataclass

@@ -64,8 +64,9 @@ asks a service. `routing.py` then decides where it may go:
 
 A job freezes its inputs: the prompt and negatives, the aspect, a seed, the events and their
 revisions, the character version and appearance. It records the classification and its reasons,
-the routing reason, the backend, provider, model, workflow, the identity method (a text
-description for now; no LoRA is adopted yet), the seed where the backend takes one, the output
+the routing reason, the backend, provider, model, workflow, the appearance version and the
+identity method
+(the text description, or the adopted LoRA on ComfyUI; see [the LoRA maker](lora.md)), the seed where the backend takes one, the output
 size and usage.
 
 - States are `queued`, `running`, `completed`, `failed`, `cancelled` and `interrupted`. A refused
