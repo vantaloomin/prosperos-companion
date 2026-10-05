@@ -9,6 +9,7 @@ PlanStatus = Literal['proposed', 'agreed', 'postponed', 'cancelled', 'completed'
 EventKind = Literal['routine', 'plan', 'ordinary', 'thread']
 BlockKind = Literal['work', 'study', 'errand', 'leisure', 'social', 'rest', 'sleep']
 ClockTime = Annotated[str, Field(pattern=r'^([01][0-9]|2[0-3]):[0-5][0-9]$')]
+Intensity = Literal['mild', 'moderate', 'strong']
 
 
 class Input(BaseModel):
@@ -34,6 +35,13 @@ class RoutineBlock(Input):
         return self
 
 
+class EmotionalTrait(Input):
+    """An opt-in trait such as jealousy or guilt over absence (PRD C6). None are enabled by default."""
+    name: str = Field(min_length=1, max_length=60)
+    intensity: Intensity = 'mild'
+    note: str = Field(default='', max_length=500)
+
+
 class CharacterDefinition(Input):
     name: str = Field(min_length=1, max_length=120)
     identity: str = Field(default='', max_length=4000)
@@ -47,6 +55,7 @@ class CharacterDefinition(Input):
     relationship: Relationship = 'friendship'
     # Empty means neutral about absence. Jealousy, guilt or missing the user are opt-in traits.
     absence_reaction: str = Field(default='', max_length=2000)
+    emotional_traits: list[EmotionalTrait] = Field(default_factory=list, max_length=12)
     timezone: str = Field(default='UTC', max_length=64)
     # Structured routine for the life simulation; empty uses a gentle default day.
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
