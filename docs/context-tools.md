@@ -52,7 +52,8 @@ are?"), weather and events target the companion's city instead, but only for map
 companion lookups and only when that city is a real, modern place in the world data. Oz, a
 steampunk city or an unknown location is never looked up.
 
-A retried send or an alternative reply reuses the lookups already made for that message.
+A retried send or an alternative reply reuses the lookups already made for that message. Without a
+model connection no reply is written, so nothing is looked up.
 
 ### Limits
 
@@ -84,6 +85,13 @@ ever parsed for instructions or used to call another tool. Servers' requests bac
 Observations are not personal memories (M6): they are never extracted into memories, they are
 listed separately, and each one can be deleted. The receipt of a reply lists the observations it
 was given under `outside`.
+
+## Interface
+
+Settings has a **Real-world lookups** section: your location, the services, a suggested tool for
+each category with its arguments, the disclosure to confirm, and a way to try an enabled lookup.
+Memories has a **Real-world lookups** list kept apart from memories, showing what each lookup
+sent, where, when, and whether it still counts as current, with delete.
 
 ## API
 

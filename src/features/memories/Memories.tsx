@@ -9,6 +9,7 @@ import { Toggle } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { RememberForm, type NewMemory } from './RememberForm'
 import { ContextReceipt } from './ContextReceipt'
+import { LookedUp } from './LookedUp'
 import { Suggestions } from './Suggestions'
 import { MergeProposals } from './MergeProposals'
 import { PREVIEW_KEY } from './receiptRows'
@@ -79,6 +80,7 @@ export function Memories({ companion }: { companion: Companion }) {
       <Suggestions name={name} run={run} />
       <MergeProposals run={run} />
       <ContextReceipt name={name} memories={memories.data ?? []} />
+      <LookedUp name={name} />
       <div className="memory-toolbar"><Toggle label="Show earlier values" checked={history} onChange={setHistory} /></div>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {memories.isPending && <Loading label="Loading memories" />}

@@ -13,6 +13,7 @@ const SECTIONS: { key: string; label: (name: string) => string; unit?: [string, 
   { key: 'circle', label: (name) => `People in ${name}'s life`, unit: ['person', 'people'] },
   { key: 'companion_life', label: (name) => `${name}'s recent life`, unit: ['event', 'events'] },
   { key: 'feed_reference', label: () => 'The post you are replying to' },
+  { key: 'outside', label: () => 'Real-world lookups', unit: ['lookup', 'lookups'] },
   { key: 'recalled', label: () => 'Possibly relevant memories', unit: ['memory', 'memories'] },
 ]
 export const PREVIEW_KEY = ['context-preview']
