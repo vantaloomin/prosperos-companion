@@ -9,6 +9,7 @@ Some slots are deliberately quiet: an uneventful stretch is a valid outcome, not
 """
 import random
 from dataclasses import dataclass
+from datetime import date
 
 COMPOSER_VERSION = 'compose-1'
 QUIET_SHARE = 0.2
@@ -120,3 +121,55 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     return {'summary': summary[0].upper() + summary[1:], 'post': rng.choice(chosen.captions),
             'mood': rng.choice(chosen.moods), 'activity': chosen.key, 'place': place.view() if place else None,
             'composer_version': COMPOSER_VERSION}
+
+
+# Plans (PRD T2): a planned outing is not a completed outing. A plan names a future routine slot;
+# when that slot is simulated, the outing happens as planned and links back to the plan.
+PLAN_SHARE = 0.15
+PLANNABLE = {
+    'walk': ('go for a walk{at}', 'went for a walk{at}'),
+    'coffee': ('get coffee{at}', 'got coffee{at}'),
+    'museum': ('spend a few hours{at}', 'spent a few hours{at}'),
+    'market': ('browse the stalls{at}', 'browsed the stalls{at}'),
+    'dinner': ('have dinner with an old friend{at}', 'had dinner with an old friend{at}'),
+    'drinks': ('meet friends for drinks{at}', 'met friends for drinks{at}'),
+    'show': ('see a show{at}', 'saw a show{at}'),
+    'workout': ('fit in a workout{at}', 'fit in a workout{at}'),
+}
+PLANNING_KINDS = {'leisure', 'social'}
+
+
+def find_activity(key) -> Activity:
+    return next(option for options in CATALOG.values() for option in options if option.key == key)
+
+
+def plan_ahead(definition: dict, world, seed: str, future_slots: list[dict]) -> dict | None:
+    """Sometimes, a plan for one upcoming leisure or social slot."""
+    rng = random.Random(f'plan:{seed}')
+    targets = [slot for slot in future_slots if slot['block']['kind'] in PLANNING_KINDS]
+    if not targets or rng.random() >= PLAN_SHARE:
+        return None
+    target = rng.choice(targets)
+    options = [option for option in CATALOG[target['block']['kind']] if option.key in PLANNABLE]
+    chosen = rng.choice(options)
+    city = definition.get('home_city') or ''
+    places = world.places(city, chosen.place_kinds) if city and chosen.place_kinds else []
+    place = rng.choice(places) if places else None
+    at = f' at {place.name}' if place else chosen.generic
+    day = date.fromisoformat(target['local_date']).strftime('%A')
+    summary = f"{definition['name']} is planning to {PLANNABLE[chosen.key][0].format(at=at)} on {day} " \
+              f"({target['block']['label'].lower()})."
+    return {'summary': summary, 'activity': chosen.key, 'place': place.view() if place else None,
+            'target': target, 'composer_version': COMPOSER_VERSION}
+
+
+def fulfil(plan: dict, definition: dict) -> dict:
+    """The outing a committed plan described, happening in its slot."""
+    details = plan['details']
+    place = details.get('place')
+    chosen = find_activity(details['activity'])
+    at = f" at {place['name']}" if place else chosen.generic
+    summary = f"{definition['name']} {PLANNABLE[chosen.key][1].format(at=at)}, as planned."
+    rng = random.Random(f"fulfil:{plan['id']}")
+    return {'summary': summary, 'post': rng.choice(chosen.captions), 'mood': rng.choice(chosen.moods),
+            'activity': chosen.key, 'place': place, 'composer_version': COMPOSER_VERSION, 'fulfils': plan['id']}

@@ -81,6 +81,17 @@ model. When a model is connected and `phrase_with_model` is on, it only rewrites
 `inputs.wording` is `model` or `template`. Set `home_city` on the character to a city id from the
 world data (for example `"baltimore"`) so events use real places there.
 
+### Companion plans
+
+Now and then an event also produces a plan for an upcoming leisure or social slot, such as
+"Mira is planning to visit the Walters Art Museum on Saturday (afternoon)". A plan is a life event
+with `kind: "plan"`, its `starts_at`/`ends_at` set to the target slot, and `details.target_slot`.
+It is reviewed and committed like any other event, and the batch result for the event it came
+from carries `plan_event_id` and `plan_outcome`. Committed upcoming plans appear in
+`GET /api/today` under `plans.companion`. A plan is not an outing: when its slot is simulated, the
+batch always includes that slot and writes the outing "as planned", with `details.fulfils` set to
+the plan's id. If the slot falls outside a later batch's lookback, the plan quietly lapses.
+
 ## Limits and permissions
 
 ```http
