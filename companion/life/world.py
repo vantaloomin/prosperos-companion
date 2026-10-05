@@ -31,10 +31,10 @@ class WorldSource(Protocol):
     name: str
 
     def places(self, city: str, kinds: Sequence[str], *, day_part: str | None = None,
-               day: date | None = None) -> list[Place]:
+               day: date | None = None, near: str | None = None) -> list[Place]:
         """Places of any of these kinds in the city, in a stable order. Unknown cities give []. A
-        source may leave out places closed at `day_part` (morning, afternoon, evening, late) or out
-        of season on `day`."""
+        source may leave out places closed at `day_part` (morning, afternoon, evening, late), out
+        of season on `day`, or everyday places far from `near` (a neighborhood or location text)."""
 
     # Optional: `weather(city, day) -> dict | None` with season, high_f, low_f, rain and note. A source
     # without it has no weather, and every day is treated as fair.
