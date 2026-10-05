@@ -144,7 +144,9 @@ CREATE TABLE IF NOT EXISTS memories (
   origin TEXT NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'automatic', 'suggestion')),
   -- The later memory whose start ended this one ("I moved to Boston" ends Chicago, which stays history).
   ended_by_id TEXT,
-  dates_uncertain INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1))
+  dates_uncertain INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1)),
+  -- Set when the user accepted merging this memory into a near-identical one (M11).
+  merged_into_id TEXT
 );
 CREATE INDEX IF NOT EXISTS memories_current ON memories(companion_id, status, layer);
 
@@ -189,6 +191,31 @@ CREATE TABLE IF NOT EXISTS memory_vectors (
   vector BLOB NOT NULL,
   created_at TEXT NOT NULL,
   PRIMARY KEY (owner_kind, owner_id, model)
+);
+
+-- Episode summaries (M11): quotes of the user's own sentences from one day, with exact sources.
+-- A retrieval aid only; dropped when any source is deleted, declined or blocked.
+CREATE TABLE IF NOT EXISTS memory_summaries (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  day TEXT NOT NULL,
+  text TEXT NOT NULL,
+  source_message_ids TEXT NOT NULL,
+  basis TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, day)
+);
+
+-- Consolidation proposals the user decides on, such as merging two near-identical memories.
+CREATE TABLE IF NOT EXISTS memory_proposals (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL CHECK (kind IN ('merge')),
+  keep_id TEXT NOT NULL,
+  merge_id TEXT NOT NULL,
+  fingerprint TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'declined')),
+  created_at TEXT NOT NULL,
+  resolved_at TEXT
 );
 
 -- What memory formation did, by identity and reason code only, so deletion leaves no content here.

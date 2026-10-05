@@ -71,6 +71,7 @@ ADDED_COLUMNS = (
     ('memories', 'subject_key', "TEXT NOT NULL DEFAULT ''"),
     ('memories', 'origin', "TEXT NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'automatic', 'suggestion'))"),
     ('memories', 'ended_by_id', 'TEXT'),
+    ('memories', 'merged_into_id', 'TEXT'),
     ('memories', 'dates_uncertain', 'INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1))'),
 )
 

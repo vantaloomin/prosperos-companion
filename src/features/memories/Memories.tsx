@@ -10,6 +10,7 @@ import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { RememberForm, type NewMemory } from './RememberForm'
 import { ContextReceipt } from './ContextReceipt'
 import { Suggestions } from './Suggestions'
+import { MergeProposals } from './MergeProposals'
 import { PREVIEW_KEY } from './receiptRows'
 import { LAYERS, REMEMBER_KEY, groupMemories, layerTitle, type RememberRequest } from './memoryGroups'
 
@@ -75,6 +76,7 @@ export function Memories({ companion }: { companion: Companion }) {
       </header>
       {adding && <RememberForm name={name} request={request} onSave={remember} onCancel={() => setAdding(false)} />}
       <Suggestions name={name} run={run} />
+      <MergeProposals run={run} />
       <ContextReceipt name={name} memories={memories.data ?? []} />
       <div className="memory-toolbar"><Toggle label="Show earlier values" checked={history} onChange={setHistory} /></div>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>

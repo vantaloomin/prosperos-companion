@@ -109,6 +109,26 @@ guilt, missing the user, neediness or sulking (`companion/traits.py`). The mood 
 trait's intensity and stops applying once the trait is removed. Product controls such as pause,
 settings and export stay neutral either way.
 
+## Consolidation (M10, M11)
+
+`companion/memory/consolidation.py` runs without a model, at most hourly while automatic memory is
+on, after formation and indexing (`POST /api/memory/consolidate` runs it on demand).
+
+- **Episode summaries.** For each finished day with at least four user messages, the summary
+  quotes up to three of the user's own sentences that best represent the day, with their exact
+  source messages. Recall offers a summary labelled as quoted words and "a reminder, not
+  confirmation". A summary is never read by extraction, so it cannot confirm itself or another
+  summary. It is skipped while any source is declined or blocked by an exclusion, and deleted with
+  any source message. A run handles at most five days and commits nothing if the memory revision
+  changed while it worked.
+- **Merge proposals.** Two active memories with the same layer and subject whose values share most
+  of their words are proposed for merging; nothing merges until the user accepts. Accepting keeps
+  the newer one with both sets of sources and makes the older one history (`merged_into_id`), so
+  deleting either deletes both. A declined proposal is not made again.
+- **Resurfacing.** An item recalled in two of the last six replies comes back only when the user's
+  own words match it, so a semantic near-match cannot keep repeating the same anecdote, while a
+  direct question still finds it.
+
 ## Memory formation (M7, M8)
 
 `companion/memory/extraction.py` captures explicitly stated facts with rules, without a model:

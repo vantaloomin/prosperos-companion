@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from companion import backup, characters, conversation, events, workspace
 from companion.identity import APP_ID, VERSION
-from companion.memory import formation, records
+from companion.memory import consolidation, formation, records
 from companion.models import (
     CharacterDefinition,
     CharacterRevision,
@@ -156,6 +156,27 @@ def accept_suggestion(request: Request, candidate_id: str):
 @router.post('/memory/suggestions/{candidate_id}/decline')
 def decline_suggestion(request: Request, candidate_id: str):
     return formation.decline(db(request), candidate_id)
+
+
+@router.post('/memory/consolidate')
+def consolidate_memory(request: Request):
+    """Run bounded consolidation now (the app also runs it in the background while automatic memory is on)."""
+    return consolidation.run(db(request))
+
+
+@router.get('/memory/proposals')
+def memory_proposals(request: Request):
+    return consolidation.proposals(db(request))
+
+
+@router.post('/memory/proposals/{proposal_id}/accept')
+def accept_proposal(request: Request, proposal_id: str):
+    return consolidation.resolve(db(request), proposal_id, True)
+
+
+@router.post('/memory/proposals/{proposal_id}/decline')
+def decline_proposal(request: Request, proposal_id: str):
+    return consolidation.resolve(db(request), proposal_id, False)
 
 
 @router.get('/memory/activity')
