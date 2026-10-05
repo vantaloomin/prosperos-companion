@@ -121,3 +121,43 @@ export interface LifeSettings {
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
+
+export interface LifeEvent {
+  id: string
+  kind: 'routine' | 'plan' | 'ordinary' | 'thread'
+  status: 'proposed' | 'committed' | 'rejected' | 'superseded'
+  summary: string
+  details: { label?: string; activity?: string; post?: string; mood?: string; local_date?: string; timezone?: string }
+  starts_at: string
+  ends_at: string
+  revision: number
+  rejection: string | null
+}
+
+export interface RoutineSlot { starts_at: string; ends_at: string; local_date: string; block: { label: string; kind: string } }
+
+export interface AbsenceMood { id: string; kind: string; intensity: string; away_hours: number; traits: string[]; expires_at: string }
+
+export interface LifeRun { id: string; status: 'running' | 'completed' | 'interrupted' | 'failed'; error: string | null; finished_at: string | null }
+
+export interface SharedPlan { id: string; subject: string; value: string; status: string; applies_from: string | null; applies_until: string | null }
+
+export interface Today {
+  now: string
+  companion_local_time: string
+  companion_timezone: string
+  availability: { state: 'free' | 'working' | 'out' | 'asleep'; label: string; until: string | null }
+  routine: { default_schedule: boolean; current: RoutineSlot | null; next: RoutineSlot | null }
+  changes: LifeEvent[]
+  review: LifeEvent[]
+  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[] }
+  feed_unread: number
+  last_run: LifeRun | null
+  paused: boolean
+  paused_at: string | null
+  clock_behind: boolean
+  mood: AbsenceMood | null
+  last_seen_at: string | null
+}
+
+export interface PauseRecord { id: string; started_at: string; ended_at: string | null; catch_up_requested_at: string | null; catch_up_run_id: string | null }

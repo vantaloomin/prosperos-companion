@@ -6,6 +6,8 @@ import { Conversation } from './features/conversation/Conversation'
 import { Character } from './features/character/Character'
 import { Memories } from './features/memories/Memories'
 import { Settings } from './features/settings/Settings'
+import { Today } from './features/today/Today'
+import { useReconcile } from './features/today/useReconcile'
 import { Placeholder } from './components/Placeholder'
 import { Loading, Notice } from './components/Feedback'
 
@@ -26,6 +28,7 @@ function viewFromHash(): View {
 export default function App() {
   const [view, setView] = useState<View>(viewFromHash)
   const companion = useCompanion()
+  useReconcile(!!companion.data)
   useEffect(() => {
     const sync = () => setView(viewFromHash())
     window.addEventListener('popstate', sync)
@@ -55,7 +58,7 @@ function CurrentView({ view, companion, go }: { view: View; companion: Companion
   if (view === 'settings') return <Settings companion={companion} />
   if (view === 'character') return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
-  if (view === 'today') return <Placeholder title="Today" text={`What ${companion.version.name} is up to today, their plans, and what changed since you last visited will appear here once the life simulation is ready.`} />
+  if (view === 'today') return <Today companion={companion} go={go} />
   if (view === 'feed') return <Placeholder title="Feed" text={`${companion.version.name}'s private posts will appear here once the feed is ready.`} />
   if (view === 'memories') return <Memories companion={companion} />
   return <Conversation companion={companion} go={go} />
