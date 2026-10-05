@@ -109,6 +109,16 @@ Invoke-TestGit @('remote', 'set-url', 'origin', $remote)
 Check ((Invoke-Bat 'update.bat') -eq 0) 'update.bat pulls main and reinstalls'
 Check (Test-Path -LiteralPath (Join-Path $CompanionRoot 'update-marker.txt')) 'the new commit was pulled'
 Check (Test-Path -LiteralPath 'dist\index.html') 'the interface was rebuilt'
+# A host that captures stderr (a terminal tool, a scheduled task) must not turn npm's notices into
+# failures: Windows PowerShell 5.1 wraps captured native stderr as errors. npm logs to stderr.
+$env:npm_config_loglevel = 'http'
+$previous = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+& cmd.exe /d /c (Join-Path $CompanionRoot 'update.bat') -NoPause 2>&1 | ForEach-Object { "$_" } | Out-Host
+$code = $LASTEXITCODE
+$ErrorActionPreference = $previous
+Remove-Item Env:npm_config_loglevel
+Check ($code -eq 0) 'update.bat succeeds when its stderr is captured and npm writes to it'
 $app = Start-Process -FilePath $python -ArgumentList '-m', 'companion.launch', '--no-browser' -PassThru -NoNewWindow
 try {
   Check (Wait-State 'running') 'the Companion launches after updating'
