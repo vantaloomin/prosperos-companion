@@ -118,9 +118,11 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
           <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{companion ? 'Save new version' : 'Create companion'}</button>
         </div>
       </form>
-      {companion && <Home name={companion.version.name} />}
-      {companion && <SelfFacts name={companion.version.name} />}
-      {companion && <Versions current={companion.active_version_id} />}
+      {companion && <>
+        <Home name={companion.version.name} />
+        <SelfFacts name={companion.version.name} />
+        <Versions current={companion.active_version_id} />
+      </>}
     </section>
   )
 }
