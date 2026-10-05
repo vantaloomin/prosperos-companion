@@ -32,7 +32,7 @@ def check(definition: dict) -> dict:
 
 def _view(row) -> dict:
     data = catalog.prepare(decode(row['definition']))
-    return data | {'builtin': False, 'revision': row['revision'], 'created_at': row['created_at'],
+    return data | {'builtin': False, 'origin': 'user', 'revision': row['revision'], 'created_at': row['created_at'],
                    'updated_at': row['updated_at']}
 
 
@@ -48,12 +48,13 @@ def read(database) -> dict[str, dict]:
 
 def _definition(data: dict) -> dict:
     return {key: value for key, value in data.items()
-            if key not in {'data_version', 'builtin', 'revision', 'created_at', 'updated_at'}}
+            if key not in {'data_version', 'builtin', 'origin', 'pack_file', 'revision', 'created_at', 'updated_at'}}
 
 
 def create(database, definition: dict) -> dict:
     data = check(definition)
-    require(data['id'] not in catalog.cities(), f'{data["id"]!r} is a built-in city. Choose another id.', 409)
+    require(data['id'] not in catalog.cities(), f'{data["id"]!r} is a built-in or pack city. Choose another id.',
+            409)
     with database.connect(write=True) as connection:
         exists = optional(connection, 'SELECT id FROM world_cities WHERE id=?', (data['id'],))
         require(exists is None, f'You already have a city with id {data["id"]!r}.', 409)
@@ -64,7 +65,8 @@ def create(database, definition: dict) -> dict:
 
 
 def _not_builtin(city_id: str) -> None:
-    require(city_id not in catalog.cities(), 'Built-in cities cannot be changed. Copy one to make it yours.', 409)
+    require(city_id not in catalog.cities(), 'Built-in and pack cities cannot be changed here. Copy one to make it '
+            'yours.', 409)
 
 
 def update(database, city_id: str, definition: dict, expected_revision: int) -> dict:

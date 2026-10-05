@@ -188,6 +188,9 @@ class City(Record):
     name: Text
     setting: Setting = 'real'
     era: Era = 'modern'
+    # 'private' marks a personal city pack (for example fan fiction of owned settings): loaded from a local
+    # folder, never shipped or committed.
+    distribution: Literal['public', 'private'] = 'public'
     # For fictional settings: the work it draws on and why it may be shipped (for example, public domain).
     basis: str = Field(default='', max_length=400)
     region: Text

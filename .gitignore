@@ -134,3 +134,6 @@ $RECYCLE.BIN/
 
 # Keep source, README/license files, dependency manifests and lockfiles,
 # install/launch scripts, public assets, and design/brand.md versioned.
+
+# Personal city packs (for example private fan cities). Never committed; see docs/world-data.md.
+/private-cities/
