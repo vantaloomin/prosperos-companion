@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ReadBatcher, joinPages, nextReaction } from '../../src/features/feed/feed.ts'
+import { ReadBatcher, joinPages, nextReaction } from '../../src/features/feed/feedState.ts'
 import type { FeedPost } from '../../src/types.ts'
 
 const post = (id: string) => ({ id }) as FeedPost

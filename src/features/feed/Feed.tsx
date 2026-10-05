@@ -7,7 +7,7 @@ import type { Companion, FeedPage, FeedPost } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { Toggle } from '../../components/Fields'
 import { PostCard, type PostActions } from './PostCard'
-import { ReadBatcher, joinPages, nextReaction } from './feed'
+import { ReadBatcher, joinPages, nextReaction } from './feedState'
 
 export function Feed({ companion, go }: { companion: Companion; go: (view: View) => void }) {
   const client = useQueryClient()

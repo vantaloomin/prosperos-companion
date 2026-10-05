@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { earlierVersions, groupMemories, statusLabels } from '../../src/features/memories/memories.ts'
+import { earlierVersions, groupMemories, statusLabels } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {

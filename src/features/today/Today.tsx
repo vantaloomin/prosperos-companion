@@ -6,7 +6,7 @@ import { SETTINGS_KEY, type View } from '../../companion'
 import type { Companion, LifeEvent, PauseRecord, Today as TodayData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { EventItem } from './EventItem'
-import { availabilityText, moodText, pauseToFill } from './today'
+import { availabilityText, moodText, pauseToFill } from './todayText'
 
 const TODAY_KEY = ['today']
 

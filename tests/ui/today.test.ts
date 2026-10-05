@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { availabilityShort, availabilityText, moodText, pauseToFill } from '../../src/features/today/today.ts'
+import { availabilityShort, availabilityText, moodText, pauseToFill } from '../../src/features/today/todayText.ts'
 
 test('availability explains, without locking anything', () => {
   const today = { companion_timezone: 'UTC', availability: { state: 'asleep' as const, label: 'Asleep', until: '2026-10-06T06:00:00+00:00' } }
