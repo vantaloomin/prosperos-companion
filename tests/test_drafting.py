@@ -161,12 +161,47 @@ def test_prompts_can_be_reworded_in_settings_and_reset(client, provider):
     provider.respond = replying(json.dumps(GOOD))
     client.post('/api/companion/draft', json={'idea': 'someone'})
     assert 'Make them a retired sailor.' in provider.requests[0]['system']
-    assert 'Avoid overused names' not in provider.requests[0]['system']
+    assert 'none of the names chatbots overuse' not in provider.requests[0]['system']
     reset = client.delete('/api/prompts/character-rules.md').json()
-    assert not reset['customized'] and 'Avoid overused names' in reset['text']
+    assert not reset['customized'] and 'none of the names chatbots overuse' in reset['text']
 
 
 def test_a_reworded_prompt_must_keep_its_placeholders(client):
     response = client.put('/api/prompts/character-draft.md', json={'text': 'Draft someone. {{rules}}'})
     assert response.status_code == 422 and '{{picks}}' in response.json()['detail']
     assert client.put('/api/prompts/notes.md', json={'text': 'x'}).status_code == 404
+
+
+def test_names_that_read_as_invented_are_retried_then_swapped(client, provider):
+    connect(client)
+    invented = {**GOOD, 'name': 'Elara Voss', 'background': 'Her sister Lyra still calls Elara every Sunday.'}
+    provider.respond = replying(json.dumps(invented), json.dumps(invented))
+    definition = client.post('/api/companion/draft', json={'idea': 'a nurse', 'age': 'thirties'}).json()['definition']
+    retry = provider.requests[1]['messages'][-1]['content']
+    assert 'Elara' in retry and 'Voss' in retry and 'made up' in retry
+    first, last = definition['name'].split(' ', 1)
+    assert 'Elara' not in definition['name'] and 'Voss' not in definition['name']
+    assert f'calls {first} every Sunday' in definition['background'] and 'Lyra' not in definition['background']
+    # The quick start offers names people in their thirties really have, from the city's data.
+    assert 'commonly have where they live' in provider.requests[0]['system']
+
+
+def test_a_name_the_user_chose_is_never_treated_as_invented(client, provider):
+    connect(client)
+    provider.respond = replying(json.dumps({**GOOD, 'name': 'Elara Voss'}))
+    definition = client.post('/api/companion/draft', json={'idea': 'a nurse', 'name': 'Elara Voss'}).json()['definition']
+    assert definition['name'] == 'Elara Voss' and len(provider.requests) == 1
+
+
+def test_a_redone_field_cannot_bring_in_invented_names(client, provider):
+    connect(client)
+    provider.respond = replying(json.dumps({'value': 'Raised by her aunt Seraphina.'}),
+                                json.dumps({'value': 'Raised by her aunt Seraphina.'}))
+    response = client.post('/api/companion/draft/field', json={'field': 'background', 'definition': GOOD})
+    assert response.status_code == 200, response.text
+    assert 'Seraphina' not in response.json()['value'] and len(provider.requests) == 2
+
+
+def test_quick_start_ages_are_read_from_the_pick():
+    assert [drafting.age_value(text) for text in ('', 'twenties', 'thirties', '34', 'sixty or older')] == \
+        [None, 25, 35, 34, 65]
