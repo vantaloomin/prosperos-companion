@@ -488,3 +488,21 @@ def test_prices_api(client):
     item = listing['prices'][0]['id']
     picked = client.get('/api/world/cities/london-1895/prices', params={'item': item, 'seed': 's'}).json()
     assert picked['price']['id'] == item
+
+
+def test_everyday_places_keep_near_home():
+    from companion.world.source import NEAR_KM, CatalogWorld, nearby
+    world = CatalogWorld()
+    data = world.find('baltimore')
+    close = nearby(data, 'Fells Point, Baltimore')
+    assert close == nearby(data, 'fells-point') and close['fells-point'] == 0
+    cafes = world.places('baltimore', ['cafe'], day_part='morning', near='fells-point')
+    hoods = {hood['name']: hood['id'] for hood in data['neighborhoods']}
+    assert len(cafes) >= 2 and all(close[hoods[place.neighborhood]] <= NEAR_KM for place in cafes)
+    assert len(cafes) < len(world.places('baltimore', ['cafe'], day_part='morning'))
+    # Too few within reach: the nearest few instead, closest first.
+    gyms = world.places('baltimore', ['gym'], near='towson')
+    assert len(gyms) == 3 and gyms[0].neighborhood == 'Towson'
+    # Museums and the like stay city-wide, and an unknown place changes nothing.
+    assert world.places('baltimore', ['museum'], near='fells-point') == world.places('baltimore', ['museum'])
+    assert world.places('baltimore', ['cafe'], near='Atlantis') == world.places('baltimore', ['cafe'])
