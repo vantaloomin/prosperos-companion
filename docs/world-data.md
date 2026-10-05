@@ -31,6 +31,7 @@ are optional, so a setting without money (Oz) or without weather data still work
 | `companion/world/data/cities/<id>.json` | One city. Validated against `companion/world/schema.py` on load and in the tests. |
 | `companion/world/data/careers.json` | Careers with sector, schedule pattern, pay band and themes. |
 | `companion/world/data/names.json` | Name banks for residents, written by `scripts/world/names.py`. |
+| `companion/world/data/holidays.json` | Holiday calendars, written by `scripts/world/holidays.py`. |
 | `scripts/world/<city>.py` | The source each city's JSON is written from. Edit these, then rerun them. |
 
 Nothing needs the network at run time. Every record names a source in its city's `sources` table
@@ -53,6 +54,7 @@ catalog.find(data, 'fort-mchenry')          # any record by id
 
 generators.conditions(data, day, seed)      # typical weather for the date, with a seeded rain chance
 generators.annual_events(data, day)         # recurring events usually held that month
+generators.holidays(data, start, end=None)  # holidays from start to end inclusive, each with its `date`
 generators.commute(data, 'canton', 'towson', mode=None)
 generators.outing(data, seed=..., day=..., day_part='evening', company='date',
                   neighborhood='fells-point', home='canton', budget='$$', kinds=None, exclude=[...])
@@ -100,6 +102,15 @@ A city may set `names` to pick another `bank`, weight groups with `mix`, or add 
 (`{"feminine": […], "masculine": […], "neutral": […], "family": […]}`); a city with its own groups and no
 `mix` uses only those. Weights for groups a bank lacks are ignored, so changing a city's era keeps working.
 
+**Holidays.** Each city keeps a shared calendar chosen from its era and country (`catalog.calendar_id`):
+`us` for modern US cities, `us-1880s` for the frontier, `uk-victorian` for Victorian and steampunk
+England, `medieval-england` for medieval settings, and none otherwise (Oz has none). A city may name
+another `calendar`, `'none'`, or add its own `holidays`. A holiday has one rule: `month` and `day`, a
+`month`, `weekday` (Monday 0) and `nth` (-1 for the last), or `easter` (days from Western Easter).
+`kind` is `public` (most offices and schools close), `observance` (widely marked, a working day) or
+`feast` (a church feast or quarter day). Moved "observed" weekdays and lunar-calendar holidays are
+not included.
+
 Weather here is climate, not a forecast. Real current conditions belong to the MCP context tools
 (PRD X1–X3); a life event built from climate must not be presented as today's weather.
 
@@ -124,7 +135,8 @@ need `x-companion-client: workspace`. Every `{id}` may be a built-in city or one
 | `/api/world/cities/{id}` | The whole city record |
 | `/api/world/cities/{id}/sources` | Source, licence and retrieval date for each cited source |
 | `/api/world/cities/{id}/places?kind=&neighborhood=&tag=&good_for=` | Matching places |
-| `/api/world/cities/{id}/conditions?day=YYYY-MM-DD&seed=` | `{"conditions": … \| null, "annual_events": […]}` |
+| `/api/world/cities/{id}/conditions?day=YYYY-MM-DD&seed=` | `{"conditions": … \| null, "annual_events": […], "holidays": […]}` |
+| `/api/world/cities/{id}/holidays?start=&end=` | `{"calendar": id \| null, "holidays": [… with "date"]}` (at most 400 days) |
 | `/api/world/cities/{id}/careers` | Careers this city offers |
 | `/api/world/cities/{id}/commute?from=&to=&mode=` | A commute estimate |
 | `/api/world/cities/{id}/generate/outing?seed=&day=&day_part=&company=&neighborhood=&home=&budget=&kind=&exclude=` | `{"outing": …}` |

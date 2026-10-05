@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from companion.errors import DomainError
 from companion.identity import data_dir
-from companion.world.schema import Careers, City, Names
+from companion.world.schema import Careers, City, Holidays, Names
 
 DATA = Path(__file__).parent / 'data'
 
@@ -58,6 +58,27 @@ def name_groups(data: dict) -> tuple[dict[str, dict], dict[str, float]]:
     return groups, mix or dict.fromkeys(groups, 1.0)
 
 
+@cache
+def holiday_calendars() -> dict[str, dict]:
+    """The shared holiday calendars by id."""
+    return Holidays.model_validate_json((DATA / 'holidays.json').read_text(encoding='utf-8')).model_dump()['calendars']
+
+
+ERA_CALENDARS = {'victorian': 'uk-victorian', 'steampunk': 'uk-victorian', 'medieval': 'medieval-england',
+                 'frontier': 'us-1880s'}
+US_NAMES = {'us', 'usa', 'united states', 'united states of america'}
+
+
+def calendar_id(data: dict) -> str | None:
+    """The shared calendar a city keeps: its own choice, else one fitting its era and country."""
+    chosen = data.get('calendar')
+    if chosen:
+        return None if chosen == 'none' else chosen
+    if data['era'] in ('modern', 'future', 'other'):
+        return 'us' if data['country'].lower() in US_NAMES else None
+    return ERA_CALENDARS.get(data['era'])
+
+
 def prepare(raw: bytes | str | dict) -> dict:
     """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError."""
     model = City.model_validate(raw) if isinstance(raw, dict) else City.model_validate_json(raw)
@@ -70,6 +91,8 @@ def prepare(raw: bytes | str | dict) -> dict:
     own = data.get('names') or {}
     if own.get('bank') and own['bank'] not in names()['banks']:
         raise ValueError(f'Unknown name bank {own["bank"]!r}; the banks are {sorted(names()["banks"])}.')
+    if data.get('calendar') not in (None, 'none', *holiday_calendars()):
+        raise ValueError(f'Unknown calendar {data["calendar"]!r}; the calendars are {sorted(holiday_calendars())}.')
     # Identifies the exact data a generator used, so a recorded event can name its inputs (PRD T7).
     canonical = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     data['data_version'] = hashlib.sha256(canonical.encode()).hexdigest()[:12]

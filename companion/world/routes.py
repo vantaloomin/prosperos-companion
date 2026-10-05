@@ -113,7 +113,14 @@ def list_places(request: Request, city_id: str, kind: str | None = None, neighbo
 @router.get('/cities/{city_id}/conditions')
 def read_conditions(request: Request, city_id: str, day: date, seed: str = ''):
     data = city(request, city_id)
-    return {'conditions': generators.conditions(data, day, seed), 'annual_events': generators.annual_events(data, day)}
+    return {'conditions': generators.conditions(data, day, seed), 'annual_events': generators.annual_events(data, day),
+            'holidays': generators.holidays(data, day)}
+
+
+@router.get('/cities/{city_id}/holidays')
+def list_holidays(request: Request, city_id: str, start: date, end: date | None = None):
+    return {'calendar': catalog.calendar_id(city(request, city_id)),
+            'holidays': generators.holidays(city(request, city_id), start, end)}
 
 
 @router.get('/cities/{city_id}/commute')

@@ -368,3 +368,46 @@ def test_a_circle_spreads_across_workplaces():
         employers = [person['job']['employer']['id'] for person in people
                      if person['job'] and person['job']['employer']['id']]
         assert all(employers.count(item) <= 2 for item in employers)
+
+
+def test_shipped_holidays_match_their_script():
+    script = Path(__file__).parent.parent / 'scripts' / 'world' / 'holidays.py'
+    written = json.loads((catalog.DATA / 'holidays.json').read_text(encoding='utf-8'))
+    assert runpy.run_path(str(script))['HOLIDAYS'] == written, 'Rerun the script.'
+
+
+def test_holiday_dates():
+    assert [generators.easter(year) for year in (1895, 2000, 2024, 2026, 2038)] == [
+        date(1895, 4, 14), date(2000, 4, 23), date(2024, 3, 31), date(2026, 4, 5), date(2038, 4, 25)]
+    year = {item['id']: item['date'] for item in generators.holidays(baltimore(), date(2026, 1, 1), date(2026, 12, 31))}
+    assert year['thanksgiving'] == '2026-11-26' and year['memorial-day'] == '2026-05-25'
+    assert year['labor-day'] == '2026-09-07' and year['mlk-day'] == '2026-01-19'
+    london = generators.holidays(catalog.city('london-1895'), date(1895, 4, 12), date(1895, 4, 15))
+    assert [item['id'] for item in london] == ['good-friday', 'easter', 'easter-monday']
+    assert [item['id'] for item in generators.holidays(baltimore(), date(2026, 7, 4))] == ['independence-day']
+    assert generators.holidays(catalog.city('emerald-city'), date(2026, 12, 25)) == []
+    span = generators.holidays(baltimore(), date(2026, 12, 20), date(2027, 1, 2))
+    assert [item['id'] for item in span] == ['christmas-eve', 'christmas', 'new-years-eve', 'new-years-day']
+    with pytest.raises(DomainError):
+        generators.holidays(baltimore(), date(2026, 1, 1), date(2028, 1, 1))
+
+
+def test_cities_choose_and_add_holidays():
+    assert {city: catalog.calendar_id(catalog.city(city)) for city in ('whitlock', 'calderwick', 'camelot')} == {
+        'whitlock': 'us-1880s', 'calderwick': 'uk-victorian', 'camelot': 'medieval-england'}
+    own = {'id': 'harbor-day', 'name': 'Harbor Day', 'kind': 'observance', 'month': 6, 'weekday': 5, 'nth': 1,
+           'summary': 'Boats parade.'}
+    custom = catalog.prepare(plain(baltimore()) | {'calendar': 'none', 'holidays': [own]})
+    assert [item['date'] for item in generators.holidays(custom, date(2026, 1, 1), date(2026, 12, 31))] == ['2026-06-06']
+    with pytest.raises(ValueError):
+        catalog.prepare(plain(baltimore()) | {'calendar': 'atlantis'})
+    with pytest.raises(ValidationError):
+        catalog.prepare(plain(baltimore()) | {'holidays': [own | {'day': 3}]})
+
+
+def test_holiday_api(client):
+    result = client.get('/api/world/cities/baltimore/holidays', params={'start': '2026-11-01', 'end': '2026-11-30'})
+    assert result.json()['calendar'] == 'us'
+    assert [item['id'] for item in result.json()['holidays']] == ['veterans-day', 'thanksgiving']
+    day = client.get('/api/world/cities/baltimore/conditions', params={'day': '2026-11-26'}).json()
+    assert day['holidays'][0]['id'] == 'thanksgiving'
