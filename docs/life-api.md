@@ -119,8 +119,11 @@ under `plans.threads`.
 ## Social circle
 
 The companion has a small circle of supporting people (PRD T8). Each is assembled from the city
-data and a seed, without a model: a first name, how they know the companion, a job and that job's
-weekly routine. The circle is created the first time it is needed. Its members are fictional
+data and a seed, without a model. In a known city this uses the world data's circle generator: a
+name from the city's name groups, how they know the companion, an age, a home near the
+companion's neighborhood when their location names one, a job with its weekly routine and a few
+regular haunts. Relatives may live out of town, with no routine here. Elsewhere a simpler version
+picks a first name, a role and a career's routine. The circle is created the first time it is needed. Its members are fictional
 supporting characters, never the user and never a source of facts about the user.
 
 ```http
@@ -132,7 +135,9 @@ GET   /api/life/circle/{id}/diary          # ?before=<starts_at>&limit=20, newes
 ```
 
 A person is `{id, name, role, status, revision, career, employer, neighborhood, city, refs, sources,
-data_version, schedule, now, recent}`. `now` is the routine block they are in right now (for example
+data_version, schedule, now, recent}`, plus `full_name`, `pronouns`, `age`, `local`, `closeness` and
+`haunts` when they came from a known city. `name` is the given name used in events; `local: false`
+means they live out of town and have an empty `schedule`. `now` is the routine block they are in right now (for example
 `{"label": "Registered nurse", "kind": "work", ...}`) or `null`. `recent` is the newest three diary
 entries. A diary entry is `{subject, slot, starts_at, ends_at, local_date, block, entry, status}`,
 where `entry` holds `summary`, `activity`, `place`, `mood` and `post`. Renaming, removing or

@@ -38,9 +38,14 @@ def test_the_circle_is_assembled_from_the_city_data(client, baltimore):
     assert len(people) == circle.CIRCLE_SIZE and people[0]['role'] == 'close friend'
     names = [person['name'] for person in people]
     assert len(set(names)) == len(names) and 'Mira' not in names
+    local = [person for person in people if person['local']]
+    assert local
+    for person in local:
+        assert person['city'] == 'Baltimore' and person['neighborhood'] and person['haunts'] and person['schedule']
     for person in people:
-        assert person['city'] == 'Baltimore' and person['employer'] and person['sources']
-        assert any(block['kind'] in {'work', 'study'} for block in person['schedule'])
+        assert person['full_name'].startswith(person['name']) and person['age'] > 0
+        if not person['local']:
+            assert person['schedule'] == [] and person['now'] is None
     # Reading it again never assembles a second circle.
     assert [person['id'] for person in client.get('/api/life/circle').json()] == [person['id'] for person in people]
 

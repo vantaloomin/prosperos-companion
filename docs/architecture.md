@@ -129,8 +129,8 @@ settings and export stay neutral either way.
 - **World data.** `companion/life/world.py` defines the `WorldSource` interface
   (`places(city, kinds) -> [Place]`) passed to `create_app(world=...)`. The default is
   `CatalogWorld`, the shipped city data ([world data](world-data.md)); `EmptyWorld` has no places.
-- **Social circle and agenda.** `companion/life/circle.py` assembles four supporting people per
-  timeline from the city data (name, role, job, weekly routine), with no model. `companion/life/agenda.py`
+- **Social circle and agenda.** `companion/life/circle.py` assembles five supporting people per
+  timeline with the world data's circle generator (name, role, age, home, job, routine, haunts), with no model. `companion/life/agenda.py`
   precomputes every subject's routine a week ahead in `life_agenda`, seeded per slot. On open it
   fills in any gap up to 30 days back, and a running server advances it in steps with the same
   result. Each entry records the version it was built from (`basis`), so upcoming entries rebuild

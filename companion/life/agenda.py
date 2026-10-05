@@ -30,6 +30,8 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
     definition = version['definition']
     result = []
     for person in circle.ensure(connection, companion, world, now):
+        if not decode(person['schedule']):
+            continue  # Lives out of town: no routine here.
         result.append((person['id'], {'name': person['name'], 'schedule': decode(person['schedule']),
                                       'home_city': definition.get('home_city', ''),
                                       'location': definition.get('location', '')},
@@ -111,6 +113,8 @@ def free_people(connection, timeline_id, slot) -> list[dict]:
     """Circle members with nothing busy overlapping the slot, in circle order."""
     result = []
     for person in circle.people(connection, timeline_id):
+        if not decode(person['schedule']):
+            continue
         overlapping = many(connection, 'SELECT block FROM life_agenda WHERE timeline_id=? AND subject=? '
                            'AND starts_at<? AND ends_at>?', (timeline_id, person['id'], stamp(slot.ends_at),
                                                              stamp(slot.starts_at)))

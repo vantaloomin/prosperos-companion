@@ -111,8 +111,11 @@ def post_text(post) -> str:
 
 def person_text(person) -> str:
     """One circle member: who they are, where they are now and their latest happened entry."""
-    work = person['career'] + (f" at {person['employer']}" if person['employer'] else '')
-    text = f"- {person['name']} ({person['role']}): {work}."
+    text = f"- {person['name']} ({person['role']})"
+    if person['career']:
+        text += f": {person['career']}" + (f" at {person['employer']}" if person['employer'] else '')
+    text += '.' if person.get('local', True) else '. Lives out of town.'
+
     if person['now']:
         text += f" Right now: {person['now']['label'].lower()}."
     if person['recent']:
