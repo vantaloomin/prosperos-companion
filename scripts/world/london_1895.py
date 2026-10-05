@@ -50,6 +50,11 @@ def month(high, low, rain, note):
     return {'high_f': high, 'low_f': low, 'rain_days': rain, 'note': note}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 SOLO = ['solo']
@@ -664,6 +669,64 @@ CITY = {
         event('christmas-pantomime', 'Christmas pantomimes', [12, 1], 'strand-covent-garden', 'Drury Lane and the '
               'other big theatres open their pantomimes on Boxing Day, with comedians, a transformation scene and '
               'a harlequinade.'),
+    ],
+    'local_color': [
+        color('pie-mash-and-eels', 'Pie, mash and eels', 'dish', 'Minced-meat pies with mashed potato and green '
+              'parsley "liquor", or stewed and jellied eels, eaten at marble-topped tables in South and East London '
+              'pie shops.', ['lower-marsh-eel-pie-shop', 'the-new-cut']),
+        color('whelks-and-cockles', 'Whelks and cockles', 'dish', 'Saucers of whelks, cockles and mussels with vinegar '
+              'and pepper, bought from stalls outside pubs and on the market streets on a Saturday night.',
+              ['the-new-cut', 'petticoat-lane', 'chrisp-street-market']),
+        color('baked-potatoes-and-chestnuts', 'Baked potatoes and hot chestnuts', 'dish', 'Street sellers with glowing '
+              'cans sell hot baked potatoes and roast chestnuts for a halfpenny or a penny, as much to warm the hands '
+              'as to eat.', seasons=['fall', 'winter']),
+        color('fried-fish-and-chips', 'Fried fish and chips', 'dish', 'Fried fish shops, many kept by Jewish families '
+              'in the East End, sell fish fried in batter with chipped potatoes, wrapped in paper to carry away.',
+              ['whitechapel']),
+        color('chop-and-porter', 'A chop and a pint of porter', 'dish', 'The City clerk\'s dinner: a mutton chop or '
+              'steak from the gridiron with a potato and a pewter pint of porter, in a sawdust-floored chop house.',
+              ['cheshire-cheese', 'simpsons-tavern', 'ye-olde-cock-tavern', 'blandford-street-chop-house']),
+        color('tea-shop-tea', 'A pot of tea at the tea shop', 'drink', 'The new Aerated Bread Company and Lyons tea '
+              'shops serve tea, buns and poached eggs cheaply, and are respectable places for women to eat alone.',
+              ['abc-cheapside', 'lyons-piccadilly']),
+        color('half-and-half', 'Half-and-half', 'drink', 'A pint drawn half of ale and half of porter, a common order '
+              'at the public-house bar.'),
+        color('christmas-pudding', 'Christmas pudding', 'dish', 'Households stir the plum pudding on Stir-up Sunday in '
+              'late November, everyone taking a turn and making a wish, and serve it flaming with brandy on Christmas '
+              'Day.', seasons=['fall', 'winter']),
+        color('hot-cross-buns', 'Hot cross buns', 'dish', 'Spiced buns marked with a cross are cried in the streets on '
+              'Good Friday morning: "Hot cross buns! One a penny, two a penny!"', seasons=['spring']),
+        color('rhyming-slang', 'Rhyming slang', 'saying', 'Cockneys say "apples and pears" for stairs and "plates of '
+              'meat" for feet, and often drop the rhyming word so that outsiders are lost.',
+              ['whitechapel', 'limehouse']),
+        color('money-slang', 'A bob, a tanner, a quid', 'saying', 'Everyone counts in slang: a "bob" is a shilling, a '
+              '"tanner" sixpence, a "joey" fourpence, a "quid" a sovereign or pound, and a "monkey" five hundred '
+              'pounds.'),
+        color('peelers-and-bobbies', 'Bobbies and coppers', 'saying', 'Police constables are "bobbies", "peelers" '
+              'after Sir Robert Peel, or "coppers"; a toff is a well-dressed gentleman and a swell a showy one.'),
+        color('pea-souper', 'A pea-souper', 'other', 'The thick yellow coal-smoke fogs, also called "London '
+              'particulars", that stop the traffic, put link-boys to work with torches and leave soot on every collar.',
+              seasons=['fall', 'winter']),
+        color('costermongers', 'Costermongers', 'shop', 'Costers sell fruit, vegetables and fish from barrows and '
+              'donkey carts, crying their goods, and dress for best in pearl-buttoned jackets.',
+              ['the-new-cut', 'petticoat-lane', 'chrisp-street-market', 'covent-garden-market']),
+        color('muffin-man', 'The muffin man', 'custom', 'On winter afternoons the muffin man walks the residential '
+              'streets ringing a handbell, with a tray of muffins and crumpets on his head for toasting at the fire.',
+              seasons=['fall', 'winter']),
+        color('church-parade', 'Church parade', 'custom', 'During the Season, fashionable London walks in Hyde Park '
+              'near the Achilles statue after Sunday morning service to see and be seen.',
+              ['hyde-park'], ['spring', 'summer']),
+        color('calling-cards', 'Calling cards and at-home days', 'custom', 'Ladies of the middle and upper classes '
+              'leave engraved cards when they call, turn down a corner for a personal visit, and keep a fixed '
+              'afternoon "at home" each week.', ['mayfair', 'kensington', 'marylebone']),
+        color('music-hall-chorus', 'Joining in the chorus', 'custom', 'Music hall audiences sing along with the '
+              'choruses of the comic songs, eat and drink in their seats, and let a turn they dislike know about it.',
+              ['canterbury-music-hall', 'peoples-palace']),
+        color('appy-ampstead', '\'Appy \'Ampstead', 'custom', 'On bank holidays East Enders crowd onto Hampstead Heath '
+              'for donkey rides, swings, coconut shies and roundabouts.', ['hampstead-heath'], ['spring', 'summer']),
+        color('county-cricket', 'Surrey and Middlesex cricket', 'team', 'County cricket at the Oval (Surrey) and '
+              'Lord\'s (Middlesex) draws big summer crowds, and W. G. Grace\'s run-making is the talk of 1895.',
+              seasons=['summer']),
     ],
 }
 

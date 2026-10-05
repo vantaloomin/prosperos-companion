@@ -20,6 +20,11 @@ def place(id, name, kind, hood, summary, tags, cost, setting, good_for, day_part
             'seasons': list(seasons), 'cuisine': cuisine, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -791,6 +796,56 @@ CITY = {
          'satellite fairs and parties across the city.', 'source': S},
         {'id': 'orange-bowl', 'name': 'Orange Bowl', 'months': [12, 1], 'neighborhood': 'miami-gardens',
          'summary': 'College football bowl game at Hard Rock Stadium around New Year.', 'source': S},
+    ],
+    'local_color': [
+        color('cafecito', 'Cafecito', 'drink', 'Cuban espresso brewed strong and whipped with sugar into a sweet foam '
+              '(espumita), drunk in a few sips standing at a walk-up window.', ['versailles', 'puerto-sagua']),
+        color('colada', 'Colada', 'drink', 'A larger cafecito in a styrofoam cup with a stack of thimble-sized plastic '
+              'cups, bought to share around the office or job site.', ['versailles']),
+        color('cafe-con-leche-y-tostada', 'Café con leche and tostada', 'dish', 'The Cuban breakfast: hot milk with '
+              'espresso and pressed, buttered Cuban bread for dunking.', ['versailles', 'puerto-sagua', 'enriquetas']),
+        color('three-oh-five', '3:05 cafecito', 'custom', 'Miami\'s area code is 305, so 3:05 in the afternoon has '
+              'become a time for a coffee break, with people posting their cafecitos.'),
+        color('ventanita', 'Ventanitas', 'shop', 'Walk-up coffee windows at Cuban restaurants and bakeries, where '
+              'people stand for cafecito, pastelitos, croquetas and talk about politics.',
+              ['versailles', 'little-havana']),
+        color('cuban-sandwich', 'Cuban sandwich', 'dish', 'Roast pork, ham, Swiss cheese, pickles and mustard pressed '
+              'flat on Cuban bread; the medianoche is the same on a sweet egg roll.', ['sanguich', 'versailles']),
+        color('pastelitos-and-croquetas', 'Pastelitos and croquetas', 'dish', 'Flaky pastries filled with guava, guava '
+              'and cream cheese, or meat, and fried ham croquetas, bought by the dozen for any gathering.',
+              ['little-havana']),
+        color('frita', 'Frita', 'dish', 'The Cuban hamburger: a seasoned beef and chorizo patty with a pile of crisp '
+              'shoestring potatoes on a soft bun.', ['little-havana']),
+        color('stone-crabs', 'Stone crab claws', 'dish', 'Florida stone crab claws are served cold and cracked with '
+              'mustard sauce; the season opens in mid-October and runs into spring.',
+              ['joes-stone-crab'], ['fall', 'winter', 'spring']),
+        color('pub-sub', 'Pub sub', 'dish', 'Floridians are devoted to the made-to-order deli subs at Publix '
+              'supermarkets, especially the chicken tender sub.'),
+        color('dale', '"Dale"', 'saying', 'All-purpose Miami Spanish for "go ahead", "let\'s go", "OK" or "bye", heard '
+              'from everyone whatever their first language.'),
+        color('spanglish', 'Miami Spanglish', 'saying', 'Conversations switch between English and Spanish '
+              'mid-sentence, with phrases like "pero like" ("but, like") and greetings like the Cuban "¿qué bolá?" '
+              '(what\'s up?).'),
+        color('domino-games', 'Domino games', 'custom', 'Older men, many Cuban, play loud games of dominoes all day at '
+              'the tables of Domino Park on Calle Ocho.', ['domino-park']),
+        color('hurricane-prep', 'Hurricane prep', 'custom', 'From June through November people keep shutters, water, '
+              'batteries and gas ready, and supermarket shelves empty fast when a storm is in the cone.',
+              seasons=['summer', 'fall']),
+        color('miami-dolphins', 'Miami Dolphins', 'team', 'The NFL team plays at Hard Rock Stadium in Miami Gardens, '
+              'and fans never let anyone forget the 1972 perfect season.', ['hard-rock-stadium'], ['fall', 'winter']),
+        color('miami-heat', 'Miami Heat', 'team', 'The NBA team plays downtown at Kaseya Center and is known for "Heat '
+              'Culture", its demanding work ethic, and for crowds dressed in all white for playoff games.',
+              ['kaseya-center'], ['fall', 'winter', 'spring']),
+        color('miami-marlins', 'Miami Marlins', 'team', 'The Major League Baseball team plays in Little Havana at '
+              'loanDepot park, which has a retractable roof against summer rain.',
+              ['loandepot-park'], ['spring', 'summer', 'fall']),
+        color('florida-panthers', 'Florida Panthers', 'team', 'The NHL team plays in Sunrise, north of the city, and '
+              'won back-to-back Stanley Cups in 2024 and 2025.', seasons=['fall', 'winter', 'spring']),
+        color('inter-miami', 'Inter Miami', 'team', 'The MLS soccer club co-owned by David Beckham, which made Lionel '
+              'Messi the city\'s most famous footballer when he signed in 2023.'),
+        color('miami-hurricanes', 'Miami Hurricanes', 'team', 'The University of Miami\'s teams, especially football, '
+              'which plays at Hard Rock Stadium; fans flash the "U" with their hands.',
+              ['hard-rock-stadium'], ['fall']),
     ],
 }
 

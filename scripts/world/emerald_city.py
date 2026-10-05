@@ -37,6 +37,11 @@ def event(id, name, months, hood, summary):
     return {'id': id, 'name': name, 'months': months, 'neighborhood': hood, 'summary': summary, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -492,6 +497,47 @@ CITY = {
               'palace hall for anyone who comes.'),
         event('spectacle-day', 'Spectacle day', [11], 'gate-quarter', 'Children borrow green spectacles from the '
               'gatehouse for a day to see the city the way visitors once did.'),
+    ],
+    'local_color': [
+        color('green-spectacles', 'Green spectacles', 'custom', 'In the Wizard\'s day the Guardian of the Gates locked '
+              'a pair of green spectacles on every visitor; the custom lapsed under Ozma, but the gatehouse still '
+              'keeps the box.', ['gatehouse-spectacles', 'great-gate']),
+        color('no-money', 'No money', 'custom', 'There is no money in Oz: people work for the good of all, and take '
+              'what they need from the shops and storehouses without paying.'),
+        color('green-lemonade', 'Green lemonade', 'drink', 'Sold on the streets for green pennies in the Wizard\'s '
+              'time, green lemonade is now handed over the counter free to anyone thirsty.', ['green-lemonade-stand']),
+        color('green-popcorn', 'Green popcorn', 'dish', 'Popcorn tinted green, sold from street carts in the Wizard\'s '
+              'time and still a favourite of children on market days.', ['green-lemonade-stand', 'market-square']),
+        color('country-colours', 'The colours of the four countries', 'custom', 'Munchkins wear blue, Winkies yellow, '
+              'Quadlings red and Gillikins purple, and newcomers to the city keep their home colour for a long time.',
+              ['winkie-street', 'quadling-lane', 'gillikin-gardens']),
+        color('no-magic-law', 'The law against magic', 'custom', 'By Ozma\'s decree no one but Glinda and the Wizard '
+              'may practise magic in Oz, so herb-gatherers and conjurers take care what they do.'),
+        color('nobody-grows-old', 'Nobody grows old', 'other', 'Since Oz was made a fairyland, its people do not age '
+              'or fall ill, so nobody here can quite tell you how old they are.'),
+        color('no-place-like-home', '"There is no place like home"', 'saying', 'Dorothy\'s words, which the people of '
+              'the city repeat to homesick travellers and to themselves on returning from a long journey.'),
+        color('army-of-officers', 'The army of officers', 'other', 'The Royal Army of Oz once had twenty-six officers '
+              'and one private, and the city still jokes about who gives orders to whom.',
+              ['royal-army-parade-ground', 'barracks-mess']),
+        color('green-whiskers', 'The Soldier with the Green Whiskers', 'other', 'The palace\'s best-known soldier is '
+              'easy to recognize by his long green beard, and he is the one to ask at the palace door.',
+              ['royal-palace']),
+        color('winkie-tinsmith-shops', 'Winkie tinsmiths', 'shop', 'Winkie tinsmiths once mended the Tin Woodman, and their '
+              'shops still make and mend kettles, lanterns, oil-cans and anything else of tin.',
+              ['winkie-street-tinsmiths', 'winkie-street']),
+        color('purple-plum-wine', 'Plum wine', 'drink', 'Gillikin families make a sweet purple wine from their plums '
+              'and serve it with cold meats.', ['purple-plum']),
+        color('oatcakes', 'Gillikin oatcakes', 'dish', 'Flat oatcakes baked on a griddle, eaten with butter and honey '
+              'for breakfast or carried in a pocket on a long walk.', ['gillikin-oatcake-oven']),
+        color('apple-cider', 'New cider', 'drink', 'When the orchards are picked, the cider barns press apples for '
+              'sweet new cider, sold by the jug from the taverns.',
+              ['cider-barn', 'apple-cart', 'cutters-arms'], ['fall']),
+        color('afternoon-tea', 'Tea and cakes', 'custom', 'Many people stop work in the afternoon for tea, cakes and '
+              'bread and butter, often in a garden or by the window.', ['bramble-tearoom', 'needle-hill-tea-garden']),
+        color('puppet-shows', 'Market-day puppet shows', 'custom', 'Puppeteers on Market Square play out the '
+              'adventures of Dorothy, the Scarecrow and the Tin Woodman, and children shout warnings at the wicked '
+              'witch.', ['market-square-puppets']),
     ],
 }
 

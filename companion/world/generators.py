@@ -566,6 +566,15 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
 
 # --- Grounding text ---
 
+def local_color(data: dict, *, seed: str, kinds: list[str] | None = None, day: date | None = None,
+                count: int = 3) -> list[dict]:
+    """A few things locals eat, drink, say or do, for flavour. Seasonal items appear only in season on `day`."""
+    season = SEASONS[day.month] if day else None
+    pool = [item for item in data['local_color'] if (not kinds or item['kind'] in kinds)
+            and (not season or not item['seasons'] or season in item['seasons'])]
+    return sorted(pool, key=lambda item: unit(seed, 'color', item['id']))[:count]
+
+
 def facts(data: dict, neighborhood: str | None = None, limit: int = 8) -> list[str]:
     """Short factual lines for a prompt, so the model describes real places instead of inventing them."""
     lines = [f'{data["name"]}, {data["region"]}: {data["summary"]}']
@@ -574,4 +583,6 @@ def facts(data: dict, neighborhood: str | None = None, limit: int = 8) -> list[s
         lines.append(f'{hood["name"]}: {hood["summary"]}')
         for place in catalog.places(data, neighborhood=neighborhood)[:limit]:
             lines.append(f'{place["name"]} ({place["kind"]}): {place["summary"]}')
+    for item in data['local_color'][:limit]:
+        lines.append(f'Local {item["kind"]}: {item["name"]}: {item["summary"]}')
     return lines

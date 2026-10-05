@@ -29,6 +29,11 @@ def employer(id, name, sector, hood, size, summary, careers):
             'careers': careers, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -579,6 +584,57 @@ CITY = {
         {'id': 'christmas-court', 'name': 'Christmas court', 'months': [12, 1], 'neighborhood': 'castle-ward',
          'summary': 'Twelve days of feasting in the great hall, mummers and carols in the town, and no work in '
          'the fields.', 'source': S},
+    ],
+    'local_color': [
+        color('no-meat-before-a-marvel', 'No meat before a marvel', 'custom', 'At the high feast of Pentecost King '
+              'Arthur will not sit down to eat until he has seen or heard of some marvel or adventure, so the hall '
+              'waits on news.', ['round-table-hall'], ['spring']),
+        color('pentecost-oath', 'The Pentecost oath', 'custom', 'Every year at Pentecost the knights of the Round '
+              'Table renew their oath: to flee treason, give mercy to those who ask it, and always help ladies and '
+              'damosels.', ['round-table-hall', 'st-stephens-minster'], ['spring']),
+        color('siege-perilous', 'The Siege Perilous', 'other', 'Each seat at the Round Table bears its knight\'s name '
+              'in letters of gold, but one, the Siege Perilous, is kept empty, and no one sits there and lives.',
+              ['round-table-hall']),
+        color('gramercy', '"Gramercy" and "fair sir"', 'saying', 'Courtesy runs on set phrases: "gramercy" for many '
+              'thanks, "fair sir" and "fair damosel" to strangers, and "God speed" to anyone setting out.'),
+        color('beaumains', '"Beaumains"', 'saying', 'Sir Kay\'s mocking name, "Fair-hands", for the tall kitchen lad '
+              'who turned out to be Gareth of Orkney; to call a scullion Beaumains is to warn that he may be more than '
+              'he seems.', ['castle-buttery']),
+        color('jousting-sides', 'Taking sides at the jousts', 'custom', 'At every tournament the town cheers for a '
+              'party: Lancelot\'s kin or Gawain\'s Orkney brothers, and arguments carry on in the taverns afterward.',
+              ['tiltyard', 'the-green-dragon']),
+        color('a-maying', 'Going a-Maying', 'custom', 'On May morning the court and the townsfolk ride or walk into '
+              'the woods and fields to bring home green boughs and flowers, as the Queen does with her knights.',
+              ['forest-ride', 'woolston-green'], ['spring']),
+        color('pottage', 'Pottage', 'dish', 'The everyday meal: a thick pot of peas, beans, leeks and grain, with '
+              'bacon when there is any, kept going on the hearth from day to day.',
+              ['shambles-cookshop', 'east-gate-cookshop']),
+        color('trenchers', 'Trenchers', 'custom', 'At table meat is served on thick slices of stale bread called '
+              'trenchers, which soak up the gravy and are given to the poor or the dogs after the meal.',
+              ['bread-street-bakery', 'castle-buttery']),
+        color('hot-pies-cry', '"Hot pies, hot!"', 'shop', 'Cooks and pie-wives cry their wares in the street, and '
+              'cookshops sell hot pies, roast meat and puddings ready to carry home.',
+              ['shambles-cookshop', 'pudding-wifes-stall', 'cutlers-cookstall']),
+        color('ale-stake', 'The ale-stake', 'custom', 'A bush or bundle of greenery on a pole over the door means a '
+              'house has new ale to sell, and the town ale-taster must try it before it is sold.',
+              ['mother-joans-alehouse', 'the-chequers']),
+        color('spiced-wine', 'Spiced wine', 'drink', 'At feasts the butler serves wine sweetened with honey and spiced '
+              'with ginger and cinnamon, while ordinary folk drink ale.', ['castle-buttery', 'round-table-hall']),
+        color('frumenty', 'Frumenty', 'dish', 'Hulled wheat boiled in milk with egg yolks and saffron, eaten with '
+              'venison at feasts or plain at harvest.', seasons=['fall', 'winter']),
+        color('lammas-loaf', 'Lammas loaf', 'custom', 'On the first of August a loaf baked from the first ripe wheat '
+              'is carried to the church and blessed.', ['st-stephens-minster', 'woolston-common-oven'], ['summer']),
+        color('fish-days', 'Fish days', 'custom', 'No meat is eaten on Fridays, through Lent, or on other fast days, '
+              'so the town lives on herring, eels and river fish.',
+              ['fishergate-fish-market', 'fishergate-smokehouse']),
+        color('curfew-bell', 'The curfew bell', 'custom', 'At dusk the minster bell rings curfew: hearth fires are '
+              'covered, gates are shut, and anyone abroad without a light may be questioned by the watch.',
+              ['st-stephens-minster']),
+        color('hue-and-cry', 'Hue and cry', 'custom', 'Anyone who sees a crime must raise the hue and cry, and every '
+              'household within earshot is bound to turn out and chase the wrongdoer.'),
+        color('wassail', 'Wassail', 'drink', 'At Christmas and Twelfth Night a bowl of hot spiced ale with roasted '
+              'apples is passed around with the greeting "wassail" ("be well") and the answer "drinkhail".',
+              seasons=['winter']),
     ],
 }
 

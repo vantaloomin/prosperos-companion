@@ -38,6 +38,11 @@ def event(id, name, months, hood, summary):
     return {'id': id, 'name': name, 'months': months, 'neighborhood': hood, 'summary': summary, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -596,6 +601,63 @@ CITY = {
               'house, with new dresses, an oyster supper and a midnight march.'),
         event('las-posadas', 'Las Posadas', [12], 'la-plaza', 'Nine nights of candlelit processions through the '
               'barrio before Christmas, ending with tamales and piñatas.'),
+    ],
+    'local_color': [
+        color('carne-seca', 'Carne seca', 'dish', 'Beef cut thin, salted and dried on lines in the sun, then shredded '
+              'and fried with chile, onion and tomato; the Sonoran dish everyone in town learns to like.',
+              ['fonda-carrillo', 'tafoyas-kitchen']),
+        color('tortillas-de-harina', 'Flour tortillas', 'dish', 'Sonoran cooks stretch flour tortillas thin and wide '
+              'as a platter on the griddle, and miners from every country buy them by the dozen.',
+              ['fonda-carrillo', 'panaderia-ochoa', 'tafoyas-kitchen']),
+        color('menudo', 'Sunday menudo', 'dish', 'A pot of tripe and hominy stew in red chile, served on Sunday '
+              'mornings and recommended for anyone who spent Saturday night on Main Street.', ['fonda-carrillo']),
+        color('christmas-tamales', 'Christmas tamales', 'dish', 'Families in the barrio spend whole days making '
+              'tamales of red-chile pork in corn husks for Las Posadas and Christmas Eve.',
+              ['tafoyas-kitchen', 'la-plaza'], ['winter']),
+        color('pasty', 'Pasty', 'dish', 'The Cornish miner\'s dinner: beef, potato and turnip baked in a thick crust, '
+              'carried underground in a pail and still warm at noon.', ['cornish-boarding-table', 'sarah-ann-gulch']),
+        color('sourdough-biscuits', 'Sourdough biscuits', 'dish', 'Biscuits raised with a crock of sour starter that '
+              'cooks guard like a savings account; an old prospector is called a "sourdough" for the same reason.',
+              ['roundup-chuck-wagon', 'copper-basin-boarding-table']),
+        color('arbuckles', 'Arbuckles\' coffee', 'drink', 'Roasted coffee sold by the pound in Arbuckles\' packages '
+              'with a stick of peppermint candy inside, which camp cooks hand to whoever grinds the beans.',
+              ['feldman-mercantile-store', 'company-store']),
+        color('mescal', 'Mescal', 'drink', 'Agave spirit hauled up from Sonora by wagon, cheaper and stronger than the '
+              'whiskey on Main Street.', ['cantina-la-sonorense']),
+        color('lager-schooner', 'A schooner of lager', 'drink', 'Lager beer from the German brewer\'s cellar, sold '
+              'cold by the glass or the tall schooner when there is ice from the railroad.',
+              ['schusters-beer-garden', 'brennans-saloon'], ['spring', 'summer']),
+        color('cousin-jacks', 'Cousin Jacks', 'saying', 'Cornish miners are "Cousin Jacks" and their wives "Cousin '
+              'Jennies", from their habit of saying they have a cousin back home who could fill any job going.',
+              ['sarah-ann-gulch', 'cornish-chapel']),
+        color('high-grade', 'High-grade', 'saying', 'Assay talk is everyday talk: rich ore is "high-grade", ore is '
+              'judged in ounces to the ton, and "high-grading" means a miner carrying rich pieces home in his lunch '
+              'pail.', ['mill-hill', 'main-street']),
+        color('salted', '"Salted"', 'saying', 'A claim is "salted" when someone has planted rich ore or gold dust in '
+              'it to fool a buyer, and anything too good to be true is said to be salted.'),
+        color('tommyknockers', 'Tommyknockers', 'saying', 'Cornish miners say the knocking in the rock is the '
+              'tommyknockers, little mine spirits, and some leave them a crust of pasty to stay on their good side.',
+              ['sarah-ann-gulch']),
+        color('border-spanish', 'Border Spanish', 'saying', 'English in the town is full of borrowed Spanish: '
+              '"savvy?", "pronto", "vamoose", the "calaboose" for the jail, a "ramada" for a brush shade, and "mañana" '
+              'for later.'),
+        color('bucking-the-tiger', 'Bucking the tiger', 'saying', 'Playing faro, the favourite saloon card game, whose '
+              'dealing boxes were often painted with a tiger.', ['palace-saloon', 'railroad-exchange']),
+        color('check-your-guns', 'Checking your guns', 'custom', 'A town ordinance says pistols must be left with the '
+              'hotel clerk, livery or bartender on arriving in town; most people do it, and the deputies remind the '
+              'rest.', ['main-street', 'depot']),
+        color('pay-day', 'Pay day', 'custom', 'The company pays at the barred window on the tenth of the month, and by '
+              'evening the saloons, stores and the pawnshop all do a month\'s business in one night.',
+              ['company-pay-window', 'main-street']),
+        color('evening-paseo', 'The evening paseo', 'custom', 'After the heat breaks, families walk slowly round the '
+              'plaza in their good clothes, the young people one way and their elders the other.',
+              ['plaza-bandstand', 'la-plaza']),
+        color('the-rains', 'Watching for the rains', 'other', 'In July the whole town watches the thunderheads build '
+              'over the mountains each afternoon; when the rains break the heat, people stand out in it.',
+              seasons=['summer']),
+        color('assay-office', 'The assay office', 'shop', 'The assayer on Main Street crushes, fires and weighs '
+              'samples for anyone with a sack of rock and a few dollars, and his figures start or end most mining '
+              'arguments.', ['main-street']),
     ],
 }
 

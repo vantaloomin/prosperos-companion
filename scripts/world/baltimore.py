@@ -20,6 +20,11 @@ def place(id, name, kind, hood, summary, tags, cost, setting, good_for, day_part
             'seasons': list(seasons), 'cuisine': cuisine, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -644,6 +649,62 @@ CITY = {
          'summary': 'German-style Christmas market by the harbor.', 'source': S},
         {'id': 'miracle-on-34th', 'name': 'Miracle on 34th Street', 'months': [12], 'neighborhood': 'hampden',
          'summary': 'A block of rowhouses covered in over-the-top Christmas lights.', 'source': S},
+    ],
+    'local_color': [
+        color('steamed-crabs', 'Steamed blue crabs', 'dish', 'Chesapeake blue crabs steamed with a crust of Old '
+              'Bay-style seasoning, tipped onto brown paper and picked at with mallets and knives over pitchers of '
+              'beer; they are heaviest and best in late summer and early fall.',
+              ['lp-steamers', 'captain-james'], ['summer', 'fall']),
+        color('crab-cake', 'Crab cake', 'dish', 'A Maryland crab cake is mostly jumbo lump crab with just enough '
+              'binder to hold it, broiled or fried and eaten on a platter or with saltines; locals argue hard about '
+              'filler.', ['lexington-market', 'kocos-pub', 'thames-street-oyster-house']),
+        color('soft-shell-crab', 'Soft-shell crab sandwich', 'dish', 'Blue crabs caught just after molting are fried '
+              'whole, legs and all, and served on white bread with lettuce, tomato and tartar sauce.',
+              seasons=['spring', 'summer']),
+        color('old-bay', 'Old Bay on everything', 'other', 'Old Bay seasoning was created in Baltimore, and locals '
+              'shake it on fries, corn, popcorn, chicken wings and the rims of Bloody Marys, not just crabs.'),
+        color('pit-beef', 'Pit beef', 'dish', 'Top round charred over charcoal, sliced thin and rare onto a kaiser '
+              'roll with raw onion and horseradish sauce; the classic stands line Pulaski Highway on the east side.'),
+        color('berger-cookies', 'Berger cookies', 'dish', 'Soft, cakey shortbread cookies buried under a thick layer '
+              'of fudge icing, sold in grocery stores all over town and brought to every office party.'),
+        color('lake-trout', 'Lake trout', 'dish', 'A carryout staple that is not trout at all: fried whiting on white '
+              'bread with hot sauce, sold by the box at corner carryouts.'),
+        color('snowball', 'Snowball', 'dish', 'Finely shaved ice soaked in syrup, with egg custard the local favourite '
+              'and marshmallow cream on top, sold from neighborhood stands that open for the warm months.',
+              seasons=['spring', 'summer']),
+        color('natty-boh', 'Natty Boh', 'drink', 'National Bohemian, the cheap local lager whose one-eyed, mustachioed '
+              'Mr. Boh still turns up on signs, T-shirts and bar taps; ordering one is a statement of loyalty.',
+              ['odonnell-square', 'mount-royal-tavern']),
+        color('half-and-half', 'Half-and-half', 'drink', 'Iced tea mixed with lemonade, bought by the bottle or the '
+              'styrofoam cup at carryouts and corner stores.'),
+        color('hon', '"Hon"', 'saying', 'A friendly "hon" (short for honey) from a waitress or neighbor is classic '
+              'Baltimore, celebrated with beehive hairdos and cat-eye glasses at Hampden\'s summer HonFest.',
+              ['hampden']),
+        color('downy-ocean', '"Goin\' downy ocean"', 'saying', 'Baltimorese for heading to Ocean City on the Atlantic '
+              'for the weekend or the week, the default summer trip; the city name itself comes out as "Bawlmer".',
+              seasons=['summer']),
+        color('o-in-the-anthem', 'The "O!" in the anthem', 'custom', 'At Orioles games, and many other events in town, '
+              'the crowd shouts "O!" at "Oh, say does that star-spangled banner yet wave".', ['camden-yards']),
+        color('painted-screens', 'Painted window screens', 'custom', 'East Baltimore rowhouses have a tradition of '
+              'painted window and door screens, usually a cottage-and-stream scene, that lets residents see out while '
+              'passers-by see only the picture.', ['highlandtown', 'east-baltimore']),
+        color('marble-steps', 'Scrubbed marble steps', 'custom', 'Rowhouse front steps are often white marble, and '
+              'older residents still scrub them on a Saturday morning as a point of pride.',
+              ['highlandtown', 'fells-point']),
+        color('arabbers', 'Arabbers', 'custom', 'Street vendors who sell fruit and vegetables from brightly painted '
+              'horse-drawn carts with jingling bells and sung calls, a tradition that survives in a few West Baltimore '
+              'stables.'),
+        color('public-markets', 'Public markets', 'shop', 'Baltimore still has a network of city public markets where '
+              'stalls sell crab cakes, deli sandwiches, produce and lunch counter food under one roof.',
+              ['lexington-market', 'broadway-market', 'cross-street-market', 'northeast-market']),
+        color('crab-house', 'Crab houses', 'shop', 'Paper-covered tables, mallets, rolls of paper towels and crabs '
+              'sold by the dozen, priced by size and season.', ['lp-steamers', 'captain-james'], ['summer', 'fall']),
+        color('orioles', 'Baltimore Orioles', 'team', 'The city\'s Major League Baseball team plays at Oriole Park at '
+              'Camden Yards; fans wear orange and black, and Opening Day is an unofficial city holiday.',
+              ['camden-yards']),
+        color('ravens', 'Baltimore Ravens', 'team', 'The NFL team, named for Poe\'s poem, plays at M&T Bank Stadium; '
+              'Purple Friday sees the whole city wear purple before game days.',
+              ['ravens-stadium'], ['fall', 'winter']),
     ],
 }
 

@@ -3718,5 +3718,221 @@
    "summary": "Twelve days of feasting in the great hall, mummers and carols in the town, and no work in the fields.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "no-meat-before-a-marvel",
+   "name": "No meat before a marvel",
+   "kind": "custom",
+   "summary": "At the high feast of Pentecost King Arthur will not sit down to eat until he has seen or heard of some marvel or adventure, so the hall waits on news.",
+   "places": [
+    "round-table-hall"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pentecost-oath",
+   "name": "The Pentecost oath",
+   "kind": "custom",
+   "summary": "Every year at Pentecost the knights of the Round Table renew their oath: to flee treason, give mercy to those who ask it, and always help ladies and damosels.",
+   "places": [
+    "round-table-hall",
+    "st-stephens-minster"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "siege-perilous",
+   "name": "The Siege Perilous",
+   "kind": "other",
+   "summary": "Each seat at the Round Table bears its knight's name in letters of gold, but one, the Siege Perilous, is kept empty, and no one sits there and lives.",
+   "places": [
+    "round-table-hall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "gramercy",
+   "name": "\"Gramercy\" and \"fair sir\"",
+   "kind": "saying",
+   "summary": "Courtesy runs on set phrases: \"gramercy\" for many thanks, \"fair sir\" and \"fair damosel\" to strangers, and \"God speed\" to anyone setting out.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "beaumains",
+   "name": "\"Beaumains\"",
+   "kind": "saying",
+   "summary": "Sir Kay's mocking name, \"Fair-hands\", for the tall kitchen lad who turned out to be Gareth of Orkney; to call a scullion Beaumains is to warn that he may be more than he seems.",
+   "places": [
+    "castle-buttery"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "jousting-sides",
+   "name": "Taking sides at the jousts",
+   "kind": "custom",
+   "summary": "At every tournament the town cheers for a party: Lancelot's kin or Gawain's Orkney brothers, and arguments carry on in the taverns afterward.",
+   "places": [
+    "tiltyard",
+    "the-green-dragon"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "a-maying",
+   "name": "Going a-Maying",
+   "kind": "custom",
+   "summary": "On May morning the court and the townsfolk ride or walk into the woods and fields to bring home green boughs and flowers, as the Queen does with her knights.",
+   "places": [
+    "forest-ride",
+    "woolston-green"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pottage",
+   "name": "Pottage",
+   "kind": "dish",
+   "summary": "The everyday meal: a thick pot of peas, beans, leeks and grain, with bacon when there is any, kept going on the hearth from day to day.",
+   "places": [
+    "shambles-cookshop",
+    "east-gate-cookshop"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "trenchers",
+   "name": "Trenchers",
+   "kind": "custom",
+   "summary": "At table meat is served on thick slices of stale bread called trenchers, which soak up the gravy and are given to the poor or the dogs after the meal.",
+   "places": [
+    "bread-street-bakery",
+    "castle-buttery"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hot-pies-cry",
+   "name": "\"Hot pies, hot!\"",
+   "kind": "shop",
+   "summary": "Cooks and pie-wives cry their wares in the street, and cookshops sell hot pies, roast meat and puddings ready to carry home.",
+   "places": [
+    "shambles-cookshop",
+    "pudding-wifes-stall",
+    "cutlers-cookstall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ale-stake",
+   "name": "The ale-stake",
+   "kind": "custom",
+   "summary": "A bush or bundle of greenery on a pole over the door means a house has new ale to sell, and the town ale-taster must try it before it is sold.",
+   "places": [
+    "mother-joans-alehouse",
+    "the-chequers"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spiced-wine",
+   "name": "Spiced wine",
+   "kind": "drink",
+   "summary": "At feasts the butler serves wine sweetened with honey and spiced with ginger and cinnamon, while ordinary folk drink ale.",
+   "places": [
+    "castle-buttery",
+    "round-table-hall"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "frumenty",
+   "name": "Frumenty",
+   "kind": "dish",
+   "summary": "Hulled wheat boiled in milk with egg yolks and saffron, eaten with venison at feasts or plain at harvest.",
+   "places": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lammas-loaf",
+   "name": "Lammas loaf",
+   "kind": "custom",
+   "summary": "On the first of August a loaf baked from the first ripe wheat is carried to the church and blessed.",
+   "places": [
+    "st-stephens-minster",
+    "woolston-common-oven"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fish-days",
+   "name": "Fish days",
+   "kind": "custom",
+   "summary": "No meat is eaten on Fridays, through Lent, or on other fast days, so the town lives on herring, eels and river fish.",
+   "places": [
+    "fishergate-fish-market",
+    "fishergate-smokehouse"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "curfew-bell",
+   "name": "The curfew bell",
+   "kind": "custom",
+   "summary": "At dusk the minster bell rings curfew: hearth fires are covered, gates are shut, and anyone abroad without a light may be questioned by the watch.",
+   "places": [
+    "st-stephens-minster"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hue-and-cry",
+   "name": "Hue and cry",
+   "kind": "custom",
+   "summary": "Anyone who sees a crime must raise the hue and cry, and every household within earshot is bound to turn out and chase the wrongdoer.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "wassail",
+   "name": "Wassail",
+   "kind": "drink",
+   "summary": "At Christmas and Twelfth Night a bowl of hot spiced ale with roasted apples is passed around with the greeting \"wassail\" (\"be well\") and the answer \"drinkhail\".",
+   "places": [],
+   "seasons": [
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  }
  ]
 }

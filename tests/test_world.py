@@ -411,3 +411,18 @@ def test_holiday_api(client):
     assert [item['id'] for item in result.json()['holidays']] == ['veterans-day', 'thanksgiving']
     day = client.get('/api/world/cities/baltimore/conditions', params={'day': '2026-11-26'}).json()
     assert day['holidays'][0]['id'] == 'thanksgiving'
+
+
+def test_local_color_is_seeded_and_seasonal():
+    item = {'id': 'soft-shells', 'name': 'Soft-shell crabs', 'kind': 'dish', 'summary': 'Fried whole.',
+            'places': ['fells-point'], 'seasons': ['summer'], 'source': plain(baltimore())['places'][0]['source']}
+    other = item | {'id': 'hon', 'name': 'Hon', 'kind': 'saying', 'summary': 'Dear.', 'places': [], 'seasons': []}
+    data = catalog.prepare(plain(baltimore()) | {'local_color': [item, other]})
+    winter = generators.local_color(data, seed='s', day=date(2026, 1, 10), count=5)
+    assert [entry['id'] for entry in winter] == ['hon']
+    summer = generators.local_color(data, seed='s', day=date(2026, 7, 10), count=5)
+    assert {entry['id'] for entry in summer} == {'hon', 'soft-shells'}
+    assert generators.local_color(data, seed='s', kinds=['dish']) == [item]
+    assert any(line.startswith('Local saying: Hon') for line in generators.facts(data))
+    with pytest.raises(ValidationError, match='unknown places'):
+        catalog.prepare(plain(baltimore()) | {'local_color': [item | {'places': ['atlantis']}]})

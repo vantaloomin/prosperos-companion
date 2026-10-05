@@ -5573,5 +5573,230 @@
    "summary": "College football bowl game, now played at Petco Park.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "fish-taco",
+   "name": "Fish tacos",
+   "kind": "dish",
+   "summary": "Baja-style fish tacos, battered and fried with shredded cabbage, white sauce and lime on a corn tortilla, are the city's signature cheap meal.",
+   "places": [
+    "oscars-mexican-seafood"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "california-burrito",
+   "name": "California burrito",
+   "kind": "dish",
+   "summary": "A San Diego invention: carne asada, French fries, cheese and guacamole or sour cream rolled in a flour tortilla.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "carne-asada-fries",
+   "name": "Carne asada fries",
+   "kind": "dish",
+   "summary": "French fries buried under grilled steak, cheese, guacamole and sour cream, a late-night order after the bars close.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bertos-taco-shops",
+   "name": "-berto's taco shops",
+   "kind": "shop",
+   "summary": "Cheap, often 24-hour taco shops whose names end in \"-berto's\" (Roberto's, Alberto's, Rigoberto's and many more) are on almost every main road.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "june-gloom",
+   "name": "May Gray and June Gloom",
+   "kind": "other",
+   "summary": "In late spring and early summer a marine layer keeps the coast grey until midday or longer, to the surprise of visitors expecting sun.",
+   "places": [],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "craft-beer",
+   "name": "Craft beer and IPAs",
+   "kind": "drink",
+   "summary": "San Diego has well over a hundred breweries and is known for hoppy West Coast IPAs; locals talk about breweries the way other cities talk about restaurants.",
+   "places": [
+    "stone-liberty-station",
+    "toronado-san-diego",
+    "hamiltons-tavern",
+    "karl-strauss-sorrento"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-five",
+   "name": "\"The 5\" and \"the 8\"",
+   "kind": "saying",
+   "summary": "Like the rest of Southern California, San Diegans put \"the\" in front of freeway numbers: take the 5 north, the 8 east, the 163 through Balboa Park.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ob-and-pb",
+   "name": "OB and PB",
+   "kind": "saying",
+   "summary": "Ocean Beach and Pacific Beach are always \"OB\" and \"PB\"; OB is the laid-back, slightly hippie one and PB the party one.",
+   "places": [
+    "ocean-beach",
+    "pacific-beach"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dawn-patrol",
+   "name": "Dawn patrol",
+   "kind": "saying",
+   "summary": "Surfer slang for paddling out at first light before work, when the wind is calm and the line-up is quiet.",
+   "places": [
+    "windansea",
+    "ocean-beach",
+    "pacific-beach"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sunset-watching",
+   "name": "Watching the sunset",
+   "kind": "custom",
+   "summary": "People stop what they are doing to watch the sun go down over the Pacific, with crowds gathering on the cliffs and piers on clear evenings.",
+   "places": [
+    "sunset-cliffs",
+    "ob-pier",
+    "la-jolla-cove"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "fire-rings",
+   "name": "Beach fire rings",
+   "kind": "custom",
+   "summary": "Concrete fire rings on some beaches are claimed early on summer weekends and holidays for bonfires, s'mores and evening gatherings.",
+   "places": [
+    "mission-bay-park",
+    "la-jolla-shores"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "grunion-run",
+   "name": "Grunion runs",
+   "kind": "custom",
+   "summary": "On certain spring and summer nights after high tide, small silver grunion fish swarm onto the sand to spawn, and people come out with flashlights to watch.",
+   "places": [
+    "la-jolla-shores",
+    "mission-beach-sand"
+   ],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "seal-pupping",
+   "name": "Seal pupping season",
+   "kind": "other",
+   "summary": "Harbor seals give birth on the Children's Pool beach in La Jolla, and the beach is closed to people from mid-December to mid-May.",
+   "places": [
+    "childrens-pool"
+   ],
+   "seasons": [
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "convoy-boba",
+   "name": "Boba on Convoy",
+   "kind": "drink",
+   "summary": "Convoy Street in Kearny Mesa is the place for boba tea, ramen, Korean barbecue and late dinners from across Asia.",
+   "places": [
+    "convoy-district"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "chargers-left",
+   "name": "The Chargers left",
+   "kind": "other",
+   "summary": "The NFL's Chargers played in San Diego for 56 years before moving to Los Angeles in 2017, and many locals are still bitter about it.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "san-diego-padres",
+   "name": "San Diego Padres",
+   "kind": "team",
+   "summary": "The city's Major League Baseball team plays downtown at Petco Park in brown and gold, with a friar as its mascot.",
+   "places": [
+    "petco-park"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "san-diego-wave",
+   "name": "San Diego Wave",
+   "kind": "team",
+   "summary": "The NWSL women's soccer club, which has drawn some of the league's biggest crowds at Snapdragon Stadium since it began in 2022.",
+   "places": [
+    "snapdragon-stadium"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "san-diego-fc",
+   "name": "San Diego FC",
+   "kind": "team",
+   "summary": "The city's Major League Soccer club, which began play in 2025 at Snapdragon Stadium.",
+   "places": [
+    "snapdragon-stadium"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sdsu-aztecs",
+   "name": "SDSU Aztecs",
+   "kind": "team",
+   "summary": "San Diego State's teams, with basketball at Viejas Arena and football at Snapdragon Stadium.",
+   "places": [
+    "viejas-arena",
+    "snapdragon-stadium"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  }
  ]
 }

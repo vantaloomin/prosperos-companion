@@ -20,6 +20,11 @@ def place(id, name, kind, hood, summary, tags, cost, setting, good_for, day_part
             'seasons': list(seasons), 'cuisine': cuisine, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -680,6 +685,55 @@ CITY = {
          'source': S},
         {'id': 'new-years-eve', 'name': 'New Year\'s Eve on the Strip', 'months': [12], 'neighborhood': 'the-strip',
          'summary': 'The Strip closes to cars for crowds and rooftop fireworks at midnight.', 'source': S},
+    ],
+    'local_color': [
+        color('locals-avoid-the-strip', 'Locals avoid the Strip', 'custom', 'Residents mostly stay off Las Vegas '
+              'Boulevard except to take visitors out, see a show or go to work, and plan routes around its traffic.'),
+        color('locals-casinos', 'Locals casinos', 'custom', 'Neighborhood casinos off the Strip draw residents with '
+              'cheaper food, bowling, movie theaters and player\'s club deals, and are where many people actually '
+              'gamble.',
+              ['santa-fe-station', 'green-valley-ranch', 'aliante-casino', 'm-resort', 'orleans-bowling',
+               'south-point-bowling']),
+        color('grocery-store-slots', 'Slots everywhere', 'custom', 'Slot and video poker machines stand in grocery '
+              'stores, gas stations and the airport, and locals stop noticing them within a week.'),
+        color('locals-discounts', 'Locals discounts', 'custom', 'Many shows, restaurants and attractions give a '
+              'discount to anyone with a Nevada ID, so "Are you a local?" is a common question at the counter.'),
+        color('nevada-pronunciation', 'Saying "Nevada"', 'saying', 'Locals say it with the middle sound of "bad" '
+              '(ne-VAD-a), and notice at once when someone says ne-VAH-da.'),
+        color('dry-heat', '"But it\'s a dry heat"', 'saying', 'The standard half-joking reply about summer days over '
+              '40 degrees Celsius; low humidity does help, until it does not.', seasons=['summer']),
+        color('summer-heat-habits', 'Summer heat habits', 'custom', 'In summer people hunt for shaded parking, use '
+              'windshield shades, keep a towel for the steering wheel and do outdoor exercise before sunrise.',
+              seasons=['summer']),
+        color('twenty-four-hour-town', 'A 24-hour town', 'custom', 'Bars, casinos, gyms and some grocery stores never '
+              'close, and so many people work swing and graveyard shifts that dinner at 3 a.m. is normal.'),
+        color('glitter-gulch', 'Glitter Gulch', 'saying', 'The old nickname for the neon-lit casino blocks of Fremont '
+              'Street downtown, the Las Vegas of before the megaresorts.', ['fremont-street-experience']),
+        color('shrimp-cocktail', 'Downtown shrimp cocktail', 'dish', 'The cheap shrimp cocktail in a tall glass, sold '
+              'for decades by downtown casinos as a lure, is a piece of old Vegas many locals still order.',
+              ['fremont-street-experience']),
+        color('buffets', 'Buffets', 'dish', 'All-you-can-eat buffets are a Las Vegas institution, from lavish Strip '
+              'spreads to cheaper ones in locals casinos.', ['bacchanal-buffet', 'studio-b-buffet']),
+        color('steak-special', 'Ellis Island steak special', 'dish', 'Ellis Island\'s cheap steak dinner special, a '
+              'few blocks off the Strip, has long been one of the best-known locals bargains in town.',
+              ['ellis-island']),
+        color('adobada-tacos', 'Adobada tacos', 'dish', 'Tijuana-style tacos of marinated pork carved from a spit, '
+              'eaten standing up at busy taco shops late at night.', ['tacos-el-gordo']),
+        color('spring-mountain-road', 'Chinatown on Spring Mountain', 'dish', 'Spring Mountain Road west of the Strip '
+              'is a long strip of Asian restaurants where chefs and casino workers go after their shifts.',
+              ['chinatown', 'chinatown-plaza', 'raku', 'pho-kim-long', 'ping-pang-pong']),
+        color('vegas-golden-knights', 'Vegas Golden Knights', 'team', 'The NHL team that reached the Stanley Cup final '
+              'in its first season (2018) and won the Cup in 2023, playing at T-Mobile Arena.',
+              ['t-mobile-arena'], ['fall', 'winter', 'spring']),
+        color('las-vegas-raiders', 'Las Vegas Raiders', 'team', 'The NFL team moved from Oakland in 2020 and plays at '
+              'Allegiant Stadium, with many visiting fans on game days.', ['allegiant-stadium'], ['fall', 'winter']),
+        color('las-vegas-aces', 'Las Vegas Aces', 'team', 'The WNBA team, champions in 2022 and 2023, playing at '
+              'Michelob Ultra Arena at Mandalay Bay.', seasons=['spring', 'summer', 'fall']),
+        color('las-vegas-aviators', 'Las Vegas Aviators', 'team', 'The Triple-A minor league baseball team plays in '
+              'Summerlin at Las Vegas Ballpark.', ['las-vegas-ballpark'], ['spring', 'summer']),
+        color('unlv-rebels', 'UNLV Runnin\' Rebels', 'team', 'UNLV basketball, national champions in 1990, plays at '
+              'the Thomas & Mack Center, and the city still remembers the Tarkanian years.',
+              ['thomas-and-mack'], ['fall', 'winter']),
     ],
 }
 

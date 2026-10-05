@@ -34,6 +34,11 @@ def event(id, name, months, hood, summary):
     return {'id': id, 'name': name, 'months': months, 'neighborhood': hood, 'summary': summary, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -866,6 +871,53 @@ CITY = {
               'raised in November, lit in early December and stays up into January.'),
         event('new-years-eve-times-square', 'New Year\'s Eve in Times Square', [12], 'midtown', 'The ball drop '
               'at midnight, watched by huge crowds penned in from mid-afternoon.'),
+    ],
+    'local_color': [
+        color('bacon-egg-and-cheese', 'Bacon, egg and cheese', 'dish', 'The bodega breakfast: bacon, a fried egg and '
+              'American cheese on a roll, ordered as "salt, pepper, ketchup" and eaten walking to the train.'),
+        color('bodega', 'Bodegas', 'shop', 'Corner delis that stay open late or all night, with a grill at the back, '
+              'coffee, lottery tickets, everything from cat food to cold medicine, and often a resident cat.'),
+        color('the-slice', 'A slice', 'dish', 'Thin, wide New York pizza sold by the slice from a counter, folded in '
+              'half lengthwise to eat on the move.', ['joes-pizza']),
+        color('bagel-and-schmear', 'Bagel with a schmear', 'dish', 'Boiled-then-baked bagels with cream cheese, or '
+              'with lox, onion and capers from an appetizing store; locals have strong views on toasting.',
+              ['russ-and-daughters', 'zabars', 'barney-greengrass', 'kossars']),
+        color('pastrami-on-rye', 'Pastrami on rye', 'dish', 'Hot pastrami piled high on rye with mustard and a sour '
+              'pickle on the side, the signature order at the old Jewish delis.',
+              ['katzs', 'sarges-deli', 'court-deli']),
+        color('chicken-over-rice', 'Chicken over rice', 'dish', 'The halal cart plate: chopped chicken or lamb over '
+              'yellow rice with lettuce, white sauce and hot sauce, sold from street carts on Midtown corners.',
+              ['midtown']),
+        color('black-and-white-cookie', 'Black-and-white cookie', 'dish', 'A big, soft, cakey cookie iced half vanilla '
+              'and half chocolate, sold in delis and bakeries across the city.'),
+        color('egg-cream', 'Egg cream', 'drink', 'A soda-fountain drink with neither egg nor cream: chocolate syrup, '
+              'milk and seltzer stirred until it foams.', ['lexington-candy-shop']),
+        color('coffee-regular', '"Coffee regular"', 'saying', 'At a deli or coffee cart, "regular" means with milk and '
+              'sugar, not plain black.'),
+        color('walking-etiquette', 'Sidewalk etiquette', 'custom', 'Walk fast, keep to the right, never stop dead at '
+              'the top of subway stairs, and step to the side before checking your phone or map.'),
+        color('on-line', '"On line"', 'saying', 'New Yorkers wait "on line" rather than "in line", whether at the '
+              'deli, the DMV or a sample sale.'),
+        color('the-city', '"The city"', 'saying', 'To people in Brooklyn, Queens, the Bronx and Staten Island, "going '
+              'into the city" means going to Manhattan.'),
+        color('stoop-life', 'Stoop sitting and stoop sales', 'custom', 'Brownstone stoops become front porches in warm '
+              'weather, with neighbors talking, kids playing and weekend stoop sales of books and old clothes.',
+              ['park-slope', 'harlem'], ['spring', 'summer', 'fall']),
+        color('yankees', 'New York Yankees', 'team', 'The Bronx Bombers play baseball at Yankee Stadium; their '
+              'pinstripes and interlocking NY are seen worldwide.', ['yankee-stadium'], ['spring', 'summer', 'fall']),
+        color('mets', 'New York Mets', 'team', 'Queens\'s National League baseball team plays at Citi Field in '
+              'Flushing, with fans used to suffering and loyal anyway.', ['citi-field'], ['spring', 'summer', 'fall']),
+        color('knicks', 'New York Knicks', 'team', 'The NBA team plays at Madison Square Garden, where courtside seats '
+              'draw celebrities and a long wait for a title is part of the identity.',
+              ['madison-square-garden'], ['fall', 'winter', 'spring']),
+        color('rangers', 'New York Rangers', 'team', 'One of the NHL\'s Original Six, playing hockey at Madison Square '
+              'Garden.', ['madison-square-garden'], ['fall', 'winter', 'spring']),
+        color('nets', 'Brooklyn Nets', 'team', 'The NBA team that moved from New Jersey to Barclays Center in 2012, '
+              'wearing black and white.', ['barclays-center'], ['fall', 'winter', 'spring']),
+        color('liberty', 'New York Liberty', 'team', 'The WNBA team plays at Barclays Center and won its first '
+              'championship in 2024.', ['barclays-center'], ['spring', 'summer', 'fall']),
+        color('giants-and-jets', 'Giants and Jets', 'team', 'Both of New York\'s NFL teams play across the Hudson at '
+              'MetLife Stadium in New Jersey, and fans of each look down on the other.', seasons=['fall', 'winter']),
     ],
 }
 

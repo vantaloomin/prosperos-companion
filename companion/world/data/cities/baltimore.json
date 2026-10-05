@@ -4809,5 +4809,236 @@
    "summary": "A block of rowhouses covered in over-the-top Christmas lights.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "steamed-crabs",
+   "name": "Steamed blue crabs",
+   "kind": "dish",
+   "summary": "Chesapeake blue crabs steamed with a crust of Old Bay-style seasoning, tipped onto brown paper and picked at with mallets and knives over pitchers of beer; they are heaviest and best in late summer and early fall.",
+   "places": [
+    "lp-steamers",
+    "captain-james"
+   ],
+   "seasons": [
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "crab-cake",
+   "name": "Crab cake",
+   "kind": "dish",
+   "summary": "A Maryland crab cake is mostly jumbo lump crab with just enough binder to hold it, broiled or fried and eaten on a platter or with saltines; locals argue hard about filler.",
+   "places": [
+    "lexington-market",
+    "kocos-pub",
+    "thames-street-oyster-house"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "soft-shell-crab",
+   "name": "Soft-shell crab sandwich",
+   "kind": "dish",
+   "summary": "Blue crabs caught just after molting are fried whole, legs and all, and served on white bread with lettuce, tomato and tartar sauce.",
+   "places": [],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "old-bay",
+   "name": "Old Bay on everything",
+   "kind": "other",
+   "summary": "Old Bay seasoning was created in Baltimore, and locals shake it on fries, corn, popcorn, chicken wings and the rims of Bloody Marys, not just crabs.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pit-beef",
+   "name": "Pit beef",
+   "kind": "dish",
+   "summary": "Top round charred over charcoal, sliced thin and rare onto a kaiser roll with raw onion and horseradish sauce; the classic stands line Pulaski Highway on the east side.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "berger-cookies",
+   "name": "Berger cookies",
+   "kind": "dish",
+   "summary": "Soft, cakey shortbread cookies buried under a thick layer of fudge icing, sold in grocery stores all over town and brought to every office party.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "lake-trout",
+   "name": "Lake trout",
+   "kind": "dish",
+   "summary": "A carryout staple that is not trout at all: fried whiting on white bread with hot sauce, sold by the box at corner carryouts.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "snowball",
+   "name": "Snowball",
+   "kind": "dish",
+   "summary": "Finely shaved ice soaked in syrup, with egg custard the local favourite and marshmallow cream on top, sold from neighborhood stands that open for the warm months.",
+   "places": [],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "natty-boh",
+   "name": "Natty Boh",
+   "kind": "drink",
+   "summary": "National Bohemian, the cheap local lager whose one-eyed, mustachioed Mr. Boh still turns up on signs, T-shirts and bar taps; ordering one is a statement of loyalty.",
+   "places": [
+    "odonnell-square",
+    "mount-royal-tavern"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "half-and-half",
+   "name": "Half-and-half",
+   "kind": "drink",
+   "summary": "Iced tea mixed with lemonade, bought by the bottle or the styrofoam cup at carryouts and corner stores.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hon",
+   "name": "\"Hon\"",
+   "kind": "saying",
+   "summary": "A friendly \"hon\" (short for honey) from a waitress or neighbor is classic Baltimore, celebrated with beehive hairdos and cat-eye glasses at Hampden's summer HonFest.",
+   "places": [
+    "hampden"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "downy-ocean",
+   "name": "\"Goin' downy ocean\"",
+   "kind": "saying",
+   "summary": "Baltimorese for heading to Ocean City on the Atlantic for the weekend or the week, the default summer trip; the city name itself comes out as \"Bawlmer\".",
+   "places": [],
+   "seasons": [
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "o-in-the-anthem",
+   "name": "The \"O!\" in the anthem",
+   "kind": "custom",
+   "summary": "At Orioles games, and many other events in town, the crowd shouts \"O!\" at \"Oh, say does that star-spangled banner yet wave\".",
+   "places": [
+    "camden-yards"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "painted-screens",
+   "name": "Painted window screens",
+   "kind": "custom",
+   "summary": "East Baltimore rowhouses have a tradition of painted window and door screens, usually a cottage-and-stream scene, that lets residents see out while passers-by see only the picture.",
+   "places": [
+    "highlandtown",
+    "east-baltimore"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "marble-steps",
+   "name": "Scrubbed marble steps",
+   "kind": "custom",
+   "summary": "Rowhouse front steps are often white marble, and older residents still scrub them on a Saturday morning as a point of pride.",
+   "places": [
+    "highlandtown",
+    "fells-point"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "arabbers",
+   "name": "Arabbers",
+   "kind": "custom",
+   "summary": "Street vendors who sell fruit and vegetables from brightly painted horse-drawn carts with jingling bells and sung calls, a tradition that survives in a few West Baltimore stables.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "public-markets",
+   "name": "Public markets",
+   "kind": "shop",
+   "summary": "Baltimore still has a network of city public markets where stalls sell crab cakes, deli sandwiches, produce and lunch counter food under one roof.",
+   "places": [
+    "lexington-market",
+    "broadway-market",
+    "cross-street-market",
+    "northeast-market"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "crab-house",
+   "name": "Crab houses",
+   "kind": "shop",
+   "summary": "Paper-covered tables, mallets, rolls of paper towels and crabs sold by the dozen, priced by size and season.",
+   "places": [
+    "lp-steamers",
+    "captain-james"
+   ],
+   "seasons": [
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "orioles",
+   "name": "Baltimore Orioles",
+   "kind": "team",
+   "summary": "The city's Major League Baseball team plays at Oriole Park at Camden Yards; fans wear orange and black, and Opening Day is an unofficial city holiday.",
+   "places": [
+    "camden-yards"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ravens",
+   "name": "Baltimore Ravens",
+   "kind": "team",
+   "summary": "The NFL team, named for Poe's poem, plays at M&T Bank Stadium; Purple Friday sees the whole city wear purple before game days.",
+   "places": [
+    "ravens-stadium"
+   ],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  }
  ]
 }

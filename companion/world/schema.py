@@ -228,6 +228,18 @@ class Holiday(Record):
         return self
 
 
+class LocalColor(Record):
+    """Something locals eat, drink, say, root for or do, so the model can mention it without inventing it."""
+    id: Id
+    name: Text
+    kind: Literal['dish', 'drink', 'saying', 'custom', 'team', 'shop', 'other']
+    summary: Text
+    # Where it is easiest to find, when it is a thing found in particular places.
+    places: list[Id] = Field(default_factory=list, max_length=6)
+    seasons: list[Season] = Field(default_factory=list)
+    source: Id
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -264,6 +276,7 @@ class City(Record):
     # Careers particular to this city or its setting, beside the shared catalogue.
     careers: list[Career] = Field(default_factory=list, max_length=200)
     names: CityNames | None = None
+    local_color: list[LocalColor] = Field(default_factory=list, max_length=100)
     # A shared holiday calendar ('none' for no shared one); by default chosen from the era and country.
     calendar: Id | None = None
     # Holidays particular to this city, beside its calendar's.
@@ -279,6 +292,7 @@ class City(Record):
             raise ValueError(f'Duplicate ids {sorted({i for i in ids if ids.count(i) > 1})}.')
         cited = [(item.id, item.source) for item in records]
         cited += [('climate', self.climate.source)] if self.climate else []
+        cited += [(item.id, item.source) for item in self.local_color]
         missing = [name for name, source in cited if source not in self.sources]
         if missing:
             raise ValueError(f'Unknown sources cited by {missing}.')
@@ -289,6 +303,10 @@ class City(Record):
         stray = [f'{name} ({", ".join(sorted(used - hoods))})' for name, used in located if not used <= hoods]
         if stray:
             raise ValueError(f'Unknown neighborhoods named by {", ".join(stray)}.')
+        known = {item.id for item in [*self.places, *self.neighborhoods]}
+        stray = [item.id for item in self.local_color if not set(item.places) <= known]
+        if stray:
+            raise ValueError(f'Local colour names unknown places: {stray}.')
         lines = {item.id for item in self.transit}
         stray = [item.id for item in self.neighborhoods if not set(item.transit) <= lines]
         if stray:

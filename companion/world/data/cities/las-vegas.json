@@ -4795,5 +4795,231 @@
    "summary": "The Strip closes to cars for crowds and rooftop fireworks at midnight.",
    "source": "curated-2026-10"
   }
+ ],
+ "local_color": [
+  {
+   "id": "locals-avoid-the-strip",
+   "name": "Locals avoid the Strip",
+   "kind": "custom",
+   "summary": "Residents mostly stay off Las Vegas Boulevard except to take visitors out, see a show or go to work, and plan routes around its traffic.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "locals-casinos",
+   "name": "Locals casinos",
+   "kind": "custom",
+   "summary": "Neighborhood casinos off the Strip draw residents with cheaper food, bowling, movie theaters and player's club deals, and are where many people actually gamble.",
+   "places": [
+    "santa-fe-station",
+    "green-valley-ranch",
+    "aliante-casino",
+    "m-resort",
+    "orleans-bowling",
+    "south-point-bowling"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "grocery-store-slots",
+   "name": "Slots everywhere",
+   "kind": "custom",
+   "summary": "Slot and video poker machines stand in grocery stores, gas stations and the airport, and locals stop noticing them within a week.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "locals-discounts",
+   "name": "Locals discounts",
+   "kind": "custom",
+   "summary": "Many shows, restaurants and attractions give a discount to anyone with a Nevada ID, so \"Are you a local?\" is a common question at the counter.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "nevada-pronunciation",
+   "name": "Saying \"Nevada\"",
+   "kind": "saying",
+   "summary": "Locals say it with the middle sound of \"bad\" (ne-VAD-a), and notice at once when someone says ne-VAH-da.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dry-heat",
+   "name": "\"But it's a dry heat\"",
+   "kind": "saying",
+   "summary": "The standard half-joking reply about summer days over 40 degrees Celsius; low humidity does help, until it does not.",
+   "places": [],
+   "seasons": [
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "summer-heat-habits",
+   "name": "Summer heat habits",
+   "kind": "custom",
+   "summary": "In summer people hunt for shaded parking, use windshield shades, keep a towel for the steering wheel and do outdoor exercise before sunrise.",
+   "places": [],
+   "seasons": [
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "twenty-four-hour-town",
+   "name": "A 24-hour town",
+   "kind": "custom",
+   "summary": "Bars, casinos, gyms and some grocery stores never close, and so many people work swing and graveyard shifts that dinner at 3 a.m. is normal.",
+   "places": [],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "glitter-gulch",
+   "name": "Glitter Gulch",
+   "kind": "saying",
+   "summary": "The old nickname for the neon-lit casino blocks of Fremont Street downtown, the Las Vegas of before the megaresorts.",
+   "places": [
+    "fremont-street-experience"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "shrimp-cocktail",
+   "name": "Downtown shrimp cocktail",
+   "kind": "dish",
+   "summary": "The cheap shrimp cocktail in a tall glass, sold for decades by downtown casinos as a lure, is a piece of old Vegas many locals still order.",
+   "places": [
+    "fremont-street-experience"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "buffets",
+   "name": "Buffets",
+   "kind": "dish",
+   "summary": "All-you-can-eat buffets are a Las Vegas institution, from lavish Strip spreads to cheaper ones in locals casinos.",
+   "places": [
+    "bacchanal-buffet",
+    "studio-b-buffet"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "steak-special",
+   "name": "Ellis Island steak special",
+   "kind": "dish",
+   "summary": "Ellis Island's cheap steak dinner special, a few blocks off the Strip, has long been one of the best-known locals bargains in town.",
+   "places": [
+    "ellis-island"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "adobada-tacos",
+   "name": "Adobada tacos",
+   "kind": "dish",
+   "summary": "Tijuana-style tacos of marinated pork carved from a spit, eaten standing up at busy taco shops late at night.",
+   "places": [
+    "tacos-el-gordo"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "spring-mountain-road",
+   "name": "Chinatown on Spring Mountain",
+   "kind": "dish",
+   "summary": "Spring Mountain Road west of the Strip is a long strip of Asian restaurants where chefs and casino workers go after their shifts.",
+   "places": [
+    "chinatown",
+    "chinatown-plaza",
+    "raku",
+    "pho-kim-long",
+    "ping-pang-pong"
+   ],
+   "seasons": [],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "vegas-golden-knights",
+   "name": "Vegas Golden Knights",
+   "kind": "team",
+   "summary": "The NHL team that reached the Stanley Cup final in its first season (2018) and won the Cup in 2023, playing at T-Mobile Arena.",
+   "places": [
+    "t-mobile-arena"
+   ],
+   "seasons": [
+    "fall",
+    "winter",
+    "spring"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "las-vegas-raiders",
+   "name": "Las Vegas Raiders",
+   "kind": "team",
+   "summary": "The NFL team moved from Oakland in 2020 and plays at Allegiant Stadium, with many visiting fans on game days.",
+   "places": [
+    "allegiant-stadium"
+   ],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "las-vegas-aces",
+   "name": "Las Vegas Aces",
+   "kind": "team",
+   "summary": "The WNBA team, champions in 2022 and 2023, playing at Michelob Ultra Arena at Mandalay Bay.",
+   "places": [],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "las-vegas-aviators",
+   "name": "Las Vegas Aviators",
+   "kind": "team",
+   "summary": "The Triple-A minor league baseball team plays in Summerlin at Las Vegas Ballpark.",
+   "places": [
+    "las-vegas-ballpark"
+   ],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "unlv-rebels",
+   "name": "UNLV Runnin' Rebels",
+   "kind": "team",
+   "summary": "UNLV basketball, national champions in 1990, plays at the Thomas & Mack Center, and the city still remembers the Tarkanian years.",
+   "places": [
+    "thomas-and-mack"
+   ],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "source": "curated-2026-10"
+  }
  ]
 }

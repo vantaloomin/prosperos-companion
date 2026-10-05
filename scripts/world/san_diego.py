@@ -20,6 +20,11 @@ def place(id, name, kind, hood, summary, tags, cost, setting, good_for, day_part
             'seasons': list(seasons), 'cuisine': cuisine, 'source': S}
 
 
+def color(id, name, kind, summary, places=(), seasons=()):
+    return {'id': id, 'name': name, 'kind': kind, 'summary': summary, 'places': list(places),
+            'seasons': list(seasons), 'source': S}
+
+
 ALL = ['solo', 'friends', 'date', 'family']
 ADULT = ['solo', 'friends', 'date']
 DAY = ['morning', 'afternoon']
@@ -800,6 +805,53 @@ CITY = {
          'source': S},
         {'id': 'holiday-bowl', 'name': 'Holiday Bowl', 'months': [12], 'neighborhood': 'east-village',
          'summary': 'College football bowl game, now played at Petco Park.', 'source': S},
+    ],
+    'local_color': [
+        color('fish-taco', 'Fish tacos', 'dish', 'Baja-style fish tacos, battered and fried with shredded cabbage, '
+              'white sauce and lime on a corn tortilla, are the city\'s signature cheap meal.',
+              ['oscars-mexican-seafood']),
+        color('california-burrito', 'California burrito', 'dish', 'A San Diego invention: carne asada, French fries, '
+              'cheese and guacamole or sour cream rolled in a flour tortilla.'),
+        color('carne-asada-fries', 'Carne asada fries', 'dish', 'French fries buried under grilled steak, cheese, '
+              'guacamole and sour cream, a late-night order after the bars close.'),
+        color('bertos-taco-shops', '-berto\'s taco shops', 'shop', 'Cheap, often 24-hour taco shops whose names end in '
+              '"-berto\'s" (Roberto\'s, Alberto\'s, Rigoberto\'s and many more) are on almost every main road.'),
+        color('june-gloom', 'May Gray and June Gloom', 'other', 'In late spring and early summer a marine layer keeps '
+              'the coast grey until midday or longer, to the surprise of visitors expecting sun.',
+              seasons=['spring', 'summer']),
+        color('craft-beer', 'Craft beer and IPAs', 'drink', 'San Diego has well over a hundred breweries and is known '
+              'for hoppy West Coast IPAs; locals talk about breweries the way other cities talk about restaurants.',
+              ['stone-liberty-station', 'toronado-san-diego', 'hamiltons-tavern', 'karl-strauss-sorrento']),
+        color('the-five', '"The 5" and "the 8"', 'saying', 'Like the rest of Southern California, San Diegans put '
+              '"the" in front of freeway numbers: take the 5 north, the 8 east, the 163 through Balboa Park.'),
+        color('ob-and-pb', 'OB and PB', 'saying', 'Ocean Beach and Pacific Beach are always "OB" and "PB"; OB is the '
+              'laid-back, slightly hippie one and PB the party one.', ['ocean-beach', 'pacific-beach']),
+        color('dawn-patrol', 'Dawn patrol', 'saying', 'Surfer slang for paddling out at first light before work, when '
+              'the wind is calm and the line-up is quiet.', ['windansea', 'ocean-beach', 'pacific-beach']),
+        color('sunset-watching', 'Watching the sunset', 'custom', 'People stop what they are doing to watch the sun go '
+              'down over the Pacific, with crowds gathering on the cliffs and piers on clear evenings.',
+              ['sunset-cliffs', 'ob-pier', 'la-jolla-cove']),
+        color('fire-rings', 'Beach fire rings', 'custom', 'Concrete fire rings on some beaches are claimed early on '
+              'summer weekends and holidays for bonfires, s\'mores and evening gatherings.',
+              ['mission-bay-park', 'la-jolla-shores'], ['summer']),
+        color('grunion-run', 'Grunion runs', 'custom', 'On certain spring and summer nights after high tide, small '
+              'silver grunion fish swarm onto the sand to spawn, and people come out with flashlights to watch.',
+              ['la-jolla-shores', 'mission-beach-sand'], ['spring', 'summer']),
+        color('seal-pupping', 'Seal pupping season', 'other', 'Harbor seals give birth on the Children\'s Pool beach '
+              'in La Jolla, and the beach is closed to people from mid-December to mid-May.',
+              ['childrens-pool'], ['winter', 'spring']),
+        color('convoy-boba', 'Boba on Convoy', 'drink', 'Convoy Street in Kearny Mesa is the place for boba tea, '
+              'ramen, Korean barbecue and late dinners from across Asia.', ['convoy-district']),
+        color('chargers-left', 'The Chargers left', 'other', 'The NFL\'s Chargers played in San Diego for 56 years '
+              'before moving to Los Angeles in 2017, and many locals are still bitter about it.'),
+        color('san-diego-padres', 'San Diego Padres', 'team', 'The city\'s Major League Baseball team plays downtown at Petco '
+              'Park in brown and gold, with a friar as its mascot.', ['petco-park'], ['spring', 'summer', 'fall']),
+        color('san-diego-wave', 'San Diego Wave', 'team', 'The NWSL women\'s soccer club, which has drawn some of the '
+              'league\'s biggest crowds at Snapdragon Stadium since it began in 2022.', ['snapdragon-stadium']),
+        color('san-diego-fc', 'San Diego FC', 'team', 'The city\'s Major League Soccer club, which began play in 2025 '
+              'at Snapdragon Stadium.', ['snapdragon-stadium']),
+        color('sdsu-aztecs', 'SDSU Aztecs', 'team', 'San Diego State\'s teams, with basketball at Viejas Arena and '
+              'football at Snapdragon Stadium.', ['viejas-arena', 'snapdragon-stadium']),
     ],
 }
 
