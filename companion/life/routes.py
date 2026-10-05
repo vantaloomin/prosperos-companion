@@ -9,7 +9,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
 from companion.errors import require
-from companion.life import agenda, circle, feed, mood, routine, simulation, today
+from companion.life import agenda, circle, feed, money, mood, routine, simulation, today
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -154,6 +154,11 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
 @today_router.get('')
 def read_today(request: Request):
     return today.view(db(request))
+
+
+@today_router.get('/money')
+def read_money(request: Request):
+    return money.view(db(request))
 
 
 @today_router.post('/seen')

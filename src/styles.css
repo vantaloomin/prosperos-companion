@@ -561,3 +561,4 @@ textarea { resize: vertical; line-height: 1.6; }
   .chat-retro { margin: 4px; }
   .novel-stage { flex-basis: clamp(120px, 28dvh, 300px); }
 }
+.money-goal { width: 100%; accent-color: var(--accent); }

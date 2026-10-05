@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { CharacterDefinition, CitySummary } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
+import { MoneyFields } from './MoneyFields'
 import { ScheduleEditor } from './ScheduleEditor'
 import type { DraftField } from './drafting'
 
@@ -29,6 +30,7 @@ export function LifeFields({ definition, set, themes, setThemes, help }: Props) 
       {help?.('schedule', 'their week')}
       <TextInput label="What their life tends to involve" value={themes} onChange={setThemes} hint="Themes for everyday events, separated by commas, such as cycling, the harbour, their sister." />
       {help?.('life_themes', 'these themes')}
+      <MoneyFields money={definition.money} homeCity={definition.home_city} onChange={(money) => set({ money })} />
     </>
   )
 }
