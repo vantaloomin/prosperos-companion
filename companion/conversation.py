@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
+from companion.images import photos
 from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider
@@ -64,7 +65,8 @@ def history(database, before_seq=None, limit=100) -> dict:
         companion = require_current(connection)
         rows = many(connection, 'SELECT * FROM messages WHERE timeline_id=? AND seq<? ORDER BY seq DESC LIMIT ?',
                     (companion['active_timeline_id'], before_seq or 2 ** 62, limit))
-        return {'timeline_id': companion['active_timeline_id'], 'messages': [message_view(row) for row in reversed(rows)]}
+        return {'timeline_id': companion['active_timeline_id'],
+                'messages': photos.decorate(connection, [message_view(row) for row in reversed(rows)])}
 
 
 SEARCH_LIMIT = 50
@@ -128,6 +130,8 @@ class Conversation:
         self.scheduler = scheduler or RequestScheduler()
         # Current-context lookups the user enabled (PRD X1-X3); the app, not the model, decides when they run.
         self.lookups = lookups
+        # Photos in chat (companion/images/photos.py); the app, not the model, decides when one is sent.
+        self.photos = None
         self.running: dict[str, LiveReply] = {}
         # Called once a turn needs nothing more from the model, so memory work never runs ahead of a reply.
         self.after_turn = after_turn
@@ -218,8 +222,9 @@ class Conversation:
 
     def reply(self, attempt_id) -> dict:
         with self.database.connect() as connection:
-            return message_view(one(connection, "SELECT * FROM messages WHERE id=? AND role='companion'",
-                                    (attempt_id,)))
+            [view] = photos.decorate(connection, [message_view(one(
+                connection, "SELECT * FROM messages WHERE id=? AND role='companion'", (attempt_id,)))])
+            return view
 
     async def events(self, attempt_id):
         """Yield (event, data): a snapshot of the text so far, each new piece of text, then the saved reply."""
@@ -256,10 +261,11 @@ class Conversation:
         """Build the reply's inputs and record the memory revision and character version they reflect,
         so a change made after this point withholds the reply (M9)."""
         user = prepared['user']
+        photo = self.photos.for_message(user, prepared['attempt_id']) if self.photos else None
         semantic, outside = await asyncio.gather(self.query_vector(user), self.outside(user))
-        return await asyncio.to_thread(self.build_packet, prepared, semantic, outside)
+        return await asyncio.to_thread(self.build_packet, prepared, semantic, outside, photo)
 
-    def build_packet(self, prepared, semantic, outside) -> dict:
+    def build_packet(self, prepared, semantic, outside, photo=None) -> dict:
         """Runs off the event loop: at 10,000 messages the build takes a few hundred milliseconds and
         would otherwise hold every other request. The read is one snapshot, so the recorded revision
         is the one the packet reflects; a change committed after it withholds the reply."""
@@ -270,7 +276,7 @@ class Conversation:
                     409)
             packet = context.build(connection, companion, self.database.clock.now(),
                                    config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic,
-                                   outside)
+                                   outside, photo)
             revision = settings(connection)['memory_revision']
         with self.database.connect(write=True) as connection:
             connection.execute('UPDATE messages SET memory_revision=?, character_version_id=?, receipt=? WHERE id=?',

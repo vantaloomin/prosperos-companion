@@ -16,6 +16,7 @@ from companion.errors import DomainError
 from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
 from companion.images import jobs as image_jobs
 from companion.images import routes as image_routes
+from companion.images.photos import ChatPhotos
 from companion.images.runner import ImageRunner
 from companion.imports import routes as import_routes
 from companion.life import routes as life_routes
@@ -84,12 +85,19 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
                                     app.state.conversation.embedder, enabled=life_tasks,
                                     provider=app.state.conversation.provider)
-    app.state.conversation.after_turn = app.state.memory.kick
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world)
     app.state.life.lookups = app.state.lookups
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
+    app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life)
+
+    def after_turn():
+        # A local image waits while a reply is written (compute and job control); a finished turn lets it start.
+        app.state.memory.kick()
+        app.state.images.wake()
+
+    app.state.conversation.after_turn = after_turn
     app.state.training = lora_training.TrainingRunner(app.state.database, trainer_spawn)
     app.state.evaluations = lora_evaluation.EvaluationRunner(app.state.database, app.state.vault, app.state.images)
     app.state.generations = lora_generation.GenerationRunner(app.state.database, app.state.vault, app.state.images)

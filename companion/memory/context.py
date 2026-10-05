@@ -45,6 +45,9 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
+            'photo': 'What you are doing right now (from your day; still happening). You are sending the user a '
+                     'photo of this moment with this reply: mention it naturally, and describe only what is '
+                     'listed here',
             'relationship_mood': 'Your current mood about time apart',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
                        'climate averages, not a real forecast; event dates are fictional too)',
@@ -349,12 +352,13 @@ def offer_life(packet, connection, timeline_id, version, now):
 
 
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
-          semantic: dict | None = None, outside: list[dict] | None = None) -> dict:
+          semantic: dict | None = None, outside: list[dict] | None = None, photo: dict | None = None) -> dict:
     """Assemble the next reply's inputs from the active timeline's saved state.
 
     `until_seq` is the message being answered, so an alternative never sees the reply it replaces.
     `semantic` ({model, vector}) adds an embedding ranking of the same eligible pool; without it
-    recall is keyword-only. `outside` holds the current-context lookups made for this message.
+    recall is keyword-only. `outside` holds the current-context lookups made for this message, and
+    `photo` the moment a photo sent with this reply shows (companion/images/photos.py).
     """
     timeline_id, version = companion['active_timeline_id'], companion['version']
     groups = partition(eligible(connection, companion, timeline_id, stamp(now)))
@@ -378,6 +382,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     post = linked_post(connection, latest['id']) if latest else None
     if post:
         packet.offer('feed_reference', post['id'], post_text(post))
+    if photo:
+        packet.offer('photo', photo['post_id'], photo['text'])
     block = agenda.current(connection, timeline_id, agenda.COMPANION, now) if outside else None
     doing = block.get('label') if block else None
     for identity, text in lookups.context_lines(outside or [], now, settings(connection)['user_timezone'], doing):

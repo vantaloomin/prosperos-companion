@@ -1,0 +1,159 @@
+"""Photos in chat: a photo of the companion's current moment, shared with the feed (realism ideas)."""
+import asyncio
+from datetime import timedelta
+
+import pytest
+from fastapi.testclient import TestClient
+
+from companion.identity import CLIENT_HEADER
+from companion.images.photos import asks_for_photo
+from companion.main import create_app
+from companion.providers.vault import MemoryVault
+from tests.conftest import reconcile, send, set_life
+from tests.test_images import FakeAdapter, add_backend, local_comfy
+
+
+@pytest.fixture
+def adapters():
+    return {'comfyui': FakeAdapter(), 'codex': FakeAdapter(), 'hosted': FakeAdapter()}
+
+
+@pytest.fixture
+def app(tmp_path, clock, provider, adapters):
+    return create_app(tmp_path / 'workspace' / 'companion.sqlite3', clock=clock, vault=MemoryVault(),
+                      provider=provider, life_tasks=False, image_adapters=adapters)
+
+
+@pytest.fixture
+def client(app):
+    with TestClient(app, headers={CLIENT_HEADER: 'workspace'}) as test_client:
+        yield test_client
+
+
+def drain(client):
+    asyncio.run(client.app.state.images.drain())
+
+
+def ask(client, text='what are you up to?', client_id='ask-0001'):
+    return send(client, text, client_id)['reply']
+
+
+def photo_section(provider) -> str:
+    system = provider.requests[-1]['system']
+    return system.split('## What you are doing right now', 1)[1].split('##', 1)[0] if \
+        '## What you are doing right now' in system else ''
+
+
+def set_appearance(client, appearance):
+    current = client.get('/api/companion').json()['companion']
+    definition = {**current['version']['definition'], 'appearance': appearance}
+    response = client.post('/api/companion/versions', json={'definition': definition,
+                                                            'expected_version_id': current['active_version_id']})
+    assert response.status_code == 200, response.text
+
+
+@pytest.mark.parametrize('text', ["What are you up to?", 'whatcha doing', 'wyd', "what're you doing right now",
+                                  'send me a pic!', 'Show me a selfie', 'where are you right now?',
+                                  'pics or it didn\'t happen'])
+def test_asking_what_they_are_up_to_asks_for_a_photo(text):
+    assert asks_for_photo(text)
+
+
+@pytest.mark.parametrize('text', ['What are you doing tomorrow?', 'what have you been up to', 'Where are you from?',
+                                  'I sent a picture to my mum', 'Good morning!', 'What are you up to tonight?'])
+def test_other_questions_do_not(text):
+    assert not asks_for_photo(text)
+
+
+def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, clock, provider, adapters):
+    local_comfy(client)
+    reply = ask(client)
+    photo = reply['photo']
+    assert photo['status'] == 'queued' and photo['in_feed'] is False
+    # The reply knew what it was sending.
+    assert photo['summary'] in photo_section(provider)
+    drain(client)
+    shown = client.get(f"/api/images/photos/{reply['id']}").json()
+    assert shown['status'] == 'completed' and shown['ref']
+    assert len(adapters['comfyui'].requests) == 1
+    # Not in the feed until the moment is an event.
+    assert client.get('/api/feed').json()['posts'] == []
+    # Asking again in the same moment shows the same photo, without making another.
+    again = ask(client, 'wyd', 'ask-0002')['photo']
+    assert again['post_id'] == photo['post_id'] and again['ref'] == shown['ref']
+    assert len(adapters['comfyui'].requests) == 1
+
+    set_life(client, automatic_events=True)
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    posts = client.get('/api/feed').json()['posts']
+    pictured = [post for post in posts if post['id'] == photo['post_id']]
+    assert pictured and pictured[0]['image']['ref'] == shown['ref']
+    # The same moment; only a model's later rephrasing can change its words.
+    assert photo['summary'] in pictured[0]['events'][0]['summary']
+    # The event is told once: the digest leaves it to the photo's post.
+    event_id = pictured[0]['events'][0]['id']
+    assert all(event['id'] != event_id for post in posts if post['id'] != photo['post_id'] for event in post['events'])
+    assert client.get(f"/api/images/photos/{reply['id']}").json()['in_feed'] is True
+    history = client.get('/api/conversation').json()['messages']
+    assert next(message for message in history if message['id'] == reply['id'])['photo']['ref'] == shown['ref']
+
+
+def test_no_backend_means_no_photo_and_no_promise(client, life, provider):
+    reply = ask(client)
+    assert reply['status'] == 'complete' and reply['photo'] is None
+    assert photo_section(provider) == ''
+
+
+def test_other_messages_and_other_times_send_no_photo(client, life, provider):
+    local_comfy(client)
+    assert ask(client, 'Good morning!')['photo'] is None
+    assert ask(client, 'What are you doing tomorrow?', 'ask-0002')['photo'] is None
+
+
+def test_chat_photos_can_be_turned_off(client, life):
+    local_comfy(client)
+    assert client.put('/api/images/settings', json={'chat_photos': False}).json()['chat_photos'] is False
+    assert ask(client)['photo'] is None
+
+
+def test_paused_life_sends_no_photo(client, life):
+    local_comfy(client)
+    client.post('/api/pause')
+    assert ask(client)['photo'] is None
+
+
+def test_an_nsfw_moment_goes_to_a_local_backend_only(client, life, adapters):
+    set_appearance(client, 'Tall, in lingerie')
+    add_backend(client, kind='hosted', provider='google', base_url='https://example.test/v1', model='image',
+                api_key='key')
+    assert ask(client)['photo'] is None
+    assert adapters['hosted'].requests == []
+    local_comfy(client)
+    photo = ask(client, 'send me a pic', 'ask-0002')['photo']
+    drain(client)
+    assert adapters['comfyui'].requests and adapters['hosted'].requests == []
+    job = client.get(f"/api/images/jobs?post_id={photo['post_id']}").json()['jobs'][0]
+    assert job['classification'] == 'nsfw' and job['backend_kind'] == 'comfyui'
+
+
+def test_a_prohibited_moment_is_refused_everywhere(client, life, adapters):
+    set_appearance(client, 'A nude teen')
+    local_comfy(client)
+    assert ask(client)['photo'] is None
+    drain(client)
+    assert adapters['comfyui'].requests == []
+
+
+def test_a_fork_keeps_the_photo_on_the_copied_reply(client, life):
+    local_comfy(client)
+    reply = ask(client)
+    drain(client)
+    later = send(client, 'Lovely.', 'later-0001')['message']
+    fork = client.post('/api/timelines', json={'message_id': later['id'], 'text': 'Nice!'})
+    assert fork.status_code == 200, fork.text
+    activated = client.post(f"/api/timelines/{fork.json()['id']}/activate")
+    assert activated.status_code == 200, activated.text
+    history = client.get('/api/conversation').json()['messages']
+    copied = next(message for message in history if message['role'] == 'companion' and message['photo'])
+    assert copied['id'] != reply['id'] and copied['photo']['status'] == 'completed'

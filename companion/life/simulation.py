@@ -177,8 +177,10 @@ def recent_threads(connection, timeline_id) -> list[str]:
 
 
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
-    """Slots a committed plan names come first, so a plan happens when its time comes."""
-    planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)][:count]
+    """Slots a committed plan names come first, so a plan happens when its time comes; so do slots
+    photographed in chat, so the moment the user saw becomes an event."""
+    planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)
+               or feed.photographed(connection, event_key(timeline_id, slot.key))][:count]
     rest = spread([slot for slot in slots if slot not in planned], count - len(planned), seed)
     return sorted(planned + rest, key=lambda slot: slot.starts_at)
 

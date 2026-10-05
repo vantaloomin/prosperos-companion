@@ -865,3 +865,13 @@ CREATE TABLE IF NOT EXISTS prompt_overrides (
   text TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- A photo the companion sent with a chat reply: the image of the post keyed to the slot it shows
+-- (companion/images/photos.py). The post is the feed's, so the chat and the feed share one picture.
+CREATE TABLE IF NOT EXISTS chat_photos (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  post_id TEXT NOT NULL REFERENCES feed_posts(id),
+  event_key TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

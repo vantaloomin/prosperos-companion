@@ -61,6 +61,8 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
   return <>
       <Toggle label="Make images for new posts automatically" checked={data.automatic_images} onChange={(value) => void save({ automatic_images: value })}
         hint="Needs background activity on. Only covers posts written from now on, never catch-up summaries, and stops at the daily limit." />
+      <Toggle label="Send photos in chat" checked={data.chat_photos} onChange={(value) => void save({ chat_photos: value })}
+        hint="Ask what they're up to and they can answer with a photo of that moment. It's the same picture the moment's feed post gets, made by the backends below under the same content rules." />
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
         hint="Only to a backend allowed to receive that request." />
       <div className="form-grid">

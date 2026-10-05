@@ -71,3 +71,21 @@ def stale(connection, inputs) -> bool:
         if event is None or event['status'] != 'committed' or event['id'] != frozen['id']:
             return True
     return False
+
+
+def build_moment(connection, moment, image_settings) -> dict:
+    """The frozen inputs of a chat photo: the companion's current slot as the simulation composes
+    it, before it is an event. The moment's wording goes into `captions`, so classification covers
+    it (F6), and `events` stays empty: there is no event yet to go stale."""
+    companion = require_current(connection)
+    definition = companion['version']['definition']
+    scene_text = {key: moment[key] for key in ('summary', 'caption', 'mood', 'place')}
+    return {'prompt_version': PROMPT_VERSION,
+            'prompt': compose(definition['name'], definition.get('appearance', ''), [scene_text],
+                              image_settings['style']),
+            'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
+            'seed': random.SystemRandom().randrange(1, 2**31),
+            'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
+            'character_name': definition['name'], 'character_version_id': companion['version']['id'],
+            'events': [], 'captions': [moment[key] for key in ('summary', 'caption', 'label', 'mood', 'place')],
+            'moment': moment, 'marked_nsfw': False, **current_for_images(connection)}

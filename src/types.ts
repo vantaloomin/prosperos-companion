@@ -20,6 +20,21 @@ export interface Message {
   completed_at: string | null
   /** For a message copied into an alternate timeline, the message it was first written as. */
   origin_id?: string | null
+  /** A photo of the moment this reply sent (photos in chat). */
+  photo?: ChatPhoto | null
+}
+
+/** A photo a reply sent: the image of the feed post for the moment it shows. */
+export interface ChatPhoto {
+  message_id: string
+  post_id: string
+  summary: string
+  status: ImageStatus
+  job_id: string | null
+  ref: string | null
+  error: string | null
+  /** Whether the moment has become an event in the feed yet. */
+  in_feed: boolean
 }
 
 export interface Timeline {
@@ -342,7 +357,7 @@ export interface ImageBackend {
   experimental: boolean
 }
 
-export interface ImageSettings { automatic_images: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[] }
 
