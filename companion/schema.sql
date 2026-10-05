@@ -918,3 +918,29 @@ CREATE TABLE IF NOT EXISTS self_facts (
   UNIQUE (message_id, key)
 );
 CREATE INDEX IF NOT EXISTS self_facts_message ON self_facts(message_id);
+-- Changes to a city the workspace keeps (companion/world/changes.py): the user's own, and headlines remembered
+-- from real local-event lookups, deleted with their lookup. Seeded changes are computed from the city and month,
+-- not stored; one the user dismisses is listed in world_change_dismissals and never happens.
+CREATE TABLE IF NOT EXISTS world_changes (
+  id TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('opening', 'closing', 'renovation', 'roadworks', 'news')),
+  origin TEXT NOT NULL CHECK (origin IN ('user', 'real')),
+  place_id TEXT,
+  neighborhood_id TEXT,
+  name TEXT NOT NULL,
+  summary TEXT NOT NULL DEFAULT '',
+  details TEXT,
+  announced_on TEXT NOT NULL,
+  starts_on TEXT NOT NULL,
+  ends_on TEXT,
+  observation_id TEXT REFERENCES context_observations(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS world_changes_city ON world_changes(city_id, starts_on);
+
+CREATE TABLE IF NOT EXISTS world_change_dismissals (
+  change_id TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  dismissed_at TEXT NOT NULL
+);

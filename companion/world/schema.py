@@ -367,3 +367,37 @@ class Holidays(Record):
     schema_version: Literal[1]
     source: Source
     calendars: dict[Id, HolidayCalendar] = Field(min_length=1)
+
+
+class Opening(Record):
+    first: list[Text] = Field(min_length=1)
+    second: list[Text] = Field(min_length=1)
+    summary: Text
+
+
+class Roadworks(Record):
+    summary: Text
+    # Extra minutes a trip by road through the works takes.
+    delay: int = Field(ge=1, le=60)
+
+
+class ChangeStyle(Record):
+    openings: dict[PlaceKind, Opening] = Field(min_length=1)
+    renovation: list[Text] = Field(min_length=1)
+    closing: list[Text] = Field(min_length=1)
+    roadworks: list[Roadworks] = Field(min_length=1)
+
+
+class Changes(Record):
+    schema_version: Literal[1]
+    source: Source
+    styles: dict[Id, ChangeStyle] = Field(min_length=1)
+    eras: dict[Era, Id]
+
+    @model_validator(mode='after')
+    def check(self):
+        missing = sorted(set(Era.__args__) - set(self.eras))
+        unknown = sorted(set(self.eras.values()) - set(self.styles))
+        if missing or unknown:
+            raise ValueError(f'Every era needs a known style (missing {missing}, unknown {unknown}).')
+        return self
