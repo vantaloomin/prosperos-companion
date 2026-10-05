@@ -3,6 +3,7 @@
 Opening a database checks the Companion identity marker first: a Study database or any
 other non-empty SQLite file is refused rather than silently gaining Companion tables.
 """
+import hashlib
 import json
 import sqlite3
 from contextlib import contextmanager
@@ -11,7 +12,7 @@ from uuid import uuid4
 
 from companion.clock import Clock, stamp
 from companion.errors import DomainError, require
-from companion.identity import APP_ID, SCHEMA_VERSION, database_path
+from companion.identity import APP_ID, SCHEMA_VERSION, VERSION, database_path
 
 SCHEMA = Path(__file__).with_name('schema.sql').read_text(encoding='utf-8')
 
@@ -34,17 +35,11 @@ class Database:
         self.clock = clock or Clock()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         inspect_existing(self.path)
+        if upgrade_needed(self.path):
+            from companion import upgrade
+            upgrade.run(self.path, self.now())
         with self.connect(write=True) as connection:
-            claim_identity(connection)
-            connection.executescript(SCHEMA)
-            add_columns(connection)
-            backfill_subject_keys(connection)
-            connection.execute('INSERT OR IGNORE INTO workspace_settings (id, updated_at) VALUES (1, ?)',
-                               (self.now(),))
-            connection.execute('INSERT OR IGNORE INTO life_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
-            connection.execute('INSERT OR IGNORE INTO image_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
-            connection.execute('INSERT OR IGNORE INTO context_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
-            connection.execute('INSERT OR IGNORE INTO lora_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
+            initialize(connection, self.now())
 
     def now(self) -> str:
         return stamp(self.clock.now())
@@ -80,6 +75,41 @@ ADDED_COLUMNS = (
     ('memories', 'merged_into_id', 'TEXT'),
     ('memories', 'dates_uncertain', 'INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1))'),
 )
+
+
+def schema_digest() -> str:
+    """Changes whenever schema.sql or ADDED_COLUMNS does, so an upgrade is noticed without a version bump."""
+    return hashlib.sha256((SCHEMA + repr(ADDED_COLUMNS)).encode('utf-8')).hexdigest()
+
+
+def initialize(connection, timestamp: str):
+    claim_identity(connection)
+    connection.executescript(SCHEMA)
+    add_columns(connection)
+    backfill_subject_keys(connection)
+    for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings'):
+        connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))
+    connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',
+                           (('schema_version', str(SCHEMA_VERSION)), ('schema_digest', schema_digest()),
+                            ('app_version', VERSION)))
+
+
+def stored_identity(path: Path) -> dict:
+    connection = sqlite3.connect(f'{path.resolve().as_uri()}?mode=ro', uri=True)
+    try:
+        return dict(connection.execute('SELECT key, value FROM app_identity').fetchall())
+    finally:
+        connection.close()
+
+
+def upgrade_needed(path: Path) -> bool:
+    """An existing workspace whose schema differs from this version's goes through the safe upgrade."""
+    if not path.exists() or path.stat().st_size == 0:
+        return False
+    try:
+        return stored_identity(path).get('schema_digest') != schema_digest()
+    except sqlite3.DatabaseError:
+        return False  # An empty database without an identity yet.
 
 
 def add_columns(connection):

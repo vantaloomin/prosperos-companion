@@ -79,11 +79,53 @@ def open_when_ready(server, stopped, url):
             return
 
 
+def prepare_workspace() -> bool:
+    """Open the workspace before serving, so a refused or failed upgrade is explained plainly."""
+    from companion.database import Database
+    from companion.errors import DomainError
+    try:
+        Database()
+        return True
+    except DomainError as error:
+        print(f'{APP_NAME} could not open its workspace. {error.message}', flush=True)
+        return False
+
+
+def restore_backup(archive: Path) -> int:
+    """Replace the workspace with a backup while nothing else can open it (the port is held)."""
+    from companion import restore
+    from companion.errors import DomainError
+    from companion.identity import database_path
+    try:
+        result = restore.replace_workspace(archive, database_path())
+    except DomainError as error:
+        print(f'Nothing was restored. {error.message}', flush=True)
+        return 1
+    assets = result['assets']
+    print(f"Restored {archive.name}. The workspace is paused, with automatic memory and background activity off, "
+          'until you review it in Settings. Saved keys were not restored; add them again.', flush=True)
+    if result['previous']:
+        print(f"The workspace it replaced was moved to {result['previous']}.", flush=True)
+    deletions = result['deletions']
+    if deletions['memories_deleted'] or deletions['messages_redacted']:
+        print(f"Kept later deletions: {deletions['memories_deleted']} memories and "
+              f"{deletions['messages_redacted']} messages from the backup stay deleted.", flush=True)
+    if assets['missing']:
+        print(f"{len(assets['missing'])} images, reference pictures or adapters named in the backup are missing.",
+              flush=True)
+    if assets['excluded']:
+        print(f"{len(assets['excluded'])} reference pictures were left out of this backup.", flush=True)
+    return 0
+
+
 def serve(listener, url, port, no_browser) -> int:
     import uvicorn
 
+    from companion import logs
+
+    # No request log: a URL can carry a search query. See companion/logs.py.
     config = uvicorn.Config('companion.main:create_app', factory=True, host=HOST, port=port, access_log=False,
-                            timeout_graceful_shutdown=10)
+                            timeout_graceful_shutdown=10, log_config=logs.config())
     server = uvicorn.Server(config)
     stopped = threading.Event()
     if not no_browser:
@@ -103,19 +145,31 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=DEFAULT_PORT)
     parser.add_argument('--no-browser', action='store_true')
+    parser.add_argument('--restore', type=Path, metavar='BACKUP',
+                        help='Replace the workspace with a backup (the current one is set aside), then exit.')
     args = parser.parse_args(argv)
     if not 1024 <= args.port <= 65535:
         parser.error('Choose a port between 1024 and 65535.')
+    archive = args.restore.resolve() if args.restore else None
     os.chdir(ROOT)
+    url = f'http://{HOST}:{args.port}/'
+    if archive:
+        listener = reserve_port(args.port)
+        if listener is None:
+            print(f'Close {APP_NAME} before restoring a backup.', flush=True)
+            return 1
+        with listener:
+            return restore_backup(archive)
     if not (ROOT / 'dist' / 'index.html').is_file():
         print(f"The interface is not built. Run {'install.bat' if os.name == 'nt' else 'npm run build'} first.",
               flush=True)
         return 1
-    url = f'http://{HOST}:{args.port}/'
     listener = reserve_port(args.port)
     if listener is None:
         return reuse(url, args.no_browser)
     with listener:
+        if not prepare_workspace():
+            return 1
         return serve(listener, url, args.port, args.no_browser)
 
 
