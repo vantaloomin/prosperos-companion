@@ -31,6 +31,7 @@ from companion.workspace import overlapping_pause
 
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
+BACKGROUND_LOOKUP_DEADLINE = 20.0
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
@@ -326,6 +327,8 @@ class LifeEngine:
         self.owner = identifier()
         self.lock = asyncio.Lock()
         self.preparing = None
+        # Current-context lookups (companion/mcp); set by the app.
+        self.lookups = None
 
     def now(self):
         return self.database.clock.now()
@@ -582,7 +585,21 @@ class LifeEngine:
             with self.database.connect() as connection:
                 background = settings(connection)['background_activity']
             if background:
+                await self.quietly_observe()
                 await self.quietly_prepare()
+
+    async def quietly_observe(self):
+        """Real weather for the companion's city, when the user allowed it for their simulated day. A
+        fresh result is reused, so this asks at most once an hour; it never runs while paused."""
+        if self.lookups is None:
+            return
+        with self.database.connect() as connection:
+            if settings(connection)['paused_at'] is not None:
+                return
+        try:
+            await self.lookups.run('weather', 'companion_city', None, BACKGROUND_LOOKUP_DEADLINE)
+        except Exception:  # noqa: BLE001 - the day keeps its typical weather.
+            pass
 
     async def quietly_prepare(self):
         try:

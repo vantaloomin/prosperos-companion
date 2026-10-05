@@ -16,6 +16,7 @@ from companion.life import agenda
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
+from companion.mcp import weather as observed_weather
 from companion.memory import vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
@@ -47,6 +48,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'relationship_mood': 'Your current mood about time apart',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
                        'climate averages, not a real forecast; event dates are fictional too)',
+            'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
+                                'not something you did)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
                           'never as done, and they may change)',
@@ -319,7 +322,10 @@ def offer_life(packet, connection, timeline_id, version, now):
     """The companion's fictional world: today's weather, their circle, likely next steps and recent events."""
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     day = agenda.day_on(connection, timeline_id, today)
-    if day['weather']:
+    if day['weather'] and day['weather'].get('observed'):
+        packet.offer('observed_weather', today, f"{agenda.weather_text(day['weather'])} "
+                                                f"({observed_weather.label(day['weather'])})")
+    elif day['weather']:
         packet.offer('weather', today, agenda.weather_text(day['weather']))
     if day['happenings']:
         packet.offer('weather', f'{today}:events', agenda.happenings_text(day['happenings']))

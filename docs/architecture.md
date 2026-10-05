@@ -287,7 +287,8 @@ configures, under a disclosure the user confirms. The app decides when to look s
 the user's message; the model never gets tools. Lookups are recorded in `context_observations`
 with their tool, arguments, destination, location and freshness, quoted into the reply's context
 as external data, and listed in the reply's receipt under `outside`. Details, limits and the tested
-transports are in [current context tools](context-tools.md).
+transports are in [current context tools](context-tools.md). A same-day lookup for the companion's
+real city can replace that day's typical weather in the life simulation (`ObservedWorld`).
 
 ## Not yet built
 

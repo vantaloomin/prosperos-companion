@@ -128,6 +128,8 @@ class Lookups:
         self.world = world
         self.transport_factory = transport_factory or (lambda service: transport_for(service, vault))
         self.locks: dict[str, asyncio.Lock] = {}
+        # Called with each successful observation, such as to give the simulated day real weather.
+        self.listeners = []
 
     def now(self):
         return self.database.clock.now()
@@ -220,8 +222,10 @@ class Lookups:
                                                    if result['structured'] else ''))
                 if not content:
                     raise ToolFailure('empty', 'The tool returned nothing usable.')
-                return self.record(**record, status='ok', content=content, structured=result['structured'],
-                                   attempts=attempts)
+                observation = self.record(**record, status='ok', content=content, structured=result['structured'],
+                                          attempts=attempts)
+                self.notify(observation)
+                return observation
             except (ToolFailure, TimeoutError) as error:
                 failure = error if isinstance(error, ToolFailure) else ToolFailure('timeout', 'The lookup took too long.')
                 if failure.code in RETRYABLE and attempts < 2 and ends - loop.time() > RETRY_DELAY + 0.5:
@@ -229,6 +233,13 @@ class Lookups:
                     continue
                 return self.record(**record, status='failed', error_code=failure.code, error=failure.message,
                                    attempts=attempts)
+
+    def notify(self, observation):
+        for listener in self.listeners:
+            try:
+                listener(observation)
+            except Exception:  # noqa: BLE001 - a listener never turns a good lookup into a failure.
+                pass
 
     def record(self, service, category, purpose, tool, arguments, location, status, content='', structured=None,
                error_code=None, error=None, attempts=0) -> dict:

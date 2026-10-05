@@ -228,10 +228,12 @@ def current(connection, timeline_id, subject, now) -> dict | None:
 
 
 def day_on(connection, timeline_id, local_date) -> dict:
-    """The typical weather and annual events recorded for the companion's city on a local date."""
+    """The weather (observed where looked up, else typical) and annual events recorded for the companion's
+    city on a local date."""
     row = optional(connection, "SELECT json_extract(block, '$.weather') AS weather, json_extract(block, "
                    "'$.happenings') AS happenings FROM life_agenda WHERE timeline_id=? AND subject=? AND "
-                   'local_date=? LIMIT 1', (timeline_id, COMPANION, local_date))
+                   "local_date=? ORDER BY json_extract(block, '$.weather.observed') IS NULL, starts_at LIMIT 1",
+                   (timeline_id, COMPANION, local_date))
     return {'weather': decode(row['weather']) if row and row['weather'] else None,
             'happenings': decode(row['happenings']) if row and row['happenings'] else []}
 

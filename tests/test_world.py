@@ -166,7 +166,7 @@ def test_a_generated_schedule_drives_the_life_routine(client):
 
 def test_the_catalog_answers_the_life_composer(app):
     from companion.world.source import CatalogWorld
-    assert isinstance(app.state.life.world, CatalogWorld)
+    assert isinstance(app.state.life.world.world, CatalogWorld)  # wrapped for observed weather (companion/mcp/weather.py)
     world = CatalogWorld()
     waterfront = world.places('baltimore', ['waterfront'])
     assert waterfront and all(place.kind == 'waterfront' and place.city == 'Baltimore' for place in waterfront)
