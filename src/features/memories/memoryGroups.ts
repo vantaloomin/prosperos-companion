@@ -40,17 +40,35 @@ export function earlierVersions(memory: Memory, all: Memory[]): Memory[] {
   return result
 }
 
+const FLAG_LABELS: [(memory: Memory) => boolean | undefined, string][] = [
+  [(memory) => memory.boundary, 'Boundary'],
+  [(memory) => memory.pinned, 'Pinned'],
+  [(memory) => memory.status === 'excluded', 'Not used in conversation'],
+  [(memory) => memory.authority === 'tentative', 'Unconfirmed guess'],
+  [(memory) => memory.authority === 'confirmed', 'Confirmed by you'],
+  [(memory) => memory.sensitive, 'Sensitive'],
+]
+
 /** Plain-language state, never a confidence score. */
 export function statusLabels(memory: Memory): string[] {
-  const labels: string[] = []
-  if (memory.boundary) labels.push('Boundary')
-  if (memory.pinned) labels.push('Pinned')
-  if (memory.status === 'excluded') labels.push('Not used in conversation')
-  if (memory.authority === 'tentative') labels.push('Unconfirmed guess')
-  if (memory.authority === 'confirmed') labels.push('Confirmed by you')
-  if (memory.sensitive) labels.push('Sensitive')
+  const labels = FLAG_LABELS.filter(([applies]) => applies(memory)).map(([, label]) => label)
   if (memory.plan_status) labels.push(memory.plan_status[0].toUpperCase() + memory.plan_status.slice(1))
+  if (memory.current === false && memory.status !== 'superseded' && !memory.plan_status) labels.push('No longer current')
+  if (memory.dates_uncertain) labels.push('Dates uncertain')
+  if (memory.origin === 'automatic') labels.push('Saved automatically')
   return labels
+}
+
+/** Why a suggestion is waiting, in words. */
+export function suggestionReason(reason: string | null): string {
+  if (reason === 'sensitive') return 'Sensitive details are only kept when you say so.'
+  return 'Waiting for you to decide.'
+}
+
+/** What Remember this did, for the notice under the conversation. */
+export function rememberedText(name: string, memories: { subject: string; value: string }[]): string {
+  const items = memories.map((memory) => `${memory.subject}: ${memory.value}`)
+  return `${name} will remember ${items.length === 1 ? 'this' : 'these'}: ${items.join('; ')}.`
 }
 
 export const REMEMBER_KEY = 'companion:remember'

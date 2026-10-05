@@ -64,9 +64,9 @@ export function WorkspaceSettings() {
       <section className="settings-section form-stack" aria-labelledby="memory-heading">
         <h2 id="memory-heading">Memory</h2>
         <Toggle label="Remember things automatically" checked={data.automatic_memory} onChange={(value) => void save({ automatic_memory: value })}
-          hint="When on, facts you state directly can be saved as memories with the messages they came from. When off, only what you choose to remember is saved; your conversation is kept either way." />
+          hint="When on, facts you state directly in new messages (your name, where you live, a plan with a date) are saved with the messages they came from, after each reply. Questions, hypotheticals, quotes and roleplay are never saved. Earlier messages are not scanned. When off, only what you choose to remember is saved; your conversation is kept either way." />
         <Toggle label="Allow sensitive memories" checked={data.sensitive_memory} onChange={(value) => void save({ sensitive_memory: value })}
-          hint="Health, relationships, money and similar details are only saved automatically with this on." />
+          hint="Health, beliefs, money and similar details are only saved automatically with this on. Otherwise they wait in Memories as suggestions for you to keep or decline." />
         <Toggle label="Share what you've told them across alternate timelines" checked={data.share_profile_across_timelines} onChange={(value) => void save({ share_profile_across_timelines: value })}
           hint="Facts about you carry over if you start an alternate timeline. Fictional events always stay in their own timeline." />
       </section>
