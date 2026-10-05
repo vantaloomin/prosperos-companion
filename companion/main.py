@@ -55,7 +55,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.vault = vault or SystemVault()
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider)
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
-                                app.state.conversation.scheduler, world or CatalogWorld())
+                                app.state.conversation.scheduler, world or CatalogWorld(app.state.database))
     app.state.life_tasks = life_tasks
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', '127.0.0.1', 'testserver'])
     app.middleware('http')(guard_writes)

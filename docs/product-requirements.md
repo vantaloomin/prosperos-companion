@@ -6,7 +6,7 @@
 
 > **Amendment (2026-10-05).** Image generation now supports local, Codex/ChatGPT subscription and hosted API backends with content routing, per Vanta's direction in the project. Changed: the confirmed-direction table, the Feasibility stage, F3 and F5 to F9, the LoRA section's closing note, compute and job control, the acceptance matrix and the decisions table. The rest of the draft is unchanged.
 
-> **Amendment (2026-10-05).** Added *World data requirements* (W1–W4), per Vanta's direction that the companion's world be generated programmatically from knowledge bases of real cities rather than by the model.
+> **Amendment (2026-10-05).** Added *World data requirements* (W1–W5), per Vanta's direction that the companion's world be generated programmatically from knowledge bases of real cities rather than by the model.
 
 **Status:** Draft for product review. **Date:** 2026-10-04. **Working name:** Prospero Companion. This document defines a standalone companion application derived from the Companion Mode concept. It authorizes no implementation, service installation, model download, training run or release.
 
@@ -131,13 +131,15 @@ The user selects character references, reviews the dataset and runs a supported 
 
 Everyday facts about where the companion lives come from shipped data and deterministic code, not from the model. This keeps places, employers, rents and commutes consistent across conversation, feed and recall, and spends model calls only on phrasing.
 
-**W1 City knowledge base.** Ship versioned, offline data for a small set of starting cities (initially Baltimore, New York, Miami, San Diego and Las Vegas): neighbourhoods with typical rents and housing, attractions, food and nightlife, colleges, major employers and career hubs, transit, monthly climate and recurring annual events. The app must not need network access to use it.
+**W1 City knowledge base.** Ship versioned, offline data for a small set of starting cities (initially Baltimore, New York, Miami, San Diego and Las Vegas, plus the settings in W5): neighbourhoods with typical rents and housing, attractions, food and nightlife, colleges, major employers and career hubs, transit, monthly climate and recurring annual events. The app must not need network access to use it.
 
 **W2 Provenance.** Every record names its source, licence and retrieval date. Prefer sources that permit redistribution (curated CC0 records, Wikidata, US government data such as College Scorecard, HUD Fair Market Rents and NOAA climate normals); record attribution and share-alike obligations for any OpenStreetMap-derived data. Rents, coordinates and commute times are estimates for fiction and are labelled as such. Climate is typical weather, never presented as current conditions (see X3).
 
 **W3 Deterministic assembly.** Generators pick an outing, a meal, a job with its weekly schedule and commute, a home, and typical weather from the data. The same data version, seed and arguments always give the same result, and each result lists the records and sources it used so an event can store them as generation inputs (T7). Where the data has no fitting record, a generator describes an unnamed place rather than inventing a name.
 
 **W4 Model role.** Life synthesis passes generated facts to the model, which phrases them in the companion's voice. The model must not add named places, employers or prices that are not in the supplied facts. A companion whose location is not a shipped city keeps today's behaviour until a city is added.
+
+**W5 Settings and user cities.** Built-in cities include real cities, well-known fictional settings that may be redistributed (public domain), and original settings written for the product; settings owned by others are not shipped as built-in data. Users can create, copy, edit and delete their own cities in the workspace, validated like built-in ones and usable by every generator. A city's era, currency and its own careers let historical, fantasy and other settings work without modern assumptions.
 
 ## Memory and relationship requirements
 

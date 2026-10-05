@@ -17,16 +17,27 @@ COSTS = ['free', '$', '$$', '$$$', '$$$$']
 SEASONS = {12: 'winter', 1: 'winter', 2: 'winter', 3: 'spring', 4: 'spring', 5: 'spring', 6: 'summer',
            7: 'summer', 8: 'summer', 9: 'fall', 10: 'fall', 11: 'fall'}
 MEALS = {'breakfast': 'morning', 'brunch': 'morning', 'lunch': 'afternoon', 'dinner': 'evening', 'late': 'late'}
-FOOD = ('restaurant', 'cafe', 'market')
+FOOD = ('restaurant', 'cafe', 'market', 'tavern', 'inn')
 BEDROOMS = ('studio', 'one_bedroom', 'two_bedroom')
 # Where a career with no named employer in the data can plausibly work.
 WORKPLACE_KINDS = {
     'barista': ('cafe',), 'baker': ('cafe', 'market'), 'line-cook': ('restaurant',), 'server': ('restaurant',),
-    'bartender': ('bar', 'nightlife'), 'retail-associate': ('shopping',), 'tour-guide': ('attraction', 'landmark'),
+    'bartender': ('bar', 'nightlife', 'tavern', 'inn'), 'retail-associate': ('shopping',), 'tour-guide': ('attraction', 'landmark'),
     'performer': ('venue',), 'musician': ('venue', 'bar'), 'fitness-trainer': ('fitness',),
     'lifeguard': ('beach',), 'surf-instructor': ('beach',),
 }
-RAIL = {'subway', 'light-rail', 'commuter-rail', 'streetcar', 'monorail'}
+# Where any career in a sector can plausibly work, for cities that name no employer for it.
+SECTOR_KINDS = {
+    'food': ('cafe', 'market', 'restaurant'), 'hospitality': ('restaurant', 'bar', 'tavern', 'inn', 'cafe'),
+    'entertainment': ('venue',), 'tourism': ('attraction', 'landmark'), 'retail': ('shopping', 'market'),
+    'religion': ('temple',), 'trade': ('market', 'guildhall', 'workshop'), 'crafts': ('workshop',),
+    'fitness': ('fitness',), 'recreation': ('beach', 'park'), 'logistics': ('docks',),
+}
+RAIL = {'subway', 'light-rail', 'commuter-rail', 'streetcar', 'monorail', 'tram'}
+# Shared lines other than rail, and private ways to travel, fastest first.
+LINES = {'bus', 'ferry', 'water-taxi', 'boat', 'airship', 'stagecoach'}
+PRIVATE = ('car', 'carriage', 'horse', 'bike-share')
+DEFAULT_SPEEDS = {'walk': 4.5, 'car': 25, 'rideshare': 25, 'bus': 13, 'carriage': 10, 'horse': 12, 'tram': 15}
 OVERHEAD = {'walk': 0, 'car': 6, 'rideshare': 8, 'bus': 9, 'ferry': 10, 'water-taxi': 10, 'bike-share': 3}
 
 
@@ -58,8 +69,10 @@ def provenance(data: dict, refs: list[str]) -> dict:
 
 # --- Climate and the calendar ---
 
-def conditions(data: dict, day: date, seed: str = '') -> dict:
-    """Typical weather for the date from monthly climate, with a seeded chance of rain."""
+def conditions(data: dict, day: date, seed: str = '') -> dict | None:
+    """Typical weather for the date from monthly climate, with a seeded chance of rain; None without a climate."""
+    if not data['climate']:
+        return None
     month = data['climate']['months'][day.month - 1]
     wet = unit(seed or day.isoformat(), data['id'], 'rain') < month['rain_days'] / 30
     return {'season': SEASONS[day.month], 'month': day.month, 'high_f': month['high_f'], 'low_f': month['low_f'],
@@ -79,7 +92,7 @@ def commute(data: dict, origin: str, destination: str, mode: str | None = None) 
     km = round(catalog.distance_km(start, end) * 1.3 + 0.4, 1)
     shared = [line for line in data['transit'] if line['id'] in start['transit'] and line['id'] in end['transit']]
     rail = next((line for line in shared if line['kind'] in RAIL), None)
-    bus = next((line for line in shared if line['kind'] in {'bus', 'ferry', 'water-taxi'}), None)
+    bus = next((line for line in shared if line['kind'] in LINES), None)
     line = None
     if mode is None:
         if km <= 1.6:
@@ -89,10 +102,10 @@ def commute(data: dict, origin: str, destination: str, mode: str | None = None) 
         elif bus and start['walkability'] != 'low' and km <= 8:
             mode, line = bus['kind'], bus
         else:
-            mode = 'car'
-    elif mode in RAIL or mode in {'bus', 'ferry', 'water-taxi'}:
+            mode = next((kind for kind in PRIVATE if kind in data['speeds']), 'walk')
+    elif mode in RAIL or mode in LINES:
         line = next((item for item in shared if item['kind'] == mode), None)
-    speed = data['speeds'].get(mode) or data['speeds'].get('car', 25)
+    speed = data['speeds'].get(mode) or DEFAULT_SPEEDS.get(mode, 4.5)
     minutes = round(km / speed * 60 + OVERHEAD.get(mode, 8))
     return {'from': origin, 'to': destination, 'mode': mode, 'line': line['name'] if line else None,
             'distance_km': km, 'minutes': max(minutes, 3), 'estimate': True}
@@ -232,9 +245,9 @@ def job(data: dict, career_id: str, *, seed: str, home: str | None = None) -> di
     Named employers come from the data. Careers the data has no employer for work at a fitting place
     (a cafe for a barista) or at an unnamed employer in a matching career hub, so nothing is invented.
     """
-    career = catalog.careers().get(career_id)
+    career = catalog.careers_for(data).get(career_id)
     if not career:
-        raise DomainError(f'Unknown career {career_id!r}.', 404, 'unknown_career')
+        raise DomainError(f'{data["name"]} has no career {career_id!r}.', 404, 'unknown_career')
     employers = [item for item in data['employers'] if career_id in item['careers']]
     refs = []
     if employers:
@@ -249,7 +262,8 @@ def job(data: dict, career_id: str, *, seed: str, home: str | None = None) -> di
                     'summary': f'Known for {", ".join(chosen["known_for"][:3]).replace("-", " ")}.', 'fit': 'college'}
         hood = chosen['neighborhood']
         refs.append(chosen['id'])
-    elif places := [place for place in data['places'] if place['kind'] in WORKPLACE_KINDS.get(career_id, ())]:
+    elif places := [place for place in data['places'] if place['kind'] in
+                    WORKPLACE_KINDS.get(career_id, SECTOR_KINDS.get(career['sector'], ()))]:
         chosen = pick(seed, 'workplace', places)
         employer = {'id': chosen['id'], 'name': chosen['name'], 'named': True, 'summary': chosen['summary'],
                     'fit': 'workplace'}
@@ -257,13 +271,13 @@ def job(data: dict, career_id: str, *, seed: str, home: str | None = None) -> di
         refs.append(chosen['id'])
     else:
         matching = [hub for hub in data['career_hubs'] if career['sector'] in hub['sectors']]
-        hubs = matching or data['career_hubs']
-        hub = pick(seed, 'hub', hubs)
-        hood = pick(seed, 'hub-neighborhood', hub['neighborhoods'])
+        hub = pick(seed, 'hub', matching or data['career_hubs'])
+        hood = pick(seed, 'hub-neighborhood', hub['neighborhoods'] if hub else
+                    [item['id'] for item in data['neighborhoods']])
         place_name = catalog.neighborhood(data, hood)['name']
-        employer = {'id': None, 'name': f'a workplace in {place_name} ({hub["name"]})',
-                    'named': False, 'summary': hub['summary'], 'fit': 'hub' if matching else 'weak'}
-        refs.append(hub['id'])
+        employer = {'id': None, 'name': f'a workplace in {place_name}' + (f' ({hub["name"]})' if hub else ''),
+                    'named': False, 'summary': hub['summary'] if hub else '', 'fit': 'hub' if matching else 'weak'}
+        refs.extend([hub['id']] if hub else [])
     refs.append(hood)
     result = {'career': career, 'employer': employer, 'neighborhood': catalog.neighborhood(data, hood),
               'schedule': schedule(career, seed, employer['name'] if employer['named'] else ''), 'commute': None}
@@ -277,16 +291,19 @@ def job(data: dict, career_id: str, *, seed: str, home: str | None = None) -> di
 
 def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | None = None,
          vibe: str | None = None, near: str | None = None) -> dict:
-    """A neighborhood, housing type and monthly rent within that neighborhood's typical range.
+    """A neighborhood, housing type and rent within that neighborhood's typical range.
 
-    `budget` is a monthly maximum in dollars; when nothing fits, the cheapest neighborhoods are used.
+    `budget` is a maximum in the city's currency per its `rent_period`; when nothing fits, the cheapest
+    neighborhoods are used. `rent` is None in settings without rents.
     """
     if bedrooms not in BEDROOMS:
         raise DomainError(f'Bedrooms is one of {", ".join(BEDROOMS)}.', 422)
     hoods = data['neighborhoods']
-    fits = [hood for hood in hoods if budget is None or hood['rent'][bedrooms][0] <= budget]
-    if not fits:
-        fits = sorted(hoods, key=lambda hood: hood['rent'][bedrooms][0])[:3]
+    priced = [hood for hood in hoods if hood['rent']]
+    fits = [hood for hood in priced if budget is None or hood['rent'][bedrooms][0] <= budget]
+    if priced and not fits:
+        fits = sorted(priced, key=lambda hood: hood['rent'][bedrooms][0])[:3]
+    fits = fits or hoods
     anchor = catalog.neighborhood(data, near) if near else None
     weights = []
     for hood in fits:
@@ -296,13 +313,14 @@ def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | 
             weight *= 4 if km <= 2 else 2 if km <= 5 else 1
         weights.append(weight)
     chosen = pick(seed, 'home', fits, weights)
-    low, high = chosen['rent'][bedrooms]
-    if budget is not None:
-        high = max(low, min(high, budget))
-    rent = low + round(unit(seed, 'rent') * (high - low) / 25) * 25
-    return {'neighborhood': chosen, 'housing': pick(seed, 'housing', chosen['housing']), 'bedrooms': bedrooms,
-            'rent_month': rent, 'rent_range': [low, chosen['rent'][bedrooms][1]], 'estimate': True} | provenance(
-        data, [chosen['id']])
+    result = {'neighborhood': chosen, 'housing': pick(seed, 'housing', chosen['housing']), 'bedrooms': bedrooms,
+              'rent': None, 'rent_range': None, 'currency': data['currency'], 'rent_period': data['rent_period'],
+              'estimate': True}
+    if chosen['rent']:
+        low, high = chosen['rent'][bedrooms]
+        top = max(low, min(high, budget)) if budget is not None else high
+        result |= {'rent': low + round(unit(seed, 'rent') * (top - low) / 25) * 25, 'rent_range': [low, high]}
+    return result | provenance(data, [chosen['id']])
 
 
 # --- Grounding text ---

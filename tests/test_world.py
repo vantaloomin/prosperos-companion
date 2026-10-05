@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from companion.errors import DomainError
 from companion.models import CharacterDefinition
 from companion.world import catalog, generators
 from companion.world.schema import City
@@ -22,18 +23,19 @@ def baltimore():
 @pytest.mark.parametrize('city_id', CITIES)
 def test_every_shipped_city_validates_and_cites_its_sources(city_id):
     data = catalog.city(city_id)
-    assert data['country'] == 'US' and data['data_version']
+    assert data['country'] and data['data_version']
     for source in catalog.sources(data):
         assert source['license'] and source['retrieved']
-    for career in catalog.careers():
+    for career in catalog.careers_for(data):
         result = generators.job(data, career, seed=career)
         assert result['employer']['name'] and result['refs'] and result['sources']
 
 
 @pytest.mark.parametrize('city_id', CITIES)
 def test_generated_schedules_are_valid_character_routines(city_id):
-    for career in catalog.careers():
-        blocks = generators.job(catalog.city(city_id), career, seed=career)['schedule']
+    data = catalog.city(city_id)
+    for career in catalog.careers_for(data):
+        blocks = generators.job(data, career, seed=career)['schedule']
         CharacterDefinition(name='Mira', schedule=blocks)
 
 
@@ -46,13 +48,13 @@ def test_shipped_json_matches_its_source_script(city_id):
 
 def test_validation_rejects_broken_references():
     raw = copy.deepcopy(baltimore())
-    raw.pop('data_version')
+    raw.pop('data_version'), raw.pop('builtin')
     City.model_validate(raw)
     raw['places'][0] = raw['places'][0] | {'neighborhood': 'atlantis'}
     with pytest.raises(ValidationError, match='atlantis|neighborhoods'):
         City.model_validate(raw)
     raw = copy.deepcopy(baltimore())
-    raw.pop('data_version')
+    raw.pop('data_version'), raw.pop('builtin')
     raw['colleges'][0] = raw['colleges'][0] | {'source': 'made-up'}
     with pytest.raises(ValidationError, match='sources'):
         City.model_validate(raw)
@@ -122,7 +124,7 @@ def test_homes_stay_within_budget_and_typical_ranges():
     for seed in SEEDS:
         result = generators.home(data, seed=seed, bedrooms='one_bedroom', budget=1400)
         low, high = result['neighborhood']['rent']['one_bedroom']
-        assert low <= result['rent_month'] <= min(high, 1400) and result['rent_month'] % 25 == 0
+        assert low <= result['rent'] <= min(high, 1400) and result['rent'] % 25 == 0
 
 
 def test_free_text_locations_resolve_to_cities_and_neighborhoods():
@@ -169,3 +171,68 @@ def test_the_catalog_answers_the_life_composer(app):
     assert {'Johns Hopkins University'} <= {place.name for place in colleges}
     assert world.places('atlantis', ['cafe']) == []
     assert world.places('baltimore', ['cafe']) == world.places('baltimore', ['cafe'])
+
+
+def test_users_build_their_own_cities(client):
+    template = client.get('/api/world/template').json()
+    assert client.post('/api/world/validate', json=template).json()['valid']
+    broken = template | {'places': [template['places'][0] | {'neighborhood': 'nowhere'}]}
+    response = client.post('/api/world/validate', json=broken)
+    assert response.status_code == 422 and 'nowhere' in response.json()['detail']
+    city = template | {'id': 'port-calloway', 'name': 'Port Calloway', 'aliases': ['Calloway']}
+    created = client.post('/api/world/cities', json=city)
+    assert created.status_code == 200, created.text
+    assert created.json()['revision'] == 1 and not created.json()['builtin']
+    assert client.post('/api/world/cities', json=city).status_code == 409
+    assert client.post('/api/world/cities', json=template | {'id': 'baltimore'}).status_code == 409
+    listed = {item['id']: item for item in client.get('/api/world/cities').json()}
+    assert listed['port-calloway']['builtin'] is False and listed['baltimore']['builtin'] is True
+
+    job = client.get('/api/world/cities/port-calloway/generate/job', params={'career': 'barista', 'seed': 's'})
+    assert job.status_code == 200 and job.json()['neighborhood']['id'] == 'old-town'
+    outing = client.get('/api/world/cities/port-calloway/generate/outing', params={'seed': 's', 'day': '2026-10-04'})
+    assert outing.json()['outing']['place']['id'] == 'corner-cafe' and outing.json()['outing']['weather'] is None
+    home = client.get('/api/world/cities/port-calloway/generate/home', params={'seed': 's'}).json()
+    assert home['neighborhood']['id'] == 'old-town' and home['rent'] is None
+    assert client.get('/api/world/resolve', params={'text': 'Calloway'}).json()['match']['city'] == 'port-calloway'
+
+    edited = city | {'summary': 'A foggy harbour town.'}
+    stale = client.put('/api/world/cities/port-calloway', json={'definition': edited, 'expected_revision': 2})
+    assert stale.status_code == 409
+    updated = client.put('/api/world/cities/port-calloway', json={'definition': edited, 'expected_revision': 1})
+    assert updated.json()['summary'] == 'A foggy harbour town.' and updated.json()['revision'] == 2
+    assert client.put('/api/world/cities/baltimore', json={'definition': edited, 'expected_revision': 1}
+                      ).status_code == 409
+
+
+def test_copying_a_built_in_city_and_living_in_a_user_city(app, client):
+    copied = client.post('/api/world/cities/baltimore/copy', json={'id': 'my-baltimore', 'name': 'My Baltimore'})
+    assert copied.status_code == 200, copied.text
+    assert len(copied.json()['places']) == len(baltimore()['places']) and copied.json()['aliases'] == []
+    client.post('/api/companion', json={'name': 'Mira', 'timezone': 'America/New_York', 'home_city': 'my-baltimore'})
+    assert app.state.life.world.places('my-baltimore', ['cafe'])
+    blocked = client.delete('/api/world/cities/my-baltimore')
+    assert blocked.status_code == 409
+    assert client.delete('/api/world/cities/baltimore').status_code == 409
+    client.post('/api/world/cities/baltimore/copy', json={'id': 'spare', 'name': 'Spare'})
+    assert client.delete('/api/world/cities/spare').json() == {'deleted': 'spare'}
+    assert client.get('/api/world/cities/spare').status_code == 404
+
+
+def test_settings_without_money_or_climate_still_generate():
+    raw = copy.deepcopy(baltimore())
+    for key in ('data_version', 'builtin'):
+        raw.pop(key)
+    raw |= {'id': 'storybook', 'setting': 'original', 'era': 'fantasy', 'climate': None, 'employers': [],
+            'career_hubs': [], 'speeds': {'walk': 4.5, 'horse': 12},
+            'careers': [{'id': 'baker-fantasy', 'name': 'Baker', 'sector': 'food', 'schedule': 'early', 'pay': '$',
+                         'summary': 'Bakes bread before dawn.', 'themes': ['bread'], 'eras': ['fantasy']}],
+            'neighborhoods': [hood | {'rent': None} for hood in raw['neighborhoods']]}
+    data = catalog.prepare(raw)
+    assert set(catalog.careers_for(data)) == {'baker-fantasy'}
+    assert generators.job(data, 'baker-fantasy', seed='x')['employer']['fit'] == 'workplace'
+    assert generators.home(data, seed='x', budget=10)['rent'] is None
+    assert generators.commute(data, 'towson', 'inner-harbor')['mode'] == 'horse'
+    assert generators.conditions(data, date(2026, 1, 1)) is None
+    with pytest.raises(DomainError):
+        generators.job(data, 'software-engineer', seed='x')
