@@ -9,6 +9,7 @@ from companion.characters import require_current
 from companion.database import decode, one
 from companion.errors import require
 from companion.life import feed
+from companion.lora.appearance import current_for_images
 
 PROMPT_VERSION = 1
 DEFAULT_STYLE = 'Candid, natural-light photograph'
@@ -60,7 +61,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw)}
+            'marked_nsfw': bool(marked_nsfw), **current_for_images(connection)}
 
 
 def stale(connection, inputs) -> bool:

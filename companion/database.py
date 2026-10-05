@@ -44,6 +44,7 @@ class Database:
             connection.execute('INSERT OR IGNORE INTO life_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
             connection.execute('INSERT OR IGNORE INTO image_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
             connection.execute('INSERT OR IGNORE INTO context_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
+            connection.execute('INSERT OR IGNORE INTO lora_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
 
     def now(self) -> str:
         return stamp(self.clock.now())

@@ -16,11 +16,19 @@ from companion.images.adapters.base import AdapterError, ImageRequest, size_for
 from companion.images.content import classify, stricter
 from companion.images.routing import eligible
 
-IDENTITY = {'comfyui': 'text description (no adopted LoRA yet)', 'codex': 'text description only',
-            'hosted': 'text description only'}
 CANCEL_NOTES = {'hosted': 'Cancelled. The provider may still finish the request; its result will not be used.',
                 'codex': 'Cancelled; the Codex request was stopped.',
                 'comfyui': 'Cancelled; the request was removed from ComfyUI.'}
+
+
+def identity(backend, inputs) -> str:
+    """How this image draws the character, recorded on the job (PRD LoRA maker, F2)."""
+    lora = inputs.get('lora')
+    if not lora:
+        return 'text description' if backend['kind'] == 'comfyui' else 'text description only'
+    if backend['kind'] == 'comfyui':
+        return f"LoRA {lora['name']} at strength {lora['strength']:g} (appearance version {inputs['appearance_version']})"
+    return 'text description only; this backend cannot apply the adopted LoRA'
 
 
 def default_adapters() -> dict:
@@ -126,7 +134,7 @@ class ImageRunner:
             connection.execute("UPDATE image_jobs SET status='running', started_at=?, backend_kind=?, provider=?, "
                                'model=?, identity_method=? WHERE id=?',
                                (timestamp, backend['kind'], backend['provider'], adapter_config.get('model'),
-                                IDENTITY[backend['kind']], job_id))
+                                identity(backend, inputs), job_id))
             from companion.life import feed
             feed.apply_image(connection, job['post_id'], job_id, 'running', timestamp)
         return job, backend, inputs
@@ -159,7 +167,8 @@ class ImageRunner:
         width, height = size_for(backend['kind'], inputs['aspect'])
         key = self.vault.get(backend['credential_ref']) if backend['credential_ref'] else None
         request = ImageRequest(job_id, inputs['prompt'], inputs['negative'], inputs['seed'], width, height,
-                               backend, decode(backend['config']), key, storage.raw_directory(self.database))
+                               backend, decode(backend['config']), key, storage.raw_directory(self.database),
+                               inputs.get('lora') if backend['kind'] == 'comfyui' else None)
         result = None
         try:
             result = await self.adapters[backend['kind']].generate(request)

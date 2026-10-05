@@ -562,3 +562,87 @@ CREATE TABLE IF NOT EXISTS context_uses (
   observation_id TEXT NOT NULL REFERENCES context_observations(id) ON DELETE CASCADE,
   PRIMARY KEY (message_id, observation_id)
 );
+
+-- Character LoRA maker (PRD "Character LoRA maker requirements"). Files live in `lora/` beside the
+-- workspace database; these tables hold what they are, where they came from and who chose them.
+CREATE TABLE IF NOT EXISTS lora_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  trainer TEXT NOT NULL DEFAULT 'ai-toolkit',
+  -- The trainer's own Python interpreter and checkout; the app never installs either.
+  python_path TEXT NOT NULL DEFAULT '',
+  trainer_dir TEXT NOT NULL DEFAULT '',
+  base_model TEXT NOT NULL DEFAULT 'krea/Krea-2-Raw',
+  -- ComfyUI's models/loras folder, so an adopted adapter can be copied where ComfyUI finds it.
+  comfy_lora_dir TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+-- One reference picture. The original file is never changed; a crop is a separate copy.
+CREATE TABLE IF NOT EXISTS lora_references (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  file TEXT NOT NULL,
+  original_name TEXT NOT NULL DEFAULT '',
+  media_type TEXT NOT NULL,
+  sha256 TEXT NOT NULL,
+  -- 64-bit difference hash computed by the interface, for near-duplicate warnings.
+  dhash TEXT,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  bytes INTEGER NOT NULL,
+  rights TEXT NOT NULL DEFAULT 'unknown' CHECK (rights IN
+    ('own_work', 'commissioned', 'licensed', 'generated', 'unknown')),
+  source_note TEXT NOT NULL DEFAULT '',
+  role TEXT NOT NULL DEFAULT 'train' CHECK (role IN ('train', 'evaluation', 'excluded')),
+  exclusion_reason TEXT NOT NULL DEFAULT '',
+  caption TEXT NOT NULL DEFAULT '',
+  caption_origin TEXT NOT NULL DEFAULT 'empty' CHECK (caption_origin IN ('empty', 'suggested', 'edited')),
+  crop TEXT,
+  crop_file TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (companion_id, sha256)
+);
+
+-- A trained or imported adapter file and its provenance.
+CREATE TABLE IF NOT EXISTS lora_adapters (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  origin TEXT NOT NULL CHECK (origin IN ('trained', 'imported')),
+  run_id TEXT,
+  step INTEGER,
+  name TEXT NOT NULL,
+  file TEXT NOT NULL,
+  sha256 TEXT NOT NULL,
+  bytes INTEGER NOT NULL,
+  format TEXT NOT NULL CHECK (format IN ('lora', 'lokr', 'unknown')),
+  base_model TEXT NOT NULL,
+  trainer TEXT NOT NULL DEFAULT '',
+  trigger TEXT NOT NULL DEFAULT '',
+  license_note TEXT NOT NULL DEFAULT '',
+  metadata TEXT NOT NULL DEFAULT '{}',
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  -- Removing an adapter deletes its file but keeps this record, since images may name it.
+  removed_at TEXT
+);
+
+-- How images draw the character from a point in time (PRD F2). Jobs freeze the version they used,
+-- so adopting a new one never changes an image already made.
+CREATE TABLE IF NOT EXISTS appearance_versions (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  number INTEGER NOT NULL,
+  method TEXT NOT NULL CHECK (method IN ('text', 'lora')),
+  adapter_id TEXT REFERENCES lora_adapters(id),
+  strength REAL NOT NULL DEFAULT 1.0,
+  comfy_name TEXT,
+  note TEXT NOT NULL DEFAULT '',
+  adopted_at TEXT NOT NULL,
+  UNIQUE (companion_id, number)
+);
+
+CREATE TABLE IF NOT EXISTS appearance_current (
+  companion_id TEXT PRIMARY KEY REFERENCES companions(id),
+  version_id TEXT NOT NULL REFERENCES appearance_versions(id)
+);
