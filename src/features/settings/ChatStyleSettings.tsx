@@ -4,17 +4,17 @@ import { Toggle } from '../../components/Fields'
 import { CHAT_STYLES } from '../conversation/chatStyles'
 import { useChatStyle } from '../conversation/useChatStyle'
 
-/** Appearance > Chat style: one self-contained section, so it can move wherever Settings groups appearance. */
+/** General > Appearance: how the chat looks, and Retro IM's optional sounds. */
 export function ChatStyleSettings() {
   const chat = useChatStyle()
   const [error, setError] = useState<string | null>(null)
   const name = useId()
   const save = async (change: Parameters<typeof chat.save>[0]) => setError(await chat.save(change))
   return (
-    <section className="settings-section form-stack" aria-labelledby="chat-style-heading">
+    <section className="settings-section form-stack" aria-labelledby="appearance-heading">
       <div>
-        <h2 id="chat-style-heading">Chat style</h2>
-        <p className="subtle">How the conversation looks. Every style shows the same messages with the same actions; you can also switch from the top of the chat.</p>
+        <h2 id="appearance-heading">Appearance</h2>
+        <p className="subtle">Pick a chat style. Every style shows the same messages with the same actions; you can also switch from the top of the chat.</p>
       </div>
       {error && <Notice tone="error">{error}</Notice>}
       <fieldset className="chat-style-options">

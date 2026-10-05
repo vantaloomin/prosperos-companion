@@ -22,7 +22,7 @@ export function GettingStarted({ companion, go }: { companion: Companion; go: (v
             <div>
               <p className="step-label">{step.label}{step.optional && <span className="subtle"> (optional)</span>}<span className="visually-hidden">{step.done ? ', done' : ', not done yet'}</span></p>
               <p className="subtle">{step.detail}</p>
-              {!step.done && <button type="button" className="text-button" onClick={() => go(step.view)}>{step.view === 'settings' ? 'Open Settings' : 'Open Character'}</button>}
+              {!step.done && <button type="button" className="text-button" onClick={() => go(step.view)}>{step.view.startsWith('settings') ? 'Open Settings' : 'Open Character'}</button>}
             </div>
           </li>
         ))}

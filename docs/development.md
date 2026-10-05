@@ -111,6 +111,12 @@ npm run build
 Views live in `src/features/<view>/`. Logic that can be tested without a browser (turn grouping,
 draft handling) sits in plain `.ts` modules beside the components that use it.
 
+Settings is split into tabs listed in `src/features/settings/sections.ts`, with the section
+headings and keywords its search box looks through. A new settings section goes in that list and
+in `TabContent` in `Settings.tsx`. Tabs are deep-linkable: `go('settings/models')` from any view,
+or `#settings/<tab>` in the address; an unknown tab, or one that needs a companion before there is
+one, opens the first tab available.
+
 ## Workspace and identity
 
 The Companion has its own identity so it can run beside Prospero's Study without collisions:
