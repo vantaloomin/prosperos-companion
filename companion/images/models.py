@@ -42,6 +42,7 @@ class ImageSettingsUpdate(Input):
     queue_limit: int | None = Field(default=None, ge=1, le=20)
     fallback: bool | None = None
     chat_photos: bool | None = None
+    unprompted_photos: bool | None = None
     aspect: Aspect | None = None
     style: str | None = Field(default=None, max_length=500)
 

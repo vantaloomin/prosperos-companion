@@ -39,6 +39,8 @@ export interface ChatPhoto {
   error: string | null
   /** Whether the moment has become an event in the feed yet. */
   in_feed: boolean
+  /** Sent without being asked. */
+  unasked: boolean
 }
 
 export interface Timeline {
@@ -408,7 +410,7 @@ export interface ImageBackend {
   experimental: boolean
 }
 
-export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[] }
 

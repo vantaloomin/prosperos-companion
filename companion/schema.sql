@@ -958,5 +958,7 @@ CREATE TABLE IF NOT EXISTS chat_photos (
   summary TEXT NOT NULL,
   top_text TEXT NOT NULL DEFAULT '',
   bottom_text TEXT NOT NULL DEFAULT '',
+  -- 1 when the companion chose to send it without being asked.
+  unasked INTEGER NOT NULL DEFAULT 0 CHECK (unasked IN (0, 1)),
   created_at TEXT NOT NULL
 );

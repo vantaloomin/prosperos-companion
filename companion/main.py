@@ -97,7 +97,9 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.life.openers = app.state.openers
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
-    app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life)
+    app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life,
+                                               app.state.openers)
+    app.state.images.share = app.state.conversation.photos.share
 
     def after_turn():
         # A local image waits while a reply is written (compute and job control); a finished turn lets it start.

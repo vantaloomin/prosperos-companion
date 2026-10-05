@@ -91,6 +91,7 @@ ADDED_COLUMNS = (
     ('life_settings', 'texts_daily', 'INTEGER NOT NULL DEFAULT 2'),
     ('life_settings', 'texts_gap_hours', 'INTEGER NOT NULL DEFAULT 3'),
     ('image_settings', 'chat_photos', 'INTEGER NOT NULL DEFAULT 1 CHECK (chat_photos IN (0, 1))'),
+    ('image_settings', 'unprompted_photos', 'INTEGER NOT NULL DEFAULT 1 CHECK (unprompted_photos IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

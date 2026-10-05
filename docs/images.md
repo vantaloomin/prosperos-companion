@@ -113,6 +113,14 @@ asks for no photo.
   the last few are not repeated. The picture is the companion pulling a face or a simple fictional
   scene, made square on a post of its own that never reaches the feed. The interface draws the
   captions over it; the image model is never asked for text. Captions are classified with the rest.
+- Pictures nobody asked for: now and then a reply comes with a photo or selfie of a moment not yet
+  sent in chat (a seeded chance per reply), and a meme is likely when the user sounds bored or down.
+  At most three a day, two hours apart, and the reply knows it chose to send it. When the companion
+  may text first (Settings > Life), they sometimes text a photo of something they are out doing
+  (errands, social, leisure; a seeded chance per moment), at most once a day. That text is a first
+  message: the first-message rules decide when it may go out, it counts toward their daily cap, and
+  its words are the moment's caption, with no model call. Settings > Images > "Let them send
+  pictures without being asked" turns both off.
 
 - The photo shows the companion's current routine slot, composed the way the simulation will
   compose it: the same agenda entry, plan and seed, and the wording prepared ahead for that entry

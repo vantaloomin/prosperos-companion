@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { isTaking, latestPhotoId, photoAlt, photoLine } from '../../src/features/conversation/photoState.ts'
 import type { ChatPhoto, Message } from '../../src/types.ts'
 
-const photo: ChatPhoto = { message_id: 'r1', post_id: 'p1', kind: 'moment', summary: 'Mira painted by the river.', top_text: '', bottom_text: '', status: 'queued', job_id: 'j1', ref: null, error: null, in_feed: false }
+const photo: ChatPhoto = { message_id: 'r1', post_id: 'p1', kind: 'moment', summary: 'Mira painted by the river.', top_text: '', bottom_text: '', status: 'queued', job_id: 'j1', ref: null, error: null, in_feed: false, unasked: false }
 
 const message = (id: string, role: Message['role'], seq: number, sent?: ChatPhoto): Message => ({
   id, timeline_id: 't', seq, role, text: 'hi', reply_to: role === 'companion' ? 'u' : null, status: 'complete', active: true,

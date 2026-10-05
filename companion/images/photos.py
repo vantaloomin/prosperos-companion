@@ -9,18 +9,26 @@ same picture and the event exists once. Until then the post has no event and sta
 A meme is a joke, not an event: its captions come from templates (`memes.py`) and its picture is
 made on a post of its own that never reaches the feed.
 
+The companion also sends pictures nobody asked for, like a person would: now and then with a reply
+(a seeded chance, a meme more likely when the user sounds bored or down), and, when they may text
+first, a photo text of something they are out doing (`share`). Both go through the same rules and
+are capped, and the first-message rules (`openers.held`) decide when a photo text may go out.
+
 Every picture goes through the same classification and routing as any other image (F6): NSFW only
 to a local backend, the prohibited tier nowhere, and anything uncertain counts as NSFW. A request
 with nowhere to go sends nothing, and nothing here ever holds up the reply.
 """
+import random
 import re
+from datetime import timedelta
 
 from companion import events
-from companion.characters import require_current
-from companion.clock import parse, zone
+from companion.characters import current, require_current
+from companion.clock import parse, stamp, zone
 from companion.database import decode, many, one, optional, settings
 from companion.images import jobs, memes, prompts
 from companion.life import agenda, feed, routine, simulation
+from companion.life.openers import Trigger, held
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
 from companion.text_models import config_for
 from companion.workspace import overlapping_pause
@@ -42,6 +50,21 @@ MEME = re.compile(r"\bmemes?\b|\bmake me (?:laugh|smile)\b|\bcheer me up\b|\bi n
 ELSEWHEN = re.compile(r"\b(?:tomorrow|tonight|later|yesterday|last (?:night|week|weekend)|earlier|next|this "
                       r"(?:weekend|evening|afternoon)|on (?:mon|tues|wednes|thurs|fri|satur|sun)day|been up to)\b",
                       re.IGNORECASE)
+# Sounding bored or low makes an unasked meme likely.
+DOWN = re.compile(r"\b(?:bored|boring|bad day|rough day|long day|ugh+|stress(?:ed|ful)|exhausted|tired|sad|meh|"
+                  r"blah|sucks|miserable|fed up)\b", re.IGNORECASE)
+# Off in most tests (tests/conftest.py), since the chance would add pictures to unrelated replies.
+UNASKED = True
+UNASKED_CHANCE = 0.15
+UNASKED_MEME_CHANCE = 0.5
+UNASKED_SELFIE_SHARE = 1 / 3
+UNASKED_DAILY = 3
+UNASKED_GAP = timedelta(hours=2)
+# Photo texts: only of something the companion is out doing, a seeded chance per moment, one a day.
+SHARE_KINDS = {'social', 'leisure', 'errand'}
+SHARE_CHANCE = 0.35
+SHARE_SELFIE_SHARE = 0.4
+SHARE_DAILY = 1
 
 
 def asked_kind(text: str) -> str | None:
@@ -79,22 +102,39 @@ def place_text(place) -> str:
 
 
 class ChatPhotos:
-    def __init__(self, database, images, life):
+    def __init__(self, database, images, life, openers=None):
         self.database = database
         self.images = images
         self.life = life
+        # Writes photo texts as first messages (companion/life/openers.py); set by the app.
+        self.openers = openers
 
     def for_message(self, user, attempt_id) -> dict | None:
         """The picture this reply sends, recorded against the reply, or None. Never raises."""
-        kind = asked_kind(user['text'])
-        if kind is None:
-            return None
         try:
-            return self.send(kind, attempt_id)
+            kind = asked_kind(user['text'])
+            if kind is not None:
+                return self.send(kind, attempt_id)
+            kind = self.unasked_kind(user['text'], attempt_id)
+            return self.send(kind, attempt_id, unasked=True) if kind else None
         except Exception:  # noqa: BLE001 - the reply goes ahead without a picture.
             return None
 
-    def send(self, kind, attempt_id) -> dict | None:
+    def unasked_kind(self, text, attempt_id) -> str | None:
+        """Whether this reply comes with a picture nobody asked for, and which: a seeded chance."""
+        with self.database.connect() as connection:
+            companion = current(connection)
+            if not UNASKED or companion is None or not jobs.image_settings(connection)['unprompted_photos'] or \
+                    not unasked_room(connection, companion['active_timeline_id'], self.database.clock.now()):
+                return None
+        rng = random.Random(attempt_id)
+        if DOWN.search(text or ''):
+            return 'meme' if rng.random() < UNASKED_MEME_CHANCE else None
+        if rng.random() >= UNASKED_CHANCE:
+            return None
+        return 'selfie' if rng.random() < UNASKED_SELFIE_SHARE else 'moment'
+
+    def send(self, kind, attempt_id, unasked=False) -> dict | None:
         now = self.database.clock.now()
         with self.database.connect() as connection:
             if not jobs.image_settings(connection)['chat_photos'] or settings(connection)['paused_at']:
@@ -105,22 +145,62 @@ class ChatPhotos:
             recent = recent_memes(connection, companion['active_timeline_id'])
         if kind == 'meme':
             return self.send_meme(attempt_id, moment, memes.choose(moment, local_hour, attempt_id, recent),
-                                  companion['active_timeline_id'])
-        return self.send_moment(attempt_id, moment, kind) if moment else None
+                                  companion['active_timeline_id'], unasked)
+        if moment is None or unasked and self.in_chat(moment['event_key']):
+            return None  # Unasked pictures are of something new.
+        return self.send_moment(attempt_id, moment, kind, unasked)
 
-    def send_moment(self, attempt_id, moment, kind) -> dict | None:
+    def send_moment(self, attempt_id, moment, kind, unasked=False) -> dict | None:
+        post_id, job_id = self.picture(moment, kind)
+        if job_id is None:
+            return None
+        self.record(attempt_id, post_id, job_id, kind, moment['event_key'], moment['summary'], unasked=unasked)
+        return {'post_id': post_id, 'text': moment_text(moment, kind, unasked)}
+
+    def picture(self, moment, kind) -> tuple[str | None, str | None]:
+        """The post and job showing this moment in this framing, reusing one already made."""
         with self.database.connect() as connection:
             inputs = prompts.build_moment(connection, moment, jobs.image_settings(connection), kind)
         post = self.post_for(moment['timeline_id'], feed.PHOTO_KEY + moment['event_key'], moment['ends_at'])
         if post['status'] == 'removed':
+            return None, None
+        return post['id'], self.shown_job(post['id'], kind) or self.make(post['id'], inputs)
+
+    def in_chat(self, event_key) -> bool:
+        with self.database.connect() as connection:
+            return optional(connection, 'SELECT message_id FROM chat_photos WHERE event_key=?', (event_key,)) is not None
+
+    def share(self) -> dict | None:
+        """Maybe text the user a photo of what the companion is out doing, unasked. Never raises."""
+        try:
+            return self.share_now(self.database.clock.now())
+        except Exception:  # noqa: BLE001 - checked again on the next tick.
             return None
-        job_id = self.shown_job(post['id'], kind) or self.make(post['id'], inputs)
+
+    def share_now(self, now) -> dict | None:
+        with self.database.connect() as connection:
+            companion = current(connection)
+            if not UNASKED or self.openers is None or companion is None or not may_share(connection, companion, now):
+                return None
+            moment = self.moment(connection, companion, now)
+        if not moment or moment['kind'] not in SHARE_KINDS or self.in_chat(moment['event_key']) or \
+                random.Random(moment['event_key']).random() >= SHARE_CHANCE:
+            return None
+        kind = 'selfie' if random.Random(moment['event_key'] + ':selfie').random() < SHARE_SELFIE_SHARE else 'moment'
+        post_id, job_id = self.picture(moment, kind)
         if job_id is None:
             return None
-        self.record(attempt_id, post['id'], job_id, kind, moment['event_key'], moment['summary'])
-        return {'post_id': post['id'], 'text': moment_text(moment, kind)}
+        trigger = Trigger(feed.PHOTO_KEY + moment['event_key'], 'photo',
+                          f"You texted the user a photo you took: {moment['summary']}", moment['caption'],
+                          (moment['event_key'],))
+        sent = self.openers.save(companion, trigger, moment['caption'], 'template', now)
+        if sent['message'] is None:
+            return None
+        self.record(sent['message']['id'], post_id, job_id, kind, moment['event_key'], moment['summary'],
+                    unasked=True)
+        return {**sent['message'], 'photo': get(self.database, sent['message']['id'])}
 
-    def send_meme(self, attempt_id, moment, meme, timeline_id) -> dict | None:
+    def send_meme(self, attempt_id, moment, meme, timeline_id, unasked=False) -> dict | None:
         with self.database.connect() as connection:
             inputs = prompts.build_meme(connection, meme, jobs.image_settings(connection))
         post = self.post_for(timeline_id, f'meme:{attempt_id}', self.database.now())
@@ -128,8 +208,9 @@ class ChatPhotos:
         if job_id is None:
             return None
         summary = meme['subject'] or f"you, looking {meme['expression']}"
-        self.record(attempt_id, post['id'], job_id, 'meme', '', summary, meme['top'], meme['bottom'])
-        return {'post_id': post['id'], 'text': f"- A meme you made to share (a joke, not something that happened): "
+        self.record(attempt_id, post['id'], job_id, 'meme', '', summary, meme['top'], meme['bottom'], unasked)
+        lead = 'A meme you decided to send, unasked, to cheer them up' if unasked else 'A meme you made to share'
+        return {'post_id': post['id'], 'text': f"- {lead} (a joke, not something that happened): "
                                                f"a picture of {summary}, captioned «{meme['top']}» / "
                                                f"«{meme['bottom']}»."}
 
@@ -151,11 +232,12 @@ class ChatPhotos:
         self.images.wake()
         return job['id']
 
-    def record(self, attempt_id, post_id, job_id, kind, event_key, summary, top='', bottom=''):
+    def record(self, attempt_id, post_id, job_id, kind, event_key, summary, top='', bottom='', unasked=False):
         with self.database.connect(write=True) as connection:
             connection.execute('INSERT OR REPLACE INTO chat_photos (message_id, post_id, job_id, kind, event_key, '
-                               'summary, top_text, bottom_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                               (attempt_id, post_id, job_id, kind, event_key, summary, top, bottom,
+                               'summary, top_text, bottom_text, unasked, created_at) '
+                               'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                               (attempt_id, post_id, job_id, kind, event_key, summary, top, bottom, int(unasked),
                                 self.database.now()))
 
     def moment(self, connection, companion, now) -> dict | None:
@@ -191,6 +273,27 @@ class ChatPhotos:
             return one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
 
 
+def unasked_room(connection, timeline_id, now) -> bool:
+    """Unasked pictures stay occasional: a few a day, a while apart."""
+    rows = many(connection, 'SELECT photo.created_at FROM chat_photos photo JOIN messages message ON '
+                'message.id=photo.message_id WHERE photo.unasked=1 AND message.timeline_id=? AND photo.created_at>? '
+                'ORDER BY photo.created_at DESC', (timeline_id, stamp(now - timedelta(days=1))))
+    return len(rows) < UNASKED_DAILY and (not rows or now - parse(rows[0]['created_at']) >= UNASKED_GAP)
+
+
+def may_share(connection, companion, now) -> bool:
+    """A photo text needs pictures on, unasked ones allowed, and the companion free to text first."""
+    image = jobs.image_settings(connection)
+    if not image['chat_photos'] or not image['unprompted_photos']:
+        return False
+    timeline_id = companion['active_timeline_id']
+    if held(connection, companion, one(connection, 'SELECT * FROM life_settings WHERE id=1'), now):
+        return False
+    shared = one(connection, "SELECT COUNT(*) AS n FROM openers WHERE timeline_id=? AND kind='photo' AND created_at>?",
+                 (timeline_id, stamp(now - timedelta(days=1))))['n']
+    return shared < SHARE_DAILY and unasked_room(connection, timeline_id, now)
+
+
 def recent_memes(connection, timeline_id, limit=6) -> list[str]:
     rows = many(connection, "SELECT photo.top_text FROM chat_photos photo JOIN messages message ON "
                 "message.id=photo.message_id WHERE photo.kind='meme' AND message.timeline_id=? "
@@ -202,9 +305,10 @@ LEADS = {'moment': 'A photo of what you are doing right now', 'selfie': 'A selfi
          'view': 'A photo of what you can see right now'}
 
 
-def moment_text(moment, kind='moment') -> str:
+def moment_text(moment, kind='moment', unasked=False) -> str:
+    chose = ' You decided to send it; the user did not ask for it.' if unasked else ''
     return (f"- {LEADS[kind]} (from your day; still happening): {moment['summary']} "
-            f"({moment['label'].lower()}, until {moment['until']} your time)")
+            f"({moment['label'].lower()}, until {moment['until']} your time).{chose}")
 
 
 def view(row) -> dict:
@@ -212,7 +316,7 @@ def view(row) -> dict:
     return {'message_id': row['message_id'], 'post_id': row['post_id'], 'kind': row['kind'],
             'summary': row['summary'], 'top_text': row['top_text'], 'bottom_text': row['bottom_text'],
             'status': row['job_status'] or 'failed', 'job_id': row['job_id'], 'ref': row['job_id'] if done else None,
-            'error': row['job_error'], 'in_feed': row['in_feed'] > 0}
+            'error': row['job_error'], 'in_feed': row['in_feed'] > 0, 'unasked': bool(row['unasked'])}
 
 
 SELECT = ('SELECT photo.*, job.status AS job_status, job.output_file, job.error AS job_error, '

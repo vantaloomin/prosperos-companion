@@ -237,3 +237,96 @@ def test_meme_templates_fit_the_day_and_vary():
     assert memes.choose(None, 3, 'x')['top']
     recent = [template.top for template in memes.SITUATIONS['work'] + memes.ANYTIME]
     assert memes.choose(work, 14, 'y', recent)['top']
+
+
+@pytest.fixture
+def unasked(monkeypatch):
+    """Unasked pictures on, with every chance certain so the rules around them are what is tested."""
+    from companion.images import photos
+    monkeypatch.setattr(photos, 'UNASKED', True)
+    monkeypatch.setattr(photos, 'UNASKED_CHANCE', 1)
+    monkeypatch.setattr(photos, 'UNASKED_MEME_CHANCE', 1)
+    monkeypatch.setattr(photos, 'UNASKED_SELFIE_SHARE', 0)
+    monkeypatch.setattr(photos, 'SHARE_CHANCE', 1)
+    monkeypatch.setattr(photos, 'SHARE_SELFIE_SHARE', 0)
+    monkeypatch.setattr(photos, 'SHARE_KINDS', {'work', 'study', 'errand', 'social', 'leisure'})
+    return photos
+
+
+def test_a_reply_can_come_with_a_photo_nobody_asked_for(client, life, clock, provider, unasked):
+    local_comfy(client)
+    reply = ask(client, 'Just got home.', 'say-0001')
+    photo = reply['photo']
+    assert photo['unasked'] is True and photo['kind'] == 'moment'
+    assert 'the user did not ask for it' in photo_section(provider)
+    # Not again so soon, and never the same moment twice unasked.
+    assert ask(client, 'Nice.', 'say-0002')['photo'] is None
+    clock.advance(unasked.UNASKED_GAP)
+    later = ask(client, 'Back again.', 'say-0003')['photo']
+    assert later is None or later['post_id'] != photo['post_id']
+    # Asking still works whatever the unasked limits say.
+    assert ask(client, 'wyd', 'ask-0004')['photo'] is not None
+
+
+def test_unasked_pictures_stop_at_the_daily_limit(client, life, clock, unasked, monkeypatch):
+    monkeypatch.setattr(unasked, 'UNASKED_GAP', timedelta(0))
+    local_comfy(client)
+    sent = [ask(client, 'hmm.', f'say-{index:04}')['photo'] for index in range(8)]
+    # One per moment, at most three a day.
+    assert 0 < len([photo for photo in sent if photo]) <= unasked.UNASKED_DAILY
+
+
+def test_sounding_down_can_get_a_meme(client, life, provider, unasked):
+    local_comfy(client)
+    photo = ask(client, 'ugh, such a rough day', 'say-0001')['photo']
+    assert photo['kind'] == 'meme' and photo['unasked'] is True
+    assert 'unasked, to cheer them up' in photo_section(provider)
+
+
+def test_unasked_pictures_can_be_turned_off(client, life, unasked):
+    local_comfy(client)
+    client.put('/api/images/settings', json={'unprompted_photos': False})
+    assert ask(client, 'Just got home.', 'say-0001')['photo'] is None
+    assert ask(client, 'wyd', 'ask-0002')['photo'] is not None
+
+
+def test_no_chance_means_no_unasked_picture(client, life, unasked, monkeypatch):
+    monkeypatch.setattr(unasked, 'UNASKED_CHANCE', 0)
+    local_comfy(client)
+    assert ask(client, 'Just got home.', 'say-0001')['photo'] is None
+
+
+def share(client):
+    return client.app.state.conversation.photos.share()
+
+
+def test_a_photo_text_waits_until_they_may_text_first(client, life, unasked):
+    local_comfy(client)
+    assert share(client) is None
+    set_life(client, texts_first=True)
+    sent = share(client)
+    assert sent and sent['role'] == 'companion' and sent['reply_to'] is None
+    assert sent['photo']['unasked'] is True and sent['text']
+    history = client.get('/api/conversation').json()['messages']
+    assert next(message for message in history if message['id'] == sent['id'])['photo']['post_id'] == \
+        sent['photo']['post_id']
+    # Once a day, and never twice without an answer.
+    assert share(client) is None
+
+
+def test_photo_texts_count_as_first_messages(client, life, unasked):
+    local_comfy(client)
+    set_life(client, texts_first=True)
+    sent = share(client)
+    with client.app.state.database.connect() as connection:
+        opener = connection.execute('SELECT kind, wording FROM openers WHERE message_id=?', (sent['id'],)).fetchone()
+    assert tuple(opener) == ('photo', 'template')
+
+
+def test_no_photo_text_without_a_backend_or_with_unasked_pictures_off(client, life, unasked):
+    set_life(client, texts_first=True)
+    assert share(client) is None
+    local_comfy(client)
+    client.put('/api/images/settings', json={'unprompted_photos': False})
+    assert share(client) is None
+    assert client.get('/api/conversation').json()['messages'] == []
