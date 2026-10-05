@@ -62,3 +62,8 @@ test('a correction sends only what changed, and resends uncertain dates to confi
   assert.equal(confirmed?.applies_from, plan.applies_from)
   assert.equal(correction(plan, { ...draft, value: '  ' }), null)
 })
+
+test('a conflicting suggestion names the value it would replace', () => {
+  assert.match(suggestionReason('conflict', ['Chicago']), /different from “Chicago”, and you didn't say it changed/)
+  assert.match(suggestionReason('conflict'), /^This is different, and/)
+})

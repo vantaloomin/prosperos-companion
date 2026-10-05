@@ -1,4 +1,6 @@
 """Automatic extraction, suggestions and the per-message memory controls (PRD M7, M12)."""
+from datetime import timedelta
+
 from conftest import send
 
 from companion.memory import extraction
@@ -196,3 +198,31 @@ def test_setting_a_date_answers_an_uncertain_one(client, connected):
         'value': plan['value'], 'applies_from': '2026-11-12T15:00:00Z', 'expected_revision': plan['revision']}).json()
     assert fixed['dates_uncertain'] is False and fixed['applies_from'].startswith('2026-11-12')
     assert 'dates uncertain' not in client.get('/api/context/preview').json()['system']
+
+
+def test_a_contradiction_that_does_not_say_it_changed_waits_for_the_user(client, connected):
+    enable(client)
+    send(client, 'I live in Chicago', 'client-0001')
+    run(client)
+    send(client, 'I live in Denver', 'client-0002')
+    run(client)
+    assert values(client) == {('Home city', 'Chicago')}, 'Chicago stays current until the user says which holds'
+    [suggestion] = client.get('/api/memory/suggestions').json()
+    assert (suggestion['reason'], suggestion['value'], suggestion['replaces']) == ('conflict', 'Denver', ['Chicago'])
+    client.post(f"/api/memory/suggestions/{suggestion['id']}/accept")
+    homes = {item['value']: item for item in memories(client)}
+    assert homes['Denver']['current'] is True and homes['Chicago']['ended_by_id'] == homes['Denver']['id']
+
+
+def test_a_stated_change_or_a_deliberate_remember_replaces_directly(client, connected, clock):
+    enable(client)
+    send(client, 'My favourite tea is genmaicha', 'client-0001')
+    run(client)
+    clock.advance(timedelta(days=1))
+    send(client, 'My favourite tea is hojicha now', 'client-0002')
+    run(client)
+    assert [item['value'] for item in memories(client) if item['current']] == ['hojicha']
+    message = send(client, 'I live in Oslo', 'client-0003')['message']
+    send(client, 'I live in Bergen', 'client-0004')
+    client.post(f"/api/conversation/messages/{message['id']}/remember")
+    assert ('Home city', 'Oslo') in values(client)

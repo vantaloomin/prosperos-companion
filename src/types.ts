@@ -138,6 +138,8 @@ export interface Suggestion {
   dates_uncertain: boolean
   excerpt: string
   reason: string | null
+  /** For a conflict: the current values keeping this would replace. */
+  replaces?: string[]
   created_at: string
 }
 

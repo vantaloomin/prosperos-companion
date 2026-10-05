@@ -15,6 +15,10 @@ EXTRACTOR_VERSION = 'rules-v1'
 
 # Subjects that hold one current value: a new current value ends the previous one (M8).
 SINGLE_VALUED = {'preferred_name', 'home_city', 'work', 'birthday'}
+# Rules and words that say a value changed, so a new value may replace the current one (M8).
+CHANGE_RULES = {'moved', 'new_job'}
+CHANGE_MARKER = re.compile(r'\b(?:now|these days|nowadays|any ?more|from now on|currently|changed|switched|new|'
+                           r'instead|no longer|since)\b', re.IGNORECASE)
 SUBJECT_KEYS = {
     'name': 'preferred_name', 'preferred name': 'preferred_name', 'what to call me': 'preferred_name',
     'home': 'home_city', 'home city': 'home_city', 'city': 'home_city', 'location': 'home_city',
@@ -84,6 +88,11 @@ class Candidate:
         self.subject_key = self.subject_key or subject_key(self.subject)
         self.sensitive = self.sensitive or bool(SENSITIVE.search(f'{self.subject} {self.value}'))
 
+    @property
+    def signals_change(self) -> bool:
+        """"I moved to Boston" or "these days I prefer tea" replaces; a bare "I live in Denver" does not say so."""
+        return self.rule in CHANGE_RULES or bool(CHANGE_MARKER.search(self.excerpt))
+
 
 def subject_key(subject: str) -> str:
     folded = ' '.join(subject.casefold().split())
@@ -109,7 +118,8 @@ def place(text: str) -> str:
 def thing(text: str) -> str | None:
     """A short object phrase, trimmed at the next clause; None when it is a pronoun or too long."""
     text = CLAUSE_END.sub('', text).strip(' \'"')
-    text = re.sub(r'\s+(?:please|thanks|thank you|ok|okay)$', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\s+(?:please|thanks|thank you|ok|okay|now|these days|nowadays|any ?more|currently|instead)$', '',
+                  text, flags=re.IGNORECASE)
     if not text or text.casefold() in NOT_THINGS or len(text.split()) > 8:
         return None
     return text
