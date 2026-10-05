@@ -407,3 +407,19 @@ def test_an_open_thread_settles_a_few_days_later(client, life, clock, monkeypatc
     ending = composer.find_thread(opened['details']['thread']).endings
     assert settled['summary'] in [text.format(name='Mira') for text in ending]
     assert client.get('/api/today').json()['plans']['threads'] == []
+
+
+def test_interests_make_matching_activities_more_likely(monkeypatch):
+    monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    block = {'key': 'free', 'label': 'Free time', 'kind': 'leisure', 'start': '13:00', 'end': '17:00'}
+    world = StaticWorld([])
+
+    def share(definition):
+        picks = [composer.compose({'key': f'free@{n}', 'local_date': '2026-10-05', 'block': block}, definition, world,
+                                  f'seed-{n}')['activity'] for n in range(400)]
+        return picks.count('reading') / len(picks)
+
+    plain, bookish = share({'name': 'Mira'}), share({'name': 'Mira', 'interests': ['Books and old novels']})
+    assert bookish > plain * 1.8
+    assert composer.leanings({'interests': ['party planning', 'artichokes'], 'life_themes': ['team building']}) == set()
+    assert composer.leanings({'interests': ['art'], 'life_themes': ['learning to bake']}) == {'museum', 'home-cooking'}

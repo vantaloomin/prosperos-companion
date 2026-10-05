@@ -11,7 +11,7 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-COMPOSER_VERSION = 'compose-4'
+COMPOSER_VERSION = 'compose-5'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -176,6 +176,41 @@ def festival(slot: dict, definition: dict, world, seed: str, recent_activities, 
             'composer_version': COMPOSER_VERSION}
 
 
+# Words in the character's interests or life themes that make an activity more likely (PRD T3).
+# A word matches a stem it starts with ("reading", "books"); stems of three letters or fewer ("art",
+# "tea") must match the whole word.
+LEANINGS = {
+    'reading': ('read', 'book', 'novel', 'poetry', 'literature'), 'browse': ('book', 'shopping', 'vintage', 'thrift'),
+    'library': ('read', 'book', 'study', 'research', 'history'), 'coffee': ('coffee', 'cafe', 'café', 'tea'),
+    'museum': ('art', 'museum', 'history', 'science', 'painting', 'gallery'),
+    'show': ('music', 'concert', 'theater', 'theatre', 'gig', 'band', 'comedy', 'jazz'),
+    'workout': ('fitness', 'gym', 'running', 'run', 'yoga', 'climbing', 'sport', 'lifting'),
+    'home-cooking': ('cook', 'cooking', 'baking', 'bake', 'recipe', 'food'), 'market': ('food', 'market', 'cooking'),
+    'walk': ('nature', 'hiking', 'walk', 'walking', 'outdoors', 'beach', 'birds', 'photography'),
+    'dinner': ('food', 'restaurant', 'dining'), 'drinks': ('cocktail', 'wine', 'beer', 'bar'),
+}
+LEANING_WEIGHT = 3
+
+
+def leanings(definition: dict) -> set[str]:
+    """Activity keys the character's interests and life themes point toward."""
+    words = set()
+    for phrase in [*definition.get('interests', ()), *definition.get('life_themes', ())]:
+        words |= {word.strip('.,;:!?()"\'').casefold() for word in phrase.split()}
+    return {key for key, stems in LEANINGS.items()
+            if any(word == stem or len(stem) > 3 and word.startswith(stem) for word in words for stem in stems)}
+
+
+def choose(rng, options, definition: dict):
+    """An activity, with the character's interests weighing in. Without a matching interest the
+    choice is uniform, exactly as before interests counted."""
+    favored = leanings(definition)
+    if not favored & {option.key for option in options}:
+        return rng.choice(options)
+    weights = [LEANING_WEIGHT if option.key in favored else 1 for option in options]
+    return rng.choices(options, weights)[0]
+
+
 def day_part(start: str) -> str:
     """The world data's part of the day for a block starting at this local "HH:MM"."""
     hour = int(start.split(':')[0])
@@ -239,7 +274,7 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
         options = [option for option in options if not option.place_kinds or set(option.place_kinds) - OUTDOOR] \
             or options
     fresh = [option for option in options if option.key not in set(recent_activities)] or list(options)
-    chosen = rng.choice(fresh)
+    chosen = choose(rng, fresh, definition)
     places = find_places(world, definition, slot, chosen.place_kinds)
     if harsh(conditions):
         places = [place for place in places if place.kind not in OUTDOOR]

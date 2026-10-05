@@ -158,7 +158,8 @@ stay commitments after their date, marked "outcome not confirmed".
   alone (`in_progress`); one whose lease lapsed is resumed. The batch records the permission
   revision it was planned under and skips its remaining slots if permissions change.
 - **Composing, not generating.** `companion/life/composer.py` decides each event without a
-  model: the block's kind picks an activity from a fixed catalog (avoiding the last few), the
+  model: the block's kind picks an activity from a fixed catalog (avoiding the last few, and
+  leaning toward the character's interests), the
   world source supplies a real place in the character's `home_city` (or the city its `location`
   names), and templates write the
   summary, caption and mood. The choice is seeded by the event key, so a resumed batch composes
