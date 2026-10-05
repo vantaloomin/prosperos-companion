@@ -343,7 +343,8 @@ def test_annual_events_fall_on_one_saturday_a_year():
     found = {}
     day = datetime(2026, 1, 1).date()
     while day.year == 2026:
-        for event in world.happenings('baltimore', day):
+        # The almanac's parties (Halloween, Super Bowl Sunday) fall on their own dates.
+        for event in (item for item in world.happenings('baltimore', day) if not item['id'].startswith('gathering-')):
             assert day.weekday() == 5 and event['id'] not in found
             found[event['id']] = day
         day += timedelta(days=1)
