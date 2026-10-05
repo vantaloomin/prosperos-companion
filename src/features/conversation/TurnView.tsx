@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
-import { shownAttempt, statusNote, type Turn } from './turns'
+import { shownAttempt, statusDetail, type Turn } from './turns'
 
 interface Props {
   turn: Turn
@@ -64,7 +64,7 @@ function UserMessage({ message, found, onRemember, onDecline, onEdit }: { messag
 }
 
 function Reply({ message, found, name, text, position, onPage, onStop }: { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void }) {
-  const note = statusNote(message)
+  const note = statusDetail(message)
   const streaming = message.status === 'streaming'
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
@@ -84,7 +84,7 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
       <div className="prose">
         {text ? <Paragraphs text={text} /> : streaming ? <p className="typing subtle">{name} is writing…</p> : null}
       </div>
-      {note && <p className="reply-status" role="note">{note}{message.error && message.error !== 'Stopped.' ? ` ${message.error}` : ''}</p>}
+      {note && <p className="reply-status" role="note">{note}</p>}
     </article>
   )
 }

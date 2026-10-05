@@ -60,6 +60,17 @@ export function statusNote(message: Message): string | null {
   return STATUS_NOTES[message.status] ?? null
 }
 
+/** The note shown under an unfinished reply, with its error unless that only repeats that it was stopped. */
+export function statusDetail(message: Message): string | null {
+  const note = statusNote(message)
+  return note && `${note}${message.error && message.error !== 'Stopped.' ? ` ${message.error}` : ''}`
+}
+
+/** What screen readers hear when a reply finishes: the same words the reply shows. */
+export function replyAnnouncement(name: string, reply: Message): string {
+  return reply.status === 'complete' ? `${name} replied.` : statusDetail(reply) ?? `The reply ended: ${reply.status}.`
+}
+
 /** The attempt to show: the one the reader paged to, else one search pointed at, else the default. */
 export function shownAttempt(turn: Turn, isLatest: boolean, chosen: string | null, highlight?: string | null): Message | null {
   const pick = (id?: string | null) => (id ? turn.attempts.find((attempt) => attempt.id === id) : undefined)

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyFinished, defaultAttempt, groupTurns, mergeMessages, streamingIds } from '../../src/features/conversation/turns.ts'
+import { applyFinished, defaultAttempt, groupTurns, mergeMessages, replyAnnouncement, streamingIds } from '../../src/features/conversation/turns.ts'
 import { editDraft, newDraft, readDraft, writeDraft } from '../../src/features/conversation/draft.ts'
 import type { Message } from '../../src/types.ts'
 
@@ -54,4 +54,10 @@ test('drafts survive storage round trips and damaged slots start empty', () => {
   assert.equal(readDraft(storage).text, '')
   writeDraft(storage, { text: '', clientId: 'c2' })
   assert.equal(values.size, 0)
+})
+
+test('a finished reply is announced with the words shown under it, without repeating that it was stopped', () => {
+  assert.equal(replyAnnouncement('Mira', message('r', 2, { role: 'companion', status: 'complete' })), 'Mira replied.')
+  assert.equal(replyAnnouncement('Mira', message('r', 2, { role: 'companion', status: 'cancelled', error: 'Stopped.' })), 'You stopped this reply.')
+  assert.equal(replyAnnouncement('Mira', message('r', 2, { role: 'companion', status: 'failed', error: 'The model timed out.' })), 'This reply failed. The model timed out.')
 })

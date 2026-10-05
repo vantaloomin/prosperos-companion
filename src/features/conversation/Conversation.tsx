@@ -13,7 +13,7 @@ import { GettingStarted } from './GettingStarted'
 import { TurnView } from './TurnView'
 import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
-import { applyFinished, groupTurns, mergeMessages, streamingIds } from './turns'
+import { applyFinished, groupTurns, mergeMessages, replyAnnouncement, streamingIds } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { useDraft } from './useDraft'
 
@@ -60,7 +60,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const onDone = useCallback((reply: Message) => {
     update((current) => applyFinished(current, reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
-    setAnnouncement(reply.status === 'complete' ? `${name} replied.` : `The reply ended: ${reply.error ?? reply.status}.`)
+    setAnnouncement(replyAnnouncement(name, reply))
   }, [update, name])
   const onLost = useCallback(() => { void client.invalidateQueries({ queryKey: HISTORY_KEY }) }, [client])
 
