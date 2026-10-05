@@ -116,3 +116,7 @@ try {
 } finally { & taskkill.exe /PID $app.Id /T /F | Out-Null }
 Invoke-TestGit @('checkout', '--quiet', '-b', 'elsewhere')
 Check ((Invoke-Bat 'update.bat') -eq 1) 'update.bat refuses a branch other than main'
+
+# The last check expects exit code 1 from update.bat; don't let it become this script's result.
+Write-Host 'All checkout helper checks passed.'
+exit 0
