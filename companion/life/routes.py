@@ -9,7 +9,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
 from companion.errors import require
-from companion.life import agenda, circle, feed, money, mood, routine, simulation, today
+from companion.life import agenda, circle, feed, money, mood, recommendations, routine, simulation, storylines, today
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -55,6 +55,28 @@ def update_settings(request: Request, body: LifeSettingsUpdate):
 @router.post('/reconcile')
 async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
+
+
+@router.get('/storylines')
+def list_storylines(request: Request, include_ended: bool = False):
+    """What is going on in the companion's and their circle's lives: beats that have happened so far."""
+    return storylines.listing(request.app.state.database, include_ended)
+
+
+@router.post('/storylines/{storyline_id}/end')
+def end_storyline(request: Request, storyline_id: str):
+    return storylines.end(request.app.state.database, storyline_id)
+
+
+@router.get('/recommendations')
+def list_recommendations(request: Request):
+    """What the user recommended, with how far the companion has got."""
+    return recommendations.listing(request.app.state.database)
+
+
+@router.post('/recommendations/{rec_id}/drop')
+def drop_recommendation(request: Request, rec_id: str):
+    return recommendations.drop(request.app.state.database, rec_id)
 
 
 @router.post('/texts/check')
@@ -127,6 +149,27 @@ def read_circle(request: Request, include_removed: bool = False):
         companion = require_current(connection)
         circle.ensure(connection, companion, engine.world, now)
         return agenda.circle_view(connection, companion['active_timeline_id'], now, include_removed)
+
+
+@router.get('/circle/room')
+def circle_room(request: Request):
+    """How many people the circle has and how many it should have, for the offer to add more."""
+    with db(request).connect() as connection:
+        return circle.room(connection, require_current(connection))
+
+
+@router.post('/circle/grow')
+def grow_circle(request: Request):
+    """Add people to a circle assembled smaller than it should be now (a sociable companion, or a
+    bigger circle size in Settings). Nobody already there changes."""
+    database, engine = db(request), request.app.state.life
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        circle.grow(connection, companion, engine.world, now)
+        if simulation.may_extend(settings(connection), 'return'):
+            agenda.extend(connection, companion, engine.world, now)
+        return agenda.circle_view(connection, companion['active_timeline_id'], now)
 
 
 @router.patch('/circle/{person_id}')

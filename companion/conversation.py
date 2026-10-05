@@ -11,11 +11,12 @@ the request or the stream: closing a stream never stops a reply, only Stop does.
 import asyncio
 from dataclasses import dataclass, field
 
-from companion import self_facts
+from companion import self_facts, texting
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
+from companion.life import occasions, pacing, recommendations
 from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider
@@ -48,6 +49,8 @@ def record_user(database, body) -> dict:
         connection.execute('UPDATE timelines SET draft=NULL WHERE id=?', (timeline_id,))
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         formation.enqueue(connection, message, database.now())
+        recommendations.note(connection, message, database.now())
+        occasions.note(connection, message, database.now())
         return message
 
 
@@ -250,13 +253,18 @@ class Conversation:
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
             attempt_id = identifier()
+            held = pacing.join(connection, user['timeline_id'],
+                               pacing.hold(connection, companion, self.database.clock.now(), attempt_id),
+                               self.database.now())
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
-                'character_version_id, memory_revision, created_at) '
-                "VALUES (?, ?, ?, 'companion', '', ?, 'streaming', 0, ?, ?, ?)",
+                'character_version_id, memory_revision, created_at, held_until, held_line) '
+                "VALUES (?, ?, ?, 'companion', '', ?, 'streaming', 0, ?, ?, ?, ?, ?)",
                 (attempt_id, user['timeline_id'], next_seq(connection, user['timeline_id']), user['id'],
-                 companion['active_version_id'], settings(connection)['memory_revision'], self.database.now()))
-        return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user}
+                 companion['active_version_id'], settings(connection)['memory_revision'], self.database.now(),
+                 held['held_until'], held['held_line']))
+        return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user,
+                'quick': held['quick']}
 
     async def assemble(self, prepared) -> dict:
         """Build the reply's inputs and record the memory revision and character version they reflect,
@@ -291,6 +299,9 @@ class Conversation:
             key = key_for(self.vault, prepared['config'])
             with self.scheduler.foreground_work():
                 packet = await self.assemble(prepared)
+                if prepared.get('quick'):
+                    # Busy: a quick note rather than a real conversation (companion/life/pacing.py).
+                    packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['quick']}"}
                 async with self.scheduler.reserve(prepared['config'], CONVERSATION):
                     async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
                                                             packet['messages']):
@@ -314,6 +325,8 @@ class Conversation:
             companion = require_current(connection)
             if status == 'complete' and not still_current(connection, attempt, companion):
                 status, error = 'withheld', 'Memories or the character changed while this reply was written.'
+            if status == 'complete':
+                text = texting.restyle(text, companion['version']['definition'], attempt_id)
             connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
                                (text, status, error, self.database.now(), attempt_id))
             if status == 'complete':

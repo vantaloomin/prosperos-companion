@@ -27,7 +27,7 @@ export function ChatStyleSettings() {
         ))}
       </fieldset>
       <Toggle label="Retro IM sounds" checked={chat.soundsSetting} onChange={(checked) => void save({ chat_sounds: checked })}
-        hint="A door sound when they come free to talk, another when they step away, and a chime for each new reply. Only in the Retro IM style." />
+        hint="A chime for each new reply. Only in the Retro IM style." />
     </section>
   )
 }

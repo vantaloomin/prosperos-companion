@@ -216,6 +216,7 @@ changes made.
 | `eslint.config.js`, `tsconfig.json` | same files | Companion paths |
 | `companion/launch.py` | `scripts/launch_interface.py` | Companion identity, port and health check |
 | `install.bat`, `install.ps1`, `launch.bat`, `start.ps1` | same files | Companion name, checks and launcher |
+| `companion/life/chance.py` | `server/mechanics/randomness.py` (`Draws`), `server/mechanics/table_engine.py` (`face`, `resolve`) | `Draws` unchanged; tables are plain dicts with no versions, disabled tables or excluded rows |
 | `tests/test_study_import.py` (`STUDY_SCHEMA`) | `server/schema.sql` | Library, story, Sidebar, profile and backup tables only, as a test fixture |
 
 The Study's `assemble_memory` was not copied: it assumes an accepted Story path. The Companion

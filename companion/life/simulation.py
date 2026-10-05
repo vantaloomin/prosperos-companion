@@ -32,7 +32,7 @@ from companion.workspace import overlapping_pause
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
-FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first')
+FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
 
@@ -176,10 +176,18 @@ def recent_threads(connection, timeline_id) -> list[str]:
     return [decode(row['details']).get('thread') for row in rows]
 
 
+def recommended(connection, timeline_id, slot_key) -> bool:
+    return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                         "AND slot_key=? AND json_extract(entry, '$.recommendation.id') IS NOT NULL",
+                         (timeline_id, slot_key)))
+
+
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
-    """Slots a committed plan names come first, so a plan happens when its time comes; so do slots
-    photographed in chat, so the moment the user saw becomes an event."""
+    """Slots a committed plan names come first, so a plan happens when its time comes; then sessions of
+    something the user recommended, so the companion's account follows it, and slots photographed in
+    chat, so the moment the user saw becomes an event."""
     planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)
+               or recommended(connection, timeline_id, slot.key)
                or feed.photographed(connection, event_key(timeline_id, slot.key))][:count]
     rest = spread([slot for slot in slots if slot not in planned], count - len(planned), seed)
     return sorted(planned + rest, key=lambda slot: slot.starts_at)
@@ -427,7 +435,7 @@ class LifeEngine:
                      'local_date': slot['local_date'], 'timezone': version['timezone'],
                      'post': written['post'], 'mood': composed['mood'], 'with': composed.get('with'),
                      'fulfils': composed.get('fulfils'), 'weather': composed.get('weather'),
-                     'body': block.get('body')},
+                     'body': block.get('body'), 'recommendation': composed.get('recommendation')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
