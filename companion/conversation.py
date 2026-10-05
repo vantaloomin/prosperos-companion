@@ -18,45 +18,7 @@ from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
-from companion.providers.urls import validate_compatible_url
-from companion.providers.vault import credential_for
-
-CREDENTIAL_REF = 'text-connection'
-
-
-def connection_view(row: dict | None) -> dict | None:
-    if row is None:
-        return None
-    return {key: value for key, value in row.items() if key != 'credential_ref'} | {
-        'has_key': bool(row['credential_ref'])}
-
-
-def read_connection(database) -> dict | None:
-    with database.connect() as connection:
-        return connection_view(optional(connection, 'SELECT * FROM connection WHERE id=1'))
-
-
-def save_connection(database, vault, body) -> dict:
-    """Saving never contacts, loads or downloads a model."""
-    base_url = body.base_url.rstrip('/')
-    validate_compatible_url(base_url)
-    reference = None
-    if body.api_key:
-        vault.put(CREDENTIAL_REF, body.api_key)
-        reference = CREDENTIAL_REF
-    with database.connect(write=True) as connection:
-        previous = optional(connection, 'SELECT credential_ref FROM connection WHERE id=1')
-        reference = reference or (previous or {}).get('credential_ref')
-        connection.execute(
-            'INSERT INTO connection (id, base_url, model, credential_ref, max_output_tokens, context_tokens, '
-            'timeout_seconds, embedding_model, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE '
-            'SET base_url=excluded.base_url, model=excluded.model, credential_ref=excluded.credential_ref, '
-            'max_output_tokens=excluded.max_output_tokens, context_tokens=excluded.context_tokens, '
-            'timeout_seconds=excluded.timeout_seconds, embedding_model=excluded.embedding_model, '
-            'updated_at=excluded.updated_at',
-            (base_url, body.model, reference, body.max_output_tokens, body.context_tokens, body.timeout_seconds,
-             body.embedding_model or None, database.now()))
-        return connection_view(one(connection, 'SELECT * FROM connection WHERE id=1'))
+from companion.text_models import CHAT, config_for, key_for
 
 
 def next_seq(connection, timeline_id) -> int:
@@ -200,11 +162,11 @@ class Conversation:
     async def query_vector(self, user) -> dict | None:
         """Embed the message being answered for semantic recall; any failure means keyword recall only."""
         with self.database.connect() as connection:
-            config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+            config = config_for(connection, 'recall')
         if not config or not config.get('embedding_model'):
             return None
         try:
-            key = credential_for(self.vault, config['credential_ref'])
+            key = key_for(self.vault, config)
             async with self.scheduler.reserve(config, CONVERSATION):
                 [vector] = await self.embedder.embed(config, key, [user['text']], QUERY_TIMEOUT)
         except Exception:  # noqa: BLE001 - semantic recall is optional; the reply goes ahead without it.
@@ -216,7 +178,7 @@ class Conversation:
         if self.lookups is None:
             return []
         with self.database.connect() as connection:
-            if optional(connection, 'SELECT id FROM connection WHERE id=1') is None:
+            if config_for(connection, CHAT) is None:
                 return []  # No reply will be written, so nothing is sent out.
         try:
             return await self.lookups.for_message(user)
@@ -275,7 +237,7 @@ class Conversation:
 
     def prepare(self, user) -> dict:
         with self.database.connect(write=True) as connection:
-            config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+            config = config_for(connection, CHAT)
             if config is None:
                 return {'connection': 'not_configured'}
             companion = require_current(connection)
@@ -319,7 +281,7 @@ class Conversation:
     async def generate(self, prepared, publish=lambda _text: None):
         text, status, error = [], 'complete', None
         try:
-            key = credential_for(self.vault, prepared['config']['credential_ref'])
+            key = key_for(self.vault, prepared['config'])
             with self.scheduler.foreground_work():
                 packet = await self.assemble(prepared)
                 async with self.scheduler.reserve(prepared['config'], CONVERSATION):
@@ -361,6 +323,6 @@ def still_current(connection, attempt, companion) -> bool:
 def context_preview(database) -> dict:
     """What the next reply would be built from, for the memory details view."""
     with database.connect() as connection:
-        config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+        config = config_for(connection, CHAT)
         budget = (config['context_tokens'] - config['max_output_tokens']) if config else 16000
         return context.build(connection, require_current(connection), database.clock.now(), budget)

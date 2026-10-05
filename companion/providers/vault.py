@@ -8,6 +8,7 @@ from typing import Protocol
 
 from companion.errors import DomainError
 from companion.identity import CREDENTIAL_SERVICE
+from companion.providers.config import ENV_KEYS
 
 ENV_KEY = 'COMPANION_API_KEY'
 
@@ -15,6 +16,7 @@ ENV_KEY = 'COMPANION_API_KEY'
 class CredentialVault(Protocol):
     def get(self, reference: str) -> str | None: ...
     def put(self, reference: str, secret: str) -> None: ...
+    def delete(self, reference: str) -> None: ...
 
 
 class SystemVault:
@@ -36,6 +38,16 @@ class SystemVault:
         except KeyringError as error:
             raise DomainError('Could not save the key in the OS credential vault.', 503) from error
 
+    def delete(self, reference: str) -> None:
+        import keyring
+        from keyring.errors import KeyringError, PasswordDeleteError
+        try:
+            keyring.delete_password(self.service, reference)
+        except PasswordDeleteError:
+            pass  # Already gone.
+        except KeyringError as error:
+            raise DomainError('Could not remove the key from the OS credential vault.', 503) from error
+
 
 class MemoryVault:
     """In-process vault for tests and for systems without a keyring."""
@@ -49,8 +61,12 @@ class MemoryVault:
     def put(self, reference: str, secret: str) -> None:
         self.secrets[reference] = secret
 
+    def delete(self, reference: str) -> None:
+        self.secrets.pop(reference, None)
 
-def credential_for(vault: CredentialVault, reference: str | None) -> str | None:
+
+def credential_for(vault: CredentialVault, reference: str | None, provider: str | None = None) -> str | None:
+    """The saved key, else the provider's environment variable (COMPANION_API_KEY for other services)."""
     if reference:
         return vault.get(reference)
-    return os.environ.get(ENV_KEY)
+    return os.environ.get(ENV_KEYS.get(provider or 'compatible', ENV_KEY)) if provider != 'codex' else None

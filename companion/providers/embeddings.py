@@ -1,14 +1,17 @@
 """OpenAI-compatible embeddings for semantic recall (PRD M10).
 
-The Companion never downloads embedding weights: semantic recall uses the configured connection's
-`/embeddings` endpoint when an embedding model is named, and keyword recall alone otherwise.
+The Companion never downloads embedding weights: semantic recall uses the `/embeddings` endpoint of
+the model profile assigned to recall when it names an embedding model, and keyword recall alone
+otherwise. Only OpenAI, local and OpenAI-compatible profiles offer embeddings.
 """
 import asyncio
 
 import httpx
 
 from companion.errors import DomainError, require
-from companion.providers.chat import check_status
+from companion.providers.chat import check_status, provider_of
+from companion.providers.config import EMBEDDING_PROVIDERS
+from companion.providers.requests import headers_for, validate_key
 
 # Embedding the message being answered must not hold up the reply for long.
 QUERY_TIMEOUT = 2
@@ -22,7 +25,10 @@ class EmbeddingProvider:
                     ) -> list[list[float]]:
         """One vector per text, in order."""
         limit = timeout or config['timeout_seconds']
-        headers = {'Authorization': f'Bearer {key}'} if key else {}
+        provider = provider_of(config)
+        require(provider in EMBEDDING_PROVIDERS, 'Embeddings need an OpenAI, local or OpenAI-compatible profile.', 409)
+        validate_key(provider, key)
+        headers = headers_for({'provider': provider}, key)
         body = {'model': config['embedding_model'], 'input': texts}
         try:
             async with asyncio.timeout(limit):

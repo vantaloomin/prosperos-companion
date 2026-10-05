@@ -15,7 +15,7 @@ def test_backup_round_trip_restores_paused_for_review(client, app, connected, tm
     with restored.connect() as connection:
         settings = dict(connection.execute('SELECT * FROM workspace_settings').fetchone())
         memory = connection.execute('SELECT value FROM memories').fetchone()[0]
-        reference = connection.execute('SELECT credential_ref FROM connection').fetchone()[0]
+        reference = connection.execute('SELECT credential_ref FROM model_profiles').fetchone()[0]
     assert memory == 'Biscuit'
     assert settings['paused_at'] and settings['review_required'] == 1 and settings['automatic_memory'] == 0
     assert reference is None

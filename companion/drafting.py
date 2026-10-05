@@ -17,7 +17,7 @@ from companion.database import identifier, optional
 from companion.errors import DomainError
 from companion.models import CharacterDefinition, EmotionalTrait, RoutineBlock
 from companion.providers.scheduling import Work
-from companion.providers.vault import credential_for
+from companion.text_models import config_for, key_for
 from companion.traits import ABSENCE_WORDS
 from companion.world import catalog, custom, generators
 
@@ -162,15 +162,22 @@ def picks_text(body) -> str:
 
 def connection_config(database) -> dict:
     with database.connect() as connection:
-        config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+        config = config_for(connection, 'drafting')
     if config is None:
-        raise DomainError('Connect a text model in Settings to draft a character.', 409, 'no_connection')
+        raise DomainError('Add a text model in Settings > Models to draft a character.', 409, 'no_connection')
     return config
 
 
+def draft_tokens(config: dict, tokens: int) -> int:
+    """Room for a whole character, within what the model reports it can write."""
+    ceiling = (config.get('reported_capabilities') or {}).get('max_output_tokens')
+    wanted = max(config['max_output_tokens'], tokens)
+    return min(wanted, ceiling) if ceiling else wanted
+
+
 async def complete(state, config: dict, system: str, messages: list[dict], tokens: int) -> str:
-    config = {**config, 'max_output_tokens': max(config['max_output_tokens'], tokens)}
-    key = credential_for(state.vault, config['credential_ref'])
+    config = {**config, 'max_output_tokens': draft_tokens(config, tokens)}
+    key = key_for(state.vault, config)
     conversation, text = state.conversation, []
     async with conversation.scheduler.reserve(config, DRAFTING):
         async for chunk in conversation.provider.stream(config, key, system, messages):

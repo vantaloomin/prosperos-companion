@@ -8,13 +8,13 @@ import asyncio
 import time
 
 from companion.characters import require_current
-from companion.database import optional, settings
+from companion.database import settings
 from companion.memory import consolidation, vectors
 from companion.memory import suggest as model_suggestions
 from companion.memory.formation import run_pending
 from companion.providers.embeddings import EmbeddingProvider
 from companion.providers.scheduling import MAINTENANCE
-from companion.providers.vault import credential_for
+from companion.text_models import config_for, key_for
 
 YIELD_SECONDS = 0.5
 CONSOLIDATE_SECONDS = 3600
@@ -58,7 +58,7 @@ class MemoryWorker:
         if self.provider is None:
             return 0
         return await model_suggestions.suggest(self.database, self.provider, self.scheduler,
-                                     lambda config: credential_for(self.vault, config['credential_ref']))
+                                     lambda config: key_for(self.vault, config))
 
     async def consolidate(self):
         """At most once per CONSOLIDATE_SECONDS, and only while automatic memory is on (M11)."""
@@ -73,14 +73,14 @@ class MemoryWorker:
     async def index(self) -> int:
         """Embed one batch of memories and messages without a current vector. Returns how many were saved."""
         with self.database.connect() as connection:
-            config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+            config = config_for(connection, 'recall')
             if not config or not config.get('embedding_model'):
                 return 0
             timeline_id = require_current(connection)['active_timeline_id']
             items = vectors.missing(connection, config['embedding_model'], timeline_id)
         if not items:
             return 0
-        key = credential_for(self.vault, config['credential_ref'])
+        key = key_for(self.vault, config)
         async with self.scheduler.reserve(config, MAINTENANCE):
             found = await self.embedder.embed(config, key, [text for _kind, _id, text in items])
         with self.database.connect(write=True) as connection:

@@ -15,6 +15,7 @@ from companion.memory.extraction import Candidate, sentences, subject_key
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
+from companion.text_models import config_for
 
 PROMPT_VERSION = 'memory-suggest-1'
 BATCH = 8
@@ -135,7 +136,7 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
     """One batch. Returns how many messages were handled (0 when there is nothing to do)."""
     with database.connect(write=True) as connection:
         row = settings(connection)
-        config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+        config = config_for(connection, 'memory')
         if not (row['automatic_memory'] and row['model_memory_suggestions']) or config is None:
             return 0
         batch = pending(connection)

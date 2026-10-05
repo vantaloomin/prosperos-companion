@@ -4,7 +4,18 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from companion import backup, characters, conversation, drafting, events, notifications, restore, timelines, workspace
+from companion import (
+    backup,
+    characters,
+    conversation,
+    drafting,
+    events,
+    notifications,
+    restore,
+    text_models,
+    timelines,
+    workspace,
+)
 from companion.identity import APP_ID, VERSION
 from companion.memory import consolidation, formation, records
 from companion.models import (
@@ -61,12 +72,15 @@ def resume(request: Request):
 
 @router.get('/connection')
 def read_connection(request: Request):
-    return {'connection': conversation.read_connection(db(request))}
+    """The conversation's model profile, in the shape of the single connection before profiles."""
+    with db(request).connect() as connection:
+        return {'connection': text_models.connection_summary(connection)}
 
 
 @router.put('/connection')
 def save_connection(request: Request, body: ConnectionUpdate):
-    return conversation.save_connection(db(request), request.app.state.vault, body)
+    """Quick setup: point the conversation at an OpenAI-compatible or local server. Saving never contacts it."""
+    return text_models.quick_save(db(request), request.app.state.vault, body)
 
 
 @router.get('/companion')
