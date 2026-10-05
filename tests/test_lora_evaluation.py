@@ -102,3 +102,15 @@ def test_backups_keep_adapters_and_restore_them(client, companion, app, tmp_path
     target = tmp_path / 'restored' / 'companion.sqlite3'
     backup.restore(Path(created['path']), target, clock)
     assert (target.parent / 'lora' / 'adapters' / adapter['file']).read_bytes() == safetensors()
+
+
+def test_evaluation_waits_while_a_chat_reply_is_written(client, companion, app, adapters):
+    add_backend(client, kind='comfyui', base_url='http://127.0.0.1:8188')
+    adapter = ok(import_adapter(client, safetensors()))
+    scheduler = app.state.images.scheduler
+    with scheduler.foreground_work():
+        created = ok(client.post('/api/lora/evaluations', json={'adapter_id': adapter['id'], 'include_baseline': False}))
+        time.sleep(0.3)
+        assert adapters['comfyui'].requests == []
+    done = wait(client, created['id'])
+    assert done['status'] == 'completed' and len(adapters['comfyui'].requests) == 8

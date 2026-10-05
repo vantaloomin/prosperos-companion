@@ -181,11 +181,18 @@ class EvaluationRunner:
     async def run(self, evaluation_id):
         try:
             while (image := self.next_image(evaluation_id)) is not None:
+                await self.yield_to_chat()
                 await self.render(image)
             self.close(evaluation_id, 'completed')
         except asyncio.CancelledError:
             self.close(evaluation_id, 'cancelled')
             raise
+
+    async def yield_to_chat(self, pause=0.5):
+        """Waits while a chat reply is being written, as image jobs on local ComfyUI do."""
+        scheduler = getattr(self.images, 'scheduler', None)
+        while scheduler is not None and scheduler.foreground:
+            await asyncio.sleep(pause)
 
     def next_image(self, evaluation_id):
         with self.database.connect() as connection:

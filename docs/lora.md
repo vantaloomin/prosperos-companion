@@ -115,6 +115,8 @@ model is local.
 An evaluation renders a fixed set (version 1) on the first enabled ComfyUI server on this
 computer, because only ComfyUI applies the adapter. Each prompt has a fixed seed and is rendered
 twice: with the adapter (`<trigger>, <name>`) and, for comparison, from the text description alone.
+Images render one at a time, and the next one waits while a chat reply is being written, the
+same priority local ComfyUI image jobs follow.
 
 | Key | Prompt (after "Natural photograph.") | Seed | Shape |
 | --- | --- | --- | --- |
