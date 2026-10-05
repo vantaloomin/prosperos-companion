@@ -78,9 +78,12 @@ memories qualify, and source messages of excluded memories are kept out of raw r
 receipt stored with each reply lists included and omitted identities, never content, so deleting
 a memory leaves nothing readable behind in old receipts.
 
-How the companion reacts to time apart is a character trait (`absence_reaction`). Left empty, the
-companion is neutral about absence. Product controls such as pause, settings and export stay
-neutral either way.
+How the companion reacts to time apart (`absence_reaction`) and its emotional traits
+(`emotional_traits`: a name such as jealousy or guilt over absence, an intensity of mild, moderate
+or strong, and an optional note) are part of the character definition (C6). A new character has
+none. With neither, the companion is told to be neutral about absence. With traits but a
+non-romantic framing, it is told never to express jealousy or possessiveness as romantic
+exclusivity. Product controls such as pause, settings and export stay neutral either way.
 
 ## Life simulation (T1–T7)
 
