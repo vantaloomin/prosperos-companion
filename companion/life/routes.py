@@ -144,9 +144,11 @@ def react(request: Request, post_id: str, body: Reaction):
 
 
 @feed_router.post('/{post_id}/discuss')
-async def discuss(request: Request, post_id: str, body: MessageCreate):
-    """Send a chat message that replies to a post; the reply is built knowing which post (F1)."""
+async def discuss(request: Request, post_id: str, body: MessageCreate, wait: bool = True):
+    """Send a chat message that replies to a post; the reply is built knowing which post (F1).
+
+    `wait=false` returns once the reply attempt is saved, as for ordinary sends."""
     feed.get(db(request), post_id)
     message = conversation.record_user(db(request), body)
     feed.link_message(db(request), message['id'], post_id)
-    return await request.app.state.conversation.send(body)
+    return await request.app.state.conversation.send(body, wait)

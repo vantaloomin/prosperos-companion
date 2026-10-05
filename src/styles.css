@@ -166,3 +166,19 @@ textarea { resize: vertical; line-height: 1.6; }
 .event .form-actions { margin-top: 4px; }
 .button.quiet { background: transparent; border-color: transparent; }
 .text-button.inline { padding: 0; color: var(--accent); text-decoration: underline; }
+
+.post-list { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
+.post { padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.post.hidden-post { opacity: .7; border-style: dashed; }
+.post-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.post-header time { font-size: 0.75rem; color: var(--faint); }
+.unread-dot { display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+.post-intro, .post-caption { font-family: 'Literata', Georgia, serif; font-size: 1.0625rem; line-height: 1.7; }
+.post-event + .post-event { padding-top: 10px; border-top: 1px solid var(--border); }
+.post-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.reactions { display: inline-flex; gap: 2px; }
+.reaction { width: 36px; height: 36px; border-radius: 8px; font-size: 1.05rem; filter: grayscale(.7); opacity: .75; }
+.reaction:hover { background: var(--raised); filter: none; opacity: 1; }
+.reaction[aria-pressed='true'] { background: var(--accent-tint); filter: none; opacity: 1; outline: 1px solid var(--accent); }
+.discuss-form { display: flex; flex-direction: column; gap: 8px; }
+.load-more { margin-top: 18px; }

@@ -150,3 +150,17 @@ def test_today_shows_routine_review_changes_and_availability(client, life, clock
     assert view['availability']['state'] == 'asleep' and view['last_seen_at'] == seen
     clock.instant = datetime(2026, 10, 6, 9, 0, tzinfo=UTC)  # clock moved backward
     assert client.post('/api/today/seen').json()['last_seen_at'] == seen
+
+
+def test_discussing_a_post_can_return_before_the_reply_finishes(client, life, clock, provider):
+    set_life(client, automatic_events=True)
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    post = feed(client)['posts'][0]
+    result = client.post(f"/api/feed/{post['id']}/discuss?wait=false", json={'text': 'Tell me more!',
+                                                                              'client_id': 'discuss-0002'})
+    assert result.status_code == 200, result.text
+    reply = result.json()['reply']
+    events = client.get(f"/api/conversation/replies/{reply['id']}/events").text
+    assert '"status": "complete"' in events
+    assert 'feed post the user is replying to' in provider.requests[-1]['system']
