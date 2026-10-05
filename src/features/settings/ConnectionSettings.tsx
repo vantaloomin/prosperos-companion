@@ -10,7 +10,8 @@ const KEY = ['connection']
 export function ConnectionSettings() {
   const connection = useQuery({ queryKey: KEY, queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   if (connection.isPending) return null
-  return <ConnectionForm key={connection.data?.base_url ?? 'new'} saved={connection.data ?? null} />
+  // Not keyed on the saved address: remounting on save would drop the confirmation and keyboard focus.
+  return <ConnectionForm saved={connection.data ?? null} />
 }
 
 function initialForm(saved: Connection | null) {
