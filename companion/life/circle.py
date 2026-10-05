@@ -1,8 +1,10 @@
 """The companion's social circle (PRD T8).
 
 A few supporting people, assembled once per timeline from the world data and a seed, without a
-model: a first name, how they know the companion, a job from the city data and that job's weekly
-routine. Their days advance through the same precomputed agenda as the companion's
+model. In a known city they come from the world data's circle generator: a name from the city's
+name groups, how they know the companion, an age, a home, a job with its weekly routine and a few
+regular haunts; relatives may live out of town and have no routine here. Elsewhere a simpler
+version picks a first name, a role and a career's routine. Their days advance through the same precomputed agenda as the companion's
 (companion/life/agenda.py). They are fictional supporting characters: never the user, never a
 real person, and never a source of facts about the user. The user can rename or remove them.
 """
@@ -11,7 +13,7 @@ from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.world import catalog, generators
 
-CIRCLE_SIZE = 4
+CIRCLE_SIZE = 5
 ROLES = ('close friend', 'old friend from school', 'coworker', 'sibling', 'neighbor', 'cousin', 'roommate from years ago')
 # The first slot is always a close friend; the rest vary by seed.
 NAMES = (
@@ -53,6 +55,30 @@ def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken
     return {'name': name, 'role': role, 'career': career_id, 'details': details, 'schedule': schedule}
 
 
+def from_city(data: dict, definition: dict, timeline_id: str) -> list[dict]:
+    """The circle from the world data's generator, closest first, living near the companion when
+    their location names a neighborhood."""
+    match = catalog.resolve(definition.get('location') or '')
+    hoods = {hood['id'] for hood in data['neighborhoods']}
+    home = match['neighborhood'] if match and match['neighborhood'] in hoods else None
+    made = generators.circle(data, seed=f'circle:{timeline_id}', size=CIRCLE_SIZE, home=home)
+    result = []
+    for member in made['people']:
+        job = member['job'] or {}
+        details = {'career': (job.get('career') or {}).get('name', 'Retired' if member['local'] else ''),
+                   'employer': (job.get('employer') or {}).get('name', ''),
+                   'neighborhood': member['home']['neighborhood']['name'] if member['home'] else '',
+                   'city': data['name'] if member['local'] else '', 'full_name': member['name']['full'],
+                   'pronouns': member['name']['pronouns'], 'age': member['age'], 'local': member['local'],
+                   'closeness': member['closeness'], 'haunts': [spot['name'] for spot in member['haunts']],
+                   'refs': member.get('refs', []), 'sources': member.get('sources', []),
+                   'data_version': data['data_version']}
+        result.append({'name': member['name']['given'], 'role': member['role'].replace('-', ' '),
+                       'career': (job.get('career') or {}).get('id', ''), 'details': details,
+                       'schedule': member['schedule'] or []})
+    return result
+
+
 def view(row: dict) -> dict:
     return {'id': row['id'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
             'revision': row['revision'], **decode(row['details']), 'schedule': decode(row['schedule'])}
@@ -65,11 +91,16 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
     if rows:
         return [row for row in rows if row['status'] == 'active']
     definition = companion['version']['definition']
-    taken, data = {definition['name']}, city_data(definition, world)
-    for ordinal in range(CIRCLE_SIZE):
+    data = city_data(definition, world)
+    if data:
+        built = from_city(data, definition, timeline_id)
+    else:
+        taken, built = {definition['name']}, []
+        for ordinal in range(CIRCLE_SIZE):
+            built.append(assemble(f'circle:{timeline_id}:{ordinal}', ordinal, definition, None, taken))
+            taken.add(built[-1]['name'])
+    for ordinal, person in enumerate(built):
         seed = f'circle:{timeline_id}:{ordinal}'
-        person = assemble(seed, ordinal, definition, data, taken)
-        taken.add(person['name'])
         connection.execute(
             'INSERT OR IGNORE INTO circle_people (id, timeline_id, ordinal, seed, name, role, career, details, schedule, '
             'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
