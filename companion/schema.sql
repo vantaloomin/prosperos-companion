@@ -70,7 +70,14 @@ CREATE TABLE IF NOT EXISTS timelines (
   forked_after_seq INTEGER,
   status TEXT NOT NULL CHECK (status IN ('active', 'frozen')),
   created_at TEXT NOT NULL,
-  frozen_at TEXT
+  frozen_at TEXT,
+  -- A historical edit (C4): the parent's history before `forked_at` is copied in, and the edited
+  -- words wait in `draft` until they are sent on this timeline.
+  label TEXT NOT NULL DEFAULT '',
+  fork_message_id TEXT,
+  forked_at TEXT,
+  draft TEXT,
+  activated_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -91,6 +98,8 @@ CREATE TABLE IF NOT EXISTS messages (
   redacted_at TEXT,
   created_at TEXT NOT NULL,
   completed_at TEXT,
+  -- For a message copied into a forked timeline, the message it was first written as.
+  origin_id TEXT,
   UNIQUE (timeline_id, seq)
 );
 CREATE INDEX IF NOT EXISTS messages_reply ON messages(reply_to);

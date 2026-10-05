@@ -72,12 +72,13 @@ def update_settings(database, body) -> dict:
 # Cursor and runs --------------------------------------------------------------------------------
 
 def cursor(connection, timeline_id) -> dict:
-    """A new timeline's life starts when the timeline was created; nothing earlier is simulated."""
+    """A timeline's life starts when it was created or last chosen; nothing earlier is simulated."""
     row = optional(connection, 'SELECT * FROM life_cursors WHERE timeline_id=?', (timeline_id,))
     if row:
         return row
-    timeline = one(connection, 'SELECT * FROM timelines WHERE id=?', (timeline_id,))
-    return {'timeline_id': timeline_id, 'simulated_through': timeline['created_at'], 'last_reconciled_at': None,
+    timeline = one(connection, 'SELECT COALESCE(activated_at, created_at) AS since FROM timelines WHERE id=?',
+                   (timeline_id,))
+    return {'timeline_id': timeline_id, 'simulated_through': timeline['since'], 'last_reconciled_at': None,
             'updated_at': None, 'new': True}
 
 
@@ -426,7 +427,7 @@ class LifeEngine:
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
                         'summary': composed['summary'], 'post': composed['post']},
-                    'character_version_id': version['id'], **phrasing}))
+                    'character_version_id': version['id'], **phrasing}), run['timeline_id'])
         if event['character_version_id'] != version['id']:
             events.reject(self.database, event['id'])
             return {'slot': slot['key'], 'outcome': 'rejected', 'event_id': event['id'],
@@ -479,7 +480,7 @@ class LifeEngine:
                         'character_version_id': version['id']})
         else:
             return {}
-        settled = self.settle(events.propose(self.database, proposal), life)
+        settled = self.settle(events.propose(self.database, proposal, run['timeline_id']), life)
         return {'thread_event_id': settled['event_id'], 'thread_outcome': settled['outcome']}
 
     def plan_ahead(self, run, slot, version, life, key) -> dict:
@@ -503,7 +504,7 @@ class LifeEngine:
                      'timezone': version['timezone'], 'post': '', 'mood': ''},
             starts_at=target['starts_at'], ends_at=target['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'made_during': slot['key'], 'world': self.world.name,
-                    'composer_version': planned['composer_version'], 'character_version_id': version['id']}))
+                    'composer_version': planned['composer_version'], 'character_version_id': version['id']}), run['timeline_id'])
         settled = self.settle(event, life)
         return {'plan_event_id': event['id'], 'plan_outcome': settled['outcome']}
 

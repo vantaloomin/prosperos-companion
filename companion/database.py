@@ -38,6 +38,7 @@ class Database:
             claim_identity(connection)
             connection.executescript(SCHEMA)
             add_columns(connection)
+            connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
             backfill_subject_keys(connection)
             connection.execute('INSERT OR IGNORE INTO workspace_settings (id, updated_at) VALUES (1, ?)',
                                (self.now(),))
@@ -79,6 +80,12 @@ ADDED_COLUMNS = (
     ('memories', 'ended_by_id', 'TEXT'),
     ('memories', 'merged_into_id', 'TEXT'),
     ('memories', 'dates_uncertain', 'INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1))'),
+    ('timelines', 'label', "TEXT NOT NULL DEFAULT ''"),
+    ('timelines', 'fork_message_id', 'TEXT'),
+    ('timelines', 'forked_at', 'TEXT'),
+    ('timelines', 'draft', 'TEXT'),
+    ('timelines', 'activated_at', 'TEXT'),
+    ('messages', 'origin_id', 'TEXT'),
 )
 
 

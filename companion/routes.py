@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from companion import backup, characters, conversation, events, workspace
+from companion import backup, characters, conversation, events, timelines, workspace
 from companion.identity import APP_ID, VERSION
 from companion.memory import consolidation, formation, records
 from companion.models import (
@@ -18,6 +18,8 @@ from companion.models import (
     MemoryDelete,
     MessageCreate,
     SettingsUpdate,
+    TimelineFork,
+    TimelineUpdate,
 )
 
 router = APIRouter(prefix='/api')
@@ -81,6 +83,30 @@ def revise_companion(request: Request, body: CharacterRevision):
 @router.get('/companion/versions')
 def companion_versions(request: Request):
     return characters.versions(db(request))
+
+
+@router.get('/timelines')
+def list_timelines(request: Request):
+    return timelines.listing(db(request))
+
+
+@router.post('/timelines')
+def fork_timeline(request: Request, body: TimelineFork):
+    """Edit from here: a new inactive timeline; the live one is untouched until the user switches."""
+    return timelines.fork(db(request), body)
+
+
+@router.patch('/timelines/{timeline_id}')
+def update_timeline(request: Request, timeline_id: str, body: TimelineUpdate):
+    return timelines.update(db(request), timeline_id, body)
+
+
+@router.post('/timelines/{timeline_id}/activate')
+def activate_timeline(request: Request, timeline_id: str):
+    result = timelines.activate(db(request), timeline_id)
+    for attempt_id in result['stopped_reply_ids']:
+        request.app.state.conversation.stop(attempt_id)
+    return result
 
 
 @router.get('/conversation')

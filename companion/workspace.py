@@ -36,6 +36,9 @@ def update(database, body) -> dict:
             assignments['review_required'] = 0
         if PERMISSIONS & changed.keys():
             assignments['permission_revision'] = row['permission_revision'] + 1
+        if 'share_profile_across_timelines' in changed:
+            # What the next reply may know changed, so a reply already being written is withheld (M9).
+            assignments['memory_revision'] = row['memory_revision'] + 1
         columns = ', '.join(f'{key}=?' for key in assignments)
         connection.execute(f'UPDATE workspace_settings SET {columns} WHERE id=1', tuple(assignments.values()))
         return view(settings(connection))

@@ -15,6 +15,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
+from companion.lineage import declined, related
 from companion.memory import extraction, records
 
 JOB_BATCH = 20
@@ -56,7 +57,7 @@ def candidates_for(connection, message) -> list:
 def blocked(connection, message) -> str | None:
     if message['redacted_at'] is not None:
         return 'message_deleted'
-    if optional(connection, 'SELECT 1 FROM memory_declines WHERE message_id=?', (message['id'],)):
+    if declined(connection, message['id']):
         return 'declined_message'
     return None
 
@@ -208,7 +209,9 @@ def remember_message(database, message_id) -> dict:
         require(message['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                 409)
         timestamp = database.now()
-        if connection.execute('DELETE FROM memory_declines WHERE message_id=?', (message_id,)).rowcount:
+        copies = sorted(related(connection, [message_id]))
+        marks = ','.join('?' * len(copies))
+        if connection.execute(f'DELETE FROM memory_declines WHERE message_id IN ({marks})', copies).rowcount:
             log(connection, timestamp, 'decline_lifted', message_id=message_id)
         memories = form(connection, companion, message, timestamp, deliberate=True)
         draft = None if memories else {'layer': 'shared_experience', 'subject': 'Something you told me',
@@ -223,17 +226,20 @@ def forget_message(database, message_id) -> dict:
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         require(message['role'] == 'user', 'Only your own messages can be marked.', 422)
         timestamp = database.now()
-        connection.execute('INSERT OR IGNORE INTO memory_declines (message_id, created_at) VALUES (?, ?)',
-                           (message_id, timestamp))
+        # Copies of the message in forked timelines are the same words, so they are declined together.
+        copies = sorted(related(connection, [message_id]))
+        marks = ','.join('?' * len(copies))
+        connection.executemany('INSERT OR IGNORE INTO memory_declines (message_id, created_at) VALUES (?, ?)',
+                               [(identity, timestamp) for identity in copies])
         connection.execute("UPDATE memory_jobs SET status='skipped', error='declined_message', finished_at=? "
-                           "WHERE message_id=? AND status='queued'", (timestamp, message_id))
-        connection.execute("UPDATE memory_candidates SET status='declined', resolved_at=? WHERE message_id=? "
-                           "AND status='pending'", (timestamp, message_id))
+                           f"WHERE message_id IN ({marks}) AND status='queued'", (timestamp, *copies))
+        connection.execute("UPDATE memory_candidates SET status='declined', resolved_at=? "
+                           f"WHERE message_id IN ({marks}) AND status='pending'", (timestamp, *copies))
         automatic = [row['id'] for row in many(
-            connection, "SELECT memories.id FROM memories JOIN memory_sources ON memory_sources.memory_id=memories.id "
-            "WHERE memory_sources.message_id=? AND memories.origin='automatic' AND memories.status<>'superseded' "
-            'AND NOT EXISTS (SELECT 1 FROM memory_sources other WHERE other.memory_id=memories.id '
-            'AND other.message_id<>?)', (message_id, message_id))]
+            connection, "SELECT DISTINCT memories.id FROM memories JOIN memory_sources ON memory_sources.memory_id=memories.id "
+            f"WHERE memory_sources.message_id IN ({marks}) AND memories.origin='automatic' "
+            "AND memories.status<>'superseded' AND NOT EXISTS (SELECT 1 FROM memory_sources other "
+            f'WHERE other.memory_id=memories.id AND other.message_id NOT IN ({marks}))', (*copies, *copies))]
     removed = []
     for memory_id in automatic:
         removed += records.delete(database, memory_id)['deleted_memory_ids']
