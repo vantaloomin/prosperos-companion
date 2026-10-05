@@ -30,3 +30,14 @@ export async function cropCopy(url: string, crop: Crop, type: string): Promise<B
   bitmap.close()
   return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('The crop could not be made.')), type, 0.95))
 }
+
+/** A PNG copy of a picture the trainer cannot read (WebP), at the same size. */
+export async function pngCopy(blob: Blob): Promise<Blob> {
+  const bitmap = await createImageBitmap(blob)
+  const canvas = document.createElement('canvas')
+  canvas.width = bitmap.width
+  canvas.height = bitmap.height
+  canvas.getContext('2d')?.drawImage(bitmap, 0, 0)
+  bitmap.close()
+  return new Promise((resolve, reject) => canvas.toBlob((copy) => copy ? resolve(copy) : reject(new Error('The picture could not be converted.')), 'image/png'))
+}

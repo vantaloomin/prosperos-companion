@@ -758,6 +758,51 @@ CREATE TABLE IF NOT EXISTS lora_eval_images (
 );
 CREATE INDEX IF NOT EXISTS lora_eval_images_evaluation ON lora_eval_images(evaluation_id, position);
 
+-- Candidate reference pictures generated in the Prepare step from an editable shot list. One
+-- seed and one base description keep a set consistent. Each shot is classified and routed like
+-- any image request; nothing joins the dataset until the user keeps it.
+CREATE TABLE IF NOT EXISTS lora_generations (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  base TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'cancelled', 'interrupted')),
+  created_at TEXT NOT NULL,
+  finished_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS lora_gen_images (
+  id TEXT PRIMARY KEY,
+  generation_id TEXT NOT NULL REFERENCES lora_generations(id),
+  position INTEGER NOT NULL,
+  label TEXT NOT NULL,
+  shot TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  negative TEXT NOT NULL,
+  aspect TEXT NOT NULL CHECK (aspect IN ('square', 'landscape', 'portrait')),
+  seed INTEGER NOT NULL,
+  classification TEXT NOT NULL,
+  reasons TEXT NOT NULL DEFAULT '[]',
+  route_reason TEXT NOT NULL DEFAULT '',
+  backend_id TEXT,
+  backend_label TEXT,
+  backend_kind TEXT,
+  status TEXT NOT NULL CHECK (status IN
+    ('queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')),
+  error TEXT,
+  output_file TEXT,
+  width INTEGER,
+  height INTEGER,
+  used_seed INTEGER,
+  model TEXT,
+  workflow TEXT,
+  decision TEXT CHECK (decision IN ('kept', 'discarded')),
+  reference_id TEXT,
+  started_at TEXT,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS lora_gen_images_generation ON lora_gen_images(generation_id, position);
+
 -- Desktop notifications (PRD compute and job control): off by default; quiet hours, preview
 -- privacy and a frequency cap. Settings never depend on the character's traits.
 CREATE TABLE IF NOT EXISTS notification_settings (

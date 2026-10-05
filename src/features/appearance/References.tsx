@@ -8,6 +8,7 @@ import { Field, TextArea, TextInput } from '../../components/Fields'
 import { RIGHTS, reviewLine } from './loraState'
 import { cropCopy, hashPicture } from './browserImage'
 import { REFERENCES_KEY, pictureUrl, useReferences } from './queries'
+import { GeneratePictures } from './Generate'
 
 const failure = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 
@@ -41,13 +42,14 @@ export function Prepare() {
   const list = references.data?.references ?? []
   return (
     <div className="form-stack">
-      <p className="subtle">Add pictures of the character one by one. Nothing is collected from your folders. Use pictures you made, commissioned, generated or are licensed to use, and say where each came from. Community guides use 20 to 40, with a few full-body shots. Hold one or two back as evaluation references.</p>
+      <p className="subtle">Add pictures of the character one by one, or generate candidates below. Nothing is collected from your folders. Use pictures you made, commissioned, generated or are licensed to use, and say where each came from. Community guides use 20 to 40, with a few full-body shots. Hold one or two back as evaluation references.</p>
       <Field label="Add pictures" hint="PNG or JPEG, up to 30 MB each. Exact copies are refused; near copies are flagged.">
         {(id, describedBy) => <input id={id} type="file" accept="image/png,image/jpeg" multiple aria-describedby={describedBy} disabled={adding !== null} onChange={(event) => void add(event)} />}
       </Field>
       {adding && <p className="subtle" role="status">{adding}</p>}
       {error && <Notice tone="error">{error}</Notice>}
       {references.data && <Notice>{reviewLine(references.data.review)}</Notice>}
+      <GeneratePictures />
       <ul className="reference-grid">{list.map((item) => <PrepareCard key={item.id} item={item} names={list} save={save} />)}</ul>
     </div>
   )

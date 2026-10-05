@@ -1,13 +1,17 @@
 """LoRA maker API: references, adapters and appearance versions."""
+from typing import Literal
+
 from fastapi import APIRouter, BackgroundTasks, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from companion.errors import DomainError
 from companion.images.storage import TYPES
-from companion.lora import appearance, evaluation, export, references, training
+from companion.lora import appearance, evaluation, export, generation, references, training
 from companion.lora.models import (
     Adopt,
     EvaluationCreate,
+    GenerationCreate,
+    GenerationPlan,
     KeepCheckpoint,
     LoraSettingsUpdate,
     Rating,
@@ -212,3 +216,52 @@ def export_adapter(request: Request, adapter_id: str, background: BackgroundTask
     path, name = export.build(db(request), adapter_id)
     background.add_task(path.unlink, missing_ok=True)
     return FileResponse(path, media_type='application/zip', filename=name)
+
+
+@router.get('/generations/draft')
+def draft_generation(request: Request):
+    return generation.draft(db(request))
+
+
+@router.post('/generations/preview')
+def preview_generation(request: Request, body: GenerationPlan):
+    return generation.preview(db(request), body)
+
+
+@router.get('/generations')
+def list_generations(request: Request):
+    return {'generations': generation.listing(db(request))}
+
+
+@router.post('/generations')
+async def create_generation(request: Request, body: GenerationCreate):
+    created = generation.create(db(request), body)
+    request.app.state.generations.start(created['id'])
+    return created
+
+
+@router.post('/generations/{generation_id}/cancel')
+async def cancel_generation(request: Request, generation_id: str):
+    return await request.app.state.generations.cancel(generation_id)
+
+
+@router.get('/generation-images/{image_id}/file')
+def generation_file(request: Request, image_id: str):
+    try:
+        path = generation.file_of(db(request), image_id)
+    except FileNotFoundError as error:
+        raise DomainError('This picture file is missing.', 404) from error
+    return FileResponse(path, media_type=TYPES.get(path.suffix.lstrip('.'), 'application/octet-stream'))
+
+
+@router.post('/generation-images/{image_id}/keep')
+async def keep_generated(request: Request, image_id: str, role: Literal['train', 'evaluation'] = 'train',
+                         dhash: str | None = Query(None, max_length=16)):
+    """An optional body is the interface's PNG copy of a WebP output."""
+    converted = await request.body()
+    return generation.keep(db(request), image_id, role, dhash, converted or None)
+
+
+@router.post('/generation-images/{image_id}/discard')
+def discard_generated(request: Request, image_id: str):
+    return generation.discard(db(request), image_id)

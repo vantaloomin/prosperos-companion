@@ -48,6 +48,9 @@ class ImageRunner:
         self.wakeup: asyncio.Event | None = None
         # Set by the app: true while a LoRA trainer holds the local GPU.
         self.gpu_busy = lambda: False
+        # Other runners that send to the same backends (LoRA reference generation) report what
+        # they are running, so backend limits and the single Codex slot hold across both.
+        self.sharing: list = []
 
     def wake(self):
         if self.wakeup:
@@ -69,7 +72,7 @@ class ImageRunner:
             jobs.enqueue(self.database, post_id, 'automatic')
 
     def busy(self, backend) -> bool:
-        running = [meta for _task, meta in self.tasks.values()]
+        running = [meta for _task, meta in self.tasks.values()] + [meta for report in self.sharing for meta in report()]
         if backend['kind'] == 'codex':
             return any(meta['kind'] == 'codex' for meta in running)
         if backend['kind'] == 'comfyui' and self.scheduler is not None and self.scheduler.foreground:

@@ -1,5 +1,5 @@
 // Display logic for the LoRA maker that needs no browser (docs/lora.md).
-import type { Checkpoint, Crop, DatasetReview, EvalImage, Rights, TrainingRun } from '../../types'
+import type { Checkpoint, Crop, DatasetReview, EvalImage, Generation, PlannedShot, Rights, TrainingRun } from '../../types'
 
 export const STEPS = [
   { id: 'prepare', label: 'Prepare' },
@@ -85,3 +85,28 @@ export function evaluationRows(images: EvalImage[]): { key: string; label: strin
 }
 
 export const TRIGGER_PATTERN = /^[A-Za-z0-9_-]{2,40}$/
+
+/** One line for where a planned shot goes, or why it cannot be made. */
+export function routeLine(shot: PlannedShot): string {
+  if (!shot.backend) return shot.refusal ?? 'Cannot be made.'
+  const tier = shot.tier === 'safe' ? '' : ` Classified ${shot.tier}${shot.reasons.length ? ` (${shot.reasons.join(', ')})` : ''}.`
+  return `Goes to ${shot.backend.label}${shot.backend.local ? ' on this computer' : ''}.${tier}`
+}
+
+/** Progress of a generated set, counting only what happened. */
+export function generationLine(generation: Generation): string {
+  const { counts } = generation
+  const parts = [`${counts.completed} made`]
+  if (counts.failed) parts.push(`${counts.failed} failed`)
+  const left = counts.queued + counts.running
+  if (left) parts.push(`${left} to go`)
+  if (counts.cancelled + counts.interrupted) parts.push(`${counts.cancelled + counts.interrupted} stopped`)
+  if (counts.kept) parts.push(`${counts.kept} kept`)
+  return `${parts.join(', ')}.`
+}
+
+/** The full prompt each shot sends, as the server composes it. */
+export function composePrompt(style: string, base: string, shot: string): string {
+  const trim = (text: string) => text.trim().replace(/\.+$/, '')
+  return `${trim(style || 'Natural photograph')}. ${trim(base)}, ${trim(shot)}.`
+}

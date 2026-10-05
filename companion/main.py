@@ -21,6 +21,7 @@ from companion.imports import routes as import_routes
 from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
 from companion.lora import evaluation as lora_evaluation
+from companion.lora import generation as lora_generation
 from companion.lora import routes as lora_routes
 from companion.lora import training as lora_training
 from companion.mcp import routes as context_routes
@@ -58,6 +59,7 @@ async def lifespan(app):
     image_jobs.recover(app.state.database)
     lora_training.recover(app.state.database)
     lora_evaluation.recover(app.state.database)
+    lora_generation.recover(app.state.database)
     tasks = [asyncio.create_task(app.state.life.run_forever()),
              asyncio.create_task(app.state.images.run_forever())] if app.state.life_tasks else []
     app.state.memory.kick()
@@ -90,6 +92,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                                    app.state.conversation.scheduler)
     app.state.training = lora_training.TrainingRunner(app.state.database, trainer_spawn)
     app.state.evaluations = lora_evaluation.EvaluationRunner(app.state.database, app.state.vault, app.state.images)
+    app.state.generations = lora_generation.GenerationRunner(app.state.database, app.state.vault, app.state.images)
     # Local ComfyUI images wait while a trainer holds the GPU (compute and job control).
     app.state.images.gpu_busy = lambda: app.state.training.active
     app.state.life_tasks = life_tasks
