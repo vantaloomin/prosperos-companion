@@ -276,7 +276,12 @@ def listing(database, include_history=False) -> list[dict]:
         rows = many(connection, f'SELECT * FROM memories WHERE companion_id=? AND status IN {statuses} '
                     'ORDER BY layer, subject, revision', (companion['id'],))
         now = database.now()
-        return [{**with_sources(connection, row), 'current': current_at(row, now)} for row in rows]
+        timelines = scope(connection, companion['active_timeline_id'])
+        share = bool(settings(connection)['share_profile_across_timelines'])
+        # Memories from another timeline stay listed so they can be corrected or deleted, marked as
+        # not applying to the current one (C4, M6).
+        return [{**with_sources(connection, row), 'current': current_at(row, now),
+                 'in_timeline': in_scope(row, timelines, share)} for row in rows]
 
 
 # The real-user profile: what the setting to share across timelines covers (M6). Shared experiences

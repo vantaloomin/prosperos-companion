@@ -7,6 +7,7 @@ export type View = 'conversation' | 'today' | 'feed' | 'memories' | 'character' 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']
 export const MEMORIES_KEY = ['memories']
+export const TIMELINES_KEY = ['timelines']
 
 export function useCompanion() {
   return useQuery({ queryKey: COMPANION_KEY, queryFn: () => api<{ companion: Companion | null }>('/companion').then((data) => data.companion) })

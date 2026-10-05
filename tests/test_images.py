@@ -708,3 +708,16 @@ def test_restored_workspaces_drop_image_keys(client, companion, tmp_path):
         row = connection.execute('SELECT credential_ref, enabled FROM image_backends').fetchone()
         settings = connection.execute('SELECT automatic_images FROM image_settings').fetchone()
     assert row['credential_ref'] is None and settings['automatic_images'] == 0
+
+
+def test_switching_timelines_cancels_images_not_started(client, companion, clock, adapters):
+    local_comfy(client)
+    post = make_post(client, clock)
+    job = generate(client, post)
+    message = ok(client.post('/api/conversation/messages', json={'text': 'Hi', 'client_id': 'client-image-01'}))['message']
+    fork = ok(client.post('/api/timelines', json={'message_id': message['id'], 'text': 'Hello'}))
+    ok(client.post(f"/api/timelines/{fork['id']}/activate"))
+    drain(client)
+    cancelled = ok(client.get(f"/api/images/jobs/{job['id']}"))
+    assert cancelled['status'] == 'cancelled' and 'set aside' in cancelled['error']
+    assert adapters['comfyui'].requests == []

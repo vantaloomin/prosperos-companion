@@ -83,7 +83,7 @@ function MemorySettings({ data, save }: { data: Settings; save: (change: Partial
             onChange={(value) => void save({ model_memory_suggestions: value })}
             hint="Messages the built-in rules found nothing in are sent to your model connection in the background, which proposes facts in your own words. Nothing is kept until you choose Remember in Memories. Uses extra model time." />
           <Toggle label="Share what you've told them across alternate timelines" checked={data.share_profile_across_timelines} onChange={(value) => void save({ share_profile_across_timelines: value })}
-            hint="Facts about you carry over if you start an alternate timeline. Fictional events always stay in their own timeline." />
+            hint="Facts about you, your plans and how you're doing apply in every timeline, including ones you start with Edit from here. When off, each timeline only knows what you told it, plus what came before its edit. Shared moments and the companion's own life always stay in their own timeline." />
         </section>
   )
 }

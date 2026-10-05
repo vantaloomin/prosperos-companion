@@ -234,3 +234,14 @@ def test_the_circle_and_its_diary_carry_over(client, life, clock):
     copied_diary = client.get(f"/api/life/circle/{twin['id']}/diary").json()
     assert {entry['subject'] for entry in copied_diary} == {twin['id']}
     assert [entry['entry'] for entry in copied_diary] == [entry['entry'] for entry in diary]
+
+
+def test_memories_from_another_timeline_are_marked(client, connected, clock):
+    first = send(client, 'Hello', 'client-0001')['message']
+    clock.advance(timedelta(minutes=5))
+    remember(client, subject='Kite day', value='Flew a kite together')
+    remember(client, layer='user_fact', subject='Favourite tea', value='Oolong')
+    created = fork(client, first['id'])
+    activate(client, created['id'])
+    marks = {memory['subject']: memory['in_timeline'] for memory in client.get('/api/memories').json()}
+    assert marks == {'Kite day': False, 'Favourite tea': True}
