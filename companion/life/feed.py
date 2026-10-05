@@ -13,6 +13,8 @@ from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
+# A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
+PHOTO_KEY = 'photo:'
 IMAGE_STATES = ('none', 'queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')
 
 
@@ -82,22 +84,44 @@ def create(connection, timeline_id, kind, key, event_ids, occurs_at, timestamp, 
 
 
 def publish_run(connection, run, results, timestamp) -> list[str]:
-    """One digest for a return batch, one post per event for a background batch (T5). Returns the
+    """One digest for a return batch, one post per event for a background batch (T5). An event
+    photographed in chat while it was happening joins its photo's post instead. Returns the
     background batch's posts, which may be announced as notifications."""
     event_ids = [result['event_id'] for result in results
                  if result.get('event_id') and result['outcome'] in {'proposed', 'committed'}]
-    if not event_ids:
-        return []
+    photographed = {event_id: post_id for event_id in event_ids if (post_id := photo_post(connection, event_id))}
     if run['mode'] != 'background':
-        create(connection, run['timeline_id'], 'digest', f"digest:{run['id']}", event_ids, run['window_end'],
-               timestamp, run['id'])
+        rest = [event_id for event_id in event_ids if event_id not in photographed]
+        if rest:
+            create(connection, run['timeline_id'], 'digest', f"digest:{run['id']}", rest, run['window_end'],
+                   timestamp, run['id'])
         return []
-    posts = []
-    for event_id in event_ids:
-        event = one(connection, 'SELECT ends_at FROM life_events WHERE id=?', (event_id,))
-        posts.append(create(connection, run['timeline_id'], 'event', f'event:{event_id}', [event_id],
-                            event['ends_at'], timestamp, run['id']))
-    return posts
+    return [photographed.get(event_id) or event_post(connection, run, event_id, timestamp) for event_id in event_ids]
+
+
+def event_post(connection, run, event_id, timestamp) -> str:
+    event = one(connection, 'SELECT ends_at FROM life_events WHERE id=?', (event_id,))
+    return create(connection, run['timeline_id'], 'event', f'event:{event_id}', [event_id], event['ends_at'],
+                  timestamp, run['id'])
+
+
+def photographed(connection, event_key) -> bool:
+    """Whether a photo was sent in chat of the slot that will become the event with this key."""
+    return optional(connection, "SELECT id FROM feed_posts WHERE idempotency_key=? AND status!='removed'",
+                    (PHOTO_KEY + event_key,)) is not None
+
+
+def photo_post(connection, event_id) -> str | None:
+    """The post a chat photo of this event's slot waits on, with the event joined to it, so the feed
+    shows the same picture the chat did and the event is told once."""
+    event = optional(connection, 'SELECT idempotency_key FROM life_events WHERE id=?', (event_id,))
+    post = event and optional(connection, "SELECT id FROM feed_posts WHERE idempotency_key=? AND status!='removed'",
+                              (PHOTO_KEY + event['idempotency_key'],))
+    if not post:
+        return None
+    connection.execute('INSERT OR IGNORE INTO feed_post_events (post_id, event_id, position) VALUES (?, ?, 0)',
+                       (post['id'], event_id))
+    return post['id']
 
 
 def post_event(database, event_id, intro='') -> dict:
@@ -108,8 +132,9 @@ def post_event(database, event_id, intro='') -> dict:
         require(event is not None, 'This item could not be found.', 404)
         require(event['status'] == 'committed' and event['timeline_id'] == companion['active_timeline_id'],
                 'Only a committed event on the active timeline can be posted.', 409)
-        post_id = create(connection, event['timeline_id'], 'event', f"event:{event['id']}", [event['id']],
-                         event['ends_at'], database.now(), intro=intro)
+        post_id = photo_post(connection, event['id']) or create(
+            connection, event['timeline_id'], 'event', f"event:{event['id']}", [event['id']], event['ends_at'],
+            database.now(), intro=intro)
         return post_view(connection, one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,)))
 
 

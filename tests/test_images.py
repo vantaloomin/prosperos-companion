@@ -595,96 +595,6 @@ def test_comfyui_custom_workflow_needs_a_prompt_marker(client, companion):
     assert bad.status_code == 422 and '{{prompt}}' in bad.json()['detail']
 
 
-FAKE_CLI = '''
-import sys, pathlib, os
-args = sys.argv[1:]
-log = pathlib.Path(os.environ["FAKE_CLI_LOG"])
-log.write_text(log.read_text() + " ".join(args) + "\\n" if log.exists() else " ".join(args) + "\\n")
-if args == ["--version"]:
-    print("chatgpt-imagegen 9.9"); sys.exit(0)
-mode = os.environ.get("FAKE_CLI_MODE", "ok")
-if mode == "auth":
-    sys.exit("refresh_token is no longer valid - run codex login again")
-if mode == "slow":
-    import time; time.sleep(30)
-out = pathlib.Path(args[args.index("-o") + 1])
-out.write_bytes(bytes.fromhex(os.environ["FAKE_PNG"]))
-print(out)
-'''
-
-
-@pytest.fixture
-def fake_cli(tmp_path, monkeypatch):
-    script = tmp_path / 'chatgpt-imagegen'
-    script.write_text(FAKE_CLI)
-    home = tmp_path / 'codex-home'
-    home.mkdir()
-    (home / 'auth.json').write_text('{}')
-    monkeypatch.setenv('CODEX_HOME', str(home))
-    monkeypatch.setenv('FAKE_CLI_LOG', str(tmp_path / 'cli.log'))
-    monkeypatch.setenv('FAKE_PNG', png(1024, 1536).hex())
-    raw = tmp_path / 'raw'
-    raw.mkdir()
-    return {'script': script, 'home': home, 'log': tmp_path / 'cli.log', 'raw': raw}
-
-
-def codex_request(fake_cli, **values):
-    return request_for('codex', {'cli_path': str(fake_cli['script']), 'method': 'imagegen_cli'}, width=1024,
-                       height=1536, raw_dir=fake_cli['raw'], **values)
-
-
-def test_codex_calls_the_cli_with_a_verified_size_and_keeps_the_raw_file(fake_cli):
-    result = asyncio.run(CodexAdapter().generate(codex_request(fake_cli)))
-    line = fake_cli['log'].read_text()
-    assert 'A café -o' in line and '--size 1024x1536' in line and '--timeout 300' in line
-    assert result.raw_path == fake_cli['raw'] / 'job1.png' and result.raw_path.exists()
-    assert result.data[:4] == b'\x89PNG' and result.seed is None
-
-
-def test_codex_auth_errors_and_missing_login(fake_cli, monkeypatch):
-    monkeypatch.setenv('FAKE_CLI_MODE', 'auth')
-    with pytest.raises(AdapterError) as error:
-        asyncio.run(CodexAdapter().generate(codex_request(fake_cli)))
-    assert error.value.code == 'auth' and 'codex login' in error.value.message
-    (fake_cli['home'] / 'auth.json').unlink()
-    with pytest.raises(AdapterError) as missing:
-        asyncio.run(CodexAdapter().generate(codex_request(fake_cli)))
-    assert missing.value.code == 'auth'
-    report = asyncio.run(CodexAdapter().check({}, {'cli_path': str(fake_cli['script']), 'method': 'imagegen_cli'}))
-    assert not report.ok and 'not signed in' in report.summary
-
-
-def test_codex_timeout_stops_the_process(fake_cli, monkeypatch):
-    monkeypatch.setenv('FAKE_CLI_MODE', 'slow')
-    adapter = CodexAdapter(timeout_seconds=1)
-    adapter_timeout = 0.5
-
-    async def scenario():
-        task = asyncio.create_task(adapter.generate(codex_request(fake_cli)))
-        await asyncio.sleep(adapter_timeout)
-        task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await task
-    asyncio.run(scenario())
-
-
-def test_codex_rejects_unverified_sizes(fake_cli):
-    with pytest.raises(AdapterError) as error:
-        asyncio.run(CodexAdapter().generate(request_for('codex', {'cli_path': str(fake_cli['script'])},
-                                                        width=1216, height=832, raw_dir=fake_cli['raw'])))
-    assert error.value.code == 'incompatible'
-    with pytest.raises(AdapterError) as error:
-        asyncio.run(CodexAdapter().generate(request_for('codex', {'method': 'native', 'cli_path': str(fake_cli['script'])},
-                                                        width=1216, height=832, raw_dir=fake_cli['raw'])))
-    assert error.value.code == 'incompatible'
-
-
-def test_codex_check_reports_version(fake_cli):
-    # A backend saved before the native method existed still runs chatgpt-imagegen.
-    report = asyncio.run(CodexAdapter().check({}, {'cli_path': str(fake_cli['script'])}))
-    assert report.ok and any('9.9' in line for line in report.details)
-
-
 FAKE_CODEX = '''
 import json, os, pathlib, sys
 args = sys.argv[1:]
@@ -700,6 +610,8 @@ pathlib.Path(os.environ["FAKE_CLI_LOG"]).write_text(" ".join(args) + "\\n" + sys
 emit = lambda event: print(json.dumps(event), flush=True)
 emit({"type": "thread.started", "thread_id": "thread-1"})
 emit({"type": "turn.started"})
+if mode == "slow":
+    import time; time.sleep(3)  # short: on Windows only the .cmd wrapper is killed
 emit({"type": "error", "message": "Reconnecting... 1/5"})
 if mode == "auth":
     emit({"type": "turn.failed", "error": {"message": "unexpected status 401 Unauthorized: token expired"}})
@@ -720,8 +632,16 @@ emit({"type": "turn.completed", "usage": {}})
 
 
 @pytest.fixture
-def fake_codex(fake_cli, tmp_path):
+def fake_codex(tmp_path, monkeypatch):
     """A stand-in `codex` launcher: a .cmd wrapper on Windows, a script with a shebang elsewhere."""
+    home = tmp_path / 'codex-home'
+    home.mkdir()
+    (home / 'auth.json').write_text('{}')
+    monkeypatch.setenv('CODEX_HOME', str(home))
+    monkeypatch.setenv('FAKE_CLI_LOG', str(tmp_path / 'cli.log'))
+    monkeypatch.setenv('FAKE_PNG', png(1024, 1536).hex())
+    raw = tmp_path / 'raw'
+    raw.mkdir()
     script = tmp_path / 'fake_codex.py'
     script.write_text(FAKE_CODEX)
     if os.name == 'nt':
@@ -731,12 +651,12 @@ def fake_codex(fake_cli, tmp_path):
         launcher = tmp_path / 'codex'
         launcher.write_text(f'#!{sys.executable}\n{FAKE_CODEX}')
         launcher.chmod(0o755)
-    return {**fake_cli, 'codex': launcher}
+    return {'codex': launcher, 'home': home, 'log': tmp_path / 'cli.log', 'raw': raw}
 
 
-def native_request(fake_codex):
-    return request_for('codex', {'cli_path': str(fake_codex['codex'])}, width=1024, height=1536,
-                       raw_dir=fake_codex['raw'])
+def native_request(fake_codex, **values):
+    return request_for('codex', {'cli_path': str(fake_codex['codex'])}, **{'width': 1024, 'height': 1536,
+                       'raw_dir': fake_codex['raw'], **values})
 
 
 def test_codex_native_runs_one_exec_turn_and_copies_the_saved_image(fake_codex):
@@ -853,3 +773,32 @@ def test_switching_timelines_cancels_images_not_started(client, companion, clock
     cancelled = ok(client.get(f"/api/images/jobs/{job['id']}"))
     assert cancelled['status'] == 'cancelled' and 'set aside' in cancelled['error']
     assert adapters['comfyui'].requests == []
+
+
+def test_codex_missing_login_unverified_size_and_old_imagegen_location(fake_codex, monkeypatch):
+    with pytest.raises(AdapterError) as size:
+        asyncio.run(CodexAdapter().generate(native_request(fake_codex, width=1216, height=832)))
+    assert size.value.code == 'incompatible'
+    # A location saved for the retired chatgpt-imagegen method falls back to codex on PATH.
+    monkeypatch.setenv('PATH', '')
+    old = request_for('codex', {'cli_path': str(fake_codex['codex'].with_name('chatgpt-imagegen'))},
+                      raw_dir=fake_codex['raw'])
+    with pytest.raises(AdapterError) as missing_cli:
+        asyncio.run(CodexAdapter().generate(old))
+    assert missing_cli.value.code == 'unavailable' and 'Codex CLI' in missing_cli.value.message
+    (fake_codex['home'] / 'auth.json').unlink()
+    with pytest.raises(AdapterError) as signed_out:
+        asyncio.run(CodexAdapter().generate(native_request(fake_codex)))
+    assert signed_out.value.code == 'auth' and 'codex login' in signed_out.value.message
+
+
+def test_codex_timeout_stops_the_process(fake_codex, monkeypatch):
+    monkeypatch.setenv('FAKE_CODEX_MODE', 'slow')
+
+    async def scenario():
+        task = asyncio.create_task(CodexAdapter(timeout_seconds=1).generate(native_request(fake_codex)))
+        await asyncio.sleep(0.5)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    asyncio.run(scenario())

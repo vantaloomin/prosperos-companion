@@ -20,6 +20,27 @@ export interface Message {
   completed_at: string | null
   /** For a message copied into an alternate timeline, the message it was first written as. */
   origin_id?: string | null
+  /** A photo of the moment this reply sent (photos in chat). */
+  photo?: ChatPhoto | null
+}
+
+/** A picture a reply sent: a photo, selfie or view of the moment (shared with its feed post), or a meme. */
+export interface ChatPhoto {
+  message_id: string
+  post_id: string
+  kind: 'moment' | 'selfie' | 'view' | 'meme'
+  summary: string
+  /** A meme's captions, drawn over the picture. */
+  top_text: string
+  bottom_text: string
+  status: ImageStatus
+  job_id: string | null
+  ref: string | null
+  error: string | null
+  /** Whether the moment has become an event in the feed yet. */
+  in_feed: boolean
+  /** Sent without being asked. */
+  unasked: boolean
 }
 
 export interface Timeline {
@@ -379,8 +400,6 @@ export interface PostImage { status: ImageStatus; job_id: string | null; ref: st
 export type BackendKind = 'comfyui' | 'codex' | 'hosted'
 export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'other'
 
-export type CodexMethod = 'native' | 'imagegen_cli'
-
 export interface ImageBackend {
   id: string
   kind: BackendKind
@@ -392,7 +411,6 @@ export interface ImageBackend {
   model: string
   api_style: 'images' | 'chat' | null
   cli_path: string
-  method: CodexMethod | null
   custom_workflow: boolean
   has_key: boolean
   controlled_machine: boolean
@@ -405,7 +423,7 @@ export interface ImageBackend {
   experimental: boolean
 }
 
-export interface ImageSettings { automatic_images: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
+export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[] }
 
