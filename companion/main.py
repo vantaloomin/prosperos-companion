@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from companion.conversation import Conversation, recover
@@ -16,6 +17,9 @@ from companion.life import routes as life_routes
 from companion.life.simulation import LifeEngine
 from companion.providers.vault import SystemVault
 from companion.routes import router
+
+# The built interface (`npm run build`), served beside the API as prosperos-study server/main.py does.
+FRONTEND = Path(__file__).parent.parent / 'dist'
 
 
 async def guard_writes(request: Request, call_next):
@@ -57,4 +61,6 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
     app.include_router(life_routes.router)
+    if FRONTEND.exists():
+        app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

@@ -3,8 +3,13 @@
 A reply only becomes the active response when it completed against the memory revision and
 character version it was built from. Otherwise it is kept as `withheld` so a correction made
 while it was generating can never be contradicted by the stale reply.
+
+A reply can be awaited in the sending request, or the request can return as soon as the attempt
+is saved and the client follows its text with `events()`. Generation belongs to the app, not to
+the request or the stream: closing a stream never stops a reply, only Stop does.
 """
 import asyncio
+from dataclasses import dataclass, field
 
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
@@ -104,52 +109,100 @@ def recover(database):
                            ('The app closed before this reply finished.', database.now()))
 
 
+@dataclass
+class LiveReply:
+    """Text streamed so far for one attempt, fanned out to every open event stream."""
+    task: asyncio.Task | None = None
+    text: list[str] = field(default_factory=list)
+    listeners: set[asyncio.Queue] = field(default_factory=set)
+
+    def publish(self, text: str):
+        if text:
+            self.text.append(text)
+            for queue in self.listeners:
+                queue.put_nowait(text)
+
+
 class Conversation:
     def __init__(self, database, vault, provider=None, scheduler=None):
         self.database = database
         self.vault = vault
         self.provider = provider or ChatProvider()
         self.scheduler = scheduler or RequestScheduler()
-        self.running: dict[str, asyncio.Task] = {}
+        self.running: dict[str, LiveReply] = {}
 
-    async def send(self, body) -> dict:
+    async def send(self, body, wait: bool = True) -> dict:
         user = record_user(self.database, body)
         with self.database.connect() as connection:
-            reply = active_reply(connection, user['id'])
+            reply = active_reply(connection, user['id']) or self.in_progress(connection, user['id'])
         if reply:
             return {'message': message_view(user), 'reply': message_view(reply), 'connection': 'ready'}
-        return await self.respond(user)
+        return await self.respond(user, wait)
 
-    async def alternative(self, user_message_id) -> dict:
+    def in_progress(self, connection, user_message_id) -> dict | None:
+        """A retried send while its reply is still being written follows that reply instead of starting another."""
+        rows = many(connection, "SELECT * FROM messages WHERE reply_to=? AND status='streaming'", (user_message_id,))
+        return next((row for row in rows if row['id'] in self.running), None)
+
+    async def alternative(self, user_message_id, wait: bool = True) -> dict:
         with self.database.connect() as connection:
             user = one(connection, "SELECT * FROM messages WHERE id=? AND role='user'", (user_message_id,))
             latest = latest_user_message(connection, user['timeline_id'])
             require(latest['id'] == user['id'], 'Alternatives are available for the latest message only.', 409)
-        return await self.respond(user)
+        return await self.respond(user, wait)
 
     def stop(self, attempt_id) -> bool:
-        task = self.running.get(attempt_id)
-        if task is None:
+        live = self.running.get(attempt_id)
+        if live is None:
             return False
-        task.cancel()
+        live.task.cancel()
         return True
 
-    async def respond(self, user) -> dict:
+    async def respond(self, user, wait: bool = True) -> dict:
         prepared = self.prepare(user)
         if prepared['connection'] != 'ready':
             return {'message': message_view(user), 'reply': None, 'connection': prepared['connection']}
-        task = asyncio.create_task(self.generate(prepared))
-        self.running[prepared['attempt_id']] = task
-        try:
-            await asyncio.shield(task)
-        except asyncio.CancelledError:
-            if not task.done():
-                raise
-        finally:
-            self.running.pop(prepared['attempt_id'], None)
+        live = self.start(prepared)
+        if wait:
+            try:
+                await asyncio.shield(live.task)
+            except asyncio.CancelledError:
+                if not live.task.done():
+                    raise
+        return {'message': message_view(user), 'reply': self.reply(prepared['attempt_id']),
+                'connection': 'ready'}
+
+    def start(self, prepared) -> LiveReply:
+        attempt_id, live = prepared['attempt_id'], LiveReply()
+        live.task = asyncio.create_task(self.generate(prepared, live.publish))
+        self.running[attempt_id] = live
+        live.task.add_done_callback(lambda _task: self.close(attempt_id))
+        return live
+
+    def close(self, attempt_id):
+        """The attempt is saved in its final state before its streams are told it ended."""
+        live = self.running.pop(attempt_id, None)
+        for queue in live.listeners if live else ():
+            queue.put_nowait(None)
+
+    def reply(self, attempt_id) -> dict:
         with self.database.connect() as connection:
-            reply = one(connection, 'SELECT * FROM messages WHERE id=?', (prepared['attempt_id'],))
-        return {'message': message_view(user), 'reply': message_view(reply), 'connection': 'ready'}
+            return message_view(one(connection, "SELECT * FROM messages WHERE id=? AND role='companion'",
+                                    (attempt_id,)))
+
+    async def events(self, attempt_id):
+        """Yield (event, data): a snapshot of the text so far, each new piece of text, then the saved reply."""
+        live = self.running.get(attempt_id)
+        if live is not None:
+            queue = asyncio.Queue()
+            live.listeners.add(queue)
+            try:
+                yield 'snapshot', {'id': attempt_id, 'text': ''.join(live.text)}
+                while (text := await queue.get()) is not None:
+                    yield 'delta', {'id': attempt_id, 'text': text}
+            finally:
+                live.listeners.discard(queue)
+        yield 'done', self.reply(attempt_id)
 
     def prepare(self, user) -> dict:
         with self.database.connect(write=True) as connection:
@@ -160,7 +213,7 @@ class Conversation:
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
             packet = context.build(connection, companion, self.database.clock.now(),
-                                   config['context_tokens'] - config['max_output_tokens'])
+                                   config['context_tokens'] - config['max_output_tokens'], user['seq'])
             attempt_id = identifier()
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
@@ -171,7 +224,7 @@ class Conversation:
                  self.database.now()))
         return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'packet': packet}
 
-    async def generate(self, prepared):
+    async def generate(self, prepared, publish=lambda _text: None):
         text, status, error = [], 'complete', None
         try:
             key = credential_for(self.vault, prepared['config']['credential_ref'])
@@ -180,6 +233,7 @@ class Conversation:
                     async for chunk in self.provider.stream(prepared['config'], key, prepared['packet']['system'],
                                                             prepared['packet']['messages']):
                         text.append(chunk.text)
+                        publish(chunk.text)
                         if chunk.finish_reason in INCOMPLETE:
                             status, error = 'incomplete', INCOMPLETE[chunk.finish_reason]
         except asyncio.CancelledError:

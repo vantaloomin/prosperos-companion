@@ -1,5 +1,8 @@
 """Local HTTP API for the Companion backbone."""
+import json
+
 from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
 
 from companion import backup, characters, conversation, events, workspace
 from companion.identity import APP_ID, VERSION
@@ -86,13 +89,27 @@ def read_conversation(request: Request, before_seq: int | None = None, limit: in
 
 
 @router.post('/conversation/messages')
-async def send_message(request: Request, body: MessageCreate):
-    return await request.app.state.conversation.send(body)
+async def send_message(request: Request, body: MessageCreate, wait: bool = True):
+    return await request.app.state.conversation.send(body, wait)
 
 
 @router.post('/conversation/messages/{message_id}/alternatives')
-async def alternative(request: Request, message_id: str):
-    return await request.app.state.conversation.alternative(message_id)
+async def alternative(request: Request, message_id: str, wait: bool = True):
+    return await request.app.state.conversation.alternative(message_id, wait)
+
+
+@router.get('/conversation/replies/{attempt_id}/events')
+async def reply_events(request: Request, attempt_id: str):
+    """Server-sent events for one reply. Closing the stream does not stop the reply."""
+    conversation = request.app.state.conversation
+    conversation.reply(attempt_id)
+
+    async def body():
+        async for name, data in conversation.events(attempt_id):
+            yield f'event: {name}\ndata: {json.dumps(data)}\n\n'
+
+    return StreamingResponse(body(), media_type='text/event-stream',
+                             headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
 
 
 @router.post('/conversation/replies/{attempt_id}/stop')
