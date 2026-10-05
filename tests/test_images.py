@@ -2,7 +2,9 @@
 import asyncio
 import base64
 import json
+import os
 import struct
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -627,8 +629,8 @@ def fake_cli(tmp_path, monkeypatch):
 
 
 def codex_request(fake_cli, **values):
-    return request_for('codex', {'cli_path': str(fake_cli['script'])}, width=1024, height=1536,
-                       raw_dir=fake_cli['raw'], **values)
+    return request_for('codex', {'cli_path': str(fake_cli['script']), 'method': 'imagegen_cli'}, width=1024,
+                       height=1536, raw_dir=fake_cli['raw'], **values)
 
 
 def test_codex_calls_the_cli_with_a_verified_size_and_keeps_the_raw_file(fake_cli):
@@ -648,7 +650,7 @@ def test_codex_auth_errors_and_missing_login(fake_cli, monkeypatch):
     with pytest.raises(AdapterError) as missing:
         asyncio.run(CodexAdapter().generate(codex_request(fake_cli)))
     assert missing.value.code == 'auth'
-    report = asyncio.run(CodexAdapter().check({}, {'cli_path': str(fake_cli['script'])}))
+    report = asyncio.run(CodexAdapter().check({}, {'cli_path': str(fake_cli['script']), 'method': 'imagegen_cli'}))
     assert not report.ok and 'not signed in' in report.summary
 
 
@@ -671,11 +673,100 @@ def test_codex_rejects_unverified_sizes(fake_cli):
         asyncio.run(CodexAdapter().generate(request_for('codex', {'cli_path': str(fake_cli['script'])},
                                                         width=1216, height=832, raw_dir=fake_cli['raw'])))
     assert error.value.code == 'incompatible'
+    with pytest.raises(AdapterError) as error:
+        asyncio.run(CodexAdapter().generate(request_for('codex', {'method': 'native', 'cli_path': str(fake_cli['script'])},
+                                                        width=1216, height=832, raw_dir=fake_cli['raw'])))
+    assert error.value.code == 'incompatible'
 
 
 def test_codex_check_reports_version(fake_cli):
+    # A backend saved before the native method existed still runs chatgpt-imagegen.
     report = asyncio.run(CodexAdapter().check({}, {'cli_path': str(fake_cli['script'])}))
     assert report.ok and any('9.9' in line for line in report.details)
+
+
+FAKE_CODEX = '''
+import json, os, pathlib, sys
+args = sys.argv[1:]
+mode = os.environ.get("FAKE_CODEX_MODE", "ok")
+if args == ["--version"]:
+    print("codex-cli 0.160.1"); sys.exit(0)
+if args == ["login", "status"]:
+    print({"apikey": "Logged in using an API key - sk-***", "out": "Not logged in"}.get(mode, "Logged in using ChatGPT"))
+    sys.exit(0)
+pathlib.Path(os.environ["FAKE_CLI_LOG"]).write_text(" ".join(args) + "\\n" + sys.stdin.read())
+emit = lambda event: print(json.dumps(event), flush=True)
+emit({"type": "thread.started", "thread_id": "thread-1"})
+emit({"type": "turn.started"})
+emit({"type": "error", "message": "Reconnecting... 1/5"})
+if mode == "auth":
+    emit({"type": "turn.failed", "error": {"message": "unexpected status 401 Unauthorized: token expired"}})
+    sys.exit(1)
+if mode == "refused":
+    emit({"type": "turn.failed", "error": {"message": "Your request was rejected by the safety system"}})
+    sys.exit(1)
+if mode != "none":
+    folder = pathlib.Path(os.environ["CODEX_HOME"]) / "generated_images" / "thread-1"
+    folder.mkdir(parents=True, exist_ok=True)
+    image = folder / "ig_1.png"
+    image.write_bytes(bytes.fromhex(os.environ["FAKE_PNG"]))
+    if mode == "ok":
+        emit({"type": "item.completed", "item": {"type": "image_generation", "saved_path": str(image)}})
+emit({"type": "item.completed", "item": {"type": "agent_message", "text": "DONE"}})
+emit({"type": "turn.completed", "usage": {}})
+'''
+
+
+@pytest.fixture
+def fake_codex(fake_cli, tmp_path):
+    """A stand-in `codex` launcher: a .cmd wrapper on Windows, a script with a shebang elsewhere."""
+    script = tmp_path / 'fake_codex.py'
+    script.write_text(FAKE_CODEX)
+    if os.name == 'nt':
+        launcher = tmp_path / 'codex.cmd'
+        launcher.write_text(f'@"{sys.executable}" "{script}" %*\n')
+    else:
+        launcher = tmp_path / 'codex'
+        launcher.write_text(f'#!{sys.executable}\n{FAKE_CODEX}')
+        launcher.chmod(0o755)
+    return {**fake_cli, 'codex': launcher}
+
+
+def native_request(fake_codex):
+    return request_for('codex', {'cli_path': str(fake_codex['codex'])}, width=1024, height=1536,
+                       raw_dir=fake_codex['raw'])
+
+
+def test_codex_native_runs_one_exec_turn_and_copies_the_saved_image(fake_codex):
+    result = asyncio.run(CodexAdapter().generate(native_request(fake_codex)))
+    args, prompt = fake_codex['log'].read_text().split('\n', 1)
+    assert args.startswith('exec --json --skip-git-repo-check --ephemeral --ignore-user-config --ignore-rules '
+                           '--sandbox read-only --cd ') and args.endswith(' -')
+    assert '1024x1536' in prompt and 'A café' in prompt and 'Avoid: text' in prompt
+    assert result.raw_path == fake_codex['raw'] / 'job1.png' and result.data[:4] == b'\x89PNG'
+    assert result.remote_id == 'thread-1' and result.workflow == 'codex exec' and result.seed is None
+
+
+def test_codex_native_finds_the_image_in_the_thread_folder(fake_codex, monkeypatch):
+    monkeypatch.setenv('FAKE_CODEX_MODE', 'folder')
+    result = asyncio.run(CodexAdapter().generate(native_request(fake_codex)))
+    assert result.raw_path.exists()
+
+
+@pytest.mark.parametrize(('mode', 'code'), [('auth', 'auth'), ('refused', 'refused'), ('none', 'failed')])
+def test_codex_native_failures(fake_codex, monkeypatch, mode, code):
+    monkeypatch.setenv('FAKE_CODEX_MODE', mode)
+    with pytest.raises(AdapterError) as error:
+        asyncio.run(CodexAdapter().generate(native_request(fake_codex)))
+    assert error.value.code == code and 'Reconnecting' not in error.value.message
+
+
+@pytest.mark.parametrize(('mode', 'ok', 'words'), [('ok', True, 'experimental'), ('apikey', True, 'API key'),
+                                                   ('out', False, 'not signed in')])
+def test_codex_native_check_reads_the_login_state(fake_codex, monkeypatch, mode, ok, words):
+    monkeypatch.setenv('FAKE_CODEX_MODE', mode)
+    report = asyncio.run(CodexAdapter().check({}, {'cli_path': str(fake_codex['codex'])}))
+    assert report.ok is ok and words in report.summary and any('0.160.1' in line for line in report.details)
 
 
 def hosted_server(responses, seen):

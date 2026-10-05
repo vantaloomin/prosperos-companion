@@ -28,7 +28,7 @@ test('loopback addresses are local and others need a disclosure', () => {
   assert.equal(disclosureFor('comfyui', 'other', 'http://127.0.0.1:8188', false), null)
   assert.equal(disclosureFor('comfyui', 'other', 'https://gpu.example.com', true), null)
   assert.match(disclosureFor('comfyui', 'other', 'https://gpu.example.com', false) ?? '', /not on this computer/)
-  assert.match(disclosureFor('codex', 'other', '', false) ?? '', /ChatGPT login/)
+  assert.match(disclosureFor('codex', 'other', '', false) ?? '', /Codex CLI under your own codex login/)
   assert.match(disclosureFor('hosted', 'openrouter', '', false) ?? '', /OpenRouter/)
 })
 
