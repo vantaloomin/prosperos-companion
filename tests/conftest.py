@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime
 
 import pytest
@@ -20,12 +21,20 @@ class FakeProvider:
         self.replies = []
         self.before_finish = None
         self.error = None
+        self.respond = None
+        self.delay = 0
 
     async def stream(self, config, key, system, messages):
         self.requests.append({'config': config, 'key': key, 'system': system, 'messages': messages})
+        if self.delay:
+            await asyncio.sleep(self.delay)
         if self.error:
             raise self.error
-        for chunk in (self.replies.pop(0) if self.replies else [Chunk('Hello again.'), Chunk('', 'stop')]):
+        if self.respond:
+            chunks = self.respond(system, messages)
+        else:
+            chunks = self.replies.pop(0) if self.replies else [Chunk('Hello again.'), Chunk('', 'stop')]
+        for chunk in chunks:
             yield chunk
         if self.before_finish:
             self.before_finish()
@@ -44,7 +53,7 @@ def provider():
 @pytest.fixture
 def app(tmp_path, clock, provider):
     return create_app(tmp_path / 'workspace' / 'companion.sqlite3', clock=clock, vault=MemoryVault(),
-                      provider=provider)
+                      provider=provider, life_tasks=False)
 
 
 @pytest.fixture

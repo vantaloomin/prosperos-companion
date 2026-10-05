@@ -158,3 +158,49 @@ CREATE TABLE IF NOT EXISTS deletion_markers (
   kind TEXT NOT NULL,
   deleted_at TEXT NOT NULL
 );
+
+-- Life simulation (PRD T3–T7). Limits are user-visible and bounded by tested ceilings.
+CREATE TABLE IF NOT EXISTS life_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  automatic_events INTEGER NOT NULL DEFAULT 0 CHECK (automatic_events IN (0, 1)),
+  catch_up_on_return INTEGER NOT NULL DEFAULT 1 CHECK (catch_up_on_return IN (0, 1)),
+  catch_up_max_events INTEGER NOT NULL DEFAULT 3,
+  catch_up_lookback_hours INTEGER NOT NULL DEFAULT 48,
+  return_gap_hours INTEGER NOT NULL DEFAULT 4,
+  background_interval_minutes INTEGER NOT NULL DEFAULT 60,
+  background_daily_events INTEGER NOT NULL DEFAULT 3,
+  updated_at TEXT NOT NULL
+);
+
+-- How far each timeline's fictional time has been simulated. It only moves forward, so a clock
+-- moving backward or a second launch can never simulate the same real interval twice.
+CREATE TABLE IF NOT EXISTS life_cursors (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  simulated_through TEXT NOT NULL,
+  last_reconciled_at TEXT,
+  updated_at TEXT NOT NULL
+);
+
+-- One catch-up or background batch. The plan is fixed when the batch is created, so a batch
+-- resumed after a restart produces the same slots and its events stay idempotent.
+CREATE TABLE IF NOT EXISTS life_runs (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  run_key TEXT NOT NULL UNIQUE,
+  mode TEXT NOT NULL CHECK (mode IN ('return', 'background')),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'running', 'completed', 'failed', 'interrupted')),
+  window_start TEXT NOT NULL,
+  window_end TEXT NOT NULL,
+  plan TEXT NOT NULL,
+  results TEXT NOT NULL DEFAULT '[]',
+  character_version_id TEXT NOT NULL REFERENCES character_versions(id),
+  permission_revision INTEGER NOT NULL,
+  owner TEXT,
+  lease_until TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  error TEXT,
+  created_at TEXT NOT NULL,
+  started_at TEXT,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS life_runs_timeline ON life_runs(timeline_id, created_at);

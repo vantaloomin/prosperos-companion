@@ -39,6 +39,7 @@ class Database:
             connection.executescript(SCHEMA)
             connection.execute('INSERT OR IGNORE INTO workspace_settings (id, updated_at) VALUES (1, ?)',
                                (self.now(),))
+            connection.execute('INSERT OR IGNORE INTO life_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
 
     def now(self) -> str:
         return stamp(self.clock.now())
