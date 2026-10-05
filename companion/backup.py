@@ -91,4 +91,6 @@ def hold_for_review(database: Database):
         connection.execute("INSERT INTO pauses (id, started_at) SELECT lower(hex(randomblob(16))), ? "
                            'WHERE NOT EXISTS (SELECT 1 FROM pauses WHERE ended_at IS NULL)', (timestamp,))
         connection.execute('UPDATE connection SET credential_ref=NULL')
+        connection.execute('UPDATE image_backends SET credential_ref=NULL')
+        connection.execute('UPDATE image_settings SET automatic_images=0')
         connection.execute("UPDATE messages SET status='incomplete', active=0 WHERE status='streaming'")

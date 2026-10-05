@@ -336,7 +336,8 @@ A post:
 - `caption` is the companion's own line for the moment, falling back to the summary.
 - `occurs_at` is the fictional time the post is about; `created_at` is when it was written.
 - `image.status` is `none`, `queued`, `running`, `completed`, `failed`, `cancelled` or
-  `interrupted`. Image generation is not built yet: render the text whatever the image state.
+  `interrupted`; `image.ref` is the job whose file is shown. Render the text whatever the image
+  state. See [image generation](images.md).
 - Hide is reversible. Remove clears the post for good but leaves its events in the companion's
   life and conversation. Removed posts are not listed or exported.
 - `discuss` sends a chat message linked to the post and returns the same shape as
