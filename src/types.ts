@@ -363,8 +363,6 @@ export interface PostImage { status: ImageStatus; job_id: string | null; ref: st
 export type BackendKind = 'comfyui' | 'codex' | 'hosted'
 export type HostedProvider = 'openrouter' | 'google' | 'openai' | 'other'
 
-export type CodexMethod = 'native' | 'imagegen_cli'
-
 export interface ImageBackend {
   id: string
   kind: BackendKind
@@ -376,7 +374,6 @@ export interface ImageBackend {
   model: string
   api_style: 'images' | 'chat' | null
   cli_path: string
-  method: CodexMethod | null
   custom_workflow: boolean
   has_key: boolean
   controlled_machine: boolean
