@@ -261,3 +261,17 @@ def test_a_shared_outing_shows_in_the_friends_diary(client, baltimore, clock):
     event = shared[0]
     diary = client.get(f"/api/life/circle/{event['details']['with']['id']}/diary?limit=100").json()
     assert {'event_id': event['id'], 'summary': event['summary']} in [item['with_companion'] for item in diary]
+
+
+def test_chat_knows_the_companions_likely_next_plans(client, baltimore, provider, clock):
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    reconcile(client)
+    client.post('/api/conversation/messages', json={'text': 'What are you up to later?', 'client_id': 'plans-0001'})
+    system = provider.requests[-1]['system']
+    assert 'likely to do next' in system
+    upcoming = [row for row in rows(client, subject='companion', status='upcoming') if row['entry']
+                and parse(row['starts_at']) > clock.now()]
+    assert decode(upcoming[0]['entry'])['activity'].replace('-', ' ') in system
+    # Intentions are not events: nothing was proposed or committed for them.
+    assert client.get('/api/events?history=true').json() == []

@@ -217,3 +217,23 @@ def unprepared(connection, timeline_id, basis, now, limit) -> list[dict]:
 
 def save_prepared(connection, entry_id, prepared: dict):
     connection.execute('UPDATE life_agenda SET prepared=? WHERE id=?', (encode(prepared), entry_id))
+
+
+def upcoming(connection, timeline_id, basis, now, hours=24, limit=4) -> list[dict]:
+    """The companion's next precomputed entries, for the chat context only: likely plans the
+    companion may mention as intentions. They are not events and nothing commits them."""
+    rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
+                'AND basis=? AND entry IS NOT NULL AND starts_at>? AND starts_at<? ORDER BY starts_at LIMIT ?',
+                (timeline_id, COMPANION, basis, stamp(now), stamp(now + timedelta(hours=hours)), limit))
+    return [entry_view(row) for row in rows]
+
+
+def intention_text(item) -> str:
+    entry = item['entry']
+    text = f"- {item['local_date']}, {item['block']['label'].lower()} ({item['block']['start']}): "
+    text += entry['activity'].replace('-', ' ')
+    if entry.get('place'):
+        text += f" at {entry['place']['name']}"
+    if entry.get('with'):
+        text += f" with {entry['with']['name']}"
+    return text

@@ -38,6 +38,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'feed_reference': 'Your feed post the user is replying to',
             'relationship_mood': 'Your current mood about time apart',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
+                          'never as done, and they may change)',
             'recalled': 'Possibly relevant memories'}
 
 
@@ -239,6 +241,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
             packet.offer(section, memory['id'], memory_text(memory))
     for person in agenda.circle_view(connection, timeline_id, now):
         packet.offer('circle', person['id'], person_text(person))
+    for item in agenda.upcoming(connection, timeline_id, version['id'], now):
+        packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
         packet.offer('companion_life', event['id'], f"- {event['starts_at'][:16]}: {event['summary']}")
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
