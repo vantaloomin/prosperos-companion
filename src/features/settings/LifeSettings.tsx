@@ -60,6 +60,7 @@ export function LifeSettings({ name }: { name: string }) {
         hint="What happens is always built from their routine and city. With this on, your model rewrites it in their voice; off, plain wording is used and no model calls are made." />
       <Toggle label={`Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
         hint={`${name} may start a conversation: to ask how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
+      <BirthdayField saved={data.user_birthday} onSave={(value) => save({ user_birthday: value }, value ? 'Birthday saved.' : 'Birthday forgotten.')} name={name} />
       <DramaSlider name={name} value={data.drama} onChange={(value) => void save({ drama: value })} />
       <div className="form-grid">
         {LIMITS.map((limit) => (
@@ -81,5 +82,18 @@ function DramaSlider({ name, value, onChange }: { name: string; value: number; o
       {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={value} aria-valuetext={level.label} aria-describedby={describedBy}
         onChange={(event) => onChange(Number(event.target.value))} />}
     </Field>
+  )
+}
+
+/** The user's own birthday ("MM-DD"): noticed when they say it in chat, changed or forgotten here. */
+function BirthdayField({ name, saved, onSave }: { name: string; saved: string; onSave: (value: string) => Promise<boolean> }) {
+  const [value, setValue] = useState<string | null>(null)
+  const shown = value ?? saved
+  return (
+    <form className="form-stack" onSubmit={(event) => { event.preventDefault(); void onSave(shown.trim()).then((done) => { if (done) setValue(null) }) }}>
+      <TextInput label="Your birthday" value={shown} maxLength={5} placeholder="MM-DD" onChange={setValue}
+        hint={`Month and day, such as 03-14. ${name} remembers it on the day. Filled in when you mention it in chat; clear it to have it forgotten.`} />
+      {value !== null && value !== saved && <div className="form-actions"><button type="submit" className="button primary">Save birthday</button><button type="button" className="button" onClick={() => setValue(null)}>Cancel</button></div>}
+    </form>
   )
 }

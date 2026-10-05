@@ -13,7 +13,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
-from companion.life import agenda, body, circle, money, recommendations, storylines
+from companion.life import agenda, body, circle, money, occasions, recommendations, storylines
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
@@ -59,6 +59,7 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
                                'the user said: never invent plot, people, songs or other details about it',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
             'storylines': "What is going on in your life and your people's lives (decided: bring it up the way "
                           'a friend would, never contradict it, and never invent how an unfolding one ends)',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
@@ -349,8 +350,11 @@ def fit_conversation(packet, recent) -> list[dict]:
     return kept
 
 
-def offer_day(packet, connection, timeline_id, today):
-    """Today's weather, the city's happenings and how the companion feels."""
+def offer_day(packet, connection, timeline_id, version, now, today):
+    """Today's weather, the city's happenings, how the companion feels and the day's occasions."""
+    for item in occasions.occasions(connection, {'id': version['companion_id'], 'active_timeline_id': timeline_id,
+                                                 'version': version}, now):
+        packet.offer('occasions', item['key'], item['text'])
     day = agenda.day_on(connection, timeline_id, today)
     if day['weather'] and day['weather'].get('observed'):
         packet.offer('observed_weather', today, f"{agenda.weather_text(day['weather'])} "
@@ -375,7 +379,7 @@ def offer_people(packet, connection, timeline_id, version, now, today):
 def offer_life(packet, connection, timeline_id, version, now):
     """The companion's fictional world: today's weather, their circle, likely next steps and recent events."""
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
-    offer_day(packet, connection, timeline_id, today)
+    offer_day(packet, connection, timeline_id, version, now, today)
     offer_people(packet, connection, timeline_id, version, now, today)
     for identity, text in money.context_lines(version['definition'], today):
         packet.offer('money', identity, text)

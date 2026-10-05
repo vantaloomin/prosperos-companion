@@ -15,7 +15,7 @@ from datetime import timedelta
 from companion import self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import body, circle, composer, recommendations, routine, storylines
+from companion.life import body, circle, composer, occasions, recommendations, routine, storylines
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -42,8 +42,8 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
                                       'haunts': decode(person['details']).get('haunts', [])},
                        f"{person['id']}:{person['revision']}"))
     # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
-    result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id'])},
-                   version['id']))
+    result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id']),
+                               'own_birthday': occasions.own_birthday(companion)}, version['id']))
     return result
 
 

@@ -287,6 +287,25 @@ weeks' storylines and says when one is still unfolding, so the companion never g
 A beat from today or yesterday can open a conversation, using its `share` line when no model is
 connected. Days are decided as the agenda extends, up to 14 days back after time away.
 
+### Birthdays and anniversaries
+
+`companion/life/occasions.py` keeps three kinds of day, from the calendar and saved state only:
+
+- The companion's birthday: the definition's `birthday` (`"MM-DD"`), or a date seeded by the
+  companion's id when it is empty. On the day, their first free leisure or social slot from noon is a
+  celebration (`activity: "own-birthday"`), with a free circle member when there is one.
+- The user's birthday: the Life setting `user_birthday` (`"MM-DD"` or empty). It is filled in the first
+  time the user says it plainly ("my birthday is March 3rd", "it's my birthday today"; questions and
+  "if…" are skipped) and is never replaced by a later message; the user changes or clears it in
+  Settings.
+- How long they have talked, counted from the timeline's first message in the user's timezone: a
+  month, 100 days, three months, six months, then every year. For a romance it reads as their
+  anniversary.
+
+The chat context lists the day itself and birthdays within a week. Today's response has `occasions`
+(`[{key, kind, date, days, span, text, template}]`, `kind` one of `user_birthday`, `own_birthday`,
+`anniversary`). On the day, an occasion is the first reason the companion may message first.
+
 ## Limits and permissions
 
 ```http

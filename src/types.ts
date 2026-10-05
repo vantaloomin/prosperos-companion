@@ -59,6 +59,8 @@ export interface EmotionalTrait { name: string; intensity: Intensity; note: stri
 
 export interface CharacterDefinition {
   name: string
+  /** "MM-DD"; empty picks a date for them. */
+  birthday?: string
   identity: string
   personality: string
   voice: string
@@ -253,6 +255,8 @@ export interface LifeSettings {
   texts_gap_hours: number
   /** 0 sizes the circle by how sociable the companion is. */
   circle_size: number
+  /** "MM-DD" or empty; filled in when the user says it in chat. */
+  user_birthday: string
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
 }
@@ -301,6 +305,8 @@ export interface Today {
   mood: AbsenceMood | null
   last_seen_at: string | null
   day: { date: string; body: BodyState | null }
+  /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
+  occasions?: Occasion[]
 }
 
 /** How the companion feels physically today, carried over from the day before. */
@@ -781,3 +787,5 @@ export interface Storyline {
   beats: StoryBeat[]
   unfolding: boolean
 }
+
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null }

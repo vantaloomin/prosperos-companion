@@ -1,3 +1,13 @@
+import type { Occasion } from '../../types'
+
+/** One line for Today: "Your birthday is in 3 days", "It's been three months since you two started talking". */
+export function occasionText(item: Occasion, name: string): string {
+  const when = item.days === 0 ? 'today' : item.days === 1 ? 'tomorrow' : `in ${item.days} days`
+  if (item.kind === 'user_birthday') return item.days === 0 ? 'Happy birthday! It is your birthday today.' : `Your birthday is ${when}.`
+  if (item.kind === 'own_birthday') return `It is ${name}'s birthday ${when}.`
+  return `It's been ${item.span} since you two started talking.`
+}
+
 /** "Mon 5 Oct" for a local date ("2026-10-05"), without shifting it through a timezone. */
 export function storyDate(day: string): string {
   const [year, month, date] = day.split('-').map(Number)

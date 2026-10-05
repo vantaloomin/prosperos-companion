@@ -77,6 +77,8 @@ class CharacterDefinition(Input):
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
+    # "MM-DD"; empty picks a date from the companion's id (companion/life/occasions.py).
+    birthday: str = Field(default='', pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
     money: MoneySetup = Field(default_factory=MoneySetup)
 
 
@@ -202,6 +204,8 @@ class LifeSettingsUpdate(Input):
     circle_size: int | None = Field(default=None, ge=0, le=12)
     # Storylines from quiet (0) through realistic and dramatic to soap opera (3).
     drama: int | None = Field(default=None, ge=0, le=3)
+    # "MM-DD", or empty to forget it (companion/life/occasions.py).
+    user_birthday: str | None = Field(default=None, pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
 
 
 class NotificationSettingsUpdate(Input):

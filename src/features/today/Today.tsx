@@ -11,6 +11,7 @@ import { EventItem } from './EventItem'
 import { MoneyPanel } from './MoneyPanel'
 import { Recommendations } from './Recommendations'
 import { Storylines } from './Storylines'
+import { occasionText } from './storyText'
 import { availabilityText, bodyText, moodText, pauseToFill } from './todayText'
 
 const TODAY_KEY = ['today']
@@ -104,7 +105,10 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
 
 function Feeling({ data, name }: { data: TodayData; name: string }) {
   const text = bodyText(data.day?.body, name)
-  return text ? <p className="subtle">{text}</p> : null
+  return <>
+    {text && <p className="subtle">{text}</p>}
+    {(data.occasions ?? []).map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
+  </>
 }
 
 function Section({ id, title, hint, empty, children }: { id: string; title: string; hint?: string; empty?: string; children: ReactNode[] }) {

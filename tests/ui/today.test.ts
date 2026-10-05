@@ -44,3 +44,11 @@ test('story dates read as the local day they name', async () => {
   assert.equal(storyDate('2026-10-05'), 'Mon 5 Oct')
   assert.deepEqual(DRAMA_LEVELS.map((level) => level.label), ['Quiet', 'Realistic', 'Dramatic', 'Soap opera'])
 })
+
+test('occasions read as a friend would say them', async () => {
+  const { occasionText } = await import('../../src/features/today/storyText.ts')
+  const base = { key: 'k', date: '2026-10-07', span: '', text: '', template: null }
+  assert.equal(occasionText({ ...base, kind: 'user_birthday', days: 2 }, 'Mira'), 'Your birthday is in 2 days.')
+  assert.equal(occasionText({ ...base, kind: 'own_birthday', days: 0 }, 'Mira'), "It is Mira's birthday today.")
+  assert.equal(occasionText({ ...base, kind: 'anniversary', days: 0, span: 'three months' }, 'Mira'), "It's been three months since you two started talking.")
+})

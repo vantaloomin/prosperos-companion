@@ -53,6 +53,8 @@ def no_storylines(monkeypatch):
     """Storylines start on seeded days (companion/life/storylines.py) and would add context lines and first
     messages to unrelated tests; tests/test_storylines.py turns them back on."""
     monkeypatch.setattr('companion.life.storylines.START', (0, 0, 0, 0))
+    # Likewise a birthday seeded by the companion's id (companion/life/occasions.py).
+    monkeypatch.setattr('companion.life.occasions.SEEDED', False)
 
 
 @pytest.fixture

@@ -19,7 +19,7 @@ from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import recommendations, routine, storylines
+from companion.life import occasions, recommendations, routine, storylines
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -149,8 +149,15 @@ def storyline_news(connection, companion, now) -> list[Trigger]:
             for key, beat in storylines.fresh_beats(connection, companion, now)]
 
 
+def occasion(connection, companion, now) -> list[Trigger]:
+    """The user's birthday, the companion's own, or a milestone in how long they have talked: on the day."""
+    return [Trigger(item['key'], 'occasion', f"{item['text'][2:]} Write to the user about it, warmly and in your own "
+                    'voice.', item['template']) for item in occasions.occasions(connection, companion, now)
+            if item['days'] == 0]
+
+
 # In priority order; later features add their own.
-FINDERS = [plan_follow_ups, finished, storyline_news, news, reminders, silence]
+FINDERS = [occasion, plan_follow_ups, finished, storyline_news, news, reminders, silence]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
