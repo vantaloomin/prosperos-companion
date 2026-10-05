@@ -1,5 +1,6 @@
 """Loading and querying the shipped city data. Everything here is read-only and needs no network."""
 import hashlib
+import json
 import math
 import re
 from functools import cache
@@ -13,41 +14,58 @@ DATA = Path(__file__).parent / 'data'
 
 @cache
 def careers() -> dict[str, dict]:
+    """The shared career catalogue, across every era."""
     catalogue = Careers.model_validate_json((DATA / 'careers.json').read_text(encoding='utf-8'))
     return {career.id: career.model_dump() for career in catalogue.careers}
 
 
+def careers_for(data: dict) -> dict[str, dict]:
+    """Careers a city offers: the shared ones for its era, then its own (which win on a shared id)."""
+    shared = {key: value for key, value in careers().items() if data['era'] in value['eras']}
+    return shared | {career['id']: career for career in data['careers']}
+
+
+def prepare(raw: bytes | str | dict) -> dict:
+    """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError."""
+    model = City.model_validate(raw) if isinstance(raw, dict) else City.model_validate_json(raw)
+    data = model.model_dump(mode='json')
+    known = careers_for(data)
+    for employer in data['employers']:
+        unknown = set(employer['careers']) - set(known)
+        if unknown:
+            raise ValueError(f'{employer["id"]} names careers this city does not offer: {sorted(unknown)}.')
+    # Identifies the exact data a generator used, so a recorded event can name its inputs (PRD T7).
+    canonical = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+    data['data_version'] = hashlib.sha256(canonical.encode()).hexdigest()[:12]
+    return data
+
+
 @cache
 def cities() -> dict[str, dict]:
-    known = careers()
+    """The built-in cities shipped with the app."""
     result = {}
     for path in sorted((DATA / 'cities').glob('*.json')):
-        raw = path.read_bytes()
-        city = City.model_validate_json(raw).model_dump()
-        if city['id'] != path.stem:
-            raise ValueError(f'{path.name} holds city {city["id"]}.')
-        for employer in city['employers']:
-            unknown = set(employer['careers']) - set(known)
-            if unknown:
-                raise ValueError(f'{employer["id"]} names unknown careers {sorted(unknown)}.')
-        # Identifies the exact data a generator used, so a recorded event can name its inputs (PRD T7).
-        city['data_version'] = hashlib.sha256(raw).hexdigest()[:12]
-        result[city['id']] = city
+        data = prepare(path.read_bytes())
+        if data['id'] != path.stem:
+            raise ValueError(f'{path.name} holds city {data["id"]}.')
+        result[data['id']] = data | {'builtin': True}
     return result
 
 
-def city(city_id: str) -> dict:
-    try:
-        return cities()[city_id]
-    except KeyError:
-        raise DomainError(f'No world data for city {city_id!r}.', 404, 'unknown_city') from None
+def city(city_id: str, extra: dict[str, dict] | None = None) -> dict:
+    """A built-in city, or one of `extra` (the user's own cities)."""
+    found = cities().get(city_id) or (extra or {}).get(city_id)
+    if not found:
+        raise DomainError(f'No world data for city {city_id!r}.', 404, 'unknown_city')
+    return found
 
 
 def summary(data: dict) -> dict:
-    keys = ('id', 'name', 'region', 'country', 'timezone', 'aliases', 'summary', 'data_version')
+    keys = ('id', 'name', 'setting', 'era', 'basis', 'region', 'country', 'timezone', 'aliases', 'summary',
+            'data_version')
     return {key: data[key] for key in keys} | {
         'counts': {key: len(data[key]) for key in ('neighborhoods', 'places', 'colleges', 'employers',
-                                                   'annual_events')}}
+                                                   'annual_events')}, 'builtin': data.get('builtin', False)}
 
 
 def neighborhood(data: dict, hood_id: str) -> dict:
@@ -90,7 +108,7 @@ def _words(text: str) -> str:
     return ' '.join(re.findall(r'[a-z0-9]+', text.lower()))
 
 
-def resolve(text: str) -> dict | None:
+def resolve(text: str, extra: dict[str, dict] | None = None) -> dict | None:
     """Match free text such as a character's `location` ("Fells Point, Baltimore") to a city and neighborhood.
 
     Returns `{"city": id, "neighborhood": id | None}` or `None` when no shipped city matches.
@@ -98,7 +116,7 @@ def resolve(text: str) -> dict | None:
     words = f' {_words(text)} '
     if not words.strip():
         return None
-    for data in cities().values():
+    for data in [*cities().values(), *(extra or {}).values()]:
         names = [data['name'], data['id'].replace('-', ' '), *data['aliases']]
         if any(f' {_words(name)} ' in words for name in names if _words(name)):
             hood = next((item['id'] for item in data['neighborhoods'] if f' {_words(item["name"])} ' in words), None)

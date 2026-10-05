@@ -272,3 +272,12 @@ CREATE TABLE IF NOT EXISTS pause_catch_ups (
   pause_id TEXT PRIMARY KEY REFERENCES pauses(id),
   requested_at TEXT NOT NULL
 );
+
+-- Cities the user wrote or copied (PRD W5). Built-in cities ship as files and are never stored here.
+CREATE TABLE IF NOT EXISTS world_cities (
+  id TEXT PRIMARY KEY,
+  definition TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
