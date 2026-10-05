@@ -218,6 +218,9 @@ def hold_for_review(database: Database):
         connection.execute('UPDATE connection SET credential_ref=NULL')
         connection.execute('UPDATE image_backends SET credential_ref=NULL')
         connection.execute('UPDATE image_settings SET automatic_images=0')
+        connection.execute('UPDATE notification_settings SET enabled=0')
+        connection.execute("UPDATE notifications SET status='cancelled', reason='Restored from a backup.' "
+                           "WHERE status='queued'")
         # Context lookups send data out, so a restored workspace asks again before any run.
         connection.execute('UPDATE context_services SET credential_ref=NULL')
         connection.execute('UPDATE context_tools SET enabled=0, approved=NULL')

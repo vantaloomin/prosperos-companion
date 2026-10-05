@@ -1,4 +1,5 @@
 """Workspace settings, permission revisions and pause (PRD T6, M7)."""
+from companion import notifications
 from companion.clock import zone
 from companion.database import identifier, optional, settings
 from companion.errors import require
@@ -41,6 +42,9 @@ def update(database, body) -> dict:
             assignments['memory_revision'] = row['memory_revision'] + 1
         columns = ', '.join(f'{key}=?' for key in assignments)
         connection.execute(f'UPDATE workspace_settings SET {columns} WHERE id=1', tuple(assignments.values()))
+        if changed.get('background_activity') is False:
+            # Revoking background permission applies to queued notifications as well.
+            notifications.cancel_queued(connection, assignments['updated_at'], 'Background activity was turned off.')
         return view(settings(connection))
 
 

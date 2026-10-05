@@ -309,6 +309,28 @@ job may change ([image generation](images.md)).
 `companion/life/today.py` assembles the Today view and records the last visit (`visits`), which
 only moves forward.
 
+## Notifications
+
+`companion/notifications.py` implements the PRD's notification rules. They are off by default.
+While they are on, each post a background batch publishes queues one notification. The open
+interface asks `POST /api/notifications/next` once a minute and shows what comes back as a
+browser notification, which Windows displays as a desktop notification. The backend decides
+everything else:
+
+- Nothing is shown in quiet hours (in the user's timezone; they may cross midnight), while paused,
+  past the daily cap (rolling 24 hours, 1 to 6, default 3), within the minimum gap since the last
+  one (30 to 720 minutes, default 120), or while the app has focus.
+- When more than one is waiting, they are delivered as one digest, so a quiet night never becomes
+  a burst. Posts read, hidden or removed meanwhile, or from another timeline, are dropped, and so
+  is one whose events never became visible within 48 hours.
+- Preview privacy: `name` (the default) shows only that the companion shared something; `full`
+  adds the post's caption; `private` names neither the companion nor the content.
+- Turning notifications off, revoking background activity, or the browser withdrawing permission
+  cancels everything queued. A restored workspace has them off and nothing queued.
+- When the character has an absence trait (C6) and the user has been away a day, the message opens
+  with a fixed in-character line at the trait's intensity. Traits change only the wording: the
+  cap, gap, quiet hours, settings and permission prompts never depend on them.
+
 ## Images (F3–F9)
 
 `companion/images/` classifies each request locally before dispatch, routes NSFW to a local

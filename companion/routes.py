@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from companion import backup, characters, conversation, events, restore, timelines, workspace
+from companion import backup, characters, conversation, events, notifications, restore, timelines, workspace
 from companion.identity import APP_ID, VERSION
 from companion.memory import consolidation, formation, records
 from companion.models import (
@@ -17,6 +17,8 @@ from companion.models import (
     MemoryCreate,
     MemoryDelete,
     MessageCreate,
+    NotificationCheck,
+    NotificationSettingsUpdate,
     SettingsUpdate,
     TimelineFork,
     TimelineUpdate,
@@ -305,3 +307,19 @@ def schedule_restore(request: Request, name: str):
 @router.delete('/backups/restore')
 def cancel_restore(request: Request):
     return restore.cancel(db(request).path.parent)
+
+
+@router.get('/notifications/settings')
+def read_notification_settings(request: Request):
+    return notifications.read(db(request))
+
+
+@router.put('/notifications/settings')
+def update_notification_settings(request: Request, body: NotificationSettingsUpdate):
+    return notifications.update(db(request), body)
+
+
+@router.post('/notifications/next')
+def next_notification(request: Request, body: NotificationCheck | None = None):
+    """The open interface asks for what to show; the answer respects quiet hours and the cap."""
+    return notifications.deliver(db(request), (body or NotificationCheck()).focused)
