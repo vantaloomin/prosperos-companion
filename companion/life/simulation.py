@@ -21,7 +21,7 @@ from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import composer, feed, mood, routine
+from companion.life import agenda, composer, feed, mood, routine
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -200,6 +200,12 @@ def due_at(through, life, mode):
     return through + timedelta(hours=life['return_gap_hours'])
 
 
+def may_extend(workspace, mode) -> bool:
+    """Precomputing the agenda is cheap and needs no model, but still respects pause and, while the
+    app is only running in the background, the background permission (T4, T6)."""
+    return workspace['paused_at'] is None and (mode == 'return' or bool(workspace['background_activity']))
+
+
 def blocked(workspace, life, mode) -> str | None:
     if workspace['paused_at'] is not None:
         return 'paused'
@@ -323,8 +329,11 @@ class LifeEngine:
     async def reconcile(self, mode='return') -> dict:
         async with self.lock:
             with self.database.connect(write=True) as connection:
-                if mode == 'return' and current(connection):
+                companion = current(connection)
+                if mode == 'return' and companion:
                     mood.note_return(connection, self.now())
+                if companion and may_extend(settings(connection), mode):
+                    agenda.extend(connection, companion, self.world, self.now())
                 decision = decide(connection, self.owner, mode, self.now())
             if decision['state'] in {'started', 'resumed'}:
                 await self.execute(decision['run_id'])
@@ -384,6 +393,8 @@ class LifeEngine:
             existing = optional(connection, 'SELECT * FROM life_events WHERE idempotency_key=?', (key,))
             recent = events.committed(connection, run['timeline_id'])[-5:]
             plan = plan_for(connection, run['timeline_id'], slot['key'])
+            precomputed = agenda.companion_entry(connection, run['timeline_id'], slot['key'],
+                                                 companion['version']['id'])
         if existing:
             return self.settle(events.view(existing), life)
         if workspace['permission_revision'] != run['permission_revision'] or workspace['paused_at']:
@@ -393,6 +404,8 @@ class LifeEngine:
         version = companion['version']
         if plan:
             composed = composer.fulfil(events.view(plan), version['definition'])
+        elif precomputed:
+            composed = precomputed['entry']
         else:
             composed = composer.compose(slot, version['definition'], self.world, key,
                                         [decode(event['details']).get('activity') for event in recent])
@@ -406,7 +419,8 @@ class LifeEngine:
             details={'slot': slot['key'], 'block': block['key'], 'label': block['label'],
                      'block_kind': block['kind'], 'activity': composed['activity'], 'place': composed['place'],
                      'local_date': slot['local_date'], 'timezone': version['timezone'],
-                     'post': written['post'], 'mood': composed['mood'], 'fulfils': composed.get('fulfils')},
+                     'post': written['post'], 'mood': composed['mood'], 'with': composed.get('with'),
+                     'fulfils': composed.get('fulfils')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
@@ -462,14 +476,18 @@ class LifeEngine:
         schedule, _default = routine.blocks(version['definition'])
         future = [item.view() for item in routine.slots(schedule, version['timezone'], now + timedelta(days=1),
                                                         now + timedelta(days=7))]
-        planned = composer.plan_ahead(version['definition'], self.world, key, future)
+        with self.database.connect() as connection:
+            upcoming = {row['slot_key']: decode(row['entry']) if row['entry'] else None for row in many(
+                connection, "SELECT slot_key, entry FROM life_agenda WHERE timeline_id=? AND subject=? "
+                "AND status='upcoming' AND basis=?", (run['timeline_id'], agenda.COMPANION, version['id']))}
+        planned = composer.plan_ahead(version['definition'], self.world, key, future, upcoming)
         if planned is None:
             return {}
         target = planned['target']
         event = events.propose(self.database, EventProposal(
             idempotency_key=f"plan:{run['timeline_id']}:{slot['key']}", kind='plan', summary=planned['summary'],
             details={'target_slot': target['key'], 'label': target['block']['label'], 'activity': planned['activity'],
-                     'place': planned['place'], 'local_date': target['local_date'],
+                     'place': planned['place'], 'with': planned['with'], 'local_date': target['local_date'],
                      'timezone': version['timezone'], 'post': '', 'mood': ''},
             starts_at=target['starts_at'], ends_at=target['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'made_during': slot['key'], 'world': self.world.name,

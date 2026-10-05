@@ -7,7 +7,9 @@ from pydantic import Field
 from companion import conversation
 from companion.characters import require_current
 from companion.clock import parse, stamp
-from companion.life import feed, mood, routine, simulation, today
+from companion.database import settings
+from companion.errors import require
+from companion.life import agenda, circle, feed, mood, routine, simulation, today
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -17,6 +19,10 @@ feed_router = APIRouter(prefix='/api/feed')
 
 class Reconcile(Input):
     mode: Literal['return'] = 'return'
+
+
+class PersonUpdate(Input):
+    name: str = Field(min_length=1, max_length=60, pattern=r'\S')
 
 
 class ReadPosts(Input):
@@ -81,6 +87,62 @@ def read_routine(request: Request):
             'current': now_slot.view() if now_slot else None, 'next': next_slot.view() if next_slot else None,
             'simulated_through': position['simulated_through'], 'now': stamp(now),
             'clock_behind': now < parse(position['simulated_through'])}
+
+
+def circle_change(request: Request, person_id: str, change) -> dict:
+    """Apply a change to one person, then rebuild the upcoming entries it affects."""
+    database, engine = db(request), request.app.state.life
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        timeline_id = companion['active_timeline_id']
+        row = circle.person(connection, person_id)
+        require(row['timeline_id'] == timeline_id, 'That person is not in the circle.', 404)
+        change(connection, now)
+        agenda.forget_person(connection, timeline_id, person_id, now)
+        if simulation.may_extend(settings(connection), 'return'):
+            agenda.extend(connection, companion, engine.world, now)
+        return next(person for person in agenda.circle_view(connection, timeline_id, now, include_removed=True)
+                    if person['id'] == person_id)
+
+
+@router.get('/circle')
+def read_circle(request: Request, include_removed: bool = False):
+    """The companion's social circle (PRD T8), assembled the first time it is read."""
+    database, engine = db(request), request.app.state.life
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        circle.ensure(connection, companion, engine.world, now)
+        return agenda.circle_view(connection, companion['active_timeline_id'], now, include_removed)
+
+
+@router.patch('/circle/{person_id}')
+def rename_person(request: Request, person_id: str, body: PersonUpdate):
+    return circle_change(request, person_id,
+                         lambda connection, now: circle.rename(connection, person_id, body.name, now))
+
+
+@router.post('/circle/{person_id}/remove')
+def remove_person(request: Request, person_id: str):
+    return circle_change(request, person_id,
+                         lambda connection, now: circle.set_status(connection, person_id, 'removed', now))
+
+
+@router.post('/circle/{person_id}/restore')
+def restore_person(request: Request, person_id: str):
+    return circle_change(request, person_id,
+                         lambda connection, now: circle.set_status(connection, person_id, 'active', now))
+
+
+@router.get('/circle/{person_id}/diary')
+def person_diary(request: Request, person_id: str, before: str | None = None, limit: int = 20):
+    """What this person did, newest first. Upcoming entries stay hidden (PRD T9)."""
+    with db(request).connect() as connection:
+        companion = require_current(connection)
+        row = circle.person(connection, person_id)
+        require(row['timeline_id'] == companion['active_timeline_id'], 'That person is not in the circle.', 404)
+        return agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
 
 
 @today_router.get('')

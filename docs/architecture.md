@@ -129,6 +129,14 @@ settings and export stay neutral either way.
 - **World data.** `companion/life/world.py` defines the `WorldSource` interface
   (`places(city, kinds) -> [Place]`) passed to `create_app(world=...)`. The default is
   `CatalogWorld`, the shipped city data ([world data](world-data.md)); `EmptyWorld` has no places.
+- **Social circle and agenda.** `companion/life/circle.py` assembles four supporting people per
+  timeline from the city data (name, role, job, weekly routine), with no model. `companion/life/agenda.py`
+  precomputes every subject's routine a week ahead in `life_agenda`, seeded per slot. On open it
+  fills in any gap up to 30 days back, and a running server advances it in steps with the same
+  result. Each entry records the version it was built from (`basis`), so upcoming entries rebuild
+  after a change. Ended entries become `happened`, or `skipped` under a pause. Batches simulate a
+  slot from its precomputed entry, so T5 caps only the reviewed, model-phrased part. Social entries
+  name a circle member whose agenda is free then.
 - **Optional phrasing.** With a model connection and `phrase_with_model` on, one
   background-priority request (`LIFE_SYNTHESIS`) rewrites the wording in the character's voice.
   The model gets the composed facts only, never the user's memories, and may not add places,

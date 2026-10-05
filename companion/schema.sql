@@ -281,3 +281,49 @@ CREATE TABLE IF NOT EXISTS world_cities (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- The companion's social circle (PRD T8): supporting characters assembled from world data and a
+-- seed. Never the user, never a real person, never a source of user facts.
+CREATE TABLE IF NOT EXISTS circle_people (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  ordinal INTEGER NOT NULL,
+  seed TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  career TEXT NOT NULL,
+  details TEXT NOT NULL,
+  schedule TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'removed')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, ordinal)
+);
+
+-- Precomputed schedules for the companion and the circle (PRD T9). Upcoming entries stay hidden;
+-- `basis` names the character version or person revision an entry was built from.
+CREATE TABLE IF NOT EXISTS life_agenda (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  subject TEXT NOT NULL,
+  slot_key TEXT NOT NULL,
+  starts_at TEXT NOT NULL,
+  ends_at TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  block TEXT NOT NULL,
+  entry TEXT,
+  basis TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'happened', 'skipped')),
+  prepared TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, subject, slot_key)
+);
+CREATE INDEX IF NOT EXISTS life_agenda_due ON life_agenda (timeline_id, status, ends_at);
+
+CREATE TABLE IF NOT EXISTS agenda_cursors (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  subject TEXT NOT NULL,
+  through TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, subject)
+);
