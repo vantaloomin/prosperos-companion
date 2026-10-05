@@ -47,7 +47,8 @@ export function Memories({ companion }: { companion: Companion }) {
     }
   }
   const actions: MemoryActions = {
-    correct: async (memory, value) => !!await run(() => api(`/memories/${memory.id}/correct`, { value, expected_revision: memory.revision }), `Corrected “${memory.subject}”. The next reply uses the new value.`),
+    correct: async (memory, body) => !!await run(() => api(`/memories/${memory.id}/correct`, { ...body, expected_revision: memory.revision }),
+      body.plan_status && body.value === memory.value ? `Marked “${memory.subject}” as ${body.plan_status}.` : `Corrected “${memory.subject}”. The next reply uses the new value.`),
     confirm: (memory) => void run(() => api(`/memories/${memory.id}/confirm`, {}), `Confirmed “${memory.subject}”.`),
     pin: (memory, pinned) => void run(() => api(`/memories/${memory.id}/pin?pinned=${pinned}`, {}), pinned ? `Pinned “${memory.subject}”.` : `Unpinned “${memory.subject}”.`),
     exclude: (memory, excluded) => void run(() => api(`/memories/${memory.id}/${excluded ? 'exclude' : 'include'}`, {}),

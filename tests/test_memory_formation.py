@@ -183,3 +183,16 @@ def test_a_move_ends_the_previous_home_during_a_reply_and_withholds_it(client, a
     provider.before_finish = lambda: run_pending(app.state.database)
     reply = send(client, 'Anyway', 'client-0003')['reply']
     assert reply['status'] == 'withheld'
+
+
+def test_setting_a_date_answers_an_uncertain_one(client, connected):
+    enable(client)
+    send(client, "I'm going to Lisbon in a few weeks", 'client-0001')
+    run(client)
+    [plan] = memories(client)
+    assert plan['dates_uncertain'] is True
+    assert 'dates uncertain' in client.get('/api/context/preview').json()['system']
+    fixed = client.post(f"/api/memories/{plan['id']}/correct", json={
+        'value': plan['value'], 'applies_from': '2026-11-12T15:00:00Z', 'expected_revision': plan['revision']}).json()
+    assert fixed['dates_uncertain'] is False and fixed['applies_from'].startswith('2026-11-12')
+    assert 'dates uncertain' not in client.get('/api/context/preview').json()['system']

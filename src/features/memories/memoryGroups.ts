@@ -1,4 +1,4 @@
-import type { DeletePreview, Layer, Memory } from '../../types'
+import type { DeletePreview, Layer, Memory, PlanStatus } from '../../types'
 
 export const LAYERS: { id: Layer; title: (name: string) => string; hint: string }[] = [
   { id: 'user_fact', title: () => 'About you', hint: 'Facts, preferences and boundaries. They last until you correct them.' },
@@ -85,4 +85,52 @@ export function deletePreviewText(preview: DeletePreview, withSources: boolean):
   if (preview.summaries_with_sources) lines.push(`${preview.summaries_with_sources} conversation summar${preview.summaries_with_sources === 1 ? 'y' : 'ies'} quoting them will be removed.`)
   if (preview.other_memories.length) lines.push(`Also from those messages, and kept: ${preview.other_memories.map((item) => item.subject).join(', ')}.`)
   return lines
+}
+
+const OPEN_PLANS: (string | null)[] = ['proposed', 'agreed', 'postponed']
+
+/** A plan still open after its date: the date passing does not say whether it happened (PRD M6). */
+function pastOpenPlan(memory: Memory, now: Date): boolean {
+  return OPEN_PLANS.includes(memory.plan_status) && !!memory.applies_from && new Date(memory.applies_from) < now
+}
+
+/** The one focused question worth asking about a memory, if any (PRD M8). */
+export function followUp(memory: Memory, now: Date): 'outcome' | 'date' | null {
+  if (memory.status !== 'active') return null
+  if (pastOpenPlan(memory, now)) return 'outcome'
+  return memory.dates_uncertain ? 'date' : null
+}
+
+/** A timestamp as the local day a date input shows. */
+export function dayInput(value: string | null): string {
+  if (!value) return ''
+  const day = new Date(value)
+  return [day.getFullYear(), String(day.getMonth() + 1).padStart(2, '0'), String(day.getDate()).padStart(2, '0')].join('-')
+}
+
+/** A date input's day as local midnight, the way the server stores spans. */
+function dayStamp(day: string): string | undefined {
+  return day ? new Date(`${day}T00:00`).toISOString() : undefined
+}
+
+export interface CorrectionDraft { value: string; plan_status: PlanStatus | null; from: string; until: string }
+
+export interface Correction { value: string; plan_status?: PlanStatus; applies_from?: string; applies_until?: string }
+
+/** A day to send: changed, or unchanged but uncertain, so saving it confirms it. */
+function sentDay(day: string, current: string | null, uncertain: boolean): string | undefined {
+  return day && (uncertain || day !== dayInput(current)) ? dayStamp(day) : undefined
+}
+
+/** Only what changed is sent; null when nothing did. */
+export function correction(memory: Memory, draft: CorrectionDraft): Correction | null {
+  const uncertain = !!memory.dates_uncertain
+  const body: Correction = {
+    value: draft.value.trim(),
+    plan_status: draft.plan_status !== memory.plan_status ? draft.plan_status ?? undefined : undefined,
+    applies_from: sentDay(draft.from, memory.applies_from, uncertain),
+    applies_until: sentDay(draft.until, memory.applies_until, uncertain),
+  }
+  const extras = [body.plan_status, body.applies_from, body.applies_until].some((item) => item !== undefined)
+  return body.value && (extras || body.value !== memory.value) ? body : null
 }
