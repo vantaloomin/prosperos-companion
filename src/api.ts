@@ -26,3 +26,20 @@ export async function api<T>(path: string, body?: unknown, method?: string): Pro
 }
 
 export const newId = () => crypto.randomUUID()
+
+/** Send a file as the request body, with its details in the query string. */
+export async function upload<T>(path: string, file: Blob, params: Record<string, string>): Promise<T> {
+  let response: Response
+  try {
+    response = await fetch(`/api${path}?${new URLSearchParams(params)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', 'X-Companion-Client': 'workspace' },
+      body: file,
+    })
+  } catch {
+    throw new ApiError('Cannot reach the Companion. Check that it is still running.', 0, 'offline')
+  }
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new ApiError(errorMessage(data), response.status, data.code)
+  return data as T
+}

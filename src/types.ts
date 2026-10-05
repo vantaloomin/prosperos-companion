@@ -397,3 +397,150 @@ export interface Observation {
   fresh_until: string | null
   fresh: boolean
 }
+
+// Character LoRA maker (docs/lora.md)
+export type Rights = 'own_work' | 'commissioned' | 'licensed' | 'generated' | 'unknown'
+export type ReferenceRole = 'train' | 'evaluation' | 'excluded'
+export interface Crop { x: number; y: number; width: number; height: number }
+
+export interface LoraReference {
+  id: string
+  original_name: string
+  media_type: string
+  width: number
+  height: number
+  bytes: number
+  rights: Rights
+  rights_label: string
+  source_note: string
+  role: ReferenceRole
+  exclusion_reason: string
+  caption: string
+  caption_origin: 'empty' | 'suggested' | 'edited'
+  crop: Crop | null
+  has_crop: boolean
+  similar_to: string | null
+  missing: boolean
+  updated_at: string
+}
+
+export interface DatasetReview { training: number; evaluation: number; excluded: number; blocking: string[]; advice: string[]; ready: boolean }
+
+export interface LoraSettings { python_path: string; trainer_dir: string; base_model: string; comfy_lora_dir: string }
+
+export interface TrainerDescription {
+  name: string
+  tested: string
+  verified: boolean
+  arch: string
+  default_base_model: string
+  disclosure: string
+  requirements: string[]
+  control: string
+  defaults: RunOptions
+  check: { ok: boolean; problems: string[]; notes: string[] }
+}
+
+export interface RunOptions { network: 'lokr' | 'lora'; rank: number; steps: number; learning_rate: number; save_every: number; resolution: 512 | 1024; low_vram: boolean }
+
+export interface Checkpoint { step: number; final: boolean; file: string; bytes: number; verified: boolean; format: string | null; sha256: string | null; problem: string | null }
+
+export type RunStatus = 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
+
+export interface TrainingRun {
+  id: string
+  name: string
+  status: RunStatus
+  trainer: string
+  trainer_tested: string
+  base_model: string
+  trigger: string
+  options: RunOptions
+  dataset: { pictures: { reference_id: string; caption: string }[] }
+  folder: string
+  attempt: number
+  resumed_from_step: number | null
+  progress_step: number | null
+  progress_total: number | null
+  progress_at: string | null
+  checkpoints: Checkpoint[]
+  adapter_id: string | null
+  exit_code: number | null
+  log_tail: string
+  error: string | null
+  resumable: boolean
+  restartable: boolean
+  verified_on_hardware: boolean
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+}
+
+export interface LoraAdapter {
+  id: string
+  origin: 'trained' | 'imported'
+  run_id: string | null
+  step: number | null
+  name: string
+  sha256: string
+  bytes: number
+  format: 'lora' | 'lokr' | 'unknown'
+  base_model: string
+  trainer: string
+  trigger: string
+  license_note: string
+  note: string
+  available: boolean
+  created_at: string
+}
+
+export interface AppearanceVersion {
+  id: string | null
+  number: number
+  method: 'text' | 'lora'
+  adapter_id: string | null
+  strength: number
+  comfy_name: string | null
+  note: string
+  adopted_at: string | null
+  adapter: LoraAdapter | null
+  current?: boolean
+}
+
+export interface AppearanceState { current: AppearanceVersion; versions: AppearanceVersion[]; install?: { comfy_name: string; installed: boolean; note: string } }
+
+export type EvalImageStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
+
+export interface EvalImage {
+  id: string
+  position: number
+  prompt_key: string
+  label: string
+  variant: 'lora' | 'text'
+  prompt: string
+  seed: number
+  width: number
+  height: number
+  status: EvalImageStatus
+  classification: string
+  workflow: string | null
+  model: string | null
+  error: string | null
+  rating: '' | 'good' | 'weak'
+  has_image: boolean
+}
+
+export interface Evaluation {
+  id: string
+  adapter_id: string
+  adapter: { name: string; format: string; trigger: string }
+  set_version: number
+  strength: number
+  comfy_name: string
+  status: 'running' | 'completed' | 'cancelled' | 'interrupted'
+  held_out: string[]
+  counts: Record<EvalImageStatus, number>
+  images: EvalImage[]
+  created_at: string
+  install?: { installed: boolean; note: string }
+}

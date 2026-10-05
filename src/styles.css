@@ -285,3 +285,37 @@ textarea { resize: vertical; line-height: 1.6; }
 .lookup-list > li { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
 .lookup-content { margin: 0; white-space: pre-wrap; font-size: 0.875rem; max-height: 9em; overflow: auto; }
 .lookup-stale, .lookup-failed { opacity: 0.8; }
+
+/* Character LoRA maker (docs/lora.md) */
+.stepper { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+.stepper button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.875rem; }
+.stepper button span { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--raised); font-size: 0.75rem; }
+.stepper button[aria-current='step'] { color: var(--accent); border-color: var(--accent); background: var(--accent-tint); }
+.lora-panel { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; }
+.lora-panel h3 { font-size: 1.05rem; }
+.plain-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.875rem; }
+.reference-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.reference-card { display: grid; gap: 8px; align-content: start; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+.reference-card > img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
+.reference-name { font-size: 0.875rem; font-weight: 500; overflow-wrap: anywhere; }
+.crop-editor { display: grid; gap: 8px; }
+.crop-preview { position: relative; }
+.crop-preview img { display: block; width: 100%; border-radius: 6px; }
+.crop-box { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px #0008; pointer-events: none; }
+.crop-preview { overflow: hidden; border-radius: 6px; }
+.crop-slider { display: grid; grid-template-columns: 4rem 1fr; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--muted); }
+.crop-slider input { padding: 0; }
+.run-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.run-card progress { width: 100%; accent-color: var(--accent); }
+.checkpoint-line { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.run-log { margin: 8px 0; padding: 10px; max-height: 16em; overflow: auto; background: var(--canvas); border: 1px solid var(--border); border-radius: 8px; font-size: 0.75rem; white-space: pre-wrap; }
+.held-out { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.held-out img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; }
+.eval-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.eval-table th, .eval-table td { padding: 8px; border-top: 1px solid var(--border); text-align: left; vertical-align: top; }
+.eval-table thead th { color: var(--muted); font-weight: 400; }
+.eval-cell { margin: 0; display: grid; gap: 4px; }
+.eval-cell img { width: 100%; max-width: 280px; border-radius: 6px; }
+.text-button[aria-pressed='true'] { color: var(--accent); }
+@media (max-width: 720px) { .eval-table thead { display: none; } .eval-table tr, .eval-table th, .eval-table td { display: block; } }
+.lora-strength { max-width: 7rem; }

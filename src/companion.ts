@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from './api'
 import type { Companion, WorkspaceSettings } from './types'
 
-export type View = 'conversation' | 'today' | 'feed' | 'memories' | 'character' | 'settings'
+export type View = 'conversation' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'settings'
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']
