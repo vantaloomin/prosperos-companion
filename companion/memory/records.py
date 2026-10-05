@@ -7,6 +7,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import bump_memory_revision, identifier, many, one, optional, settings
 from companion.errors import require
+from companion.memory import vectors
 from companion.memory.extraction import single_valued, subject_key
 
 OPEN_PLANS = ('proposed', 'agreed', 'postponed')
@@ -151,6 +152,7 @@ def revise(connection, memory, timestamp, *, value, plan_status=None, applies_fr
     connection.execute('INSERT INTO memory_sources (memory_id, message_id) '
                        'SELECT ?, message_id FROM memory_sources WHERE memory_id=?', (new_id, memory['id']))
     connection.execute('UPDATE memories SET ended_by_id=? WHERE ended_by_id=?', (new_id, memory['id']))
+    vectors.forget(connection, 'memory', [memory['id']])
     bump_memory_revision(connection, timestamp)
     return get(connection, new_id)
 
@@ -206,6 +208,7 @@ def delete(database, memory_id, delete_sources=False) -> dict:
         connection.execute(f'UPDATE memories SET supersedes_id=NULL WHERE supersedes_id IN ({marks})', versions)
         connection.execute(f'UPDATE memories SET ended_by_id=NULL WHERE ended_by_id IN ({marks})', versions)
         connection.execute(f'DELETE FROM memory_candidates WHERE memory_id IN ({marks})', versions)
+        vectors.forget(connection, 'memory', versions)
         connection.execute(f'DELETE FROM memories WHERE id IN ({marks})', versions)
         markers = [(identity, 'memory', timestamp) for identity in versions]
         if delete_sources:
@@ -224,6 +227,7 @@ def redact_messages(connection, message_ids, timestamp):
                            [(timestamp, identity) for identity in message_ids])
     connection.executemany("DELETE FROM memory_candidates WHERE message_id=? AND status<>'committed'",
                            [(identity,) for identity in message_ids])
+    vectors.forget(connection, 'message', message_ids)
 
 
 def linked_memories(connection, message_ids) -> list[str]:

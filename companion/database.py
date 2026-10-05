@@ -67,6 +67,7 @@ class Database:
 # alone, so a workspace created earlier gains them here.
 ADDED_COLUMNS = (
     ('life_settings', 'phrase_with_model', 'INTEGER NOT NULL DEFAULT 1 CHECK (phrase_with_model IN (0, 1))'),
+    ('connection', 'embedding_model', 'TEXT'),
     ('memories', 'subject_key', "TEXT NOT NULL DEFAULT ''"),
     ('memories', 'origin', "TEXT NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'automatic', 'suggestion'))"),
     ('memories', 'ended_by_id', 'TEXT'),

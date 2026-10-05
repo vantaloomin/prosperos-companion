@@ -16,6 +16,7 @@ from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
+from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
 from companion.providers.urls import validate_compatible_url
 from companion.providers.vault import credential_for
@@ -48,12 +49,13 @@ def save_connection(database, vault, body) -> dict:
         reference = reference or (previous or {}).get('credential_ref')
         connection.execute(
             'INSERT INTO connection (id, base_url, model, credential_ref, max_output_tokens, context_tokens, '
-            'timeout_seconds, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET '
-            'base_url=excluded.base_url, model=excluded.model, credential_ref=excluded.credential_ref, '
+            'timeout_seconds, embedding_model, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE '
+            'SET base_url=excluded.base_url, model=excluded.model, credential_ref=excluded.credential_ref, '
             'max_output_tokens=excluded.max_output_tokens, context_tokens=excluded.context_tokens, '
-            'timeout_seconds=excluded.timeout_seconds, updated_at=excluded.updated_at',
+            'timeout_seconds=excluded.timeout_seconds, embedding_model=excluded.embedding_model, '
+            'updated_at=excluded.updated_at',
             (base_url, body.model, reference, body.max_output_tokens, body.context_tokens, body.timeout_seconds,
-             database.now()))
+             body.embedding_model or None, database.now()))
         return connection_view(one(connection, 'SELECT * FROM connection WHERE id=1'))
 
 
@@ -150,10 +152,11 @@ class LiveReply:
 
 
 class Conversation:
-    def __init__(self, database, vault, provider=None, scheduler=None, after_turn=lambda: None):
+    def __init__(self, database, vault, provider=None, scheduler=None, after_turn=lambda: None, embedder=None):
         self.database = database
         self.vault = vault
         self.provider = provider or ChatProvider()
+        self.embedder = embedder or EmbeddingProvider()
         self.scheduler = scheduler or RequestScheduler()
         self.running: dict[str, LiveReply] = {}
         # Called once a turn needs nothing more from the model, so memory work never runs ahead of a reply.
@@ -186,8 +189,22 @@ class Conversation:
         live.task.cancel()
         return True
 
+    async def query_vector(self, user) -> dict | None:
+        """Embed the message being answered for semantic recall; any failure means keyword recall only."""
+        with self.database.connect() as connection:
+            config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+        if not config or not config.get('embedding_model'):
+            return None
+        try:
+            key = credential_for(self.vault, config['credential_ref'])
+            async with self.scheduler.reserve(config, CONVERSATION):
+                [vector] = await self.embedder.embed(config, key, [user['text']], QUERY_TIMEOUT)
+        except Exception:  # noqa: BLE001 - semantic recall is optional; the reply goes ahead without it.
+            return None
+        return {'model': config['embedding_model'], 'vector': vector}
+
     async def respond(self, user, wait: bool = True) -> dict:
-        prepared = self.prepare(user)
+        prepared = self.prepare(user, await self.query_vector(user))
         if prepared['connection'] != 'ready':
             self.after_turn()
             return {'message': message_view(user), 'reply': None, 'connection': prepared['connection']}
@@ -234,7 +251,7 @@ class Conversation:
                 live.listeners.discard(queue)
         yield 'done', self.reply(attempt_id)
 
-    def prepare(self, user) -> dict:
+    def prepare(self, user, semantic=None) -> dict:
         with self.database.connect(write=True) as connection:
             config = optional(connection, 'SELECT * FROM connection WHERE id=1')
             if config is None:
@@ -243,7 +260,7 @@ class Conversation:
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
             packet = context.build(connection, companion, self.database.clock.now(),
-                                   config['context_tokens'] - config['max_output_tokens'], user['seq'])
+                                   config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic)
             attempt_id = identifier()
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '

@@ -79,7 +79,19 @@ loads older pages until the match is on screen, then scrolls to it and marks it.
 4. Current profile facts (pinned first), open plans, and unexpired temporary circumstances.
 5. The companion's latest committed events.
 6. Older turns and episodic memories, ranked by the Study's lexical retrieval and rank fusion.
-   Semantic rankings plug into the same fusion later.
+   When the connection names an embedding model, an embedding ranking of the same eligible pool
+   joins the fusion, so a related memory is found without shared words ("puppy" finds "hound").
+
+### Semantic recall
+
+Nothing is downloaded: embeddings come from the connection's own `/embeddings` endpoint with the
+optional `embedding_model`. The message being answered is embedded at conversation priority with a
+two-second limit; any failure means keyword recall only, and the reply goes ahead. After each turn
+`MemoryWorker` embeds memories and messages that lack a vector, in batches at maintenance priority.
+`memory_vectors` keys each vector by owner, model and the digest of the exact text embedded, so an
+edited text never matches an old vector. Deleting a memory, correcting it or redacting a message
+deletes its vectors; excluded memories and their source messages never enter the pool, so their
+vectors are never ranked. The receipt records whether semantic recall took part.
 
 Eligibility is applied before ranking: only active, non-tentative, in-scope, currently applicable
 memories qualify, and source messages of excluded memories are kept out of raw recall too. The
@@ -222,6 +234,6 @@ reference cleared. Enabling memory or background activity requires marking the r
 
 ## Not yet built
 
-Timeline forking, model-proposed memory suggestions, semantic embeddings, MCP tools, image generation
+Timeline forking, model-proposed memory suggestions, MCP tools, image generation
 and LoRA training, durable cross-process scheduling, restore into an existing workspace, and a
 Windows installer (the install and launch scripts need Python and Node already present).
