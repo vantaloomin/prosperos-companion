@@ -152,12 +152,15 @@ class LiveReply:
 
 
 class Conversation:
-    def __init__(self, database, vault, provider=None, scheduler=None, after_turn=lambda: None, embedder=None):
+    def __init__(self, database, vault, provider=None, scheduler=None, after_turn=lambda: None, embedder=None,
+                 lookups=None):
         self.database = database
         self.vault = vault
         self.provider = provider or ChatProvider()
         self.embedder = embedder or EmbeddingProvider()
         self.scheduler = scheduler or RequestScheduler()
+        # Current-context lookups the user enabled (PRD X1-X3); the app, not the model, decides when they run.
+        self.lookups = lookups
         self.running: dict[str, LiveReply] = {}
         # Called once a turn needs nothing more from the model, so memory work never runs ahead of a reply.
         self.after_turn = after_turn
@@ -203,8 +206,18 @@ class Conversation:
             return None
         return {'model': config['embedding_model'], 'vector': vector}
 
+    async def outside(self, user) -> list[dict]:
+        """Lookups the message asks for; a failure of the lookup machinery never blocks the reply."""
+        if self.lookups is None:
+            return []
+        try:
+            return await self.lookups.for_message(user)
+        except Exception:  # noqa: BLE001 - the companion continues without tools (X3).
+            return []
+
     async def respond(self, user, wait: bool = True) -> dict:
-        prepared = self.prepare(user, await self.query_vector(user))
+        semantic, outside = await asyncio.gather(self.query_vector(user), self.outside(user))
+        prepared = self.prepare(user, semantic, outside)
         if prepared['connection'] != 'ready':
             self.after_turn()
             return {'message': message_view(user), 'reply': None, 'connection': prepared['connection']}
@@ -251,7 +264,7 @@ class Conversation:
                 live.listeners.discard(queue)
         yield 'done', self.reply(attempt_id)
 
-    def prepare(self, user, semantic=None) -> dict:
+    def prepare(self, user, semantic=None, outside=None) -> dict:
         with self.database.connect(write=True) as connection:
             config = optional(connection, 'SELECT * FROM connection WHERE id=1')
             if config is None:
@@ -260,7 +273,8 @@ class Conversation:
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
             packet = context.build(connection, companion, self.database.clock.now(),
-                                   config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic)
+                                   config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic,
+                                   outside)
             attempt_id = identifier()
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '

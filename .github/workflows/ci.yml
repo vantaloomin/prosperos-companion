@@ -30,6 +30,33 @@ jobs:
       - name: Test
         run: python -m pytest -q
 
+  mcp-interop:
+    # The MCP client against servers built with the official MCP Python SDK (not an app dependency).
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: python -m pip install -r requirements.lock.txt
+      - name: Install the MCP SDK in its own environment
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/sdk"
+          if [ -x "$RUNNER_TEMP/sdk/Scripts/python.exe" ]; then sdk="$RUNNER_TEMP/sdk/Scripts/python.exe"; else sdk="$RUNNER_TEMP/sdk/bin/python"; fi
+          "$sdk" -m pip install "mcp==2.3.0" "uvicorn==0.54.0"
+          echo "MCP_SDK_PYTHON=$sdk" >> "$GITHUB_ENV"
+      - name: Test against the SDK's servers
+        run: python -m pytest -q tests/test_mcp_sdk_interop.py
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -490,3 +490,75 @@ CREATE TABLE IF NOT EXISTS image_jobs (
 );
 CREATE INDEX IF NOT EXISTS image_jobs_post ON image_jobs(post_id, created_at);
 CREATE INDEX IF NOT EXISTS image_jobs_status ON image_jobs(status, created_at);
+
+-- Current context through MCP (PRD X1-X3). The user's own location is kept here, apart from the
+-- companion's fictional location in its character definition.
+CREATE TABLE IF NOT EXISTS context_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  user_place TEXT NOT NULL DEFAULT '',
+  user_latitude REAL,
+  user_longitude REAL,
+  updated_at TEXT NOT NULL
+);
+
+-- MCP servers the user configured. Nothing runs until a category on it is enabled.
+CREATE TABLE IF NOT EXISTS context_services (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  transport TEXT NOT NULL CHECK (transport IN ('stdio', 'http')),
+  command TEXT,
+  url TEXT,
+  credential_ref TEXT,
+  secret_name TEXT NOT NULL DEFAULT '',
+  tools TEXT NOT NULL DEFAULT '[]',
+  server_info TEXT,
+  checked_at TEXT,
+  check_error TEXT,
+  cooldown_until TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Which tool answers a category, which arguments it receives and when it may run. `approved`
+-- is the digest of the disclosure the user confirmed; a changed mapping needs a new confirmation.
+CREATE TABLE IF NOT EXISTS context_tools (
+  service_id TEXT NOT NULL REFERENCES context_services(id) ON DELETE CASCADE,
+  category TEXT NOT NULL CHECK (category IN ('weather', 'news', 'local_events')),
+  tool TEXT NOT NULL,
+  arguments TEXT NOT NULL,
+  run_in TEXT NOT NULL DEFAULT '["conversation"]',
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+  approved TEXT,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (service_id, category)
+);
+
+-- Every lookup attempt with what was sent, where, when and how long it counts as fresh.
+CREATE TABLE IF NOT EXISTS context_observations (
+  id TEXT PRIMARY KEY,
+  service_id TEXT REFERENCES context_services(id) ON DELETE SET NULL,
+  service_name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  purpose TEXT NOT NULL,
+  tool TEXT NOT NULL,
+  arguments TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  location TEXT,
+  status TEXT NOT NULL CHECK (status IN ('ok', 'failed', 'refused')),
+  content TEXT NOT NULL DEFAULT '',
+  structured TEXT,
+  error_code TEXT,
+  error TEXT,
+  attempts INTEGER NOT NULL DEFAULT 1,
+  requested_at TEXT NOT NULL,
+  retrieved_at TEXT,
+  fresh_until TEXT
+);
+CREATE INDEX IF NOT EXISTS context_observations_recent ON context_observations (category, requested_at);
+
+-- Which observations a user message's reply was given.
+CREATE TABLE IF NOT EXISTS context_uses (
+  message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  observation_id TEXT NOT NULL REFERENCES context_observations(id) ON DELETE CASCADE,
+  PRIMARY KEY (message_id, observation_id)
+);
