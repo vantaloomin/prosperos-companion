@@ -114,9 +114,12 @@ def search(database, query: str, limit=SEARCH_LIMIT) -> dict:
     require(len(needle) >= 2, 'Search for at least two characters.', 422)
     with database.connect() as connection:
         companion = require_current(connection)
+        # A reply to a deleted message usually repeats it, so search leaves it out with it (M12).
         rows = connection.execute(
-            "SELECT id, seq, role, text, status, reply_to, created_at FROM messages WHERE timeline_id=? "
-            "AND redacted_at IS NULL AND text<>'' ORDER BY seq DESC", (companion['active_timeline_id'],))
+            "SELECT message.id, message.seq, message.role, message.text, message.status, message.reply_to, "
+            "message.created_at FROM messages message LEFT JOIN messages parent ON parent.id=message.reply_to "
+            "WHERE message.timeline_id=? AND message.redacted_at IS NULL AND message.text<>'' "
+            "AND parent.redacted_at IS NULL ORDER BY message.seq DESC", (companion['active_timeline_id'],))
         results = []
         for row in rows:
             if needle in row['text'].casefold():
