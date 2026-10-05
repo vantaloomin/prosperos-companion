@@ -250,3 +250,5 @@ textarea { resize: vertical; line-height: 1.6; }
 .getting-started li p { margin: 0; }
 .getting-started .step-label { font-weight: 600; }
 .getting-started .text-button { padding-left: 0; margin-top: 4px; }
+.event-correct { padding-left: 0; align-self: flex-start; }
+.correct-event { display: grid; gap: 10px; margin-top: 6px; }
