@@ -109,6 +109,13 @@ often in bad weather), possibly with a free circle member. Agenda blocks carry t
 `block.happenings` (`[{id, name, neighborhood, city}]`), and the chat context lists them beside the
 weather, marked as fictional dates.
 
+### Birthdays
+
+Each circle member has a birthday (`birthday: "MM-DD"` in the circle API), seeded by their id. On
+that date one leisure or social block goes to them: the companion celebrates with a local friend
+who is free then (`activity: "birthday"`, at a restaurant or bar, `with` naming them), or calls a
+relative who lives out of town (no place). The chat context marks the person's birthday on the day.
+
 Events are composed from the routine, a fixed activity catalog and the world data, without a
 model. When a model is connected and `phrase_with_model` is on, it only rewrites the wording;
 `inputs.wording` is `model` or `template`. Set `home_city` on the character to a city id from the
@@ -157,7 +164,7 @@ GET   /api/life/circle/{id}/diary          # ?before=<starts_at>&limit=20, newes
 ```
 
 A person is `{id, name, role, status, revision, career, employer, neighborhood, city, refs, sources,
-data_version, schedule, now, recent}`, plus `full_name`, `pronouns`, `age`, `local`, `closeness` and
+data_version, birthday, schedule, now, recent}`, plus `full_name`, `pronouns`, `age`, `local`, `closeness` and
 `haunts` when they came from a known city. `name` is the given name used in events; `local: false`
 means they live out of town and have an empty `schedule`. `now` is the routine block they are in right now (for example
 `{"label": "Registered nurse", "kind": "work", ...}`) or `null`. `recent` is the newest three diary

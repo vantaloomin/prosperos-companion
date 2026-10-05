@@ -100,8 +100,9 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
             block['happenings'] = events
         if block['kind'] not in routine.RESTING:
             company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
+            celebrants = birthdays(connection, timeline_id, local_date, company) if subject == COMPANION else []
             entry = composer.compose({**slot.view(), 'block': block}, definition, world,
-                                     seed_for(timeline_id, subject, slot.key), recent[-3:], company)
+                                     seed_for(timeline_id, subject, slot.key), recent[-3:], company, celebrants)
             if entry:
                 recent.append(entry['activity'])
         connection.execute(
@@ -150,6 +151,19 @@ def free_people(connection, timeline_id, slot) -> list[dict]:
                                                              stamp(slot.starts_at)))
         if not any(decode(row['block'])['kind'] in BUSY for row in overlapping):
             result.append({'id': person['id'], 'name': person['name']})
+    return result
+
+
+def birthdays(connection, timeline_id, local_date, free) -> list[dict]:
+    """Circle members whose birthday is on this date: out-of-town ones always (a call), local ones
+    only when free at the slot (`free` from free_people)."""
+    free_ids, result = {person['id'] for person in free}, []
+    for person in circle.people(connection, timeline_id):
+        if circle.birthday(person['id']) != local_date[5:]:
+            continue
+        local = bool(decode(person['schedule']))
+        if not local or person['id'] in free_ids:
+            result.append({'id': person['id'], 'name': person['name'], 'local': local})
     return result
 
 

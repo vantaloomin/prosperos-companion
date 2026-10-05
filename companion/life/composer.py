@@ -11,7 +11,7 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-COMPOSER_VERSION = 'compose-3'
+COMPOSER_VERSION = 'compose-4'
 QUIET_SHARE = 0.2
 OUTDOOR = {'park', 'waterfront', 'beach'}
 RAINY_CAPTIONS = ('Rain on the window all day.', 'Good day to stay in.', 'Listening to the rain.')
@@ -117,6 +117,37 @@ FESTIVAL_SHARE = 0.5
 FESTIVAL_KINDS = {'leisure', 'social'}
 
 
+# A circle member's birthday: the companion celebrates with them when both are free, or calls a
+# relative who lives out of town.
+BIRTHDAY = activity('birthday', ('restaurant', 'bar'), [],
+                    ['Happy birthday to the best.', 'Cake was had.', 'Another year, same favorite person.'],
+                    ['warm', 'happy'], '', ["{name} celebrated {friend}'s birthday{at}.",
+                                            "{name} took {friend} out{at} for their birthday."])
+CALL = ("{name} called {friend} to wish them a happy birthday.",
+        "{name} spent a while on the phone with {friend}, who turned a year older today.")
+BIRTHDAY_KINDS = {'leisure', 'social'}
+
+
+def birthday(slot: dict, definition: dict, world, seed: str, recent_activities, celebrants, conditions):
+    """On a circle member's birthday, a leisure or social slot goes to them. `celebrants` are those
+    having a birthday ({id, name, local}); local ones are only passed when free at the slot."""
+    if not celebrants or slot['block']['kind'] not in BIRTHDAY_KINDS or BIRTHDAY.key in set(recent_activities):
+        return None
+    rng = random.Random(f'{seed}:birthday')
+    friend = celebrants[0]
+    who = {'id': friend['id'], 'name': friend['name']}
+    if not friend.get('local', True):
+        summary, place = rng.choice(CALL).format(name=definition['name'], friend=friend['name']), None
+    else:
+        places = find_places(world, definition, slot, BIRTHDAY.place_kinds)
+        place = rng.choice(places) if places else None
+        summary = rng.choice(BIRTHDAY.together).format(name=definition['name'], friend=friend['name'],
+                                                      at=f' at {place.name}' if place else '')
+    return {'summary': summary, 'post': rng.choice(BIRTHDAY.captions), 'mood': rng.choice(BIRTHDAY.moods),
+            'activity': BIRTHDAY.key, 'place': place.view() if place else None, 'with': who,
+            'weather': conditions, 'composer_version': COMPOSER_VERSION}
+
+
 def happenings(world, definition: dict, local_date: str) -> list[dict]:
     """The city's annual events held on this date, from the world data. [] when the world has none."""
     lookup, city = getattr(world, 'happenings', None), home_city(definition)
@@ -187,9 +218,11 @@ def find_places(world, definition: dict, slot: dict, kinds) -> list:
     return [place for place in found if place.name in haunts] or found
 
 
-def compose(slot: dict, definition: dict, world, seed: str, recent_activities=(), company=()) -> dict | None:
+def compose(slot: dict, definition: dict, world, seed: str, recent_activities=(), company=(),
+            celebrants=()) -> dict | None:
     """The event for one slot, or None when the slot stays quiet. `company` are circle members
-    free at the time ({id, name}); a social activity may name one of them."""
+    free at the time ({id, name}); a social activity may name one of them. `celebrants` are circle
+    members whose birthday it is."""
     rng = random.Random(seed)
     block = slot['block']
     options = CATALOG.get(block['kind'])
@@ -197,6 +230,8 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
         return None
     # Prefer activities that did not just happen, so variety comes from the routine, not drama.
     conditions = block.get('weather') or weather(world, definition, slot['local_date'])
+    if outing := birthday(slot, definition, world, seed, recent_activities, celebrants, conditions):
+        return outing
     if outing := festival(slot, definition, world, seed, recent_activities, company, conditions):
         return outing
     if harsh(conditions):

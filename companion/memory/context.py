@@ -120,6 +120,8 @@ def person_text(person) -> str:
         text += f": {person['career']}" + (f" at {person['employer']}" if person['employer'] else '')
     text += '.' if person.get('local', True) else '. Lives out of town.'
 
+    if person.get('birthday_today'):
+        text += ' Today is their birthday.'
     if person['now']:
         text += f" Right now: {person['now']['label'].lower()}."
     if person['recent']:
@@ -237,7 +239,7 @@ def offer_life(packet, connection, timeline_id, version, now):
     if day['happenings']:
         packet.offer('weather', f'{today}:events', agenda.happenings_text(day['happenings']))
     for person in agenda.circle_view(connection, timeline_id, now):
-        packet.offer('circle', person['id'], person_text(person))
+        packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
