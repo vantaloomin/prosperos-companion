@@ -375,7 +375,7 @@ nothing is affordable the routine happens as before.
 ## Feed
 
 ```http
-GET  /api/feed?limit=20&before=…&hidden=false
+GET  /api/feed?limit=20&before=…&hidden=false&source=all
 GET  /api/feed/{post_id}
 POST /api/feed/read                {"post_ids": ["…"]}   (omit the body to mark everything read)
 POST /api/feed/{post_id}/reaction  {"reaction": "heart"} (heart, laugh, wow, sad, hug, or null to clear)
@@ -383,6 +383,7 @@ POST /api/feed/{post_id}/hide
 POST /api/feed/{post_id}/unhide
 POST /api/feed/{post_id}/remove
 POST /api/feed/{post_id}/discuss   {"text": "…", "client_id": "…"}
+POST /api/feed/{post_id}/answer    {"option": "Tacos", "client_id": "…"}   (question posts)
 POST /api/feed/posts               {"event_id": "…", "intro": "…"}
 GET  /api/feed/export
 ```
@@ -422,8 +423,33 @@ A post:
 - `discuss` sends a chat message linked to the post and returns the same shape as
   `POST /api/conversation/messages`. The reply is written knowing which post the user meant.
 - `POST /api/feed/posts` posts an event committed by other means; it is idempotent per event.
-- `export` returns `{format: "prospero-companion-feed", version, exported_at, companion, posts}`,
+- `export` returns `{format: "prospero-companion-feed", version (2), exported_at, companion, posts}`,
   oldest first, hidden posts included.
+- Every post has `source` (`life` for the posts above, `social` below), an `author`
+  (`{kind: "companion" | "person", id, name, role}`) and an `audience`
+  (`{likes: [names], comments: [{author, name, text, at}]}`).
+
+### The social side
+
+`source=companion` keeps only the companion's posts and `source=circle` only their friends'.
+Reading the feed or Today writes the social posts due for the last few days
+([companion/life/social.py](../companion/life/social.py)). No model is involved: everything comes
+from the agenda, the circle, the city data and fixed phrasing, under seeded idempotency keys.
+
+- `friend`: a circle member shares a happened diary entry (`text` is their line, `context` what
+  happened, `place` where). A few a day across the circle, at most one per person.
+- `status`: a passing thought of the companion's from the day's weather, how they feel, the weekday
+  or an interest. It never claims anything happened.
+- `birthday` (a circle member's birthday), `holiday` (a public holiday), `city` (an opening,
+  closing or road works the day people hear of it, or an annual event on its day).
+- `question`: an either-or with `options`; `answer` records the user's pick and sends it to chat as
+  a reply to the post. `answer` is `null` until then.
+
+Social posts have `events: []` and `image: null`. They are read, reacted to, hidden, removed and
+discussed with the same endpoints. Likes and comments are derived, not stored: they come from the
+post, the active circle and the clock, arriving within a few hours of the post, at most three
+comments each. The companion likes and comments on friends' posts. A renamed friend shows their new
+name; a removed one's posts and comments leave the feed.
 
 ## Emotional traits and absence mood
 

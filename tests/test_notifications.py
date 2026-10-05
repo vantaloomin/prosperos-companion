@@ -5,6 +5,14 @@ from datetime import timedelta
 import pytest
 from conftest import send, set_life
 
+from companion.life import social
+
+
+@pytest.fixture(autouse=True)
+def life_posts_only(monkeypatch):
+    """These tests count life posts; the circle's posts are covered in tests/test_social_feed.py."""
+    monkeypatch.setattr(social, 'write', lambda *_args: 0)
+
 
 def configure(client, **values):
     response = client.put('/api/notifications/settings', json=values)

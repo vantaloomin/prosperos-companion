@@ -4,12 +4,14 @@ import type { FeedPost, Reaction } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { REACTIONS } from './feedState'
 import { PostImage } from './PostImage'
+import { Audience, SocialBody } from './SocialPost'
 
 export interface PostActions {
   react: (post: FeedPost, reaction: Reaction) => void
   hide: (post: FeedPost, hidden: boolean) => void
   remove: (post: FeedPost) => void
   discuss: (post: FeedPost, text: string) => Promise<boolean>
+  answer: (post: FeedPost, option: string) => Promise<boolean>
   saw: (post: FeedPost) => void
   refresh: () => void
 }
@@ -33,10 +35,7 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
   const hidden = post.status === 'hidden'
   return (
     <article ref={card} className={`post${hidden ? ' hidden-post' : ''}`} aria-labelledby={`post-${post.id}`}>
-      <header className="post-header">
-        <span id={`post-${post.id}`} className="speaker">{name}{!post.read && <span className="unread-dot" aria-label="unread" />}</span>
-        <time dateTime={post.occurs_at}>{when(post.occurs_at)}</time>
-      </header>
+      <PostHeader post={post} />
       {post.intro && <p className="post-intro">{post.intro}</p>}
       {post.events.map((event) => (
         <div key={event.id} className="post-event">
@@ -44,7 +43,9 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
           {event.caption !== event.summary && <p className="subtle">{event.summary}</p>}
         </div>
       ))}
-      <PostImage post={post} onChange={actions.refresh} />
+      {post.source === 'social' && <SocialBody post={post} answer={actions.answer} />}
+      {post.image && <PostImage post={post} image={post.image} onChange={actions.refresh} />}
+      <Audience audience={post.audience} />
       <div className="post-actions">
         <span className="reactions" role="group" aria-label="React">
           {REACTIONS.map((reaction) => (
@@ -63,10 +64,19 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
           <button type="button" className="button" onClick={() => setRemoving(false)}>Cancel</button>
           <button type="button" className="button danger" onClick={() => { setRemoving(false); actions.remove(post) }}>Remove</button>
         </>}>
-          <p>The post is removed for good. What happened stays part of {name}'s life and can still come up in conversation. To keep it but out of sight, choose Hide instead.</p>
+          <p>{post.source === 'life' ? `The post is removed for good. What happened stays part of ${name}'s life and can still come up in conversation.` : 'The post is removed for good.'} To keep it but out of sight, choose Hide instead.</p>
         </ConfirmDialog>
       )}
     </article>
+  )
+}
+
+function PostHeader({ post }: { post: FeedPost }) {
+  return (
+    <header className="post-header">
+      <span id={`post-${post.id}`} className="speaker">{post.author.name}{post.author.role && <span className="post-role"> · {post.author.role}</span>}{!post.read && <span className="unread-dot" aria-label="unread" />}</span>
+      <time dateTime={post.occurs_at}>{when(post.occurs_at)}</time>
+    </header>
   )
 }
 
