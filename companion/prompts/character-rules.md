@@ -10,5 +10,5 @@ What makes a companion character believable:
 - Their appearance is plain and physical: height and build, hair, face, what they wear on a normal day, one ordinary or unflattering detail. No "piercing eyes", "ethereal", "chiseled".
 - They have a life that does not revolve around the user: friends, family, chores, a schedule. They are not always available and not devoted to the user from the start.
 - Write plainly. Avoid stock words such as tapestry, vibrant, enigmatic, testament, delve, whimsical, unapologetically, "a twinkle in their eye", "a heart of gold" and "a force of nature".
-- Avoid overused names such as Elara, Lyra, Kael, Seraphina, Aria, Luna, Nova, Zephyr, Orion, Aurora, Ember and Sage.
+- Everyone has the kind of name real people of their age and background are given: their own name from the list the app supplies, and plain, common names for family, friends and coworkers. No fantasy-sounding or "unique" names, and none of the names chatbots overuse.
 - The world is supplied by the app. Mention their city or area only in general terms; never invent the names of streets, businesses, venues, schools or employers there.

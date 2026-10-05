@@ -10,10 +10,31 @@ from pathlib import Path
 OUT = Path(__file__).resolve().parents[2] / 'companion' / 'world' / 'data' / 'names.json'
 
 
-def group(feminine, masculine, neutral, family):
-    return {key: list(dict.fromkeys(word.replace('_', ' ') for word in words.split()))
+def group(feminine, masculine, neutral, family, cultures=None):
+    made = {key: list(dict.fromkeys(word.replace('_', ' ') for word in words.split()))
             for key, words in (('feminine', feminine), ('masculine', masculine), ('neutral', neutral),
                                ('family', family))}
+    return made | {'cultures': cultures or {}}
+
+
+# How each modern heritage group takes given names from the popular names of the person's birth year
+# (given_names.py). `local` is the city's own country (the United States for the built-in cities); a
+# culture with its own family names supplies the family name too. The given-name lists below remain for
+# settings outside those years.
+CULTURES = {
+    'anglo': {'local': 1},
+    'black-american': {'us-black': 0.6, 'local': 0.4},
+    'hispanic': {'us-hispanic': 0.6, 'local': 0.25, 'mexico': 0.15},
+    'caribbean': {'jamaica': 0.4, 'haiti': 0.3, 'us-black': 0.3},
+    'east-asian': {'local': 0.45, 'china': 0.15, 'korea': 0.12, 'vietnam': 0.12, 'philippines': 0.1, 'japan': 0.06},
+    'south-asian': {'india': 0.65, 'local': 0.35},
+    'jewish': {'local': 0.8, 'israel': 0.2},
+    'italian': {'local': 0.8, 'italy': 0.2},
+    'irish': {'local': 0.75, 'ireland': 0.25},
+    'slavic': {'poland': 0.4, 'russia': 0.35, 'local': 0.25},
+    'arabic': {'arab': 0.8, 'local': 0.2},
+    'west-african': {'nigeria': 0.6, 'ghana': 0.4},
+}
 
 
 MODERN = {
@@ -99,6 +120,9 @@ MODERN = {
         'Okafor Okonkwo Adeyemi Balogun Mensah Asante Owusu Boateng Diallo Traore Nwosu Eze Adebayo Ogunleye '
         'Danso Ndiaye'),
 }
+
+for key, links in CULTURES.items():
+    MODERN[key]['cultures'] = links
 
 VICTORIAN = {
     'english': group(

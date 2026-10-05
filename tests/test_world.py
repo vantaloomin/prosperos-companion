@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from companion.errors import DomainError
 from companion.models import CharacterDefinition
-from companion.world import catalog, generators
+from companion.world import catalog, generators, naming
 from companion.world.check import FOOD
 from companion.world.schema import City
 
@@ -315,7 +315,8 @@ def test_circles_are_deterministic_and_coherent(city_id):
         assert len({person['id'] for person in people}) == 12
         for person in people:
             if person['role'] in ('parent', 'sibling'):
-                assert person['name']['family'] == result['family']
+                # Polish and Russian women use the feminine form of the shared name.
+                assert naming.base_family(person['name']['culture'], person['name']['family']) == result['family']
                 assert person['name']['group'] == people[2]['name']['group']
             if person['role'] == 'neighbor':
                 assert person['home']['neighborhood']['id'] == hood

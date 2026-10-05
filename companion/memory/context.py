@@ -26,6 +26,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
+from companion.world import newcomers
 
 RECENT_MESSAGES = 24
 RECALL_LIMIT = 8
@@ -59,6 +60,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
                           'with it: you may add new details but never contradict these)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            'newcomers': 'Names for anyone new you mention who is not listed above (a new coworker, a neighbor); '
+                         'use one of these that fits their age rather than making a name up',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
                      'never ask the user for money and never treat it as theirs)',
             'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
@@ -407,6 +410,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory, stamp(now)))
     offer_life(packet, connection, timeline_id, version, now)
+    packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     offer_attachments(packet, connection, latest, photo)
     block = agenda.current(connection, timeline_id, agenda.COMPANION, now) if outside else None
