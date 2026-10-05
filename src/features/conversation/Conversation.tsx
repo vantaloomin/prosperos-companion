@@ -14,7 +14,7 @@ import { GettingStarted } from './GettingStarted'
 import { TurnView } from './TurnView'
 import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
-import { applyFinished, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds } from './turns'
+import { applyFinished, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
@@ -163,7 +163,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }), [])
   const turns = useMemo(() => groupTurns(messages), [messages])
   const following = streamingIds(messages)
-  const latestUserId = turns.at(-1)?.user.id
+  const latestUserId = latestUser(turns)
   const streaming = following.length > 0
   const hasEarlier = !exhausted && messages.length >= PAGE
 
@@ -178,7 +178,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turn.user.id} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turn.user.id === latestUserId} busy={turn.user.id === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} highlight={found?.id} />
+            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} highlight={found?.id} />
           ))}
         </div>
       </div>

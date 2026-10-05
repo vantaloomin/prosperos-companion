@@ -87,12 +87,21 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'chat_style',
      "TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel'))"),
     ('workspace_settings', 'chat_sounds', 'INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1))'),
+    ('life_settings', 'texts_first', 'INTEGER NOT NULL DEFAULT 0 CHECK (texts_first IN (0, 1))'),
+    ('life_settings', 'texts_daily', 'INTEGER NOT NULL DEFAULT 2'),
+    ('life_settings', 'texts_gap_hours', 'INTEGER NOT NULL DEFAULT 3'),
+)
+
+# CHECK constraints widened after a table first shipped, as (table, text the current definition
+# contains). SQLite cannot alter a CHECK, so an older table is copied into the current definition.
+WIDENED_CHECKS = (
+    ('notification_deliveries', "'message')"),
 )
 
 
 def schema_digest() -> str:
     """Changes whenever schema.sql or ADDED_COLUMNS does, so an upgrade is noticed without a version bump."""
-    return hashlib.sha256((SCHEMA + repr(ADDED_COLUMNS)).encode('utf-8')).hexdigest()
+    return hashlib.sha256((SCHEMA + repr(ADDED_COLUMNS) + repr(WIDENED_CHECKS)).encode('utf-8')).hexdigest()
 
 
 def initialize(connection, timestamp: str):
@@ -100,6 +109,7 @@ def initialize(connection, timestamp: str):
     connection.executescript(SCHEMA)
     add_columns(connection)
     widen_context_categories(connection)
+    widen_checks(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     backfill_subject_keys(connection)
     from companion.text_models import adopt_legacy
@@ -149,6 +159,19 @@ def widen_context_categories(connection):
     connection.execute(f'INSERT INTO context_tools_widened ({columns}) SELECT {columns} FROM context_tools')
     connection.execute('DROP TABLE context_tools')
     connection.execute('ALTER TABLE context_tools_widened RENAME TO context_tools')
+
+
+def widen_checks(connection):
+    for table, marker in WIDENED_CHECKS:
+        row = connection.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+        if not row or marker in row[0]:
+            continue
+        definition = re.search(rf'CREATE TABLE IF NOT EXISTS {table} \((.*?)\n\);', SCHEMA, re.S).group(1)
+        columns = ', '.join(item[1] for item in connection.execute(f'PRAGMA table_info({table})'))
+        connection.execute(f'CREATE TABLE {table}_widened ({definition})')
+        connection.execute(f'INSERT INTO {table}_widened ({columns}) SELECT {columns} FROM {table}')
+        connection.execute(f'DROP TABLE {table}')
+        connection.execute(f'ALTER TABLE {table}_widened RENAME TO {table}')
 
 
 def backfill_subject_keys(connection):

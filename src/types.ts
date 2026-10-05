@@ -247,6 +247,10 @@ export interface LifeSettings {
   return_gap_hours: number
   background_interval_minutes: number
   background_daily_events: number
+  /** The companion may send the first message (companion/life/openers.py). */
+  texts_first: boolean
+  texts_daily: number
+  texts_gap_hours: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -646,7 +650,9 @@ export interface NotificationSettings {
   queued: number
 }
 
-export interface DesktopNotification { id: string; kind: 'post' | 'digest'; post_ids: string[]; title: string; body: string }
+export interface DesktopNotification { id: string; kind: 'post' | 'digest' | 'message'; post_ids: string[]; message_id?: string; title: string; body: string }
+
+export interface TextCheck { state: string; kind?: string; message: Message | null }
 
 export interface NotificationCheck { notification: DesktopNotification | null; held: string | null }
 

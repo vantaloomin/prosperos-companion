@@ -412,8 +412,15 @@ def render(packet, conversation) -> dict:
     for key, heading in HEADINGS.items():
         if packet.sections.get(key):
             parts.append(f'## {heading}\n' + '\n'.join(packet.sections[key]))
-    chat = [{'role': 'user' if message['role'] == 'user' else 'assistant', 'content': message['text']}
-            for message in conversation]
+    chat = []
+    for message in conversation:
+        role = 'user' if message['role'] == 'user' else 'assistant'
+        # A message the companion sent first can follow its own last reply; some chat templates
+        # require turns to alternate, so consecutive messages from one side are joined.
+        if chat and chat[-1]['role'] == role:
+            chat[-1] = {'role': role, 'content': chat[-1]['content'] + '\n\n' + message['text']}
+        else:
+            chat.append({'role': role, 'content': message['text']})
     receipt = {'budget_tokens': packet.budget, 'estimated_tokens': packet.used,
                'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic}
     return {'system': '\n\n'.join(parts), 'messages': chat, 'receipt': receipt}

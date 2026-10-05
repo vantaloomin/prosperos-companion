@@ -834,7 +834,7 @@ CREATE INDEX IF NOT EXISTS notifications_status ON notifications(status, created
 
 CREATE TABLE IF NOT EXISTS notification_deliveries (
   id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL CHECK (kind IN ('post', 'digest')),
+  kind TEXT NOT NULL CHECK (kind IN ('post', 'digest', 'message')),
   post_count INTEGER NOT NULL,
   delivered_at TEXT NOT NULL
 );
@@ -883,3 +883,19 @@ CREATE TABLE IF NOT EXISTS closeness_jokes (
   created_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, memory_id)
 );
+
+-- A message the companion sent first (companion/life/openers.py). Each trigger fires once per
+-- timeline; `notify` follows its desktop notification like `notifications` does for posts.
+CREATE TABLE IF NOT EXISTS openers (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  trigger_key TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  facts TEXT NOT NULL,
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  wording TEXT NOT NULL CHECK (wording IN ('model', 'template')),
+  notify TEXT CHECK (notify IN ('queued', 'delivered', 'dropped', 'cancelled')),
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, trigger_key)
+);
+CREATE INDEX IF NOT EXISTS openers_message ON openers(message_id);

@@ -195,6 +195,9 @@ class LifeSettingsUpdate(Input):
     return_gap_hours: int | None = Field(default=None, ge=1, le=48)
     background_interval_minutes: int | None = Field(default=None, ge=15, le=1440)
     background_daily_events: int | None = Field(default=None, ge=0, le=8)
+    texts_first: bool | None = None
+    texts_daily: int | None = Field(default=None, ge=1, le=6)
+    texts_gap_hours: int | None = Field(default=None, ge=1, le=24)
 
 
 class NotificationSettingsUpdate(Input):

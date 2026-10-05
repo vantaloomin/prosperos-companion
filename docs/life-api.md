@@ -238,6 +238,9 @@ PUT /api/life/settings
 | `return_gap_hours` | 4 | 1–48 | Unsimulated time needed before a return batch runs. |
 | `background_interval_minutes` | 60 | 15–1440 | Gap between background batches. |
 | `background_daily_events` | 3 | 0–8 | Most background events in 24 hours; one per batch. |
+| `texts_first` | `false` | | The companion may send the first message (see First messages). |
+| `texts_daily` | 2 | 1–6 | Most first messages in 24 hours. |
+| `texts_gap_hours` | 3 | 1–24 | Hours since the last message before the companion writes first. |
 
 Background batches also need `background_activity: true` in `PUT /api/settings`. Pausing
 (`POST /api/pause`) stops new batches, and resuming skips the paused interval rather than
@@ -256,6 +259,33 @@ a return, and returns the same shape as reconcile (`state` is `started`, or `alr
 earlier batch). It is refused (409) while paused or for a pause that has not ended.
 `GET /api/life/pauses` lists pauses newest first with `started_at`, `ended_at`,
 `catch_up_requested_at` and `catch_up_run_id`.
+
+## First messages
+
+```http
+POST /api/life/texts/check   → {state, kind?, message: Message | null}
+```
+
+With `texts_first` on, the companion can start a conversation (`companion/life/openers.py`). The
+open app calls this about once a minute, and a server with background activity on checks on its own
+tick. Fixed triggers decide when, in this order, each at most once per timeline:
+
+| Kind | When | Needs a model |
+| --- | --- | --- |
+| `follow_up` | A plan the user mentioned ended between an hour and three days ago without an outcome | No (template: "Hey! How did the … go?") |
+| `news` | An open thread in the companion's life settled in the last day | Yes |
+| `reminder` | An event committed in the last day shares a distinctive word with a user fact or shared experience | Yes |
+| `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
+
+The model gets the normal chat context plus the reason and its facts, and is told not to add events,
+places or people. A reply that is empty, cut off or longer than 600 characters falls back to the
+template, or to nothing for triggers without one. `state` says why nothing was sent: `off`,
+`paused`, `quiet_hours` (the notification quiet hours, in the user's timezone), `asleep` (a sleep
+block in the companion's routine), `recent_conversation`, `waiting_for_answer` (their last first
+message is still unanswered), `daily_cap`, `interrupted` or `nothing`. A sent message is an ordinary
+companion message with `reply_to: null`; the chat shows it before the user's next message and the
+next reply sees it. With notifications on it is announced (kind `message`) before any waiting
+posts. A forked timeline keeps the triggers its parent already used.
 
 ## Routine
 
