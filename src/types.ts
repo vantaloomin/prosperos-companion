@@ -609,3 +609,55 @@ export interface NotificationSettings {
 export interface DesktopNotification { id: string; kind: 'post' | 'digest'; post_ids: string[]; title: string; body: string }
 
 export interface NotificationCheck { notification: DesktopNotification | null; held: string | null }
+
+export type ShotAspect = 'square' | 'landscape' | 'portrait'
+
+export interface Shot { key: string; label: string; shot: string; aspect: ShotAspect }
+
+export interface GenerationDraft { base: string; style: string; negative: string; seed: number; shots: Shot[] }
+
+export interface PlannedShot {
+  label: string
+  shot: string
+  aspect: ShotAspect
+  prompt: string
+  tier: 'safe' | 'nsfw' | 'prohibited'
+  reasons: string[]
+  route_reason: string
+  refusal: string | null
+  backend: { id: string; label: string; kind: string; local: boolean } | null
+}
+
+export interface GeneratedImage {
+  id: string
+  position: number
+  label: string
+  shot: string
+  prompt: string
+  aspect: ShotAspect
+  seed: number
+  used_seed: number | null
+  classification: string
+  reasons: string[]
+  backend_id: string | null
+  backend_label: string | null
+  backend_kind: string | null
+  status: EvalImageStatus
+  error: string | null
+  width: number | null
+  height: number | null
+  model: string | null
+  decision: 'kept' | 'discarded' | null
+  reference_id: string | null
+  has_image: boolean
+}
+
+export interface Generation {
+  id: string
+  base: string
+  seed: number
+  status: 'running' | 'completed' | 'cancelled' | 'interrupted'
+  counts: Record<EvalImageStatus | 'kept', number>
+  images: GeneratedImage[]
+  created_at: string
+}

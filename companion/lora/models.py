@@ -63,3 +63,25 @@ class EvaluationCreate(Input):
 
 class Rating(Input):
     rating: Literal['', 'good', 'weak']
+
+
+class Shot(Input):
+    key: str = Field(default='', max_length=40)
+    label: str = Field(min_length=1, max_length=80)
+    # What this picture shows; it follows the shared base description in the prompt.
+    shot: str = Field(min_length=1, max_length=500)
+    aspect: Literal['square', 'landscape', 'portrait'] = 'portrait'
+
+
+class GenerationPlan(Input):
+    # The description every shot starts from, so the set stays consistent.
+    base: str = Field(min_length=1, max_length=1500)
+    shots: list[Shot] = Field(min_length=1, max_length=40)
+    marked_nsfw: bool = False
+    # None follows the user's backend order; a backend the request is not eligible for is refused.
+    backend_id: str | None = None
+    seed: int | None = Field(default=None, ge=1, lt=2**31)
+
+
+class GenerationCreate(GenerationPlan):
+    seed: int = Field(ge=1, lt=2**31)

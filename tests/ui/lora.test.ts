@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { checkpointLine, cropPixels, dhash, evaluationRows, formatBytes, grayscale, progressLine, reviewLine } from '../../src/features/appearance/loraState.ts'
-import type { EvalImage, TrainingRun } from '../../src/types.ts'
+import { checkpointLine, composePrompt, cropPixels, dhash, evaluationRows, formatBytes, generationLine, grayscale, progressLine, reviewLine, routeLine } from '../../src/features/appearance/loraState.ts'
+import type { EvalImage, Generation, PlannedShot, TrainingRun } from '../../src/types.ts'
 
 test('the difference hash compares neighbours left to right', () => {
   const rising = Array.from({ length: 72 }, (_value, index) => index % 9)
@@ -37,4 +37,14 @@ test('evaluation images pair up by prompt', () => {
   const image = (key: string, variant: 'lora' | 'text', position: number) => ({ id: `${key}-${variant}`, prompt_key: key, label: key, variant, position }) as EvalImage
   const rows = evaluationRows([image('b', 'text', 3), image('a', 'lora', 0), image('b', 'lora', 1), image('a', 'text', 2)])
   assert.deepEqual(rows.map((row) => [row.key, row.lora?.id, row.text?.id]), [['a', 'a-lora', 'a-text'], ['b', 'b-lora', 'b-text']])
+})
+
+test('generated shots say where they go or why they cannot be made', () => {
+  const shot = { label: 'Front', shot: 'front', aspect: 'portrait', prompt: 'p', tier: 'safe', reasons: [], route_reason: '', refusal: null, backend: { id: 'b', label: 'Codex', kind: 'codex', local: false } } as PlannedShot
+  assert.equal(routeLine(shot), 'Goes to Codex.')
+  assert.equal(routeLine({ ...shot, tier: 'nsfw', reasons: ['nudity'], backend: { id: 'c', label: 'ComfyUI', kind: 'comfyui', local: true } }), 'Goes to ComfyUI on this computer. Classified nsfw (nudity).')
+  assert.equal(routeLine({ ...shot, backend: null, refusal: 'No local backend.' }), 'No local backend.')
+  assert.equal(composePrompt('', 'Mira, silver hair.', 'profile, soft light.'), 'Natural photograph. Mira, silver hair, profile, soft light.')
+  const counts = { queued: 1, running: 1, completed: 3, failed: 1, cancelled: 0, interrupted: 0, kept: 2 }
+  assert.equal(generationLine({ counts } as Generation), '3 made, 1 failed, 2 to go, 2 kept.')
 })

@@ -26,6 +26,31 @@ description. The code is in `companion/lora/`; files live in `lora/` beside the 
   with the trigger word. Suggestions are only a starting point and never overwrite a caption the
   user wrote. Nothing looks at the picture to caption it.
 
+### Generating candidate pictures
+
+Prepare can also make candidates with the configured image backends.
+
+- The shot list is drafted without a model: 14 shots covering a front portrait, a
+  three-quarter view, a profile, an over-the-shoulder look, three expressions, three full-body
+  shots, two outfits and two kinds of light. Every shot, its shape and the shared description are
+  editable, and the full prompt is shown before anything is sent: `<image style>. <description>,
+  <shot>.`
+- Every shot in a set uses the same description and the same seed, so the set stays consistent.
+  ComfyUI uses the seed; Codex and image APIs may ignore it, and the seed each backend reports
+  is recorded.
+- Each shot is classified and routed like any image request: Prohibited is refused everywhere,
+  NSFW goes only to a local backend (and is refused when none is enabled), "Treat these as NSFW"
+  keeps a set local, and the check fails closed. Refused shots are listed with the reason.
+  Before each picture the backend is checked again, and the backend's job limit, the single
+  Codex slot and local ComfyUI waiting for a chat reply or a running trainer all apply. A
+  sign-in error stops that backend, as for any image.
+- Nothing joins the set on its own. Each finished picture can be kept for training, held back
+  for evaluation, or discarded (its file is deleted). A kept picture is recorded as `generated`
+  with a source note naming the backend, model, seed and prompt, and goes through the same exact
+  and near-copy checks as an added picture. A WebP output is converted to PNG by the interface
+  before it is kept, because the trainer reads only PNG and JPEG.
+- Generated candidates are not part of backups; kept pictures are references like any other.
+
 ## Adapters and appearance versions
 
 - An imported adapter must be a valid `.safetensors` file: the header is read and the tensor data
@@ -155,7 +180,8 @@ same priority local ComfyUI image jobs follow.
 ## Interface
 
 Character has a **Look and LoRA** button that opens a guided page with six steps: **Prepare**
-(add pictures; source, rights and use for each), **Review** (blocking problems and advice,
+(add pictures, or generate candidates from an editable shot list and keep or discard each;
+source, rights and use for each), **Review** (blocking problems and advice,
 captions, crops drawn with sliders and saved as copies), **Configure** (the target trainer marked
 "Not verified on hardware", its requirements and what cancelling stops, the trainer settings, run
 options, the download disclosure and the fictional-adult confirmation), **Train** (state,
@@ -182,6 +208,13 @@ request body.
 | `DELETE /api/lora/references/{id}` | Remove the picture and its files |
 | `GET /api/lora/references/{id}/file?cropped=` | The original, or the cropped copy |
 | `POST /api/lora/references/captions` | Suggest captions for pictures without the user's own |
+| `GET /api/lora/generations/draft` | The drafted shot list, shared description, image style and a seed |
+| `POST /api/lora/generations/preview` | `{base, shots, marked_nsfw?, backend_id?}`: each shot's prompt, classification and destination |
+| `GET`, `POST /api/lora/generations` | Generated sets with every picture; start one with `{base, seed, shots, marked_nsfw?, backend_id?}` |
+| `POST /api/lora/generations/{id}/cancel` | Stop; finished pictures stay |
+| `GET /api/lora/generation-images/{id}/file` | A generated picture |
+| `POST /api/lora/generation-images/{id}/keep?role=&dhash=` | Add it to the set as `generated` (body: empty, or a PNG copy of a WebP output) |
+| `POST /api/lora/generation-images/{id}/discard` | Discard it and delete its file |
 | `GET /api/lora/adapters` | Adapters, newest first |
 | `POST /api/lora/adapters/import?name=&base_model=&trigger=&note=` | Import (body: `.safetensors`, up to 4 GB) |
 | `DELETE /api/lora/adapters/{id}` | Remove the file, keep the record |

@@ -330,6 +330,10 @@ textarea { resize: vertical; line-height: 1.6; }
 .reference-card > img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
 .reference-name { font-size: 0.875rem; font-weight: 500; overflow-wrap: anywhere; }
 .crop-editor { display: grid; gap: 8px; }
+.shot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.shot-row { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+.shot-prompt { overflow-wrap: anywhere; }
+.reference-card > .badge { justify-self: start; }
 .crop-preview { position: relative; }
 .crop-preview img { display: block; width: 100%; border-radius: 6px; }
 .crop-box { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px #0008; pointer-events: none; }

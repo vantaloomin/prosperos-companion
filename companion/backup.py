@@ -231,8 +231,9 @@ def hold_for_review(database: Database):
         connection.execute("UPDATE lora_runs SET status='interrupted', pid=NULL, error_code='interrupted', "
                            "error='Restored from a backup. Resume from a verified checkpoint or restart.', "
                            "finished_at=COALESCE(finished_at, ?) WHERE status='running'", (timestamp,))
-    # Queued and running images and evaluations become interrupted, as after a restart.
+    # Queued and running images, evaluations and generated pictures become interrupted, as after a restart.
     from companion.images import jobs
-    from companion.lora import evaluation
+    from companion.lora import evaluation, generation
     jobs.recover(database)
     evaluation.recover(database)
+    generation.recover(database)
