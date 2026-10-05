@@ -15,7 +15,7 @@ from datetime import timedelta
 from companion import self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import body, circle, composer, recommendations, routine
+from companion.life import body, circle, composer, recommendations, routine, storylines
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -67,7 +67,8 @@ def extend(connection, companion, world, now) -> dict:
     for subject, definition, basis in found:
         written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now)
     settled = settle(connection, timeline_id, now)
-    return {'written': written, 'settled': settled}
+    started = storylines.advance(connection, companion, now)
+    return {'written': written, 'settled': settled, 'storylines': started}
 
 
 def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now) -> int:

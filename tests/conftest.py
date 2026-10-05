@@ -48,6 +48,13 @@ def no_pc_timezone(monkeypatch):
     monkeypatch.setattr('companion.local_zone.detect', lambda: None)
 
 
+@pytest.fixture(autouse=True)
+def no_storylines(monkeypatch):
+    """Storylines start on seeded days (companion/life/storylines.py) and would add context lines and first
+    messages to unrelated tests; tests/test_storylines.py turns them back on."""
+    monkeypatch.setattr('companion.life.storylines.START', (0, 0, 0, 0))
+
+
 @pytest.fixture
 def clock():
     return FixedClock(START)

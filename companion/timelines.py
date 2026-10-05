@@ -15,7 +15,7 @@ A timeline's life resumes from the moment it is chosen; time spent frozen is nev
 import re
 
 from companion.characters import require_current
-from companion.database import identifier, many, one, optional
+from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import feed
 
@@ -152,11 +152,24 @@ def copy_history(connection, parent_id, new_id, message):
                                                                     (parent_id,)) if row['message_id'] in ids])
     insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
                                             'message_id': ids[row['message_id']]} for row in recommended])
+    copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
     agenda = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND status IN ('happened','skipped') "
                   'AND ends_at<=?', (parent_id, cutoff))
     insert(connection, 'life_agenda', [{
         **row, 'id': identifier(), 'timeline_id': new_id, 'subject': ids.get(row['subject'], row['subject']),
         'entry': remap(row['entry'], ids), 'prepared': None} for row in agenda])
+
+
+def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
+    """Storylines that had started by the fork carry over with their cast; later starts are the copy's own."""
+    rows = [row for row in many(connection, 'SELECT * FROM storylines WHERE timeline_id=? AND started_on<=?',
+                                (parent_id, cutoff_date))
+            if all(person in ids for person in decode(row['cast_ids']))]
+    insert(connection, 'storylines', [{**row, 'id': identifier(), 'timeline_id': new_id,
+                                       'cast_ids': encode([ids[person] for person in decode(row['cast_ids'])])}
+                                      for row in rows])
+    if optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (parent_id,)):
+        connection.execute('INSERT INTO storyline_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
 
 
 def post_links(connection, post_id) -> list[dict]:

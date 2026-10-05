@@ -260,6 +260,33 @@ name. A finished one can open a conversation. `GET /api/life/recommendations` li
 `{id, kind, title, state: waiting|started|finished, sessions_done, verdict}`, and
 `POST /api/life/recommendations/{id}/drop` takes one back, clearing its upcoming sessions.
 
+### Storylines
+
+Things unfold over days in the companion's life and their circle's (`companion/life/storylines.py`):
+"my dad just got a promotion", "the new guy at work keeps hitting on me", "I got drunk and kissed my
+best friend". Each is a fixed template with a cast from the circle (or the companion's own work) and
+one to three beats a few days apart. Whether one starts on a day, which template, who is in it and
+how each beat turns out are decided by a seed when it starts, never by a model; later beats stay
+hidden until their local date. The Life setting `drama` (0 quiet, 1 realistic, 2 dramatic, 3 soap
+opera; default 1) sets how often one starts (about 4%, 8%, 15% or 28% of days), how many run at once
+(1 to 4) and which templates can happen: quiet keeps to good news; realistic adds everyday trouble
+(a creepy new coworker, a friend's breakup, layoff rumors); dramatic adds health scares, feuds and
+secret romances; soap opera adds drunk kisses, separations and family secrets. A template doesn't
+repeat within 90 days, a person is in one running storyline at a time, and a companion in a romance
+with the user never gets one about their own love life.
+
+```http
+GET  /api/life/storylines                 # ?include_ended=true also lists ended ones
+POST /api/life/storylines/{id}/end        # it leaves Today and the context; later beats never happen
+```
+
+A storyline is `{id, story, level, started_on, status, cast: [{id, name, role}], beats: [{on, text,
+share, tone}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
+named now; removing someone ends the storylines they are in. The chat context lists the last three
+weeks' storylines and says when one is still unfolding, so the companion never guesses the ending.
+A beat from today or yesterday can open a conversation, using its `share` line when no model is
+connected. Days are decided as the agenda extends, up to 14 days back after time away.
+
 ## Limits and permissions
 
 ```http

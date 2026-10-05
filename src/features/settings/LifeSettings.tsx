@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { LifeSettings as Limits } from '../../types'
 import { Notice } from '../../components/Feedback'
-import { TextInput, Toggle } from '../../components/Fields'
+import { Field, TextInput, Toggle } from '../../components/Fields'
+import { DRAMA_LEVELS } from '../today/storyText'
 
 const KEY = ['life-settings']
 type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'texts_gap_hours' | 'circle_size'
@@ -59,6 +60,7 @@ export function LifeSettings({ name }: { name: string }) {
         hint="What happens is always built from their routine and city. With this on, your model rewrites it in their voice; off, plain wording is used and no model calls are made." />
       <Toggle label={`Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
         hint={`${name} may start a conversation: to ask how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
+      <DramaSlider name={name} value={data.drama} onChange={(value) => void save({ drama: value })} />
       <div className="form-grid">
         {LIMITS.map((limit) => (
           <TextInput key={limit.key} label={limit.label} type="number" value={draft[limit.key] ?? String(data[limit.key])} hint={limit.hint || `${limit.min} to ${limit.max}.`}
@@ -68,5 +70,16 @@ export function LifeSettings({ name }: { name: string }) {
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       {changed.length > 0 && <div className="form-actions"><button type="button" className="button primary" onClick={() => void saveLimits()}>Save limits</button><button type="button" className="button" onClick={() => setDraft({})}>Cancel</button></div>}
     </section>
+  )
+}
+
+/** Realistic to soap opera: how often things happen in their world and how far they go. */
+function DramaSlider({ name, value, onChange }: { name: string; value: number; onChange: (value: number) => void }) {
+  const level = DRAMA_LEVELS[value] ?? DRAMA_LEVELS[1]
+  return (
+    <Field label={`Drama in ${name}'s world: ${level.label}`} hint={`${level.hint} Storylines in their life and their people's, from quiet to soap opera.`}>
+      {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={value} aria-valuetext={level.label} aria-describedby={describedBy}
+        onChange={(event) => onChange(Number(event.target.value))} />}
+    </Field>
   )
 }

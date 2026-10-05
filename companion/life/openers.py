@@ -19,7 +19,7 @@ from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import recommendations, routine
+from companion.life import recommendations, routine, storylines
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -142,8 +142,15 @@ def finished(connection, companion, now) -> list[Trigger]:
     return result
 
 
+def storyline_news(connection, companion, now) -> list[Trigger]:
+    """A beat in a storyline that happened today or yesterday (companion/life/storylines.py)."""
+    return [Trigger(key, 'storyline', f"Something just happened in your life: {beat['text']} Tell the user, the "
+                    'way you would text a friend. Do not add what happens next.', beat['share'])
+            for key, beat in storylines.fresh_beats(connection, companion, now)]
+
+
 # In priority order; later features add their own.
-FINDERS = [plan_follow_ups, finished, news, reminders, silence]
+FINDERS = [plan_follow_ups, finished, storyline_news, news, reminders, silence]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:

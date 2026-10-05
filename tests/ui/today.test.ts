@@ -38,3 +38,9 @@ test('a recommendation says where the companion is with it', () => {
   assert.equal(recommendationText({ kind: 'show', state: 'finished', verdict: 'loved it' }, 'Mira'), 'Mira finished it and loved it.')
   assert.equal(recommendationText({ kind: 'outing', state: 'waiting', verdict: null }, 'Mira'), 'Mira means to get to it soon.')
 })
+
+test('story dates read as the local day they name', async () => {
+  const { storyDate, DRAMA_LEVELS } = await import('../../src/features/today/storyText.ts')
+  assert.equal(storyDate('2026-10-05'), 'Mon 5 Oct')
+  assert.deepEqual(DRAMA_LEVELS.map((level) => level.label), ['Quiet', 'Realistic', 'Dramatic', 'Soap opera'])
+})

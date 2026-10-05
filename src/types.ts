@@ -253,6 +253,8 @@ export interface LifeSettings {
   texts_gap_hours: number
   /** 0 sizes the circle by how sociable the companion is. */
   circle_size: number
+  /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
+  drama: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -765,4 +767,17 @@ export interface Recommendation {
   verdict: string | null
   created_at: string
   finished_at: string | null
+}
+
+export interface StoryBeat { on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed' }
+/** Something unfolding in the companion's or their circle's lives (companion/life/storylines.py). */
+export interface Storyline {
+  id: string
+  story: string
+  level: 'quiet' | 'realistic' | 'dramatic' | 'soap opera'
+  started_on: string
+  status: 'running' | 'ended'
+  cast: { id: string; name: string; role: string }[]
+  beats: StoryBeat[]
+  unfolding: boolean
 }

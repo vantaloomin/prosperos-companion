@@ -959,3 +959,24 @@ CREATE TABLE IF NOT EXISTS recommendations (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS recommendations_timeline ON recommendations(timeline_id, status);
+
+-- Storylines in the companion's and their circle's lives (companion/life/storylines.py): a seeded
+-- template, its cast (circle_people ids) and its beats with their local dates. Beats stay hidden
+-- until their date; `storyline_days` is how far starting days have been decided.
+CREATE TABLE IF NOT EXISTS storylines (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  story TEXT NOT NULL,
+  level INTEGER NOT NULL,
+  cast_ids TEXT NOT NULL,
+  stages TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('running', 'ended')),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS storylines_timeline ON storylines(timeline_id, status, started_on);
+
+CREATE TABLE IF NOT EXISTS storyline_days (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  through TEXT NOT NULL
+);

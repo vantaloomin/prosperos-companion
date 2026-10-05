@@ -13,7 +13,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
 from companion.events import committed
-from companion.life import agenda, body, circle, money, recommendations
+from companion.life import agenda, body, circle, money, recommendations, storylines
 from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
@@ -59,6 +59,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
                                'the user said: never invent plot, people, songs or other details about it',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
+            'storylines': "What is going on in your life and your people's lives (decided: bring it up the way "
+                          'a friend would, never contradict it, and never invent how an unfolding one ends)',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
                      'never ask the user for money and never treat it as theirs)',
             'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
@@ -361,12 +363,20 @@ def offer_day(packet, connection, timeline_id, today):
         packet.offer('body', today, body.text(day['body']))
 
 
+def offer_people(packet, connection, timeline_id, version, now, today):
+    """The circle, and the storylines going on in their lives and the companion's."""
+    for person in agenda.circle_view(connection, timeline_id, now):
+        packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
+    for identity, text in storylines.context_lines(connection, {'active_timeline_id': timeline_id,
+                                                                'version': version}, now):
+        packet.offer('storylines', identity, text)
+
+
 def offer_life(packet, connection, timeline_id, version, now):
     """The companion's fictional world: today's weather, their circle, likely next steps and recent events."""
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     offer_day(packet, connection, timeline_id, today)
-    for person in agenda.circle_view(connection, timeline_id, now):
-        packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
+    offer_people(packet, connection, timeline_id, version, now, today)
     for identity, text in money.context_lines(version['definition'], today):
         packet.offer('money', identity, text)
     for item in recommendations.progress(connection, timeline_id):
