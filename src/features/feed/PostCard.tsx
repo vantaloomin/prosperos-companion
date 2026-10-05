@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { EyeOff, Eye, MessageCircle, Trash2 } from 'lucide-react'
 import type { FeedPost, Reaction } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { REACTIONS } from './feed'
+import { REACTIONS } from './feedState'
 
 export interface PostActions {
   react: (post: FeedPost, reaction: Reaction) => void

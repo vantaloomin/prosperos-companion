@@ -8,7 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { Toggle } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { RememberForm, type NewMemory } from './RememberForm'
-import { LAYERS, REMEMBER_KEY, groupMemories, layerTitle, type RememberRequest } from './memories'
+import { LAYERS, REMEMBER_KEY, groupMemories, layerTitle, type RememberRequest } from './memoryGroups'
 
 function takeRememberRequest(): RememberRequest | null {
   try {

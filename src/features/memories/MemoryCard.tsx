@@ -3,7 +3,7 @@ import { Check, Pencil, Pin, PinOff, Trash2, Eye, EyeOff } from 'lucide-react'
 import type { Memory, Message } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Toggle } from '../../components/Fields'
-import { earlierVersions, statusLabels } from './memories'
+import { earlierVersions, statusLabels } from './memoryGroups'
 
 export interface MemoryActions {
   correct: (memory: Memory, value: string) => Promise<boolean>

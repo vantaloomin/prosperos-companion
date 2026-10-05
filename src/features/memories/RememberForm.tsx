@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Layer, Memory, PlanStatus } from '../../types'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
-import { LAYERS, type RememberRequest } from './memories'
+import { LAYERS, type RememberRequest } from './memoryGroups'
 
 export interface NewMemory {
   layer: Layer

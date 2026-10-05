@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { Companion, Today } from '../../types'
-import { availabilityShort } from '../today/today'
+import { availabilityShort } from '../today/todayText'
 
 function localTime(timezone: string, now: Date) {
   try {

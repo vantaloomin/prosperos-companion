@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { LifeEvent } from '../../types'
-import { eventWhen } from './today'
+import { eventWhen } from './todayText'
 
 export function EventItem({ event, children }: { event: LifeEvent; children?: ReactNode }) {
   const label = event.details.label
