@@ -34,7 +34,8 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
             continue  # Lives out of town: no routine here.
         result.append((person['id'], {'name': person['name'], 'schedule': decode(person['schedule']),
                                       'home_city': definition.get('home_city', ''),
-                                      'location': definition.get('location', '')},
+                                      'location': definition.get('location', ''),
+                                      'haunts': decode(person['details']).get('haunts', [])},
                        f"{person['id']}:{person['revision']}"))
     result.append((COMPANION, definition, version['id']))
     return result
@@ -148,11 +149,32 @@ def companion_entry(connection, timeline_id, slot_key, basis) -> dict | None:
 
 
 def diary(connection, timeline_id, subject, limit=20, before=None) -> list[dict]:
-    """A circle member's entries that have happened, newest first. Upcoming ones stay hidden."""
+    """A circle member's entries that have happened, newest first. Upcoming ones stay hidden.
+    Committed companion events this person was part of are included: an entry they overlap carries
+    `with_companion`, and one with no overlapping entry appears on its own."""
+    before = before or '9999'
     rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject=? AND status='happened' "
                 'AND entry IS NOT NULL AND starts_at<? ORDER BY starts_at DESC LIMIT ?',
-                (timeline_id, subject, before or '9999', limit))
-    return [entry_view(row) for row in rows]
+                (timeline_id, subject, before, limit))
+    shared = many(connection, "SELECT id, summary, starts_at, ends_at FROM life_events WHERE timeline_id=? "
+                  "AND status='committed' AND json_extract(details, '$.with.id')=? AND starts_at<? "
+                  'ORDER BY starts_at DESC LIMIT ?', (timeline_id, subject, before, limit))
+    result, used = [], set()
+    for row in rows:
+        item = entry_view(row)
+        together = next((event for event in shared if event['starts_at'] < row['ends_at']
+                         and event['ends_at'] > row['starts_at']), None)
+        item['with_companion'] = {'event_id': together['id'], 'summary': together['summary']} if together else None
+        if together:
+            used.add(together['id'])
+        result.append(item)
+    for event in shared:
+        if event['id'] not in used:
+            result.append({'subject': subject, 'slot': None, 'starts_at': event['starts_at'],
+                           'ends_at': event['ends_at'], 'local_date': None, 'block': None,
+                           'entry': {'summary': event['summary']}, 'status': 'happened',
+                           'with_companion': {'event_id': event['id'], 'summary': event['summary']}})
+    return sorted(result, key=lambda item: item['starts_at'], reverse=True)[:limit]
 
 
 def current(connection, timeline_id, subject, now) -> dict | None:

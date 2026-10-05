@@ -140,7 +140,10 @@ data_version, schedule, now, recent}`, plus `full_name`, `pronouns`, `age`, `loc
 means they live out of town and have an empty `schedule`. `now` is the routine block they are in right now (for example
 `{"label": "Registered nurse", "kind": "work", ...}`) or `null`. `recent` is the newest three diary
 entries. A diary entry is `{subject, slot, starts_at, ends_at, local_date, block, entry, status}`,
-where `entry` holds `summary`, `activity`, `place`, `mood` and `post`. Renaming, removing or
+where `entry` holds `summary`, `activity`, `place`, `mood` and `post`. Diary entries also carry `with_companion`
+(`{event_id, summary}` or `null`): a committed companion event this person was part of. One that no
+diary entry overlaps appears as its own entry with `slot` and `block` set to `null`. People favour
+their regular haunts when one fits. Renaming, removing or
 restoring someone rebuilds their upcoming entries and the companion's upcoming entries that name
 them. Entries that already happened keep the earlier name. Social events can name a circle member
 who is free at the time: the event's `details.with` is `{id, name}` or `null`. The chat context

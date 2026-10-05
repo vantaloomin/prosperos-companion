@@ -119,7 +119,9 @@ def person_text(person) -> str:
     if person['now']:
         text += f" Right now: {person['now']['label'].lower()}."
     if person['recent']:
-        text += f" Recently: {person['recent'][0]['entry']['summary']}"
+        latest = person['recent'][0]
+        shared = latest.get('with_companion')
+        text += f" Recently, with you: {shared['summary']}" if shared else f" Recently: {latest['entry']['summary']}"
     return text
 
 

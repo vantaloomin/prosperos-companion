@@ -62,7 +62,7 @@ def from_city(data: dict, definition: dict, timeline_id: str) -> list[dict]:
     hoods = {hood['id'] for hood in data['neighborhoods']}
     home = match['neighborhood'] if match and match['neighborhood'] in hoods else None
     made = generators.circle(data, seed=f'circle:{timeline_id}', size=CIRCLE_SIZE, home=home)
-    result = []
+    result, taken = [], {definition['name']}
     for member in made['people']:
         job = member['job'] or {}
         details = {'career': (job.get('career') or {}).get('name', 'Retired' if member['local'] else ''),
@@ -73,7 +73,10 @@ def from_city(data: dict, definition: dict, timeline_id: str) -> list[dict]:
                    'closeness': member['closeness'], 'haunts': [spot['name'] for spot in member['haunts']],
                    'refs': member.get('refs', []), 'sources': member.get('sources', []),
                    'data_version': data['data_version']}
-        result.append({'name': member['name']['given'], 'role': member['role'].replace('-', ' '),
+        # Two people with the same first name go by their full names, so events stay unambiguous.
+        shown = member['name']['given'] if member['name']['given'] not in taken else member['name']['full']
+        taken.add(shown)
+        result.append({'name': shown, 'role': member['role'].replace('-', ' '),
                        'career': (job.get('career') or {}).get('id', ''), 'details': details,
                        'schedule': member['schedule'] or []})
     return result

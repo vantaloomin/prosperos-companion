@@ -239,3 +239,25 @@ def test_places_are_open_at_the_time_of_their_slot(client, baltimore, clock):
         place = decode(row['entry'])['place']
         if place['id'] in open_at:
             assert composer.day_part(decode(row['block'])['start']) in open_at[place['id']]
+
+
+def test_circle_members_favor_their_haunts(client, baltimore, clock):
+    clock.advance(timedelta(days=3))
+    reconcile(client)
+    people = {person['id']: person for person in client.get('/api/life/circle').json() if person['local']}
+    visited = [(people[row['subject']], decode(row['entry'])['place']['name']) for row in rows(client)
+               if row['subject'] in people and row['entry'] and decode(row['entry'])['place']]
+    assert any(name in person['haunts'] for person, name in visited)
+
+
+def test_a_shared_outing_shows_in_the_friends_diary(client, baltimore, clock):
+    set_life(client, automatic_events=True, catch_up_max_events=6, catch_up_lookback_hours=96)
+    clock.advance(timedelta(hours=1))
+    reconcile(client)
+    clock.advance(timedelta(days=3))
+    reconcile(client)
+    shared = [event for event in client.get('/api/events').json() if event['details'].get('with')]
+    assert shared
+    event = shared[0]
+    diary = client.get(f"/api/life/circle/{event['details']['with']['id']}/diary?limit=100").json()
+    assert {'event_id': event['id'], 'summary': event['summary']} in [item['with_companion'] for item in diary]
