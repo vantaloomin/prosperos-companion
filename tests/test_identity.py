@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from companion import identity
-from companion.database import Database
+from companion.database import Database, schema_digest
 from companion.errors import DomainError
 
 
@@ -12,7 +12,8 @@ def test_new_workspace_carries_companion_marker(tmp_path):
     database = Database(tmp_path / 'companion.sqlite3')
     with database.connect() as connection:
         marker = dict(connection.execute('SELECT key, value FROM app_identity').fetchall())
-    assert marker == {'app_id': 'prospero-companion', 'schema_version': str(identity.SCHEMA_VERSION)}
+    assert marker == {'app_id': 'prospero-companion', 'schema_version': str(identity.SCHEMA_VERSION),
+                      'schema_digest': schema_digest(), 'app_version': identity.VERSION}
     Database(database.path)  # Reopening its own workspace succeeds.
 
 

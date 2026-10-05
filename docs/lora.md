@@ -141,9 +141,11 @@ same priority local ComfyUI image jobs follow.
 ## Recover and export
 
 - Backups carry every adapter that has not been removed (`lora/adapters/` in the archive, stored
-  uncompressed and listed with its SHA-256 in the manifest). Restore checks each digest. Reference
-  pictures, training folders and images are not in backups; a restored workspace lists missing
-  pictures and refuses to train until they are added again.
+  uncompressed and listed with its SHA-256 in the manifest), and finished images. Restore checks each
+  digest. Reference pictures are included only when the backup is made with
+  `?include_datasets=true`; training folders never are. A restored workspace lists missing pictures
+  and refuses to train until they are added again. See
+  [Backups and restore](development.md#backups-and-restore).
 - **Export** gives a zip with the adapter, `adapter.json` (format, base model, trigger word,
   digest, origin, the run's options and a dataset summary of counts, rights and picture digests)
   and `LICENSE-NOTICE.txt`. It never includes pictures, captions or local paths. A Krea 2 adapter

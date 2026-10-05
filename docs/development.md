@@ -87,6 +87,53 @@ The Companion has its own identity so it can run beside Prospero's Study without
 Every workspace database carries an `app_identity` marker. Opening any other non-empty SQLite
 file, including a Study database, is refused with a read-only check before anything is written.
 
+### Upgrades
+
+The marker also records the schema version, the app version and a digest of `schema.sql` plus
+`ADDED_COLUMNS`, so any schema change is noticed without anyone bumping a number. When a workspace
+was written with a different digest, `companion/upgrade.py` runs before the server listens:
+
+1. A workspace from a newer schema version, or another app's database, is refused untouched.
+2. A verified backup in the original schema is written to `backups/pre-upgrade-<time>.zip`
+   (the three most recent are kept).
+3. The upgrade runs on a copy, which must pass `PRAGMA integrity_check`.
+4. Only then does the copy replace the workspace. On any failure the original is left exactly as
+   it was and the launcher names the backup, which restores like any other.
+
+Bump `SCHEMA_VERSION` only when older releases must refuse the new schema.
+
+### Backups and restore
+
+`POST /api/backups` writes `backups/companion-<time>.zip` (archive format 2): the database snapshot
+plus the files its records name, at their workspace paths and each with its SHA-256 in
+`manifest.json`: finished images (`images/`, `images/raw/`) and adapters that have not been removed
+(`lora/adapters/`). Training reference pictures (`lora/references/`) are included only with
+`?include_datasets=true`. Training work folders (`lora/runs/`, checkpoints and trainer logs) are
+never included; a chosen checkpoint is already copied into `lora/adapters/`.
+
+Restoring checks the marker, the schema version and every digest before writing anything, refuses
+any path outside those folders, and then checks each record's file: completed images, reference
+pictures and adapters (with their digests), and whether the selected appearance version's adapter
+came back. The restored workspace is paused for review: automatic memory, background activity and
+automatic images are off, saved keys and context tool approvals are dropped, queued or running
+images and evaluations become interrupted, and a running training job becomes interrupted without
+its old process id. Nothing resumes until the user reviews it.
+
+To restore into the installed app, close it and run the launcher with `--restore <backup.zip>`
+(`"Prospero Companion.cmd" --restore <file>` in the bundle). The current workspace moves to
+`replaced-<time>/` beside it, not deleted, and moves back if the restore fails. Its deletion
+records then apply to the restored workspace, so memories deleted and messages redacted after the
+backup was made stay gone (PRD M5). Pre-upgrade backups hold only the database, since an upgrade
+never changes media.
+
+### Logs
+
+`python -m companion.launch` logs to its window and to `logs/companion.log` in the data directory
+(1 MB, three older files kept). Request logging is off, since a URL can carry a search query, and
+`companion/logs.py` masks anything shaped like a credential (bearer tokens, `api_key=` values,
+`sk-`/`hf_`-style keys) in messages and tracebacks before a line is written. The app itself never
+logs message text.
+
 ## Code reused from Prospero's Study
 
 Modules were copied from [prosperos-study](https://github.com/vantaloomin/prosperos-study) at

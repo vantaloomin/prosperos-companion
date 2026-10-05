@@ -286,5 +286,6 @@ def correct_event(request: Request, event_id: str, body: EventCorrection):
 
 
 @router.post('/backups')
-def create_backup(request: Request):
-    return backup.create(db(request), db(request).path.parent / 'backups')
+def create_backup(request: Request, include_datasets: bool = False):
+    """Training reference pictures are included only with ?include_datasets=true (PRD persistence)."""
+    return backup.create(db(request), db(request).path.parent / 'backups', include_datasets)
