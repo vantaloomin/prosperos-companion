@@ -137,6 +137,10 @@ settings and export stay neutral either way.
   after a change. Ended entries become `happened`, or `skipped` under a pause. Batches simulate a
   slot from its precomputed entry, so T5 caps only the reviewed, model-phrased part. Social entries
   name a circle member whose agenda is free then.
+- **Prepared wording.** `POST /api/life/prepare` (sent while the user types or idles) and each
+  background tick phrase the companion's next upcoming agenda entries at `LIFE_SYNTHESIS` priority
+  and store the result on the entry. A batch uses it only when the model, address and prompt
+  version still match; a rebuilt entry drops it.
 - **Optional phrasing.** With a model connection and `phrase_with_model` on, one
   background-priority request (`LIFE_SYNTHESIS`) rewrites the wording in the character's voice.
   The model gets the composed facts only, never the user's memories, and may not add places,

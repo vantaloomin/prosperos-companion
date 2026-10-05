@@ -200,6 +200,9 @@ def due_at(through, life, mode):
     return through + timedelta(hours=life['return_gap_hours'])
 
 
+PREPARE_AHEAD = 2
+
+
 def may_extend(workspace, mode) -> bool:
     """Precomputing the agenda is cheap and needs no model, but still respects pause and, while the
     app is only running in the background, the background permission (T4, T6)."""
@@ -322,6 +325,7 @@ class LifeEngine:
         self.scheduler = scheduler
         self.owner = identifier()
         self.lock = asyncio.Lock()
+        self.preparing = None
 
     def now(self):
         return self.database.clock.now()
@@ -412,7 +416,8 @@ class LifeEngine:
         if composed is None:
             return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.',
                     **self.follow_threads(run, slot, version, life, key)}
-        written, phrasing = await self.phrase(config, life, version, slot, composed)
+        prepared = precomputed['prepared'] if precomputed and composed is precomputed['entry'] else None
+        written, phrasing = await self.phrase(config, life, version, slot, composed, prepared)
         block = slot['block']
         event = events.propose(self.database, EventProposal(
             idempotency_key=key, kind='ordinary', summary=written['summary'],
@@ -495,14 +500,17 @@ class LifeEngine:
         settled = self.settle(event, life)
         return {'plan_event_id': event['id'], 'plan_outcome': settled['outcome']}
 
-    async def phrase(self, config, life, version, slot, composed) -> tuple[dict, dict]:
+    async def phrase(self, config, life, version, slot, composed, prepared=None) -> tuple[dict, dict]:
         """Template wording unless the user allows model phrasing and a model is connected. Any
-        model problem keeps the template wording; only a conversation interrupts the batch."""
+        model problem keeps the template wording; only a conversation interrupts the batch. Wording
+        prepared earlier for this entry is used when it came from the same model and prompt."""
         template = {'summary': composed['summary'], 'post': composed['post']}
         if config is None or not life['phrase_with_model']:
             return template, {'wording': 'template'}
         record = {'wording': 'model', 'model': config['model'], 'base_url': config['base_url'],
                   'prompt_version': PROMPT_VERSION}
+        if prepared and all(prepared.get(key) == record[key] for key in ('model', 'base_url', 'prompt_version')):
+            return {'summary': prepared['summary'], 'post': prepared['post']}, {**record, 'prepared': True}
         try:
             return await phrase(self.provider, self.scheduler, config, credential_for(
                 self.vault, config['credential_ref']), version, slot, composed), record
@@ -511,6 +519,44 @@ class LifeEngine:
         except (SynthesisInvalid, DomainError) as problem:
             reason = str(problem) if isinstance(problem, SynthesisInvalid) else problem.message
             return template, {**record, 'wording': 'template', 'phrasing_error': reason}
+
+    def prepare(self) -> dict:
+        """Start preparing likely work while the user types or idles (T9), without waiting for it."""
+        if self.preparing and not self.preparing.done():
+            return {'state': 'in_progress'}
+        self.preparing = asyncio.get_running_loop().create_task(self.prepare_now())
+        return {'state': 'started'}
+
+    async def prepare_now(self, limit=PREPARE_AHEAD) -> dict:
+        """Bring the agenda up to date, then phrase the companion's next few entries at background
+        priority. A conversation interrupts this; the rest waits for the next call."""
+        with self.database.connect(write=True) as connection:
+            companion = current(connection)
+            workspace, life = settings(connection), life_settings(connection)
+            if companion is None or not may_extend(workspace, 'return'):
+                return {'prepared': 0}
+            agenda.extend(connection, companion, self.world, self.now())
+            config = optional(connection, 'SELECT * FROM connection WHERE id=1')
+            version = companion['version']
+            due = agenda.unprepared(connection, companion['active_timeline_id'], version['id'], self.now(), limit)
+        if config is None or not life['phrase_with_model']:
+            return {'prepared': 0}
+        key, count = credential_for(self.vault, config['credential_ref']), 0
+        for row in due:
+            slot = {'key': row['slot_key'], 'block': row['block'], 'local_date': row['local_date'],
+                    'starts_at': row['starts_at'], 'ends_at': row['ends_at']}
+            try:
+                written = await phrase(self.provider, self.scheduler, config, key, version, slot, row['entry'])
+            except BackgroundInterrupted:
+                break
+            except (SynthesisInvalid, DomainError):
+                continue
+            with self.database.connect(write=True) as connection:
+                agenda.save_prepared(connection, row['id'], {
+                    **written, 'model': config['model'], 'base_url': config['base_url'],
+                    'prompt_version': PROMPT_VERSION, 'prepared_at': stamp(self.now())})
+            count += 1
+        return {'prepared': count}
 
     def settle(self, event, life) -> dict:
         if event['status'] == 'proposed' and life['automatic_events']:
@@ -529,6 +575,16 @@ class LifeEngine:
         while True:
             await asyncio.sleep(tick_seconds)
             await self.quietly('background')
+            with self.database.connect() as connection:
+                background = settings(connection)['background_activity']
+            if background:
+                await self.quietly_prepare()
+
+    async def quietly_prepare(self):
+        try:
+            await self.prepare_now()
+        except Exception:  # noqa: BLE001 - preparation is optional work.
+            pass
 
     async def quietly(self, mode):
         try:

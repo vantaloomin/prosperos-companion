@@ -3,7 +3,7 @@ import asyncio
 from datetime import timedelta
 
 import pytest
-from conftest import reconcile, set_life
+from conftest import life_reply, reconcile, set_life
 
 from companion.clock import parse, stamp
 from companion.database import decode
@@ -182,3 +182,55 @@ def test_chat_context_names_the_circle(client, baltimore, provider, clock):
     assert 'People in your life' in system
     for person in client.get('/api/life/circle').json():
         assert person['name'] in system
+
+
+def test_wording_prepared_ahead_is_used_when_its_slot_is_simulated(client, baltimore, provider, clock):
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    provider.respond = life_reply
+    set_life(client, catch_up_max_events=6, catch_up_lookback_hours=96)
+    engine = client.app.state.life
+    assert asyncio.run(engine.prepare_now(limit=50))['prepared'] > 0
+    phrasings = len([request for request in provider.requests if 'Rephrase one' in request['system']])
+    clock.advance(timedelta(days=2))
+    results = reconcile(client)['run']['results']
+    events = {event['id']: event for event in client.get('/api/events?history=true').json()}
+    used = [events[result['event_id']] for result in results if result.get('event_id') in events]
+    assert used and all(event['inputs'].get('prepared') for event in used)
+    assert all(event['summary'].startswith('Phrased: ') for event in used)
+    # Nothing was phrased again on return.
+    assert len([request for request in provider.requests if 'Rephrase one' in request['system']]) == phrasings
+    assert asyncio.run(engine.prepare_now())['prepared'] == 2
+
+
+def test_prepared_wording_from_another_model_is_not_used(client, baltimore, provider, clock):
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    provider.respond = life_reply
+    engine = client.app.state.life
+    asyncio.run(engine.prepare_now(limit=50))
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'other-model',
+                                        'api_key': 'secret-key'})
+    clock.advance(timedelta(days=1))
+    results = reconcile(client)['run']['results']
+    events = {event['id']: event for event in client.get('/api/events?history=true').json()}
+    used = [events[result['event_id']] for result in results if result.get('event_id') in events]
+    assert used and not any(event['inputs'].get('prepared') for event in used)
+    assert all(event['inputs']['model'] == 'other-model' for event in used)
+
+
+def test_prepare_returns_at_once(client, baltimore):
+    assert client.post('/api/life/prepare').json()['state'] in {'started', 'in_progress'}
+
+
+def test_places_are_open_at_the_time_of_their_slot(client, baltimore, clock):
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    data = CatalogWorld().find('baltimore')
+    open_at = {place['id']: place['day_parts'] for place in data['places']}
+    placed = [row for row in rows(client) if row['entry'] and decode(row['entry'])['place']]
+    assert placed
+    for row in placed:
+        place = decode(row['entry'])['place']
+        if place['id'] in open_at:
+            assert composer.day_part(decode(row['block'])['start']) in open_at[place['id']]

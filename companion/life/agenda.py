@@ -179,3 +179,15 @@ def circle_view(connection, timeline_id, now, include_removed=False) -> list[dic
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' else None
         result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3)})
     return result
+
+
+def unprepared(connection, timeline_id, basis, now, limit) -> list[dict]:
+    """The companion's next upcoming entries that something happens in and that have no wording yet."""
+    rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
+                'AND basis=? AND entry IS NOT NULL AND prepared IS NULL AND ends_at>? ORDER BY starts_at LIMIT ?',
+                (timeline_id, COMPANION, basis, stamp(now), limit))
+    return [{**row, 'block': decode(row['block']), 'entry': decode(row['entry'])} for row in rows]
+
+
+def save_prepared(connection, entry_id, prepared: dict):
+    connection.execute('UPDATE life_agenda SET prepared=? WHERE id=?', (encode(prepared), entry_id))

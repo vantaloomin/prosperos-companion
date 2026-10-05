@@ -9,6 +9,7 @@ Place kinds the composer asks for: park, cafe, restaurant, bar, museum, attracti
 grocery, library, college, gym, beach, waterfront, venue, bookstore, shop.
 """
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Protocol, Sequence
 
 
@@ -29,15 +30,18 @@ class Place:
 class WorldSource(Protocol):
     name: str
 
-    def places(self, city: str, kinds: Sequence[str]) -> list[Place]:
-        """Places of any of these kinds in the city, in a stable order. Unknown cities give []."""
+    def places(self, city: str, kinds: Sequence[str], *, day_part: str | None = None,
+               day: date | None = None) -> list[Place]:
+        """Places of any of these kinds in the city, in a stable order. Unknown cities give []. A
+        source may leave out places closed at `day_part` (morning, afternoon, evening, late) or out
+        of season on `day`."""
 
 
 class EmptyWorld:
     """Used until city data is installed: events are composed without named places."""
     name = 'none'
 
-    def places(self, city: str, kinds: Sequence[str]) -> list[Place]:
+    def places(self, city: str, kinds: Sequence[str], **_when) -> list[Place]:
         return []
 
 
@@ -48,6 +52,6 @@ class StaticWorld:
     def __init__(self, places: Sequence[Place]):
         self.items = list(places)
 
-    def places(self, city: str, kinds: Sequence[str]) -> list[Place]:
+    def places(self, city: str, kinds: Sequence[str], **_when) -> list[Place]:
         wanted = set(kinds)
         return [place for place in self.items if place.city == city and place.kind in wanted]

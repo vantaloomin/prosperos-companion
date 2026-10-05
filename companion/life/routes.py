@@ -57,6 +57,12 @@ async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
 
 
+@router.post('/prepare')
+async def prepare(request: Request):
+    """Hint that the user is typing or idle: prepare likely work in the background and return at once."""
+    return request.app.state.life.prepare()
+
+
 @router.get('/pauses')
 def list_pauses(request: Request):
     return simulation.pauses(db(request))

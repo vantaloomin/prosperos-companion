@@ -104,10 +104,26 @@ CATALOG = {
 }
 
 
-def find_places(world, definition: dict, kinds) -> list:
-    """Places in the character's home city, or the city its location names."""
+def day_part(start: str) -> str:
+    """The world data's part of the day for a block starting at this local "HH:MM"."""
+    hour = int(start.split(':')[0])
+    if 5 <= hour < 12:
+        return 'morning'
+    if 12 <= hour < 17:
+        return 'afternoon'
+    if 17 <= hour < 22:
+        return 'evening'
+    return 'late'
+
+
+def find_places(world, definition: dict, slot: dict, kinds) -> list:
+    """Places in the character's home city, or the city its location names, that are open at the
+    slot's time of day and in season on its date."""
     city = definition.get('home_city') or definition.get('location') or ''
-    return world.places(city, kinds) if city and kinds else []
+    if not city or not kinds:
+        return []
+    return world.places(city, kinds, day_part=day_part(slot['block']['start']),
+                        day=date.fromisoformat(slot['local_date']))
 
 
 def compose(slot: dict, definition: dict, world, seed: str, recent_activities=(), company=()) -> dict | None:
@@ -121,7 +137,7 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     # Prefer activities that did not just happen, so variety comes from the routine, not drama.
     fresh = [option for option in options if option.key not in set(recent_activities)] or list(options)
     chosen = rng.choice(fresh)
-    places = find_places(world, definition, chosen.place_kinds)
+    places = find_places(world, definition, slot, chosen.place_kinds)
     place = rng.choice(places) if places else None
     values = {'name': definition['name'], 'label': block['label'].lower(),
               'at': f' at {place.name}' if place else chosen.generic, 'place': place.name if place else '',
@@ -187,7 +203,7 @@ def plan_ahead(definition: dict, world, seed: str, future_slots: list[dict], upc
     else:
         options = [option for option in CATALOG[target['block']['kind']] if option.key in PLANNABLE]
         chosen = rng.choice(options)
-        places = find_places(world, definition, chosen.place_kinds)
+        places = find_places(world, definition, target, chosen.place_kinds)
         place = rng.choice(places).view() if places else None
         friend = None
     at = f" at {place['name']}" if place else chosen.generic
