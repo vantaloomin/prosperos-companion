@@ -7,6 +7,7 @@ On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrato
 - [Product requirements (draft)](docs/product-requirements.md)
 - [Backbone architecture](docs/architecture.md)
 - [Development](docs/development.md)
+- [Character drafting](docs/character-drafting.md)
 - [Life simulation API](docs/life-api.md)
 - [World data](docs/world-data.md)
 - [Image generation](docs/images.md)

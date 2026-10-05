@@ -47,6 +47,9 @@ class CharacterDefinition(Input):
     identity: str = Field(default='', max_length=4000)
     personality: str = Field(default='', max_length=8000)
     voice: str = Field(default='', max_length=4000)
+    # What they are good at and what costs them, so the character reads as a person (both optional).
+    skills: list[Annotated[str, Field(max_length=300)]] = Field(default_factory=list, max_length=20)
+    flaws: list[Annotated[str, Field(max_length=300)]] = Field(default_factory=list, max_length=20)
     interests: list[str] = Field(default_factory=list, max_length=50)
     background: str = Field(default='', max_length=12000)
     appearance: str = Field(default='', max_length=4000)
@@ -63,6 +66,30 @@ class CharacterDefinition(Input):
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
+
+
+DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
+                     'routine', 'life_themes', 'schedule']
+
+
+class CharacterDraftRequest(Input):
+    """The quick start: a short idea and a few optional picks; the model drafts the rest."""
+    idea: str = Field(default='', max_length=2000)
+    name: str = Field(default='', max_length=120)
+    relationship: Relationship = 'friendship'
+    age: str = Field(default='', max_length=40)
+    vibe: str = Field(default='', max_length=300)
+    home_city: str = Field(default='', max_length=60)
+    timezone: str = Field(default='UTC', max_length=64)
+    # Jealousy, guilt over absence and similar traits stay off unless the user asks for them (PRD C6).
+    emotional_edges: bool = False
+
+
+class FieldDraftRequest(Input):
+    """Rewrite one field of a character being edited, in keeping with the rest of it."""
+    definition: dict
+    field: DraftField
+    request: str = Field(default='', max_length=500)
 
 
 class CharacterRevision(Input):

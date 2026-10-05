@@ -355,6 +355,14 @@ as external data, and listed in the reply's receipt under `outside`. Details, li
 transports are in [current context tools](context-tools.md). A same-day lookup for the companion's
 real city can replace that day's typical weather in the life simulation (`ObservedWorld`).
 
+## Character drafting
+
+`companion/drafting.py` lets the configured text model draft a new character from a short idea,
+or rewrite one field, using the editable prompts in `companion/prompts/`. The city, its careers
+and its names come from the world data; the reply is shaped and validated before it reaches the
+form, and nothing is saved until the user creates the companion. See
+[Character drafting](character-drafting.md).
+
 ## Import from Prospero's Study
 
 `companion/imports/` opens a Study database read-only, lists its characters, shows a review of

@@ -1,12 +1,14 @@
+import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { CharacterDefinition, CitySummary } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
 import { ScheduleEditor } from './ScheduleEditor'
+import type { DraftField } from './drafting'
 
-interface Props { definition: CharacterDefinition; set: (change: Partial<CharacterDefinition>) => void; themes: string; setThemes: (value: string) => void }
+interface Props { definition: CharacterDefinition; set: (change: Partial<CharacterDefinition>) => void; themes: string; setThemes: (value: string) => void; help?: (field: DraftField, label: string) => ReactNode }
 
-export function LifeFields({ definition, set, themes, setThemes }: Props) {
+export function LifeFields({ definition, set, themes, setThemes, help }: Props) {
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
   const chooseCity = (id: string) => {
     const city = cities.data?.find((item) => item.id === id)
@@ -24,7 +26,9 @@ export function LifeFields({ definition, set, themes, setThemes }: Props) {
         )}
       </Field>
       <ScheduleEditor blocks={definition.schedule} onChange={(schedule) => set({ schedule })} timezone={definition.timezone} />
+      {help?.('schedule', 'their week')}
       <TextInput label="What their life tends to involve" value={themes} onChange={setThemes} hint="Themes for everyday events, separated by commas, such as cycling, the harbour, their sister." />
+      {help?.('life_themes', 'these themes')}
     </>
   )
 }

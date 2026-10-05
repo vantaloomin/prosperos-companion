@@ -96,6 +96,7 @@ class Packet:
 NEUTRAL_ABSENCE = 'Time apart is fine with you: do not express hurt, guilt or pressure about absence.'
 TRAITS = ('Your emotional traits, expressed in character only and only about what you can know '
           '(never claim to know what the user did): ')
+FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
 
 
@@ -122,6 +123,10 @@ def character_text(version) -> str:
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
+    if definition.get('skills'):
+        lines.append('Skills: ' + '; '.join(definition['skills']))
+    if definition.get('flaws'):
+        lines.append(FLAWS + '; '.join(definition['flaws']))
     if definition.get('interests'):
         lines.append('Interests: ' + ', '.join(definition['interests']))
     return '\n'.join(lines)

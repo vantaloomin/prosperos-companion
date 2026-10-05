@@ -348,3 +348,20 @@ textarea { resize: vertical; line-height: 1.6; }
 .study-artwork { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .study-artwork li { display: flex; gap: 12px; align-items: flex-start; font-size: 0.875rem; line-height: 1.5; }
 .study-artwork img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; background: var(--accent-tint); flex-shrink: 0; }
+
+/* Character quick start and per-field help */
+.quick-start { max-width: 760px; padding: 20px 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.quick-start h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 1.125rem; }
+.quick-start h2 svg { width: 18px; height: 18px; color: var(--accent); }
+.quick-start > .subtle { margin: 0 0 16px; }
+.quick-start > .notice { margin-bottom: 16px; }
+.vibes { display: flex; flex-direction: column; gap: 8px; }
+.vibe-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.vibe-pick { padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.8125rem; background: transparent; }
+.vibe-pick[aria-pressed='true'] { background: var(--accent-tint); border-color: var(--accent); color: var(--accent); }
+.field-help { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin-top: -16px; }
+.field-help .text-button svg { width: 14px; height: 14px; }
+.field-help.open { gap: 8px; margin-top: -10px; }
+.field-help.open input { flex: 1; min-width: 200px; }
+.field-help-error { flex-basis: 100%; margin: 0; color: var(--danger); font-size: 0.8125rem; }
+.start-notice { max-width: 760px; margin-bottom: 20px; }

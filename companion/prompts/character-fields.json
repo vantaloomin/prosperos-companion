@@ -1,0 +1,13 @@
+{
+  "identity": {"guide": "2 to 4 sentences: their age, what they do for a living, who they live with and what they care about right now.", "shape": "a string"},
+  "personality": {"guide": "a paragraph about their temperament, how they treat people, one real contradiction and what annoys them.", "shape": "a string"},
+  "voice": {"guide": "3 to 5 sentences of instructions for how they talk and text: sentence length, capitalisation, humour, words they overuse, what they avoid saying.", "shape": "a string"},
+  "skills": {"guide": "4 to 7 concrete skills at a believable level, one short phrase each, including a dull or practical one.", "shape": "a list of strings"},
+  "flaws": {"guide": "3 to 5 real flaws that cost them something and show up in conversation, one short sentence each. No disguised virtues.", "shape": "a list of strings"},
+  "interests": {"guide": "4 to 8 specific interests, a few words each.", "shape": "a list of strings"},
+  "background": {"guide": "1 or 2 paragraphs of ordinary history: where they grew up in general terms, school or training, family with some friction, one or two turning points.", "shape": "a string"},
+  "appearance": {"guide": "2 to 4 plain sentences: height and build, hair, face, what they wear on a normal day, one ordinary or unflattering detail.", "shape": "a string"},
+  "routine": {"guide": "3 to 5 sentences in their own words describing a normal weekday and weekend. Keep it consistent with their weekly schedule.", "shape": "a string"},
+  "life_themes": {"guide": "5 to 10 short themes their everyday life tends to involve, such as people, kinds of places, hobbies and chores.", "shape": "a list of strings"},
+  "schedule": {"guide": "4 to 8 weekly blocks in 24-hour local time. Days are numbers, 0 is Monday and 6 is Sunday. Always include a sleep block every day; a block that ends earlier than it starts runs past midnight. Work matches their job's real hours, blocks on the same day do not overlap, and at least one recurring thing is theirs, such as a class, a standing call or a sport.", "shape": "a list of objects {\"label\": short name, \"kind\": \"work\" | \"study\" | \"errand\" | \"leisure\" | \"social\" | \"rest\" | \"sleep\", \"days\": [numbers], \"start\": \"HH:MM\", \"end\": \"HH:MM\", \"themes\": [up to 5 short strings]}"}
+}
