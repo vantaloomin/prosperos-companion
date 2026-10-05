@@ -19,7 +19,17 @@ export function groupTurns(messages: Message[]): Turn[] {
       byId.get(message.reply_to)?.attempts.push(message)
     }
   }
-  return turns
+  return turns.map(settled)
+}
+
+const built = new WeakMap<Message, Turn>()
+
+/** The turn built last time when none of its messages changed, so a memoized turn skips re-rendering. */
+function settled(turn: Turn): Turn {
+  const previous = built.get(turn.user)
+  if (previous && previous.attempts.length === turn.attempts.length && previous.attempts.every((attempt, index) => attempt === turn.attempts[index])) return previous
+  built.set(turn.user, turn)
+  return turn
 }
 
 /**
@@ -60,8 +70,29 @@ export function statusNote(message: Message): string | null {
   return STATUS_NOTES[message.status] ?? null
 }
 
+/** The note shown under an unfinished reply, with its error unless that only repeats that it was stopped. */
+export function statusDetail(message: Message): string | null {
+  const note = statusNote(message)
+  return note && `${note}${message.error && message.error !== 'Stopped.' ? ` ${message.error}` : ''}`
+}
+
+/** What screen readers hear when a reply finishes: the same words the reply shows. */
+export function replyAnnouncement(name: string, reply: Message): string {
+  return reply.status === 'complete' ? `${name} replied.` : statusDetail(reply) ?? `The reply ended: ${reply.status}.`
+}
+
 /** The attempt to show: the one the reader paged to, else one search pointed at, else the default. */
 export function shownAttempt(turn: Turn, isLatest: boolean, chosen: string | null, highlight?: string | null): Message | null {
   const pick = (id?: string | null) => (id ? turn.attempts.find((attempt) => attempt.id === id) : undefined)
   return pick(chosen) ?? pick(highlight) ?? defaultAttempt(turn, isLatest)
+}
+
+const NO_LIVE: Record<string, string> = {}
+
+/**
+ * The streamed text a turn needs: the live map for a turn with an attempt being written, else one
+ * shared empty map, so a memoized turn that is not streaming keeps equal props and skips re-rendering.
+ */
+export function liveFor(turn: Turn, live: Record<string, string>): Record<string, string> {
+  return turn.attempts.some((attempt) => attempt.id in live) ? live : NO_LIVE
 }

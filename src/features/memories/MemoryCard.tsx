@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import { Check, Pencil, Pin, PinOff, Trash2, Eye, EyeOff } from 'lucide-react'
 import type { DeletePreview, Memory, Message, PlanStatus } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Toggle } from '../../components/Fields'
+import { useReturnFocus } from '../../components/returnFocus'
 import { correction, dayInput, deletePreviewText, earlierVersions, followUp, statusLabels, type Correction } from './memoryGroups'
 
 export interface MemoryActions {
@@ -17,9 +18,11 @@ export interface MemoryActions {
 
 const date = (value: string | null) => value ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '…'
 
-export function MemoryCard({ memory, all, sources, actions }: { memory: Memory; all: Memory[]; sources: Map<string, Message>; actions: MemoryActions }) {
+export function MemoryCard({ memory, all, sources, actions, focusOnMount }: { memory: Memory; all: Memory[]; sources: Map<string, Message>; actions: MemoryActions; focusOnMount?: boolean }) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const correctButton = useReturnFocus<HTMLButtonElement>(editing)
+  useEffect(() => { if (focusOnMount && document.activeElement === document.body) correctButton.current?.focus() }, [focusOnMount, correctButton])
   const history = earlierVersions(memory, all)
   const excluded = memory.status === 'excluded'
   return (
@@ -32,7 +35,7 @@ export function MemoryCard({ memory, all, sources, actions }: { memory: Memory; 
         <Sources ids={memory.source_message_ids} sources={sources} />
         <EarlierValues history={history} />
       </div>
-      <ActionBar memory={memory} editing={editing} actions={actions} onEdit={() => setEditing(true)} onDelete={() => setDeleting(true)} />
+      <ActionBar memory={memory} editing={editing} actions={actions} correctButton={correctButton} onEdit={() => setEditing(true)} onDelete={() => setDeleting(true)} />
       {deleting && <DeleteDialog memory={memory} versions={history.length + 1} onClose={() => setDeleting(false)} remove={actions.remove} />}
     </li>
   )
@@ -58,11 +61,11 @@ function EarlierValues({ history }: { history: Memory[] }) {
   )
 }
 
-function ActionBar({ memory, editing, actions, onEdit, onDelete }: { memory: Memory; editing: boolean; actions: MemoryActions; onEdit: () => void; onDelete: () => void }) {
+function ActionBar({ memory, editing, actions, correctButton, onEdit, onDelete }: { memory: Memory; editing: boolean; actions: MemoryActions; correctButton: RefObject<HTMLButtonElement | null>; onEdit: () => void; onDelete: () => void }) {
   const excluded = memory.status === 'excluded'
   return (
     <div className="memory-actions" role="group" aria-label={`Actions for ${memory.subject}`}>
-      {!excluded && !editing && <button type="button" className="text-button" onClick={onEdit}><Pencil aria-hidden="true" />Correct</button>}
+      {!excluded && !editing && <button ref={correctButton} type="button" className="text-button" onClick={onEdit}><Pencil aria-hidden="true" />Correct</button>}
       {memory.authority === 'tentative' && !excluded && <button type="button" className="text-button" onClick={() => actions.confirm(memory)}><Check aria-hidden="true" />Confirm</button>}
       <PinButton memory={memory} actions={actions} />
       <button type="button" className="text-button" onClick={() => actions.exclude(memory, !excluded)} title={excluded ? 'Use this again in conversation' : 'Keep this but stop using it, including the messages it came from'}>

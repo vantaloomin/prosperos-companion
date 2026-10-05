@@ -22,11 +22,17 @@ def children(value):
     return ()
 
 
+# Values with nothing inside them to visit; sizing them directly keeps a cache miss cheap.
+LEAVES = frozenset({str, bytes, int, float, bool, type(None)})
+
+
 def retained_bytes(value, seen=None):
     seen = set() if seen is None else seen
     if id(value) in seen:
         return 0
     seen.add(id(value))
+    if type(value) in LEAVES:
+        return sys.getsizeof(value)
     overhead = sys.getsizeof(vars(value)) if is_dataclass(value) and hasattr(value, '__dict__') else 0
     return sys.getsizeof(value) + overhead + sum(retained_bytes(item, seen) for item in children(value))
 

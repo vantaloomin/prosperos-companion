@@ -81,6 +81,11 @@ def test_replies_to_forgotten_messages_leave_context_too(client, connected, prov
     assert 'Ana' not in sent and 'marathon' not in sent
     assert 'You said: I like tea' in sent and kept['text'] in sent
 
+    search = client.get('/api/conversation/search', params={'q': 'marathon'}).json()['results']
+    assert search == []
+    assert [item['text'] for item in client.get('/api/conversation/search', params={'q': 'tea'}).json()['results']] \
+        == ['You said: I like tea', 'I like tea']
+
 
 def test_declined_message_cannot_become_a_memory(client, connected):
     message = send(client, 'Hypothetically, I live on the moon', 'client-0001')['message']

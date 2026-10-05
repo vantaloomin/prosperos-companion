@@ -30,7 +30,7 @@ def terms(text):
     return tuple(token_stream(text))
 
 
-@memoized('term-counts-v3', 16 * 1024 * 1024)
+@memoized('term-counts-v3', 64 * 1024 * 1024)
 def term_counts(text):
     return tuple(Counter(token_stream(text)).items())
 

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { memo, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
-import { shownAttempt, statusNote, type Turn } from './turns'
+import { shownAttempt, statusDetail, type Turn } from './turns'
 
 interface Props {
   turn: Turn
@@ -22,7 +22,8 @@ function Paragraphs({ text }: { text: string }) {
   return <>{text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</>
 }
 
-export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, highlight }: Props) {
+/** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, highlight }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
@@ -42,7 +43,7 @@ export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, on
       )}
     </>
   )
-}
+})
 
 function UserMessage({ message, found, onRemember, onDecline, onEdit }: { message: Message; found: boolean; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   return (
@@ -64,7 +65,7 @@ function UserMessage({ message, found, onRemember, onDecline, onEdit }: { messag
 }
 
 function Reply({ message, found, name, text, position, onPage, onStop }: { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void }) {
-  const note = statusNote(message)
+  const note = statusDetail(message)
   const streaming = message.status === 'streaming'
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
@@ -73,9 +74,9 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
         <span className="reply-tools">
           {position && (
             <span className="pager" role="group" aria-label="Reply versions">
-              <button type="button" className="icon-button" aria-label="Previous version" disabled={position[0] === 0} onClick={() => onPage(-1)}><ChevronLeft aria-hidden="true" /></button>
+              <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>
               <span>{position[0] + 1} of {position[1]}{message.active ? ', current' : ''}</span>
-              <button type="button" className="icon-button" aria-label="Next version" disabled={position[0] === position[1] - 1} onClick={() => onPage(1)}><ChevronRight aria-hidden="true" /></button>
+              <PageButton label="Next version" step={1} disabled={position[0] === position[1] - 1} onPage={onPage}><ChevronRight aria-hidden="true" /></PageButton>
             </span>
           )}
           {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
@@ -84,15 +85,23 @@ function Reply({ message, found, name, text, position, onPage, onStop }: { messa
       <div className="prose">
         {text ? <Paragraphs text={text} /> : streaming ? <p className="typing subtle">{name} is writing…</p> : null}
       </div>
-      {note && <p className="reply-status" role="note">{note}{message.error && message.error !== 'Stopped.' ? ` ${message.error}` : ''}</p>}
+      {note && <p className="reply-status" role="note">{note}</p>}
     </article>
   )
+}
+
+/** Marked unavailable rather than disabled at either end, so paging to the first or last version keeps keyboard focus on it. */
+function PageButton({ label, step, disabled, onPage, children }: { label: string; step: number; disabled: boolean; onPage: (step: number) => void; children: ReactNode }) {
+  return <button type="button" className="icon-button" aria-label={label} aria-disabled={disabled} onClick={() => !disabled && onPage(step)}>{children}</button>
 }
 
 function classes(base: string, flags: Record<string, boolean>) {
   return [base, ...Object.keys(flags).filter((flag) => flags[flag])].join(' ')
 }
 
+// One formatter for every message: making one per message cost more than the rest of a long transcript's render.
+const TIME = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+
 function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+  return TIME.format(new Date(value))
 }

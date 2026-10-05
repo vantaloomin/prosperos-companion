@@ -88,7 +88,9 @@ function ServiceSummary({ service }: { service: ContextServiceInfo }) {
 
 function ServiceRow({ service, data, name, refresh, setResult }: { service: ContextServiceInfo; data: Overview; name: string; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
   const [busy, setBusy] = useState(false)
+  // Busy buttons are marked, not disabled: disabling the focused button would drop keyboard focus.
   const check = async () => {
+    if (busy) return
     setBusy(true)
     try {
       const checked = await api<ContextServiceInfo>(`/context/services/${service.id}/check`, {})
@@ -97,6 +99,7 @@ function ServiceRow({ service, data, name, refresh, setResult }: { service: Cont
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'The check failed.') }) } finally { setBusy(false) }
   }
   const remove = async () => {
+    if (busy) return
     setBusy(true)
     try { await api(`/context/services/${service.id}`, undefined, 'DELETE'); await refresh() } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not removed.') }) } finally { setBusy(false) }
   }
@@ -110,8 +113,8 @@ function ServiceRow({ service, data, name, refresh, setResult }: { service: Cont
           saved={service.mappings.find((mapping) => mapping.category === category)} refresh={refresh} setResult={setResult} />
       ))}
       <div className="post-actions">
-        <button type="button" className="text-button" disabled={busy} onClick={() => void check()}>{service.checked_at ? 'Check again' : 'Check'}</button>
-        <button type="button" className="text-button danger-text" disabled={busy} onClick={() => void remove()}><Trash2 aria-hidden="true" />Remove</button>
+        <button type="button" className="text-button" aria-disabled={busy} onClick={() => void check()}>{service.checked_at ? 'Check again' : 'Check'}</button>
+        <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void remove()}><Trash2 aria-hidden="true" />Remove</button>
       </div>
     </li>
   )
@@ -133,6 +136,7 @@ function CategoryMapping(props: MappingProps) {
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const act = async (action: () => Promise<unknown>) => {
+    if (busy) return false
     setBusy(true)
     try { await action(); await refresh(); setResult(null); return true } catch (error) { setResult({ tone: 'error', text: failure(error, 'That did not work.') }); return false } finally { setBusy(false) }
   }
@@ -168,17 +172,17 @@ function SavedMapping({ category, mapping, path, name, busy, act, onEdit }: Save
       </div>
       {on ? <p className="subtle">Sends {mapping.disclosure.sends.map((item) => item.argument).join(', ') || 'nothing'} to “{mapping.tool}”.</p>
         : <ul className="disclosure">{mapping.disclosure.summary.map((line) => <li key={line}>{line}</li>)}</ul>}
-      <Toggle label={on ? 'Turned on' : 'Turn on'} checked={on} disabled={busy} onChange={(value) => void toggle(value)}
+      <Toggle label={on ? 'Turned on' : 'Turn on'} checked={on} onChange={(value) => void toggle(value)}
         hint={on ? undefined : 'Turning it on confirms what it sends, as described above. Any later change asks again.'} />
       {tried && <TryResults items={tried} />}
       <div className="post-actions">
         {on && mapping.run_in.map((purpose) => (
-          <button key={purpose} type="button" className="text-button" disabled={busy} onClick={() => void tryNow(purpose)}>
+          <button key={purpose} type="button" className="text-button" aria-disabled={busy} onClick={() => void tryNow(purpose)}>
             {purpose === 'conversation' ? 'Try it for your location' : `Try it for ${name}'s city`}
           </button>
         ))}
-        <button type="button" className="text-button" disabled={busy} onClick={onEdit}>Edit</button>
-        <button type="button" className="text-button danger-text" disabled={busy} onClick={() => void act(() => api(path, undefined, 'DELETE'))}>Stop using</button>
+        <button type="button" className="text-button" aria-disabled={busy} onClick={() => !busy && onEdit()}>Edit</button>
+        <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(path, undefined, 'DELETE'))}>Stop using</button>
       </div>
     </div>
   )

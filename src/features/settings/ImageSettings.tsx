@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { BackendCheck, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, PROVIDERS, disclosureFor } from '../feed/imageState'
 
@@ -19,6 +20,7 @@ export function ImageSettings() {
   const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<{ backends: ImageBackend[] }>('/images/backends') })
   const [result, setResult] = useState<Result>(null)
   const [adding, setAdding] = useState(false)
+  const addButton = useReturnFocus<HTMLButtonElement>(adding)
   const save = async (change: Partial<Limits>, done?: string) => {
     try {
       client.setQueryData(SETTINGS_KEY, await api<Limits>('/images/settings', change, 'PUT'))
@@ -43,7 +45,7 @@ export function ImageSettings() {
         {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
       </ol>
       {adding ? <AddBackend onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-        : <div className="form-actions"><button type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
+        : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
@@ -82,7 +84,9 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
 function BackendRow({ backend, index, count, refresh, setResult }: { backend: ImageBackend; index: number; count: number; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
   const [check, setCheck] = useState<BackendCheck | null>(null)
   const [busy, setBusy] = useState(false)
+  // Busy controls are marked, not disabled: disabling the focused control would drop keyboard focus.
   const act = async (action: () => Promise<unknown>) => {
+    if (busy) return
     setBusy(true)
     try { await action(); await refresh(); setResult(null) } catch (error) { setResult({ tone: 'error', text: failure(error, 'That did not work.') }) } finally { setBusy(false) }
   }
@@ -91,20 +95,20 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
     <li className="backend-row">
       <BackendSummary backend={backend} />
       {backend.blocked_reason && (
-        <Notice tone="error" action={<button type="button" className="button" disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>Signed in again</button>}>
+        <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>Signed in again</button>}>
           {backend.blocked_reason}
         </Notice>
       )}
       {pending && <p className="subtle">{backend.disclosure}</p>}
-      <Toggle label="Enabled" checked={backend.enabled} disabled={busy}
+      <Toggle label="Enabled" checked={backend.enabled}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { enabled: value, accept_disclosure: value && pending ? true : undefined }, 'PUT'))}
         hint={pending ? 'Turning it on accepts what it receives, described above.' : undefined} />
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
       <div className="post-actions">
-        <button type="button" className="text-button" disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
-        <button type="button" className="text-button" disabled={busy || index === 0} aria-label={`Move ${backend.label} up`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index - 1 }))}><ArrowUp aria-hidden="true" />Up</button>
-        <button type="button" className="text-button" disabled={busy || index === count - 1} aria-label={`Move ${backend.label} down`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index + 1 }))}><ArrowDown aria-hidden="true" />Down</button>
-        <button type="button" className="text-button danger-text" disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
+        <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
+        <button type="button" className="text-button" aria-disabled={busy} disabled={index === 0} aria-label={`Move ${backend.label} up`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index - 1 }))}><ArrowUp aria-hidden="true" />Up</button>
+        <button type="button" className="text-button" aria-disabled={busy} disabled={index === count - 1} aria-label={`Move ${backend.label} down`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index + 1 }))}><ArrowDown aria-hidden="true" />Down</button>
+        <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
       </div>
     </li>
   )
@@ -163,7 +167,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
   return (
     <form className="form-stack backend-form" onSubmit={submit}>
       <Field label="Kind" hint={BACKEND_KINDS.find((item) => item.id === kind)?.hint}>{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={kind} onChange={(event) => chooseKind(event.target.value as BackendKind)}>
+        <select id={id} aria-describedby={describedBy} value={kind} autoFocus onChange={(event) => chooseKind(event.target.value as BackendKind)}>
           {BACKEND_KINDS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
       )}</Field>

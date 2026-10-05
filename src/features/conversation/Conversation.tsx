@@ -5,6 +5,7 @@ import type { Companion, DeclineResult, History, Message, RememberResult, Search
 import { HISTORY_KEY, MEMORIES_KEY, type View } from '../../companion'
 import { Loading, Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { useReturnFocus } from '../../components/returnFocus'
 import { REMEMBER_KEY, rememberedText } from '../memories/memoryGroups'
 import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
@@ -13,22 +14,13 @@ import { GettingStarted } from './GettingStarted'
 import { TurnView } from './TurnView'
 import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
-import { applyFinished, groupTurns, mergeMessages, streamingIds } from './turns'
+import { applyFinished, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds } from './turns'
 import { useReplyStream } from './useReplyStream'
+import { loadBack } from './search'
 import { useDraft } from './useDraft'
 
 const PAGE = 100
 const JUMP_PAGE = 500
-
-/** Load older pages until the message at `seq` is present, so a search result can be shown in place. */
-async function loadBack(oldest: number | undefined, seq: number, onPage: (messages: Message[]) => void) {
-  while (oldest !== undefined && oldest > seq) {
-    const page = await api<History>(`/conversation?limit=${JUMP_PAGE}&before_seq=${oldest}`)
-    onPage(page.messages)
-    if (page.messages.length === 0) return
-    oldest = page.messages[0].seq
-  }
-}
 
 function ReplyFollower({ id, onText, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
   useReplyStream(id, { onText, onDone, onLost })
@@ -60,7 +52,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const onDone = useCallback((reply: Message) => {
     update((current) => applyFinished(current, reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
-    setAnnouncement(reply.status === 'complete' ? `${name} replied.` : `The reply ended: ${reply.error ?? reply.status}.`)
+    setAnnouncement(replyAnnouncement(name, reply))
   }, [update, name])
   const onLost = useCallback(() => { void client.invalidateQueries({ queryKey: HISTORY_KEY }) }, [client])
 
@@ -100,6 +92,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }
   const retry = async (userId: string) => {
+    // The retry button leaves while the new reply is written; the message box is where Escape stops it.
+    document.getElementById('composer-text')?.focus()
     try { accept(await api<SendResult>(`/conversation/messages/${userId}/alternatives?wait=false`, {})) } catch (error) { fail(error) }
   }
   const stop = async (replyId: string) => {
@@ -138,17 +132,27 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   const jumpTo = async (result: SearchResult) => {
     try {
-      await loadBack(messages[0]?.seq, result.seq, (page) => {
-        update((current) => mergeMessages(current, page))
-        if (page.length < JUMP_PAGE) setExhausted(true)
-      })
+      const back = await loadBack(messages[0]?.seq, result.seq, JUMP_PAGE,
+        async (before) => (await api<History>(`/conversation?limit=${JUMP_PAGE}&before_seq=${before}`)).messages)
+      if (back.messages.length) update((current) => mergeMessages(current, back.messages))
+      if (back.exhausted) setExhausted(true)
     } catch (error) { fail(error); return false }
     pinned.current = false
     setFound({ id: result.id, at: Date.now() })
     return true
   }
 
-  const turns = groupTurns(messages)
+  // Stable handlers and turns, so a streaming reply re-renders its own turn rather than the whole transcript.
+  const handlers = useRef({ retry, stop, remember })
+  useEffect(() => { handlers.current = { retry, stop, remember } })
+  const turnActions = useMemo(() => ({
+    retry: (id: string) => void handlers.current.retry(id),
+    stop: (id: string) => void handlers.current.stop(id),
+    remember: (message: Message) => void handlers.current.remember(message),
+    decline: setDeclining,
+    edit: setEditing,
+  }), [])
+  const turns = useMemo(() => groupTurns(messages), [messages])
   const following = streamingIds(messages)
   const latestUserId = turns.at(-1)?.user.id
   const streaming = following.length > 0
@@ -165,7 +169,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turn.user.id} turn={turn} name={name} live={live} isLatest={turn.user.id === latestUserId} busy={streaming} onRetry={retry} onStop={stop} onRemember={remember} onDecline={setDeclining} onEdit={setEditing} highlight={found?.id} />
+            <TurnView key={turn.user.id} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turn.user.id === latestUserId} busy={turn.user.id === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} highlight={found?.id} />
           ))}
         </div>
       </div>
@@ -183,11 +187,13 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
 function ConversationTop({ companion, onJump, timeline }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null }) {
   const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
+  const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
+  const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
   const pick = async (result: SearchResult) => { if (await onJump(result)) setOpen(null) }
   const toggle = (panel: 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
-    <ConversationHeader companion={companion} searching={open === 'search'} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} onTimelines={() => toggle('timelines')} />
+    <ConversationHeader companion={companion} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
+      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} />
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
   </>

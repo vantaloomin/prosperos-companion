@@ -1,4 +1,4 @@
-import type { SearchResult } from '../../types'
+import type { Message, SearchResult } from '../../types'
 
 export interface Snippet { before: string; match: string; after: string }
 
@@ -29,4 +29,19 @@ function clip(text: string, length: number, keep: 'start' | 'end'): string {
 /** The turn a result belongs to: a user message is its own turn, a reply sits under the message it answers. */
 export function turnOf(result: SearchResult): string {
   return result.role === 'user' || !result.reply_to ? result.id : result.reply_to
+}
+
+/**
+ * Load older pages until the message at `seq` is present, so a search result can be shown in place.
+ * The pages come back together, so the transcript re-renders once rather than once per page.
+ */
+export async function loadBack(oldest: number | undefined, seq: number, size: number, fetchPage: (before: number) => Promise<Message[]>): Promise<{ messages: Message[]; exhausted: boolean }> {
+  const messages: Message[] = []
+  while (oldest !== undefined && oldest > seq) {
+    const page = await fetchPage(oldest)
+    messages.push(...page)
+    if (page.length < size) return { messages, exhausted: true }
+    oldest = page[0].seq
+  }
+  return { messages, exhausted: false }
 }

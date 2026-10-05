@@ -23,11 +23,15 @@ export function WorkspaceSettings() {
       setPending(saved)
       client.setQueryData(SETTINGS_KEY, saved)
       setError(null)
+      return true
     } catch (failure) {
       setPending({})
       setError(failure instanceof Error ? failure.message : 'That setting was not saved.')
+      return false
     }
   }
+  // The notice and its button go away; continue at the memory settings the review was about.
+  const completeReview = async () => { if (await save({ review_complete: true })) document.getElementById('memory-heading')?.focus() }
   const pause = async (paused: boolean) => {
     try {
       const saved = await api<Settings>(paused ? '/pause' : '/resume', {})
@@ -41,7 +45,7 @@ export function WorkspaceSettings() {
   return (
     <>
       {data.review_required && (
-        <Notice action={<button type="button" className="text-button" onClick={() => void save({ review_complete: true })}>Mark review complete</button>}>
+        <Notice action={<button type="button" className="text-button" onClick={() => void completeReview()}>Mark review complete</button>}>
           This workspace was restored from a backup. Look over its memories before turning on memory or background activity; a backup can hold things you asked to forget later.
         </Notice>
       )}
@@ -71,10 +75,10 @@ export function WorkspaceSettings() {
   )
 }
 
-function MemorySettings({ data, save }: { data: Settings; save: (change: Partial<Settings>) => Promise<void> }) {
+function MemorySettings({ data, save }: { data: Settings; save: (change: Partial<Settings>) => Promise<boolean> }) {
   return (
         <section className="settings-section form-stack" aria-labelledby="memory-heading">
-          <h2 id="memory-heading">Memory</h2>
+          <h2 id="memory-heading" tabIndex={-1}>Memory</h2>
           <Toggle label="Remember things automatically" checked={data.automatic_memory} onChange={(value) => void save({ automatic_memory: value })}
             hint="When on, facts you state directly in new messages (your name, where you live, a plan with a date) are saved with the messages they came from, after each reply. Questions, hypotheticals, quotes and roleplay are never saved. Earlier messages are not scanned. When off, only what you choose to remember is saved; your conversation is kept either way." />
           <Toggle label="Allow sensitive memories" checked={data.sensitive_memory} onChange={(value) => void save({ sensitive_memory: value })}

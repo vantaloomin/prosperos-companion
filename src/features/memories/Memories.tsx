@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { HISTORY_KEY, MEMORIES_KEY } from '../../companion'
 import type { Companion, DeleteResult, History, Memory } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { useReturnFocus } from '../../components/returnFocus'
 import { Toggle } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { RememberForm, type NewMemory } from './RememberForm'
@@ -28,7 +29,10 @@ export function Memories({ companion }: { companion: Companion }) {
   const [history, setHistory] = useState(false)
   const [request] = useState(takeRememberRequest)
   const [adding, setAdding] = useState(request !== null)
+  const addButton = useReturnFocus<HTMLButtonElement>(adding)
   const [feedback, setFeedback] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
+  // A correction replaces the card with the new revision's; keyboard focus follows it there.
+  const [corrected, setCorrected] = useState<string | null>(null)
   const memories = useQuery({ queryKey: [...MEMORIES_KEY, history], queryFn: () => api<Memory[]>(`/memories?history=${history}`) })
   const conversation = client.getQueryData<History>(HISTORY_KEY)
   const sources = useMemo(() => new Map((conversation?.messages ?? []).map((message) => [message.id, message])), [conversation])
@@ -48,8 +52,12 @@ export function Memories({ companion }: { companion: Companion }) {
     }
   }
   const actions: MemoryActions = {
-    correct: async (memory, body) => !!await run(() => api(`/memories/${memory.id}/correct`, { ...body, expected_revision: memory.revision }),
-      body.plan_status && body.value === memory.value ? `Marked “${memory.subject}” as ${body.plan_status}.` : `Corrected “${memory.subject}”. The next reply uses the new value.`),
+    correct: async (memory, body) => {
+      const revised = await run(() => api<Memory>(`/memories/${memory.id}/correct`, { ...body, expected_revision: memory.revision }),
+        body.plan_status && body.value === memory.value ? `Marked “${memory.subject}” as ${body.plan_status}.` : `Corrected “${memory.subject}”. The next reply uses the new value.`)
+      if (revised) setCorrected(revised.id)
+      return !!revised
+    },
     confirm: (memory) => void run(() => api(`/memories/${memory.id}/confirm`, {}), `Confirmed “${memory.subject}”.`),
     pin: (memory, pinned) => void run(() => api(`/memories/${memory.id}/pin?pinned=${pinned}`, {}), pinned ? `Pinned “${memory.subject}”.` : `Unpinned “${memory.subject}”.`),
     exclude: (memory, excluded) => void run(() => api(`/memories/${memory.id}/${excluded ? 'exclude' : 'include'}`, {}),
@@ -74,7 +82,7 @@ export function Memories({ companion }: { companion: Companion }) {
           <h1>Memories</h1>
           <p className="subtle">What {name} remembers and where it came from. Corrections and changes apply from the next reply.</p>
         </div>
-        {!adding && <button type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember something</button>}
+        {!adding && <button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember something</button>}
       </header>
       {adding && <RememberForm name={name} request={request} onSave={remember} onCancel={() => setAdding(false)} />}
       <Suggestions name={name} run={run} />
@@ -91,7 +99,7 @@ export function Memories({ companion }: { companion: Companion }) {
           <h2 id={`layer-${group.layer}`}>{layerTitle(group.layer, name)}</h2>
           <p className="subtle">{LAYERS.find((item) => item.id === group.layer)?.hint}</p>
           <ul className="memory-list">
-            {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={memories.data ?? []} sources={sources} actions={actions} />)}
+            {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={memories.data ?? []} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
           </ul>
         </section>
       ))}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BookHeart, CalendarDays, MessageCircle, Newspaper, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
 import { useCompanion, type View } from './companion'
@@ -38,6 +38,7 @@ export default function App() {
   }, [])
   const go = useCallback((next: View) => { window.history.pushState(null, '', `#${next}`); setView(next) }, [])
   useNotifications(!!companion.data, go)
+  useFocusOnViewChange(view)
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
@@ -55,6 +56,18 @@ export default function App() {
       </main>
     </div>
   )
+}
+
+/**
+ * A button inside a view that opens another view is gone once it renders, which leaves focus on the
+ * page body. Start the new view from its top instead; focus on a nav button or set by the view stays.
+ */
+function useFocusOnViewChange(view: View) {
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (document.activeElement === document.body) document.getElementById('main')?.focus({ preventScroll: true })
+  }, [view])
 }
 
 function CurrentView({ view, companion, go }: { view: View; companion: Companion | null; go: (view: View) => void }) {

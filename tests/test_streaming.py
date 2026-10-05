@@ -1,7 +1,10 @@
 import asyncio
 import json
+import threading
+import time
 
 from companion.conversation import Conversation
+from companion.memory import context
 from companion.models import MessageCreate
 from companion.providers.chat import Chunk
 
@@ -138,3 +141,29 @@ def test_send_without_waiting_returns_before_recall_and_lookups(app, client, com
     reply = asyncio.run(scenario())
     # Built after the memory was added, so it uses it and is not withheld for it.
     assert reply['status'] == 'complete' and 'Home city: Lisbon' in provider.requests[0]['system']
+
+
+def test_context_build_does_not_hold_the_event_loop(app, client, companion, provider, monkeypatch):
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model'})
+    conversation = Conversation(app.state.database, app.state.vault, provider)
+    building, release = threading.Event(), threading.Event()
+    real_build = context.build
+
+    def slow_build(*args, **kwargs):
+        building.set()
+        release.wait(5)
+        return real_build(*args, **kwargs)
+
+    monkeypatch.setattr(context, 'build', slow_build)
+
+    async def scenario():
+        result = await conversation.send(MessageCreate(text='Hi', client_id='client-0001'), wait=False)
+        await asyncio.wait_for(asyncio.to_thread(building.wait, 2), 3)
+        # Released from the loop: a build on the loop would hold it until its own timeout.
+        release.set()
+        await conversation.running[result['reply']['id']].task
+        return conversation.reply(result['reply']['id'])
+
+    started = time.perf_counter()
+    assert asyncio.run(scenario())['status'] == 'complete'
+    assert time.perf_counter() - started < 2
