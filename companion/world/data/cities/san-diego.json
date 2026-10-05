@@ -4028,6 +4028,33 @@
    "source": "curated-2026-10"
   },
   {
+   "id": "cheesecake-factory-fashion-valley",
+   "name": "The Cheesecake Factory at Fashion Valley",
+   "kind": "restaurant",
+   "neighborhood": "mission-valley",
+   "summary": "Long-running mall restaurant with a huge menu, big portions and a wait on weekend nights.",
+   "tags": [
+    "mall",
+    "big-menu",
+    "dessert"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "american",
+   "source": "curated-2026-10"
+  },
+  {
    "id": "old-town-mexican-cafe",
    "name": "Old Town Mexican Café",
    "kind": "restaurant",
@@ -4639,6 +4666,62 @@
    ],
    "seasons": [],
    "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "thuan-phat-market",
+   "name": "Thuan Phat Supermarket",
+   "kind": "market",
+   "neighborhood": "linda-vista",
+   "summary": "Vietnamese grocery on Linda Vista Road with fresh herbs, a meat counter and banh mi and pastries by the register.",
+   "tags": [
+    "vietnamese",
+    "groceries",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "vietnamese",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "linda-vista-pho",
+   "name": "Pho shops on Linda Vista Road",
+   "kind": "restaurant",
+   "neighborhood": "linda-vista",
+   "summary": "Small Vietnamese noodle houses in the plazas along Linda Vista Road, a holdover from the refugee families who settled here in the late 1970s.",
+   "tags": [
+    "pho",
+    "vietnamese",
+    "cheap"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "vietnamese",
    "source": "curated-2026-10"
   },
   {

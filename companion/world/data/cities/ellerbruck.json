@@ -926,6 +926,33 @@
    "source": "curated-2026-10"
   },
   {
+   "id": "torkuche",
+   "name": "the gate kitchen",
+   "kind": "restaurant",
+   "neighborhood": "schlossberg",
+   "summary": "A hatch beside the castle gate where the under-cook sells yesterday's roasts and pies to petitioners, and boxes the scullion's ears if he dozes off.",
+   "tags": [
+    "pies",
+    "cheap",
+    "court"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "german",
+   "source": "curated-2026-10"
+  },
+  {
    "id": "lorenz-schuhe",
    "name": "Lorenz's shoe shop",
    "kind": "shopping",
@@ -1481,6 +1508,32 @@
    ],
    "seasons": [],
    "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "kusterschenke",
+   "name": "the sexton's alehouse",
+   "kind": "tavern",
+   "neighborhood": "kirchhof",
+   "summary": "Beer drawn in the sexton's front room by the lych gate; he no longer climbs the tower after dark, not since a boy who wanted to learn to shudder threw him down the stairs.",
+   "tags": [
+    "beer",
+    "local-lore",
+    "quiet"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "german",
    "source": "curated-2026-10"
   },
   {

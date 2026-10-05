@@ -519,6 +519,10 @@ CITY = {
         place('mission-san-diego', 'Mission Basilica San Diego de Alcalá', 'landmark', 'mission-valley', 'The first '
               'of the California missions, with gardens, a museum and an active parish.', ['history', 'church',
               'gardens'], '$', 'mixed', ['solo', 'family'], DAY),
+        place('cheesecake-factory-fashion-valley', 'The Cheesecake Factory at Fashion Valley', 'restaurant',
+              'mission-valley', 'Long-running mall restaurant with a huge menu, big portions and a wait on '
+              'weekend nights.', ['mall', 'big-menu', 'dessert'], '$$', 'indoor', ALL, ['afternoon', 'evening'],
+              cuisine='american'),
         place('old-town-mexican-cafe', 'Old Town Mexican Café', 'restaurant', 'old-town', 'Busy Mexican restaurant '
               'where women make tortillas by hand in the front window.', ['mexican', 'margaritas', 'tortillas'],
               '$$', 'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='mexican'),
@@ -588,6 +592,13 @@ CITY = {
         place('linda-vista-skate-park', 'Linda Vista Skate Park', 'park', 'linda-vista', 'Public concrete skate '
               'park with bowls and street features.', ['skate', 'teens'], 'free', 'outdoor', ['solo', 'friends'],
               ['afternoon', 'evening']),
+        place('thuan-phat-market', 'Thuan Phat Supermarket', 'market', 'linda-vista', 'Vietnamese grocery on '
+              'Linda Vista Road with fresh herbs, a meat counter and banh mi and pastries by the register.',
+              ['vietnamese', 'groceries', 'cheap'], '$', 'indoor', ALL, DAYLONG, cuisine='vietnamese'),
+        place('linda-vista-pho', 'Pho shops on Linda Vista Road', 'restaurant', 'linda-vista', 'Small Vietnamese '
+              'noodle houses in the plazas along Linda Vista Road, a holdover from the refugee families who '
+              'settled here in the late 1970s.', ['pho', 'vietnamese', 'cheap'], '$', 'indoor', ALL, DAYLONG,
+              cuisine='vietnamese'),
         # Everyday routines: coffee and pastry stops and places to work out.
         place('extraordinary-desserts', 'Extraordinary Desserts', 'cafe', 'bankers-hill', 'Karen Krasne\'s dessert '
               'cafe on Fifth Avenue since 1988, with cakes, tarts and coffee.', ['dessert', 'cake', 'coffee'], '$$',

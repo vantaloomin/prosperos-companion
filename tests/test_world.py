@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from companion.errors import DomainError
 from companion.models import CharacterDefinition
 from companion.world import catalog, generators
+from companion.world.check import FOOD
 from companion.world.schema import City
 
 CITIES = sorted(key for key, value in catalog.cities().items() if value['origin'] == 'builtin')
@@ -51,6 +52,14 @@ def test_shipped_json_matches_its_source_script(city_id):
     written = json.loads((catalog.DATA / 'cities' / f'{city_id}.json').read_text(encoding='utf-8'))
     assert runpy.run_path(str(script))['CITY'] == json.loads(json.dumps(written)), 'Rerun the script.'
 
+
+@pytest.mark.parametrize('city_id', CITIES)
+def test_every_neighborhood_has_somewhere_to_eat_or_drink(city_id):
+    data = catalog.city(city_id)
+    kinds = {hood['id']: set() for hood in data['neighborhoods']}
+    for place in data['places']:
+        kinds[place['neighborhood']].add(place['kind'])
+    assert not sorted(hood for hood, found in kinds.items() if not FOOD & found)
 
 def test_validation_rejects_broken_references():
     raw = plain(baltimore())

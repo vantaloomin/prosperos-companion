@@ -604,6 +604,13 @@ CITY = {
         place('amelia-earhart-park', 'Amelia Earhart Park', 'park', 'miami-gardens', 'Large county park with lakes, '
               'a farm village, a skate park and mountain-bike trails.', ['lakes', 'skate', 'kids'], '$', 'outdoor',
               ALL, DAY),
+        place('calder-casino', 'Calder Casino', 'nightlife', 'miami-gardens', 'Slots casino on the grounds of the '
+              'old Calder Race Course, with a bar and live music on weekends.', ['casino', 'locals', 'music'],
+              '$$', 'indoor', ADULT, NIGHT),
+        place('miami-gardens-drive-takeouts', 'Jamaican and soul food takeouts on Miami Gardens Drive', 'restaurant',
+              'miami-gardens', 'Strip-mall counters along NW 183rd Street selling jerk chicken, oxtail, fried fish '
+              'and smothered pork chops by the plate.', ['caribbean', 'soul-food', 'takeout', 'cheap'], '$',
+              'indoor', ALL, ['afternoon', 'evening'], cuisine='caribbean'),
         # Everyday routines: coffee and pastry stops and places to work out.
         place('los-pinarenos', 'Los Pinareños Frutería', 'cafe', 'little-havana', 'Calle Ocho fruit stand open '
               'since the 1960s, selling Cuban coffee, fresh juices and batidos.', ['coffee', 'juice', 'cuban'], '$',

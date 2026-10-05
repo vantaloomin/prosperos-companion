@@ -188,6 +188,9 @@ CITY = {
         place('aussicht', 'the castle lookout', 'park', 'schlossberg', 'A linden-shaded terrace on the castle '
               'wall with a view over the roofs, the river and the dark line of the forest.', ['view', 'benches',
               'courting'], 'free', 'outdoor', ALL, ['afternoon', 'evening'], WARM),
+        place('torkuche', 'the gate kitchen', 'restaurant', 'schlossberg', 'A hatch beside the castle gate where '
+              'the under-cook sells yesterday\'s roasts and pies to petitioners, and boxes the scullion\'s ears if '
+              'he dozes off.', ['pies', 'cheap', 'court'], '$', 'mixed', ALL, DAY, cuisine='german'),
         # Schustergasse
         place('lorenz-schuhe', 'Lorenz\'s shoe shop', 'shopping', 'schustergasse', 'A cobbler\'s shop with a pair of '
               'huge boots in the window labelled "seven leagues a stride, price on asking".', ['shoes', 'joke',
@@ -256,6 +259,10 @@ CITY = {
         place('pfarrbibliothek', 'the parish library', 'library', 'kirchhof', 'A room over the sacristy with '
               'chained books, sermons and an herbal, open to anyone who can read and asks the sexton.', ['books',
               'quiet', 'reading'], 'free', 'indoor', ['solo'], ['afternoon']),
+        place('kusterschenke', 'the sexton\'s alehouse', 'tavern', 'kirchhof', 'Beer drawn in the sexton\'s front '
+              'room by the lych gate; he no longer climbs the tower after dark, not since a boy who wanted to learn '
+              'to shudder threw him down the stairs.', ['beer', 'local-lore', 'quiet'], '$', 'indoor', ADULT,
+              ['afternoon', 'evening'], cuisine='german'),
         # Mühlbach
         place('alte-muhle', 'the old mill', 'workshop', 'muhlbach', 'The undershot mill on the Mühlbach, whose '
               'miller once boasted that his daughter could spin straw into gold.', ['mill', 'flour',

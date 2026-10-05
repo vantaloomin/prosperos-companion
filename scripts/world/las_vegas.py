@@ -437,6 +437,9 @@ CITY = {
         place('orleans-bowling', 'Orleans Bowling Center', 'fitness', 'spring-valley', 'Big locals bowling center '
               'inside the Orleans, with leagues and late-night games.', ['bowling', 'leagues', 'late-night'], '$',
               'indoor', ALL, ALWAYS),
+        place('shang-artisan-noodle', 'Shang Artisan Noodle', 'restaurant', 'spring-valley', 'Strip-mall noodle '
+              'shop on Flamingo where the beef noodle soup comes with noodles hand-pulled to order.',
+              ['noodles', 'cheap', 'locals'], '$', 'indoor', ALL, ['afternoon', 'evening'], cuisine='chinese'),
         place('mountains-edge-park', 'Mountain\'s Edge Regional Park', 'park', 'enterprise', 'Large park with '
               'fields, playgrounds and a dog park at the foot of the southwest hills.', ['playground', 'dogs',
               'sports'], 'free', 'outdoor', ALL, ['morning', 'evening']),
@@ -450,6 +453,9 @@ CITY = {
         place('town-square-las-vegas', 'Town Square Las Vegas', 'shopping', 'enterprise', 'Open-air shopping and '
               'restaurant center with a cinema and a children\'s park.', ['shopping', 'cinema', 'restaurants'],
               '$$', 'outdoor', ALL, ['afternoon', 'evening']),
+        place('yard-house-town-square', 'Yard House at Town Square', 'bar', 'enterprise', 'Big sports-bar '
+              'restaurant at Town Square with a long wall of draft taps and a busy happy hour.', ['beer',
+              'happy-hour', 'sports'], '$$', 'indoor', ADULT + ['coworkers'], NIGHT, cuisine='american'),
         place('m-resort', 'M Resort', 'nightlife', 'southern-highlands', 'Locals resort casino at the south end of '
               'Las Vegas Boulevard with a pool deck and lounge views up the valley.', ['casino', 'views', 'locals'],
               '$$', 'indoor', ['friends', 'date'], NIGHT),
@@ -475,6 +481,9 @@ CITY = {
               'quiet'], 'free', 'outdoor', ['solo', 'family', 'date'], ['morning']),
         place('gibson-library', 'James I. Gibson Library', 'library', 'henderson', 'Henderson\'s central branch '
               'library near Water Street.', ['books', 'kids', 'study'], 'free', 'indoor', ALL, DAY),
+        place('emerald-island-casino', 'Emerald Island Casino', 'nightlife', 'henderson', 'Small Irish-themed '
+              'locals casino on Water Street with video poker, a bar and a cheap grill.', ['casino', 'locals',
+              'cheap'], '$', 'indoor', ADULT, NIGHT),
         place('lake-las-vegas-water-sports', 'Lake Las Vegas Water Sports', 'fitness', 'lake-las-vegas', 'Kayak, '
               'paddleboard and pedal-boat rentals on the lake.', ['kayaking', 'paddleboard'], '$$', 'outdoor', ALL,
               DAY, ['spring', 'summer', 'fall']),
@@ -484,6 +493,9 @@ CITY = {
         place('lake-las-vegas-path', 'Lake Las Vegas lakeside path', 'trail', 'lake-las-vegas', 'Walking path '
               'around the lake past the village and its bridges.', ['walk', 'lake', 'running'], 'free', 'outdoor',
               ALL, ['morning', 'evening']),
+        place('luna-rossa', 'Luna Rossa', 'restaurant', 'lake-las-vegas', 'Italian restaurant in MonteLago '
+              'Village with a patio over the water and pasta made in-house.', ['italian', 'lakeside', 'patio'],
+              '$$$', 'mixed', ['date', 'friends', 'family'], DINNER, cuisine='italian'),
         place('northshore-road', 'Northshore Road scenic drive', 'landmark', 'lake-las-vegas', 'Desert drive from '
               'Lake Las Vegas into Lake Mead National Recreation Area, past red rock and coves.',
               ['scenic-drive', 'desert', 'views'], '$', 'outdoor', ['solo', 'friends', 'date'], DAY, MILD),
