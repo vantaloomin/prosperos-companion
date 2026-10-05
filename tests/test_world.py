@@ -307,6 +307,7 @@ def test_circles_are_deterministic_and_coherent(city_id):
         for person in people:
             if person['role'] in ('parent', 'sibling'):
                 assert person['name']['family'] == result['family']
+                assert person['name']['group'] == people[2]['name']['group']
             if person['role'] == 'neighbor':
                 assert person['home']['neighborhood']['id'] == hood
             if person['role'] == 'coworker' and employer:

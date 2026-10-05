@@ -473,7 +473,9 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
     roles = [role for role in CIRCLE if role != 'coworker' or employer or career]
     if not (employer or career):
         roles = [*roles, 'friend', 'friend']
-    family = family or name(data, seed=f'{seed}:family', group=group)['family']
+    if not family:
+        chosen = name(data, seed=f'{seed}:family', group=group)
+        family, group = chosen['family'], group or chosen['group']
     people, used = [], set()
     for index, role in enumerate(roles[:size]):
         member_seed, related = f'{seed}:{role}:{index}', ROLES[role][2]
