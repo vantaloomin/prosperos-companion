@@ -12,6 +12,7 @@ from companion import (
     events,
     notifications,
     restore,
+    self_facts,
     text_models,
     timelines,
     workspace,
@@ -258,6 +259,22 @@ def memory_activity(request: Request, limit: int = 100):
 @router.get('/context/preview')
 def context_preview(request: Request):
     return conversation.context_preview(db(request))
+
+
+@router.get('/self-facts')
+def list_self_facts(request: Request):
+    """What the companion has said about themselves, with conflicts waiting for a decision."""
+    return self_facts.listing(request.app.state.database)
+
+
+@router.post('/self-facts/{fact_id}/keep')
+def keep_self_fact(request: Request, fact_id: str):
+    return self_facts.decide(request.app.state.database, fact_id, True)
+
+
+@router.post('/self-facts/{fact_id}/remove')
+def remove_self_fact(request: Request, fact_id: str):
+    return self_facts.decide(request.app.state.database, fact_id, False)
 
 
 @router.get('/memories')

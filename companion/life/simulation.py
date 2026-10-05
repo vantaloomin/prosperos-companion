@@ -32,7 +32,7 @@ from companion.workspace import overlapping_pause
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
-FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model')
+FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
 
@@ -328,8 +328,9 @@ class LifeEngine:
         self.owner = identifier()
         self.lock = asyncio.Lock()
         self.preparing = None
-        # Current-context lookups (companion/mcp); set by the app.
+        # Current-context lookups (companion/mcp) and first messages (companion/life/openers.py); set by the app.
         self.lookups = None
+        self.openers = None
 
     def now(self):
         return self.database.clock.now()
@@ -590,6 +591,7 @@ class LifeEngine:
             if background:
                 await self.quietly_observe()
                 await self.quietly_prepare()
+                await self.quietly_text()
 
     async def quietly_observe(self):
         """Real weather and local events for the companion's city, when the user allowed lookups for their
@@ -604,6 +606,14 @@ class LifeEngine:
                 await self.lookups.run(category, 'companion_city', None, BACKGROUND_LOOKUP_DEADLINE)
             except Exception:  # noqa: BLE001 - the day keeps its typical weather and its own plans.
                 pass
+
+    async def quietly_text(self):
+        if self.openers is None:
+            return
+        try:
+            await self.openers.check()
+        except Exception:  # noqa: BLE001 - a first message can wait for the next tick.
+            pass
 
     async def quietly_prepare(self):
         try:

@@ -57,6 +57,12 @@ async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
 
 
+@router.post('/texts/check')
+async def check_texts(request: Request):
+    """Asked by the open app about once a minute: the companion may send a first message now."""
+    return await request.app.state.openers.check()
+
+
 @router.post('/prepare')
 async def prepare(request: Request):
     """Hint that the user is typing or idle: prepare likely work in the background and return at once."""

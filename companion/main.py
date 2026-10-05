@@ -19,6 +19,7 @@ from companion.images import routes as image_routes
 from companion.images.runner import ImageRunner
 from companion.imports import routes as import_routes
 from companion.life import routes as life_routes
+from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
 from companion.lora import evaluation as lora_evaluation
 from companion.lora import generation as lora_generation
@@ -91,6 +92,9 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler, world)
     app.state.life.lookups = app.state.lookups
+    app.state.openers = Openers(app.state.database, app.state.vault, app.state.conversation.provider,
+                                app.state.conversation.scheduler)
+    app.state.life.openers = app.state.openers
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
     app.state.training = lora_training.TrainingRunner(app.state.database, trainer_spawn)

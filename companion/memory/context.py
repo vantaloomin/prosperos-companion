@@ -8,6 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from companion import self_facts
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
@@ -52,6 +53,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
+            'self_facts': 'What you have said about yourself before (fiction about you, not the user; stay consistent '
+                          'with it: you may add new details but never contradict these)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
@@ -385,6 +388,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     conversation = fit_conversation(packet, recent)
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
+    for identity, text in self_facts.context_lines(connection, timeline_id):
+        packet.offer('self_facts', identity, text)
     closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
@@ -417,8 +422,15 @@ def render(packet, conversation) -> dict:
     for key, heading in HEADINGS.items():
         if packet.sections.get(key):
             parts.append(f'## {heading}\n' + '\n'.join(packet.sections[key]))
-    chat = [{'role': 'user' if message['role'] == 'user' else 'assistant', 'content': message['text']}
-            for message in conversation]
+    chat = []
+    for message in conversation:
+        role = 'user' if message['role'] == 'user' else 'assistant'
+        # A message the companion sent first can follow its own last reply; some chat templates
+        # require turns to alternate, so consecutive messages from one side are joined.
+        if chat and chat[-1]['role'] == role:
+            chat[-1] = {'role': role, 'content': chat[-1]['content'] + '\n\n' + message['text']}
+        else:
+            chat.append({'role': role, 'content': message['text']})
     receipt = {'budget_tokens': packet.budget, 'estimated_tokens': packet.used,
                'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic}
     return {'system': '\n\n'.join(parts), 'messages': chat, 'receipt': receipt}

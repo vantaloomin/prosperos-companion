@@ -238,6 +238,25 @@ history marked "no longer current"; expired temporary circumstances are not reca
 stay commitments after their date, marked "outcome not confirmed"; the Memories view asks whether
 such a plan happened, and offers to set a date that was unclear.
 
+## What the companion said about themselves
+
+`companion/self_facts.py` keeps an LLM from flipping its own facts. After each completed companion
+message (a reply or a first message), fixed patterns pick out first-person statements about
+the character: likes and dislikes, a favorite, a named relative or pet, something they have never
+done, where they grew up, an allergy. Questions, hypotheticals ("maybe", "if only", "wish"),
+quoted lines and *actions* are skipped. Each fact keeps the sentence it came from and belongs to that
+message: it applies on any timeline that holds the message or a copy of it, and stops applying when
+the reply is replaced by another version or deleted. Facts in force go into the chat context as
+"What you have said about yourself before". A statement that contradicts one in force (likes
+against dislikes, a second favorite band, a second mom) waits as a `conflict` instead. In Character
+Studio the user keeps a fact (marked confirmed in the context), removes it, or keeps the conflicting
+one, which removes the earlier fact. Stated likes and dislikes also steer the composer: a disliked
+activity is left out and a liked one counts like an interest, and noting either rebuilds the
+companion's upcoming agenda. These facts are fiction about the character, never about the user, and
+sit beside the character definition rather than editing it (C1).
+
+API: `GET /api/self-facts`, `POST /api/self-facts/{id}/keep`, `POST /api/self-facts/{id}/remove`.
+
 ## Life simulation (T1–T7)
 
 `companion/life/` turns the character's routine into fictional events.

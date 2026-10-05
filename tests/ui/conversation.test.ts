@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyFinished, defaultAttempt, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds } from '../../src/features/conversation/turns.ts'
+import { applyFinished, defaultAttempt, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey } from '../../src/features/conversation/turns.ts'
 import { editDraft, newDraft, readDraft, writeDraft } from '../../src/features/conversation/draft.ts'
 import type { Message } from '../../src/types.ts'
 
@@ -12,7 +12,14 @@ const reply = (id: string, seq: number, to: string, extra: Partial<Message> = {}
 
 test('turns pair user messages with their attempts and skip orphans', () => {
   const turns = groupTurns([reply('r0', 1, 'missing'), message('u1', 2), reply('r1', 3, 'u1'), message('u2', 4)])
-  assert.deepEqual(turns.map((turn) => [turn.user.id, turn.attempts.map((attempt) => attempt.id)]), [['u1', ['r1']], ['u2', []]])
+  assert.deepEqual(turns.map((turn) => [turn.user?.id, turn.attempts.map((attempt) => attempt.id)]), [['u1', ['r1']], ['u2', []]])
+})
+
+test('messages the companion sent first lead the next turn, or stand alone until answered', () => {
+  const opener = (id: string, seq: number) => message(id, seq, { role: 'companion' })
+  const turns = groupTurns([message('u1', 1), reply('r1', 2, 'u1'), opener('o1', 3), message('u2', 4), opener('o2', 5)])
+  assert.deepEqual(turns.map((turn) => [turnKey(turn), turn.user?.id ?? null, turn.leads.map((lead) => lead.id)]),
+    [['u1', 'u1', []], ['u2', 'u2', ['o1']], ['o2', null, ['o2']]])
 })
 
 test('the active complete reply is shown, otherwise the latest attempt', () => {
