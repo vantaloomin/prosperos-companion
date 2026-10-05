@@ -118,12 +118,15 @@ def day_part(start: str) -> str:
 
 def find_places(world, definition: dict, slot: dict, kinds) -> list:
     """Places in the character's home city, or the city its location names, that are open at the
-    slot's time of day and in season on its date."""
+    slot's time of day and in season on its date; a circle member's haunts first."""
     city = definition.get('home_city') or definition.get('location') or ''
     if not city or not kinds:
         return []
-    return world.places(city, kinds, day_part=day_part(slot['block']['start']),
+    found = world.places(city, kinds, day_part=day_part(slot['block']['start']),
                         day=date.fromisoformat(slot['local_date']))
+    # A circle member's regular haunts come first when one fits.
+    haunts = set(definition.get('haunts') or ())
+    return [place for place in found if place.name in haunts] or found
 
 
 def compose(slot: dict, definition: dict, world, seed: str, recent_activities=(), company=()) -> dict | None:
