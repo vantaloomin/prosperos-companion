@@ -74,6 +74,12 @@ ADDED_COLUMNS = (
     ('memories', 'ended_by_id', 'TEXT'),
     ('memories', 'merged_into_id', 'TEXT'),
     ('memories', 'dates_uncertain', 'INTEGER NOT NULL DEFAULT 0 CHECK (dates_uncertain IN (0, 1))'),
+    ('timelines', 'label', "TEXT NOT NULL DEFAULT ''"),
+    ('timelines', 'fork_message_id', 'TEXT'),
+    ('timelines', 'forked_at', 'TEXT'),
+    ('timelines', 'draft', 'TEXT'),
+    ('timelines', 'activated_at', 'TEXT'),
+    ('messages', 'origin_id', 'TEXT'),
 )
 
 
@@ -86,6 +92,7 @@ def initialize(connection, timestamp: str):
     claim_identity(connection)
     connection.executescript(SCHEMA)
     add_columns(connection)
+    connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     backfill_subject_keys(connection)
     for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings'):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))

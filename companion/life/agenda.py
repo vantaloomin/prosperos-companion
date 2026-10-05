@@ -71,8 +71,11 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
                                'AND basis!=?', (timeline_id, subject, basis)).rowcount
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, subject))
-    created = optional(connection, 'SELECT created_at FROM timelines WHERE id=?', (timeline_id,))
-    through = parse(cursor['through']) if cursor else parse(created['created_at'])
+    # A timeline's days begin when it last became active: nothing is filled in for time it spent
+    # frozen or before a fork was chosen (C4).
+    created = optional(connection, 'SELECT COALESCE(activated_at, created_at) AS since FROM timelines WHERE id=?',
+                       (timeline_id,))
+    through = parse(cursor['through']) if cursor else parse(created['since'])
     if stale:
         # Rebuild from now: the past is already settled under the old basis.
         through = min(through, now)

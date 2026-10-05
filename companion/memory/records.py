@@ -7,6 +7,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import bump_memory_revision, identifier, many, one, optional, settings
 from companion.errors import require
+from companion.lineage import declined, related, scope, within
 from companion.memory import vectors
 from companion.memory.extraction import single_valued, subject_key
 
@@ -34,8 +35,7 @@ def validate_sources(connection, timeline_id, message_ids):
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         require(message['timeline_id'] == timeline_id, 'A source message belongs to another timeline.', 422)
         require(message['redacted_at'] is None, 'A source message was deleted.', 422)
-        declined = optional(connection, 'SELECT 1 FROM memory_declines WHERE message_id=?', (message_id,))
-        require(declined is None, 'You asked not to remember that message.', 409)
+        require(not declined(connection, message_id), 'You asked not to remember that message.', 409)
 
 
 def ended(memory, now) -> bool:
@@ -247,7 +247,9 @@ def delete(database, memory_id, delete_sources=False) -> dict:
 
 
 def redact_messages(connection, message_ids, timestamp):
-    """Redaction also drops suggestions quoting the message, so no copy of its content remains."""
+    """Redaction also drops suggestions quoting the message, so no copy of its content remains, and
+    reaches the message's copies in forked timelines."""
+    message_ids = sorted(related(connection, message_ids))
     connection.executemany("UPDATE messages SET text='', receipt=NULL, redacted_at=? WHERE id=?",
                            [(timestamp, identity) for identity in message_ids])
     connection.executemany("DELETE FROM memory_candidates WHERE message_id=? AND status<>'committed'",
@@ -277,10 +279,17 @@ def listing(database, include_history=False) -> list[dict]:
         return [{**with_sources(connection, row), 'current': current_at(row, now)} for row in rows]
 
 
-def in_scope(memory, timeline_id, share_profile) -> bool:
-    if memory['reality'] == 'fiction' or not share_profile:
-        return memory['timeline_id'] == timeline_id
-    return True
+# The real-user profile: what the setting to share across timelines covers (M6). Shared experiences
+# and relationship history are the relationship's own events, so they stay with their timeline.
+PROFILE_LAYERS = ('user_fact', 'plan', 'temporary')
+
+
+def in_scope(memory, timelines: dict, share_profile) -> bool:
+    """A memory belongs to its timeline and the forks made from it, up to their fork points. Real-user
+    profile facts are shared across every timeline instead, unless the user turned that off."""
+    if share_profile and memory['reality'] == 'real' and memory['layer'] in PROFILE_LAYERS:
+        return True
+    return within(timelines, memory['timeline_id'], memory['stated_at'])
 
 
 def current_at(memory, now) -> bool:
@@ -297,12 +306,13 @@ def eligible(connection, companion, timeline_id, now) -> list[dict]:
     temporary circumstances simply expire.
     """
     share = bool(settings(connection)['share_profile_across_timelines'])
+    timelines = scope(connection, timeline_id)
     rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' "
                 "AND authority IN ('stated','confirmed') AND COALESCE(plan_status, '') != 'cancelled'",
                 (companion['id'],))
     found = []
     for row in rows:
-        if not in_scope(row, timeline_id, share):
+        if not in_scope(row, timelines, share):
             continue
         if row['layer'] == 'plan' and row['plan_status'] in OPEN_PLANS or current_at(row, now):
             found.append(with_sources(connection, row) | {'historical': False})
@@ -312,8 +322,9 @@ def eligible(connection, companion, timeline_id, now) -> list[dict]:
 
 
 def blocked_messages(connection, companion_id) -> set[str]:
-    """Source messages of excluded memories are blocked from raw transcript recall too (M12)."""
-    return {row['message_id'] for row in many(
+    """Source messages of excluded memories, and every copy of them in forked timelines, are blocked
+    from raw transcript recall too (M12)."""
+    return related(connection, [row['message_id'] for row in many(
         connection, 'SELECT memory_sources.message_id FROM memory_sources JOIN memories '
         "ON memories.id=memory_sources.memory_id WHERE memories.companion_id=? AND memories.status='excluded'",
-        (companion_id,))}
+        (companion_id,))])

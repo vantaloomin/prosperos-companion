@@ -15,7 +15,7 @@ can never be confused.
 | Table | Holds | Authority |
 | --- | --- | --- |
 | `companions`, `character_versions` | One focal companion and every version of its definition (C1) | User-authored; a new version applies from its effective time |
-| `timelines` | The active timeline and any frozen ones (C4) | One active timeline advances with real time |
+| `timelines` | The active timeline and any frozen ones, with the fork point and waiting draft of each historical edit (C4) | One active timeline advances with real time |
 | `messages` | User messages and every reply attempt, with status | Only a `complete`, `active` reply is the conversational response |
 | `life_events` | Proposed, committed, rejected and superseded fictional events (T2–T3, T7) | Committed events are the single account shared by chat, feed and recall |
 | `memories`, `memory_sources` | Typed personal memories with sources (M6–M12) | `stated`/`confirmed` reach context; `tentative` does not |
@@ -68,6 +68,37 @@ waits for the finished reply, as before.
 newest first, with `more` set when there may be others. Matching ignores case using Python's
 `casefold`, so it works beyond ASCII. Deleted (redacted) messages never match. The interface
 loads older pages until the match is on screen, then scrolls to it and marks it.
+
+## Timelines (C4)
+
+`companion/timelines.py` handles historical edits. Editing one of the user's earlier messages
+(`POST /api/timelines` with `message_id` and the new `text`) never rewrites the live relationship:
+it creates a separate, inactive timeline holding a copy of everything before that message. The
+conversation, the companion's committed events (and plans made before the edit), the posts showing
+them, the circle and the circle's diary are copied with new identities; the edited words wait as
+the timeline's `draft` until they are sent there. Copied messages record the message they were
+first written as (`origin_id`), and their embeddings are copied too, so recall needs no new requests.
+
+`POST /api/timelines/{id}/activate` is the explicit choice. The previously active timeline is
+frozen and its pending work reconciled: unreviewed events are rejected, unfinished batches stop,
+the hidden upcoming agenda is dropped, and replies still being written there are stopped. The
+memory and permission revisions both advance, so anything that finishes later is revalidated and
+withheld or rejected (T7); background proposals name the timeline they were planned for, so a late
+one lands on the frozen timeline and fails its commit check. A timeline's life resumes from the
+moment it is chosen: the time it spent frozen, or before a fork was first chosen, is never
+simulated, and switching is not an absence for the absence mood. `GET /api/timelines` lists them
+(the first is labelled "Original"); `PATCH /api/timelines/{id}` renames one or clears its draft.
+
+**Memory across timelines** (`companion/lineage.py`). Memories are not copied. A timeline sees its
+own memories plus those its ancestors formed before the fork point, so relationship history before
+an edit carries over and nothing after it does. Real-user profile facts (`user_fact`, `plan`,
+`temporary`) are shared across every timeline while `share_profile_across_timelines` is on (the
+default, shown in Settings); turned off, they follow the same rule as everything else. Shared
+experiences, relationship history and the companion's fictional life always stay with their
+timeline (M6). Changing the setting advances the memory revision. Choices about a message reach all
+of its copies: Don't remember this, an excluded memory's source block, and deleting a memory with
+its source messages apply to the original and every copy, so a fork never brings back words the
+user removed elsewhere (M12).
 
 ## Context builder (M10)
 
@@ -292,6 +323,6 @@ real city can replace that day's typical weather in the life simulation (`Observ
 
 ## Not yet built
 
-Timeline forking, LoRA training, reference images
+A branch map of timelines, LoRA training, reference images
 for image requests, durable cross-process scheduling, restore into an existing workspace, and a
 Windows installer (the install and launch scripts need Python and Node already present).
