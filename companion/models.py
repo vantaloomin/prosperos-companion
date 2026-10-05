@@ -34,6 +34,12 @@ class RoutineBlock(Input):
         return self
 
 
+class EmotionalTrait(Input):
+    """An opt-in trait with an intensity from 1 (faint) to 5 (strong) (PRD C6)."""
+    trait: Literal['jealousy', 'guilt_over_absence', 'possessiveness', 'neediness', 'sulking']
+    intensity: int = Field(default=2, ge=1, le=5)
+
+
 class CharacterDefinition(Input):
     name: str = Field(min_length=1, max_length=120)
     identity: str = Field(default='', max_length=4000)
@@ -47,11 +53,20 @@ class CharacterDefinition(Input):
     relationship: Relationship = 'friendship'
     # Empty means neutral about absence. Jealousy, guilt or missing the user are opt-in traits.
     absence_reaction: str = Field(default='', max_length=2000)
+    # None by default; the user adds them deliberately (PRD C6).
+    emotional_traits: list[EmotionalTrait] = Field(default_factory=list, max_length=5)
     timezone: str = Field(default='UTC', max_length=64)
     # Structured routine for the life simulation; empty uses a gentle default day.
     schedule: list[RoutineBlock] = Field(default_factory=list, max_length=24)
     # Themes automatic events may draw on (PRD T3).
     life_themes: list[str] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode='after')
+    def distinct_traits(self):
+        names = [trait.trait for trait in self.emotional_traits]
+        if len(names) != len(set(names)):
+            raise ValueError('Each emotional trait can be chosen once.')
+        return self
 
 
 class CharacterRevision(Input):

@@ -7,7 +7,7 @@ from pydantic import Field
 from companion import conversation
 from companion.characters import require_current
 from companion.clock import parse, stamp
-from companion.life import feed, routine, simulation, today
+from companion.life import feed, mood, routine, simulation, today
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -81,6 +81,11 @@ def read_today(request: Request):
 @today_router.post('/seen')
 def seen(request: Request):
     return today.mark_seen(db(request))
+
+
+@today_router.post('/mood/{mood_id}/reset')
+def reset_mood(request: Request, mood_id: str):
+    return mood.reset(db(request), mood_id)
 
 
 @feed_router.get('')

@@ -199,3 +199,34 @@ A post:
 - `POST /api/feed/posts` posts an event committed by other means; it is idempotent per event.
 - `export` returns `{format: "prospero-companion-feed", version, exported_at, companion, posts}`,
   oldest first, hidden posts included.
+
+## Emotional traits and absence mood
+
+Traits are part of the character definition and are empty by default (PRD C6):
+
+```json
+"emotional_traits": [{"trait": "guilt_over_absence", "intensity": 3}, {"trait": "jealousy", "intensity": 2}]
+```
+
+`trait` is one of `jealousy`, `guilt_over_absence`, `possessiveness`, `neediness`, `sulking`, each
+at most once; `intensity` is 1 (faint) to 5 (strong). A change applies from the next reply. Jealousy
+and possessiveness are never expressed as romantic exclusivity unless `relationship` is `romance`.
+
+When the user returns at least a day after their last message and the character has
+`guilt_over_absence`, `neediness` or `sulking`, the return records a mood (PRD M4).
+`GET /api/today` shows it as `mood`, which is `null` otherwise:
+
+```json
+"mood": {"id": "…", "kind": "absence", "intensity": 3, "away_hours": 72,
+         "away_from": "…", "away_until": "…", "traits": ["guilt_over_absence"],
+         "created_at": "…", "expires_at": "…", "recorded_traits": [{"trait": "guilt_over_absence", "intensity": 3}]}
+```
+
+- The intensity never exceeds the current trait's intensity, however long the absence.
+- A paused interval is not an absence.
+- The mood lasts two days, until the user resets it, or until the traits are removed, whichever
+  comes first. Removing the trait ends it from the next reply.
+- `POST /api/today/mood/{id}/reset` clears it and returns `{"mood": null}`.
+
+Show the mood plainly in Today with its reset action. Product controls and system notices stay
+neutral whatever the traits: never word Settings, Pause or permission prompts in character.

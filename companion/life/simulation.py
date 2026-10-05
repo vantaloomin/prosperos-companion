@@ -21,7 +21,7 @@ from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import feed, routine
+from companion.life import feed, mood, routine
 from companion.life.synthesis import SynthesisInvalid, synthesize
 from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
@@ -243,6 +243,8 @@ class LifeEngine:
     async def reconcile(self, mode='return') -> dict:
         async with self.lock:
             with self.database.connect(write=True) as connection:
+                if mode == 'return' and current(connection):
+                    mood.note_return(connection, self.now())
                 decision = decide(connection, self.owner, mode, self.now())
             if decision['state'] in {'started', 'resumed'}:
                 await self.execute(decision['run_id'])

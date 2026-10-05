@@ -12,11 +12,13 @@ from companion.clock import parse, stamp, zone
 from companion.database import many, settings
 from companion.errors import DomainError
 from companion.events import committed
+from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
+from companion.traits import ABSENCE_TRAITS, traits_text
 
 RECENT_MESSAGES = 24
 RECALL_LIMIT = 8
@@ -34,6 +36,7 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
+            'relationship_mood': 'Your current mood about time apart',
             'recalled': 'Possibly relevant memories'}
 
 
@@ -74,7 +77,14 @@ def character_text(version) -> str:
     definition = version['definition']
     lines = [GUIDANCE.format(name=definition['name'], relationship=definition['relationship'])]
     reaction = definition.get('absence_reaction')
-    lines.append(f'How you react to time apart, in character: {reaction}' if reaction else NEUTRAL_ABSENCE)
+    traits = definition.get('emotional_traits') or []
+    absence_traits = [trait for trait in traits if trait['trait'] in ABSENCE_TRAITS]
+    if reaction:
+        lines.append(f'How you react to time apart, in character: {reaction}')
+    elif not absence_traits:
+        lines.append(NEUTRAL_ABSENCE)
+    if traits:
+        lines.append(traits_text(traits, definition['relationship']))
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
@@ -195,6 +205,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     packet.require('time', 'clock', time_text(now, settings(connection)['user_timezone'], version['timezone'],
                                               previous))
     conversation = fit_conversation(packet, recent)
+    if mood := moods.active(connection, companion, now):
+        packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory))
