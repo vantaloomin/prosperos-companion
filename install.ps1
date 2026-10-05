@@ -1,6 +1,9 @@
 # Adapted from prosperos-study install.ps1 at bbcbde4: Companion name and dependency checks.
 param([switch]$NoPause, [switch]$CheckOnly)
 $ErrorActionPreference = 'Stop'
+# npm, Vite and Python write UTF-8; decode their captured output as UTF-8 so symbols such as the
+# build's checkmark render instead of mojibake. A host without a console may refuse; that is fine.
+try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } catch { }
 Set-Location -LiteralPath $PSScriptRoot
 
 function Invoke-Checked {

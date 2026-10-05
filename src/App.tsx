@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { BookHeart, CalendarDays, MessageCircle, Newspaper, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
 import { useCompanion, useFollowPcTimezone, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
-import { Character } from './features/character/Character'
-import { Appearance } from './features/appearance/Appearance'
-import { Memories } from './features/memories/Memories'
-import { Settings } from './features/settings/Settings'
 import type { SettingsTab } from './features/settings/sections'
-import { Today } from './features/today/Today'
-import { Feed } from './features/feed/Feed'
 import { useReconcile } from './features/today/useReconcile'
 import { useNotifications } from './features/notifications/useNotifications'
 import { useTexts } from './features/conversation/useTexts'
 import { Loading, Notice } from './components/Feedback'
+
+// Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
+const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
+const Appearance = lazy(() => import('./features/appearance/Appearance').then((m) => ({ default: m.Appearance })))
+const Memories = lazy(() => import('./features/memories/Memories').then((m) => ({ default: m.Memories })))
+const Settings = lazy(() => import('./features/settings/Settings').then((m) => ({ default: m.Settings })))
+const Today = lazy(() => import('./features/today/Today').then((m) => ({ default: m.Today })))
+const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
 const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
   { id: 'conversation', label: 'Chat', icon: MessageCircle },
@@ -62,7 +64,7 @@ export default function App() {
       <main id="main" className="app-main" tabIndex={-1}>
         {companion.isPending ? <Loading label="Opening your companion" />
           : companion.isError ? <Notice tone="error">{companion.error.message}</Notice>
-            : <CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} />}
+            : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
       </main>
     </div>
   )
