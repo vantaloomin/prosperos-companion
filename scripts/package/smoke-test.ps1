@@ -38,7 +38,8 @@ $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot;$env:SystemRoot\System32\W
 $env:PYTHONPATH = 'C:\nonexistent\pythonpath'
 $env:PYTHONHOME = 'C:\nonexistent\pythonhome'
 Remove-Item Env:COMPANION_DATA_DIR, Env:COMPANION_DB -ErrorAction SilentlyContinue
-Check (-not (Get-Command python, python3, py, node, npm -ErrorAction SilentlyContinue)) 'no Python or Node on PATH'
+$toolchain = @(Get-Command python, python3, py, node, npm -CommandType Application -ErrorAction SilentlyContinue)
+Check ($toolchain.Count -eq 0) "no Python or Node on PATH $($toolchain.Source -join ', ')"
 
 # Prospero's Study's port is taken, as it would be with the Study running beside the Companion.
 $study = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 8765)
