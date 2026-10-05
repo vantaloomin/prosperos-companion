@@ -354,3 +354,23 @@ def test_a_plan_is_not_an_outing_until_its_slot_happens(client, life, clock, mon
     assert len(fulfilled) == 1 and fulfilled[0]['summary'].endswith('as planned.')
     assert fulfilled[0]['details']['slot'] == plan['details']['target_slot']
     assert client.get('/api/today').json()['plans']['companion'] == []
+
+
+def test_the_shipped_city_data_is_the_default_world(tmp_path, clock, provider, monkeypatch):
+    monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
+    app = create_app(tmp_path / 'city.sqlite3', clock=clock, vault=MemoryVault(), provider=provider,
+                     life_tasks=False)
+    with TestClient(app, headers={CLIENT_HEADER: 'workspace'}) as client:
+        # No home_city: the free-text location is enough to find the city.
+        client.post('/api/companion', json={'name': 'Mira', 'timezone': 'America/New_York',
+                                            'location': 'Fells Point, Baltimore'})
+        set_life(client, catch_up_max_events=6, catch_up_lookback_hours=96, phrase_with_model=False)
+        clock.advance(timedelta(days=4))
+        reconcile(client)
+        placed = [event for event in all_events(client) if event['details']['place']]
+        assert placed
+        for event in placed:
+            assert event['details']['place']['city'] == 'Baltimore'
+            assert event['details']['place']['name'] in event['summary']
+            assert event['inputs']['world'] == 'catalog'

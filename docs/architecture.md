@@ -114,7 +114,8 @@ settings and export stay neutral either way.
   revision it was planned under and skips its remaining slots if permissions change.
 - **Composing, not generating.** `companion/life/composer.py` decides each event without a
   model: the block's kind picks an activity from a fixed catalog (avoiding the last few), the
-  world source supplies a real place in the character's `home_city`, and templates write the
+  world source supplies a real place in the character's `home_city` (or the city its `location`
+  names), and templates write the
   summary, caption and mood. The choice is seeded by the event key, so a resumed batch composes
   the same event. About one slot in five is deliberately quiet. With no matching place the
   wording stays generic ("at a café") instead of inventing one.
@@ -122,8 +123,8 @@ settings and export stay neutral either way.
   `plan:<timeline>:<slot>`). Batches always include a slot a committed plan names, and that slot is
   composed as the planned outing, linked by `details.fulfils`.
 - **World data.** `companion/life/world.py` defines the `WorldSource` interface
-  (`places(city, kinds) -> [Place]`) passed to `create_app(world=...)`. The default `EmptyWorld`
-  has no places. City datasets plug in behind this interface.
+  (`places(city, kinds) -> [Place]`) passed to `create_app(world=...)`. The default is
+  `CatalogWorld`, the shipped city data ([world data](world-data.md)); `EmptyWorld` has no places.
 - **Optional phrasing.** With a model connection and `phrase_with_model` on, one
   background-priority request (`LIFE_SYNTHESIS`) rewrites the wording in the character's voice.
   The model gets the composed facts only, never the user's memories, and may not add places,
