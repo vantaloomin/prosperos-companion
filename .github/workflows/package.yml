@@ -135,3 +135,39 @@ jobs:
           }
           $setup = Get-ChildItem -LiteralPath $release -Filter '*-setup.exe' | Select-Object -First 1
           scripts/package/installer-test.ps1 -Setup $setup.FullName
+
+  beside-the-study:
+    # Prospero's Study from its own repository, pinned, running beside the installed Companion.
+    needs: installer
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/package
+      - uses: actions/checkout@v4
+        with:
+          repository: vantaloomin/prosperos-study
+          ref: bbcbde49426bc86d2430c3a912472e05be4fd89a
+          path: study
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Prospero's Study
+        shell: pwsh
+        working-directory: study
+        run: .\install.ps1 -NoPause
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: ${{ runner.temp }}\release
+      - name: Run the Companion beside the Study
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'release') -Filter '*-setup.exe' | Select-Object -First 1
+          scripts/package/beside-study-test.ps1 -Setup $setup.FullName -Study study

@@ -72,6 +72,12 @@ The `Package` workflow builds the setup from the bundle artifact, publishes both
 on a fresh runner: install, launch, install again as an upgrade, launch, restore a backup with the
 installed launcher, launch, uninstall, with no Python or Node on `PATH`.
 
+A `beside-the-study` job installs Prospero's Study from its repository (pinned to `bbcbde4`),
+starts it on 8765, installs the Companion and runs `scripts/package/beside-study-test.ps1`: a
+Companion pointed at the Study's port refuses and stops nothing, the Companion runs on 8775 while
+the Study keeps answering, neither data folder holds the other's files, and the Study's database
+never gains the Companion's identity marker.
+
 The bundle and setup are not code signed yet, so Windows SmartScreen may warn on first launch. Signing is an
 open release decision.
 
