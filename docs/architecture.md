@@ -40,6 +40,24 @@ anything. Without a model connection the message is still saved and the response
 and stay inactive. A reply left `streaming` by a crash is marked `incomplete` on the next start.
 Alternatives keep the earlier wording; they are offered for the latest message only.
 
+### Streaming replies
+
+Sending (or asking for an alternative) with `?wait=false` returns as soon as the user's message
+and the reply attempt are saved; the attempt is `streaming`. The client then follows
+`GET /api/conversation/replies/{id}/events`, a server-sent event stream with three events:
+
+| Event | Data |
+| --- | --- |
+| `snapshot` | `{id, text}`: everything written so far, so a reconnecting client catches up |
+| `delta` | `{id, text}`: the next piece of text |
+| `done` | The saved reply, in its final status (`complete`, `incomplete`, `cancelled`, `failed` or `withheld`) |
+
+A finished reply's stream sends only `done`. Generation belongs to the app, not to the request or
+the stream: closing the stream or reloading never stops a reply, only
+`POST /api/conversation/replies/{id}/stop` does. Retrying a send while its reply is still being
+written returns that same attempt instead of starting another. Without `wait=false` the request
+waits for the finished reply, as before.
+
 ## Context builder (M10)
 
 `companion/memory/context.py` assembles each reply:
@@ -72,6 +90,6 @@ reference cleared. Enabling memory or background activity requires marking the r
 
 ## Not yet built
 
-Interface, streaming to a client, timeline forking, automatic memory extraction, semantic
+Interface, timeline forking, automatic memory extraction, semantic
 embeddings, life simulation and catch-up, feed, MCP tools, image generation and LoRA training,
 durable cross-process scheduling, restore into an existing workspace, and packaging.
