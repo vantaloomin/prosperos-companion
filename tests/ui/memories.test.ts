@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { earlierVersions, groupMemories, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
+import { deletePreviewText, earlierVersions, groupMemories, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -35,4 +35,11 @@ test('history, uncertainty and automatic saving are labelled', () => {
 test('remember this describes what was kept', () => {
   assert.equal(rememberedText('Mira', [{ subject: 'Home city', value: 'Chicago' }]), 'Mira will remember this: Home city: Chicago.')
   assert.equal(suggestionReason('sensitive'), 'Sensitive details are only kept when you say so.')
+})
+
+test('the delete preview names what goes and what stays', () => {
+  const preview = { memory_ids: ['a'], source_message_ids: ['m1', 'm2'], other_memories: [{ id: 'b', subject: "Sister's city" }], summaries_with_sources: 1, kept: '' }
+  assert.deepEqual(deletePreviewText(preview, false), [])
+  assert.deepEqual(deletePreviewText(preview, true), ['2 messages will show as deleted in your conversation.',
+    '1 conversation summary quoting them will be removed.', "Also from those messages, and kept: Sister's city."])
 })

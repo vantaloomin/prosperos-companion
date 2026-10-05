@@ -146,6 +146,14 @@ export interface RememberResult {
   draft: { layer: Layer; subject: string; value: string; source_message_ids: string[] } | null
 }
 
+export interface DeletePreview {
+  memory_ids: string[]
+  source_message_ids: string[]
+  other_memories: { id: string; subject: string }[]
+  summaries_with_sources: number
+  kept: string
+}
+
 export interface MergeProposal { id: string; keep: Memory; merge: Memory; created_at: string }
 
 export interface DeclineResult { message_id: string; declined: boolean; removed_memory_ids: string[] }

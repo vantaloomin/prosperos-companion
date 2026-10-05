@@ -224,6 +224,11 @@ def pin_memory(request: Request, memory_id: str, pinned: bool = True):
     return records.set_flag(db(request), memory_id, pinned=pinned)
 
 
+@router.get('/memories/{memory_id}/delete-preview')
+def delete_preview(request: Request, memory_id: str):
+    return records.delete_preview(db(request), memory_id)
+
+
 @router.post('/memories/{memory_id}/delete')
 def delete_memory(request: Request, memory_id: str, body: MemoryDelete):
     return records.delete(db(request), memory_id, body.delete_sources)
