@@ -57,7 +57,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .lede { color: var(--muted); line-height: 1.8; }
 
 .conversation { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.conversation-header { display: flex; align-items: center; gap: 14px; padding: 18px 32px; border-bottom: 1px solid var(--border); }
+.conversation-header { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 18px 32px; border-bottom: 1px solid var(--border); }
 .conversation-header h1 { font-size: 1.3rem; }
 .portrait { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-family: 'Literata', Georgia, serif; font-size: 1.3rem; border: 1px solid var(--border); flex-shrink: 0; }
 .transcript { flex: 1; overflow-y: auto; overflow-anchor: none; }
@@ -152,7 +152,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .dialog-body { display: flex; flex-direction: column; gap: 14px; margin: 14px 0 20px; line-height: 1.6; font-size: 0.9375rem; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
 @media (max-width: 720px) { .memory { flex-direction: column; } .memory-actions { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; } }
-.message-actions { display: flex; align-items: center; gap: 12px; }
+.message-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0 12px; }
 .message-actions .text-button { opacity: 0; font-size: 0.75rem; }
 .message:hover .message-actions .text-button, .message:focus-within .message-actions .text-button { opacity: 1; }
 @media (hover: none) { .message-actions .text-button { opacity: .8; } }
@@ -202,7 +202,7 @@ textarea { resize: vertical; line-height: 1.6; }
 @media (max-width: 720px) { .schedule-row { grid-template-columns: 1fr 1fr 32px; } .schedule-row > input:first-child { grid-column: 1 / 3; } .schedule-row > select { grid-column: 1 / 3; } }
 
 /* Conversation search */
-.conversation-title { flex: 1; min-width: 0; }
+.conversation-title { flex: 1 1 160px; min-width: 0; }
 .conversation-search { border-bottom: 1px solid var(--border); background: var(--surface); max-height: 50dvh; overflow-y: auto; }
 .search-bar { display: flex; gap: 8px; align-items: center; max-width: 760px; margin: 0 auto; padding: 12px 32px; }
 .search-bar input { flex: 1; min-width: 0; }
@@ -404,3 +404,126 @@ textarea { resize: vertical; line-height: 1.6; }
 .model-search-popup [role='option'][data-active='true'] { background: var(--accent-tint); }
 .model-routes { border: 0; padding: 0; margin: 0; }
 .model-routes legend { font-weight: 500; margin-bottom: 8px; }
+
+/* Chat styles: presentation only. Each lays out the same message markup; Feed is the base rules above. */
+.avatar { display: none; }
+.chat-style-switch { padding: 5px 8px; font-size: 0.8125rem; border-radius: 7px; max-width: 132px; }
+.chat-feed .message-companion > header time { display: none; }
+.chat-style-options { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.chat-style-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); cursor: pointer; }
+.chat-style-option:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
+.chat-style-option input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+.chat-style-text { display: flex; flex-direction: column; gap: 3px; font-size: 0.9375rem; }
+.chat-style-text small { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+
+/* Bubbles: texting-style. Names are read from each message's label, so they are only hidden visually. */
+.chat-bubbles .reading-column { display: flex; flex-direction: column; }
+.chat-bubbles .message { display: flex; flex-direction: column; max-width: min(82%, 580px); margin-bottom: 14px; }
+.chat-bubbles .message-user { align-self: flex-end; align-items: flex-end; }
+.chat-bubbles .message-companion { align-self: flex-start; align-items: flex-start; }
+.chat-bubbles .message > header { order: 2; min-height: 0; margin: 4px 8px 0; gap: 10px; max-width: 100%; }
+.chat-bubbles .message-companion > header { justify-content: flex-start; }
+.chat-bubbles .message .speaker { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.chat-bubbles .prose { padding: 9px 14px; border-radius: 18px; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.9375rem; line-height: 1.55; }
+.chat-bubbles .prose p { margin-bottom: 0.6em; }
+.chat-bubbles .message-user .prose { background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 5px; }
+.chat-bubbles .message-companion .prose { background: var(--raised); border-bottom-left-radius: 5px; }
+.chat-bubbles .message-companion .prose:empty { display: none; }
+.chat-bubbles .message-user .link-notes { justify-content: flex-end; order: 3; }
+.chat-bubbles .reply-status { order: 3; }
+.chat-bubbles .turn-actions { margin: -6px 0 16px 6px; align-self: flex-start; }
+.chat-bubbles .load-earlier { align-self: center; }
+
+/* Community: a chat-server layout with an avatar, name and time on every message. */
+.chat-community .reading-column { max-width: none; padding: 14px 0 22px; }
+.chat-community .message { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 14px; margin: 0; padding: 8px 24px; }
+.chat-community .message:hover, .chat-community .message:focus-within { background: var(--surface); }
+.chat-community .message > :not(.avatar) { grid-column: 2; }
+.chat-community .avatar { display: grid; place-items: center; grid-column: 1; grid-row: 1 / span 3; align-self: start; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 600; }
+.chat-community .message-user .avatar { background: var(--raised); color: var(--text); }
+.chat-community .message > header { flex-wrap: wrap; justify-content: flex-start; column-gap: 10px; min-height: 24px; margin-bottom: 2px; }
+.chat-community .message-actions, .chat-community .reply-tools { flex: 1 1 auto; }
+.chat-community .message-actions { justify-content: flex-start; }
+.chat-community .message-actions time { order: -1; margin-right: auto; white-space: nowrap; }
+.chat-community .reply-tools time { margin-right: auto; }
+.chat-community .speaker { font-size: 0.9375rem; font-weight: 600; color: var(--text); }
+.chat-community .message-companion .speaker { color: var(--accent); }
+.chat-community .prose { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.9375rem; line-height: 1.6; }
+.chat-community .prose p { margin-bottom: 0.5em; }
+.chat-community .message-user .prose { color: var(--text); }
+/* A run of messages from you is grouped under the first one's avatar and name. */
+.chat-community .message-user + .message-user { padding-top: 0; }
+.chat-community .message-user + .message-user .avatar { visibility: hidden; height: 0; }
+.chat-community .message-user + .message-user .speaker { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.chat-community .turn-actions { margin: 2px 0 10px 78px; }
+.chat-community .composer, .chat-community .conversation-notice { max-width: none; }
+.chat-community .load-earlier { margin-top: 8px; }
+
+/* Retro IM: an early-2000s messenger window. Its own light palette keeps everything inside it readable. */
+.chat-retro { --canvas: #ffffff; --surface: #d4d0c8; --raised: #c4c0b8; --border: #808080; --text: #000000; --muted: #3a3a3a; --faint: #555555;
+  --accent: #0a246a; --accent-hover: #17378f; --accent-tint: #dfe5f3; --on-accent: #ffffff; --danger: #9c0000; --danger-tint: #f7dddd;
+  color-scheme: light; color: var(--text); background: var(--surface); margin: 10px; border: 2px outset #e8e6e1; font-family: Tahoma, Verdana, 'IBM Plex Sans', sans-serif; }
+.chat-retro :focus-visible { outline-color: #0a246a; }
+.chat-retro .dialog { --canvas: #191816; --surface: #201f1c; --raised: #292722; --border: #37342e; --text: #ede5d6; --muted: #b0a99b; --faint: #968e80;
+  --accent: #c5a46d; --accent-hover: #d7b984; --accent-tint: #302a20; --on-accent: #211c14; --danger: #e9b8aa; --danger-tint: #98655822; color-scheme: dark; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+.chat-retro .field > label { color: var(--text); }
+.chat-retro .conversation-header { gap: 10px; padding: 5px 8px; border: 0; background: linear-gradient(90deg, #0a246a, #24508f); color: #ffffff; }
+.chat-retro .conversation-header h1 { font-family: inherit; font-size: 0.9375rem; font-weight: 700; }
+.chat-retro .conversation-header .subtle { color: #e6ecfa; font-size: 0.75rem; }
+.chat-retro .conversation-header .portrait { width: 26px; height: 26px; font-size: 0.875rem; border-radius: 3px; border-color: #ffffff80; background: #ffffff; color: #0a246a; }
+.chat-retro .conversation-header .icon-button { color: #ffffff; border-radius: 2px; }
+.chat-retro .conversation-header .icon-button:hover { background: #ffffff2a; color: #ffffff; }
+.chat-retro .conversation-header :focus-visible { outline-color: #ffffff; }
+.chat-retro .chat-style-switch { border-radius: 0; padding: 3px 6px; background: #ffffff; color: #000000; }
+.chat-retro .transcript { margin: 6px 6px 0; background: #ffffff; border: 2px inset #e8e6e1; }
+.chat-retro .reading-column { max-width: none; padding: 8px 10px 12px; font-size: 0.875rem; }
+.chat-retro .message { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; margin-bottom: 4px; contain-intrinsic-size: auto 40px; }
+.chat-retro .message > header { display: contents; }
+.chat-retro .message > :not(header), .chat-retro .message > header > :not(.speaker) { grid-column: 2; }
+.chat-retro .message-actions, .chat-retro .reply-tools { order: 2; justify-self: start; gap: 10px; }
+.chat-retro .link-notes, .chat-retro .reply-status { order: 3; }
+.chat-retro .speaker { grid-column: 1; font-size: 0.875rem; font-weight: 700; line-height: 1.5; color: #b00000; }
+.chat-retro .speaker::after { content: ':'; }
+.chat-retro .message-companion .speaker { color: #0000b8; }
+.chat-retro .prose { font-family: inherit; font-size: 0.875rem; line-height: 1.5; color: #000000; }
+.chat-retro .message-user .prose { color: #000000; }
+.chat-retro .message-companion.inactive .prose { color: var(--faint); }
+.chat-retro .prose p { margin-bottom: 0.4em; }
+.chat-retro .message time { display: none; }
+/* Your message tools fold away until the message is hovered or reached by keyboard, like the rest of the styles' tools. */
+.chat-retro .message-actions { max-height: 0; overflow: hidden; }
+.chat-retro .message:hover .message-actions, .chat-retro .message:focus-within .message-actions { max-height: 3em; overflow: visible; }
+@media (hover: none) { .chat-retro .message-actions { max-height: none; overflow: visible; } }
+.chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
+.chat-retro .turn-actions { margin: 0 0 8px; }
+.chat-retro .message.found { outline-offset: 2px; }
+.chat-retro .composer { max-width: none; padding: 6px 6px 8px; }
+.chat-retro .composer textarea { border-radius: 0; border: 2px inset #e8e6e1; font-size: 0.875rem; }
+.chat-retro .composer .button, .chat-retro .conversation-notice .button { border-radius: 0; border: 2px outset #f2f1ee; background: var(--surface); color: #000000; font-weight: 700; }
+.chat-retro .composer .button:active { border-style: inset; }
+.chat-retro .conversation-notice { max-width: none; padding: 6px 6px 0; }
+.chat-retro .conversation-search, .chat-retro .timeline-panel { margin: 0 6px; }
+
+/* Visual novel: their portrait on a stage, the conversation in dialogue boxes with name plates. */
+.novel-stage { flex: 0 0 clamp(140px, 36dvh, 420px); display: flex; justify-content: center; align-items: flex-end; overflow: hidden; border-bottom: 1px solid var(--border);
+  background: radial-gradient(ellipse at 50% 110%, #43392a 0%, #27231d 48%, var(--canvas) 100%); }
+.novel-stage img { height: 94%; max-width: 72%; object-fit: cover; object-position: top; border-radius: 14px 14px 0 0; mask-image: linear-gradient(to bottom, #000 72%, transparent); }
+.novel-figure { display: grid; place-items: center; width: clamp(110px, 26dvh, 280px); height: 88%; border-radius: 50% 50% 0 0; background: linear-gradient(to bottom, var(--accent-tint), #24211c); color: var(--accent); font-family: 'Literata', Georgia, serif; font-size: clamp(3.5rem, 14dvh, 9rem); }
+.chat-novel .reading-column { max-width: 860px; }
+.chat-novel .message { margin: 0 0 18px; padding: 12px 20px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.chat-novel .message-companion { border-color: #6b5a3c; }
+.chat-novel .message > header { margin-bottom: 10px; }
+.chat-novel .speaker { padding: 2px 12px; border-radius: 6px; background: var(--raised); border: 1px solid var(--border); color: var(--text); font-weight: 600; }
+.chat-novel .message-companion .speaker { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.chat-novel .message-user .prose { color: var(--text); }
+.chat-novel .message-companion > header time { display: none; }
+.chat-novel .turn-actions { margin: -8px 0 18px; }
+@media (max-height: 560px) { .novel-stage { display: none; } }
+
+@media (max-width: 720px) {
+  .chat-style-switch { max-width: 104px; }
+  .chat-community .message { padding: 8px 14px; }
+  .chat-community .turn-actions { margin-left: 68px; }
+  .chat-retro { margin: 4px; }
+  .novel-stage { flex-basis: clamp(120px, 28dvh, 300px); }
+}

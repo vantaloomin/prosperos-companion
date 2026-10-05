@@ -84,6 +84,9 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'user_timezone_source',
      "TEXT NOT NULL DEFAULT 'default' CHECK (user_timezone_source IN ('default', 'pc', 'chosen'))"),
     ('context_settings', 'read_links', 'INTEGER NOT NULL DEFAULT 1 CHECK (read_links IN (0, 1))'),
+    ('workspace_settings', 'chat_style',
+     "TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel'))"),
+    ('workspace_settings', 'chat_sounds', 'INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1))'),
 )
 
 

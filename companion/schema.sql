@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
     CHECK (share_profile_across_timelines IN (0, 1)),
   background_activity INTEGER NOT NULL DEFAULT 0 CHECK (background_activity IN (0, 1)),
   model_memory_suggestions INTEGER NOT NULL DEFAULT 0 CHECK (model_memory_suggestions IN (0, 1)),
+  -- How the chat looks; presentation only, the same messages in every style.
+  chat_style TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel')),
+  chat_sounds INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,
