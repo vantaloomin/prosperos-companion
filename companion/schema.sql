@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS life_settings (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   automatic_events INTEGER NOT NULL DEFAULT 0 CHECK (automatic_events IN (0, 1)),
   catch_up_on_return INTEGER NOT NULL DEFAULT 1 CHECK (catch_up_on_return IN (0, 1)),
+  phrase_with_model INTEGER NOT NULL DEFAULT 1 CHECK (phrase_with_model IN (0, 1)),
   catch_up_max_events INTEGER NOT NULL DEFAULT 3,
   catch_up_lookback_hours INTEGER NOT NULL DEFAULT 48,
   return_gap_hours INTEGER NOT NULL DEFAULT 4,
@@ -204,3 +205,70 @@ CREATE TABLE IF NOT EXISTS life_runs (
   finished_at TEXT
 );
 CREATE INDEX IF NOT EXISTS life_runs_timeline ON life_runs(timeline_id, created_at);
+
+-- Private feed (PRD F1, F2, F4). A post shows committed events by reference, so a corrected
+-- event changes the post too, and a rejected proposal never appears.
+CREATE TABLE IF NOT EXISTS feed_posts (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('event', 'digest')),
+  idempotency_key TEXT NOT NULL UNIQUE,
+  run_id TEXT REFERENCES life_runs(id),
+  intro TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'visible' CHECK (status IN ('visible', 'hidden', 'removed')),
+  reaction TEXT,
+  occurs_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  read_at TEXT,
+  removed_at TEXT,
+  -- Hook for a later image job: state of the post's illustration, never blocking its text.
+  image_status TEXT NOT NULL DEFAULT 'none' CHECK (image_status IN
+    ('none', 'queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')),
+  image_job_id TEXT,
+  image_ref TEXT,
+  image_error TEXT,
+  image_updated_at TEXT
+);
+CREATE INDEX IF NOT EXISTS feed_posts_order ON feed_posts(timeline_id, occurs_at, id);
+
+CREATE TABLE IF NOT EXISTS feed_post_events (
+  post_id TEXT NOT NULL REFERENCES feed_posts(id),
+  event_id TEXT NOT NULL REFERENCES life_events(id),
+  position INTEGER NOT NULL,
+  PRIMARY KEY (post_id, event_id)
+);
+
+-- A chat message written in reply to a post (PRD F1).
+CREATE TABLE IF NOT EXISTS message_post_links (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  post_id TEXT NOT NULL REFERENCES feed_posts(id)
+);
+
+-- When the user last looked at Today; only moves forward.
+CREATE TABLE IF NOT EXISTS visits (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  last_seen_at TEXT NOT NULL
+);
+
+-- Visible, resettable relationship mood from the user's absence (PRD C6, M4). Only created
+-- when the character has an absence trait; never a hidden score.
+CREATE TABLE IF NOT EXISTS relationship_moods (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('absence')),
+  away_from TEXT NOT NULL,
+  away_until TEXT NOT NULL,
+  intensity INTEGER NOT NULL CHECK (intensity BETWEEN 1 AND 3),
+  traits TEXT NOT NULL,
+  character_version_id TEXT NOT NULL REFERENCES character_versions(id),
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  cleared_at TEXT,
+  UNIQUE (timeline_id, kind, away_from)
+);
+
+-- Paused intervals the user chose to catch up (PRD T6); otherwise a pause blocks its interval.
+CREATE TABLE IF NOT EXISTS pause_catch_ups (
+  pause_id TEXT PRIMARY KEY REFERENCES pauses(id),
+  requested_at TEXT NOT NULL
+);

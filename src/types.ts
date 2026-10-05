@@ -25,6 +25,10 @@ export interface SendResult {
   connection: 'ready' | 'not_configured'
 }
 
+export type Intensity = 'mild' | 'moderate' | 'strong'
+
+export interface EmotionalTrait { name: string; intensity: Intensity; note: string }
+
 export interface CharacterDefinition {
   name: string
   identity: string
@@ -37,7 +41,11 @@ export interface CharacterDefinition {
   location: string
   relationship: Relationship
   absence_reaction: string
+  emotional_traits: EmotionalTrait[]
   timezone: string
+  /** Edited by the life simulation's routine tools; kept as-is when the character form saves. */
+  schedule?: unknown[]
+  life_themes?: string[]
 }
 
 export interface CharacterVersion {
@@ -75,3 +83,41 @@ export interface Connection {
   context_tokens: number
   timeout_seconds: number
 }
+
+export type Layer = 'user_fact' | 'shared_experience' | 'plan' | 'temporary' | 'relationship' | 'companion_life'
+export type PlanStatus = 'proposed' | 'agreed' | 'postponed' | 'cancelled' | 'completed'
+
+export interface Memory {
+  id: string
+  layer: Layer
+  subject: string
+  value: string
+  reality: 'real' | 'fiction'
+  authority: 'stated' | 'confirmed' | 'tentative'
+  status: 'active' | 'superseded' | 'excluded'
+  boundary: boolean
+  pinned: boolean
+  sensitive: boolean
+  plan_status: PlanStatus | null
+  stated_at: string
+  applies_from: string | null
+  applies_until: string | null
+  revision: number
+  supersedes_id: string | null
+  source_message_ids: string[]
+  updated_at: string
+}
+
+export interface DeleteResult { deleted_memory_ids: string[]; redacted_message_ids: string[]; linked_memory_ids: string[] }
+
+export interface LifeSettings {
+  automatic_events: boolean
+  catch_up_on_return: boolean
+  catch_up_max_events: number
+  catch_up_lookback_hours: number
+  return_gap_hours: number
+  background_interval_minutes: number
+  background_daily_events: number
+}
+
+export interface BackupResult { path: string; created_at: string; database_bytes: number }

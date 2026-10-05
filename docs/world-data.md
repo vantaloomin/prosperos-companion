@@ -72,6 +72,13 @@ event's generation inputs.
 Weather here is climate, not a forecast. Real current conditions belong to the MCP context tools
 (PRD X1–X3); a life event built from climate must not be presented as today's weather.
 
+### The composer's world source
+
+`companion/world/source.py` provides `CatalogWorld`, the default world source the app passes to the
+life engine (`companion/life/world.py`). It answers the composer's place kinds (`park`, `cafe`,
+`waterfront`, `college` and so on) from this data, in a stable order. A character's `home_city` may
+be a city id (`baltimore`) or free text that `catalog.resolve` recognises.
+
 ## HTTP API
 
 All endpoints are read-only `GET`s, so they need no workspace header.

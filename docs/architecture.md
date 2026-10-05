@@ -78,9 +78,16 @@ memories qualify, and source messages of excluded memories are kept out of raw r
 receipt stored with each reply lists included and omitted identities, never content, so deleting
 a memory leaves nothing readable behind in old receipts.
 
-How the companion reacts to time apart is a character trait (`absence_reaction`). Left empty, the
-companion is neutral about absence. Product controls such as pause, settings and export stay
-neutral either way.
+How the companion reacts to time apart (`absence_reaction`) and its emotional traits
+(`emotional_traits`: a name such as jealousy or guilt over absence, an intensity of mild, moderate
+or strong, and an optional note) are part of the character definition (C6). A new character has
+none. With neither, the companion is told to be neutral about absence. With traits but a
+non-romantic framing, it is told never to express jealousy or possessiveness as romantic
+exclusivity. A return after a day or more records a visible, resettable absence mood
+(`relationship_moods`, `companion/life/mood.py`) only when a trait's name speaks of absence,
+guilt, missing the user, neediness or sulking (`companion/traits.py`). The mood never exceeds that
+trait's intensity and stops applying once the trait is removed. Product controls such as pause,
+settings and export stay neutral either way.
 
 ## Life simulation (T1–T7)
 
@@ -97,21 +104,46 @@ neutral either way.
 - **Bounded batches.** A return batch needs `return_gap_hours` of unsimulated time and takes at
   most `catch_up_max_events` slots from the last `catch_up_lookback_hours`, spread across that
   window. A 14-day absence costs the same as a one-day absence. Slots overlapping a pause are never
-  chosen, which is how resuming skips the paused interval. Background batches run only with
-  `background_activity`, one slot per batch and a 24-hour cap.
+  chosen, which is how resuming skips the paused interval. Catching up a pause is a separate
+  request; it records the pause in `pause_catch_ups`, which lifts its block on commits.
+  Background batches run only with `background_activity`, one slot per batch and a 24-hour cap.
 - **Integrity.** The plan is stored with the batch, so a resumed batch writes the same slots. Each
   event's idempotency key is `life:<timeline>:<slot>`, so a restart, a second process or a retry
   finds the existing event instead of writing another. A batch held by a live process is left
   alone (`in_progress`); one whose lease lapsed is resumed. The batch records the permission
   revision it was planned under and skips its remaining slots if permissions change.
-- **Writing.** With a model connection, each slot is one background-priority request
-  (`LIFE_SYNTHESIS`) that a conversation interrupts; the batch resumes on the next reconcile.
-  The model sees the character, the block and the last five committed events, never the user's
-  memories, and may answer that the stretch was quiet. Unusable output leaves the slot quiet.
-  Without a connection every slot stays quiet.
+- **Composing, not generating.** `companion/life/composer.py` decides each event without a
+  model: the block's kind picks an activity from a fixed catalog (avoiding the last few), the
+  world source supplies a real place in the character's `home_city`, and templates write the
+  summary, caption and mood. The choice is seeded by the event key, so a resumed batch composes
+  the same event. About one slot in five is deliberately quiet. With no matching place the
+  wording stays generic ("at a café") instead of inventing one.
+- **World data.** `companion/life/world.py` defines the `WorldSource` interface
+  (`places(city, kinds) -> [Place]`) passed to `create_app(world=...)`. The default `EmptyWorld`
+  has no places. City datasets plug in behind this interface.
+- **Optional phrasing.** With a model connection and `phrase_with_model` on, one
+  background-priority request (`LIFE_SYNTHESIS`) rewrites the wording in the character's voice.
+  The model gets the composed facts only, never the user's memories, and may not add places,
+  people or events; a reply that drops the place name, fails to parse or errors keeps the
+  template wording. A conversation interrupts phrasing and the batch resumes on the next
+  reconcile. Event `inputs` record the template text, world source, composer and prompt versions.
 - **Review.** Events are proposed and wait for review unless the user turned on
   `automatic_events`. Commit revalidates the character version, timeline, pause and permission
   revision as before.
+
+## Feed and Today (F1, F2, F4)
+
+`companion/life/feed.py` keeps posts as references to life events (`feed_post_events`). A post
+renders each event at its current committed revision, so the feed, chat and recall share one
+account of every event and a correction reaches all three. A return batch publishes one digest
+post and a background batch one post per event; posts wait until at least one of their events is
+committed. Read state, hide/remove, reactions, export and links from chat messages
+(`message_post_links`) live beside the posts. A message linked to a post adds that post to the
+next reply's context. The image columns are a hook for the later image job, which may only
+complete the job currently recorded on the post.
+
+`companion/life/today.py` assembles the Today view and records the last visit (`visits`), which
+only moves forward.
 
 ## Backups
 
@@ -122,7 +154,6 @@ reference cleared. Enabling memory or background activity requires marking the r
 
 ## Not yet built
 
-Interface, timeline forking, automatic memory extraction, semantic embeddings, feed, catch-up
-of a paused interval on request, plans and threads generated by the simulation, MCP tools, image
-generation and LoRA training, durable cross-process scheduling, restore into an existing
+Interface, timeline forking, automatic memory extraction, semantic embeddings, plans and threads
+generated by the simulation, MCP tools, image generation and LoRA training, durable cross-process scheduling, restore into an existing
 workspace, and packaging.

@@ -3,6 +3,9 @@ import { BookHeart, CalendarDays, MessageCircle, Newspaper, Settings as Settings
 import type { Companion } from './types'
 import { useCompanion, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
+import { Character } from './features/character/Character'
+import { Memories } from './features/memories/Memories'
+import { Settings } from './features/settings/Settings'
 import { Placeholder } from './components/Placeholder'
 import { Loading, Notice } from './components/Feedback'
 
@@ -49,12 +52,12 @@ export default function App() {
 }
 
 function CurrentView({ view, companion, go }: { view: View; companion: Companion | null; go: (view: View) => void }) {
-  if (view === 'settings') return <Placeholder title="Settings" text="Model connection, time, memory permissions, pause and backups will be set here." />
-  if (view === 'character') return <Placeholder title="Character" text="Character creation and editing will appear here." />
+  if (view === 'settings') return <Settings companion={companion} />
+  if (view === 'character') return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
   if (view === 'today') return <Placeholder title="Today" text={`What ${companion.version.name} is up to today, their plans, and what changed since you last visited will appear here once the life simulation is ready.`} />
   if (view === 'feed') return <Placeholder title="Feed" text={`${companion.version.name}'s private posts will appear here once the feed is ready.`} />
-  if (view === 'memories') return <Placeholder title="Memories" text="What your companion remembers, with sources and controls to correct, exclude or delete it, will appear here." />
+  if (view === 'memories') return <Memories companion={companion} />
   return <Conversation companion={companion} go={go} />
 }
 

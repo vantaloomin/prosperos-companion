@@ -146,3 +146,16 @@ def test_a_generated_schedule_drives_the_life_routine(client):
     assert response.status_code == 200, response.text
     routine = client.get('/api/life/routine').json()
     assert not routine['default_schedule'] and {block['key'] for block in routine['blocks']} >= {'work', 'sleep'}
+
+
+def test_the_catalog_answers_the_life_composer(app):
+    from companion.world.source import CatalogWorld
+    assert isinstance(app.state.life.world, CatalogWorld)
+    world = CatalogWorld()
+    waterfront = world.places('baltimore', ['waterfront'])
+    assert waterfront and all(place.kind == 'waterfront' and place.city == 'Baltimore' for place in waterfront)
+    assert world.places('Fells Point, Baltimore', ['cafe', 'bar'])
+    colleges = world.places('baltimore', ['college'])
+    assert {'Johns Hopkins University'} <= {place.name for place in colleges}
+    assert world.places('atlantis', ['cafe']) == []
+    assert world.places('baltimore', ['cafe']) == world.places('baltimore', ['cafe'])

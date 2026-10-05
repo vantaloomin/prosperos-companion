@@ -18,6 +18,7 @@ from companion.life.simulation import LifeEngine
 from companion.providers.vault import SystemVault
 from companion.routes import router
 from companion.world import routes as world_routes
+from companion.world.source import CatalogWorld
 
 # The built interface (`npm run build`), served beside the API as prosperos-study server/main.py does.
 FRONTEND = Path(__file__).parent.parent / 'dist'
@@ -48,13 +49,13 @@ async def lifespan(app):
 
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
-               life_tasks=True) -> FastAPI:
+               life_tasks=True, world=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     app.state.vault = vault or SystemVault()
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider)
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
-                                app.state.conversation.scheduler)
+                                app.state.conversation.scheduler, world or CatalogWorld())
     app.state.life_tasks = life_tasks
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', '127.0.0.1', 'testserver'])
     app.middleware('http')(guard_writes)
@@ -62,6 +63,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
     app.include_router(life_routes.router)
+    app.include_router(life_routes.today_router)
+    app.include_router(life_routes.feed_router)
     app.include_router(world_routes.router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, RotateCcw, Square } from 'lucide-react'
+import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { defaultAttempt, statusNote, type Turn } from './turns'
 
@@ -11,19 +11,21 @@ interface Props {
   busy: boolean
   onRetry: (userId: string) => void
   onStop: (replyId: string) => void
+  onRemember: (message: Message) => void
+  onDecline: (message: Message) => void
 }
 
 function Paragraphs({ text }: { text: string }) {
   return <>{text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</>
 }
 
-export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop }: Props) {
+export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = turn.attempts.find((attempt) => attempt.id === chosen) ?? defaultAttempt(turn, isLatest)
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <UserMessage message={turn.user} />
+      <UserMessage message={turn.user} onRemember={onRemember} onDecline={onDecline} />
       {shown && (
         <Reply message={shown} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} />
@@ -39,10 +41,19 @@ export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop }: 
   )
 }
 
-function UserMessage({ message }: { message: Message }) {
+function UserMessage({ message, onRemember, onDecline }: { message: Message; onRemember: (message: Message) => void; onDecline: (message: Message) => void }) {
   return (
     <article className="message message-user" aria-label="You">
-      <header><span className="speaker">You</span><time dateTime={message.created_at}>{formatTime(message.created_at)}</time></header>
+      <header>
+        <span className="speaker">You</span>
+        <span className="message-actions">
+          {!message.redacted && <>
+            <button type="button" className="text-button" onClick={() => onRemember(message)}><BookmarkPlus aria-hidden="true" />Remember this</button>
+            <button type="button" className="text-button" onClick={() => onDecline(message)}><BookmarkX aria-hidden="true" />Don't remember this</button>
+          </>}
+          <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
+        </span>
+      </header>
       <div className="prose">{message.redacted ? <p className="subtle">This message was deleted.</p> : <Paragraphs text={message.text} />}</div>
     </article>
   )

@@ -127,3 +127,36 @@ def test_absence_reaction_is_a_character_trait(client, companion):
     prompt = system_prompt(client)
     assert 'Gets a little jealous and sulks' in prompt
     assert 'do not express hurt' not in prompt
+
+
+def revise(client, companion, **changes):
+    definition = {**companion['version']['definition'], **changes}
+    response = client.post('/api/companion/versions', json={'definition': definition,
+                                                            'expected_version_id': companion['active_version_id']})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_new_companions_have_no_emotional_traits(companion):
+    assert companion['version']['definition']['emotional_traits'] == []
+
+
+def test_emotional_traits_shape_the_character_with_their_intensity(client, companion):
+    revise(client, companion, emotional_traits=[{'name': 'Guilt over absence', 'intensity': 'strong'},
+                                                {'name': 'Jealousy', 'intensity': 'mild', 'note': 'teasing'}])
+    prompt = system_prompt(client)
+    assert 'Guilt over absence (strong); Jealousy (mild): teasing.' in prompt
+    assert 'do not express hurt' not in prompt
+    assert 'never express jealousy or possessiveness as romantic exclusivity' in prompt
+
+
+def test_romantic_framing_allows_romantic_jealousy(client, companion):
+    revise(client, companion, relationship='romance', emotional_traits=[{'name': 'Jealousy', 'intensity': 'moderate'}])
+    assert 'romantic exclusivity' not in system_prompt(client)
+
+
+def test_trait_intensity_is_validated(client, companion):
+    definition = {**companion['version']['definition'], 'emotional_traits': [{'name': 'Jealousy', 'intensity': 'max'}]}
+    response = client.post('/api/companion/versions', json={'definition': definition,
+                                                            'expected_version_id': companion['active_version_id']})
+    assert response.status_code == 422
