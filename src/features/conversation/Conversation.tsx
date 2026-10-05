@@ -16,20 +16,11 @@ import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
 import { applyFinished, groupTurns, mergeMessages, replyAnnouncement, streamingIds } from './turns'
 import { useReplyStream } from './useReplyStream'
+import { loadBack } from './search'
 import { useDraft } from './useDraft'
 
 const PAGE = 100
 const JUMP_PAGE = 500
-
-/** Load older pages until the message at `seq` is present, so a search result can be shown in place. */
-async function loadBack(oldest: number | undefined, seq: number, onPage: (messages: Message[]) => void) {
-  while (oldest !== undefined && oldest > seq) {
-    const page = await api<History>(`/conversation?limit=${JUMP_PAGE}&before_seq=${oldest}`)
-    onPage(page.messages)
-    if (page.messages.length === 0) return
-    oldest = page.messages[0].seq
-  }
-}
 
 function ReplyFollower({ id, onText, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
   useReplyStream(id, { onText, onDone, onLost })
@@ -141,10 +132,10 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   const jumpTo = async (result: SearchResult) => {
     try {
-      await loadBack(messages[0]?.seq, result.seq, (page) => {
-        update((current) => mergeMessages(current, page))
-        if (page.length < JUMP_PAGE) setExhausted(true)
-      })
+      const back = await loadBack(messages[0]?.seq, result.seq, JUMP_PAGE,
+        async (before) => (await api<History>(`/conversation?limit=${JUMP_PAGE}&before_seq=${before}`)).messages)
+      if (back.messages.length) update((current) => mergeMessages(current, back.messages))
+      if (back.exhausted) setExhausted(true)
     } catch (error) { fail(error); return false }
     pinned.current = false
     setFound({ id: result.id, at: Date.now() })
