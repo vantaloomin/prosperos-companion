@@ -11,7 +11,7 @@ backend is off until the user sets it up, and text never waits for an image. The
 | Kind | Adapter | Receives | Runs |
 | --- | --- | --- | --- |
 | `comfyui` | `adapters/comfyui.py`: ComfyUI HTTP API (`/prompt`, `/history`, `/view`) | Safe; NSFW too when local | One job at a time |
-| `codex` | `adapters/codex.py`: the Codex CLI's built-in image generation, or optionally the `chatgpt-imagegen` CLI | Safe only | One job at a time across every Codex backend |
+| `codex` | `adapters/codex.py`: the Codex CLI's built-in image generation (`codex exec`) | Safe only | One job at a time across every Codex backend |
 | `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations` or OpenRouter-style `/chat/completions` with image output | Safe only | Its configured limit (1 to 4) |
 
 - **ComfyUI** is local when its address is a loopback address, or when the user marks it as a
@@ -25,25 +25,21 @@ backend is off until the user sets it up, and text never waits for an image. The
   and reports every missing node or model file; nothing is installed or downloaded. A custom
   workflow in ComfyUI's API format replaces it, with `{{prompt}}`, `{{negative}}`, `{{seed}}`,
   `{{width}}` and `{{height}}` where the request's values belong.
-- **Codex** has two methods. The default, `native`, uses Codex's own `image_generation` feature
-  (stable and on by default in codex-cli 0.160.1). Each image is one turn of `codex exec --json
-  --skip-git-repo-check --ephemeral --ignore-user-config --ignore-rules --sandbox read-only --cd
-  <empty scratch folder> -`, with a prompt on stdin asking for exactly one image of a verified size.
-  Codex saves the PNG under `CODEX_HOME/generated_images/<thread id>/`; the app takes the path
-  from the turn's `saved_path` event, or the newest PNG in that thread's folder, and copies it to
-  `images/raw/`. A turn can take a few minutes (600-second limit) and counts against the plan's
-  Codex usage limits. The optional `imagegen_cli` method runs the `chatgpt-imagegen` script from
-  Darling Blades: `chatgpt-imagegen "<prompt>" -o <raw path> --size <verified size> --format png
-  --quiet --no-progress --timeout 300`, with the app's own interpreter for a Python script. A
-  backend saved before methods existed whose `cli_path` names chatgpt-imagegen keeps that method.
-  Either CLI is found from `cli_path` or `PATH`. The app only checks that `auth.json` exists in
-  `CODEX_HOME` (or `~/.codex`), and **Check** runs `codex login status`; it never reads the token.
-  A Codex signed in with an API key works but bills that key, and Check says so. An
-  authentication error fails that job, marks the backend blocked and leaves its other jobs queued,
-  shown as waiting for sign-in, until the user runs `codex login` and chooses **Signed in again**.
-  Nothing is retried automatically. The raw output stays in `images/raw/` until it passes the
-  image check. The path is labelled experimental, and the native method has only been tested
-  against a stand-in `codex`, not a real login.
+- **Codex** uses Codex's own `image_generation` feature (stable and on by default in codex-cli
+  0.160.1). Each image is one turn of `codex exec --json --skip-git-repo-check --ephemeral
+  --ignore-user-config --ignore-rules --sandbox read-only --cd <empty scratch folder> -`, with a
+  prompt on stdin asking for exactly one image of a verified size. Codex saves the PNG under
+  `CODEX_HOME/generated_images/<thread id>/`; the app takes the path from the turn's `saved_path`
+  event, or the newest PNG in that thread's folder, and copies it to `images/raw/`. A turn can take
+  a few minutes (600-second limit) and counts against the plan's Codex usage limits. The CLI is
+  found from `cli_path` or `codex` on `PATH`; a location saved for the retired `chatgpt-imagegen`
+  method is ignored. The app only checks that `auth.json` exists in `CODEX_HOME` (or `~/.codex`),
+  and **Check** runs `codex login status`; it never reads the token. A Codex signed in with an API
+  key works but bills that key, and Check says so. An authentication error fails that job, marks
+  the backend blocked and leaves its other jobs queued, shown as waiting for sign-in, until the
+  user runs `codex login` and chooses **Signed in again**. Nothing is retried automatically. The
+  raw output stays in `images/raw/` until it passes the image check. The path is labelled
+  experimental and has only been tested against a stand-in `codex`, not a real login.
 - **Hosted APIs** default to OpenRouter (`chat` style), Google's OpenAI-compatible endpoint
   (`images` style) or the OpenAI API. Keys are stored in the OS vault as `image-backend:<id>`.
   Enabling a hosted backend, a Codex backend or a remote ComfyUI server requires accepting a
@@ -159,7 +155,7 @@ All writes need the `x-companion-client: workspace` header.
 | --- | --- |
 | `GET`, `PUT /api/images/settings` | `automatic_images`, `chat_photos`, `daily_limit` (0 to 24), `queue_limit` (1 to 20), `fallback`, `aspect` (`square`, `landscape`, `portrait`), `style` |
 | `GET /api/images/backends` | Backends in order, with `local`, `accepts_nsfw`, `disclosure`, `blocked_reason`, `has_key`; never a key |
-| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, cli_path?, method?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
+| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, cli_path?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
 | `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address needs the disclosure again |
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
