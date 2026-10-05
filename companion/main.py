@@ -47,13 +47,13 @@ async def lifespan(app):
 
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
-               life_tasks=True) -> FastAPI:
+               life_tasks=True, world=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     app.state.vault = vault or SystemVault()
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider)
     app.state.life = LifeEngine(app.state.database, app.state.vault, app.state.conversation.provider,
-                                app.state.conversation.scheduler)
+                                app.state.conversation.scheduler, world)
     app.state.life_tasks = life_tasks
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', '127.0.0.1', 'testserver'])
     app.middleware('http')(guard_writes)

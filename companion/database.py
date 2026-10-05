@@ -37,6 +37,7 @@ class Database:
         with self.connect(write=True) as connection:
             claim_identity(connection)
             connection.executescript(SCHEMA)
+            add_columns(connection)
             connection.execute('INSERT OR IGNORE INTO workspace_settings (id, updated_at) VALUES (1, ?)',
                                (self.now(),))
             connection.execute('INSERT OR IGNORE INTO life_settings (id, updated_at) VALUES (1, ?)', (self.now(),))
@@ -59,6 +60,20 @@ class Database:
             raise
         finally:
             connection.close()
+
+
+# Columns added after a table first shipped. CREATE TABLE IF NOT EXISTS leaves an existing table
+# alone, so a workspace created earlier gains them here.
+ADDED_COLUMNS = (
+    ('life_settings', 'phrase_with_model', 'INTEGER NOT NULL DEFAULT 1 CHECK (phrase_with_model IN (0, 1))'),
+)
+
+
+def add_columns(connection):
+    for table, column, definition in ADDED_COLUMNS:
+        existing = {row[1] for row in connection.execute(f'PRAGMA table_info({table})')}
+        if column not in existing:
+            connection.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
 
 
 FOREIGN = 'This database belongs to another application. Choose a Companion workspace.'

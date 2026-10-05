@@ -112,11 +112,21 @@ settings and export stay neutral either way.
   finds the existing event instead of writing another. A batch held by a live process is left
   alone (`in_progress`); one whose lease lapsed is resumed. The batch records the permission
   revision it was planned under and skips its remaining slots if permissions change.
-- **Writing.** With a model connection, each slot is one background-priority request
-  (`LIFE_SYNTHESIS`) that a conversation interrupts; the batch resumes on the next reconcile.
-  The model sees the character, the block and the last five committed events, never the user's
-  memories, and may answer that the stretch was quiet. Unusable output leaves the slot quiet.
-  Without a connection every slot stays quiet.
+- **Composing, not generating.** `companion/life/composer.py` decides each event without a
+  model: the block's kind picks an activity from a fixed catalog (avoiding the last few), the
+  world source supplies a real place in the character's `home_city`, and templates write the
+  summary, caption and mood. The choice is seeded by the event key, so a resumed batch composes
+  the same event. About one slot in five is deliberately quiet. With no matching place the
+  wording stays generic ("at a café") instead of inventing one.
+- **World data.** `companion/life/world.py` defines the `WorldSource` interface
+  (`places(city, kinds) -> [Place]`) passed to `create_app(world=...)`. The default `EmptyWorld`
+  has no places. City datasets plug in behind this interface.
+- **Optional phrasing.** With a model connection and `phrase_with_model` on, one
+  background-priority request (`LIFE_SYNTHESIS`) rewrites the wording in the character's voice.
+  The model gets the composed facts only, never the user's memories, and may not add places,
+  people or events; a reply that drops the place name, fails to parse or errors keeps the
+  template wording. A conversation interrupts phrasing and the batch resumes on the next
+  reconcile. Event `inputs` record the template text, world source, composer and prompt versions.
 - **Review.** Events are proposed and wait for review unless the user turned on
   `automatic_events`. Commit revalidates the character version, timeline, pause and permission
   revision as before.

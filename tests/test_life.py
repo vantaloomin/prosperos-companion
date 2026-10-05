@@ -6,17 +6,22 @@ import asyncio
 from datetime import UTC, date, datetime, timedelta
 
 from conftest import life_reply, reconcile, set_life
+from fastapi.testclient import TestClient
 
 from companion import characters
 from companion.clock import parse
-from companion.life import routine
+from companion.identity import CLIENT_HEADER
+from companion.life import composer, routine
+from companion.life.world import Place, StaticWorld
 from companion.main import create_app
 from companion.models import CharacterRevision
+from companion.providers.chat import Chunk
+from companion.providers.scheduling import BackgroundInterrupted
 from companion.providers.vault import MemoryVault
 
 
 def life_requests(provider):
-    return [request for request in provider.requests if 'ordinary moment' in request['system']]
+    return [request for request in provider.requests if 'Rephrase one ordinary moment' in request['system']]
 
 
 def all_events(client):
@@ -45,7 +50,8 @@ def test_return_after_a_day_proposes_capped_events_for_review(client, life, cloc
     # Generation time is now; event time is when the routine slot happened (T1, T4).
     for event in proposed:
         assert parse(event['ends_at']) <= clock.now() and parse(event['created_at']) == clock.now()
-        assert event['inputs']['mode'] == 'return' and event['inputs']['synthesis'] == 'model'
+        assert event['inputs']['mode'] == 'return' and event['inputs']['wording'] == 'model'
+        assert event['summary'].startswith('Phrased: Mira') and event['details']['activity']
 
 
 def test_automatic_events_commit_and_become_the_shared_account(client, life, clock):
@@ -55,7 +61,7 @@ def test_automatic_events_commit_and_become_the_shared_account(client, life, clo
     clock.advance(timedelta(days=1))
     run = reconcile(client)['run']
     assert [item['outcome'] for item in run['results']] == ['committed'] * 3
-    assert 'Event for Routine block: Morning' in client.get('/api/context/preview').json()['system']
+    assert 'Phrased: Mira' in client.get('/api/context/preview').json()['system']
 
 
 def test_short_gaps_wait_and_repeated_returns_do_not_duplicate(client, life, clock):
@@ -100,8 +106,7 @@ def test_a_batch_left_running_by_a_crash_resumes_without_duplicates(app, client,
     def fail_second(system, messages):
         calls.append(1)
         if len(calls) == 2:
-            from companion.errors import DomainError
-            raise DomainError('The service is unavailable.', 502)
+            raise BackgroundInterrupted()  # a conversation took priority
         return life_reply(system, messages)
 
     provider.respond = fail_second
@@ -228,11 +233,53 @@ def test_character_change_while_writing_rejects_the_event(app, client, life, clo
     assert client.get('/api/events').json() == []
 
 
-def test_without_a_model_connection_the_window_stays_uneventful(client, companion, clock, provider):
+def test_without_a_model_events_use_template_wording(client, companion, clock, provider, monkeypatch):
+    monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     clock.advance(timedelta(days=1))
     run = reconcile(client)['run']
-    assert {item['outcome'] for item in run['results']} == {'quiet'}
-    assert all_events(client) == [] and provider.requests == []
+    assert [item['outcome'] for item in run['results']] == ['proposed'] * 3
+    assert provider.requests == []
+    for event in all_events(client):
+        assert event['inputs']['wording'] == 'template' and event['summary'] == event['inputs']['template']['summary']
+
+
+def test_a_model_problem_keeps_the_template_wording(client, life, clock, provider):
+    provider.respond = lambda system, messages: [Chunk('not json'), Chunk('', 'stop')]
+    set_life(client, catch_up_max_events=1)
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    event = all_events(client)[0]
+    assert event['inputs']['wording'] == 'template' and 'phrasing_error' in event['inputs']
+    assert event['summary'] == event['inputs']['template']['summary']
+
+
+def test_model_phrasing_can_be_turned_off(client, life, clock, provider):
+    set_life(client, phrase_with_model=False)
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    assert life_requests(provider) == [] and len(all_events(client)) == 3
+
+
+def test_places_come_from_the_world_source(tmp_path, clock, provider, monkeypatch):
+    monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    world = StaticWorld([Place('patterson', 'Patterson Park', 'park', 'baltimore', 'Highlandtown'),
+                         Place('artifact', 'Artifact Coffee', 'cafe', 'baltimore', 'Hampden'),
+                         Place('walters', 'The Walters Art Museum', 'museum', 'baltimore', 'Mount Vernon'),
+                         Place('lexington', 'Lexington Market', 'market', 'baltimore', 'Downtown'),
+                         Place('y', 'Central YMCA', 'gym', 'baltimore', 'Mount Vernon')])
+    app = create_app(tmp_path / 'world.sqlite3', clock=clock, vault=MemoryVault(), provider=provider,
+                     life_tasks=False, world=world)
+    with TestClient(app, headers={CLIENT_HEADER: 'workspace'}) as client:
+        client.post('/api/companion', json={'name': 'Mira', 'timezone': 'America/New_York',
+                                            'home_city': 'baltimore'})
+        set_life(client, catch_up_max_events=6, catch_up_lookback_hours=96)
+        clock.advance(timedelta(days=4))
+        reconcile(client)
+        placed = [event for event in all_events(client) if event['details']['place']]
+        assert placed
+        for event in placed:
+            assert event['details']['place']['name'] in event['summary']
+            assert event['inputs']['world'] == 'static'
 
 
 def test_background_needs_permission_and_respects_the_daily_cap(app, client, life, clock):
