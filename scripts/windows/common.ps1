@@ -1,6 +1,10 @@
-# Shared by the checkout helpers (status, stop, update, dev). Dot-source it; it defines functions only.
+# Shared by the checkout helpers (status, stop, update, dev). Dot-source it; it defines functions and
+# sets the console's output encoding.
 $CompanionRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $CompanionAppId = 'prospero-companion'
+# npm, Vite and Python write UTF-8; decode their captured output as UTF-8 so symbols such as the
+# build's checkmark render instead of mojibake. A host without a console may refuse; that is fine.
+try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } catch { }
 
 function Get-CompanionHealth {
     # The health answer on the port, or $null when nothing answers. Ignores any system proxy.
