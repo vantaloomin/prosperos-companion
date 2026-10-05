@@ -44,12 +44,15 @@ def shown_events(connection, post_id) -> list[dict]:
 
 def image_outdated(connection, post, shown) -> bool:
     """True when the shown image was made from an event version that has since been corrected or
-    withdrawn, so the post can say the picture shows the earlier account (F1, M3)."""
+    withdrawn, so the post can say the picture shows the earlier account (F1, M3). Wording is
+    compared rather than identities, which differ on a copied timeline."""
     if not post['image_ref']:
         return False
     job = optional(connection, 'SELECT inputs FROM image_jobs WHERE id=?', (post['image_ref'],))
-    current = {event['id'] for event in shown}
-    return job is not None and any(event['id'] not in current for event in decode(job['inputs'])['events'])
+    if job is None:
+        return False
+    drawn = [(event['summary'], event['caption']) for event in decode(job['inputs'])['events']]
+    return drawn != [(event['summary'], event['caption']) for event in shown][:len(drawn)]
 
 
 def post_view(connection, post) -> dict | None:

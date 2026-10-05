@@ -245,3 +245,21 @@ def test_memories_from_another_timeline_are_marked(client, connected, clock):
     activate(client, created['id'])
     marks = {memory['subject']: memory['in_timeline'] for memory in client.get('/api/memories').json()}
     assert marks == {'Kite day': False, 'Favourite tea': True}
+
+
+def test_a_corrected_events_post_carries_over_showing_the_correction(client, companion, clock):
+    early = {'idempotency_key': 'outing-early', 'kind': 'ordinary', 'summary': 'Visited the lighthouse',
+             'starts_at': (clock.now() - timedelta(hours=3)).isoformat(),
+             'ends_at': (clock.now() - timedelta(hours=2)).isoformat()}
+    event = client.post('/api/events', json=early).json()
+    client.post(f"/api/events/{event['id']}/commit")
+    client.post('/api/feed/posts', json={'event_id': event['id']})
+    client.post(f"/api/events/{event['id']}/correct", json={'summary': 'Visited the harbour'})
+    clock.advance(timedelta(hours=1))
+    message = send(client, 'Hi', 'client-0001')['message']
+    activate(client, fork(client, message['id'])['id'])
+    carried = client.get('/api/events').json()
+    posts = client.get('/api/feed').json()['posts']
+    assert [item['summary'] for item in carried] == ['Visited the harbour']
+    assert len(posts) == 1 and posts[0]['events'][0]['id'] == carried[0]['id']
+    assert posts[0]['events'][0]['summary'] == 'Visited the harbour'
