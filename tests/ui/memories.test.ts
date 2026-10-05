@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { earlierVersions, groupMemories, statusLabels } from '../../src/features/memories/memoryGroups.ts'
+import { earlierVersions, groupMemories, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -24,4 +24,15 @@ test('earlier versions follow supersession links newest first', () => {
 test('labels describe state in words', () => {
   assert.deepEqual(statusLabels(memory('m', { boundary: true, status: 'excluded', authority: 'tentative', plan_status: 'agreed' })),
     ['Boundary', 'Not used in conversation', 'Unconfirmed guess', 'Agreed'])
+})
+
+test('history, uncertainty and automatic saving are labelled', () => {
+  assert.deepEqual(statusLabels(memory('chicago', { current: false, origin: 'automatic', dates_uncertain: true })),
+    ['No longer current', 'Dates uncertain', 'Saved automatically'])
+  assert.deepEqual(statusLabels(memory('plan', { layer: 'plan', plan_status: 'agreed', current: false })), ['Agreed'])
+})
+
+test('remember this describes what was kept', () => {
+  assert.equal(rememberedText('Mira', [{ subject: 'Home city', value: 'Chicago' }]), 'Mira will remember this: Home city: Chicago.')
+  assert.equal(suggestionReason('sensitive'), 'Sensitive details are only kept when you say so.')
 })

@@ -9,6 +9,7 @@ import { Toggle } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { RememberForm, type NewMemory } from './RememberForm'
 import { ContextReceipt } from './ContextReceipt'
+import { Suggestions } from './Suggestions'
 import { PREVIEW_KEY } from './receiptRows'
 import { LAYERS, REMEMBER_KEY, groupMemories, layerTitle, type RememberRequest } from './memoryGroups'
 
@@ -73,12 +74,13 @@ export function Memories({ companion }: { companion: Companion }) {
         {!adding && <button type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember something</button>}
       </header>
       {adding && <RememberForm name={name} request={request} onSave={remember} onCancel={() => setAdding(false)} />}
+      <Suggestions name={name} run={run} />
       <ContextReceipt name={name} memories={memories.data ?? []} />
       <div className="memory-toolbar"><Toggle label="Show earlier values" checked={history} onChange={setHistory} /></div>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {memories.isPending && <Loading label="Loading memories" />}
       {memories.isError && <Notice tone="error">{memories.error.message}</Notice>}
-      {memories.isSuccess && groups.length === 0 && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Automatic memory is off unless you turn it on in Settings.</p>}
+      {memories.isSuccess && groups.length === 0 && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Automatic memory is off unless you turn it on in Settings; with it on, facts you state directly are saved after each reply.</p>}
       {groups.map((group) => (
         <section key={group.layer} className="memory-group" aria-labelledby={`layer-${group.layer}`}>
           <h2 id={`layer-${group.layer}`}>{layerTitle(group.layer, name)}</h2>

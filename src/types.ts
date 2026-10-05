@@ -111,7 +111,40 @@ export interface Memory {
   supersedes_id: string | null
   source_message_ids: string[]
   updated_at: string
+  subject_key?: string
+  /** user: added or remembered deliberately; automatic: extracted from a stated fact; suggestion: a suggestion you accepted. */
+  origin?: 'user' | 'automatic' | 'suggestion'
+  /** The later memory that ended this one ("I moved to Boston" ends Chicago). */
+  ended_by_id?: string | null
+  dates_uncertain?: boolean
+  /** False once its applicable period has ended; it stays as history. */
+  current?: boolean
 }
+
+/** A fact found in one of your messages, waiting for you to keep or decline it. */
+export interface Suggestion {
+  id: string
+  message_id: string
+  layer: Layer
+  subject: string
+  value: string
+  sensitive: boolean
+  boundary: boolean
+  plan_status: PlanStatus | null
+  applies_from: string | null
+  applies_until: string | null
+  dates_uncertain: boolean
+  excerpt: string
+  reason: string | null
+  created_at: string
+}
+
+export interface RememberResult {
+  memories: Memory[]
+  draft: { layer: Layer; subject: string; value: string; source_message_ids: string[] } | null
+}
+
+export interface DeclineResult { message_id: string; declined: boolean; removed_memory_ids: string[] }
 
 export interface DeleteResult { deleted_memory_ids: string[]; redacted_message_ids: string[]; linked_memory_ids: string[] }
 

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
-import type { Companion, History, Message, SearchResult, SendResult } from '../../types'
-import { HISTORY_KEY, type View } from '../../companion'
+import type { Companion, DeclineResult, History, Message, RememberResult, SearchResult, SendResult } from '../../types'
+import { HISTORY_KEY, MEMORIES_KEY, type View } from '../../companion'
 import { Loading, Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { REMEMBER_KEY } from '../memories/memoryGroups'
+import { REMEMBER_KEY, rememberedText } from '../memories/memoryGroups'
 import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
 import { ConversationSearch } from './ConversationSearch'
@@ -101,15 +101,26 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const stop = async (replyId: string) => {
     try { await api(`/conversation/replies/${replyId}/stop`, {}) } catch (error) { fail(error) }
   }
-  const remember = (message: Message) => {
+  const remember = async (message: Message) => {
+    try {
+      const result = await api<RememberResult>(`/conversation/messages/${message.id}/remember`, {})
+      if (result.memories.length) {
+        setNotice({ tone: 'info', text: rememberedText(name, result.memories) })
+        void client.invalidateQueries({ queryKey: MEMORIES_KEY })
+        return
+      }
+    } catch (error) { fail(error); return }
+    // Nothing recognisable: open the form with the message so the user writes it the way it should be kept.
     try { sessionStorage.setItem(REMEMBER_KEY, JSON.stringify({ messageId: message.id, text: message.text })) } catch { /* The form opens empty. */ }
     go('memories')
   }
   const decline = async (message: Message) => {
     setDeclining(null)
     try {
-      await api(`/conversation/messages/${message.id}/decline-memory`, {})
-      setNotice({ tone: 'info', text: `${name} won't form memories from that message. It stays in your conversation.` })
+      const result = await api<DeclineResult>(`/conversation/messages/${message.id}/decline-memory`, {})
+      const removed = result.removed_memory_ids.length
+      setNotice({ tone: 'info', text: `${name} won't form memories from that message. It stays in your conversation.${removed ? ` ${removed} memor${removed === 1 ? 'y' : 'ies'} saved automatically from it ${removed === 1 ? 'was' : 'were'} removed.` : ''}` })
+      if (removed) void client.invalidateQueries({ queryKey: MEMORIES_KEY })
     } catch (error) { fail(error) }
   }
   const loadEarlier = async () => {
