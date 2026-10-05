@@ -4640,6 +4640,218 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "extraordinary-desserts",
+   "name": "Extraordinary Desserts",
+   "kind": "cafe",
+   "neighborhood": "bankers-hill",
+   "summary": "Karen Krasne's dessert cafe on Fifth Avenue since 1988, with cakes, tarts and coffee.",
+   "tags": [
+    "dessert",
+    "cake",
+    "coffee"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "dessert",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "con-pane",
+   "name": "Con Pane Rustic Breads & Cafe",
+   "kind": "cafe",
+   "neighborhood": "point-loma",
+   "summary": "Bread bakery and cafe at Liberty Station selling loaves, pastries and sandwiches.",
+   "tags": [
+    "bakery",
+    "bread",
+    "sandwiches"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "azucar-ob",
+   "name": "Azucar",
+   "kind": "cafe",
+   "neighborhood": "ocean-beach",
+   "summary": "Cuban-inspired bakery on Newport Avenue for pastries and cafe con leche.",
+   "tags": [
+    "bakery",
+    "cuban",
+    "pastry"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "newbreak-coffee",
+   "name": "Newbreak Coffee",
+   "kind": "cafe",
+   "neighborhood": "ocean-beach",
+   "summary": "Local roaster's coffee shop on Newport Avenue, a block from the beach.",
+   "tags": [
+    "coffee",
+    "roaster",
+    "beach"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "pappalecco",
+   "name": "Pappalecco",
+   "kind": "cafe",
+   "neighborhood": "little-italy",
+   "summary": "Italian cafe on Cedar Street for espresso, pastries, panini and gelato.",
+   "tags": [
+    "coffee",
+    "gelato",
+    "italian"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "italian-cafe",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "the-plunge",
+   "name": "The Plunge",
+   "kind": "fitness",
+   "neighborhood": "mission-beach",
+   "summary": "Indoor pool at Belmont Park, first opened in 1925, with lap swimming and a gym.",
+   "tags": [
+    "pool",
+    "swimming",
+    "historic"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mission-valley-ymca",
+   "name": "Mission Valley YMCA",
+   "kind": "fitness",
+   "neighborhood": "mission-valley",
+   "summary": "Large Y off Friars Road with pools, a gym and group classes.",
+   "tags": [
+    "gym",
+    "pool",
+    "classes"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coronado-golf",
+   "name": "Coronado Municipal Golf Course",
+   "kind": "fitness",
+   "neighborhood": "coronado",
+   "summary": "City golf course on Glorietta Bay with views of the bridge.",
+   "tags": [
+    "golf",
+    "views"
+   ],
+   "cost": "$$",
+   "setting": "outdoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [

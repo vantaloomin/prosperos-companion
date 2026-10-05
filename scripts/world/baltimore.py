@@ -509,6 +509,35 @@ CITY = {
         place('great-blacks-in-wax', 'National Great Blacks In Wax Museum', 'museum', 'east-baltimore', 'Wax '
               'figures telling African American history, from the Middle Passage to the civil rights movement.',
               ['history', 'black-history'], '$', 'indoor', ALL, DAY),
+        # Everyday routines: coffee and pastry stops and places to work out.
+        place('daily-grind', 'The Daily Grind', 'cafe', 'fells-point', 'Long-running coffeehouse on Thames Street '
+              'with big windows, local art and a crowd of regulars with laptops.', ['coffee', 'laptop', 'local'], '$',
+              'indoor', ['solo', 'friends', 'coworkers'], DAY, cuisine='coffee'),
+        place('bonaparte-breads', 'Bonaparte Breads', 'cafe', 'fells-point', 'French bakery and cafe on Thames '
+              'Street selling croissants, baguettes and quiche.', ['bakery', 'french', 'breakfast'], '$', 'indoor',
+              ALL, DAY, cuisine='french-bakery'),
+        place('hoehns-bakery', 'Hoehn\'s Bakery', 'cafe', 'highlandtown', 'Family bakery on Conkling Street since '
+              '1927, still baking German-style coffee cakes and cookies in brick ovens.',
+              ['bakery', 'historic', 'family-run'], '$', 'indoor', ALL, ['morning'], cuisine='bakery'),
+        place('ceremony-coffee', 'Ceremony Coffee Roasters', 'cafe', 'harbor-east', 'Local roaster\'s bright coffee '
+              'bar at Harbor Point, busy with office workers on weekday mornings.', ['coffee', 'roaster', 'laptop'],
+              '$', 'indoor', ['solo', 'friends', 'coworkers'], DAY, cuisine='coffee'),
+        place('sophomore-coffee', 'Sophomore Coffee', 'cafe', 'remington', 'Tiny coffee bar on a Remington corner '
+              'pulling espresso from rotating roasters.', ['coffee', 'small', 'local'], '$', 'indoor',
+              ['solo', 'friends'], DAY, cuisine='coffee'),
+        place('dovecote-cafe', 'Dovecote Cafe', 'cafe', 'reservoir-hill', 'Black-owned neighborhood cafe in a '
+              'Reservoir Hill rowhouse, serving coffee, breakfast and community events.',
+              ['coffee', 'breakfast', 'community'], '$', 'indoor', ALL, DAY, cuisine='cafe'),
+        place('movement-hampden', 'Movement Hampden', 'fitness', 'hampden', 'Large climbing gym in an old mill '
+              'building, opened as Earth Treks, with bouldering, roped walls and yoga.',
+              ['climbing', 'bouldering', 'yoga'], '$$', 'indoor', ['solo', 'friends', 'date'],
+              ['morning', 'evening']),
+        place('towson-ymca', 'Towson Family Center YMCA', 'fitness', 'towson', 'Y in Central Maryland branch with '
+              'a pool, gym floor and group classes.', ['gym', 'pool', 'classes'], '$', 'indoor', ALL,
+              ['morning', 'evening']),
+        place('mount-pleasant-ice-arena', 'Mount Pleasant Ice Arena', 'fitness', 'lauraville', 'City-run rink off '
+              'Hillen Road with public skating, figure skating and hockey.', ['skating', 'hockey', 'kids'], '$',
+              'indoor', ALL, ['morning', 'evening']),
     ],
     'colleges': [
         {'id': 'jhu', 'name': 'Johns Hopkins University', 'type': 'research-university',

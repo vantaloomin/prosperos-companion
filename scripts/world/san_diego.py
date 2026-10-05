@@ -588,6 +588,31 @@ CITY = {
         place('linda-vista-skate-park', 'Linda Vista Skate Park', 'park', 'linda-vista', 'Public concrete skate '
               'park with bowls and street features.', ['skate', 'teens'], 'free', 'outdoor', ['solo', 'friends'],
               ['afternoon', 'evening']),
+        # Everyday routines: coffee and pastry stops and places to work out.
+        place('extraordinary-desserts', 'Extraordinary Desserts', 'cafe', 'bankers-hill', 'Karen Krasne\'s dessert '
+              'cafe on Fifth Avenue since 1988, with cakes, tarts and coffee.', ['dessert', 'cake', 'coffee'], '$$',
+              'indoor', ALL, ['afternoon', 'evening'], cuisine='dessert'),
+        place('con-pane', 'Con Pane Rustic Breads & Cafe', 'cafe', 'point-loma', 'Bread bakery and cafe at Liberty '
+              'Station selling loaves, pastries and sandwiches.', ['bakery', 'bread', 'sandwiches'], '$', 'mixed',
+              ALL, DAY, cuisine='bakery'),
+        place('azucar-ob', 'Azucar', 'cafe', 'ocean-beach', 'Cuban-inspired bakery on Newport Avenue for '
+              'pastries and cafe con leche.', ['bakery', 'cuban', 'pastry'], '$', 'indoor', ALL, DAY,
+              cuisine='bakery'),
+        place('newbreak-coffee', 'Newbreak Coffee', 'cafe', 'ocean-beach', 'Local roaster\'s coffee shop on Newport '
+              'Avenue, a block from the beach.', ['coffee', 'roaster', 'beach'], '$', 'indoor', ['solo', 'friends'],
+              DAY, cuisine='coffee'),
+        place('pappalecco', 'Pappalecco', 'cafe', 'little-italy', 'Italian cafe on Cedar Street for espresso, '
+              'pastries, panini and gelato.', ['coffee', 'gelato', 'italian'], '$', 'mixed', ALL,
+              ['morning', 'afternoon', 'evening'], cuisine='italian-cafe'),
+        place('the-plunge', 'The Plunge', 'fitness', 'mission-beach', 'Indoor pool at Belmont Park, first opened in '
+              '1925, with lap swimming and a gym.', ['pool', 'swimming', 'historic'], '$', 'indoor', ALL,
+              ['morning', 'evening']),
+        place('mission-valley-ymca', 'Mission Valley YMCA', 'fitness', 'mission-valley', 'Large Y off Friars Road '
+              'with pools, a gym and group classes.', ['gym', 'pool', 'classes'], '$', 'indoor', ALL,
+              ['morning', 'evening']),
+        place('coronado-golf', 'Coronado Municipal Golf Course', 'fitness', 'coronado', 'City golf course on '
+              'Glorietta Bay with views of the bridge.', ['golf', 'views'], '$$', 'outdoor', ['solo', 'friends'],
+              ['morning', 'afternoon']),
     ],
     'colleges': [
         {'id': 'ucsd', 'name': 'University of California San Diego', 'type': 'research-university',

@@ -496,6 +496,34 @@ CITY = {
         place('boulder-dam-hotel', 'Boulder Dam Hotel and Museum', 'museum', 'boulder-city', 'Historic 1930s hotel '
               'with a small museum on the building of the dam.', ['history', 'museum', 'hotel'], '$', 'indoor', ALL,
               DAY),
+        # Everyday routines: coffee and pastry stops and places to work out.
+        place('bellagio-patisserie', 'Bellagio Patisserie', 'cafe', 'the-strip', 'Pastry shop at Bellagio, '
+              'formerly Jean Philippe, with a tall chocolate fountain in the window.', ['pastry', 'chocolate',
+              'dessert'], '$$', 'indoor', ALL, ['morning', 'afternoon', 'evening'], cuisine='french-pastry'),
+        place('mothership-coffee', 'Mothership Coffee Roasters', 'cafe', 'green-valley', 'Henderson roaster\'s '
+              'airy coffee shop with pastries and a patio.', ['coffee', 'roaster', 'laptop'], '$', 'mixed',
+              ['solo', 'friends', 'coworkers'], DAY, cuisine='coffee'),
+        place('coffee-cup-boulder-city', 'The Coffee Cup', 'cafe', 'boulder-city', 'Small diner on Nevada Way known '
+              'for big breakfasts and a line of Hoover Dam visitors.', ['breakfast', 'diner', 'local'], '$',
+              'indoor', ALL, ['morning'], cuisine='american-breakfast'),
+        place('donut-bar', 'Donut Bar', 'cafe', 'downtown', 'Downtown doughnut shop that often sells out of its '
+              'oversized doughnuts by late morning.', ['doughnuts', 'line', 'breakfast'], '$', 'indoor', ALL,
+              ['morning'], cuisine='bakery'),
+        place('bagel-cafe', 'The Bagel Cafe', 'cafe', 'summerlin', 'Long-running Jewish deli and bakery on Buffalo '
+              'Drive for bagels, breakfast and sandwiches.', ['bagels', 'deli', 'breakfast'], '$', 'indoor', ALL,
+              DAY, cuisine='jewish-deli'),
+        place('red-rock-climbing-center', 'Red Rock Climbing Center', 'fitness', 'summerlin', 'Climbing gym on '
+              'West Charleston used by local climbers training for Red Rock Canyon.', ['climbing', 'bouldering',
+              'yoga'], '$$', 'indoor', ['solo', 'friends', 'date'], ['morning', 'evening']),
+        place('centennial-hills-ymca', 'Centennial Hills YMCA', 'fitness', 'centennial-hills', 'Northwest Y beside '
+              'the library, with indoor and outdoor pools and a gym.', ['gym', 'pool', 'classes'], '$', 'mixed',
+              ALL, ['morning', 'evening']),
+        place('henderson-multigen', 'Henderson Multigenerational Center', 'fitness', 'henderson', 'City recreation '
+              'center with pools, a climbing wall, a track and fitness classes.', ['rec-center', 'pool', 'classes'],
+              '$', 'indoor', ALL, ['morning', 'evening']),
+        place('mayweather-boxing', 'Mayweather Boxing Club', 'fitness', 'chinatown', 'Floyd Mayweather\'s boxing '
+              'gym west of the Strip, where pros train and the public can take classes.', ['boxing', 'training'],
+              '$$', 'indoor', ['solo', 'friends'], ['morning', 'evening']),
     ],
     'colleges': [
         {'id': 'unlv', 'name': 'University of Nevada, Las Vegas', 'type': 'research-university',

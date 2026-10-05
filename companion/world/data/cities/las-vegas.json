@@ -3956,6 +3956,243 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "bellagio-patisserie",
+   "name": "Bellagio Patisserie",
+   "kind": "cafe",
+   "neighborhood": "the-strip",
+   "summary": "Pastry shop at Bellagio, formerly Jean Philippe, with a tall chocolate fountain in the window.",
+   "tags": [
+    "pastry",
+    "chocolate",
+    "dessert"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "french-pastry",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mothership-coffee",
+   "name": "Mothership Coffee Roasters",
+   "kind": "cafe",
+   "neighborhood": "green-valley",
+   "summary": "Henderson roaster's airy coffee shop with pastries and a patio.",
+   "tags": [
+    "coffee",
+    "roaster",
+    "laptop"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "coffee-cup-boulder-city",
+   "name": "The Coffee Cup",
+   "kind": "cafe",
+   "neighborhood": "boulder-city",
+   "summary": "Small diner on Nevada Way known for big breakfasts and a line of Hoover Dam visitors.",
+   "tags": [
+    "breakfast",
+    "diner",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "american-breakfast",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "donut-bar",
+   "name": "Donut Bar",
+   "kind": "cafe",
+   "neighborhood": "downtown",
+   "summary": "Downtown doughnut shop that often sells out of its oversized doughnuts by late morning.",
+   "tags": [
+    "doughnuts",
+    "line",
+    "breakfast"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bagel-cafe",
+   "name": "The Bagel Cafe",
+   "kind": "cafe",
+   "neighborhood": "summerlin",
+   "summary": "Long-running Jewish deli and bakery on Buffalo Drive for bagels, breakfast and sandwiches.",
+   "tags": [
+    "bagels",
+    "deli",
+    "breakfast"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "jewish-deli",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "red-rock-climbing-center",
+   "name": "Red Rock Climbing Center",
+   "kind": "fitness",
+   "neighborhood": "summerlin",
+   "summary": "Climbing gym on West Charleston used by local climbers training for Red Rock Canyon.",
+   "tags": [
+    "climbing",
+    "bouldering",
+    "yoga"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "centennial-hills-ymca",
+   "name": "Centennial Hills YMCA",
+   "kind": "fitness",
+   "neighborhood": "centennial-hills",
+   "summary": "Northwest Y beside the library, with indoor and outdoor pools and a gym.",
+   "tags": [
+    "gym",
+    "pool",
+    "classes"
+   ],
+   "cost": "$",
+   "setting": "mixed",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "henderson-multigen",
+   "name": "Henderson Multigenerational Center",
+   "kind": "fitness",
+   "neighborhood": "henderson",
+   "summary": "City recreation center with pools, a climbing wall, a track and fitness classes.",
+   "tags": [
+    "rec-center",
+    "pool",
+    "classes"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mayweather-boxing",
+   "name": "Mayweather Boxing Club",
+   "kind": "fitness",
+   "neighborhood": "chinatown",
+   "summary": "Floyd Mayweather's boxing gym west of the Strip, where pros train and the public can take classes.",
+   "tags": [
+    "boxing",
+    "training"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [

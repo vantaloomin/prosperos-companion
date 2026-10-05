@@ -4192,6 +4192,243 @@
    "seasons": [],
    "cuisine": "",
    "source": "curated-2026-10"
+  },
+  {
+   "id": "daily-grind",
+   "name": "The Daily Grind",
+   "kind": "cafe",
+   "neighborhood": "fells-point",
+   "summary": "Long-running coffeehouse on Thames Street with big windows, local art and a crowd of regulars with laptops.",
+   "tags": [
+    "coffee",
+    "laptop",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "bonaparte-breads",
+   "name": "Bonaparte Breads",
+   "kind": "cafe",
+   "neighborhood": "fells-point",
+   "summary": "French bakery and cafe on Thames Street selling croissants, baguettes and quiche.",
+   "tags": [
+    "bakery",
+    "french",
+    "breakfast"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "french-bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "hoehns-bakery",
+   "name": "Hoehn's Bakery",
+   "kind": "cafe",
+   "neighborhood": "highlandtown",
+   "summary": "Family bakery on Conkling Street since 1927, still baking German-style coffee cakes and cookies in brick ovens.",
+   "tags": [
+    "bakery",
+    "historic",
+    "family-run"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning"
+   ],
+   "seasons": [],
+   "cuisine": "bakery",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "ceremony-coffee",
+   "name": "Ceremony Coffee Roasters",
+   "kind": "cafe",
+   "neighborhood": "harbor-east",
+   "summary": "Local roaster's bright coffee bar at Harbor Point, busy with office workers on weekday mornings.",
+   "tags": [
+    "coffee",
+    "roaster",
+    "laptop"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "coworkers"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "sophomore-coffee",
+   "name": "Sophomore Coffee",
+   "kind": "cafe",
+   "neighborhood": "remington",
+   "summary": "Tiny coffee bar on a Remington corner pulling espresso from rotating roasters.",
+   "tags": [
+    "coffee",
+    "small",
+    "local"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "coffee",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "dovecote-cafe",
+   "name": "Dovecote Cafe",
+   "kind": "cafe",
+   "neighborhood": "reservoir-hill",
+   "summary": "Black-owned neighborhood cafe in a Reservoir Hill rowhouse, serving coffee, breakfast and community events.",
+   "tags": [
+    "coffee",
+    "breakfast",
+    "community"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "afternoon"
+   ],
+   "seasons": [],
+   "cuisine": "cafe",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "movement-hampden",
+   "name": "Movement Hampden",
+   "kind": "fitness",
+   "neighborhood": "hampden",
+   "summary": "Large climbing gym in an old mill building, opened as Earth Treks, with bouldering, roped walls and yoga.",
+   "tags": [
+    "climbing",
+    "bouldering",
+    "yoga"
+   ],
+   "cost": "$$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "towson-ymca",
+   "name": "Towson Family Center YMCA",
+   "kind": "fitness",
+   "neighborhood": "towson",
+   "summary": "Y in Central Maryland branch with a pool, gym floor and group classes.",
+   "tags": [
+    "gym",
+    "pool",
+    "classes"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
+  },
+  {
+   "id": "mount-pleasant-ice-arena",
+   "name": "Mount Pleasant Ice Arena",
+   "kind": "fitness",
+   "neighborhood": "lauraville",
+   "summary": "City-run rink off Hillen Road with public skating, figure skating and hockey.",
+   "tags": [
+    "skating",
+    "hockey",
+    "kids"
+   ],
+   "cost": "$",
+   "setting": "indoor",
+   "good_for": [
+    "solo",
+    "friends",
+    "date",
+    "family"
+   ],
+   "day_parts": [
+    "morning",
+    "evening"
+   ],
+   "seasons": [],
+   "cuisine": "",
+   "source": "curated-2026-10"
   }
  ],
  "colleges": [
