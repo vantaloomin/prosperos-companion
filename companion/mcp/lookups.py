@@ -17,10 +17,12 @@ from datetime import timedelta
 from companion.characters import current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
+from companion.mcp import links
 from companion.mcp.client import ToolFailure, open_session
 from companion.mcp.services import CATEGORIES, active_mappings, destination, place_settings, transport_for
 
-FRESH_FOR = {'weather': timedelta(hours=1), 'news': timedelta(hours=3), 'local_events': timedelta(hours=12)}
+FRESH_FOR = {'weather': timedelta(hours=1), 'news': timedelta(hours=3), 'local_events': timedelta(hours=12),
+             'link': timedelta(hours=6)}
 HOURLY_LIMIT = 20
 DAILY_LIMIT = 100
 FAILURE_PAUSE = timedelta(minutes=5)
@@ -30,6 +32,12 @@ CONVERSATION_DEADLINE = 5.0
 BACKGROUND_DEADLINE = 20.0
 SERVICES_PER_CATEGORY = 2
 MAX_CONTENT = 2000
+# A linked page is read in full enough to talk about; other lookups are short answers.
+MAX_CONTENT_FOR = {'link': links.MAX_TEXT}
+LINK_DEADLINE = 10.0
+LINKS_PER_HOUR = 30
+# Links read on this computer have no MCP service; their records carry this name instead.
+LINK_READER = {'id': None, 'name': 'This computer (link reader)'}
 TOPIC_WORDS = 6
 
 WEATHER = re.compile(r"\b(weather|forecast|raining|rainy|snowing|snowy|temperature|umbrella|stormy?|sunny|"
@@ -57,11 +65,11 @@ def triggers(text: str) -> list[dict]:
     return found
 
 
-def clean(text: str) -> str:
+def clean(text: str, limit: int = MAX_CONTENT) -> str:
     """Plain text only, bounded, with the quoting marks used in context replaced."""
     text = re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', ' ', text).replace('«', '"').replace('»', '"')
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
-    return text if len(text) <= MAX_CONTENT else text[:MAX_CONTENT - 1].rstrip() + '…'
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + '…'
 
 
 def city_target(world, definition: dict) -> dict | None:
@@ -101,8 +109,9 @@ def arguments_for(mapping: dict, tools: list[dict], where: dict, topic: str | No
     """The mapped arguments with today's values. None when a required value is unavailable."""
     schema = next((tool['input_schema'] for tool in tools if tool['name'] == mapping['tool']), {})
     required = set(schema.get('required') or [])
+    properties = schema.get('properties') if isinstance(schema.get('properties'), dict) else {}
     values = {'place': where['place'], 'latitude': where['latitude'], 'longitude': where['longitude'],
-              'topic': topic, 'date': where['date']}
+              'topic': topic, 'date': where['date'], 'url': where.get('url')}
     arguments = {}
     for name, argument in decode(mapping['arguments']).items():
         value = argument.get('value') if argument['source'] == 'literal' else values.get(argument['source'])
@@ -110,7 +119,9 @@ def arguments_for(mapping: dict, tools: list[dict], where: dict, topic: str | No
             if name in required:
                 return None
             continue
-        arguments[name] = value
+        # A tool that takes a list (such as `urls` or `search_queries`) gets a list of one.
+        wants_list = isinstance(properties.get(name), dict) and properties[name].get('type') == 'array'
+        arguments[name] = [value] if wants_list and argument['source'] != 'literal' else value
     return arguments
 
 
@@ -122,11 +133,12 @@ def observation_view(row: dict, now=None) -> dict:
 
 
 class Lookups:
-    def __init__(self, database, vault, world=None, transport_factory=None):
+    def __init__(self, database, vault, world=None, transport_factory=None, reader=None):
         self.database = database
         self.vault = vault
         self.world = world
         self.transport_factory = transport_factory or (lambda service: transport_for(service, vault))
+        self.reader = reader or links.Reader()
         self.locks: dict[str, asyncio.Lock] = {}
         # Called with each successful observation, such as to give the simulated day real weather.
         self.listeners = []
@@ -142,6 +154,19 @@ class Lookups:
         if linked:
             return [observation_view(row, self.now()) for row in linked]
         wanted = triggers(user['text'])
+        with self.database.connect() as connection:
+            reading = bool(place_settings(connection)['read_links'])
+        urls = links.find(user['text']) if reading else []
+        if not wanted and not urls:
+            return []
+        batches = await asyncio.gather(self.bounded(wanted), self.bounded_links(urls))
+        found = [item for batch in batches for item in batch]
+        with self.database.connect(write=True) as connection:
+            connection.executemany('INSERT OR IGNORE INTO context_uses (message_id, observation_id) VALUES (?, ?)',
+                                   [(user['id'], item['id']) for item in found])
+        return found
+
+    async def bounded(self, wanted: list[dict]) -> list[dict]:
         if not wanted:
             return []
         try:
@@ -150,11 +175,58 @@ class Lookups:
                 CONVERSATION_DEADLINE + 3)
         except TimeoutError:
             return []
-        found = [item for batch in batches for item in batch]
-        with self.database.connect(write=True) as connection:
-            connection.executemany('INSERT OR IGNORE INTO context_uses (message_id, observation_id) VALUES (?, ?)',
-                                   [(user['id'], item['id']) for item in found])
-        return found
+        return [item for batch in batches for item in batch]
+
+    async def bounded_links(self, urls: list[str]) -> list[dict]:
+        if not urls:
+            return []
+        results = await asyncio.gather(*(self.read_link(url) for url in urls))
+        return [item for item in results if item]
+
+    async def read_link(self, url: str, deadline: float = LINK_DEADLINE) -> dict | None:
+        """One observation for a pasted link: read on this computer, else by an enabled fetch service, else the
+        reason it could not be read (the companion then says so in character, without guessing the content)."""
+        loop = asyncio.get_running_loop()
+        ends = loop.time() + deadline
+        arguments = {'url': url}
+        with self.database.connect() as connection:
+            cached = self.cached(connection, None, 'read_link', arguments)
+            if cached:
+                return observation_view(cached, self.now())
+            limited = self.links_limited(connection)
+            fetchers = active_mappings(connection, 'link', 'conversation')[:SERVICES_PER_CATEGORY]
+        where = {'label': links.host_of(url), 'place': None, 'latitude': None, 'longitude': None,
+                 'date': self.now().date().isoformat(), 'whose': 'user', 'url': url}
+        record = {'service': LINK_READER, 'category': 'link', 'purpose': 'conversation', 'tool': 'read_link',
+                  'arguments': arguments, 'location': where, 'where_to': links.host_of(url)}
+        if limited:
+            local = self.record(**record, status='refused', error_code='rate_limited',
+                                error='Too many links were read in the last hour.')
+        else:
+            try:
+                page = await asyncio.wait_for(self.reader.read(url), max(ends - loop.time(), 0.1))
+                content = clean(page['text'], MAX_CONTENT_FOR['link'])
+                return self.record(**record, status='ok', content=content, attempts=1,
+                                   structured={'title': page['title'], 'kind': page['kind'], 'url': page['url']})
+            except (ToolFailure, TimeoutError) as error:
+                failure = error if isinstance(error, ToolFailure) else ToolFailure('timeout', 'The page took too long.')
+                local = self.record(**record, status='failed', error_code=failure.code, error=failure.message,
+                                    attempts=1)
+        for item in fetchers:
+            remaining = ends - loop.time()
+            if remaining < 1:
+                break
+            found = await self.one(item['service'], item['mapping'], where, 'conversation', None, remaining)
+            good = next((observation for observation in found if observation['status'] == 'ok'), None)
+            if good:
+                return good
+        return local
+
+    def links_limited(self, connection) -> bool:
+        count = one(connection, "SELECT COUNT(*) AS n FROM context_observations WHERE service_id IS NULL AND "
+                    "category='link' AND status<>'refused' AND requested_at>?",
+                    (stamp(self.now() - timedelta(hours=1)),))['n']
+        return count >= LINKS_PER_HOUR
 
     async def run(self, category: str, purpose: str, topic: str | None = None,
                   deadline: float = CONVERSATION_DEADLINE) -> list[dict]:
@@ -189,12 +261,12 @@ class Lookups:
             return [await self.call(record, deadline)]
 
     def cached(self, connection, service_id, tool, arguments) -> dict | None:
-        return optional(connection, "SELECT * FROM context_observations WHERE service_id=? AND tool=? AND arguments=? "
+        return optional(connection, "SELECT * FROM context_observations WHERE service_id IS ? AND tool=? AND arguments=? "
                         "AND status='ok' AND fresh_until>? ORDER BY retrieved_at DESC LIMIT 1",
                         (service_id, tool, encode(arguments), stamp(self.now())))
 
     def latest(self, connection, service_id, tool, arguments) -> dict | None:
-        return optional(connection, "SELECT * FROM context_observations WHERE service_id=? AND tool=? AND arguments=? "
+        return optional(connection, "SELECT * FROM context_observations WHERE service_id IS ? AND tool=? AND arguments=? "
                         "AND status='ok' ORDER BY retrieved_at DESC LIMIT 1", (service_id, tool, encode(arguments)))
 
     def limited(self, connection, service_id) -> tuple[str, str] | None:
@@ -219,7 +291,8 @@ class Lookups:
                 async with open_session(self.transport_factory(record['service']), remaining) as session:
                     result = await asyncio.wait_for(session.call_tool(record['tool'], record['arguments']), remaining)
                 content = clean(result['text'] or (json.dumps(result['structured'], ensure_ascii=False)
-                                                   if result['structured'] else ''))
+                                                   if result['structured'] else ''),
+                                MAX_CONTENT_FOR.get(record['category'], MAX_CONTENT))
                 if not content:
                     raise ToolFailure('empty', 'The tool returned nothing usable.')
                 observation = self.record(**record, status='ok', content=content, structured=result['structured'],
@@ -242,7 +315,7 @@ class Lookups:
                 pass
 
     def record(self, service, category, purpose, tool, arguments, location, status, content='', structured=None,
-               error_code=None, error=None, attempts=0) -> dict:
+               error_code=None, error=None, attempts=0, where_to=None) -> dict:
         now, observation_id = self.now(), identifier()
         with self.database.connect(write=True) as connection:
             connection.execute(
@@ -250,10 +323,10 @@ class Lookups:
                 'destination, location, status, content, structured, error_code, error, attempts, requested_at, '
                 'retrieved_at, fresh_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 (observation_id, service['id'], service['name'], category, purpose, tool, encode(arguments),
-                 destination(service), encode(location), status, content, encode(structured) if structured else None,
+                 where_to or destination(service), encode(location), status, content, encode(structured) if structured else None,
                  error_code, error, attempts, stamp(now), stamp(now) if status == 'ok' else None,
                  stamp(now + FRESH_FOR[category]) if status == 'ok' else None))
-            if status == 'failed':
+            if status == 'failed' and service['id']:
                 connection.execute('UPDATE context_services SET cooldown_until=? WHERE id=?',
                                    (stamp(now + FAILURE_PAUSE), service['id']))
             return observation_view(one(connection, 'SELECT * FROM context_observations WHERE id=?',
@@ -306,13 +379,33 @@ def age_text(seconds: float) -> str:
     return f'{hours} hours' if hours < 48 else f'{round(hours / 24)} days'
 
 
-def context_lines(observations: list[dict], now, user_timezone: str) -> list[tuple[str, str]]:
+def link_line(item: dict, local: str | None, doing: str | None) -> str:
+    """A pasted link: its text when it was read, else what to say, in character, without guessing what it holds."""
+    url = (item.get('location') or {}).get('url') or item['arguments'].get('url', '')
+    if item['status'] == 'ok':
+        how = '' if item['service_id'] is None else f" through {item['service_name']}"
+        return (f'- The link the user sent ({url}), opened{how} at {local}. You have looked at it and can talk '
+                f"about it: «{item['content']}»")
+    fits = f' that fits what you are doing right now ({doing})' if doing else ''
+    return (f'- The user sent a link ({links.host_of(url) or url}) that would not open for you. You have not seen '
+            'what it contains: do not guess, summarise or pretend to know it. In character, give a brief, natural '
+            f'reason it would not load{fits}, such as the site being blocked on a work network, bad signal while '
+            'out, or the page just not loading, and ask what it says or for them to paste the text. Never mention '
+            'the app, lookups or error codes.')
+
+
+def context_lines(observations: list[dict], now, user_timezone: str, doing: str | None = None) -> list[tuple[str, str]]:
     """(identity, text) for the reply's context. Stale and failed lookups say what is not known."""
     lines, seen, ok_by_category = [], set(), {}
     for item in observations:
         if item['id'] in seen:
             continue
         seen.add(item['id'])
+        if item['category'] == 'link':
+            local = parse(item['retrieved_at']).astimezone(zone(user_timezone)).strftime('%d %b %H:%M') \
+                if item['retrieved_at'] else None
+            lines.append((item['id'], link_line(item, local, doing)))
+            continue
         label = CATEGORIES[item['category']]['label'].lower()
         where = (item['location'] or {}).get('label', '')
         whose = ' (the companion\'s real-world city)' if (item['location'] or {}).get('whose') == 'companion' else ''

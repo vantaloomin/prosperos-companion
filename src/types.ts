@@ -374,9 +374,9 @@ export interface ImageJob {
 }
 
 // Current context through MCP (PRD X1–X3)
-export type ContextCategory = 'weather' | 'news' | 'local_events'
+export type ContextCategory = 'weather' | 'news' | 'local_events' | 'link'
 export type ContextPurpose = 'conversation' | 'companion_city'
-export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal'
+export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal' | 'url'
 export interface ToolArgument { source: ArgumentSource; value?: string | number | boolean }
 export interface ContextTool { name: string; description: string; input_schema: { properties?: Record<string, { type?: string; description?: string }>; required?: string[] }; read_only: boolean }
 export interface Disclosure {
@@ -410,7 +410,7 @@ export interface ContextServiceInfo {
   mappings: ContextMapping[]
   suggestions: Partial<Record<ContextCategory, MappingSuggestion>>
 }
-export interface ContextLocation { user_place: string; user_latitude: number | null; user_longitude: number | null; updated_at: string }
+export interface ContextLocation { user_place: string; user_latitude: number | null; user_longitude: number | null; read_links: boolean; updated_at: string }
 export interface ContextOverview {
   location: ContextLocation
   services: ContextServiceInfo[]
@@ -428,7 +428,7 @@ export interface Observation {
   tool: string
   arguments: Record<string, unknown>
   destination: string
-  location: { label: string; whose: 'user' | 'companion' } | null
+  location: { label: string; whose: 'user' | 'companion'; url?: string } | null
   status: 'ok' | 'failed' | 'refused'
   content: string
   error_code: string | null

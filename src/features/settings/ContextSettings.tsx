@@ -30,6 +30,7 @@ export function ContextSettings({ name }: { name: string }) {
         </p>
       </div>
       <LocationForm data={data} setResult={setResult} />
+      <LinkReading data={data} name={name} setResult={setResult} />
       {data.services.length === 0 && <p className="subtle">No lookup service is set up. {name} answers from what they already know. The built-in weather server needs no key or account.</p>}
       <ol className="backend-list">
         {data.services.map((service) => <ServiceRow key={service.id} service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}
@@ -58,6 +59,19 @@ function AddBuiltinWeather({ refresh, setResult }: { refresh: () => Promise<unkn
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not added.') }) } finally { setBusy(false) }
   }
   return <button type="button" className="button primary" aria-disabled={busy} onClick={() => void add()}>Add the built-in weather server</button>
+}
+
+/** Links pasted in chat are opened on this computer, so the companion can talk about them. */
+function LinkReading({ data, name, setResult }: { data: Overview; name: string; setResult: (result: Result) => void }) {
+  const client = useQueryClient()
+  const save = async (value: boolean) => {
+    try {
+      await api('/context/links', { read_links: value }, 'PUT')
+      await client.invalidateQueries({ queryKey: CONTEXT_KEY })
+    } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not saved.') }) }
+  }
+  return <Toggle label="Open links I paste" checked={data.location.read_links} onChange={(value) => void save(value)}
+    hint={`So ${name} can talk about them. This computer opens the page, like your browser would; Reddit and X posts are read through their public embeds. A link to your own computer or home network is never opened.`} />
 }
 
 function LocationForm({ data, setResult }: { data: Overview; setResult: (result: Result) => void }) {
@@ -196,7 +210,7 @@ function SavedMapping({ category, mapping, path, name, busy, act, onEdit }: Save
         hint={on ? undefined : 'Turning it on confirms what it sends, as described above. Any later change asks again.'} />
       {tried && <TryResults items={tried} />}
       <div className="post-actions">
-        {on && mapping.run_in.map((purpose) => (
+        {on && category !== 'link' && mapping.run_in.map((purpose) => (
           <button key={purpose} type="button" className="text-button" aria-disabled={busy} onClick={() => void tryNow(purpose)}>
             {purpose === 'conversation' ? 'Try it for your location' : `Try it for ${name}'s city`}
           </button>
@@ -248,7 +262,7 @@ function MappingEditor({ category, service, data, name, draft: initial, busy, on
           onValue={(value) => setDraft({ ...draft, arguments: { ...draft.arguments, [property]: { source: 'literal', value } } })} />
       ))}
       {data.categories[category].purposes.map((purpose) => (
-        <Toggle key={purpose} label={purpose === 'conversation' ? 'When you ask about it in chat' : `For ${name}'s city, when it is a real place`}
+        <Toggle key={purpose} label={category === 'link' ? 'When a link you paste cannot be read on this computer' : purpose === 'conversation' ? 'When you ask about it in chat' : `For ${name}'s city, when it is a real place`}
           hint={data.purposes[purpose]} checked={draft.run_in.includes(purpose)} onChange={(value) => setDraft(withPurpose(draft, purpose, value))} />
       ))}
       {missing.length > 0 && <p className="subtle">The tool needs {missing.join(', ')}.</p>}

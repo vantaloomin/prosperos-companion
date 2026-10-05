@@ -530,6 +530,8 @@ CREATE TABLE IF NOT EXISTS context_settings (
   user_place TEXT NOT NULL DEFAULT '',
   user_latitude REAL,
   user_longitude REAL,
+  -- Links pasted in chat are opened on this computer so the companion can talk about them.
+  read_links INTEGER NOT NULL DEFAULT 1 CHECK (read_links IN (0, 1)),
   updated_at TEXT NOT NULL
 );
 
@@ -555,7 +557,8 @@ CREATE TABLE IF NOT EXISTS context_services (
 -- is the digest of the disclosure the user confirmed; a changed mapping needs a new confirmation.
 CREATE TABLE IF NOT EXISTS context_tools (
   service_id TEXT NOT NULL REFERENCES context_services(id) ON DELETE CASCADE,
-  category TEXT NOT NULL CHECK (category IN ('weather', 'news', 'local_events')),
+  -- The categories are checked by the app (companion/mcp/services.py CATEGORIES).
+  category TEXT NOT NULL,
   tool TEXT NOT NULL,
   arguments TEXT NOT NULL,
   run_in TEXT NOT NULL DEFAULT '["conversation"]',

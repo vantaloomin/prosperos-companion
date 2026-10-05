@@ -3,7 +3,15 @@ from fastapi import APIRouter, Request
 
 from companion.mcp import lookups, services
 from companion.mcp.lookups import BACKGROUND_DEADLINE
-from companion.models import ContextBuiltin, ContextLocation, ContextLookup, ContextService, ToolApproval, ToolMapping
+from companion.models import (
+    ContextBuiltin,
+    ContextLinks,
+    ContextLocation,
+    ContextLookup,
+    ContextService,
+    ToolApproval,
+    ToolMapping,
+)
 
 router = APIRouter(prefix='/api/context')
 
@@ -25,6 +33,11 @@ def update_location(request: Request, body: ContextLocation):
 @router.post('/services')
 def create_service(request: Request, body: ContextService):
     return services.create_service(db(request), request.app.state.vault, body)
+
+
+@router.put('/links')
+def update_links(request: Request, body: ContextLinks):
+    return services.update_links(db(request), body)
 
 
 @router.post('/services/builtin')

@@ -216,12 +216,16 @@ class ContextService(Input):
     clear_secret: bool = False
 
 
+class ContextLinks(Input):
+    read_links: bool
+
+
 class ContextBuiltin(Input):
     kind: Literal['weather']
 
 
 class ToolArgument(Input):
-    source: Literal['place', 'latitude', 'longitude', 'topic', 'date', 'literal']
+    source: Literal['place', 'latitude', 'longitude', 'topic', 'date', 'literal', 'url']
     value: str | int | float | bool | None = None
 
 

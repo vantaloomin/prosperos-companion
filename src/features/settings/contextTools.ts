@@ -1,10 +1,10 @@
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextPurpose, ContextTool, MappingSuggestion, Observation, ToolArgument } from '../../types'
 
 export const CONTEXT_KEY = ['context-tools']
-export const CATEGORY_ORDER: ContextCategory[] = ['weather', 'news', 'local_events']
-export const CATEGORY_LABELS: Record<ContextCategory, string> = { weather: 'Weather', news: 'News and recent events', local_events: 'Local events' }
+export const CATEGORY_ORDER: ContextCategory[] = ['weather', 'news', 'local_events', 'link']
+export const CATEGORY_LABELS: Record<ContextCategory, string> = { weather: 'Weather', news: 'News and recent events', local_events: 'Local events', link: 'Reading links' }
 export const SOURCE_LABELS: Record<ArgumentSource, string> = {
-  place: 'Your city or region', latitude: 'Latitude', longitude: 'Longitude', topic: 'Topic you asked about', date: "Today's date", literal: 'A fixed value',
+  place: 'Your city or region', latitude: 'Latitude', longitude: 'Longitude', topic: 'Topic you asked about', date: "Today's date", literal: 'A fixed value', url: 'The link you pasted',
 }
 
 export interface ServiceDraft { name: string; transport: 'stdio' | 'http'; program: string; args: string; url: string; secret: string; secretName: string }
@@ -26,8 +26,9 @@ export function initialMapping(tools: ContextTool[], saved?: ContextMapping, sug
   return { tool: tools[0]?.name ?? '', arguments: {}, run_in: ['conversation'] }
 }
 
-/** Sources a category may send: only news and events can send a topic. */
+/** Sources a category may send: only news and events can send a topic, and only link reading sends the link. */
 export function sourcesFor(category: ContextCategory): ArgumentSource[] {
+  if (category === 'link') return ['url', 'literal']
   const all: ArgumentSource[] = ['place', 'latitude', 'longitude', 'topic', 'date', 'literal']
   return category === 'weather' ? all.filter((source) => source !== 'topic') : all
 }
@@ -38,6 +39,7 @@ export function missingArguments(tool: ContextTool | undefined, args: Record<str
 }
 
 function lookupTitle(item: Observation): string {
+  if (item.category === 'link') return `Link: ${String(item.location?.url ?? item.arguments.url ?? '')}`
   const where = item.location?.label ? ` for ${item.location.label}` : ''
   const whose = item.location?.whose === 'companion' ? " (the companion's city)" : ''
   return `${CATEGORY_LABELS[item.category]}${where}${whose}`
