@@ -1,4 +1,4 @@
-import type { BodyState, PauseRecord, Today } from '../../types'
+import type { BodyState, PauseRecord, Recommendation, Today } from '../../types'
 
 const time = (value: string, timeZone?: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone }).format(new Date(value))
 
@@ -44,4 +44,15 @@ export function bodyText(body: BodyState | null | undefined, name: string): stri
   if (!body) return ''
   const feeling = body.state === 'sick' ? 'under the weather' : body.state
   return `${name} is ${feeling}: ${body.because}.`
+}
+
+const STARTED: Record<Recommendation['kind'], string> = {
+  show: 'watching', movie: 'watching', book: 'reading', music: 'listening', game: 'playing', outing: 'going',
+}
+
+/** Where the companion is with something the user recommended. */
+export function recommendationText(item: Pick<Recommendation, 'kind' | 'state' | 'verdict'>, name: string): string {
+  if (item.state === 'finished') return `${name} finished it and ${item.verdict}.`
+  if (item.state === 'started') return `${name} is ${STARTED[item.kind]}, not done yet.`
+  return `${name} means to get to it soon.`
 }

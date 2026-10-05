@@ -9,7 +9,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
 from companion.errors import require
-from companion.life import agenda, circle, feed, money, mood, routine, simulation, today
+from companion.life import agenda, circle, feed, money, mood, recommendations, routine, simulation, today
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -55,6 +55,17 @@ def update_settings(request: Request, body: LifeSettingsUpdate):
 @router.post('/reconcile')
 async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
+
+
+@router.get('/recommendations')
+def list_recommendations(request: Request):
+    """What the user recommended, with how far the companion has got."""
+    return recommendations.listing(request.app.state.database)
+
+
+@router.post('/recommendations/{rec_id}/drop')
+def drop_recommendation(request: Request, rec_id: str):
+    return recommendations.drop(request.app.state.database, rec_id)
 
 
 @router.post('/texts/check')

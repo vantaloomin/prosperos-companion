@@ -944,3 +944,18 @@ CREATE TABLE IF NOT EXISTS world_change_dismissals (
   city_id TEXT NOT NULL,
   dismissed_at TEXT NOT NULL
 );
+
+-- A recommendation the user made (companion/life/recommendations.py); its sessions are agenda entries
+-- that carry `recommendation.id`.
+CREATE TABLE IF NOT EXISTS recommendations (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  kind TEXT NOT NULL CHECK (kind IN ('show', 'movie', 'book', 'music', 'game', 'outing')),
+  title TEXT NOT NULL,
+  sessions INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('waiting', 'dropped')),
+  starts_after TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS recommendations_timeline ON recommendations(timeline_id, status);

@@ -221,6 +221,20 @@ leisure and social time to calm activities at home or nearby. Events carry `deta
 `day.body` shows it and the chat context gets one line about it. Background reconciles extend the agenda only when background
 activity is on.
 
+### Recommendations
+
+When the user writes "you should watch / read / listen to / play / try / visit / go to / check out X"
+(not as a question or hypothetical), `companion/life/recommendations.py` records X with a kind
+(`show`, `movie`, `book`, `music`, `game` or `outing`) and a seeded number of sessions. From 12 hours
+later, the companion's free leisure, social or rest slots get one session a day (activity
+`recommendation`, `entry.recommendation: {id, title, kind, session, of, verdict}`), and the last one
+carries a verdict, seeded and tipped warmer by matching interests or stated likes. Return batches
+simulate these slots before others, so they become committed events. The chat context lists each
+recommendation's committed progress and tells the companion it knows nothing about it beyond its
+name. A finished one can open a conversation. `GET /api/life/recommendations` lists them as
+`{id, kind, title, state: waiting|started|finished, sessions_done, verdict}`, and
+`POST /api/life/recommendations/{id}/drop` takes one back, clearing its upcoming sessions.
+
 ## Limits and permissions
 
 ```http

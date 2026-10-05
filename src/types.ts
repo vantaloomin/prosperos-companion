@@ -746,3 +746,15 @@ export interface SelfFact {
   created_at: string
   decided_at: string | null
 }
+
+/** Something the user recommended (companion/life/recommendations.py). */
+export interface Recommendation {
+  id: string
+  kind: 'show' | 'movie' | 'book' | 'music' | 'game' | 'outing'
+  title: string
+  state: 'waiting' | 'started' | 'finished'
+  sessions_done: number
+  verdict: string | null
+  created_at: string
+  finished_at: string | null
+}

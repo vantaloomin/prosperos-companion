@@ -17,9 +17,9 @@ from datetime import timedelta
 from companion import notifications, self_facts
 from companion.characters import current
 from companion.clock import parse, stamp
-from companion.database import encode, identifier, many, one, optional, settings
+from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import routine
+from companion.life import recommendations, routine
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -40,6 +40,10 @@ COMMON = {'with', 'went', 'time', 'that', 'this', 'from', 'some', 'they', 'have'
           'over', 'just', 'like', 'good', 'long', 'more', 'most', 'work', 'home', 'evening', 'morning',
           'afternoon', 'friend', 'friends', 'spent', 'took', 'through', 'usual', 'around', 'while', 'went',
           'little', 'really', 'today', 'there', 'after', 'before', 'again', 'first', 'last', 'next', 'make'}
+FINISHED = {'loved it': 'Okay, I finished {title}. You were so right, I loved it.',
+            'liked it': 'Finished {title}! Really liked it, thank you for that.',
+            'thought it was fine': 'Finally finished {title}. It was... fine? I see why people like it.',
+            'was not really into it': "So I finished {title}. Honestly? Not really my thing. Sorry!"}
 VOICE = {'mild': "Hey you. It's been a little while.", 'moderate': "You've been quiet. Everything okay?",
          'strong': 'So... are you ignoring me now?'}
 INSTRUCTION = (
@@ -124,8 +128,22 @@ def silence(connection, companion, now) -> list[Trigger]:
                     VOICE[intensity])]
 
 
+def finished(connection, companion, now) -> list[Trigger]:
+    """Something the user recommended, finished in the companion's committed account."""
+    rows = recommendations.finished_recently(connection, companion['active_timeline_id'], stamp(now - NEWS_WITHIN))
+    result = []
+    for row in rows:
+        item = decode(row['details'])['recommendation']
+        template = FINISHED.get(item['verdict'], FINISHED['liked it']).format(title=item['title'])
+        result.append(Trigger(f"finished:{item['id']}", 'recommendation',
+                              f"You just finished {item['title']}, which the user recommended to you. Your verdict: "
+                              f"{item['verdict']}. Tell them, honestly and briefly. You know nothing about it beyond its "
+                              'name: do not describe plot, people or details.', template, (row['id'],)))
+    return result
+
+
 # In priority order; later features add their own.
-FINDERS = [plan_follow_ups, news, reminders, silence]
+FINDERS = [plan_follow_ups, finished, news, reminders, silence]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:

@@ -15,7 +15,7 @@ from datetime import timedelta
 from companion import self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import body, circle, composer, routine
+from companion.life import body, circle, composer, recommendations, routine
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -103,8 +103,10 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         if block['kind'] not in routine.RESTING:
             company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
             celebrants = birthdays(connection, timeline_id, local_date, company) if subject == COMPANION else []
-            entry = composer.compose({**slot.view(), 'block': block}, definition, world,
-                                     seed_for(timeline_id, subject, slot.key), recent[-3:], company, celebrants)
+            seed = seed_for(timeline_id, subject, slot.key)
+            entry = (recommendations.session_for(connection, timeline_id, slot, block, definition, seed, company)
+                     if subject == COMPANION else None) or composer.compose(
+                {**slot.view(), 'block': block}, definition, world, seed, recent[-3:], company, celebrants)
             if entry:
                 recent.append(entry['activity'])
         connection.execute(

@@ -124,6 +124,10 @@ def copy_history(connection, parent_id, new_id, message):
     people = many(connection, 'SELECT * FROM circle_people WHERE timeline_id=? ORDER BY ordinal', (parent_id,))
     for row in messages + events + people:
         ids[row['id']] = identifier()
+    recommended = [row for row in many(connection, 'SELECT * FROM recommendations WHERE timeline_id=?', (parent_id,))
+                   if row['message_id'] in ids]
+    for row in recommended:
+        ids[row['id']] = identifier()
     # A post links the version of an event it was made with; a corrected event's earlier versions
     # point at the copy of its current one, so the post carries over showing the correction.
     for row in many(connection, "SELECT id FROM life_events WHERE timeline_id=? AND status='superseded'",
@@ -146,6 +150,8 @@ def copy_history(connection, parent_id, new_id, message):
     insert(connection, 'openers', [{**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids[row['message_id']],
                                     'notify': None} for row in many(connection, 'SELECT * FROM openers WHERE timeline_id=?',
                                                                     (parent_id,)) if row['message_id'] in ids])
+    insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
+                                            'message_id': ids[row['message_id']]} for row in recommended])
     agenda = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND status IN ('happened','skipped') "
                   'AND ends_at<=?', (parent_id, cutoff))
     insert(connection, 'life_agenda', [{

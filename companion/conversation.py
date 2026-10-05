@@ -15,6 +15,7 @@ from companion import self_facts
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
+from companion.life import recommendations
 from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider
@@ -47,6 +48,7 @@ def record_user(database, body) -> dict:
         connection.execute('UPDATE timelines SET draft=NULL WHERE id=?', (timeline_id,))
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         formation.enqueue(connection, message, database.now())
+        recommendations.note(connection, message, database.now())
         return message
 
 

@@ -9,6 +9,7 @@ import { Circle } from './Circle'
 import { CorrectEvent, type EventCorrection } from './CorrectEvent'
 import { EventItem } from './EventItem'
 import { MoneyPanel } from './MoneyPanel'
+import { Recommendations } from './Recommendations'
 import { availabilityText, bodyText, moodText, pauseToFill } from './todayText'
 
 const TODAY_KEY = ['today']
@@ -91,6 +92,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
         ))}
       </Section>
       <Plans data={data} name={name} />
+      <Recommendations name={name} />
       <Routine data={data} name={name} go={go} />
       <MoneyPanel name={name} go={() => go('character')} />
       <Circle name={name} />

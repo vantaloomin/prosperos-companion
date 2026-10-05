@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { availabilityShort, availabilityText, bodyText, moodText, pauseToFill } from '../../src/features/today/todayText.ts'
+import { availabilityShort, availabilityText, bodyText, moodText, pauseToFill, recommendationText } from '../../src/features/today/todayText.ts'
 
 test('availability explains, without locking anything', () => {
   const today = { companion_timezone: 'UTC', availability: { state: 'asleep' as const, label: 'Asleep', until: '2026-10-06T06:00:00+00:00' } }
@@ -31,4 +31,10 @@ test('how the companion feels today reads as one line', () => {
   assert.equal(bodyText({ state: 'tired', because: 'after drinks at The Owl last night' }, 'Mira'), 'Mira is tired: after drinks at The Owl last night.')
   assert.equal(bodyText({ state: 'sick', because: 'came down with a cold' }, 'Mira'), 'Mira is under the weather: came down with a cold.')
   assert.equal(bodyText(null, 'Mira'), '')
+})
+
+test('a recommendation says where the companion is with it', () => {
+  assert.equal(recommendationText({ kind: 'book', state: 'started', verdict: null }, 'Mira'), 'Mira is reading, not done yet.')
+  assert.equal(recommendationText({ kind: 'show', state: 'finished', verdict: 'loved it' }, 'Mira'), 'Mira finished it and loved it.')
+  assert.equal(recommendationText({ kind: 'outing', state: 'waiting', verdict: null }, 'Mira'), 'Mira means to get to it soon.')
 })
