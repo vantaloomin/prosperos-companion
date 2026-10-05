@@ -95,6 +95,20 @@ Background batches also need `background_activity: true` in `PUT /api/settings`.
 (`POST /api/pause`) stops new batches, and resuming skips the paused interval rather than
 generating it.
 
+### Catching up a paused interval
+
+```http
+GET  /api/life/pauses
+POST /api/life/pauses/{pause_id}/catch-up
+```
+
+Resuming never fills in the paused time. If the user deliberately asks for it, call the catch-up
+endpoint for that pause. It runs one batch for slots inside the pause, within the same limits as
+a return, and returns the same shape as reconcile (`state` is `started`, or `already_done` with the
+earlier batch). It is refused (409) while paused or for a pause that has not ended.
+`GET /api/life/pauses` lists pauses newest first with `started_at`, `ended_at`,
+`catch_up_requested_at` and `catch_up_run_id`.
+
 ## Routine
 
 ```http
@@ -199,3 +213,28 @@ A post:
 - `POST /api/feed/posts` posts an event committed by other means; it is idempotent per event.
 - `export` returns `{format: "prospero-companion-feed", version, exported_at, companion, posts}`,
   oldest first, hidden posts included.
+
+## Emotional traits and absence mood
+
+Traits are part of the character definition (`emotional_traits`, empty by default; see PRD C6):
+each has a `name`, an `intensity` of `mild`, `moderate` or `strong`, and an optional `note`.
+
+When the user returns at least a day after their last message and a trait's name speaks of
+absence, guilt, missing the user, neediness or sulking, the return records a mood (PRD M4).
+`GET /api/today` shows it as `mood`, which is `null` otherwise:
+
+```json
+"mood": {"id": "…", "kind": "absence", "intensity": "moderate", "away_hours": 72,
+         "away_from": "…", "away_until": "…", "traits": ["guilt over absence"],
+         "created_at": "…", "expires_at": "…",
+         "recorded_traits": [{"name": "guilt over absence", "intensity": "moderate", "note": ""}]}
+```
+
+- The intensity never exceeds the current trait's intensity, however long the absence.
+- A paused interval is not an absence.
+- The mood lasts two days, until the user resets it, or until the traits are removed, whichever
+  comes first. Removing the trait ends it from the next reply.
+- `POST /api/today/mood/{id}/reset` clears it and returns `{"mood": null}`.
+
+Show the mood plainly in Today with its reset action. Product controls and system notices stay
+neutral whatever the traits: never word Settings, Pause or permission prompts in character.

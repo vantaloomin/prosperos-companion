@@ -248,3 +248,26 @@ CREATE TABLE IF NOT EXISTS visits (
   timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
   last_seen_at TEXT NOT NULL
 );
+
+-- Visible, resettable relationship mood from the user's absence (PRD C6, M4). Only created
+-- when the character has an absence trait; never a hidden score.
+CREATE TABLE IF NOT EXISTS relationship_moods (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('absence')),
+  away_from TEXT NOT NULL,
+  away_until TEXT NOT NULL,
+  intensity INTEGER NOT NULL CHECK (intensity BETWEEN 1 AND 3),
+  traits TEXT NOT NULL,
+  character_version_id TEXT NOT NULL REFERENCES character_versions(id),
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  cleared_at TEXT,
+  UNIQUE (timeline_id, kind, away_from)
+);
+
+-- Paused intervals the user chose to catch up (PRD T6); otherwise a pause blocks its interval.
+CREATE TABLE IF NOT EXISTS pause_catch_ups (
+  pause_id TEXT PRIMARY KEY REFERENCES pauses(id),
+  requested_at TEXT NOT NULL
+);

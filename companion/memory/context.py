@@ -12,6 +12,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import many, settings
 from companion.errors import DomainError
 from companion.events import committed
+from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
@@ -34,6 +35,7 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'W
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
+            'relationship_mood': 'Your current mood about time apart',
             'recalled': 'Possibly relevant memories'}
 
 
@@ -212,6 +214,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     packet.require('time', 'clock', time_text(now, settings(connection)['user_timezone'], version['timezone'],
                                               previous))
     conversation = fit_conversation(packet, recent)
+    if mood := moods.active(connection, companion, now):
+        packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory))

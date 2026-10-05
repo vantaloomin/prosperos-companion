@@ -7,7 +7,7 @@ from pydantic import Field
 from companion import conversation
 from companion.characters import require_current
 from companion.clock import parse, stamp
-from companion.life import feed, routine, simulation, today
+from companion.life import feed, mood, routine, simulation, today
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -51,6 +51,16 @@ async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
 
 
+@router.get('/pauses')
+def list_pauses(request: Request):
+    return simulation.pauses(db(request))
+
+
+@router.post('/pauses/{pause_id}/catch-up')
+async def catch_up_pause(request: Request, pause_id: str):
+    return await request.app.state.life.catch_up_pause(pause_id)
+
+
 @router.get('/runs')
 def list_runs(request: Request, limit: int = 20):
     return simulation.runs(db(request), min(max(limit, 1), 100))
@@ -81,6 +91,11 @@ def read_today(request: Request):
 @today_router.post('/seen')
 def seen(request: Request):
     return today.mark_seen(db(request))
+
+
+@today_router.post('/mood/{mood_id}/reset')
+def reset_mood(request: Request, mood_id: str):
+    return mood.reset(db(request), mood_id)
 
 
 @feed_router.get('')

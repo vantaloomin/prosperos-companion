@@ -3,7 +3,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
 from companion.events import view as event_view
-from companion.life import feed, routine, simulation
+from companion.life import feed, mood, routine, simulation
 from companion.memory.records import OPEN_PLANS, eligible
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
@@ -74,6 +74,7 @@ def view(database) -> dict:
             'simulated_through': position['simulated_through'],
             'clock_behind': now < parse(position['simulated_through']),
             'limits': simulation.settings_view(life),
+            'mood': mood.active(connection, companion, now),
         }
     schedule, default = routine.blocks(version['definition'])
     current, upcoming = routine.current_and_next(schedule, version['timezone'], now)

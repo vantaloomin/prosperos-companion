@@ -20,8 +20,8 @@ from companion import events
 from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
-from companion.errors import DomainError
-from companion.life import feed, routine
+from companion.errors import DomainError, require
+from companion.life import feed, mood, routine
 from companion.life.synthesis import SynthesisInvalid, synthesize
 from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
@@ -205,16 +205,53 @@ def plan_run(connection, owner, mode, now, companion, workspace, life, position)
         limit = life['catch_up_max_events']
     through = parse(position['simulated_through'])
     plan = spread(candidates(connection, companion, through, now, life['catch_up_lookback_hours']), limit, run_key)
-    run_id = identifier()
+    run_id = insert_run(connection, owner, companion, workspace, mode, run_key, position['simulated_through'],
+                        timestamp, plan, now)
+    save_cursor(connection, timeline_id, timestamp, timestamp)
+    return run_id
+
+
+def insert_run(connection, owner, companion, workspace, mode, run_key, window_start, window_end, plan, now) -> str:
+    run_id, timestamp = identifier(), stamp(now)
     connection.execute(
         'INSERT INTO life_runs (id, timeline_id, run_key, mode, status, window_start, window_end, plan, '
         'character_version_id, permission_revision, owner, lease_until, attempts, created_at, started_at) '
         "VALUES (?, ?, ?, ?, 'running', ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
-        (run_id, timeline_id, run_key, mode, position['simulated_through'], timestamp,
+        (run_id, companion['active_timeline_id'], run_key, mode, window_start, window_end,
          encode([slot.view() for slot in plan]), companion['active_version_id'], workspace['permission_revision'],
          owner, stamp(now + LEASE), timestamp, timestamp))
-    save_cursor(connection, timeline_id, timestamp, timestamp)
     return run_id
+
+
+def plan_pause(connection, owner, pause_id, now) -> dict:
+    """Catching up a paused interval is a separate, deliberate action (T6). It runs once per pause,
+    within the same caps as a return, and marks the pause so its events pass the commit check."""
+    companion = current(connection)
+    require(companion is not None, 'Create a companion first.', 409)
+    workspace, life = settings(connection), life_settings(connection)
+    require(workspace['paused_at'] is None, 'Resume before catching up a paused interval.', 409)
+    pause = one(connection, 'SELECT * FROM pauses WHERE id=?', (pause_id,))
+    require(pause['ended_at'] is not None, 'This pause has not ended.', 409)
+    run_key = f'pause:{pause_id}'
+    existing = optional(connection, 'SELECT id FROM life_runs WHERE run_key=?', (run_key,))
+    if existing:
+        return {'state': 'already_done', 'run_id': existing['id']}
+    connection.execute('INSERT OR IGNORE INTO pause_catch_ups (pause_id, requested_at) VALUES (?, ?)',
+                       (pause_id, stamp(now)))
+    start, end = parse(pause['started_at']), parse(pause['ended_at'])
+    plan = spread(candidates(connection, companion, start, end, life['catch_up_lookback_hours']),
+                  life['catch_up_max_events'], run_key)
+    run_id = insert_run(connection, owner, companion, workspace, 'return', run_key, pause['started_at'],
+                        pause['ended_at'], plan, now)
+    return {'state': 'started', 'run_id': run_id}
+
+
+def pauses(database) -> list[dict]:
+    with database.connect() as connection:
+        rows = many(connection, 'SELECT pauses.*, pause_catch_ups.requested_at AS catch_up_requested_at, '
+                    "life_runs.id AS catch_up_run_id FROM pauses LEFT JOIN pause_catch_ups ON pause_id=pauses.id "
+                    "LEFT JOIN life_runs ON run_key='pause:' || pauses.id ORDER BY started_at DESC")
+        return rows
 
 
 def claim(connection, run_id, owner, now):
@@ -243,8 +280,18 @@ class LifeEngine:
     async def reconcile(self, mode='return') -> dict:
         async with self.lock:
             with self.database.connect(write=True) as connection:
+                if mode == 'return' and current(connection):
+                    mood.note_return(connection, self.now())
                 decision = decide(connection, self.owner, mode, self.now())
             if decision['state'] in {'started', 'resumed'}:
+                await self.execute(decision['run_id'])
+            return self.outcome(decision)
+
+    async def catch_up_pause(self, pause_id) -> dict:
+        async with self.lock:
+            with self.database.connect(write=True) as connection:
+                decision = plan_pause(connection, self.owner, pause_id, self.now())
+            if decision['state'] == 'started':
                 await self.execute(decision['run_id'])
             return self.outcome(decision)
 
