@@ -152,6 +152,7 @@ def revise(connection, memory, timestamp, *, value, plan_status=None, applies_fr
     connection.execute('INSERT INTO memory_sources (memory_id, message_id) '
                        'SELECT ?, message_id FROM memory_sources WHERE memory_id=?', (new_id, memory['id']))
     connection.execute('UPDATE memories SET ended_by_id=? WHERE ended_by_id=?', (new_id, memory['id']))
+    connection.execute('UPDATE closeness_jokes SET memory_id=? WHERE memory_id=?', (new_id, memory['id']))
     vectors.forget(connection, 'memory', [memory['id']])
     bump_memory_revision(connection, timestamp)
     return get(connection, new_id)
@@ -233,6 +234,7 @@ def delete(database, memory_id, delete_sources=False) -> dict:
         connection.execute(f'DELETE FROM memory_proposals WHERE keep_id IN ({marks}) OR merge_id IN ({marks})',
                            versions + versions)
         connection.execute(f'DELETE FROM memory_candidates WHERE memory_id IN ({marks})', versions)
+        connection.execute(f'DELETE FROM closeness_jokes WHERE memory_id IN ({marks})', versions)
         vectors.forget(connection, 'memory', versions)
         connection.execute(f'DELETE FROM memories WHERE id IN ({marks})', versions)
         markers = [(identity, 'memory', timestamp) for identity in versions]
