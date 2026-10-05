@@ -865,3 +865,21 @@ CREATE TABLE IF NOT EXISTS prompt_overrides (
   text TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- Closeness stages (PRD M3, M4) are worked out from shared history, never stored as a score. These rows
+-- hold only the user's own choices for one timeline: when counting restarted, a held stage, a nickname
+-- and the shared moments they made running jokes.
+CREATE TABLE IF NOT EXISTS closeness_settings (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  counted_from TEXT,
+  held_level INTEGER CHECK (held_level BETWEEN 1 AND 5),
+  nickname TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS closeness_jokes (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  memory_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, memory_id)
+);

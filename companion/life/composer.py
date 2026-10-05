@@ -11,7 +11,7 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from companion.life import body
+from companion.life import body, money
 
 COMPOSER_VERSION = 'compose-7'
 QUIET_SHARE = 0.2
@@ -309,6 +309,8 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
         # Bad weather moves the day indoors: no walks, and no workout in the park.
         options = [option for option in options if not option.place_kinds or set(option.place_kinds) - OUTDOOR] \
             or options
+    # Money hook: on a tight day an outing that costs money gives way to a free one.
+    options = [option for option in options if money.affordable(definition, option.key, slot['local_date'])] or options
     fresh = [option for option in options if option.key not in set(recent_activities)] or list(options)
     chosen = choose(rng, fresh, definition)
     places = find_places(world, definition, slot, chosen.place_kinds)

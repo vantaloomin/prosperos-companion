@@ -76,7 +76,43 @@ export interface CharacterDefinition {
   home_city: string
   schedule: RoutineBlock[]
   life_themes: string[]
+  money: MoneySetup
 }
+
+export type SpendingStyle = 'careful' | 'balanced' | 'spender'
+
+/** How the companion's money works; pay, rent and prices come from the world data. */
+export interface MoneySetup {
+  career: string
+  style: SpendingStyle
+  saving_for: string
+  goal: number
+  goal_since: string
+}
+
+export interface CareerSummary { id: string; name: string; pay: string; eras: string[] }
+
+interface MoneyHappening { label: string; on: string; cost: number }
+
+export type MoneyView = { date: string } & ({ available: false; reason: string } | {
+  available: true
+  currency: { code: string; symbol: string; name: string }
+  period: 'month' | 'week'
+  style: SpendingStyle
+  career: { id: string; name: string; pay: string; guessed: boolean } | null
+  housing: { unit: string; label: string; neighborhood: string }
+  budget: { income: number; rent: number; essentials: number; fun: number; saving: number }
+  payday: { last: string; next: string; cycle_days: number; today: boolean }
+  left: number
+  fun_cycle: number
+  tight: boolean
+  flush: boolean
+  splurge: MoneyHappening | null
+  surprise: MoneyHappening | null
+  cant_afford: string[]
+  goal: { label: string; amount: number; saved: number; share: number; custom: boolean; since: string; stalled: boolean }
+  text: { income: string; rent: string; essentials: string; fun: string; saving: string; left: string }
+})
 
 export interface CharacterVersion {
   id: string
@@ -281,7 +317,7 @@ export interface FeedPost {
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
-export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string }
+export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string; era?: string }
 
 export interface ContextReceipt { budget_tokens: number; estimated_tokens: number; included: Record<string, string[]>; omitted: Record<string, string[]> }
 export interface ContextPreview { system: string; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
@@ -664,4 +700,25 @@ export interface Generation {
   counts: Record<EvalImageStatus | 'kept', number>
   images: GeneratedImage[]
   created_at: string
+}
+
+export interface ClosenessJoke { memory_id: string; subject: string; value: string }
+export interface ClosenessMilestone { level: number; on: string; days: number; moments: number }
+/** Worked out from shared history each time (PRD M4): never a hidden score. */
+export interface Closeness {
+  level: number
+  name: string
+  grown_level: number
+  held_level: number | null
+  relationship: string
+  stages: string[]
+  days_talked: number
+  shared_moments: number
+  counted_moments: number
+  first_day: string | null
+  counted_from: string | null
+  nickname: string
+  history: ClosenessMilestone[]
+  jokes: ClosenessJoke[]
+  joke_candidates: (ClosenessJoke & { days: number })[]
 }

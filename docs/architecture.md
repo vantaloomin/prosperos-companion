@@ -151,6 +151,18 @@ guilt, missing the user, neediness or sulking (`companion/traits.py`). The mood 
 trait's intensity and stops applying once the trait is removed. Product controls such as pause,
 settings and export stay neutral either way.
 
+Closeness stages (`companion/memory/closeness.py`, `GET/PUT /api/closeness`) are worked out from
+the active timeline's history on every reply, never stored as a score (M4). One point per local
+day the user wrote (message count and length do not matter) plus one per eligible shared moment
+(`shared_experience` or `relationship` memories), capped at the days talked; thresholds 0, 3, 8,
+16 and 30 give five stages, named for friends when the relationship is friendship. Time apart
+never lowers it, and excluding or deleting a moment takes it out of the count. The `closeness`
+context section tells the companion how open to be, whether a nickname fits, and the running jokes
+the user picked; it repeats the non-romantic framing and that closeness never strengthens
+emotional traits. The user's choices live in `closeness_settings` (a held stage, a nickname, and
+`counted_from` after Start over) and `closeness_jokes`. Shared moments recalled on three separate
+days are offered as running jokes, never added on their own. A fork starts with default choices.
+
 ## Consolidation (M10, M11)
 
 `companion/memory/consolidation.py` runs without a model, at most hourly while automatic memory is

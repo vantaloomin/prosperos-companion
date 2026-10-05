@@ -306,6 +306,7 @@ class Draft:
         career_id = raw.get('career') if raw.get('career') in self.offered else ''
         career = self.offered.get(career_id)
         definition |= life(raw, career, self.seed, final) | self.placed()
+        definition['money'] = {'career': career_id}
         if edges_allowed(self.body):
             definition['emotional_traits'] = traits_value(raw.get('emotional_traits'))
         else:
