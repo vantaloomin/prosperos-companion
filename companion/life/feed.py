@@ -42,6 +42,16 @@ def shown_events(connection, post_id) -> list[dict]:
     return result
 
 
+def image_outdated(connection, post, shown) -> bool:
+    """True when the shown image was made from an event version that has since been corrected or
+    withdrawn, so the post can say the picture shows the earlier account (F1, M3)."""
+    if not post['image_ref']:
+        return False
+    job = optional(connection, 'SELECT inputs FROM image_jobs WHERE id=?', (post['image_ref'],))
+    current = {event['id'] for event in shown}
+    return job is not None and any(event['id'] not in current for event in decode(job['inputs'])['events'])
+
+
 def post_view(connection, post) -> dict | None:
     removed = post['status'] == 'removed'
     shown = [] if removed else shown_events(connection, post['id'])
@@ -51,7 +61,8 @@ def post_view(connection, post) -> dict | None:
             'status': post['status'], 'read': post['read_at'] is not None, 'read_at': post['read_at'],
             'reaction': post['reaction'], 'occurs_at': post['occurs_at'], 'created_at': post['created_at'],
             'image': {'status': post['image_status'], 'job_id': post['image_job_id'], 'ref': post['image_ref'],
-                      'error': post['image_error'], 'updated_at': post['image_updated_at']}}
+                      'error': post['image_error'], 'updated_at': post['image_updated_at'],
+                      'outdated': image_outdated(connection, post, shown)}}
 
 
 def create(connection, timeline_id, kind, key, event_ids, occurs_at, timestamp, run_id=None, intro='') -> str:

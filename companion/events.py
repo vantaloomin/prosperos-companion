@@ -77,6 +77,21 @@ def reject(database, event_id) -> dict:
         return view(one(connection, 'SELECT * FROM life_events WHERE id=?', (event_id,)))
 
 
+def still_named(key, entry, summary: str) -> bool:
+    name = entry.get('name', '') if isinstance(entry, dict) else ''
+    if not name:
+        return True
+    # People may be called by their given name alone; places only by their full name.
+    return name in summary or (key == 'with' and name.split()[0] in summary)
+
+
+def corrected_details(summary: str, details: dict) -> dict:
+    """A place or companion the corrected wording no longer names is dropped from the details, so an
+    image, a fulfilled plan or recall never brings back what the user corrected away (F1, T2)."""
+    return {key: value for key, value in details.items()
+            if key not in {'place', 'with'} or still_named(key, value, summary)}
+
+
 def correct(database, event_id, body) -> dict:
     """A correction becomes the active account; the earlier version stays recoverable (PRD Returning)."""
     with database.connect(write=True) as connection:
@@ -84,13 +99,14 @@ def correct(database, event_id, body) -> dict:
         require(event['status'] == 'committed', 'Only the active version of a committed event can be corrected.', 409)
         timestamp, new_id = database.now(), identifier()
         revision = event['revision'] + 1
+        details = corrected_details(body.summary, body.details)
         connection.execute("UPDATE life_events SET status='superseded' WHERE id=?", (event_id,))
         connection.execute(
             'INSERT INTO life_events (id, companion_id, timeline_id, idempotency_key, kind, status, summary, details, '
             'starts_at, ends_at, character_version_id, permission_revision, inputs, revision, supersedes_id, '
             "created_at, decided_at) VALUES (?, ?, ?, ?, ?, 'committed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (new_id, event['companion_id'], event['timeline_id'], f"{event['idempotency_key']}#r{revision}",
-             event['kind'], body.summary, encode(body.details), event['starts_at'], event['ends_at'],
+             event['kind'], body.summary, encode(details), event['starts_at'], event['ends_at'],
              event['character_version_id'], event['permission_revision'], event['inputs'], revision, event_id,
              timestamp, timestamp))
         bump_memory_revision(connection, timestamp)

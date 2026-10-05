@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ImagePlus, RefreshCw, X } from 'lucide-react'
 import { api } from '../../api'
 import type { FeedPost, ImageJob } from '../../types'
-import { imageFile, imageLine, isActive, provenance } from './imageState'
+import { imageAlt, imageFile, imageLine, isActive, provenance } from './imageState'
 
 type Run = (action: () => Promise<unknown>) => Promise<void>
 const RETRYABLE = ['failed', 'interrupted', 'cancelled']
@@ -43,7 +43,7 @@ function ImageView({ post, waiting, error }: { post: FeedPost; waiting?: string 
   const { image } = post
   const line = imageLine(image, waiting)
   return <>
-    {image.ref && <img src={imageFile(image.ref)} alt={`Illustration: ${post.events[0]?.summary ?? 'this moment'}`} loading="lazy" />}
+    {image.ref && <img src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} loading="lazy" />}
     {line && <p className={image.status === 'failed' ? 'image-line error-text' : 'image-line subtle'} role="status">{line}</p>}
     {error && <p className="image-line error-text" role="alert">{error}</p>}
   </>

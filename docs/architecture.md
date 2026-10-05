@@ -285,6 +285,9 @@ such a plan happened, and offers to set a date that was unclear.
   people or events; a reply that drops the place name, fails to parse or errors keeps the
   template wording. A conversation interrupts phrasing and the batch resumes on the next
   reconcile. Event `inputs` record the template text, world source, composer and prompt versions.
+- **Corrections.** A correction is a new committed revision. A place or person in the details that
+  the corrected wording no longer names is dropped, so a later image, a fulfilled plan or recall
+  never brings back what the user corrected away.
 - **Review.** Events are proposed and wait for review unless the user turned on
   `automatic_events`. Commit revalidates the character version, timeline, pause and permission
   revision as before.

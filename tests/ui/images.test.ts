@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { disclosureFor, imageLine, isActive, isLoopback, provenance } from '../../src/features/feed/imageState.ts'
+import { disclosureFor, imageAlt, imageLine, OUTDATED, isActive, isLoopback, provenance } from '../../src/features/feed/imageState.ts'
 import type { ImageJob, PostImage } from '../../src/types.ts'
 
 const image = (values: Partial<PostImage>): PostImage => ({ status: 'none', job_id: null, ref: null, error: null, updated_at: null, ...values })
@@ -12,6 +12,14 @@ test('the image line says what is happening without hiding the text', () => {
   assert.equal(imageLine(image({ status: 'queued' }), 'Run codex login.'), 'Waiting: Run codex login.')
   assert.equal(imageLine(image({ status: 'failed', error: 'No local backend.' })), 'No local backend.')
   assert.ok(isActive('queued') && isActive('running') && !isActive('failed'))
+})
+
+test('a picture of a corrected event says so instead of passing as the new account', () => {
+  const old = image({ status: 'completed', ref: 'job', outdated: true })
+  assert.equal(imageLine(old), OUTDATED)
+  assert.ok(!imageAlt(old, 'Mira sat at Artifact Coffee.').includes('Artifact'))
+  assert.equal(imageAlt(image({ status: 'completed', ref: 'job' }), 'Mira sat at Artifact Coffee.'), 'Illustration: Mira sat at Artifact Coffee.')
+  assert.equal(imageLine(image({ status: 'running', ref: 'job', outdated: true })), 'Making a new version…')
 })
 
 test('loopback addresses are local and others need a disclosure', () => {

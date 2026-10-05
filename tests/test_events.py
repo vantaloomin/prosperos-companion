@@ -76,3 +76,18 @@ def test_rejected_event_never_enters_context(client, companion):
     client.post(f"/api/events/{event['id']}/reject")
     assert client.post(f"/api/events/{event['id']}/commit").status_code == 409
     assert 'harbour' not in client.get('/api/context/preview').json()['system']
+
+
+def test_a_correction_drops_the_place_and_friend_it_no_longer_names(client, companion):
+    details = {'place': {'id': 'the-charmery', 'name': 'The Charmery', 'kind': 'cafe'},
+               'with': {'id': 'p1', 'name': 'Ana Ruiz'}, 'post': 'Good talk.'}
+    event = client.post('/api/events', json={**proposal(summary='Coffee with Ana Ruiz at The Charmery'),
+                                              'details': details}).json()
+    client.post(f"/api/events/{event['id']}/commit")
+    kept = client.post(f"/api/events/{event['id']}/correct",
+                       json={'summary': 'Coffee with Ana at The Charmery', 'details': details}).json()
+    assert kept['details']['place']['name'] == 'The Charmery' and kept['details']['with']['name'] == 'Ana Ruiz'
+    moved = client.post(f"/api/events/{kept['id']}/correct",
+                        json={'summary': 'Coffee alone at Artifact Coffee', 'details': details}).json()
+    assert 'place' not in moved['details'] and 'with' not in moved['details']
+    assert moved['details']['post'] == 'Good talk.'
