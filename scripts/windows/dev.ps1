@@ -34,13 +34,16 @@ try {
     Write-Host 'Dev mode uses your real workspace. Set COMPANION_DATA_DIR to a scratch folder to keep it apart.' -ForegroundColor Yellow
     $viteArguments = @('run', 'dev')
     if (-not $NoBrowser) { $viteArguments += @('--', '--open') }
+    # Vite and npm may write notices to stderr; judge them by exit code (see install.ps1).
+    $ErrorActionPreference = 'Continue'
     & $npm.Source @viteArguments
 } catch {
     Write-Host "Dev mode failed: $($_.Exception.Message)" -ForegroundColor Red
     $result = 1
 } finally {
     if ($backend -and -not $backend.HasExited) {
-        & taskkill.exe /PID $backend.Id /T /F | Out-Null
+        $ErrorActionPreference = 'Continue'
+        & taskkill.exe /PID $backend.Id /T /F 2>&1 | Out-Null
         Write-Host 'Stopped the development backend.'
     }
 }

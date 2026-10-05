@@ -42,7 +42,8 @@ $temp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath
 # status and stop
 Check ((Invoke-Bat 'status.bat') -eq 1) 'status.bat reports a stopped Companion with exit code 1'
 Check ((Invoke-Bat 'stop.bat') -eq 0) 'stop.bat with nothing running succeeds and stops nothing'
-$app = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $CompanionRoot 'start.ps1'), '-NoBrowser', '-NoPause' -PassThru
+# Captured output, as when another program starts it: the server's log lines on stderr must not stop it.
+$app = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $CompanionRoot 'start.ps1'), '-NoBrowser', '-NoPause' -PassThru -RedirectStandardOutput (Join-Path $temp 'launch-out.txt') -RedirectStandardError (Join-Path $temp 'launch-err.txt')
 try {
   Check (Wait-State 'running') 'launch answers on 8775'
   Check ((Invoke-Bat 'status.bat') -eq 0) 'status.bat reports the running Companion with exit code 0'
@@ -74,7 +75,7 @@ Check ((New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $desktop 
 Check (Test-Path -LiteralPath (Join-Path $desktop 'Prospero Companion (checkout).lnk')) 'the checkout shortcut gets its own name'
 
 # dev: backend plus Vite, with /api forwarded to the backend
-$dev = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'dev.ps1'), '-NoBrowser' -PassThru
+$dev = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'dev.ps1'), '-NoBrowser' -PassThru -RedirectStandardOutput (Join-Path $temp 'dev-out.txt') -RedirectStandardError (Join-Path $temp 'dev-err.txt')
 try {
   Check (Wait-State 'running') 'dev mode starts the backend on 8775'
   $page = $null
