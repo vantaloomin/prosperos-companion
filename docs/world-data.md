@@ -162,6 +162,10 @@ Users' own cities are stored in the workspace database (`world_cities`), so back
 They are validated by the same schema as built-in cities and work with every generator and with
 the life composer. The minimum is one source, one neighbourhood and one place.
 
+In the app, **Settings → Cities** lists built-in, pack and user cities. From there you can start a
+new city from the template, open a city file someone shared, copy any city, edit or delete your own
+(as JSON, with **Check** before **Save**), save a public city as a file, and reload the pack folders.
+
 | Endpoint | Does |
 | --- | --- |
 | `GET /api/world/template` | The smallest valid city, to start from scratch |
@@ -188,6 +192,13 @@ others. Pack folders:
 `GET /api/world/packs` lists the folders, the packs loaded and any file that failed validation with
 the reason; `POST /api/world/packs/reload` rereads them without restarting. A pack cannot reuse a
 built-in city's id.
+
+**Checking a city file.** `python -m companion.world.check [FILE_OR_FOLDER ...]` validates files
+exactly as the app loads them, and with no arguments checks the built-in cities and every pack
+folder. Errors mean the file will not load. Warnings point out thin spots that make days there
+repetitive: neighbourhoods with fewer than two places or nowhere to eat, no employers or career
+hubs, or no climate. `--json` prints the results for tools. It exits 1 when any file has errors,
+and CI runs it.
 
 ## Adding or refreshing a built-in city
 

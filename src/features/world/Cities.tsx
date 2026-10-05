@@ -1,0 +1,200 @@
+import { useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Copy, Download, FilePlus2, FolderSync, Pencil, Trash2, Upload } from 'lucide-react'
+import { api } from '../../api'
+import { Loading, Notice } from '../../components/Feedback'
+import { TextInput } from '../../components/Fields'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { cityFacts, definitionOf, exportName, groupCities, GROUPS, parseDefinition, slugify, type CityListing, type PackReport } from './cityText'
+
+const CITIES_KEY = ['cities']
+type Feedback = { tone: 'info' | 'error'; text: string } | null
+// What the editor is working on: a new city (from the template, a file or a copy) or one of the user's own.
+type Editing = { mode: 'create'; text: string } | { mode: 'update'; id: string; revision: number; text: string }
+
+const pretty = (value: unknown) => JSON.stringify(value, null, 1)
+
+/** Build, import, copy, edit and export cities (PRD W5). Built-in and pack cities are read-only here. */
+export function Cities() {
+  const client = useQueryClient()
+  const cities = useQuery({ queryKey: CITIES_KEY, queryFn: () => api<CityListing[]>('/world/cities') })
+  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [editing, setEditing] = useState<Editing | null>(null)
+  const [copying, setCopying] = useState<CityListing | null>(null)
+  const [deleting, setDeleting] = useState<CityListing | null>(null)
+  const file = useRef<HTMLInputElement>(null)
+  const refresh = () => client.invalidateQueries({ queryKey: CITIES_KEY })
+  const fail = (error: unknown) => setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work.' })
+
+  const startNew = async () => {
+    try { setEditing({ mode: 'create', text: pretty(await api('/world/template')) }); setFeedback(null) } catch (error) { fail(error) }
+  }
+  const startEdit = async (city: CityListing) => {
+    try {
+      const data = await api<Record<string, unknown> & { revision: number }>(`/world/cities/${city.id}`)
+      setEditing({ mode: 'update', id: city.id, revision: data.revision, text: pretty(definitionOf(data)) })
+      setFeedback(null)
+    } catch (error) { fail(error) }
+  }
+  const importFile = async (chosen: File | undefined) => {
+    if (!chosen) return
+    setEditing({ mode: 'create', text: await chosen.text() })
+    setFeedback({ tone: 'info', text: `Opened ${chosen.name}. Check it, change the id if you need to, then save it as one of your cities.` })
+    if (file.current) file.current.value = ''
+  }
+  const exportCity = async (city: CityListing) => {
+    try {
+      const data = await api<Record<string, unknown>>(`/world/cities/${city.id}`)
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(new Blob([pretty(definitionOf(data))], { type: 'application/json' }))
+      link.download = exportName(city.id)
+      link.click()
+      URL.revokeObjectURL(link.href)
+    } catch (error) { fail(error) }
+  }
+  const remove = async (city: CityListing) => {
+    setDeleting(null)
+    try {
+      await api(`/world/cities/${city.id}`, undefined, 'DELETE')
+      setFeedback({ tone: 'info', text: `Deleted ${city.name}.` })
+    } catch (error) { fail(error) } finally { void refresh() }
+  }
+
+  const groups = cities.data ? groupCities(cities.data) : null
+  return (
+    <section className="settings-section form-stack" aria-labelledby="cities-heading">
+      <div>
+        <h2 id="cities-heading">Cities</h2>
+        <p className="subtle">A companion's days are built from their home city: its neighbourhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared.</p>
+      </div>
+      <div className="form-actions">
+        <button type="button" className="button" onClick={() => void startNew()}><FilePlus2 aria-hidden="true" />New city</button>
+        <button type="button" className="button" onClick={() => file.current?.click()}><Upload aria-hidden="true" />Open a city file</button>
+        <input ref={file} type="file" accept=".json,application/json" hidden onChange={(event) => void importFile(event.target.files?.[0])} />
+      </div>
+      <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
+      {editing && <CityEditor editing={editing} onClose={() => setEditing(null)}
+        onSaved={(name) => { setEditing(null); setFeedback({ tone: 'info', text: `Saved ${name}.` }); void refresh() }} />}
+      {cities.isPending && <Loading label="Loading cities" />}
+      {cities.isError && <Notice tone="error">{cities.error.message}</Notice>}
+      {groups && GROUPS.filter((group) => groups[group.origin].length > 0 || group.origin === 'user').map((group) => (
+        <div key={group.origin} className="city-group">
+          <h3>{group.title}</h3>
+          <p className="subtle">{groups[group.origin].length === 0 ? 'None yet.' : group.note}</p>
+          <ul className="city-list">
+            {groups[group.origin].map((city) => (
+              <li key={city.id} className="city-card">
+                <header>
+                  <h4>{city.name}{city.distribution === 'private' && <span className="badge">Private</span>}</h4>
+                  <p className="subtle">{[city.region, city.country].filter(Boolean).join(', ')} · {cityFacts(city)}</p>
+                </header>
+                <p>{city.summary}</p>
+                <div className="person-actions">
+                  {city.origin === 'user' && <button type="button" className="text-button" onClick={() => void startEdit(city)}><Pencil aria-hidden="true" />Edit</button>}
+                  <button type="button" className="text-button" onClick={() => setCopying(city)}><Copy aria-hidden="true" />Copy</button>
+                  {city.distribution === 'public' && <button type="button" className="text-button" onClick={() => void exportCity(city)}><Download aria-hidden="true" />Save as file</button>}
+                  {city.origin === 'user' && <button type="button" className="text-button" onClick={() => setDeleting(city)}><Trash2 aria-hidden="true" />Delete</button>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      <Packs onReloaded={() => void refresh()} />
+      {copying && <CopyDialog city={copying} onClose={() => setCopying(null)}
+        onCopied={(name) => { setCopying(null); setFeedback({ tone: 'info', text: `Copied as ${name}. It is under Your cities.` }); void refresh() }} />}
+      {deleting && (
+        <ConfirmDialog title={`Delete ${deleting.name}?`} onClose={() => setDeleting(null)} actions={<>
+          <button type="button" className="button" onClick={() => setDeleting(null)}>Cancel</button>
+          <button type="button" className="button danger" onClick={() => void remove(deleting)}>Delete</button>
+        </>}>
+          <p>The city is removed from this workspace. Events that already happened there keep their wording, and backups made before keep the city. A companion who lives there has to move first.</p>
+        </ConfirmDialog>
+      )}
+    </section>
+  )
+}
+
+function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: () => void; onSaved: (name: string) => void }) {
+  const [text, setText] = useState(editing.text)
+  const [result, setResult] = useState<Feedback>(null)
+  const [busy, setBusy] = useState(false)
+  const run = async (save: boolean) => {
+    const parsed = parseDefinition(text)
+    if (!parsed.ok) { setResult({ tone: 'error', text: parsed.error }); return }
+    setBusy(true)
+    try {
+      if (!save) {
+        const checked = await api<{ summary: CityListing }>('/world/validate', parsed.value)
+        setResult({ tone: 'info', text: `Looks good: ${checked.summary.name}, ${cityFacts(checked.summary)}.` })
+      } else if (editing.mode === 'create') {
+        onSaved((await api<CityListing>('/world/cities', parsed.value)).name)
+      } else {
+        onSaved((await api<CityListing>(`/world/cities/${editing.id}`, { definition: parsed.value, expected_revision: editing.revision }, 'PUT')).name)
+      }
+    } catch (error) {
+      setResult({ tone: 'error', text: error instanceof Error ? error.message : 'Not saved.' })
+    } finally { setBusy(false) }
+  }
+  return (
+    <div className="city-editor form-stack">
+      <h3>{editing.mode === 'create' ? 'New city' : `Editing ${editing.id}`}</h3>
+      <p className="subtle">A city is a JSON file. Every place, college and employer names its neighbourhood, and every record names a source. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+      <label htmlFor="city-json" className="visually-hidden">City definition</label>
+      <textarea id="city-json" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
+      <div aria-live="polite">{result && <Notice tone={result.tone}>{result.text}</Notice>}</div>
+      <div className="form-actions">
+        <button type="button" className="button primary" disabled={busy} onClick={() => void run(true)}>Save</button>
+        <button type="button" className="button" disabled={busy} onClick={() => void run(false)}>Check</button>
+        <button type="button" className="button quiet" onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  )
+}
+
+function CopyDialog({ city, onClose, onCopied }: { city: CityListing; onClose: () => void; onCopied: (name: string) => void }) {
+  const [name, setName] = useState(`My ${city.name}`)
+  const [error, setError] = useState('')
+  const copy = async () => {
+    try {
+      const created = await api<CityListing>(`/world/cities/${city.id}/copy`, { id: slugify(name), name: name.trim() })
+      onCopied(created.name)
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Not copied.') }
+  }
+  return (
+    <ConfirmDialog title={`Copy ${city.name}`} onClose={onClose} actions={<>
+      <button type="button" className="button" onClick={onClose}>Cancel</button>
+      <button type="button" className="button primary" disabled={!slugify(name)} onClick={() => void copy()}>Copy</button>
+    </>}>
+      <TextInput label="Name of your copy" value={name} onChange={(value) => { setName(value); setError('') }} maxLength={120} hint={`Its id will be ${slugify(name) || '…'}.`} />
+      {error && <Notice tone="error">{error}</Notice>}
+    </ConfirmDialog>
+  )
+}
+
+function Packs({ onReloaded }: { onReloaded: () => void }) {
+  const client = useQueryClient()
+  const packs = useQuery({ queryKey: ['city-packs'], queryFn: () => api<PackReport>('/world/packs') })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const reload = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      client.setQueryData(['city-packs'], await api<PackReport>('/world/packs/reload', {}))
+      onReloaded()
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'The packs were not reloaded.') } finally { setBusy(false) }
+  }
+  if (!packs.data) return null
+  return (
+    <details className="city-packs">
+      <summary>Pack folders</summary>
+      <p className="subtle">City files dropped in these folders load as read-only packs. Packs marked private are for your own use and are never shared from here.</p>
+      <ul>{packs.data.folders.map((folder) => <li key={folder}><code>{folder}</code></li>)}</ul>
+      {packs.data.loaded.length > 0 && <p className="subtle">Loaded: {packs.data.loaded.map((item) => item.file.split(/[\\/]/).pop()).join(', ')}</p>}
+      {packs.data.errors.map((item) => <Notice key={item.file} tone="error">{item.file}: {item.error}</Notice>)}
+      {error && <Notice tone="error">{error}</Notice>}
+      <div className="form-actions"><button type="button" className="button" disabled={busy} onClick={() => void reload()}><FolderSync aria-hidden="true" />Reload packs</button></div>
+    </details>
+  )
+}

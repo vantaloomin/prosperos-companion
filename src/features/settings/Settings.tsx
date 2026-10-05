@@ -8,6 +8,7 @@ import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
 import { LifeSettings } from './LifeSettings'
 import { WorkspaceSettings } from './WorkspaceSettings'
+import { Cities } from '../world/Cities'
 
 export function Settings({ companion }: { companion: Companion | null }) {
   return (
@@ -16,6 +17,7 @@ export function Settings({ companion }: { companion: Companion | null }) {
       <ConnectionSettings />
       {companion && <WorkspaceSettings />}
       {companion && <LifeSettings name={companion.version.name} />}
+      {companion && <Cities />}
       {companion && <ImageSettings />}
       {companion && <ContextSettings name={companion.version.name} />}
       {companion && <Backups />}
