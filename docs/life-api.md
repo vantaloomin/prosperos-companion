@@ -79,7 +79,8 @@ voice) and `mood`.
 Events are composed from the routine, a fixed activity catalog and the world data, without a
 model. When a model is connected and `phrase_with_model` is on, it only rewrites the wording;
 `inputs.wording` is `model` or `template`. Set `home_city` on the character to a city id from the
-world data (for example `"baltimore"`) so events use real places there.
+world data (for example `"baltimore"`) so events use real places there. Without `home_city`, the
+character's `location` is used when it names a known city, such as `"Fells Point, Baltimore"`.
 
 ### Companion plans
 

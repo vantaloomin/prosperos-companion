@@ -98,6 +98,12 @@ CATALOG = {
 }
 
 
+def find_places(world, definition: dict, kinds) -> list:
+    """Places in the character's home city, or the city its location names."""
+    city = definition.get('home_city') or definition.get('location') or ''
+    return world.places(city, kinds) if city and kinds else []
+
+
 def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()) -> dict | None:
     """The event for one slot, or None when the slot stays quiet."""
     rng = random.Random(seed)
@@ -108,11 +114,8 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     # Prefer activities that did not just happen, so variety comes from the routine, not drama.
     fresh = [option for option in options if option.key not in set(recent_activities)] or list(options)
     chosen = rng.choice(fresh)
-    place = None
-    city = definition.get('home_city') or ''
-    if chosen.place_kinds and city:
-        places = world.places(city, chosen.place_kinds)
-        place = rng.choice(places) if places else None
+    places = find_places(world, definition, chosen.place_kinds)
+    place = rng.choice(places) if places else None
     values = {'name': definition['name'], 'label': block['label'].lower(),
               'at': f' at {place.name}' if place else chosen.generic, 'place': place.name if place else '',
               'area': f' in {place.neighborhood}' if place and place.neighborhood and place.neighborhood not in
@@ -152,8 +155,7 @@ def plan_ahead(definition: dict, world, seed: str, future_slots: list[dict]) -> 
     target = rng.choice(targets)
     options = [option for option in CATALOG[target['block']['kind']] if option.key in PLANNABLE]
     chosen = rng.choice(options)
-    city = definition.get('home_city') or ''
-    places = world.places(city, chosen.place_kinds) if city and chosen.place_kinds else []
+    places = find_places(world, definition, chosen.place_kinds)
     place = rng.choice(places) if places else None
     at = f' at {place.name}' if place else chosen.generic
     day = date.fromisoformat(target['local_date']).strftime('%A')
