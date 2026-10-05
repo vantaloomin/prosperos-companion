@@ -8,6 +8,8 @@ import { Loading, Notice } from '../../components/Feedback'
 import { Toggle } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { RememberForm, type NewMemory } from './RememberForm'
+import { ContextReceipt } from './ContextReceipt'
+import { PREVIEW_KEY } from './receiptRows'
 import { LAYERS, REMEMBER_KEY, groupMemories, layerTitle, type RememberRequest } from './memoryGroups'
 
 function takeRememberRequest(): RememberRequest | null {
@@ -33,6 +35,7 @@ export function Memories({ companion }: { companion: Companion }) {
     try {
       const result = await action()
       setFeedback({ tone: 'info', text: done })
+      void client.invalidateQueries({ queryKey: PREVIEW_KEY })
       await client.invalidateQueries({ queryKey: MEMORIES_KEY })
       return result
     } catch (error) {
@@ -70,6 +73,7 @@ export function Memories({ companion }: { companion: Companion }) {
         {!adding && <button type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember something</button>}
       </header>
       {adding && <RememberForm name={name} request={request} onSave={remember} onCancel={() => setAdding(false)} />}
+      <ContextReceipt name={name} memories={memories.data ?? []} />
       <div className="memory-toolbar"><Toggle label="Show earlier values" checked={history} onChange={setHistory} /></div>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {memories.isPending && <Loading label="Loading memories" />}

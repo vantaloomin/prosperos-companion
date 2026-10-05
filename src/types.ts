@@ -186,3 +186,6 @@ export interface FeedPost {
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
 export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string }
+
+export interface ContextReceipt { budget_tokens: number; estimated_tokens: number; included: Record<string, string[]>; omitted: Record<string, string[]> }
+export interface ContextPreview { system: string; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
