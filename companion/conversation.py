@@ -96,6 +96,27 @@ def history(database, before_seq=None, limit=100) -> dict:
         return {'timeline_id': companion['active_timeline_id'], 'messages': [message_view(row) for row in reversed(rows)]}
 
 
+SEARCH_LIMIT = 50
+
+
+def search(database, query: str, limit=SEARCH_LIMIT) -> dict:
+    """Newest-first matches in the active timeline, compared case-insensitively in Python so any script folds."""
+    needle = query.strip().casefold()
+    require(len(needle) >= 2, 'Search for at least two characters.', 422)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        rows = connection.execute(
+            "SELECT id, seq, role, text, status, reply_to, created_at FROM messages WHERE timeline_id=? "
+            "AND redacted_at IS NULL AND text<>'' ORDER BY seq DESC", (companion['active_timeline_id'],))
+        results = []
+        for row in rows:
+            if needle in row['text'].casefold():
+                results.append(dict(row))
+                if len(results) == limit:
+                    break
+        return {'query': query.strip(), 'results': results, 'more': len(results) == limit}
+
+
 def message_view(row: dict) -> dict:
     return {key: value for key, value in row.items() if key not in {'receipt', 'client_id'}} | {
         'active': bool(row['active']), 'redacted': row['redacted_at'] is not None}

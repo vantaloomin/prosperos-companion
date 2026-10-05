@@ -59,6 +59,13 @@ the stream: closing the stream or reloading never stops a reply, only
 written returns that same attempt instead of starting another. Without `wait=false` the request
 waits for the finished reply, as before.
 
+### Search
+
+`GET /api/conversation/search?q=` returns up to 50 matching messages from the active timeline,
+newest first, with `more` set when there may be others. Matching ignores case using Python's
+`casefold`, so it works beyond ASCII. Deleted (redacted) messages never match. The interface
+loads older pages until the match is on screen, then scrolls to it and marks it.
+
 ## Context builder (M10)
 
 `companion/memory/context.py` assembles each reply:
@@ -170,5 +177,6 @@ reference cleared. Enabling memory or background activity requires marking the r
 
 ## Not yet built
 
-Interface, timeline forking, automatic memory extraction, semantic embeddings, MCP tools, image
-generation and LoRA training, durable cross-process scheduling, restore into an existing workspace, and packaging.
+Timeline forking, automatic memory extraction, semantic embeddings, MCP tools, image generation
+and LoRA training, durable cross-process scheduling, restore into an existing workspace, and a
+Windows installer (the install and launch scripts need Python and Node already present).

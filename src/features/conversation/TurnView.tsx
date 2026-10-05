@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
-import { defaultAttempt, statusNote, type Turn } from './turns'
+import { shownAttempt, statusNote, type Turn } from './turns'
 
 interface Props {
   turn: Turn
@@ -13,21 +13,23 @@ interface Props {
   onStop: (replyId: string) => void
   onRemember: (message: Message) => void
   onDecline: (message: Message) => void
+  /** A message found by search: shown even when it is not the default attempt, and marked. */
+  highlight?: string | null
 }
 
 function Paragraphs({ text }: { text: string }) {
   return <>{text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</>
 }
 
-export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline }: Props) {
+export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, highlight }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
-  const shown = turn.attempts.find((attempt) => attempt.id === chosen) ?? defaultAttempt(turn, isLatest)
+  const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <UserMessage message={turn.user} onRemember={onRemember} onDecline={onDecline} />
+      <UserMessage message={turn.user} found={highlight === turn.user.id} onRemember={onRemember} onDecline={onDecline} />
       {shown && (
-        <Reply message={shown} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
+        <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} />
       )}
       {isLatest && !busy && (
@@ -41,9 +43,9 @@ export function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, on
   )
 }
 
-function UserMessage({ message, onRemember, onDecline }: { message: Message; onRemember: (message: Message) => void; onDecline: (message: Message) => void }) {
+function UserMessage({ message, found, onRemember, onDecline }: { message: Message; found: boolean; onRemember: (message: Message) => void; onDecline: (message: Message) => void }) {
   return (
-    <article className="message message-user" aria-label="You">
+    <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
       <header>
         <span className="speaker">You</span>
         <span className="message-actions">
@@ -59,11 +61,11 @@ function UserMessage({ message, onRemember, onDecline }: { message: Message; onR
   )
 }
 
-function Reply({ message, name, text, position, onPage, onStop }: { message: Message; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void }) {
+function Reply({ message, found, name, text, position, onPage, onStop }: { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void }) {
   const note = statusNote(message)
   const streaming = message.status === 'streaming'
   return (
-    <article className={`message message-companion${message.active ? '' : ' inactive'}`} aria-label={name} aria-busy={streaming}>
+    <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
       <header>
         <span className="speaker">{name}</span>
         <span className="reply-tools">
@@ -83,6 +85,10 @@ function Reply({ message, name, text, position, onPage, onStop }: { message: Mes
       {note && <p className="reply-status" role="note">{note}{message.error && message.error !== 'Stopped.' ? ` ${message.error}` : ''}</p>}
     </article>
   )
+}
+
+function classes(base: string, flags: Record<string, boolean>) {
+  return [base, ...Object.keys(flags).filter((flag) => flags[flag])].join(' ')
 }
 
 function formatTime(value: string) {

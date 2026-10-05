@@ -60,6 +60,7 @@ def test_delete_removes_every_version_and_can_redact_sources(client, connected):
     assert client.get('/api/memories?history=true').json() == []
     messages = {item['id']: item for item in client.get('/api/conversation').json()['messages']}
     assert messages[message['id']]['text'] == '' and messages[message['id']]['redacted'] is True
+    assert client.get('/api/conversation/search', params={'q': 'marathon'}).json()['results'] == []
 
 
 def test_declined_message_cannot_become_a_memory(client, connected):
