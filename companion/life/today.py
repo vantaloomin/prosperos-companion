@@ -3,7 +3,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
 from companion.events import view as event_view
-from companion.life import feed, mood, routine, simulation
+from companion.life import agenda, circle, feed, mood, routine, simulation
 from companion.memory.records import OPEN_PLANS, eligible
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
@@ -54,6 +54,14 @@ def plans(connection, companion, now) -> dict:
             'threads': [event_view(row) for row in threads]}
 
 
+def day(connection, timeline_id, local_date) -> dict:
+    """The companion's local day: typical weather, the city's annual events and circle birthdays."""
+    found = agenda.day_on(connection, timeline_id, local_date)
+    birthdays = [{'id': person['id'], 'name': person['name']} for person in circle.people(connection, timeline_id)
+                 if circle.birthday(person['id']) == local_date[5:]]
+    return {'date': local_date, **found, 'birthdays': birthdays}
+
+
 def view(database) -> dict:
     now = database.clock.now()
     with database.connect() as connection:
@@ -80,6 +88,7 @@ def view(database) -> dict:
             'clock_behind': now < parse(position['simulated_through']),
             'limits': simulation.settings_view(life),
             'mood': mood.active(connection, companion, now),
+            'day': day(connection, timeline_id, now.astimezone(zone(version['timezone'])).date().isoformat()),
         }
     schedule, default = routine.blocks(version['definition'])
     current, upcoming = routine.current_and_next(schedule, version['timezone'], now)
