@@ -130,6 +130,11 @@ on, after formation and indexing (`POST /api/memory/consolidate` runs it on dema
 - **Resurfacing.** An item recalled in two of the last six replies comes back only when the user's
   own words match it, so a semantic near-match cannot keep repeating the same anecdote, while a
   direct question still finds it.
+- **Related experiences.** When a shared experience or relationship memory is recalled, the
+  eligible experience sharing most of its words (a quarter or more) comes along, marked "related
+  to" it, at most two per reply. Links are computed from the eligible pool for each reply and never
+  stored, so exclusion, correction and deletion apply to them like everything else, and a link
+  never claims two memories are the same event or person.
 
 ## Memory formation (M7, M8)
 
