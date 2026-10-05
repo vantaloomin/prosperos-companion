@@ -43,8 +43,13 @@ def plans(connection, companion, now) -> dict:
                   if memory['layer'] == 'plan' and memory['plan_status'] in OPEN_PLANS]
     companion_plans = many(connection, "SELECT * FROM life_events WHERE timeline_id=? AND status='committed' "
                            "AND kind='plan' AND ends_at>=? ORDER BY starts_at", (timeline_id, stamp(now)))
+    # Open threads whose outcome is not committed yet.
     threads = many(connection, "SELECT * FROM life_events WHERE timeline_id=? AND status='committed' "
-                   "AND kind='thread' ORDER BY starts_at DESC LIMIT 5", (timeline_id,))
+                   "AND kind='thread' AND json_extract(details, '$.state')='open' AND NOT EXISTS (SELECT 1 "
+                   "FROM life_events settled WHERE settled.kind='thread' AND settled.status='committed' "
+                   "AND json_extract(settled.details, '$.state')='settled' AND json_extract(settled.details, "
+                   "'$.thread_key')=json_extract(life_events.details, '$.thread_key')) "
+                   'ORDER BY starts_at DESC LIMIT 5', (timeline_id,))
     return {'shared': user_plans, 'companion': [event_view(row) for row in companion_plans],
             'threads': [event_view(row) for row in threads]}
 

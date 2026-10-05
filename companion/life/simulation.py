@@ -147,6 +147,33 @@ def plan_for(connection, timeline_id, slot_key) -> dict | None:
                     (timeline_id, slot_key))
 
 
+def settle_key(thread_key: str) -> str:
+    return f'settled:{thread_key}'
+
+
+OPEN_THREADS = ("SELECT * FROM life_events WHERE timeline_id=? AND kind='thread' AND status IN ({statuses}) "
+                "AND json_extract(details, '$.state')='open' AND NOT EXISTS (SELECT 1 FROM life_events settled "
+                "WHERE settled.idempotency_key='settled:' || json_extract(life_events.details, '$.thread_key'))")
+
+
+def due_thread(connection, timeline_id, local_date) -> dict | None:
+    """A committed open thread that may settle on this local date."""
+    row = optional(connection, OPEN_THREADS.format(statuses="'committed'") +
+                   " AND json_extract(details, '$.settles_on')<=? ORDER BY starts_at LIMIT 1",
+                   (timeline_id, local_date))
+    return events.view(row) if row else None
+
+
+def unsettled_thread(connection, timeline_id) -> dict | None:
+    return optional(connection, OPEN_THREADS.format(statuses="'proposed','committed'") + ' LIMIT 1', (timeline_id,))
+
+
+def recent_threads(connection, timeline_id) -> list[str]:
+    rows = many(connection, "SELECT details FROM life_events WHERE timeline_id=? AND kind='thread' "
+                "AND json_extract(details, '$.state')='open' ORDER BY starts_at DESC LIMIT 3", (timeline_id,))
+    return [decode(row['details']).get('thread') for row in rows]
+
+
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
     """Slots a committed plan names come first, so a plan happens when its time comes."""
     planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)][:count]
@@ -370,7 +397,8 @@ class LifeEngine:
             composed = composer.compose(slot, version['definition'], self.world, key,
                                         [decode(event['details']).get('activity') for event in recent])
         if composed is None:
-            return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.'}
+            return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.',
+                    **self.follow_threads(run, slot, version, life, key)}
         written, phrasing = await self.phrase(config, life, version, slot, composed)
         block = slot['block']
         event = events.propose(self.database, EventProposal(
@@ -391,7 +419,42 @@ class LifeEngine:
         result = self.settle(event, life)
         if result['outcome'] in {'proposed', 'committed'} and not plan:
             result.update(self.plan_ahead(run, slot, version, life, key))
+        if result['outcome'] in {'proposed', 'committed'}:
+            result.update(self.follow_threads(run, slot, version, life, key))
         return result
+
+    def follow_threads(self, run, slot, version, life, key) -> dict:
+        """Settle an open thread whose day has come, or now and then open one (PRD T2). At most one
+        thread is open at a time, and each waits for review like any event."""
+        timeline_id = run['timeline_id']
+        with self.database.connect() as connection:
+            due = due_thread(connection, timeline_id, slot['local_date'])
+            busy = due or unsettled_thread(connection, timeline_id)
+            used = [] if busy else recent_threads(connection, timeline_id)
+        common = {'slot': slot['key'], 'local_date': slot['local_date'], 'timezone': version['timezone'],
+                  'post': '', 'mood': ''}
+        if due:
+            settled = composer.settle_thread(due, version['definition'])
+            proposal = EventProposal(
+                idempotency_key=settle_key(due['details']['thread_key']), kind='thread', summary=settled['summary'],
+                details={**common, 'state': 'settled', 'thread': settled['thread'],
+                         'thread_key': due['details']['thread_key']},
+                starts_at=slot['starts_at'], ends_at=slot['ends_at'],
+                inputs={'run_id': run['id'], 'mode': run['mode'], 'settles': due['id'],
+                        'composer_version': settled['composer_version'], 'character_version_id': version['id']})
+        elif not busy and (opened := composer.open_thread(version['definition'], key, slot['local_date'], used)):
+            thread_key = f"thread:{timeline_id}:{slot['key']}"
+            proposal = EventProposal(
+                idempotency_key=thread_key, kind='thread', summary=opened['summary'],
+                details={**common, 'state': 'open', 'thread': opened['thread'], 'thread_key': thread_key,
+                         'settles_on': opened['settles_on']},
+                starts_at=slot['starts_at'], ends_at=slot['ends_at'],
+                inputs={'run_id': run['id'], 'mode': run['mode'], 'composer_version': opened['composer_version'],
+                        'character_version_id': version['id']})
+        else:
+            return {}
+        settled = self.settle(events.propose(self.database, proposal), life)
+        return {'thread_event_id': settled['event_id'], 'thread_outcome': settled['outcome']}
 
     def plan_ahead(self, run, slot, version, life, key) -> dict:
         """At most one plan per event, for an upcoming slot; it waits for review like any event."""
