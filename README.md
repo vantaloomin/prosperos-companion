@@ -2,7 +2,17 @@
 
 A standalone companion application derived from the Companion Mode concept in [Prospero's Study](https://github.com/vantaloomin/prosperos-study). The backend covers workspace identity, character versions, conversation, typed personal memory, committed life events and backups. The local interface covers conversation with streaming replies, character creation and editing, memories, settings, Today and the private Feed.
 
-On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrator rights, no Python or Node needed) and start Prospero Companion from the Start menu. Until releases are published, the setup is a build artifact of the `Package` workflow. From a checkout, double-click `install.bat` once, then `launch.bat`. On a Mac, double-click `install.command` once, then `launch.command`; see [Installing on a Mac](docs/macos.md), including what macOS shows the first time. See [Development](docs/development.md) for Linux.
+## Which folder is for you
+
+| Folder | Who it is for |
+| --- | --- |
+| [`Windows`](Windows) | Running the Companion on a Windows PC. Double-click `install.bat` once, then `launch.bat`. |
+| [`Mac`](Mac) | Running it on a Mac. Double-click `install.command` once, then `launch.command`; see [Installing on a Mac](Program/docs/macos.md), including what macOS shows the first time. |
+| [`Program`](Program) | The app itself: code, interface, tests, build scripts and docs. You never need to open it to use the Companion. |
+
+On Windows you can instead run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrator rights, no Python or Node needed) and start Prospero Companion from the Start menu. Until releases are published, the setup is a build artifact of the `Package` workflow. See [Development](Program/docs/development.md) for Linux.
+
+`install.ps1` at the top is a bridge that lets copies from before this layout update themselves; leave it be.
 
 | Script | What it does |
 | --- | --- |
@@ -14,20 +24,20 @@ On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrato
 | `create-shortcut.bat` | Puts a Prospero Companion shortcut to `launch.bat` on the desktop. |
 | `dev.bat` | Development mode: the backend reloads on Python changes and Vite serves http://127.0.0.1:5175 with live interface updates. |
 
-Each script has a Mac twin with the same name ending in `.command`.
+Each script has a Mac twin in `Mac` with the same name ending in `.command`. Your companion's data never lives in this folder: it is in `%LOCALAPPDATA%\ProsperoCompanion` on Windows and `~/Library/Application Support/ProsperoCompanion` on a Mac.
 
-- [Product requirements (draft)](docs/product-requirements.md)
-- [Backbone architecture](docs/architecture.md)
-- [Development](docs/development.md)
-- [Installing on a Mac](docs/macos.md)
-- [Models](docs/models.md)
-- [Character drafting](docs/character-drafting.md)
-- [Life simulation API](docs/life-api.md)
-- [World data](docs/world-data.md)
-- [Image generation](docs/images.md)
-- [Current context tools (MCP)](docs/context-tools.md)
-- [Character LoRA maker](docs/lora.md)
-- [Phone access](docs/phone-access.md)
-- [Acceptance status](docs/acceptance-status.md)
+- [Product requirements (draft)](Program/docs/product-requirements.md)
+- [Backbone architecture](Program/docs/architecture.md)
+- [Development](Program/docs/development.md)
+- [Installing on a Mac](Program/docs/macos.md)
+- [Models](Program/docs/models.md)
+- [Character drafting](Program/docs/character-drafting.md)
+- [Life simulation API](Program/docs/life-api.md)
+- [World data](Program/docs/world-data.md)
+- [Image generation](Program/docs/images.md)
+- [Current context tools (MCP)](Program/docs/context-tools.md)
+- [Character LoRA maker](Program/docs/lora.md)
+- [Phone access](Program/docs/phone-access.md)
+- [Acceptance status](Program/docs/acceptance-status.md)
 
 Licensed under the GNU Affero General Public License v3.0, matching the Study code it reuses.

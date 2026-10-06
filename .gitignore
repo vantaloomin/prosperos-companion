@@ -14,10 +14,6 @@
 !/SECURITY.md
 
 # Working records and art prompts are local inputs, not public documentation.
-/docs/*-goal.md
-/docs/**/*-goal.md
-/docs/**/v[0-9]*-*.md
-/docs/v[0-9]*-*.md
 /design/**/*-prompt.md
 /design/**/*-prompts.md
 
@@ -57,7 +53,8 @@ SKILL.md
 *.p12
 *.pfx
 
-# Local companion workspaces, uploads, exports, and database sidecars
+# Local companion workspaces, uploads, exports, and database sidecars. Program/.gitignore has the
+# same folders inside Program; these cover a checkout from before the move.
 /data/
 /backups/
 /exports/
@@ -135,5 +132,6 @@ $RECYCLE.BIN/
 # Keep source, README/license files, dependency manifests and lockfiles,
 # install/launch scripts, public assets, and design/brand.md versioned.
 
-# Personal city packs (for example private fan cities). Never committed; see docs/world-data.md.
+# Personal city packs (for example private fan cities). Never committed; see Program/docs/world-data.md.
+# They live in Program/private-cities/ now; this covers a checkout from before the move.
 /private-cities/
