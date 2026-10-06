@@ -8,6 +8,7 @@ import { useReconcile } from './features/today/useReconcile'
 import { useNotifications } from './features/notifications/useNotifications'
 import { useTexts } from './features/conversation/useTexts'
 import { Loading, Notice } from './components/Feedback'
+import { DebugBanner } from './features/settings/DebugBanner'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
@@ -63,6 +64,7 @@ export default function App() {
         ))}
       </nav>
       <main id="main" className="app-main" tabIndex={-1}>
+        <DebugBanner onOpen={() => go('settings/debug')} />
         {companion.isPending ? <Loading label="Opening your companion" />
           : companion.isError ? <Notice tone="error">{companion.error.message}</Notice>
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}

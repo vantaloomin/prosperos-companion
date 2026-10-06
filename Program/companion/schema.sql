@@ -1138,3 +1138,17 @@ CREATE TABLE IF NOT EXISTS townsfolk_encounters (
   PRIMARY KEY (timeline_id, key, slot_key)
 );
 CREATE INDEX IF NOT EXISTS townsfolk_encounters_day ON townsfolk_encounters(timeline_id, local_date);
+
+-- Debug time (Settings > Debug, companion/debug_time.py). While the row exists the app clock reads
+-- app_anchor + (real time since real_anchor) * speed. `snapshot` is the database copy taken first, which
+-- returning to real time restores unless the user keeps what happened; `backup` is the verified archive.
+CREATE TABLE IF NOT EXISTS debug_time (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  app_anchor TEXT NOT NULL,
+  real_anchor TEXT NOT NULL,
+  speed REAL NOT NULL DEFAULT 1 CHECK (speed >= 1),
+  started_at TEXT NOT NULL,
+  app_started_at TEXT NOT NULL,
+  snapshot TEXT NOT NULL,
+  backup TEXT NOT NULL
+);

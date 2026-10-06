@@ -1,3 +1,4 @@
+import { appDate } from '../../appTime.ts'
 import { useEffect, useState, type RefObject } from 'react'
 import { GitBranch, Search } from 'lucide-react'
 import type { ChatStyle, Companion } from '../../types'
@@ -15,8 +16,8 @@ type Props = { companion: Companion; searching: boolean; searchButton: RefObject
 
 export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, browsing, timelinesButton, onTimelines }: Props) {
   const { name, timezone, location } = { ...companion.version.definition, name: companion.version.name }
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30_000); return () => window.clearInterval(timer) }, [])
+  const [now, setNow] = useState(() => appDate())
+  useEffect(() => { const timer = window.setInterval(() => setNow(appDate()), 30_000); return () => window.clearInterval(timer) }, [])
   const time = localTime(timezone, now)
   const portrait = usePortrait()
   return (

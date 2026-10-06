@@ -321,7 +321,7 @@ export interface LifeSettings {
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
 export interface BackupEntry {
-  name: string; bytes: number; kind: 'backup' | 'pre-upgrade' | 'before-reset' | 'before-delete'; readable: boolean
+  name: string; bytes: number; kind: 'backup' | 'pre-upgrade' | 'before-reset' | 'before-delete' | 'before-debug'; readable: boolean
   created_at?: string; app_version?: string; files?: number; datasets_included?: boolean
 }
 export interface StartOverPreview {
@@ -953,3 +953,18 @@ export interface Townsperson {
   desire: string | null
 }
 export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }
+
+/** Debug time (Settings > Debug, companion/debug_time.py): the app clock moved ahead or running faster. */
+export interface DebugTime {
+  active: boolean
+  /** The app's time, and the PC's real time. */
+  now: string
+  real_now: string
+  speed: number
+  speeds: number[]
+  started_at: string | null
+  app_started_at: string | null
+  backup: string | null
+  jumping: { to: string; done: number } | null
+  kept?: boolean
+}

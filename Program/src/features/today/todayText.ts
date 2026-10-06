@@ -1,3 +1,4 @@
+import { appDate } from '../../appTime.ts'
 import type { BodyState, PauseRecord, Recommendation, Today } from '../../types'
 
 const time = (value: string, timeZone?: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone }).format(new Date(value))
@@ -14,7 +15,7 @@ export function pauseToFill(pauses: PauseRecord[]): PauseRecord | null {
   return pauses.find((pause) => pause.ended_at && !pause.catch_up_requested_at) ?? null
 }
 
-export function eventWhen(startsAt: string, now = new Date()): string {
+export function eventWhen(startsAt: string, now = appDate()): string {
   const date = new Date(startsAt)
   const sameDay = date.toDateString() === now.toDateString()
   const day = sameDay ? 'Today' : new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' }).format(date)

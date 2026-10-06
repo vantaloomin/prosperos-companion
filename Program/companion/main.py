@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from companion import local_zone, workspace
 from companion.conversation import Conversation, recover
 from companion.database import Database
+from companion.debug_routes import router as debug_router
+from companion.debug_time import DebugTime
 from companion.errors import DomainError
 from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
 from companion.images import jobs as image_jobs
@@ -99,6 +101,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.openers = Openers(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler)
     app.state.life.openers = app.state.openers
+    app.state.debug_time = DebugTime(app.state.database, app.state.life)
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
     app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life,
@@ -138,6 +141,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(closeness_routes.router)
     app.include_router(phone_routes.router)
     app.include_router(people_routes.router)
+    app.include_router(debug_router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

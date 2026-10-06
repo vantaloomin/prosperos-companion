@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid4
 
-from companion.clock import Clock, stamp
+from companion.clock import AppClock, Clock, stamp
 from companion.errors import DomainError, require
 from companion.identity import APP_ID, SCHEMA_VERSION, VERSION, database_path
 
@@ -33,7 +33,8 @@ def decode(value: str | None):
 class Database:
     def __init__(self, path: str | Path | None = None, clock: Clock | None = None):
         self.path = Path(path or database_path())
-        self.clock = clock or Clock()
+        # Tests hand in a FixedClock; debug time (companion/debug_time.py) shifts the app clock wrapped around it.
+        self.clock = clock if isinstance(clock, AppClock) else AppClock(clock)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         inspect_existing(self.path)
         if upgrade_needed(self.path):
@@ -41,6 +42,8 @@ class Database:
             upgrade.run(self.path, self.now())
         with self.connect(write=True) as connection:
             initialize(connection, self.now())
+        from companion import debug_time
+        debug_time.load(self)
 
     def now(self) -> str:
         return stamp(self.clock.now())
@@ -112,6 +115,8 @@ ADDED_COLUMNS = (
     ('companions', 'portrait_reference_id', 'TEXT'),
     # Texts first became on by default; a workspace from before that is switched on once (see initialize).
     ('life_settings', 'texts_first_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
+    # The routine slot still going when the life cursor last moved (companion/life/simulation.py).
+    ('life_cursors', 'open_slot', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

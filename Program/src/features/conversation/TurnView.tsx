@@ -1,3 +1,4 @@
+import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useEffect, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
@@ -148,11 +149,11 @@ function ReplyBody({ text, name, streaming, bursts }: { text: string; name: stri
 
 /** True until the reply's time comes; re-renders once at that moment. */
 function useHeld(message: Message): boolean {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => appNow())
   const held = isHeld(message, now)
   useEffect(() => {
     if (!held) return undefined
-    const timer = window.setTimeout(() => setNow(Date.now()), Math.min(Date.parse(message.held_until!) - now + 500, 2 ** 31 - 1))
+    const timer = window.setTimeout(() => setNow(appNow()), Math.min(realDelay(Date.parse(message.held_until!) - now) + 500, 2 ** 31 - 1))
     return () => window.clearTimeout(timer)
   }, [held, message.held_until, now])
   return held
