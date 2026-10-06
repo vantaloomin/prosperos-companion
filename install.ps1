@@ -51,7 +51,7 @@ function Find-Node {
     $ErrorActionPreference = 'Continue'
     try {
         $version = & $executable -p 'process.versions.node' 2>$null
-        if ($LASTEXITCODE -eq 0 -and [version]$version -ge [version]'22.12.0') { return $executable }
+        if ($LASTEXITCODE -eq 0 -and [version]$version -ge [version]'22.13.0') { return $executable }
     } catch { return }
 }
 
@@ -59,7 +59,7 @@ function Install-Prerequisite {
     param([string]$PackageId)
     $winget = Find-Executable 'winget.exe'
     if (-not $winget) {
-        throw 'WinGet is unavailable. Install App Installer from Microsoft Store, or install Python 3.12+ and Node.js 22.12+ manually, then rerun install.bat.'
+        throw 'WinGet is unavailable. Install App Installer from Microsoft Store, or install Python 3.12+ and Node.js 22.13+ manually, then rerun install.bat.'
     }
     Write-Host "Installing missing prerequisite: $PackageId. Windows may request administrator approval."
     Invoke-Checked $winget @('install', '--exact', '--id', $PackageId, '--source', 'winget', '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
@@ -74,7 +74,7 @@ function Get-Prerequisites {
     if (-not $python) { throw 'Python 3.12+ was not found. Reopen this installer after installing Python.' }
     $node = Find-Node
     if (-not $node -and -not $CheckOnly) { Install-Prerequisite 'OpenJS.NodeJS.LTS'; $node = Find-Node }
-    if (-not $node) { throw 'Node.js 22.12+ was not found. Reopen this installer after installing Node.js.' }
+    if (-not $node) { throw 'Node.js 22.13+ was not found. Reopen this installer after installing Node.js.' }
     $npm = Join-Path (Split-Path -Parent $node) 'npm.cmd'
     if (-not (Test-Path -LiteralPath $npm)) { throw 'npm.cmd is missing beside Node.js. Repair the Node.js installation and retry.' }
     return @{ Python = $python; Npm = $npm }
