@@ -44,12 +44,10 @@ running), runs `npm run dev` in its own, and stops the backend it started when V
 Dev mode uses the real workspace unless `COMPANION_DATA_DIR` points elsewhere. CI runs
 `scripts/windows/helpers-test.ps1` after the installer to exercise each helper through its `.bat`.
 
-Until October 2026 the scripts and the code sat together at the top of the checkout. An `update.bat`
-from then pulls and runs the top-level `install.ps1`, which hands over to `scripts/windows/install.ps1`.
-That install tidies what the old layout left at the top (`.venv`, `node_modules`, `dist`, folders kept
-only by `__pycache__`), moves a top-level `private-cities/` into Program and repoints desktop
-shortcuts at `Windows\launch.bat`. `scripts/windows/layout-move-test.ps1` checks that update in CI.
-The top-level `install.ps1` can go once no checkout from before the move is left to update.
+Until October 2026 the scripts and the code sat together at the top of the checkout. On its first run
+in the new layout, `scripts/windows/install.ps1` tidies what the old layout left at the top (`.venv`,
+`node_modules`, `dist`, folders kept only by `__pycache__`), moves a top-level `private-cities/` into
+Program and repoints desktop shortcuts at `Windows\launch.bat`.
 
 On Linux, follow the commands above and below, then run `.venv/bin/python -m companion.launch`.
 

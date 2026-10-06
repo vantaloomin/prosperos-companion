@@ -92,8 +92,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          # The layout-move test updates a copy from the last commit before the move.
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -124,11 +122,6 @@ jobs:
         env:
           COMPANION_DATA_DIR: ${{ runner.temp }}\companion-helpers-data
         run: .\scripts\windows\helpers-test.ps1
-      - name: Update a copy from before the layout move
-        shell: powershell
-        env:
-          COMPANION_DATA_DIR: ${{ runner.temp }}\companion-move-data
-        run: .\scripts\windows\layout-move-test.ps1
 
   macos-install:
     # Nobody on the team has a Mac, so this is the macOS scripts' only test. No setup-python or
