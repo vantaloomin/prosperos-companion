@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Archive, RotateCcw } from 'lucide-react'
 import { api } from '../../api'
+import { useWorkspaceSettings } from '../../companion'
 import type { BackupList, BackupResult } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Toggle } from '../../components/Fields'
@@ -17,6 +18,7 @@ export function Backups() {
   const [busy, setBusy] = useState(false)
   const [datasets, setDatasets] = useState(false)
   const [confirming, setConfirming] = useState<string | null>(null)
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   // Busy controls are marked, not disabled: disabling the focused control would drop keyboard focus.
   const run = async (action: () => Promise<unknown>, fallback: string) => {
     if (busy) return
@@ -43,7 +45,7 @@ export function Backups() {
     <section className="settings-section form-stack" aria-labelledby="backup-heading">
       <div>
         <h2 id="backup-heading">Backups</h2>
-        <p className="subtle">A backup is a copy of this workspace, saved beside it: your conversation, memories, life, images and adapters. Your API keys are not included. Anything you delete later stays in backups made before.</p>
+        <p className="subtle">A backup is a copy of this workspace, saved beside it: your conversation, memories, life{loraMaker ? ', images and adapters' : ' and images'}. Your API keys are not included. Anything you delete later stays in backups made before.</p>
       </div>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       {pending && (
@@ -52,7 +54,8 @@ export function Backups() {
         </Notice>
       )}
       <Toggle label="Include reference pictures" checked={datasets} onChange={setDatasets}
-        hint="The pictures you collected to train a character adapter. Leave this off to keep them out of the backup; the adapters themselves are always included." />
+        hint={loraMaker ? 'The pictures you collected to train a character adapter. Leave this off to keep them out of the backup; the adapters themselves are always included.'
+          : 'The profile pictures you kept for your companion. Leave this off to keep them out of the backup.'} />
       <div className="form-actions"><button type="button" className="button" aria-disabled={busy} onClick={() => void backup()}><Archive aria-hidden="true" />Back up now</button></div>
       {list.isError && <Notice tone="error">{list.error.message}</Notice>}
       {list.data && list.data.backups.length > 0 && (

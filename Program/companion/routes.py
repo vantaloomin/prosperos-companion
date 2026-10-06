@@ -59,12 +59,17 @@ def health():
 
 @router.get('/settings')
 def read_settings(request: Request):
-    return workspace.read(db(request))
+    return workspace.read(db(request)) | features(request)
 
 
 @router.put('/settings')
 def update_settings(request: Request, body: SettingsUpdate):
-    return workspace.update(db(request), body)
+    return workspace.update(db(request), body) | features(request)
+
+
+def features(request: Request) -> dict:
+    """Switches the interface reads with the settings; they are set on the PC, not saved here."""
+    return {'lora_maker': request.app.state.lora_maker}
 
 
 @router.post('/pause')

@@ -24,6 +24,7 @@ from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
 from companion.lora import evaluation as lora_evaluation
 from companion.lora import generation as lora_generation
+from companion.lora import maker_enabled as lora_maker_enabled
 from companion.lora import routes as lora_routes
 from companion.lora import training as lora_training
 from companion.mcp import routes as context_routes
@@ -79,7 +80,8 @@ async def lifespan(app):
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
                life_tasks=True, world=None, embedder=None, image_adapters=None,
-               context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None) -> FastAPI:
+               context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None,
+               lora_maker=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
@@ -117,6 +119,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     # Local ComfyUI images wait while a trainer holds the GPU (compute and job control).
     app.state.images.gpu_busy = lambda: app.state.training.active
     app.state.life_tasks = life_tasks
+    # The LoRA creator is hidden unless switched on; profile pictures and an adopted adapter keep working.
+    app.state.lora_maker = lora_maker_enabled() if lora_maker is None else lora_maker
     app.middleware('http')(guard_writes)
     # Outermost: only this PC, or a paired phone through Tailscale, gets further (companion/phone/access.py).
     app.state.phone = phone_access.Gate(app.state.database)
@@ -134,6 +138,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(image_routes.router)
     app.include_router(context_routes.router)
     app.include_router(lora_routes.router)
+    if app.state.lora_maker:
+        app.include_router(lora_routes.maker_router)
     app.include_router(import_routes.router)
     app.include_router(closeness_routes.router)
     app.include_router(phone_routes.router)

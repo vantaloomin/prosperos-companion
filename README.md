@@ -34,7 +34,7 @@ Each script has a Mac twin in `Mac` with the same name ending in `.command`. You
 - [World data](Program/docs/world-data.md)
 - [Image generation](Program/docs/images.md)
 - [Current context tools (MCP)](Program/docs/context-tools.md)
-- [Character LoRA maker](Program/docs/lora.md)
+- [Character LoRA maker](Program/docs/lora.md) (hidden unless switched on)
 - [Phone access](Program/docs/phone-access.md)
 - [Acceptance status](Program/docs/acceptance-status.md)
 

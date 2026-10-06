@@ -23,7 +23,7 @@ def adapters():
 @pytest.fixture
 def app(tmp_path, clock, provider, adapters):
     return create_app(tmp_path / 'workspace' / 'companion.sqlite3', clock=clock, vault=MemoryVault(),
-                      provider=provider, life_tasks=False, image_adapters=adapters)
+                      provider=provider, life_tasks=False, image_adapters=adapters, lora_maker=True)
 
 
 @pytest.fixture

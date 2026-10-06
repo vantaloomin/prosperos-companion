@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { BookHeart, CalendarDays, MessageCircle, Newspaper, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
-import { useCompanion, useFollowPcTimezone, type View } from './companion'
+import { useCompanion, useFollowPcTimezone, useWorkspaceSettings, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
 import type { SettingsTab } from './features/settings/sections'
 import { useReconcile } from './features/today/useReconcile'
@@ -87,8 +87,10 @@ function useFocusOnViewChange(view: View) {
 interface CurrentViewProps { view: View; companion: Companion | null; go: (view: View) => void; openTab: (tab: SettingsTab) => void }
 
 function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   if (view === 'settings' || view.startsWith('settings/')) return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
-  if (view === 'character') return <Character companion={companion} go={go} />
+  // With the LoRA creator switched off (the default), an old #appearance link opens the Character page.
+  if (view === 'character' || (view === 'appearance' && !loraMaker)) return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
   return <CompanionView view={view} companion={companion} go={go} />
 }
