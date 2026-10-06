@@ -17,8 +17,9 @@ import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
 import { StartOver } from './StartOver'
+import { Cast } from './Cast'
 
-interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
+export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
 
 export function Character({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   const [saved, setSaved] = useState<number | null>(null)
@@ -37,9 +38,13 @@ export function Character({ companion, go }: { companion: Companion | null; go: 
   return <CharacterForm key={companion?.active_version_id ?? `new-${start?.attempt}`} companion={companion} start={start} onRestart={() => setStart(null)} go={go} saved={saved} onSaved={setSaved} />
 }
 
-interface FormProps { companion: Companion | null; start: Start | null; onRestart: () => void; go: (view: View) => void; saved: number | null; onSaved: (version: number) => void }
+interface FormProps {
+  companion: Companion | null; start: Start | null; onRestart: () => void; go: (view: View) => void; saved: number | null; onSaved: (version: number) => void
+  /** Saving a new character some other way than creating the first companion (a townsperson taking over). */
+  create?: { save: (definition: CharacterDefinition) => Promise<Companion>; label: string; heading: ReactNode; notice: ReactNode }
+}
 
-function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: FormProps) {
+export function CharacterForm({ companion, start, onRestart, go, saved, onSaved, create }: FormProps) {
   const client = useQueryClient()
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   const [form, setForm] = useState<FormState>(() => initialForm(companion, start))
@@ -50,6 +55,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
   const set = (change: Partial<CharacterDefinition>) => setForm((current) => ({ ...current, definition: { ...current.definition, ...change } }))
   const setText = (key: keyof FormState['texts']) => (value: string) => setForm((current) => ({ ...current, texts: { ...current.texts, [key]: value } }))
   const problems = scheduleProblems(definition.schedule)
+  const chrome = formChrome(companion, start, create, go, onRestart)
   const cleaned = () => cleanDefinition(definition, texts.interests, texts.themes, texts)
   // Rewriting one field with the text model, when one is connected.
   const help = (field: DraftField, label: string): ReactNode => connection.data
@@ -63,7 +69,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
     try {
       const saved = companion
         ? await api<Companion>('/companion/versions', { definition: body, note, expected_version_id: companion.active_version_id })
-        : await api<Companion>('/companion', body)
+        : create ? await create.save(body) : await api<Companion>('/companion', body)
       client.setQueryData(COMPANION_KEY, saved)
       onSaved(saved.version.number)
       void client.invalidateQueries({ queryKey: ['versions'] })
@@ -75,8 +81,8 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
 
   return (
     <section className="page">
-      <CharacterHeading companion={companion} go={go} />
-      {!companion && <div className="start-notice"><StartNotice drafted={!!start?.drafted} onRestart={onRestart} /></div>}
+      {chrome.heading}
+      {chrome.notice && <div className="start-notice">{chrome.notice}</div>}
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
           <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} />
@@ -118,17 +124,28 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
         <SaveFeedback result={result} saved={savedNow(saved, companion)} onReload={() => void client.invalidateQueries({ queryKey: COMPANION_KEY })} />
         {problems.length > 0 && <Notice tone="error">{problems.join(' ')}</Notice>}
         <div className="form-actions">
-          <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{companion ? 'Save new version' : 'Create companion'}</button>
+          <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{chrome.label}</button>
         </div>
       </form>
       {companion && <>
         <Home name={companion.version.name} />
         <SelfFacts name={companion.version.name} />
         <Versions current={companion.active_version_id} />
+        <Cast go={go} />
         <StartOver name={companion.version.name} go={go} />
       </>}
     </section>
   )
+}
+
+/** The heading, the notice above a new character and the save button's words. */
+function formChrome(companion: Companion | null, start: Start | null, create: FormProps['create'], go: (view: View) => void, onRestart: () => void) {
+  if (create) return { heading: create.heading, notice: create.notice, label: create.label }
+  return {
+    heading: <CharacterHeading companion={companion} go={go} />,
+    notice: companion ? null : <StartNotice drafted={!!start?.drafted} onRestart={onRestart} />,
+    label: companion ? 'Save new version' : 'Create companion',
+  }
 }
 
 /** A new companion gets the profile pictures step when an image backend is ready; otherwise the chat. */

@@ -20,3 +20,10 @@ export function removedSummary(preview: StartOverPreview, mode: StartOverMode): 
 export function nameMatches(typed: string, name: string): boolean {
   return typed.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase() && typed.trim() !== ''
 }
+
+/** With other companions in the workspace: they are untouched, and deleting brings back the first of them. */
+export function othersStay(preview: Pick<StartOverPreview, 'name' | 'others'>, mode: StartOverMode): string {
+  const names = preview.others.length === 1 ? preview.others[0] : `${preview.others.slice(0, -1).join(', ')} and ${preview.others[preview.others.length - 1]}`
+  const stay = `Only ${preview.name} is affected; ${names} ${preview.others.length === 1 ? 'stays' : 'stay'} as they are.`
+  return mode === 'delete' ? `${stay} ${preview.others[0]} becomes the main character again.` : stay
+}

@@ -115,6 +115,10 @@ ADDED_COLUMNS = (
     ('companions', 'portrait_reference_id', 'TEXT'),
     # Texts first became on by default; a workspace from before that is switched on once (see initialize).
     ('life_settings', 'texts_first_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
+    # Switching the main character (companion/cast.py): the townsperson a companion was made from, and
+    # when they last stepped back from slot 1.
+    ('companions', 'townsfolk_key', 'TEXT'),
+    ('companions', 'stepped_back_at', 'TEXT'),
     # The routine slot still going when the life cursor last moved (companion/life/simulation.py).
     ('life_cursors', 'open_slot', 'TEXT'),
 )
@@ -202,6 +206,33 @@ def widen_checks(connection):
         connection.execute(f'INSERT INTO {table}_widened ({columns}) SELECT {columns} FROM {table}')
         connection.execute(f'DROP TABLE {table}')
         connection.execute(f'ALTER TABLE {table}_widened RENAME TO {table}')
+
+
+def free_companion_slot(connection):
+    """Workspaces from before switching companions allowed only one companions row, by a CHECK that SQLite
+    cannot alter. Other tables reference the table, so it is rebuilt with foreign keys off, outside any
+    transaction, as SQLite's own procedure for table changes does; the caller turns them back on."""
+    row = connection.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='companions'").fetchone()
+    if not row or 'NOT NULL UNIQUE DEFAULT 1' not in row[0]:
+        return
+    definition = re.search(r'CREATE TABLE IF NOT EXISTS companions \((.*?)\n\);', SCHEMA, re.S).group(1)
+    columns = ', '.join(item[1] for item in connection.execute('PRAGMA table_info(companions)'))
+    connection.execute('PRAGMA foreign_keys=OFF')
+    connection.execute('BEGIN IMMEDIATE')
+    try:
+        connection.execute(f'CREATE TABLE companions_widened ({definition})')
+        for table, column, added in ADDED_COLUMNS:
+            if table == 'companions':
+                connection.execute(f'ALTER TABLE companions_widened ADD COLUMN {column} {added}')
+        connection.execute(f'INSERT INTO companions_widened ({columns}) SELECT {columns} FROM companions')
+        connection.execute('DROP TABLE companions')
+        connection.execute('ALTER TABLE companions_widened RENAME TO companions')
+        if connection.execute('PRAGMA foreign_key_check').fetchone():
+            raise DomainError('The companions table could not be upgraded.', 500)
+        connection.execute('COMMIT')
+    except BaseException:
+        connection.execute('ROLLBACK')
+        raise
 
 
 def backfill_subject_keys(connection):

@@ -12,8 +12,6 @@ A standalone companion application derived from the Companion Mode concept in [P
 
 On Windows you can instead run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrator rights, no Python or Node needed) and start Prospero Companion from the Start menu. Until releases are published, the setup is a build artifact of the `Package` workflow. See [Development](Program/docs/development.md) for Linux.
 
-`install.ps1` at the top is a bridge that lets copies from before this layout update themselves; leave it be.
-
 | Script | What it does |
 | --- | --- |
 | `install.bat` | Finds or installs Python 3.12+ and Node.js 22.13+, installs the locked dependencies and builds the interface. Run once, and again after changing dependencies. |

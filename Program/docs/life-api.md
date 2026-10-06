@@ -317,6 +317,29 @@ GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the ci
 GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # a neighborhood's residents
 ```
 
+### Switching the main character
+
+The user can make any townsperson the companion has met the main character (`companion/cast.py`). Their
+profile is drafted from their sheet with no model (job and shift as the weekly routine, temperament, quirk,
+flaw, desire, goal, and the meetings with the companion), or written out by the text model from the same
+sheet, and the user reviews it before switching. The new main character gets their own companion record,
+character versions and timeline; the one who steps back keeps all of theirs, with no slot
+(`companions.slot` is 1 only for the main character, `stepped_back_at` says when they left it).
+
+Companions who stepped back live in the same city by the townsfolk rules under the key `cast:<companion id>`:
+their old sheet if they came from town (under their current name), else a resident's sheet in their own
+neighborhood. Meetings count both ways, so the new main character already knows the companion they met,
+and the townsperson who took over never appears in town. Start over and delete then touch only the main
+character's rows (`companion/start_over.py`); deleting brings back whoever stepped back most recently.
+
+```
+GET  /api/companion/cast                  # every companion: {id, name, main, from_town, stepped_back_at}
+GET  /api/companion/cast/draft?key=<key>  # {definition, person, stepping_back}; 404 unless they have met
+POST /api/companion/cast/draft {key}      # the same, written out by the text model
+POST /api/companion/cast/switch {key, definition}
+POST /api/companion/cast/focus {companion_id}   # switch back
+```
+
 ## Precomputed agenda
 
 Every reconcile also brings a hidden agenda up to date, without a model (PRD T9). The agenda holds

@@ -12,6 +12,7 @@ import { DebugBanner } from './features/settings/DebugBanner'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
+const SwitchTo = lazy(() => import('./features/character/SwitchTo').then((m) => ({ default: m.SwitchTo })))
 const Appearance = lazy(() => import('./features/appearance/Appearance').then((m) => ({ default: m.Appearance })))
 const Portraits = lazy(() => import('./features/appearance/Portraits').then((m) => ({ default: m.Portraits })))
 const Memories = lazy(() => import('./features/memories/Memories').then((m) => ({ default: m.Memories })))
@@ -30,11 +31,11 @@ const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || id === 'appearance' || id === 'portraits' || id.startsWith('settings/') ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || id === 'appearance' || id === 'portraits' || id.startsWith('settings/') || id.startsWith('cast/') ? id as View : 'conversation'
 }
 
 function isCurrent(id: View, view: View) {
-  return view === id || (id === 'character' && (view === 'appearance' || view === 'portraits')) || (id === 'settings' && view.startsWith('settings/'))
+  return view === id || (id === 'character' && (view === 'appearance' || view === 'portraits' || view.startsWith('cast/'))) || (id === 'settings' && view.startsWith('settings/'))
 }
 
 export default function App() {
@@ -91,6 +92,11 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
   if (view === 'settings' || view.startsWith('settings/')) return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
   if (view === 'character') return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
+  return <CompanionView view={view} companion={companion} go={go} />
+}
+
+function CompanionView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {
+  if (view.startsWith('cast/')) return <SwitchTo townKey={decodeURIComponent(view.slice(5))} go={go} />
   if (view === 'appearance') return <Appearance companion={companion} go={go} />
   if (view === 'portraits') return <Portraits companion={companion} go={go} />
   if (view === 'today') return <Today companion={companion} go={go} />

@@ -447,9 +447,12 @@ def residents(data: dict, hood_id: str, named: bool = True) -> list[dict]:
     return [resident(data, hood_id, index, where, named) for index in range(resident_count(data, hood_id))]
 
 
-def resident(data: dict, hood_id: str, index: int, where: dict | None = None, named: bool = True) -> dict:
+def resident(data: dict, hood_id: str, index: int, where: dict | None = None, named: bool = True,
+             key: str = '') -> dict:
+    """A resident by their place in the neighborhood; `key` seeds someone else living there instead (a companion
+    who stepped back, companion/life/encounters.py)."""
     where = where or area(data, hood_id)
-    key = f"town:{data['id']}:~{hood_id}:{index}"
+    key = key or f"town:{data['id']}:~{hood_id}:{index}"
     age = 18 + round((generators.unit(key, 'age-a') + generators.unit(key, 'age-b')) / 2 * 66)
     occupation = _occupation(data, key, age)
     haunt = generators.pick(key, 'haunt', where['haunts']) if where['haunts'] else None

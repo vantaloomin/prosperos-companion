@@ -69,9 +69,11 @@ CREATE TABLE IF NOT EXISTS model_routes (
   updated_at TEXT NOT NULL
 );
 
+-- The companion in slot 1 is the one the app is about. Others the user has switched away from keep
+-- their history with no slot (companion/cast.py).
 CREATE TABLE IF NOT EXISTS companions (
   id TEXT PRIMARY KEY,
-  slot INTEGER NOT NULL UNIQUE DEFAULT 1 CHECK (slot = 1),
+  slot INTEGER UNIQUE DEFAULT 1 CHECK (slot = 1),
   active_version_id TEXT,
   active_timeline_id TEXT,
   created_at TEXT NOT NULL
