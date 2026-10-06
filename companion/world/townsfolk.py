@@ -161,6 +161,11 @@ def find(data: dict, key: str) -> dict | None:
     parts = key.split(':')
     if len(parts) != 4 or parts[0] != 'town' or parts[1] != data['id'] or not parts[3].isdigit():
         return None
+    if parts[2].startswith('~'):
+        hood_id, index = parts[2][1:], int(parts[3])
+        if not any(hood['id'] == hood_id for hood in data['neighborhoods']) or index >= resident_count(data, hood_id):
+            return None
+        return resident(data, hood_id, index)
     place = catalog.find(data, parts[2])
     index = int(parts[3])
     if not place or place not in data['places'] or index >= count(data, place):
@@ -194,7 +199,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     order = sorted(GOALS, key=lambda goal: generators.unit(key, 'goal', goal[0]))
     sheet = {
         'key': key, 'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age,
-        'role': title, 'staff': role[2], 'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'],
+        'role': title, 'kind': 'staff' if role[2] else 'regular', 'staff': role[2], 'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'],
                                                    'neighborhood': place['neighborhood']},
         'home': generators.pick(key, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
         'occupation': title if role[2] else _occupation(data, key, age),
@@ -307,6 +312,8 @@ def spot_near(data: dict, sheet: dict, kinds) -> dict | None:
 
 def whereabouts(sheet: dict, data: dict, moment: datetime) -> dict:
     """Where they are and what they are doing at a local moment, decided by plain rules in order."""
+    if sheet.get('kind') == 'resident':
+        return resident_whereabouts(sheet, data, moment)
     minute, weekday, day = moment.hour * 60 + moment.minute, moment.weekday(), moment.date()
     here = {'place': sheet['place'], 'at_place': True}
     home = {'place': None, 'at_place': False, 'neighborhood': sheet['home']}
@@ -376,10 +383,179 @@ def window_text(window) -> str:
     return f'{clock(window[0])}–{clock(window[1])}'
 
 
+DAY_NAMES = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
+
+
 def routine_text(sheet: dict) -> str:
-    names = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
     plan = sheet.get('shifts') or sheet.get('visits')
-    days = ', '.join(names[day] for day in plan['days'])
+    days = ', '.join(DAY_NAMES[day] for day in plan['days'])
+    if sheet.get('kind') == 'resident':
+        visits = f"drops in at {sheet['place']['name']} {days}, {window_text(plan['window'])}"
+        commute = sheet.get('commute')
+        if not commute:
+            return visits
+        leaves = window_text((commute['leave'], commute['leave']))[:5]
+        return f"heads out to work around {leaves} on weekdays; {visits}"
     verb = 'works' if sheet.get('shifts') else 'drops in'
     return f"{verb} {days}, {window_text(plan['window'])}"
+
+
+# Ordinary residents -------------------------------------------------------------------------------
+#
+# Every neighborhood also has its own residents: neighbors, commuters at the stop, people walking the
+# dog. Like the people at places they are rebuilt from a key (`town:<city>:~<neighborhood>:<n>`) and
+# never stored. Their rules: asleep, waiting at the stop on the way to work, at work, walking home, a
+# regular stop at a nearby spot, working on their goal, out looking for company, the weekly shop, out
+# front on a fine evening, else at home. A resident only ever goes to the few places in their `reach`,
+# so finding who is at a place looks at the residents of the neighborhoods around it, not the whole city.
+
+RESIDENTS = (40, 80)
+HAUNT_KINDS = ('cafe', 'bar', 'tavern', 'restaurant', 'park', 'library', 'fitness', 'market', 'garden', 'square')
+# When people leave for work (earliest, latest) and how long they are out, by the career's schedule.
+COMMUTES = {'early': ((4 * 60 + 30, 6 * 60), 8 * 60 + 30), 'evening': ((15 * 60, 16 * 60 + 30), 9 * 60),
+            'shift-night': ((18 * 60, 19 * 60 + 30), 12 * 60)}
+COMMUTE = ((7 * 60, 8 * 60 + 45), 9 * 60 + 30)
+STREET_EVENING = (17 * 60 + 30, 20 * 60)
+
+
+def street(data: dict, hood_id: str) -> dict:
+    """A neighborhood's streets as a place: where neighbors run into each other."""
+    return {'id': f'~{hood_id}', 'name': neighborhood_name(data, hood_id), 'kind': 'street', 'neighborhood': hood_id}
+
+
+def resident_count(data: dict, hood_id: str) -> int:
+    return RESIDENTS[0] + int(generators.unit(f"town:{data['id']}:~{hood_id}", 'count') * (RESIDENTS[1] - RESIDENTS[0] + 1))
+
+
+def area(data: dict, hood_id: str) -> dict:
+    """What residents of one neighborhood have within reach: everyday spots, goal spots and the stop."""
+    near = [hood_id] + [hood['id'] for hood in catalog.nearby(data, hood_id, 3)]
+    local = [place for place in data['places'] if place['neighborhood'] in near]
+    haunts = [place for place in local if place['kind'] in HAUNT_KINDS and place.get('cost', '$') in ('free', '$', '$$')]
+    spots = {key: [view(place) for place in local if place['kind'] in kinds] for key, kinds in GOAL_KINDS.items()}
+    spots['company'] = [view(place) for place in local if place['kind'] in COMPANY_SPOTS]
+    spots['market'] = [view(place) for place in local if place['kind'] == 'market']
+    hood = catalog.neighborhood(data, hood_id)
+    lines = {item['id']: item['name'] for item in data.get('transit', [])}
+    stops = [lines[item] for item in hood.get('transit', []) if item in lines]
+    return {'near': near, 'haunts': haunts or local[:3], 'spots': spots, 'stops': stops}
+
+
+def residents(data: dict, hood_id: str, named: bool = True) -> list[dict]:
+    """A neighborhood's residents; `named=False` skips their names, for quickly checking where they are."""
+    where = area(data, hood_id)
+    return [resident(data, hood_id, index, where, named) for index in range(resident_count(data, hood_id))]
+
+
+def resident(data: dict, hood_id: str, index: int, where: dict | None = None, named: bool = True) -> dict:
+    where = where or area(data, hood_id)
+    key = f"town:{data['id']}:~{hood_id}:{index}"
+    age = 18 + round((generators.unit(key, 'age-a') + generators.unit(key, 'age-b')) / 2 * 66)
+    occupation = _occupation(data, key, age)
+    haunt = generators.pick(key, 'haunt', where['haunts']) if where['haunts'] else None
+    place = view(haunt) if haunt else street(data, hood_id)
+    order = sorted(GOALS, key=lambda goal: generators.unit(key, 'goal', goal[0]))
+    sheet = {
+        'key': key, 'name': '', 'full': '', 'pronouns': '', 'age': age, 'kind': 'resident',
+        'role': occupation or 'local', 'staff': False, 'place': place, 'home': hood_id, 'occupation': occupation,
+        'street': street(data, hood_id),
+        'spots': {kind: generators.pick(key, f'spot-{kind}', options) for kind, options in where['spots'].items()},
+        'temperament': generators.pick(key, 'temperament', sorted(TEMPERAMENTS)),
+        'quirk': generators.pick(key, 'quirk', list(QUIRKS)),
+        'flaw': generators.pick(key, 'flaw', sorted(FLAWS)),
+        'desire': generators.pick(key, 'desire', sorted(DESIRES)),
+        'goals': [goal[0] for goal in order],
+        'night_owl': generators.unit(key, 'owl') < 0.2,
+        'errand_day': int(generators.unit(key, 'errand') * 7),
+    }
+    parts = (haunt or {}).get('day_parts') or ['afternoon']
+    part = generators.pick(key, 'visit', parts)
+    working = occupation not in ('', 'retired')
+    # Someone with a weekday job drops in on weekends, unless their spot is an evening one.
+    days = [5, 6] if working and part in ('morning', 'afternoon') else list(range(7))
+    sheet['visits'] = {'days': sorted({generators.pick(key, f'visit-{n}', days) for n in range(2)}), 'part': part,
+                       'window': list(VISITS[part])}
+    if working:
+        schedule = next((career['schedule'] for career in catalog.careers_for(data).values()
+                         if career['name'].lower() == occupation), 'office')
+        (earliest, latest), hours = COMMUTES.get(schedule, COMMUTE)
+        leave = earliest + round(generators.unit(key, 'leave') * (latest - earliest) / 15) * 15
+        stop = generators.pick(key, 'stop', where['stops']) if where['stops'] else None
+        sheet['commute'] = {'days': [0, 1, 2, 3, 4], 'leave': leave, 'back': min(leave + hours, 24 * 60 - 20),
+                            'stop': stop}
+    sheet['reach'] = sorted({place['id'], sheet['street']['id'],
+                             *(spot['id'] for spot in sheet['spots'].values() if spot)})
+    if named:
+        name = generators.name(data, seed=key, age=age)
+        sheet |= {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns']}
+    return sheet
+
+
+def reaching(data: dict, place_id: str) -> list[dict]:
+    """Unnamed residents who might be at this place (or, for '~<neighborhood>', on its streets)."""
+    if place_id.startswith('~'):
+        hood_id = place_id[1:]
+        return residents(data, hood_id, named=False) if any(h['id'] == hood_id for h in data['neighborhoods']) else []
+    place = catalog.find(data, place_id)
+    if not place or place not in data['places']:
+        return []
+    hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
+    return [sheet for hood_id in hoods for sheet in residents(data, hood_id, named=False) if place_id in sheet['reach']]
+
+
+def working(sheet: dict, minute: int, weekday: int) -> str | None:
+    """On a workday: what they are doing on their street on the way out or back, 'away' while at work, else None."""
+    commute = sheet.get('commute')
+    if not commute or weekday not in commute['days']:
+        return None
+    if commute['leave'] - 20 <= minute < commute['leave']:
+        return f"waiting for the {commute['stop']}" if commute['stop'] else 'heading out to work'
+    if commute['leave'] <= minute < commute['back']:
+        return 'away'
+    if commute['back'] <= minute < commute['back'] + 20:
+        return 'walking home from work'
+    return None
+
+
+def resident_whereabouts(sheet: dict, data: dict, moment: datetime) -> dict:
+    """A resident's rules, in order."""
+    minute, weekday, day = moment.hour * 60 + moment.minute, moment.weekday(), moment.date()
+    state = story(sheet, data, day)
+    mood = mood_for(sheet, state)
+
+    def at(place, doing):
+        return {'place': place, 'at_place': place['id'] == sheet['place']['id'], 'doing': doing, 'mood': mood}
+
+    home = {'place': None, 'at_place': False, 'neighborhood': sheet['home'], 'mood': mood}
+    # 1. Asleep.
+    if asleep(sheet, minute):
+        return {**home, 'doing': 'asleep'}
+    # 2. On the way to work, at work, on the way home.
+    workday = working(sheet, minute, weekday)
+    if workday == 'away':
+        return {**home, 'doing': f"at work ({sheet['occupation']})"}
+    if workday:
+        return at(sheet['street'], workday)
+    # 3. Their usual spot.
+    visits = sheet['visits']
+    if weekday in visits['days'] and inside(visits['window'], minute):
+        return at(sheet['place'], f"at their usual spot at {sheet['place']['name']}")
+    # 4. Their goal, where it takes them.
+    practice = state['goal']['practice']
+    spot = sheet['spots'].get(practice[0]) if practice else None
+    if spot and part_of_day(minute) == practice[1] and generators.unit(sheet['key'], 'practice', day) < 0.5:
+        return at(spot, f"working on their goal: {state['goal']['text']}")
+    # 5. Lonely on a weekend evening.
+    spot = sheet['spots'].get('company')
+    if spot and sheet['desire'] == 'company' and weekday >= 4 and part_of_day(minute) in ('evening', 'late'):
+        return at(spot, 'out, hoping to meet someone')
+    # 6. The weekly shop.
+    spot = sheet['spots'].get('market')
+    if spot and weekday == sheet['errand_day'] and 10 * 60 <= minute < 12 * 60:
+        return at(spot, 'doing the weekly shop')
+    # 7. Out front on an evening, else at home.
+    if inside(STREET_EVENING, minute) and generators.unit(sheet['key'], 'out front', day) < 0.3:
+        doing = 'walking the dog' if 'dog' in sheet['quirk'] else 'out front, chatting with whoever passes'
+        return at(sheet['street'], doing)
+    return {**home, 'doing': 'at home'}
 

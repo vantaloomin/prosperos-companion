@@ -933,6 +933,8 @@ export interface Townsperson {
   pronouns: string
   age: number
   role: string
+  /** Staff at their place, a regular there, or an ordinary resident of `neighborhood`. */
+  kind: 'staff' | 'regular' | 'resident'
   staff: boolean
   place: { id: string; name: string; kind: string; neighborhood: string }
   neighborhood: string
