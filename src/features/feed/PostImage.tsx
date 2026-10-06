@@ -2,19 +2,18 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ImagePlus, RefreshCw, X } from 'lucide-react'
 import { api } from '../../api'
-import type { FeedPost, ImageJob } from '../../types'
+import type { FeedPost, ImageJob, PostImage as Illustration } from '../../types'
 import { imageAlt, imageFile, imageLine, isActive, provenance } from './imageState'
 
 type Run = (action: () => Promise<unknown>) => Promise<void>
 const RETRYABLE = ['failed', 'interrupted', 'cancelled']
 
 /** The post's illustration and its controls (F3, F4). The text above never waits for it. */
-export function PostImage({ post, onChange }: { post: FeedPost; onChange: () => void }) {
+export function PostImage({ post, image, onChange }: { post: FeedPost; image: Illustration; onChange: () => void }) {
   const client = useQueryClient()
   const [details, setDetails] = useState(false)
   const [localOnly, setLocalOnly] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { image } = post
   const jobsKey = ['image-jobs', post.id]
   const jobs = useQuery({
     queryKey: [...jobsKey, image.job_id, image.status],
@@ -32,15 +31,14 @@ export function PostImage({ post, onChange }: { post: FeedPost; onChange: () => 
   const waiting = jobs.data?.jobs.find((job) => job.id === image.job_id)?.waiting_for
   return (
     <div className="post-image">
-      <ImageView post={post} waiting={waiting} error={error} />
-      <ImageActions post={post} details={details} setDetails={setDetails} run={run} generate={() => run(() => api('/images/jobs', { post_id: post.id, marked_nsfw: localOnly }))} />
+      <ImageView post={post} image={image} waiting={waiting} error={error} />
+      <ImageActions image={image} details={details} setDetails={setDetails} run={run} generate={() => run(() => api('/images/jobs', { post_id: post.id, marked_nsfw: localOnly }))} />
       {details && <ImageDetails jobs={jobs.data?.jobs ?? []} localOnly={localOnly} setLocalOnly={setLocalOnly} run={run} />}
     </div>
   )
 }
 
-function ImageView({ post, waiting, error }: { post: FeedPost; waiting?: string | null; error: string | null }) {
-  const { image } = post
+function ImageView({ post, image, waiting, error }: { post: FeedPost; image: Illustration; waiting?: string | null; error: string | null }) {
   const line = imageLine(image, waiting)
   return <>
     {image.ref && <img src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} loading="lazy" />}
@@ -49,8 +47,7 @@ function ImageView({ post, waiting, error }: { post: FeedPost; waiting?: string 
   </>
 }
 
-function ImageActions({ post, details, setDetails, run, generate }: { post: FeedPost; details: boolean; setDetails: (open: boolean) => void; run: Run; generate: () => Promise<void> }) {
-  const { image } = post
+function ImageActions({ image, details, setDetails, run, generate }: { image: Illustration; details: boolean; setDetails: (open: boolean) => void; run: Run; generate: () => Promise<void> }) {
   const jobPath = `/images/jobs/${image.job_id}`
   if (isActive(image.status)) {
     return <div className="post-actions"><button type="button" className="text-button" onClick={() => void run(() => api(`${jobPath}/cancel`, {}))}><X aria-hidden="true" />Cancel image</button></div>

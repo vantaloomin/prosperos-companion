@@ -349,9 +349,16 @@ export interface PauseRecord { id: string; started_at: string; ended_at: string 
 
 export type Reaction = 'heart' | 'laugh' | 'wow' | 'sad' | 'hug'
 
+export type FeedSource = 'all' | 'companion' | 'circle'
+export interface FeedAuthor { kind: 'companion' | 'person'; id: string | null; name: string; role: string }
+export interface FeedComment { author: 'companion' | 'person'; name: string; text: string; at: string }
+
 export interface FeedPost {
   id: string
-  kind: 'digest' | 'event'
+  /** Life posts tell life events; social posts (friends, status, shout-outs, city news, questions) carry their own text. */
+  kind: 'digest' | 'event' | 'status' | 'friend' | 'birthday' | 'holiday' | 'city' | 'question'
+  source: 'life' | 'social'
+  author: FeedAuthor
   intro: string
   status: 'visible' | 'hidden'
   read: boolean
@@ -359,7 +366,13 @@ export interface FeedPost {
   occurs_at: string
   created_at: string
   events: { id: string; summary: string; caption: string; mood: string | null; label: string | null; kind: string; starts_at: string; ends_at: string; revision: number }[]
-  image: PostImage
+  text?: string
+  context?: string
+  place?: string
+  options?: string[]
+  answer?: string | null
+  image: PostImage | null
+  audience: { likes: string[]; comments: FeedComment[] }
 }
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }

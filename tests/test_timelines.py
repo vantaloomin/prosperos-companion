@@ -1,10 +1,18 @@
 """Alternative timelines: historical edits, switching and freezing (PRD C4, T7, M6, M12)."""
 from datetime import timedelta
 
+import pytest
 from conftest import reconcile, send, set_life
 
 from companion import timelines
 from companion.clock import parse
+from companion.life import social
+
+
+@pytest.fixture(autouse=True)
+def life_posts_only(monkeypatch):
+    """These tests count life posts; branching social posts is covered in tests/test_social_feed.py."""
+    monkeypatch.setattr(social, 'write', lambda *_args: 0)
 
 
 def fork(client, message_id, text='Actually, I went to the coast.', **extra):

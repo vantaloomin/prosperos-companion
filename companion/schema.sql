@@ -1056,3 +1056,28 @@ CREATE TABLE IF NOT EXISTS acquaintances (
   met_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, key, slot_key)
 );
+
+-- The social side of the feed (companion/life/social.py): the circle's posts and the companion's posts that
+-- are not life events. `author` is 'companion' or a circle person's id. Likes and comments are derived, not stored.
+CREATE TABLE IF NOT EXISTS social_posts (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('status', 'friend', 'birthday', 'holiday', 'city', 'question')),
+  author TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL UNIQUE,
+  content TEXT NOT NULL,
+  answer TEXT,
+  status TEXT NOT NULL DEFAULT 'visible' CHECK (status IN ('visible', 'hidden', 'removed')),
+  reaction TEXT,
+  occurs_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  read_at TEXT,
+  removed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS social_posts_order ON social_posts(timeline_id, occurs_at, id);
+
+-- A chat message written in reply to a social post.
+CREATE TABLE IF NOT EXISTS message_social_links (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  post_id TEXT NOT NULL REFERENCES social_posts(id)
+);

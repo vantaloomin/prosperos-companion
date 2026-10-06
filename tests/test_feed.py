@@ -7,6 +7,13 @@ from conftest import reconcile, set_life
 
 from companion.errors import DomainError
 from companion.life import feed as feed_module
+from companion.life import social
+
+
+@pytest.fixture(autouse=True)
+def life_posts_only(monkeypatch):
+    """These tests count life posts; the circle's posts are covered in tests/test_social_feed.py."""
+    monkeypatch.setattr(social, 'write', lambda *_args: 0)
 
 
 def feed(client, **params):
