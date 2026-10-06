@@ -118,6 +118,18 @@ never gains the Companion's identity marker.
 The bundle and setup are not code signed yet, so Windows SmartScreen may warn on first launch. Signing is an
 open release decision.
 
+### Publishing a release
+
+1. Set the same version in `package.json`, `pyproject.toml` and `companion/identity.py`, and write the
+   release notes in `docs/releases/v<version>.md` (plus an entry in the top-level `CHANGELOG.md`).
+2. Merge that to `main`, then run the `Release` workflow from the Actions tab on `main` (pre-release
+   is ticked by default).
+
+`release.yml` checks the three version numbers agree and the notes exist, runs the whole `Package`
+workflow on that commit, and only when every job passes tags `v<version>` on it and publishes the
+setup, the portable zip and `SHA256SUMS.txt` as a GitHub release. It refuses a version that is
+already released.
+
 ## Interface
 
 Node 22 or newer. `npm run build` writes `dist/`, which the backend serves at

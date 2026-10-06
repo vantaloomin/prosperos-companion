@@ -60,7 +60,11 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 ### Windows
 
-1. Install [Git](https://git-scm.com/download/win) and clone this repository, or download the ZIP from the [latest release](https://github.com/vantaloomin/prosperos-companion/releases/latest) and unzip it.
+The quickest way is the installer: download `ProsperoCompanion-<version>-win-x64-setup.exe` from the [latest release](https://github.com/vantaloomin/prosperos-companion/releases/latest) and run it. It needs no administrator rights, Python or Node, and adds Prospero Companion to the Start menu. It isn't code-signed yet, so SmartScreen may ask you to click **More info**, then **Run anyway**.
+
+To run from the source instead:
+
+1. Install [Git](https://git-scm.com/download/win) and clone this repository, or download the source code ZIP from the latest release and unzip it.
 2. Open the `Windows` folder and double-click **`install.bat`**. It finds or installs Python 3.12+ and Node.js 22.13+, installs the locked dependencies and builds the interface.
 3. Double-click **`launch.bat`**. The Companion opens in your browser at http://127.0.0.1:8775. Keep its window open while you use it.
 4. Add a model in **Settings > Models**, then create your companion.
