@@ -20,6 +20,7 @@ from companion.life import (
     circle,
     composer,
     disruptions,
+    encounters,
     home,
     network,
     occasions,
@@ -151,7 +152,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
 
 def compose_entry(connection, scope: dict, slot, view: dict, company: list, recent: list, seed: str) -> dict | None:
     """What a waking slot holds: for the companion a recommendation's session, a friend's gathering
-    (companion/life/network.py) or the composer's pick, maybe with a run-in; for others the composer's."""
+    (companion/life/network.py) or the composer's pick, maybe with a run-in or a townsperson met there
+    (companion/life/encounters.py); for others the composer's."""
     timeline_id, definition, world, block = scope['timeline_id'], scope['definition'], scope['world'], view['block']
     if scope['subject'] != COMPANION:
         return composer.compose(view, definition, world, seed, recent[-3:], company, [])
@@ -160,7 +162,8 @@ def compose_entry(connection, scope: dict, slot, view: dict, company: list, rece
     if not entry and not celebrants and scope['companion']:
         entry = network.gathering(connection, scope['companion'], view, block, company, seed)
     entry = entry or composer.compose(view, definition, world, seed, recent[-3:], company, celebrants)
-    return network.run_in(connection, timeline_id, entry, view, block, seed)
+    entry = network.run_in(connection, timeline_id, entry, view, block, seed)
+    return encounters.meet(connection, scope['companion'], entry, view, block, seed)
 
 
 def day_facts(connection, timeline_id, subject, definition, world, day, holiday) -> dict:

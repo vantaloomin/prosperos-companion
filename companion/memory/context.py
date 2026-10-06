@@ -19,6 +19,7 @@ from companion.life import (
     body,
     circle,
     disruptions,
+    encounters,
     home,
     money,
     network,
@@ -90,6 +91,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             'acquaintances': 'People you have met through your circle (friends of friends; you know them a little, '
                              'from where you met)',
+            'townsfolk': 'People around town (background characters you keep running into; you know only what is '
+                         'listed here, so never invent more about them or claim to know them better)',
             'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
             'storylines': "What is going on in your life and your people's lives (decided: bring it up the way "
                           'a friend would, never contradict it, and never invent how an unfolding one ends)',
@@ -421,6 +424,9 @@ def offer_people(packet, connection, timeline_id, version, now, today):
         packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
+    for identity, text in encounters.context_lines(connection, {'active_timeline_id': timeline_id, 'version': version},
+                                                   now):
+        packet.offer('townsfolk', identity, text)
     for identity, text in storylines.context_lines(connection, {'active_timeline_id': timeline_id,
                                                                 'version': version}, now):
         packet.offer('storylines', identity, text)

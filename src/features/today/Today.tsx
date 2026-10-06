@@ -11,6 +11,7 @@ import { EventItem } from './EventItem'
 import { MoneyPanel } from './MoneyPanel'
 import { Recommendations } from './Recommendations'
 import { Storylines } from './Storylines'
+import { Townsfolk } from './Townsfolk'
 import { occasionText } from './storyText'
 import { bodyText, moodText, pauseToFill } from './todayText'
 
@@ -99,6 +100,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <Routine data={data} name={name} go={go} />
       <MoneyPanel name={name} go={() => go('character')} />
       <Circle name={name} />
+      <Townsfolk name={name} />
     </section>
   )
 }
