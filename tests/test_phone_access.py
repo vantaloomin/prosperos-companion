@@ -91,7 +91,8 @@ def test_a_paired_phone_uses_the_companion(client, phone, companion, enabled):
     ('get', '/api/phone'), ('post', '/api/phone/pairings'), ('get', '/api/backups'), ('post', '/api/backups'),
     ('post', '/api/import/study/inspect'), ('put', '/api/connection'), ('post', '/api/models/profiles'),
     ('post', '/api/context/services'), ('post', '/api/images/backends'), ('put', '/api/lora/settings'),
-    ('post', '/api/lora/runs'), ('post', '/api/lora/adapters/import'),
+    ('post', '/api/lora/runs'), ('post', '/api/lora/adapters/import'), ('get', '/api/companion/start-over'),
+    ('post', '/api/companion/start-over'), ('post', '/api/companion/delete'),
 ])
 def test_a_paired_phone_cannot_change_what_runs_on_the_pc(client, phone, companion, enabled, method, path):
     pair(client, phone)

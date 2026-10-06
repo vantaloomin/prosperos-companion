@@ -312,9 +312,14 @@ export interface LifeSettings {
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
 export interface BackupEntry {
-  name: string; bytes: number; kind: 'backup' | 'pre-upgrade'; readable: boolean
+  name: string; bytes: number; kind: 'backup' | 'pre-upgrade' | 'before-reset' | 'before-delete'; readable: boolean
   created_at?: string; app_version?: string; files?: number; datasets_included?: boolean
 }
+export interface StartOverPreview {
+  name: string; messages: number; memories: number; timelines: number; images: number
+  versions: number; adapters: number; references: number; training: boolean
+}
+export interface StartOverResult { backup: { name: string; path: string } }
 export interface BackupList { backups: BackupEntry[]; pending: { name: string; requested_at: string } | null }
 
 export interface LifeEvent {

@@ -15,5 +15,7 @@ test('labels say what a backup holds and mark pre-upgrade copies', () => {
     'Backup, 2026-10-05 (2 KB, without reference pictures)')
   assert.equal(backupLabel({ name: 'pre-upgrade-1.zip', bytes: 2048, kind: 'pre-upgrade', readable: true, created_at: '2026-10-04T08:00:00Z' }, iso),
     'Before an upgrade, 2026-10-04 (2 KB)')
+  assert.equal(backupLabel({ name: 'before-delete-1.zip', bytes: 2048, kind: 'before-delete', readable: true, created_at: '2026-10-06T08:00:00Z', datasets_included: true }, iso),
+    'Before deleting the companion, 2026-10-06 (2 KB)')
   assert.equal(backupLabel({ name: 'broken.zip', bytes: 9, kind: 'backup', readable: false }, iso), 'broken.zip (cannot be read)')
 })

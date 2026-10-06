@@ -4,8 +4,8 @@ The server only ever listens on this PC. `tailscale serve` forwards a private ht
 tailnet to it, so a request came from a phone when it arrived through that proxy: it carries forwarded
 headers, or names a host other than this PC. Such a request needs phone access turned on and the cookie
 of a paired device. Even then a few things stay on the PC: anything that runs a program or reads a file
-there, restores a backup, or could send a saved API key to a new address. A lost phone is revoked in
-Settings > Phone access.
+there, restores a backup, starts the companion over or deletes them, or could send a saved API key to a
+new address. A lost phone is revoked in Settings > Phone access.
 """
 import hashlib
 import secrets
@@ -34,7 +34,7 @@ OPEN = {('GET', '/api/health'), ('GET', '/api/phone/status'), ('POST', '/api/pho
 # What a paired phone may do under /api/phone: everything else there manages phones, from the PC.
 PHONE_SELF = OPEN | {('POST', '/api/phone/sign-out'), ('GET', '/api/phone/push'), ('PUT', '/api/phone/push'),
                      ('DELETE', '/api/phone/push')}
-PC_ONLY = ('/api/phone', '/api/backups', '/api/import/study')
+PC_ONLY = ('/api/phone', '/api/backups', '/api/import/study', '/api/companion/start-over', '/api/companion/delete')
 # Changes here name programs, folders or addresses on the PC, or where a saved key is sent.
 PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/images/backends',
                    '/api/lora/settings', '/api/lora/runs', '/api/lora/adapters')
