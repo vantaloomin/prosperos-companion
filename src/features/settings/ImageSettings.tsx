@@ -127,7 +127,7 @@ function ReferenceWorkflow({ backend, save }: { backend: ImageBackend; save: (va
       <summary className="subtle">Workflow for pictures made from a reference {backend.reference_workflow ? '(set)' : '(none)'}</summary>
       <div className="form-stack">
         <TextArea label="Reference workflow" value={text} rows={3} onChange={setText}
-          hint="Used for the profile pictures, where each picture follows the one before it. ComfyUI's API format with {{prompt}} and {{reference_image}} as a LoadImage node's image, plus any of {{negative}}, {{seed}}, {{width}} and {{height}}. There is no built-in one." />
+          hint="Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with {{prompt}} and {{reference_image}} as a LoadImage node's image, plus any of {{negative}}, {{seed}}, {{width}} and {{height}}. There is no built-in one." />
         <div className="form-actions">
           <button type="button" className="button" disabled={!text.trim()} onClick={() => void save(text.trim())}>Save workflow</button>
           {backend.reference_workflow && <button type="button" className="text-button danger-text" onClick={() => void save('')}>Remove it</button>}

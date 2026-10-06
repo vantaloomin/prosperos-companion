@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { cardNote, keepable, madeBy, redoLabel, sendsLine, setLine } from '../../src/features/appearance/portraitState.ts'
+import { cardNote, keepable, madeBy, redoLabel, redoable, sendsLine, setLine } from '../../src/features/appearance/portraitState.ts'
 import type { GeneratedImage, Generation, PlannedShot } from '../../src/types.ts'
 
 const codex = { id: 'b1', label: 'Codex', kind: 'codex', local: false }
@@ -12,8 +12,8 @@ const set = (images: GeneratedImage[], status: Generation['status'] = 'completed
 }) as Generation
 
 test('the plan says what leaves the computer before anything is sent', () => {
-  const chain = [shot({}), shot({ follows: 0 }), shot({ follows: 1 })]
-  assert.match(sendsLine(chain, false), /All three go to Codex\. Pictures 2 and 3 each send the picture before them/)
+  const chain = [shot({}), shot({ follows: 0 }), shot({ follows: 0 })]
+  assert.match(sendsLine(chain, false), /All three go to Codex\. Pictures 2 and 3 each send picture 1 along/)
   assert.match(sendsLine(chain.map((item) => ({ ...item, follows: null })), true), /descriptions only, so they may not look like the same person/)
   assert.equal(sendsLine([shot({ backend: null, refusal: 'No backend.' })], false), 'No backend.')
 })
@@ -30,10 +30,13 @@ test('a set reads as what happened, and only finished pictures can be kept', () 
 })
 
 test('cards explain waiting pictures and what each followed', () => {
-  assert.equal(cardNote(image({ status: 'queued', position: 1, has_image: false })), 'Waiting for the picture before it.')
+  assert.equal(cardNote(image({ status: 'queued', position: 2, follows: 0, has_image: false })), 'Waiting for picture 1.')
   assert.equal(cardNote(image({ status: 'failed', error: 'Picture 2 did not finish' })), 'Picture 2 did not finish')
-  assert.equal(madeBy(image({ follows: 1 })), 'Codex, from picture 2')
+  assert.equal(madeBy(image({ follows: 0 })), 'Codex, from picture 1')
   assert.equal(madeBy(image({})), 'Codex')
-  assert.equal(redoLabel(image({ position: 2 }), 3), 'Make this one again')
-  assert.equal(redoLabel(image({ position: 0 }), 3), 'Make this and the ones after it again')
+  const images = [image({}), image({ id: 'j', position: 1, follows: 0 }), image({ id: 'k', position: 2, follows: 0, decision: 'kept' })]
+  assert.equal(redoLabel(images[1], images), 'Make this one again')
+  assert.equal(redoLabel(images[0], images), 'Make this and the pictures made from it again')
+  assert.equal(redoable(images[1], images), true)
+  assert.equal(redoable(images[0], images), false)
 })

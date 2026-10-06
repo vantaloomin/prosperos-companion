@@ -7,13 +7,13 @@ import { Notice } from '../../components/Feedback'
 import { TextArea } from '../../components/Fields'
 import { keepBody } from './browserImage'
 import { routeLine } from './loraState'
-import { PORTRAITS_KEY, cardNote, keepable, madeBy, redoLabel, sendsLine, setLine } from './portraitState'
+import { PORTRAITS_KEY, cardNote, keepable, madeBy, redoLabel, redoable, sendsLine, setLine } from './portraitState'
 import { REFERENCES_KEY } from './queries'
 
 const failure = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 
 /**
- * A profile picture, then a three-quarter view and a close-up, each made from the picture before it so all three
+ * A profile picture, then a three-quarter view and a close-up, both made from the profile picture so all three
  * show the same person. Offered after creating a companion and from the Character page; always skippable.
  */
 export function Portraits({ companion, go }: { companion: Companion; go: (view: View) => void }) {
@@ -30,7 +30,7 @@ export function Portraits({ companion, go }: { companion: Companion; go: (view: 
       <header className="page-header">
         <div>
           <h1>Pictures of {name}</h1>
-          <p className="subtle">A profile picture of {name} in everyday clothes, then a three-quarter view in another outfit made from it, then a close-up of their face made from that. The pictures you keep become {name}'s profile picture and join their reference pictures for the LoRA maker. You can skip this and come back from the Character page.</p>
+          <p className="subtle">A profile picture of {name} in everyday clothes, then a three-quarter view in another outfit and a close-up of their face, both made from it. The pictures you keep become {name}'s profile picture and join their reference pictures for the LoRA maker. You can skip this and come back from the Character page.</p>
         </div>
         <button type="button" className="button" onClick={() => go('conversation')}>{companion.portrait_reference_id ? 'Go to the chat' : 'Skip for now'}</button>
       </header>
@@ -152,7 +152,7 @@ function PortraitSet({ set, name, go, onNew }: { set: Generation; name: string; 
       <h2 id="portrait-set-heading" className="visually-hidden">The pictures</h2>
       <p className="subtle" role="status">{setLine(set)}</p>
       <ul className="reference-grid">{set.images.map((image) => (
-        <PortraitCard key={image.id} image={image} total={set.images.length} canRedo={!running && set.images.slice(image.position).every((item) => item.decision === null)}
+        <PortraitCard key={image.id} image={image} images={set.images} canRedo={!running && redoable(image, set.images)}
           redo={() => void act(() => api(`/lora/portraits/${set.id}/redo?position=${image.position}`, {}))} />
       ))}</ul>
       {kept && <Notice action={<button type="button" className="text-button" onClick={() => go('conversation')}>Go to the chat</button>}>Saved. The profile picture now shows as {name}'s picture, and the pictures are in their reference set.</Notice>}
@@ -176,7 +176,7 @@ async function keepAll(ready: GeneratedImage[]) {
   }
 }
 
-function PortraitCard({ image, total, canRedo, redo }: { image: GeneratedImage; total: number; canRedo: boolean; redo: () => void }) {
+function PortraitCard({ image, images, canRedo, redo }: { image: GeneratedImage; images: GeneratedImage[]; canRedo: boolean; redo: () => void }) {
   const settled = image.status !== 'queued' && image.status !== 'running'
   return (
     <li className="reference-card">
@@ -184,7 +184,7 @@ function PortraitCard({ image, total, canRedo, redo }: { image: GeneratedImage; 
       <strong className="reference-name">{image.position + 1}. {image.label}</strong>
       {image.backend_label && <small className="subtle">{madeBy(image)}</small>}
       {image.decision === 'kept' && <span className="badge">Kept</span>}
-      {canRedo && settled && <button type="button" className="text-button" onClick={redo}>{redoLabel(image, total)}</button>}
+      {canRedo && settled && <button type="button" className="text-button" onClick={redo}>{redoLabel(image, images)}</button>}
     </li>
   )
 }

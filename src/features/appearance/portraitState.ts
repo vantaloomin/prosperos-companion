@@ -11,7 +11,7 @@ export function sendsLine(planned: PlannedShot[], withoutReference: boolean): st
   if (withoutReference) return `All three go to ${where} as descriptions only, so they may not look like the same person.`
   const following = planned.filter((shot) => shot.follows !== null && shot.follows !== undefined && shot.backend).length
   if (!following) return `The picture goes to ${where}.`
-  return `All three go to ${where}. Pictures 2 and 3 each send the picture before them along as the reference, so they show the same person.`
+  return `All three go to ${where}. Pictures 2 and 3 each send picture 1 along as the reference, so they show the same person.`
 }
 
 /** Pictures that finished and are not yet kept or discarded. */
@@ -33,15 +33,20 @@ export function setLine(set: Generation): string {
   return `${set.counts.completed} made, ${failed} not made. Make the missing ones again, or keep what you have.`
 }
 
-/** A picture that is made again takes every picture after it along, since each follows the one before. */
-export function redoLabel(image: GeneratedImage, total: number): string {
-  return image.position === total - 1 ? 'Make this one again' : 'Make this and the ones after it again'
+/** Remaking the profile picture remakes the others too, since both are made from it. */
+export function redoLabel(image: GeneratedImage, images: GeneratedImage[]): string {
+  return images.some((other) => other.follows === image.position) ? 'Make this and the pictures made from it again' : 'Make this one again'
+}
+
+/** A picture can be made again while neither it nor any picture made from it has been kept. */
+export function redoable(image: GeneratedImage, images: GeneratedImage[]): boolean {
+  return [image, ...images.filter((other) => other.follows === image.position)].every((item) => item.decision === null)
 }
 
 /** What a picture without a file says instead. */
 export function cardNote(image: GeneratedImage): string {
   if (image.error) return image.error
-  if (image.status === 'queued') return image.position ? 'Waiting for the picture before it.' : 'Waiting to start.'
+  if (image.status === 'queued') return image.follows !== null && image.follows !== undefined ? `Waiting for picture ${image.follows + 1}.` : 'Waiting to start.'
   return image.status === 'running' ? 'Being made…' : image.status
 }
 

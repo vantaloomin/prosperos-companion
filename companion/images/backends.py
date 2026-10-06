@@ -66,8 +66,8 @@ def disclosure(backend: dict) -> str | None:
             else 'this image service'
     return (f'Each image request sends its prompt (built from the event and the character\'s appearance '
             f'description) to {destination}. Their retention rules apply. Conversation and memories are '
-            f'not sent. Reference pictures are sent only when you make profile pictures, each one following '
-            f'the picture before it.')
+            f'not sent. Reference pictures are sent only when you make profile pictures: the first one goes '
+            f'along with the other two.')
 
 
 def view(backend: dict) -> dict:

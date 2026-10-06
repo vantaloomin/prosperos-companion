@@ -1,11 +1,11 @@
 """Profile pictures made while setting up a companion.
 
-Three pictures, each made from the one before it so they show the same person:
+Three pictures of the same person, the second and third each made from the first:
 
 1. the profile picture: waist up, facing the camera, in an everyday outfit, with an expression
    that fits their personality;
 2. a three-quarter view in a second everyday outfit, following picture 1;
-3. a close-up of the face, following picture 2.
+3. a close-up of the face, following picture 1.
 
 The whole set goes to one backend that can take a reference picture (backends.takes_reference),
 in the user's order. When none can, nothing is sent unless the user explicitly asks for the set
@@ -117,7 +117,8 @@ def plan(connection, body) -> list[dict]:
         blocked = 'That backend cannot make a picture from a reference picture. Choose another one.'
     planned = []
     for position, shot in enumerate(body.shots):
-        follows = None if position == 0 or body.without_reference else position - 1
+        # Every later picture follows the profile picture (Vanta, 2026-10-06).
+        follows = None if position == 0 or body.without_reference else 0
         prompt = generation.compose(style, body.base, shot.shot) + (f' {FOLLOW}' if follows is not None else '')
         classification = classify({'prompt': prompt, 'negative': NEGATIVE,
                                    'appearance': definition.get('appearance', '')})
@@ -176,8 +177,8 @@ def latest(database) -> dict | None:
 
 
 def redo(database, generation_id, position) -> dict:
-    """Make one picture again, and every picture after it, since they follow it. Each gets a new
-    seed, or a seeded backend would return the same picture."""
+    """Make one picture again, with every picture that follows it (all of them, for the profile
+    picture). Each gets a new seed, or a seeded backend would return the same picture."""
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         row = one(connection, "SELECT * FROM lora_generations WHERE id=? AND companion_id=? AND kind='portraits'",
@@ -189,7 +190,7 @@ def redo(database, generation_id, position) -> dict:
         images = connection.execute('SELECT * FROM lora_gen_images WHERE generation_id=? ORDER BY position',
                                     (generation_id,)).fetchall()
         require(0 <= position < len(images), 'There is no such picture.', 404)
-        again = [dict(image) for image in images[position:]]
+        again = [dict(image) for image in images if dependent(images, image['position'], position)]
         require(all(image['decision'] is None for image in again), 'A picture you kept cannot be made again.', 409)
         first = dict(images[0])
         require(first['backend_id'] is not None, 'The first picture had nowhere to go.', 409)
@@ -206,6 +207,16 @@ def redo(database, generation_id, position) -> dict:
         if image['output_file']:
             (generation.directory(database) / image['output_file']).unlink(missing_ok=True)
     return generation.get(database, generation_id)
+
+
+def dependent(images, candidate, position) -> bool:
+    """Whether `candidate` is `position` or is made, directly or not, from it."""
+    follows = {image['position']: image['follows'] for image in images}
+    while candidate is not None:
+        if candidate == position:
+            return True
+        candidate = follows.get(candidate)
+    return False
 
 
 def set_portrait(database, reference_id: str | None) -> dict:

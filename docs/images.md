@@ -144,13 +144,12 @@ step can be skipped and run again from the Character page (**Profile pictures**)
 1. **Profile picture**: waist up, facing the camera, in an everyday outfit, with an expression that
    fits their personality.
 2. **Three-quarter view** in a second everyday outfit, made from picture 1.
-3. **Face close-up**, made from picture 2.
+3. **Face close-up**, also made from picture 1.
 
 - The expression comes from words in their personality, identity and voice (shy, wry, playful,
   warm and so on) and the two outfits are a fixed pick for that companion from a short list. No
   model writes anything; the description and all three shots can be edited before sending.
-- Pictures 2 and 3 send the picture before them along as a reference, so the set shows one
-  person. The whole set goes to the first enabled backend that can take a reference picture:
+- Pictures 2 and 3 each send picture 1 along as a reference, so the set shows one person. The whole set goes to the first enabled backend that can take a reference picture:
   **Codex** (attached with `codex exec --image`), a **chat-style API** such as OpenRouter (the
   picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
   a second, user-supplied *reference workflow* that has `{{reference_image}}` as a LoadImage
@@ -160,8 +159,8 @@ step can be skipped and run again from the Character page (**Profile pictures**)
 - When no enabled backend can, nothing is sent and the page says so. The user can choose to make
   all three from the description alone; the page then says they may not look like one person.
 - Each picture is classified and routed like any image: NSFW goes to a local backend only and
-  Prohibited is refused. A picture that fails, or is refused, stops the ones after it. **Make this
-  one again** remakes that picture and every one after it, with a new seed.
+  Prohibited is refused. When picture 1 fails or is refused, the other two are not made. **Make
+  this one again** remakes that picture with a new seed; remaking picture 1 remakes all three.
 - **Keep these** adds the finished pictures to the character's reference pictures (as
   `generated`, for training) and makes picture 1 the companion's picture: in the conversation
   header, the Community style's avatars and the Visual novel stage. Any reference picture can be

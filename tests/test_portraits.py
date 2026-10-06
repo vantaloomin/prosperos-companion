@@ -55,7 +55,7 @@ def test_the_draft_picks_an_expression_and_two_everyday_outfits(client, companio
     assert expression_for({}) == 'a relaxed, natural smile'
 
 
-def test_each_picture_follows_the_one_before_on_one_backend(client, companion, adapters):
+def test_later_pictures_follow_the_profile_picture_on_one_backend(client, companion, adapters):
     add_backend(client, kind='hosted', provider='google', api_key='k', model='imagen-4')
     codex = add_backend(client, kind='codex')
     adapters['codex'].outcomes = [png(1024, 1536), png(1024, 1535), png(1024, 1024)]
@@ -63,14 +63,14 @@ def test_each_picture_follows_the_one_before_on_one_backend(client, companion, a
     assert draft['reference_backend']['id'] == codex['id']
     preview = ok(client.post('/api/lora/portraits/preview', json=plan(draft)))['shots']
     assert [shot['backend']['id'] for shot in preview] == [codex['id']] * 3
-    assert [shot['follows'] for shot in preview] == [None, 0, 1]
+    assert [shot['follows'] for shot in preview] == [None, 0, 0]
     assert 'reference picture' not in preview[0]['prompt'] and 'reference picture' in preview[1]['prompt']
 
     ok(client.post('/api/lora/portraits', json=plan(draft)))
     done = wait_portraits(client)
     assert [image['status'] for image in done['images']] == ['completed'] * 3
     sent = adapters['codex'].requests
-    assert sent[0].reference is None and sent[1].reference == png(1024, 1536) and sent[2].reference == png(1024, 1535)
+    assert sent[0].reference is None and sent[1].reference == sent[2].reference == png(1024, 1536)
     assert adapters['hosted'].requests == []
     # Portrait sets stay out of the LoRA maker's own list of generated sets.
     assert ok(client.get('/api/lora/generations'))['generations'] == []
@@ -91,23 +91,33 @@ def test_without_a_reference_backend_nothing_is_sent_unless_asked(client, compan
     assert all('reference picture' not in request.prompt for request in adapters['hosted'].requests)
 
 
-def test_a_failed_picture_stops_the_ones_that_follow_and_can_be_made_again(client, companion, adapters):
+def test_a_failed_picture_can_be_made_again_from_the_profile_picture(client, companion, adapters):
     add_backend(client, kind='hosted', provider='openrouter', api_key='k', model='google/gemini-image')
-    adapters['hosted'].outcomes = [png(1024, 1536), AdapterError('failed', 'Provider hiccup')]
+    adapters['hosted'].outcomes = [png(1024, 1536), AdapterError('failed', 'Provider hiccup'), png(900, 900)]
     draft = ok(client.get('/api/lora/portraits/draft'))
     ok(client.post('/api/lora/portraits', json=plan(draft)))
     done = wait_portraits(client)
-    assert [image['status'] for image in done['images']] == ['completed', 'failed', 'failed']
-    assert 'Picture 2 did not finish' in done['images'][2]['error']
-    assert len(adapters['hosted'].requests) == 2
+    assert [image['status'] for image in done['images']] == ['completed', 'failed', 'completed']
 
-    adapters['hosted'].outcomes = [png(1000, 1500), png(900, 900)]
+    adapters['hosted'].outcomes = [png(1000, 1500)]
     ok(client.post(f"/api/lora/portraits/{done['id']}/redo", params={'position': 1}))
     again = wait_portraits(client)
     assert [image['status'] for image in again['images']] == ['completed'] * 3
-    assert again['images'][1]['seed'] != draft['seed'] and again['images'][0]['seed'] == draft['seed']
-    assert adapters['hosted'].requests[2].reference == png(1024, 1536)
-    assert adapters['hosted'].requests[3].reference == png(1000, 1500)
+    assert again['images'][1]['seed'] != draft['seed'] and again['images'][2]['seed'] == draft['seed']
+    assert len(adapters['hosted'].requests) == 4 and adapters['hosted'].requests[3].reference == png(1024, 1536)
+
+
+def test_a_failed_profile_picture_stops_the_others_and_remaking_it_remakes_all(client, companion, adapters):
+    add_backend(client, kind='codex')
+    adapters['codex'].outcomes = [AdapterError('failed', 'Quota')]
+    draft = ok(client.get('/api/lora/portraits/draft'))
+    ok(client.post('/api/lora/portraits', json=plan(draft)))
+    done = wait_portraits(client)
+    assert [image['status'] for image in done['images']] == ['failed'] * 3
+    assert all('Picture 1 did not finish' in image['error'] for image in done['images'][1:])
+    assert len(adapters['codex'].requests) == 1
+    ok(client.post(f"/api/lora/portraits/{done['id']}/redo", params={'position': 0}))
+    assert [image['status'] for image in wait_portraits(client)['images']] == ['completed'] * 3
 
 
 def test_nsfw_and_prohibited_pictures_keep_the_usual_routing(client, companion, adapters):
@@ -116,7 +126,7 @@ def test_nsfw_and_prohibited_pictures_keep_the_usual_routing(client, companion, 
     shots = [draft['shots'][0], {**draft['shots'][1], 'shot': 'topless at the beach'}, draft['shots'][2]]
     ok(client.post('/api/lora/portraits', json=plan(draft, shots=shots)))
     done = wait_portraits(client)
-    assert [image['status'] for image in done['images']] == ['completed', 'failed', 'failed']
+    assert [image['status'] for image in done['images']] == ['completed', 'failed', 'completed']
     assert done['images'][1]['backend_id'] is None and 'topless' not in ''.join(
         request.prompt for request in adapters['codex'].requests)
     bad = [{**draft['shots'][0], 'shot': 'a 15 year old, nude'}]
