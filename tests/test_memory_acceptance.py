@@ -196,17 +196,18 @@ def test_forgetting_and_restore(client, app, connected, tmp_path, clock):
     """Excluding blocks every recall path; deleting removes records, sources, suggestions and receipts;
     a restore discloses that it may hold forgotten material and requires review."""
     client.put('/api/settings', json={'automatic_memory': True})
-    secret = say(client, 'My sister is called Ana')['message']
+    # A name no generated character can have: the companion's circle draws on real given names.
+    secret = say(client, 'My sister is called Ottoline')['message']
     for index in range(30):
         send(client, f'Small talk {index}', f'forget-{index:04d}')
     [sister] = client.get('/api/memories').json()
 
     # Exclusion: neither the memory nor its source message reaches the model.
     client.post(f"/api/memories/{sister['id']}/exclude")
-    say(client, 'What is my sister called again, Ana?')
+    say(client, 'What is my sister called again, Ottoline?')
     request = client.get('/api/context/preview').json()
-    assert 'Ana' not in request['system']
-    assert 'My sister is called Ana' not in str(request)
+    assert 'Ottoline' not in request['system']
+    assert 'My sister is called Ottoline' not in str(request)
 
     # A backup taken now still holds what is about to be deleted.
     archive = client.post('/api/backups').json()
@@ -223,7 +224,7 @@ def test_forgetting_and_restore(client, app, connected, tmp_path, clock):
             "SELECT proposal FROM memory_candidates UNION ALL SELECT COALESCE(detail, '') FROM memory_activity "
             "UNION ALL SELECT COALESCE(receipt, '') FROM messages")]
         markers = {row[0] for row in connection.execute('SELECT target_id FROM deletion_markers')}
-    assert not [text for text in leftovers if 'Ana' in text]
+    assert not [text for text in leftovers if 'Ottoline' in text]
     assert sister['id'] in markers and secret['id'] in markers
 
     # Restoring the older backup into a fresh workspace: it may hold the forgotten fact, so it opens
