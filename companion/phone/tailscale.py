@@ -11,6 +11,9 @@ from pathlib import Path
 from companion.errors import DomainError
 
 WINDOWS_PATHS = (r'C:\Program Files\Tailscale\tailscale.exe', r'C:\Program Files (x86)\Tailscale\tailscale.exe')
+# The Mac app (App Store or standalone) keeps its command line inside the bundle and only links it onto
+# PATH when the user asks it to.
+MAC_PATHS = ('/Applications/Tailscale.app/Contents/MacOS/Tailscale',)
 INSTALL_URL = 'https://tailscale.com/download'
 APPROVAL_LINK = re.compile(r'https://login\.tailscale\.com/\S+')
 SERVE_WAIT = 20
@@ -18,9 +21,10 @@ SERVE_WAIT = 20
 
 def binary() -> str | None:
     found = shutil.which('tailscale')
-    if found or sys.platform != 'win32':
+    if found:
         return found
-    return next((path for path in WINDOWS_PATHS if Path(path).exists()), None)
+    paths = {'win32': WINDOWS_PATHS, 'darwin': MAC_PATHS}.get(sys.platform, ())
+    return next((path for path in paths if Path(path).exists()), None)
 
 
 def run(args: list[str], timeout: float = 10) -> tuple[int, str]:

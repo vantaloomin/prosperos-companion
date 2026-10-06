@@ -2,7 +2,7 @@
 
 A standalone companion application derived from the Companion Mode concept in [Prospero's Study](https://github.com/vantaloomin/prosperos-study). The backend covers workspace identity, character versions, conversation, typed personal memory, committed life events and backups. The local interface covers conversation with streaming replies, character creation and editing, memories, settings, Today and the private Feed.
 
-On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrator rights, no Python or Node needed) and start Prospero Companion from the Start menu. Until releases are published, the setup is a build artifact of the `Package` workflow. From a checkout, double-click `install.bat` once, then `launch.bat`. See [Development](docs/development.md) for other systems.
+On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrator rights, no Python or Node needed) and start Prospero Companion from the Start menu. Until releases are published, the setup is a build artifact of the `Package` workflow. From a checkout, double-click `install.bat` once, then `launch.bat`. On a Mac, double-click `install.command` once, then `launch.command`; see [Installing on a Mac](docs/macos.md), including what macOS shows the first time. See [Development](docs/development.md) for Linux.
 
 | Script | What it does |
 | --- | --- |
@@ -14,9 +14,12 @@ On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrato
 | `create-shortcut.bat` | Puts a Prospero Companion shortcut to `launch.bat` on the desktop. |
 | `dev.bat` | Development mode: the backend reloads on Python changes and Vite serves http://127.0.0.1:5175 with live interface updates. |
 
+Each script has a Mac twin with the same name ending in `.command`.
+
 - [Product requirements (draft)](docs/product-requirements.md)
 - [Backbone architecture](docs/architecture.md)
 - [Development](docs/development.md)
+- [Installing on a Mac](docs/macos.md)
 - [Models](docs/models.md)
 - [Character drafting](docs/character-drafting.md)
 - [Life simulation API](docs/life-api.md)

@@ -17,6 +17,7 @@ The app never installs AI Toolkit or downloads weights. AI Toolkit itself fetche
 config names from Hugging Face when it is not cached, which is why Configure discloses it.
 """
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,6 +51,10 @@ REQUIREMENTS = [
 CONTROL = ('Training cannot pause. Cancelling stops the trainer process; checkpoints already saved stay and can be '
            'resumed. Chat keeps working, but if your chat model runs on the same GPU both will slow down or run '
            'out of memory. ComfyUI images on this computer wait until training ends.')
+
+# The config asks for cuda:0 and an 8-bit optimizer that needs CUDA, so a Mac has nothing to train on.
+MAC_NOTE = ('Training is set up for an NVIDIA GPU (CUDA). On a Mac, AI Toolkit will stop with an error as soon as '
+            'it starts. Train on a Windows or Linux PC with an NVIDIA card and add the finished adapter here.')
 
 
 @dataclass
@@ -119,6 +124,8 @@ def check(python_path: str, trainer_dir: str) -> dict:
     elif not (Path(trainer_dir) / 'extensions_built_in' / 'diffusion_models' / 'krea2').is_dir():
         notes.append('This AI Toolkit checkout has no krea2 model support; update it to a version from late '
                      'September 2026 or newer.')
+    if sys.platform == 'darwin':
+        notes.append(MAC_NOTE)
     return {'ok': not problems, 'problems': problems, 'notes': notes}
 
 

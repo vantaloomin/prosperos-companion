@@ -256,7 +256,7 @@ read-only like built-in cities (copy one to edit it), and can be personal or pri
 others. Pack folders:
 
 - `private-cities/` in the checkout (gitignored, so packs there are never committed)
-- `city-packs/` in the workspace data directory (`%LOCALAPPDATA%\ProsperoCompanion\city-packs` on Windows)
+- `city-packs/` in the workspace data directory (`%LOCALAPPDATA%\ProsperoCompanion\city-packs` on Windows, `~/Library/Application Support/ProsperoCompanion/city-packs` on macOS)
 - or the folders in `COMPANION_CITY_PACKS` (separated by `;` on Windows, `:` elsewhere), instead of both
 
 `GET /api/world/packs` lists the folders, the packs loaded and any file that failed validation with
