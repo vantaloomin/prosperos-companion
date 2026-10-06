@@ -138,8 +138,8 @@ function RunningJokes({ name, state, memories, change }: { name: string; state: 
       )}
       {available.length > 0 ? (
         <form className="closeness-pick" onSubmit={submit}>
-          <Field label="Pick a shared moment">{(id) => (
-            <select id={id} value={picked} onChange={(event) => setPicked(event.target.value)}>
+          <Field label="Pick a shared moment" hint="It becomes a running joke they bring up now and then, only when it fits.">{(id, hint) => (
+            <select id={id} aria-describedby={hint} value={picked} onChange={(event) => setPicked(event.target.value)}>
               <option value="">Choose one</option>
               {available.map((memory) => <option key={memory.id} value={memory.id}>{memory.subject}</option>)}
             </select>

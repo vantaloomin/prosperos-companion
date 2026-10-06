@@ -36,12 +36,12 @@ export function RememberForm({ name, request, onSave, onCancel }: { name: string
       <h2>Remember something</h2>
       {request && <p className="subtle">From your message: <q>{request.text.length > 200 ? `${request.text.slice(0, 200)}…` : request.text}</q>. Write it the way it should be remembered.</p>}
       <div className="form-grid">
-        <Field label="Kind">
-          {(id) => <select id={id} value={layer} autoFocus onChange={(event) => setLayer(event.target.value as Layer)}>{LAYERS.map((item) => <option key={item.id} value={item.id}>{item.title(name)}</option>)}</select>}
+        <Field label="Kind" hint={LAYERS.find((item) => item.id === layer)?.hint}>
+          {(id, hint) => <select id={id} aria-describedby={hint} value={layer} autoFocus onChange={(event) => setLayer(event.target.value as Layer)}>{LAYERS.map((item) => <option key={item.id} value={item.id}>{item.title(name)}</option>)}</select>}
         </Field>
-        <TextInput label="About" value={subject} onChange={setSubject} required maxLength={200} placeholder="Home city, Sister's name, Job interview" />
+        <TextInput label="About" value={subject} onChange={setSubject} required maxLength={200} placeholder="Home city, Sister's name, Job interview" hint="A short title for what it is about." />
       </div>
-      <TextArea label="What to remember" value={value} onChange={setValue} maxLength={4000} rows={2} />
+      <TextArea label="What to remember" value={value} onChange={setValue} maxLength={4000} rows={2} hint="Write it as a plain fact, such as Lives in Chicago." />
       <TimingFields layer={layer} planStatus={planStatus} setPlanStatus={setPlanStatus} until={until} setUntil={setUntil} />
       {layer !== 'companion_life' && <>
         <Toggle label="This is a boundary" hint="Always respected, however old it is." checked={boundary} onChange={setBoundary} />
@@ -68,12 +68,12 @@ function TimingFields({ layer, planStatus, setPlanStatus, until, setUntil }: { l
   if (layer !== 'plan' && layer !== 'temporary') return null
   return <>
     {layer === 'plan' && (
-      <Field label="Status">
-        {(id) => <select id={id} value={planStatus} onChange={(event) => setPlanStatus(event.target.value as PlanStatus)}>
+      <Field label="Status" hint="A plan stays open until it is marked completed or cancelled. A date passing does not finish it.">
+        {(id, hint) => <select id={id} aria-describedby={hint} value={planStatus} onChange={(event) => setPlanStatus(event.target.value as PlanStatus)}>
           {['proposed', 'agreed', 'postponed', 'completed', 'cancelled'].map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}
         </select>}
       </Field>
     )}
-    <TextInput label="Applies until (optional)" type="date" value={until} onChange={setUntil} />
+    <TextInput label="Applies until (optional)" type="date" value={until} onChange={setUntil} hint="After this day it is no longer treated as current. It stays in Memories." />
   </>
 }

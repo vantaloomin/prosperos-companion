@@ -47,7 +47,7 @@ function ConfirmStartOver({ mode, onClose, go }: { mode: StartOverMode; onClose:
       <p>A full backup is saved first. To undo this, restore it in Settings, Backups.</p>
       {state.blocked && <Notice tone="error">An adapter is training for {state.name}. Stop it first.</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
-      <TextInput label={state.label} value={typed} onChange={setTyped} maxLength={200} />
+      <TextInput label={state.label} value={typed} onChange={setTyped} maxLength={200} hint="Capital letters do not matter." />
     </ConfirmDialog>
   )
 }

@@ -113,15 +113,15 @@ function PlanSettings({ plan, setBase, setSeed, enabled, backendId, setBackendId
       <TextArea label="Description every shot starts from" value={plan.base} rows={3} maxLength={1500} onChange={setBase} hint="Drafted from the appearance description. Keep it the same across a set." />
       <div className="form-grid">
         <TextInput label="Seed" type="number" value={plan.seed} onChange={setSeed} hint="Shared by every shot. Codex and image APIs may ignore it." />
-        <Field label="Backend">{(id) => (
-          <select id={id} value={backendId} onChange={(event) => setBackendId(event.target.value)}>
+        <Field label="Backend" hint="Automatic tries your enabled backends in the order set in Settings, Images.">{(id, hint) => (
+          <select id={id} aria-describedby={hint} value={backendId} onChange={(event) => setBackendId(event.target.value)}>
             <option value="">Automatic, in your order</option>
             {enabled.map((backend) => <option key={backend.id} value={backend.id}>{backend.label}</option>)}
           </select>
         )}</Field>
       </div>
       <div className="form-actions"><button type="button" className="text-button" onClick={() => setSeed(String(newSeed()))}>New seed</button></div>
-      <Toggle label="Treat these as NSFW (local backends only)" checked={nsfw} onChange={setNsfw} />
+      <Toggle label="Treat these as NSFW (local backends only)" checked={nsfw} onChange={setNsfw} hint="Sends them only to a backend on a machine you control. Hosted services and Codex are skipped." />
     </>
   )
 }
@@ -157,14 +157,14 @@ function ShotRow({ shot, prompt, planned, edit, remove }: { shot: Shot; prompt: 
   return (
     <li className="shot-row">
       <div className="form-grid">
-        <TextInput label="Shot" value={shot.label} maxLength={80} onChange={(label) => edit({ label })} />
-        <Field label="Shape">{(id) => (
-          <select id={id} value={shot.aspect} onChange={(event) => edit({ aspect: event.target.value as ShotAspect })}>
+        <TextInput label="Shot" value={shot.label} maxLength={80} onChange={(label) => edit({ label })} hint="A short name for this picture." />
+        <Field label="Shape">{(id, hint) => (
+          <select id={id} aria-describedby={hint} value={shot.aspect} onChange={(event) => edit({ aspect: event.target.value as ShotAspect })}>
             {ASPECTS.map((aspect) => <option key={aspect} value={aspect}>{aspect}</option>)}
           </select>
         )}</Field>
       </div>
-      <TextArea label="What it shows" value={shot.shot} rows={2} maxLength={500} onChange={(text) => edit({ shot: text })} />
+      <TextArea label="What it shows" value={shot.shot} rows={2} maxLength={500} onChange={(text) => edit({ shot: text })} hint="Framing, pose, outfit and setting. The description above is added for you." />
       <p className="subtle shot-prompt">Prompt sent: {prompt}</p>
       {planned && <p className={planned.backend ? 'subtle' : 'error-text'}>{routeLine(planned)}</p>}
       <button type="button" className="text-button danger-text" onClick={remove}><Trash2 aria-hidden="true" />Remove shot</button>

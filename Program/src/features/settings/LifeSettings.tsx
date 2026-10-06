@@ -53,7 +53,8 @@ export function LifeSettings({ name }: { name: string }) {
         <h2 id="life-heading">{name}'s life</h2>
         <p className="subtle">When you come back, a few things that fit {name}'s routine are written for the time you were away. Nothing is written for time while paused.</p>
       </div>
-      <Toggle label="Catch up when you return" checked={data.catch_up_on_return} onChange={(value) => void save({ catch_up_on_return: value })} />
+      <Toggle label="Catch up when you return" checked={data.catch_up_on_return} onChange={(value) => void save({ catch_up_on_return: value })}
+        hint="Off: nothing is written for the time you were away, and their life picks up from when you return." />
       <Toggle label="Add everyday events without asking" checked={data.automatic_events} onChange={(value) => void save({ automatic_events: value })}
         hint="Off: new events wait in Today for you to keep or discard. Big changes to who they are or your relationship always wait for you." />
       <Toggle label="Let the model word their days" checked={data.phrase_with_model} onChange={(value) => void save({ phrase_with_model: value })}

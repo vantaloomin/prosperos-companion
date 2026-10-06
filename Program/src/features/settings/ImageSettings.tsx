@@ -69,8 +69,8 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
         hint="Only to a backend allowed to receive that request." />
       <div className="form-grid">
         <TextInput label="Most automatic images a day" type="number" value={limit ?? String(data.daily_limit)} hint="0 to 24." onChange={setLimit} />
-        <Field label="Shape">{(id) => (
-          <select id={id} value={data.aspect} onChange={(event) => void save({ aspect: event.target.value as Limits['aspect'] })}>
+        <Field label="Shape" hint="For post pictures and photos in chat. Memes are always square.">{(id, hint) => (
+          <select id={id} aria-describedby={hint} value={data.aspect} onChange={(event) => void save({ aspect: event.target.value as Limits['aspect'] })}>
             <option value="landscape">Landscape</option><option value="square">Square</option><option value="portrait">Portrait</option>
           </select>
         )}</Field>
@@ -202,14 +202,15 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
       </>}
       {kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={cliPath} onChange={setCliPath} hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />}
       {kind === 'hosted' && <>
-        <Field label="Provider">{(id) => (
-          <select id={id} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>
+        <Field label="Provider" hint="The image service your API key is for.">{(id, hint) => (
+          <select id={id} aria-describedby={hint} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>
             {PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
-        <TextInput label="Image model" value={model} required onChange={setModel} placeholder={provider === 'openrouter' ? 'google/gemini-2.5-flash-image' : provider === 'google' ? 'imagen-4.0-generate-001' : 'gpt-image-1'} />
+        <TextInput label="Image model" value={model} required onChange={setModel} placeholder={provider === 'openrouter' ? 'google/gemini-2.5-flash-image' : provider === 'google' ? 'imagen-4.0-generate-001' : 'gpt-image-1'}
+          hint="The model's exact name from the provider's documentation." />
         <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />
-        {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} />}
+        {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} hint="For an OpenAI-compatible image service, usually ending in /v1." />}
       </>}
       {disclosure && <Toggle label="I understand what it receives" checked={accepted} onChange={setAccepted} hint={disclosure} />}
       <div className="form-actions">

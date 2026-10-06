@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Form help:** plain-language helper text under fields whose effect is not obvious, and "?" tips
+  next to technical ones (model sampling, MCP services, image backends). Tips open on hover, keyboard
+  focus or tap, close with Escape, and are read out with their field by screen readers.
+- **Accessibility:** a test now fails the build if an input, select, textarea or icon-only button has
+  no label.
+
 ## v0.1.0 (2026-10-06), early beta
 
 The first public release of Prospero's Companion: a companion with a simulated life of their own,

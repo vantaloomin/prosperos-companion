@@ -21,7 +21,7 @@ export function CorrectEvent({ event, onSave }: { event: LifeEvent; onSave: (cor
   return (
     <form className="correct-event" onSubmit={(submit) => { submit.preventDefault(); void save() }}>
       <TextArea label="What happened" value={summary} onChange={setSummary} rows={2} maxLength={2000} hint="Chat, memories and the feed use the corrected version from now on. The earlier version is kept." />
-      {event.details.post !== undefined && <TextArea label="Their post about it" value={post} onChange={setPost} rows={2} maxLength={2000} />}
+      {event.details.post !== undefined && <TextArea label="Their post about it" value={post} onChange={setPost} rows={2} maxLength={2000} hint="What the Feed shows them posting about it." />}
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={saving || !summary.trim()}>Save correction</button>
         <button type="button" className="button quiet" onClick={() => setOpen(false)}>Cancel</button>

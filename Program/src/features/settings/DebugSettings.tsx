@@ -84,12 +84,13 @@ function Controls({ data, who, busy, call, finish }: ControlsProps) {
       ) : (
         <>
           <div className="field">
-            <span className="field-label">Jump ahead</span>
-            <div className="form-actions wrap">
+            <span className="field-label" id="debug-jump-label">Jump ahead</span>
+            <div className="form-actions wrap" role="group" aria-labelledby="debug-jump-label" aria-describedby="debug-jump-hint">
               {JUMPS.map((jump) => (
                 <button key={jump.hours} type="button" className="button" disabled={busy} onClick={() => void call('jump', { hours: jump.hours })}><FastForward aria-hidden="true" />{jump.label}</button>
               ))}
             </div>
+            <small id="debug-jump-hint">Their life plays out over the skipped time, as if you had been away that long.</small>
           </div>
           <form className="form-actions wrap" onSubmit={(event) => { event.preventDefault(); if (target) void call('jump', { to: target }) }}>
             <Field label="Or go to a date and time" hint={`Your time${zone ? ` (${zone})` : ''}. Time only moves forward here.`}>
