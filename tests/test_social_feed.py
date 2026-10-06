@@ -164,8 +164,9 @@ def test_a_branch_keeps_the_social_posts_from_before_it_split_off(client, city, 
     # What the parent posted after the split stays on the parent.
     assert after and not after & {(post['kind'], post['text'], post['occurs_at']) for post in copied
                                   if post['occurs_at'] > sent['created_at']}
-    shown = {post['text']: post for post in copied}
-    assert shown[question['text']]['answer'] == question['options'][1]
-    assert shown[before[0]['text']]['reaction'] == 'wow'
+    # Friends can post the same words, so a post is found by its kind, words and moment together.
+    shown = {(post['kind'], post['text'], post['occurs_at']): post for post in copied}
+    assert shown[(question['kind'], question['text'], question['occurs_at'])]['answer'] == question['options'][1]
+    assert shown[(before[0]['kind'], before[0]['text'], before[0]['occurs_at'])]['reaction'] == 'wow'
     # Reading again on the branch does not post the copied ones a second time.
     assert len([post for post in feed(client)['posts'] if post['source'] == 'social']) == len(copied)
