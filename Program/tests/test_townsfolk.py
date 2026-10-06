@@ -150,8 +150,8 @@ def test_the_companion_runs_into_townsfolk_and_learns_more_each_time(client, clo
     first = met[0]['entry']['townsfolk']['key']
     seeded = encounters.present
 
-    def around(data, place_id, times_of_day, history):
-        found = seeded(data, place_id, times_of_day, history)
+    def around(data, place_id, times_of_day, history, cast=None):
+        found = seeded(data, place_id, times_of_day, history, cast)
         return (found[0] if found else times_of_day[0]), {**(found[1] if found else {}), first: {'doing': ''}}
 
     monkeypatch.setattr(encounters, 'present', around)

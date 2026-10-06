@@ -327,6 +327,8 @@ export interface BackupEntry {
 export interface StartOverPreview {
   name: string; messages: number; memories: number; timelines: number; images: number
   versions: number; adapters: number; references: number; training: boolean
+  /** Other companions in the workspace, who stay; deleting brings back the first of them. */
+  others: string[]
 }
 export interface StartOverResult { backup: { name: string; path: string } }
 export interface BackupList { backups: BackupEntry[]; pending: { name: string; requested_at: string } | null }
@@ -951,5 +953,15 @@ export interface Townsperson {
   routine: string | null
   flaw: string | null
   desire: string | null
+  /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
+  cast: string | null
+}
+/** A companion in the workspace: the main character, or one who stepped back. */
+export interface CastMember { id: string; name: string; main: boolean; from_town: boolean; stepped_back_at: string | null; created_at: string }
+/** A townsperson's drafted profile, before they become the main character. */
+export interface CastDraft {
+  definition: CharacterDefinition
+  person: { key: string; name: string; full: string; age: number; role: string; kind: string; place: string; neighborhood: string }
+  stepping_back: string
 }
 export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }

@@ -8,7 +8,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Notice } from '../../components/Feedback'
 import { TextInput } from '../../components/Fields'
 import { usePhoneStatus } from '../phone/phoneAccess'
-import { nameMatches, removedSummary, type StartOverMode } from './startOverText'
+import { nameMatches, othersStay, removedSummary, type StartOverMode } from './startOverText'
 
 const PREVIEW_KEY = ['start-over']
 
@@ -36,7 +36,7 @@ function ConfirmStartOver({ mode, onClose, go }: { mode: StartOverMode; onClose:
   const preview = useQuery({ queryKey: PREVIEW_KEY, queryFn: () => api<StartOverPreview>('/companion/start-over'), staleTime: 0 })
   const [typed, setTyped] = useState('')
   const state = dialogState(mode, preview.data, typed)
-  const { busy, error, confirm } = useConfirm(mode, typed, state.ready, () => { onClose(); go(mode === 'reset' ? 'conversation' : 'character') })
+  const { busy, error, confirm } = useConfirm(mode, typed, state.ready, () => { onClose(); go(mode === 'reset' || preview.data?.others.length ? 'conversation' : 'character') })
   return (
     <ConfirmDialog title={state.title} onClose={onClose} actions={<>
       <button type="button" className="button" onClick={onClose}>Cancel</button>
@@ -65,9 +65,12 @@ function dialogState(mode: StartOverMode, preview: StartOverPreview | undefined,
 }
 
 function Removed({ preview, mode }: { preview: StartOverPreview; mode: StartOverMode }) {
-  return <p>This removes {removedSummary(preview, mode)}. {mode === 'reset'
-    ? `${preview.name} stays as you wrote them, with their look, and meets you fresh from now.`
-    : 'Training folders and adapter test pictures are not in backups and are removed for good.'}</p>
+  return <>
+    <p>This removes {removedSummary(preview, mode)}. {mode === 'reset'
+      ? `${preview.name} stays as you wrote them, with their look, and meets you fresh from now.`
+      : 'Training folders and adapter test pictures are not in backups and are removed for good.'}</p>
+    {preview.others.length > 0 && <p>{othersStay(preview, mode)}</p>}
+  </>
 }
 
 function useConfirm(mode: StartOverMode, typed: string, ready: boolean, done: () => void) {

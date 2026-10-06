@@ -281,7 +281,12 @@ def schedule(career: dict, seed: str, workplace: str = '') -> list[dict]:
     day_options, start, end, bed, wake = pick(seed, 'variant', PATTERNS[career['schedule']])
     days = pick(seed, 'days', day_options)
     themes = career['themes'][:5] + ([workplace] if workplace else [])
-    blocks = [{'key': 'work', 'label': career['name'], 'kind': 'study' if career['id'] in STUDY else 'work',
+    return week(career['name'], 'study' if career['id'] in STUDY else 'work', days, start, end, bed, wake, themes)
+
+
+def week(label: str, kind: str, days, start: str, end: str, bed: str, wake: str, themes: list[str]) -> list[dict]:
+    """Work (or study) on `days` from `start` to `end`, sleep every night, free time after work and days off."""
+    blocks = [{'key': 'work', 'label': label, 'kind': kind,
                'days': list(days), 'start': start, 'end': end, 'themes': themes},
               {'key': 'sleep', 'label': 'Asleep', 'kind': 'sleep', 'days': list(range(7)), 'start': bed,
                'end': wake, 'themes': []}]
