@@ -414,9 +414,9 @@ reference cleared. Enabling memory or background activity requires marking the r
 `companion/start_over.py`, from the bottom of the Character page (PC only). The user types the
 companion's name; a full backup with reference pictures (`before-reset-*.zip` or
 `before-delete-*.zip`) is written and verified before anything is removed. Every table is in one
-group: WORKSPACE (settings, connections, backends, lookups, cities, phones) always stays,
+group: WORKSPACE (settings, connections, backends, lookup services, cities, phones) always stays,
 CHARACTER (companion, versions, look and LoRA) stays on start over, HISTORY (timelines and all
-they hold) is cleared by both. A test fails when a new table is in no group. Starting over gives
+they hold, plus every real-world lookup and the city news drawn from it) is cleared by both. A test fails when a new table is in no group. Starting over gives
 the companion a fresh active timeline that begins now; deleting also removes `images/` and the
 LoRA folders, and waits while an adapter trains. Both bump the permission and memory revisions,
 stop replies being written and vacuum the database.

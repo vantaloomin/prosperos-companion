@@ -96,8 +96,8 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
   const held = useHeld(message)
   // A reply being written while they are away stays out of sight: no typing dots, no Stop.
   const streaming = message.status === 'streaming' && !held
-  // Until they get back to the user there is nothing to see, unless they sent a quick holding text meanwhile.
-  if (held && !message.held_line) return null
+  // Until they get back to the user there is nothing to see; a holding text they sent meanwhile is its own message.
+  if (held) return null
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
       <Avatar name={name} />
@@ -105,8 +105,8 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} />
       </header>
-      <ReplyBody text={held ? message.held_line ?? '' : text} name={name} streaming={streaming} bursts={bursts && !held} />
-      {!held && <ReplyExtras message={message} name={name} note={note} />}
+      <ReplyBody text={text} name={name} streaming={streaming} bursts={bursts} />
+      <ReplyExtras message={message} name={name} note={note} />
     </article>
   )
 }

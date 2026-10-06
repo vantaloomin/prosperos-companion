@@ -234,6 +234,29 @@ to go, but haven't been unless their life says so). ESPN's scoreboards are unoff
 without notice. Google News and Reddit can refuse requests that look automated. Air quality data is
 CC BY 4.0, like the weather data.
 
+## The built-in culture pulse server
+
+`companion/mcp/servers/culture.py` is the internet-wide counterpart to the local pulse: it covers what's out and what
+people are into. It is added with **Add the built-in culture pulse server**, stored as `@builtin:culture`,
+and fills the **Movies, shows, games and what's trending** lookup (category `culture`). The lookup sends no place, only which
+sections a message asked about. Its card has one switch, plus an optional TMDB key.
+
+| | |
+| --- | --- |
+| Tool | `get_culture_pulse(topic?)`; the topic names the sections ("movies, tv"), and without one it returns a short digest of every section |
+| Chat triggers | Deterministic: movies/films/box office → `movies`; TV, series, Netflix, streaming, binge → `tv`; video games, Steam, PlayStation, Xbox, Nintendo → `games`; albums, songs, playlists, Spotify → `music`; new/good books, bestsellers, novels → `books`; trending, viral, memes → `trending`. Results stay fresh for 6 hours |
+| movies | The iTunes top movies chart (new home releases) and the latest movie review and box office headlines from Google News. With a TMDB key, it also lists what's in theaters now and coming soon, with ratings |
+| tv | Today's US episodes, streaming and broadcast, from [TVmaze](https://www.tvmaze.com/api), with premieres first |
+| games | Steam's new releases, top sellers and coming soon, and the latest game review headlines |
+| music | Apple Music's most-played songs and albums in the US ([Apple's RSS feeds](https://rss.applemarketingtools.com)) |
+| books | [Open Library](https://openlibrary.org/developers/api)'s trending books today |
+| trending | Google Trends' daily searches in the US, English Wikipedia's most-read articles and Reddit's r/popular, with adult posts left out |
+| Key | Optional. A free TMDB key (v3 API key or v4 read token) is kept in the credential store and given only to this server as `TMDB_API_KEY`. Saving or removing it asks for the lookup to be confirmed again |
+
+Like the local pulse, each source that fails is left out, and the lookup fails only when every source does. The
+iTunes chart and the Google feeds are public but unofficial, so they can change without notice. TVmaze data is
+CC BY-SA.
+
 ## Interface
 
 Settings has a **Real-world lookups** section: your location, the services, a suggested tool for

@@ -29,6 +29,11 @@ CATEGORIES = {
              'purposes': ('conversation',), 'when': 'When a link you paste in chat cannot be read on this computer'},
     'web_search': {'label': 'Web search', 'keywords': ('search', 'web'), 'purposes': ('conversation',),
                    'when': 'When you ask in chat to search or look something up, with what you asked for'},
+    # Internet-wide releases and trends; it sends only which of them were asked about, never a place.
+    'culture': {'label': "Movies, shows, games and what's trending",
+                'keywords': ('culture', 'movie', 'entertainment', 'trending', 'release'), 'purposes': ('conversation',),
+                'when': 'When you ask in chat about movies, TV, games, music, books or what is trending, with which '
+                        'of those you asked about'},
 }
 # Hosted search services that work without a key (checked 2026-10-05; each one's own terms and limits apply).
 PRESETS = {
@@ -37,8 +42,8 @@ PRESETS = {
     'firecrawl': {'name': 'Firecrawl', 'url': 'https://mcp.firecrawl.dev/v2/mcp'},
 }
 # Categories that may send a topic, and those that send nothing about where the user is.
-TOPIC_CATEGORIES = {'news', 'local_events', 'web_search'}
-PLACELESS = {'link', 'web_search'}
+TOPIC_CATEGORIES = {'news', 'local_events', 'web_search', 'culture'}
+PLACELESS = {'link', 'web_search', 'culture'}
 PURPOSES = {
     'conversation': 'When you ask about it in chat, for your location (or the topic you name)',
     'companion_city': "For the companion's city, when it is a real place: in chat when you ask about where "
@@ -76,11 +81,16 @@ BUILTIN_SERVERS = {
     'pulse': {'name': 'Built-in local pulse', 'script': 'pulse.py',
               'destination': 'the built-in local pulse program on this computer, which asks Google News '
                              '(news.google.com), Wikipedia, Reddit, ESPN, MLB (statsapi.mlb.com) and Open-Meteo'},
+    'culture': {'name': 'Built-in culture pulse', 'script': 'culture.py', 'secret_name': 'TMDB_API_KEY',
+                'destination': 'the built-in culture pulse program on this computer, which asks Google News, iTunes, '
+                               'Apple Music, TVmaze, Steam, Open Library, Google Trends, Wikipedia and Reddit, and '
+                               'The Movie Database (themoviedb.org) when you add a TMDB key'},
 }
 # Proxy and certificate settings let a built-in server reach the internet where the app can; the endpoint
 # override is for tests.
 BUILTIN_ENV = ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'NO_PROXY', 'no_proxy', 'SSL_CERT_FILE',
-               'PROSPERO_WEATHER_ENDPOINTS', 'PROSPERO_PULSE_ENDPOINTS')
+               'PROSPERO_WEATHER_ENDPOINTS', 'PROSPERO_PULSE_ENDPOINTS',
+               'PROSPERO_CULTURE_ENDPOINTS')
 CHECK_TIMEOUT = 15
 
 
@@ -255,6 +265,8 @@ def transport_for(service: dict, vault):
     if kind:
         script = Path(__file__).parent / 'servers' / BUILTIN_SERVERS[kind]['script']
         env = {key: os.environ[key] for key in BUILTIN_ENV if key in os.environ}
+        if secret and BUILTIN_SERVERS[kind].get('secret_name'):
+            env[BUILTIN_SERVERS[kind]['secret_name']] = secret  # An optional key, such as TMDB's.
         return StdioTransport([sys.executable, '-I', str(script)], env)
     if service['transport'] == 'stdio':
         env = {service['secret_name'] or 'API_KEY': secret} if secret else {}
@@ -360,7 +372,7 @@ def check_mapping(service: dict, category: str, body):
         require(argument.source in SOURCES, f'Unknown source for {name}.', 422)
         require(argument.source != 'literal' or argument.value is not None, f'Choose a value for {name}.', 422)
         require(argument.source != 'topic' or category in TOPIC_CATEGORIES,
-                'Only news, event and search lookups can send a topic.', 422)
+                'Only news, event, search and culture lookups can send a topic.', 422)
         require(category not in PLACELESS or argument.source not in {'place', 'latitude', 'longitude'},
                 f"{CATEGORIES[category]['label']} never sends your location.", 422)
         require(argument.source != 'url' or category == 'link', 'Only link reading sends the link.', 422)

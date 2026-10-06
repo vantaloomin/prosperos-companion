@@ -196,6 +196,9 @@ def person_text(person) -> str:
     if person.get('works_with_companion'):
         text = f"- {person['name']} ({person['role']}): works with you"
     text += '.' if person.get('local', True) else '. Lives out of town.'
+    if person.get('married'):
+        text += ' Married' + (f", goes by their married name (born {person['birth_family']})."
+                              if person.get('birth_family') else '.')
     if person.get('knows'):
         text += ' ' + circle.ties_text(person['knows'])
 

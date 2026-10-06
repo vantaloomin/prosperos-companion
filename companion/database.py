@@ -102,6 +102,8 @@ ADDED_COLUMNS = (
     ('image_settings', 'unprompted_photos', 'INTEGER NOT NULL DEFAULT 1 CHECK (unprompted_photos IN (0, 1))'),
     ('memories', 'person_id', 'TEXT'),
     ('workspace_settings', 'ask_about_people', 'INTEGER NOT NULL DEFAULT 1 CHECK (ask_about_people IN (0, 1))'),
+    # A full reply after a holding text, dropped unseen because the user wrote again first (life/pacing.py).
+    ('messages', 'superseded_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
