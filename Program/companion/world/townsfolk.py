@@ -1,0 +1,385 @@
+"""Townsfolk: the people who work at and hang around the city's places, run by simple rules.
+
+Every place in a city has a few seeded people: staff (the barista, the barkeep, the librarian) and
+regulars (the jogger in the park, the old man who reads the paper at the cafe). Each has a name that
+fits the city and era, an age, a home neighborhood near the place, a temperament, a quirk, a flaw, a
+desire and a goal they are working toward. Nobody is stored: a person is rebuilt from their key
+(`town:<city>:<place>:<n>`) the same way every time, so a city of thousands costs nothing until someone
+is asked about.
+
+What they do is decided like an old video game's townsperson: a short list of if/then/else rules
+(`whereabouts`) reads the hour, the weekday, their shifts and visits, their goal and their desire, and
+says where they are and what they are doing. Their goal moves week by week (`story`): a roll each week,
+nudged by their temperament and dragged by their flaw, makes progress, stalls or suffers a setback, and
+once enough progress is made they reach it and move on to their next goal. No model is involved.
+"""
+import functools
+from datetime import date, datetime
+
+from companion.world import catalog, generators
+
+MODERN = {'modern', 'future', 'other'}
+EPOCH = date(2026, 1, 5)  # A Monday: goals start moving from here.
+MAX_WEEKS = 520
+PEOPLE = (2, 3)
+
+# Who works at or hangs around each kind of place: (modern role, period role, staff?).
+REGULAR = ('regular', 'regular', False)
+ROLES = {
+    'cafe': (('barista', 'counter hand', True), ('owner', 'proprietor', True), REGULAR),
+    'restaurant': (('server', 'server', True), ('line cook', 'cook', True), ('owner', 'proprietor', True), REGULAR),
+    'bar': (('bartender', 'barkeep', True), ('bouncer', 'doorman', True), REGULAR),
+    'nightlife': (('bartender', 'barkeep', True), ('DJ', 'fiddler', True), REGULAR),
+    'tavern': (('bartender', 'barkeep', True), ('cook', 'cook', True), REGULAR),
+    'inn': (('front desk clerk', 'innkeeper', True), ('housekeeper', 'chambermaid', True), REGULAR),
+    'market': (('stall vendor', 'stallholder', True), ('butcher', 'butcher', True), REGULAR),
+    'library': (('librarian', 'librarian', True), ('library assistant', 'clerk', True), REGULAR),
+    'fitness': (('personal trainer', 'trainer', True), ('front desk attendant', 'attendant', True), REGULAR),
+    'museum': (('docent', 'guide', True), ('security guard', 'watchman', True), REGULAR),
+    'venue': (('box office clerk', 'ticket seller', True), ('stagehand', 'stagehand', True), REGULAR),
+    'stadium': (('concessions worker', 'vendor', True), ('groundskeeper', 'groundskeeper', True), REGULAR),
+    'shopping': (('shop clerk', 'shop assistant', True), ('store manager', 'shopkeeper', True), REGULAR),
+    'landmark': (('tour guide', 'guide', True), ('ticket taker', 'gatekeeper', True), REGULAR),
+    'attraction': (('tour guide', 'guide', True), ('ticket taker', 'gatekeeper', True), REGULAR),
+    'temple': (('caretaker', 'sexton', True), REGULAR),
+    'workshop': (('craftsperson', 'artisan', True), ('apprentice', 'apprentice', True), REGULAR),
+    'docks': (('dockworker', 'dockhand', True), ('harbor clerk', "harbormaster's clerk", True), REGULAR),
+    'guildhall': (('clerk', 'guild clerk', True), REGULAR),
+    'square': (('street vendor', 'hawker', True), ('street musician', 'street musician', False), REGULAR),
+}
+OUTDOOR = (('groundskeeper', 'groundskeeper', True), ('dog walker', 'dog walker', False),
+           ('morning runner', 'early walker', False), ('street musician', 'street musician', False), REGULAR)
+for _kind in ('park', 'garden', 'trail', 'beach'):
+    ROLES[_kind] = OUTDOOR
+
+# Shift windows by the part of the day a place is open, in minutes after midnight.
+SHIFTS = {'morning': (6 * 60, 14 * 60), 'afternoon': (11 * 60, 19 * 60), 'evening': (16 * 60, 24 * 60),
+          'late': (18 * 60, 24 * 60)}
+VISITS = {'morning': (7 * 60 + 30, 10 * 60 + 30), 'afternoon': (12 * 60 + 30, 15 * 60 + 30), 'evening': (18 * 60, 21 * 60),
+          'late': (21 * 60, 23 * 60 + 30)}
+PARTS = (('morning', 5, 12), ('afternoon', 12, 17), ('evening', 17, 21), ('late', 21, 24))
+
+TEMPERAMENTS = {
+    'warm': ('warm', 'greeted everyone like an old friend', 0.0),
+    'gruff': ('gruff', 'grunted a hello but softened after a minute', 0.0),
+    'shy': ('shy', 'barely made eye contact at first', -0.05),
+    'chatty': ('chatty', 'talked a mile a minute', 0.0),
+    'deadpan': ('deadpan', 'had a bone-dry sense of humor', 0.0),
+    'cheerful': ('cheerful', 'was cheerful in a way that was hard not to catch', 0.05),
+    'anxious': ('anxious', 'seemed a little on edge', -0.05),
+    'easygoing': ('easygoing', 'was completely unhurried about everything', 0.0),
+    'driven': ('driven', 'had the look of someone with somewhere to be', 0.15),
+    'dreamy': ('dreamy', 'kept drifting off mid-sentence', -0.05),
+}
+QUIRKS = (
+    'remembers everyone\'s usual order', 'hums under their breath', 'wears the same green scarf every day',
+    'carries a battered notebook everywhere', 'can\'t resist a terrible pun', 'knows every dog in the neighborhood '
+    'by name', 'is always running five minutes late', 'collects odd little trinkets', 'names every plant they own',
+    'has an opinion about everyone\'s shoes', 'talks to pigeons', 'sketches people when they think no one is looking',
+    'whistles the same tune all day', 'keeps sweets in every pocket',
+)
+# Flaws: (text, slows their goal down, setback wording with {name}).
+FLAWS = {
+    'proud': ('too proud to ask for help', False, '{name} turned down help they needed and paid for it'),
+    'procrastinator': ('puts everything off until the last minute', True, '{name} let a deadline slip right past'),
+    'spender': ('spends money as fast as it comes in', True, '{name} blew their savings on something shiny'),
+    'temper': ('has a short fuse', False, '{name} lost their temper with the wrong person'),
+    'gossip': ('can\'t keep a secret', False, '{name} let something slip that wasn\'t theirs to tell'),
+    'stubborn': ('stubborn to a fault', False, '{name} refused to change course when they should have'),
+    'doubter': ('doubts themselves constantly', True, '{name} talked themselves out of it again'),
+    'pleaser': ('can\'t say no to anyone', True, '{name} spent the week doing favors for everyone else'),
+    'jealous': ('gets jealous easily', False, '{name} fell out with a friend over nothing much'),
+    'scattered': ('forgetful and scattered', True, '{name} forgot something important'),
+    'grudge': ('holds a grudge forever', False, '{name} let an old grudge get in the way'),
+    'reckless': ('acts first and thinks later', False, '{name} jumped in without thinking and it backfired'),
+}
+DESIRES = {
+    'respect': 'to be taken seriously', 'quiet': 'a quiet, settled life', 'company': 'someone to come home to',
+    'adventure': 'a little adventure before it\'s too late', 'recognition': 'to be recognized for what they do',
+    'needed': 'to be needed', 'security': 'never to worry about money again', 'belonging': 'to belong somewhere',
+    'escape': 'to get out of this city someday', 'family': 'to make their family proud',
+}
+# Goals: id, wording (modern, period), steps to reach it, where they practise (place kind, part of day) or
+# None, progress line, done line. Lines start with the person's given name.
+GOALS = (
+    ('own-place', ('save up to open a place of their own', 'save enough to open a shop of their own'), 6, None,
+     '{name} put another chunk of pay into the savings', '{name} finally signed for a little place of their own'),
+    ('race', ('run their first marathon', 'walk the long road to the coast and back'), 5, ('park', 'morning'),
+     '{name} went further than ever on a long morning run', '{name} made it the whole way and has the blisters to prove it'),
+    ('band', ('get their band a real gig', 'get their troupe a proper engagement'), 5, ('venue', 'evening'),
+     '{name}\'s band finally sounded tight at practice', '{name}\'s band played its first real show'),
+    ('exam', ('pass a licensing exam', 'earn their guild papers'), 4, ('library', 'evening'),
+     '{name} got through another chapter of study', '{name} passed, and can\'t stop grinning about it'),
+    ('novel', ('finish writing a novel', 'finish the book they have been writing for years'), 7, ('cafe', 'morning'),
+     '{name} wrote another chapter', '{name} typed the last line of their novel'),
+    ('reconcile', ('patch things up with an estranged sibling', 'make peace with a brother or sister they fell out '
+     'with'), 4, None, '{name} sent their sibling a message and got an answer', '{name} and their sibling are speaking again'),
+    ('move', ('save enough to move somewhere bigger', 'save enough to take better rooms'), 5, None,
+     '{name} went to see a place they might be able to afford', '{name} moved into a bigger place'),
+    ('language', ('learn a new language before a big trip', 'learn a foreign tongue'), 5, ('library', 'afternoon'),
+     '{name} got through a whole conversation in their new language', '{name} can finally hold their own in it'),
+    ('promotion', ('get promoted', 'be made head of the place they work'), 5, None,
+     '{name} got trusted with something bigger at work', '{name} got the promotion'),
+    ('art', ('get their paintings into a show', 'get their pictures hung in a proper gallery'), 5, ('park', 'afternoon'),
+     '{name} finished a painting they are actually proud of', '{name} has their work hanging in a show'),
+    ('dog', ('adopt a dog', 'take in a dog of their own'), 3, None,
+     '{name} visited the shelter again and has a favorite', '{name} adopted a scruffy dog'),
+    ('strong', ('get properly strong', 'win the strongman contest at the fair'), 5, ('gym', 'evening'),
+     '{name} hit a new personal best', '{name} did it, and won\'t stop talking about it'),
+    ('side', ('get a side business off the ground', 'build up a little trade on the side'), 6, None,
+     '{name} landed another paying customer on the side', '{name}\'s side business is paying its own way now'),
+)
+GOAL_KINDS = {'park': ('park', 'garden', 'trail'), 'venue': ('venue', 'tavern', 'nightlife'),
+              'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',)}
+COMPANY_SPOTS = ('bar', 'tavern', 'nightlife')
+BASE_PROGRESS = 0.4
+SETBACK = 0.88
+DRAG = 0.15
+
+
+# Who they are ------------------------------------------------------------------------------------
+
+def modern(data: dict) -> bool:
+    return data.get('era', 'modern') in MODERN
+
+
+def at_place(data: dict, place_id: str) -> list[dict]:
+    """Everyone seeded at this place, the same every time for the same city."""
+    place = catalog.find(data, place_id)
+    if not place or place not in data['places']:
+        return []
+    return [person(data, place, index) for index in range(count(data, place))]
+
+
+def count(data: dict, place: dict) -> int:
+    seed = f"town:{data['id']}:{place['id']}"
+    return PEOPLE[0] + int(generators.unit(seed, 'count') * (PEOPLE[1] - PEOPLE[0] + 1))
+
+
+def find(data: dict, key: str) -> dict | None:
+    """The person a key names in this city, or None."""
+    parts = key.split(':')
+    if len(parts) != 4 or parts[0] != 'town' or parts[1] != data['id'] or not parts[3].isdigit():
+        return None
+    place = catalog.find(data, parts[2])
+    index = int(parts[3])
+    if not place or place not in data['places'] or index >= count(data, place):
+        return None
+    return person(data, place, index)
+
+
+@generators.detached
+def person(data: dict, place: dict, index: int) -> dict:
+    return _build(data, place['id'], index)
+
+
+def _build(data: dict, place_id: str, index: int) -> dict:
+    place = catalog.find(data, place_id)
+    key = f"town:{data['id']}:{place['id']}:{index}"
+    roles = ROLES.get(place['kind'], (REGULAR,))
+    # The first person at a staffed place runs it day to day; the second is another role there or a regular,
+    # the rest are regulars or anyone else the place draws.
+    staffed = [role for role in roles if role[2]]
+    others = [role for role in roles if not staffed or role != staffed[0]] or list(roles)
+    if index == 0 and staffed:
+        role = staffed[0]
+    elif index == 1:
+        role = generators.pick(key, 'role', others)
+    else:
+        role = generators.pick(key, 'role', [role for role in others if not role[2]] or others)
+    title = role[0] if modern(data) else role[1]
+    age = 19 + round((generators.unit(key, 'age-a') + generators.unit(key, 'age-b')) / 2 * 52)
+    name = generators.name(data, seed=key, age=age)
+    hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
+    order = sorted(GOALS, key=lambda goal: generators.unit(key, 'goal', goal[0]))
+    sheet = {
+        'key': key, 'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age,
+        'role': title, 'staff': role[2], 'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'],
+                                                   'neighborhood': place['neighborhood']},
+        'home': generators.pick(key, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
+        'occupation': title if role[2] else _occupation(data, key, age),
+        'temperament': generators.pick(key, 'temperament', sorted(TEMPERAMENTS)),
+        'quirk': generators.pick(key, 'quirk', list(QUIRKS)),
+        'flaw': generators.pick(key, 'flaw', sorted(FLAWS)),
+        'desire': generators.pick(key, 'desire', sorted(DESIRES)),
+        'goals': [goal[0] for goal in order],
+        'night_owl': generators.unit(key, 'owl') < 0.25,
+    }
+    parts = place.get('day_parts') or ['afternoon']
+    if role[2]:
+        off = sorted(generators.pick(key, f'off-{n}', list(range(7))) for n in range(2))
+        part = generators.pick(key, 'shift', parts)
+        sheet['shifts'] = {'days': [day for day in range(7) if day not in off] or [0, 1, 2], 'part': part,
+                           'window': list(SHIFTS[part])}
+    else:
+        days = sorted({generators.pick(key, f'visit-{n}', list(range(7))) for n in range(3)})
+        part = generators.pick(key, 'visit', parts)
+        sheet['visits'] = {'days': days, 'part': part, 'window': list(VISITS[part])}
+    return sheet
+
+
+def _occupation(data: dict, key: str, age: int) -> str:
+    if age >= generators.RETIRED_AT:
+        return 'retired'
+    careers = catalog.careers_for(data)
+    options = sorted(career['name'] for career in careers.values())
+    return generators.pick(key, 'career', options).lower() if options else ''
+
+
+def goal(sheet: dict, data_or_modern, number: int) -> dict:
+    """Their `number`th goal (0 is the first), with its wording for the era."""
+    is_modern = data_or_modern if isinstance(data_or_modern, bool) else modern(data_or_modern)
+    found = {item[0]: item for item in GOALS}[sheet['goals'][number % len(sheet['goals'])]]
+    goal_id, wording, steps, practice, progress, done = found
+    return {'id': goal_id, 'text': wording[0] if is_modern else wording[1], 'steps': steps, 'practice': practice,
+            'progress': progress.format(name=sheet['name']), 'done': done.format(name=sheet['name'])}
+
+
+# How their goal goes, week by week -------------------------------------------------------------------
+
+def week_of(day: date) -> int:
+    return (day - EPOCH).days // 7
+
+
+@functools.lru_cache(maxsize=2048)
+def _weeks(key: str, temperament: str, flaw: str, weeks: int, steps_key: tuple) -> tuple:
+    """Each week's (goal number, progress, beat) from the epoch through `weeks`."""
+    lift = TEMPERAMENTS[temperament][2] - (DRAG if FLAWS[flaw][1] else 0.0)
+    number, progress, result = 0, 0, []
+    for week in range(weeks + 1):
+        roll = generators.unit(key, 'week', week)
+        steps = steps_key[number % len(steps_key)]
+        if roll < BASE_PROGRESS + lift:
+            progress, beat = progress + 1, 'progress'
+        elif roll >= SETBACK:
+            progress, beat = max(0, progress - 1), 'setback'
+        else:
+            beat = 'stall'
+        if progress >= steps:
+            result.append((number, steps, 'achieved'))
+            number, progress = number + 1, 0
+            continue
+        result.append((number, progress, beat))
+    return tuple(result)
+
+
+def story(sheet: dict, data: dict, day: date) -> dict:
+    """Where their goals stand on `day`: the current goal, progress, this week's beat and goals reached."""
+    weeks = min(max(week_of(day), 0), MAX_WEEKS)
+    steps = tuple({item[0]: item[2] for item in GOALS}[goal_id] for goal_id in sheet['goals'])
+    history = _weeks(sheet['key'], sheet['temperament'], sheet['flaw'], weeks, steps)
+    number, progress, beat = history[-1] if week_of(day) >= 0 else (0, 0, 'stall')
+    reached = [goal(sheet, data, n)['text'] for n in range(number)][-3:]
+    if beat == 'achieved':
+        finished = goal(sheet, data, number)
+        return {'goal': goal(sheet, data, number + 1), 'progress': 0, 'beat': 'achieved', 'line': finished['done'],
+                'reached': [*reached, finished['text']][-3:]}
+    current = goal(sheet, data, number)
+    line = current['progress'] if beat == 'progress' else \
+        FLAWS[sheet['flaw']][2].format(name=sheet['name']) if beat == 'setback' else ''
+    return {'goal': current, 'progress': progress, 'beat': beat, 'line': line, 'reached': reached}
+
+
+# Where they are, by rule ---------------------------------------------------------------------------
+
+def part_of_day(minute: int) -> str:
+    hour = minute // 60
+    return next((part for part, start, end in PARTS if start <= hour < end), 'late')
+
+
+def inside(window, minute: int) -> bool:
+    return window[0] <= minute < window[1]
+
+
+def asleep(sheet: dict, minute: int) -> bool:
+    bed, wake = (60, 9 * 60) if sheet['night_owl'] else (23 * 60, 6 * 60 + 30)
+    return minute >= bed or minute < wake if bed > wake else bed <= minute < wake
+
+
+def spot_near(data: dict, sheet: dict, kinds) -> dict | None:
+    hood = sheet['home']
+    near = [hood] + [item['id'] for item in catalog.nearby(data, hood, 3)]
+    for place in data['places']:
+        if place['kind'] in kinds and place['neighborhood'] in near:
+            return place
+    return None
+
+
+def whereabouts(sheet: dict, data: dict, moment: datetime) -> dict:
+    """Where they are and what they are doing at a local moment, decided by plain rules in order."""
+    minute, weekday, day = moment.hour * 60 + moment.minute, moment.weekday(), moment.date()
+    here = {'place': sheet['place'], 'at_place': True}
+    home = {'place': None, 'at_place': False, 'neighborhood': sheet['home']}
+    shifts, visits = sheet.get('shifts'), sheet.get('visits')
+    state = story(sheet, data, day)
+    mood = mood_for(sheet, state)
+    # 1. On shift: they are at work, whatever else they would rather do.
+    if shifts and weekday in shifts['days'] and inside(shifts['window'], minute):
+        busy = 'run off their feet' if part_of_day(minute) in ('evening',) and weekday >= 4 else 'working'
+        return {**here, 'doing': f"{busy} as the {sheet['role']}", 'mood': mood}
+    # 2. Asleep.
+    if asleep(sheet, minute):
+        return {**home, 'doing': 'asleep', 'mood': mood}
+    # 3. A regular's usual visit.
+    if visits and weekday in visits['days'] and inside(visits['window'], minute):
+        return {**here, 'doing': f"at their usual spot at {sheet['place']['name']}", 'mood': mood}
+    # 4. Working toward their goal, where it takes them.
+    practice = state['goal']['practice']
+    if practice and part_of_day(minute) == practice[1] and generators.unit(sheet['key'], 'practice', day) < 0.5:
+        spot = spot_near(data, sheet, GOAL_KINDS[practice[0]])
+        if spot:
+            return {'place': view(spot), 'at_place': spot['id'] == sheet['place']['id'],
+                    'doing': f"working on their goal: {state['goal']['text']}", 'mood': mood}
+    # 5. Lonely on a weekend evening: out where people are.
+    if sheet['desire'] == 'company' and weekday >= 4 and part_of_day(minute) in ('evening', 'late'):
+        spot = spot_near(data, sheet, COMPANY_SPOTS)
+        if spot:
+            return {'place': view(spot), 'at_place': spot['id'] == sheet['place']['id'],
+                    'doing': 'out, hoping to meet someone', 'mood': mood}
+    # 6. Otherwise at home, or out at work if they have a job somewhere else.
+    if not sheet['staff'] and sheet['occupation'] not in ('', 'retired') and weekday < 5 \
+            and 9 * 60 <= minute < 17 * 60:
+        return {**home, 'doing': f"at work ({sheet['occupation']})", 'mood': mood}
+    return {**home, 'doing': 'at home', 'mood': mood}
+
+
+def view(place: dict) -> dict:
+    return {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'neighborhood': place['neighborhood']}
+
+
+def mood_for(sheet: dict, state: dict) -> str:
+    if state['beat'] == 'achieved':
+        return 'over the moon'
+    if state['beat'] == 'setback':
+        return 'frustrated' if sheet['flaw'] in ('temper', 'stubborn', 'proud') else 'down'
+    if state['beat'] == 'progress':
+        return 'upbeat'
+    return TEMPERAMENTS[sheet['temperament']][0]
+
+
+def present(data: dict, place_id: str, moment: datetime) -> list[dict]:
+    """The people seeded at a place who are there at this local moment."""
+    return [sheet for sheet in at_place(data, place_id) if whereabouts(sheet, data, moment)['at_place']]
+
+
+def first_impression(sheet: dict) -> str:
+    return TEMPERAMENTS[sheet['temperament']][1]
+
+
+def neighborhood_name(data: dict, hood_id: str) -> str:
+    return next((hood['name'] for hood in data['neighborhoods'] if hood['id'] == hood_id), '')
+
+
+def window_text(window) -> str:
+    def clock(minute):
+        return f'{minute // 60 % 24:02d}:{minute % 60:02d}'
+    return f'{clock(window[0])}–{clock(window[1])}'
+
+
+def routine_text(sheet: dict) -> str:
+    names = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
+    plan = sheet.get('shifts') or sheet.get('visits')
+    days = ', '.join(names[day] for day in plan['days'])
+    verb = 'works' if sheet.get('shifts') else 'drops in'
+    return f"{verb} {days}, {window_text(plan['window'])}"
+

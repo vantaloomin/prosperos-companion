@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# The app and its tooling live in Program/; Windows/ and Mac/ hold only the double-click scripts.
+defaults:
+  run:
+    working-directory: Program
+
 jobs:
   backend:
     strategy:
@@ -70,6 +75,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: Program/package-lock.json
       - name: Install locked dependencies
         run: npm ci
       - name: Lint
@@ -86,6 +92,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # The layout-move test updates a copy from the last commit before the move.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -94,7 +102,7 @@ jobs:
           node-version: "22"
       - name: Install with the Windows installer
         shell: pwsh
-        run: .\install.ps1 -NoPause
+        run: .\scripts\windows\install.ps1 -NoPause
       - name: Launch and answer on the Companion port
         shell: pwsh
         env:
@@ -116,6 +124,11 @@ jobs:
         env:
           COMPANION_DATA_DIR: ${{ runner.temp }}\companion-helpers-data
         run: .\scripts\windows\helpers-test.ps1
+      - name: Update a copy from before the layout move
+        shell: powershell
+        env:
+          COMPANION_DATA_DIR: ${{ runner.temp }}\companion-move-data
+        run: .\scripts\windows\layout-move-test.ps1
 
   macos-install:
     # Nobody on the team has a Mac, so this is the macOS scripts' only test. No setup-python or
@@ -131,11 +144,11 @@ jobs:
         with:
           persist-credentials: false
       - name: The .command files are executable
-        run: for f in *.command; do test -x "$f" || { echo "$f is not executable"; exit 1; }; done
+        run: for f in ../Mac/*.command; do test -x "$f" || { echo "$f is not executable"; exit 1; }; done
       - name: Install with install.command
-        run: ./install.command
+        run: ../Mac/install.command
       - name: Check the install
-        run: ./install.command --check-only
+        run: ../Mac/install.command --check-only
       - name: Test the checkout scripts
         env:
           COMPANION_DATA_DIR: ${{ runner.temp }}/companion-data
