@@ -610,3 +610,12 @@ textarea { resize: vertical; line-height: 1.6; }
 .post-audience > p { margin: 0; font-size: 0.8125rem; }
 .post-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .post-comments strong { font-weight: 600; }
+
+/* People in your life (Memories). */
+.people-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.person { margin-top: 16px; }
+.person-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.person-heading h3 { margin: 0; font-size: 1.05rem; }
+.person-heading small { font-weight: normal; margin-left: 6px; }
+.person-form { margin: 12px 0; max-width: 420px; }
+.person-heading .memory-actions { flex-direction: row; }

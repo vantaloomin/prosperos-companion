@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { api } from '../../api'
 import { HISTORY_KEY, MEMORIES_KEY } from '../../companion'
-import type { Companion, DeleteResult, History, Memory } from '../../types'
+import type { Companion, DeleteResult, History, Memory, Message } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Toggle } from '../../components/Fields'
@@ -14,9 +14,10 @@ import { LookedUp } from './LookedUp'
 import { Suggestions } from './Suggestions'
 import { MergeProposals } from './MergeProposals'
 import { Closeness } from './Closeness'
+import { People } from './People'
 import { CLOSENESS_KEY } from './closenessText'
 import { PREVIEW_KEY } from './receiptRows'
-import { LAYERS, REMEMBER_KEY, groupMemories, layerTitle, type RememberRequest } from './memoryGroups'
+import { LAYERS, PEOPLE_KEY, REMEMBER_KEY, groupMemories, layerTitle, type MemoryGroup, type RememberRequest } from './memoryGroups'
 
 function takeRememberRequest(): RememberRequest | null {
   try {
@@ -46,6 +47,7 @@ export function Memories({ companion }: { companion: Companion }) {
       setFeedback({ tone: 'info', text: done })
       void client.invalidateQueries({ queryKey: PREVIEW_KEY })
       void client.invalidateQueries({ queryKey: CLOSENESS_KEY })
+      void client.invalidateQueries({ queryKey: PEOPLE_KEY })
       await client.invalidateQueries({ queryKey: MEMORIES_KEY })
       return result
     } catch (error) {
@@ -78,6 +80,8 @@ export function Memories({ companion }: { companion: Companion }) {
   const remember = (memory: NewMemory) => run(() => api<Memory>('/memories', memory), `${name} will remember “${memory.subject}”.`)
   const all = memories.data ?? []
   const groups = groupMemories(all)
+  const empty = memories.isSuccess && all.length === 0
+  const renderGroup = (group: MemoryGroup) => <LayerSection key={group.layer} group={group} name={name} all={all} sources={sources} actions={actions} corrected={corrected} />
 
   return (
     <section className="page">
@@ -98,16 +102,22 @@ export function Memories({ companion }: { companion: Companion }) {
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {memories.isPending && <Loading label="Loading memories" />}
       {memories.isError && <Notice tone="error">{memories.error.message}</Notice>}
-      {memories.isSuccess && groups.length === 0 && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Automatic memory is off unless you turn it on in Settings; with it on, facts you state directly are saved after each reply.</p>}
-      {groups.map((group) => (
-        <section key={group.layer} className="memory-group" aria-labelledby={`layer-${group.layer}`}>
-          <h2 id={`layer-${group.layer}`}>{layerTitle(group.layer, name)}</h2>
-          <p className="subtle">{LAYERS.find((item) => item.id === group.layer)?.hint}</p>
-          <ul className="memory-list">
-            {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={all} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
-          </ul>
-        </section>
-      ))}
+      {empty && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Automatic memory is off unless you turn it on in Settings; with it on, facts you state directly are saved after each reply.</p>}
+      {groups.filter((group) => group.layer === 'user_fact').map(renderGroup)}
+      {memories.isSuccess && <People name={name} all={all} sources={sources} actions={actions} run={run} />}
+      {groups.filter((group) => group.layer !== 'user_fact').map(renderGroup)}
+    </section>
+  )
+}
+
+function LayerSection({ group, name, all, sources, actions, corrected }: { group: MemoryGroup; name: string; all: Memory[]; sources: Map<string, Message>; actions: MemoryActions; corrected: string | null }) {
+  return (
+    <section className="memory-group" aria-labelledby={`layer-${group.layer}`}>
+      <h2 id={`layer-${group.layer}`}>{layerTitle(group.layer, name)}</h2>
+      <p className="subtle">{LAYERS.find((item) => item.id === group.layer)?.hint}</p>
+      <ul className="memory-list">
+        {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={all} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
+      </ul>
     </section>
   )
 }

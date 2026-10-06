@@ -1,4 +1,4 @@
-import type { DeletePreview, Layer, Memory, PlanStatus } from '../../types'
+import type { DeletePreview, Layer, Memory, Person, PlanStatus } from '../../types'
 
 export const LAYERS: { id: Layer; title: (name: string) => string; hint: string }[] = [
   { id: 'user_fact', title: () => 'About you', hint: 'Facts, preferences and boundaries. They last until you correct them.' },
@@ -15,10 +15,11 @@ export function layerTitle(layer: Layer, name: string) {
 
 export interface MemoryGroup { layer: Layer; current: Memory[]; history: Memory[] }
 
-/** Group by layer in display order; pinned first, then by subject. Superseded versions stay as history. */
+/** Group by layer in display order; pinned first, then by subject. Superseded versions stay as history.
+ * What you said about people in your life is grouped by person instead (see groupPeople). */
 export function groupMemories(memories: Memory[]): MemoryGroup[] {
   return LAYERS.map(({ id }) => {
-    const inLayer = memories.filter((memory) => memory.layer === id)
+    const inLayer = memories.filter((memory) => memory.layer === id && !memory.person_id)
     const order = (a: Memory, b: Memory) => Number(b.pinned) - Number(a.pinned) || Number(b.boundary) - Number(a.boundary) || a.subject.localeCompare(b.subject)
     return {
       layer: id,
@@ -138,4 +139,24 @@ export function correction(memory: Memory, draft: CorrectionDraft): Correction |
   }
   const extras = [body.plan_status, body.applies_from, body.applies_until].some((item) => item !== undefined)
   return body.value && (extras || body.value !== memory.value) ? body : null
+}
+
+export const PEOPLE_KEY = ['people']
+
+export interface PersonGroup { person: Person; current: Memory[] }
+
+/** One group per person in your life, with who they are first and then what you told them, by subject. */
+export function groupPeople(people: Person[], memories: Memory[]): PersonGroup[] {
+  return people.map((person) => ({
+    person,
+    current: memories.filter((memory) => memory.person_id === person.id && memory.status !== 'superseded')
+      .sort((a, b) => Number(b.subject_key?.endsWith('.who')) - Number(a.subject_key?.endsWith('.who')) || a.subject.localeCompare(b.subject)),
+  })).filter((group) => group.current.length)
+}
+
+/** How a person is described under their name. */
+export function personLine(person: Person): string {
+  if (person.name && person.relation) return `Your ${person.relation}`
+  if (person.relation) return 'Name not known yet'
+  return 'Relation not known yet'
 }

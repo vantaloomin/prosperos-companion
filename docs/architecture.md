@@ -238,6 +238,31 @@ history marked "no longer current"; expired temporary circumstances are not reca
 stay commitments after their date, marked "outcome not confirmed"; the Memories view asks whether
 such a plan happened, and offers to set a date that was unclear.
 
+### People in the user's life
+
+`companion/memory/people_rules.py` finds the people the user talks about, with rules and no model:
+"my sister Jo", "my sister is called Ana", "Sam is my best friend", "I have a dog called Rex", a known
+name ("Jo got promoted" once Jo is known) and "she"/"he" right after someone in the same message.
+Relations most people have several of (friend, cousin, coworker) need a name; "my mum" or "my boss" is
+one person without one. Facts about them are work, home (moves replace, a different home without a
+change word waits as a conflict like the user's own), age, birthday, studies, pets and family, likes,
+dislikes and news ("just got engaged"). A loss is news, but sensitive.
+
+People are stored in `user_people` (`companion/memory/people.py`); everything said about them is an
+ordinary memory carrying `person_id`, formed under the same consent (automatic memory or Remember
+this), so correction, exclusion and deletion work as for any memory, and a person with no memories left
+is removed with the last one. Memories > People in your life lists them, with Add someone, Rename and
+Forget (`/api/people`). A name learned later ("my sister" then "my sister Ana") joins the same person and
+renames what was said about her.
+
+The context lists each person on one line in their own section, and at most one question picked without
+a model: news told between 12 hours and 3 weeks ago, then a missing name, then a check-in on someone not
+mentioned for 4 days or more. A question is offered at most once per 8 replies and 6 hours, the same one
+is never offered twice (a check-in may come back after 2 weeks), and none is offered after a loss, about
+anyone a boundary names, or with Settings > Memory > Ask about people in your life off. Offers are read
+back from reply receipts, so nothing extra is stored. The model only phrases the question, and only if it
+fits the conversation.
+
 ## What the companion said about themselves
 
 `companion/self_facts.py` keeps an LLM from flipping its own facts. After each completed companion

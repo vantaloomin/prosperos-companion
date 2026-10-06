@@ -16,7 +16,7 @@ from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
 from companion.lineage import declined, related
-from companion.memory import extraction, records
+from companion.memory import extraction, people, records
 
 JOB_BATCH = 20
 PENDING_LIMIT = 50
@@ -46,12 +46,16 @@ def proposal(candidate, message) -> dict:
             'plan_status': candidate.plan_status, 'stated_at': message['created_at'],
             'applies_from': None if candidate.applies_from is None else stamp(candidate.applies_from),
             'applies_until': None if candidate.applies_until is None else stamp(candidate.applies_until),
-            'dates_uncertain': candidate.dates_uncertain, 'target': candidate.target, 'excerpt': candidate.excerpt}
+            'dates_uncertain': candidate.dates_uncertain, 'target': candidate.target, 'excerpt': candidate.excerpt,
+            **({'person': candidate.extra['person'], 'topic': candidate.extra['topic']}
+               if 'person' in candidate.extra else {})}
 
 
-def candidates_for(connection, message) -> list:
+def candidates_for(connection, message, companion=None) -> list:
     timezone = settings(connection)['user_timezone']
-    return extraction.extract(message['text'], parse(message['created_at']), timezone)
+    known = people.names(people.known(connection, companion['id'])) if companion else {}
+    own = (companion['version']['definition']['name'].split()[0],) if companion else ()
+    return extraction.extract(message['text'], parse(message['created_at']), timezone, known, own)
 
 
 def blocked(connection, message) -> str | None:
@@ -80,7 +84,9 @@ def commit(connection, companion, fields, sources, timestamp, origin, authority=
     if fields.get('target') and fields['value'] == '':
         memory = update_plan(connection, companion, fields, timestamp)
         return memory, 'plan_updated' if memory else 'no_matching_plan'
-    data = {key: value for key, value in fields.items() if key not in {'target', 'excerpt'}}
+    if fields.get('person'):
+        fields = people.bind(fields, people.resolve(connection, companion['id'], fields['person'], timestamp))
+    data = {key: value for key, value in fields.items() if key not in {'target', 'excerpt', 'person', 'topic'}}
     memory, created = records.insert(connection, companion, data, now=timestamp, origin=origin, authority=authority,
                                      sources=sources)
     return memory, 'committed' if created else 'duplicate'
@@ -112,12 +118,12 @@ def resolve(connection, candidate_id, status, memory=None, reason=None, timestam
 
 def contradicts(connection, companion, candidate, fields, timestamp) -> bool:
     """A different current value for a single-valued subject, with nothing saying it changed."""
-    if candidate.layer != 'user_fact' or candidate.signals_change or not extraction.single_valued(candidate.subject_key):
+    if candidate.layer != 'user_fact' or candidate.signals_change or not extraction.single_valued(fields['subject_key']):
         return False
     if records.ended(fields, timestamp):
         return False
     rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer='user_fact' "
-                'AND subject_key=?', (companion['id'], candidate.subject_key))
+                'AND subject_key=?', (companion['id'], fields['subject_key']))
     value = candidate.value.casefold()
     return any(row['value'].casefold() != value and not records.ended(row, timestamp) for row in rows)
 
@@ -135,10 +141,12 @@ def form(connection, companion, message, timestamp, *, deliberate: bool) -> list
     """Extract, validate and commit from one message. Returns the memories written or matched."""
     allowed_sensitive = deliberate or bool(settings(connection)['sensitive_memory'])
     written = []
-    for candidate in candidates_for(connection, message):
+    people.touch(connection, companion['id'], message['text'], message['created_at'])
+    for candidate in candidates_for(connection, message, companion):
         candidate_id, fields, new = record_candidate(connection, companion, message, candidate, timestamp)
         if not new and not deliberate:
             continue
+        fields = people.bind_existing(connection, companion['id'], fields)
         log(connection, timestamp, 'extracted', candidate_id=candidate_id, message_id=message['id'],
             detail=candidate.rule)
         reason = hold_reason(connection, companion, candidate, fields, timestamp, deliberate=deliberate,
@@ -256,7 +264,7 @@ def replaces(connection, companion, fields, now) -> list[str]:
 
 
 def suggestion_view(connection, companion, row, now) -> dict:
-    fields = decode(row['proposal'])
+    fields = people.bind_existing(connection, companion['id'], decode(row['proposal']))
     current = replaces(connection, companion, fields, now) if row['reason'] == 'conflict' else []
     return {'id': row['id'], 'message_id': row['message_id'], 'source': row['source'], 'rule': row['rule'],
             'reason': row['reason'], 'created_at': row['created_at'], 'replaces': current, **fields}

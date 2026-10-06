@@ -166,4 +166,6 @@ def test_context_build_does_not_hold_the_event_loop(app, client, companion, prov
 
     started = time.perf_counter()
     assert asyncio.run(scenario())['status'] == 'complete'
-    assert time.perf_counter() - started < 2
+    # A build holding the loop would take the full 5 seconds; a busy Windows runner can need just over 2
+    # for the whole reply, so the margin sits between the two.
+    assert time.perf_counter() - started < 4

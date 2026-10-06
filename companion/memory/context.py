@@ -30,7 +30,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, vectors
+from companion.memory import closeness, people, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -60,6 +60,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time',
             'almanac': "The calendar where you live (real dates and seasons from the app's built-in calendar)",
             'profile': 'What you know about the user',
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
+            'people': "People in the user's real life (what the user told you about them; you have never met them, "
+                      'so never invent details about them or claim to know them yourself)',
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
             'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
@@ -345,12 +347,14 @@ def linked(memories, seen, surfaced) -> list[tuple[str, str]]:
 
 
 def partition(memories) -> dict:
-    groups = {'boundaries': [], 'profile': [], 'commitments': [], 'temporary': [], 'recallable': []}
+    groups = {'boundaries': [], 'profile': [], 'commitments': [], 'temporary': [], 'recallable': [], 'people': []}
     for memory in memories:
         if memory['boundary']:
             groups['boundaries'].append(memory)
         elif memory.get('historical'):
             groups['recallable'].append(memory)
+        elif memory.get('person_id'):
+            groups['people'].append(memory)
         elif memory['layer'] == 'plan' and memory['plan_status'] in OPEN_PLANS:
             groups['commitments'].append(memory)
         elif memory['layer'] in {'user_fact', 'temporary'}:
@@ -470,6 +474,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
             packet.offer(section, memory['id'], memory_text(memory, stamp(now)))
     for identity, text in almanac.context_lines(connection, version['definition'], version['timezone'], now):
         packet.offer('almanac', identity, text)
+    people.offer(packet, connection, companion, groups['people'], groups['boundaries'], now)
     offer_life(packet, connection, timeline_id, version, now)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)

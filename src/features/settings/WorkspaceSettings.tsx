@@ -156,6 +156,8 @@ export function MemorySettings() {
           <Toggle label="Let the model suggest more" checked={data.model_memory_suggestions ?? false} disabled={!data.automatic_memory}
             onChange={(value) => void save({ model_memory_suggestions: value })}
             hint="Messages the built-in rules found nothing in are sent to your model connection in the background, which proposes facts in your own words. Nothing is kept until you choose Remember in Memories. Uses extra model time." />
+          <Toggle label="Ask about people in your life" checked={data.ask_about_people ?? true} onChange={(value) => void save({ ask_about_people: value })}
+            hint="People you mention (your sister, your boss, a friend by name) and what you say about them are remembered under the same setting as everything else. With this on, they may now and then ask how someone is doing or how their news turned out, at most once per question. Never after a loss, or about anyone a boundary covers." />
           <Toggle label="Share what you've told them across alternate timelines" checked={data.share_profile_across_timelines} onChange={(value) => void save({ share_profile_across_timelines: value })}
             hint="Facts about you, your plans and how you're doing apply in every timeline, including ones you start with Edit from here. When off, each timeline only knows what you told it, plus what came before its edit. Shared moments and the companion's own life always stay in their own timeline." />
         </section>

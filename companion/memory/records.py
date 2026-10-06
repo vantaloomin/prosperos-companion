@@ -93,11 +93,11 @@ def insert(connection, companion, fields: dict, *, now: str, origin='user', auth
     connection.execute(
         'INSERT INTO memories (id, companion_id, timeline_id, layer, subject, subject_key, value, reality, authority, '
         'status, boundary, sensitive, plan_status, stated_at, applies_from, applies_until, dates_uncertain, origin, '
-        "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "person_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (memory_id, companion['id'], timeline_id, fields['layer'], fields['subject'], fields['subject_key'],
          fields['value'], fields.get('reality', 'real'), authority, int(fields.get('boundary', False)),
          int(fields.get('sensitive', False)), plan_status, fields.get('stated_at') or now, fields['applies_from'],
-         fields['applies_until'], int(fields.get('dates_uncertain', False)), origin, now, now))
+         fields['applies_until'], int(fields.get('dates_uncertain', False)), origin, fields.get('person_id'), now, now))
     connection.executemany('INSERT OR IGNORE INTO memory_sources (memory_id, message_id) VALUES (?, ?)',
                            [(memory_id, message_id) for message_id in sources])
     memory = get(connection, memory_id)
@@ -141,9 +141,10 @@ def revise(connection, memory, timestamp, *, value, plan_status=None, applies_fr
     connection.execute(
         'INSERT INTO memories (id, companion_id, timeline_id, layer, subject, subject_key, value, reality, authority, '
         'status, boundary, pinned, sensitive, plan_status, event_id, stated_at, applies_from, applies_until, '
-        'dates_uncertain, origin, revision, supersedes_id, ended_by_id, created_at, updated_at) '
+        'dates_uncertain, origin, revision, supersedes_id, ended_by_id, person_id, created_at, updated_at) '
         "SELECT ?, companion_id, timeline_id, layer, subject, subject_key, ?, reality, 'stated', 'active', boundary, "
-        'pinned, sensitive, ?, event_id, ?, ?, ?, ?, origin, revision+1, id, ended_by_id, ?, ? FROM memories WHERE id=?',
+        'pinned, sensitive, ?, event_id, ?, ?, ?, ?, origin, revision+1, id, ended_by_id, person_id, ?, ? '
+        'FROM memories WHERE id=?',
         (new_id, value, plan_status or memory['plan_status'], timestamp,
          normalized_time(applies_from) or memory['applies_from'],
          normalized_time(applies_until) if applies_until else memory['applies_until'],
@@ -237,6 +238,9 @@ def delete(database, memory_id, delete_sources=False) -> dict:
         connection.execute(f'DELETE FROM closeness_jokes WHERE memory_id IN ({marks})', versions)
         vectors.forget(connection, 'memory', versions)
         connection.execute(f'DELETE FROM memories WHERE id IN ({marks})', versions)
+        # Someone in the user's life with nothing left remembered about them goes too.
+        connection.execute('DELETE FROM user_people WHERE NOT EXISTS (SELECT 1 FROM memories '
+                           'WHERE memories.person_id=user_people.id)')
         markers = [(identity, 'memory', timestamp) for identity in versions]
         if delete_sources:
             redact_messages(connection, sources, timestamp)
