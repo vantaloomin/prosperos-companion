@@ -3,6 +3,15 @@
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
 
+// A notification sent from the PC while the app is closed (companion/phone/push.py), already decrypted.
+self.addEventListener('push', (event) => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch { /* shown with the defaults below */ }
+  event.waitUntil(self.registration.showNotification(data.title || 'Prospero Companion', {
+    body: data.body || '', tag: data.tag, icon: '/icon-192.png', data: { view: data.view },
+  }))
+})
+
 // Tapping a notification opens the view it is about, in the open window if there is one.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
