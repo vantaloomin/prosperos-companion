@@ -140,6 +140,14 @@ or deleted message leaves context with it, since a reply usually repeats what it
 receipt stored with each reply lists included and omitted identities, never content, so deleting
 a memory leaves nothing readable behind in old receipts.
 
+When the message names a time ("last weekend", "on Friday", "in March"), `memory/time_recall.py`
+resolves it with the same date rules as memory formation, in the user's timezone, and adds the
+eligible memories, day summaries and older turns from that time as one more ranking in the fusion.
+A single day containing today adds nothing, since those turns are already in the conversation.
+After fusion, a recalled item whose words mostly repeat one already chosen moves behind the others,
+so near-identical turns don't fill the section. Both steps are rule-based; the idea of a separate
+time ranking comes from Kitzkatz/memoria (MIT), with no code copied.
+
 How the companion reacts to time apart (`absence_reaction`) and its emotional traits
 (`emotional_traits`: a name such as jealousy or guilt over absence, an intensity of mild, moderate
 or strong, and an optional note) are part of the character definition (C6). A new character has
