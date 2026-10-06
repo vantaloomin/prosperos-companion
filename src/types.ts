@@ -426,6 +426,8 @@ export interface CirclePerson {
   neighborhood: string | null
   city: string | null
   full_name?: string
+  married?: boolean
+  birth_family?: string
   pronouns?: string
   age?: number
   local?: boolean
