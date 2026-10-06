@@ -4,7 +4,10 @@ The companion decides, not the user: the app never says whether they are free. W
 setting `paced_replies` on (the default), a reply to a message sent while they are at work or out
 is, by a seeded choice, one of: written now but shown later (8 to 45 minutes at work, 5 to 25 out,
 never past the end of the block), a quick holding text now ("in a meeting, give me a bit") with the
-full reply later, or a quick short note now instead of a real conversation. Asleep, the reply shows
+full reply later as a message of its own, or a quick short note now instead of a real conversation.
+The holding text stays in the conversation. If the user writes again before the full reply shows,
+that reply is dropped unseen and the answer to the new message becomes the full reply, at the same
+time, so it takes in everything they said meanwhile. Asleep, the reply shows
 when they wake. A reply that shows at once also shows any earlier one still held, and a reply held
 while an earlier one is waiting shows no sooner than it. What counts is the companion's precomputed
 day (a holiday or a sick day is not work), else their routine. A held reply that shows while the app
@@ -14,7 +17,7 @@ import random
 from datetime import timedelta
 
 from companion.clock import parse, stamp
-from companion.database import decode, optional
+from companion.database import decode, many, optional
 from companion.life import routine
 
 # Off in tests unless a test turns it on, so replies arrive at once like they used to.
@@ -28,7 +31,12 @@ LINES = {'work': ('in a meeting, give me a bit', 'at work rn, will text you prop
          'social': ('out rn, text you in a bit', "with friends, I'll reply properly soon", 'one sec!')}
 QUICK = ('You are busy right now ({label}). Reply with a quick short note, one or two lines, not a real '
          'conversation; you can pick it up properly later. Do not explain your schedule at length.')
-NOT_HELD = {'held_until': None, 'held_line': None, 'quick': None}
+# What the model is told when it writes the full reply after a holding text.
+FOLLOW_UP = ('Earlier you were busy and only sent them a quick text: "{line}". This is the proper reply you '
+             'promised; write it now that you are free.')
+CATCH_UP = ('Earlier you were busy and only sent them a quick text saying you would reply properly later. This is '
+            'that proper reply: answer everything they have said since.')
+NOT_HELD = {'held_until': None, 'held_line': None, 'instruction': None}
 
 
 def block_now(connection, companion, now) -> tuple[dict, str] | None:
@@ -52,8 +60,8 @@ def busy_kind(block: dict) -> str | None:
 
 
 def hold(connection, companion, now, seed: str) -> dict:
-    """{held_until, held_line, quick} for a reply being written now. `quick` is the instruction for a
-    short note; all None when the reply is an ordinary one shown at once."""
+    """{held_until, held_line, instruction} for a reply being written now. `held_line` is a holding text
+    sent now, `instruction` what the model is told; all None when the reply is an ordinary one shown at once."""
     life = optional(connection, 'SELECT paced_replies FROM life_settings WHERE id=1')
     found = block_now(connection, companion, now) if ACTIVE and life and life['paced_replies'] else None
     kind = busy_kind(found[0]) if found else None
@@ -65,9 +73,25 @@ def hold(connection, companion, now, seed: str) -> dict:
     rng = random.Random(f'pace:{seed}')
     way = rng.choices([name for name, _weight in WAYS], [weight for _name, weight in WAYS])[0]
     if way == 'quick':
-        return {**NOT_HELD, 'quick': QUICK.format(label=block['label'].lower() or kind)}
+        return {**NOT_HELD, 'instruction': QUICK.format(label=block['label'].lower() or kind)}
     until = stamp(min(parse(ends_at), now + timedelta(minutes=rng.randint(*DELAYS[kind]))))
-    return {**NOT_HELD, 'held_until': until, 'held_line': rng.choice(LINES[kind]) if way == 'line' else None}
+    if way == 'line':
+        line = rng.choice(LINES[kind])
+        return {'held_until': until, 'held_line': line, 'instruction': FOLLOW_UP.format(line=line)}
+    return {**NOT_HELD, 'held_until': until}
+
+
+def take_over(connection, timeline_id, held: dict, timestamp: str) -> tuple[dict, list[str]]:
+    """The user wrote again after a holding text, before the full reply showed: that reply was written
+    without their new words, so it is dropped unseen and this one takes its place and shows when it would have."""
+    rows = many(connection, "SELECT id, held_until FROM messages WHERE timeline_id=? AND role='companion' "
+                'AND reply_to IS NULL AND held_until>? AND superseded_at IS NULL', (timeline_id, timestamp))
+    if not rows:
+        return held, []
+    dropped = [row['id'] for row in rows]
+    connection.execute(f"UPDATE messages SET superseded_at=?, active=0, held_until=NULL "
+                       f"WHERE id IN ({', '.join('?' * len(dropped))})", (timestamp, *dropped))
+    return {'held_until': max(row['held_until'] for row in rows), 'held_line': None, 'instruction': CATCH_UP}, dropped
 
 
 def join(connection, timeline_id, held: dict, timestamp: str) -> dict:
