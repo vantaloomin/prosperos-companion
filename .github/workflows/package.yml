@@ -13,6 +13,11 @@ on:
 permissions:
   contents: read
 
+# The app and its build scripts live in Program/.
+defaults:
+  run:
+    working-directory: Program
+
 jobs:
   bundle:
     runs-on: windows-latest
@@ -25,6 +30,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: Program/package-lock.json
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -38,8 +44,8 @@ jobs:
         with:
           name: windows-bundle
           path: |
-            build/package/*.zip
-            build/package/SHA256SUMS.txt
+            Program/build/package/*.zip
+            Program/build/package/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -52,7 +58,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          sparse-checkout: scripts/package
+          sparse-checkout: Program/scripts/package
       - uses: actions/download-artifact@v4
         with:
           name: windows-bundle
@@ -79,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          sparse-checkout: scripts/package
+          sparse-checkout: Program/scripts/package
       - uses: actions/download-artifact@v4
         with:
           name: windows-bundle
@@ -120,7 +126,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          sparse-checkout: scripts/package
+          sparse-checkout: Program/scripts/package
       - uses: actions/download-artifact@v4
         with:
           name: windows-release
@@ -145,7 +151,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          sparse-checkout: scripts/package
+          sparse-checkout: Program/scripts/package
       - uses: actions/checkout@v4
         with:
           repository: vantaloomin/prosperos-study
@@ -160,7 +166,7 @@ jobs:
           node-version: "22"
       - name: Install Prospero's Study
         shell: pwsh
-        working-directory: study
+        working-directory: ${{ github.workspace }}/study
         run: .\install.ps1 -NoPause
       - uses: actions/download-artifact@v4
         with:
@@ -170,4 +176,4 @@ jobs:
         shell: pwsh
         run: |
           $setup = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'release') -Filter '*-setup.exe' | Select-Object -First 1
-          scripts/package/beside-study-test.ps1 -Setup $setup.FullName -Study study
+          scripts/package/beside-study-test.ps1 -Setup $setup.FullName -Study (Join-Path $env:GITHUB_WORKSPACE 'study')
