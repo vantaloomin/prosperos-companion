@@ -1,3 +1,4 @@
+import { appDate } from '../../appTime.ts'
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextPurpose, ContextTool, MappingSuggestion, Observation, ToolArgument } from '../../types'
 
 export const CONTEXT_KEY = ['context-tools']
@@ -102,7 +103,7 @@ export function canSave(draft: MappingDraft, tool: ContextTool | undefined): boo
 }
 
 /** A plain account of one lookup: what, for where, from whom, and whether it counts as current. */
-export function observationSummary(item: Observation, now: Date = new Date()): { title: string; state: string; tone: 'ok' | 'stale' | 'failed' } {
+export function observationSummary(item: Observation, now: Date = appDate()): { title: string; state: string; tone: 'ok' | 'stale' | 'failed' } {
   return { title: lookupTitle(item), ...lookupState(item, now) }
 }
 

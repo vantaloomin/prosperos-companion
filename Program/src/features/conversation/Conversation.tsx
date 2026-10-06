@@ -1,3 +1,4 @@
+import { appNow } from '../../appTime.ts'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
@@ -65,7 +66,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       return
     }
     // A reply that shows at once shows the ones held before it; a held one stays quiet until its time.
-    const held = isHeld(reply, Date.now())
+    const held = isHeld(reply, appNow())
     update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     if (held) return

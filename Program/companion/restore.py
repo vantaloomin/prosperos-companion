@@ -131,7 +131,7 @@ def archive_path(workspace: Path, name: str) -> Path:
 
 
 # Backups the app makes on its own, named for what they came before (companion/start_over.py, upgrade.py).
-KINDS = ('pre-upgrade', 'before-reset', 'before-delete')
+KINDS = ('pre-upgrade', 'before-reset', 'before-delete', 'before-debug')
 
 
 def kind(name: str) -> str:

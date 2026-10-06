@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import { Search } from 'lucide-react'
 import type { Companion } from '../../types'
 import { Backups } from './Backups'
+import { DebugSettings } from './DebugSettings'
 import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
@@ -74,6 +75,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     notifications: <NotificationSettings />,
     phone: <PhoneSettings />,
     data: <Backups />,
+    debug: <DebugSettings name={name} />,
   }
   return content[tab]
 }

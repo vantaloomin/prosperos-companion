@@ -1,3 +1,4 @@
+import { appDate } from '../../appTime.ts'
 import { useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
@@ -97,7 +98,7 @@ const PLAN_STATUSES: PlanStatus[] = ['proposed', 'agreed', 'postponed', 'cancell
 
 /** A focused question: whether a past plan happened, or when an unclear date applies (PRD M8). */
 function FollowUp({ memory, correct, onEdit }: { memory: Memory; correct: MemoryActions['correct']; onEdit: () => void }) {
-  const question = followUp(memory, new Date())
+  const question = followUp(memory, appDate())
   const mark = (plan_status: PlanStatus) => void correct(memory, { value: memory.value, plan_status })
   if (question === 'outcome') {
     return (
