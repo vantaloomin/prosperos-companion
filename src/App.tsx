@@ -12,6 +12,7 @@ import { Loading, Notice } from './components/Feedback'
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
 const Appearance = lazy(() => import('./features/appearance/Appearance').then((m) => ({ default: m.Appearance })))
+const Portraits = lazy(() => import('./features/appearance/Portraits').then((m) => ({ default: m.Portraits })))
 const Memories = lazy(() => import('./features/memories/Memories').then((m) => ({ default: m.Memories })))
 const Settings = lazy(() => import('./features/settings/Settings').then((m) => ({ default: m.Settings })))
 const Today = lazy(() => import('./features/today/Today').then((m) => ({ default: m.Today })))
@@ -28,11 +29,11 @@ const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || id === 'appearance' || id.startsWith('settings/') ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || id === 'appearance' || id === 'portraits' || id.startsWith('settings/') ? id as View : 'conversation'
 }
 
 function isCurrent(id: View, view: View) {
-  return view === id || (id === 'character' && view === 'appearance') || (id === 'settings' && view.startsWith('settings/'))
+  return view === id || (id === 'character' && (view === 'appearance' || view === 'portraits')) || (id === 'settings' && view.startsWith('settings/'))
 }
 
 export default function App() {
@@ -89,6 +90,7 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
   if (view === 'character') return <Character companion={companion} go={go} />
   if (!companion) return <Welcome go={go} />
   if (view === 'appearance') return <Appearance companion={companion} go={go} />
+  if (view === 'portraits') return <Portraits companion={companion} go={go} />
   if (view === 'today') return <Today companion={companion} go={go} />
   if (view === 'feed') return <Feed companion={companion} go={go} />
   if (view === 'memories') return <Memories companion={companion} />

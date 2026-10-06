@@ -3,6 +3,7 @@ import { GitBranch, Search } from 'lucide-react'
 import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
 import { useChatStyle } from './useChatStyle'
+import { usePortrait } from './portrait'
 
 function localTime(timezone: string, now: Date) {
   try {
@@ -17,9 +18,10 @@ export function ConversationHeader({ companion, searching, searchButton, onSearc
   const [now, setNow] = useState(() => new Date())
   useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30_000); return () => window.clearInterval(timer) }, [])
   const time = localTime(timezone, now)
+  const portrait = usePortrait()
   return (
     <header className="conversation-header">
-      <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>
+      {portrait ? <img className="portrait" src={portrait} alt="" aria-hidden="true" /> : <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>}
       <div className="conversation-title">
         <h1>{name}</h1>
         <p className="subtle">{[timeline, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>

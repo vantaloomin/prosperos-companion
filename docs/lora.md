@@ -215,6 +215,11 @@ request body.
 | `GET /api/lora/generation-images/{id}/file` | A generated picture |
 | `POST /api/lora/generation-images/{id}/keep?role=&dhash=` | Add it to the set as `generated` (body: empty, or a PNG copy of a WebP output) |
 | `POST /api/lora/generation-images/{id}/discard` | Discard it and delete its file |
+| `GET /api/lora/portraits/draft` | The profile pictures' description, three shots, seed, and the backend that would make them ([images](images.md#profile-pictures)) |
+| `POST /api/lora/portraits/preview` | `{base, shots, without_reference?, backend_id?}`: each picture's prompt, what it follows and where it goes |
+| `GET`, `POST /api/lora/portraits` | The latest set; start one with `{base, seed, shots, without_reference?, backend_id?}` (409 `no_reference_backend` when no backend can follow a picture) |
+| `POST /api/lora/portraits/{id}/redo?position=` | Make that picture again, with any made from it (all three for picture 1) |
+| `PUT /api/lora/portrait` | `{reference_id}`: the reference picture shown as the companion's picture, or `null` for their initial |
 | `GET /api/lora/adapters` | Adapters, newest first |
 | `POST /api/lora/adapters/import?name=&base_model=&trigger=&note=` | Import (body: `.safetensors`, up to 4 GB) |
 | `DELETE /api/lora/adapters/{id}` | Remove the file, keep the record |

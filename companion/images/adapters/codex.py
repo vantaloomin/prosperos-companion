@@ -21,7 +21,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from companion.images.adapters.base import AdapterError, Check, ImageResult
+from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
 
 TIMEOUT_SECONDS = 600
 VERIFIED_SIZES = {(1024, 1024), (1536, 1024), (1024, 1536)}
@@ -139,7 +139,15 @@ class CodexAdapter:
         prompt = PROMPT.format(width=request.width, height=request.height, prompt=request.prompt,
                                negative=request.negative or 'nothing in particular')
         with tempfile.TemporaryDirectory(prefix='companion-codex-') as scratch:
-            args = [cli, 'exec', '--json', '--skip-git-repo-check', '--ephemeral',
+            attach = []
+            if request.reference is not None:
+                # The picture to follow is attached to the prompt; `--image` comes before the
+                # other options so it never swallows the `-` that reads the prompt from stdin.
+                extension, _kind = media_type(request.reference)
+                picture = Path(scratch) / f'reference.{extension}'
+                picture.write_bytes(request.reference)
+                attach = ['--image', str(picture)]
+            args = [cli, 'exec', *attach, '--json', '--skip-git-repo-check', '--ephemeral',
                     '--ignore-user-config', '--ignore-rules', '--sandbox', 'read-only', '--cd', scratch, '-']
             started = time.time()
             returncode, stdout, stderr = await self.run(args, prompt.encode('utf-8'), self.budget())

@@ -107,6 +107,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       <Toggle label="Enabled" checked={backend.enabled}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { enabled: value, accept_disclosure: value && pending ? true : undefined }, 'PUT'))}
         hint={pending ? 'Turning it on accepts what it receives, described above.' : undefined} />
+      {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
       <div className="post-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
@@ -115,6 +116,24 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
       </div>
     </li>
+  )
+}
+
+/** ComfyUI makes a picture that follows another (the profile pictures) only with the user's own workflow for it. */
+function ReferenceWorkflow({ backend, save }: { backend: ImageBackend; save: (value: string) => Promise<void> }) {
+  const [text, setText] = useState('')
+  return (
+    <details>
+      <summary className="subtle">Workflow for pictures made from a reference {backend.reference_workflow ? '(set)' : '(none)'}</summary>
+      <div className="form-stack">
+        <TextArea label="Reference workflow" value={text} rows={3} onChange={setText}
+          hint="Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with {{prompt}} and {{reference_image}} as a LoadImage node's image, plus any of {{negative}}, {{seed}}, {{width}} and {{height}}. There is no built-in one." />
+        <div className="form-actions">
+          <button type="button" className="button" disabled={!text.trim()} onClick={() => void save(text.trim())}>Save workflow</button>
+          {backend.reference_workflow && <button type="button" className="text-button danger-text" onClick={() => void save('')}>Remove it</button>}
+        </div>
+      </div>
+    </details>
   )
 }
 
@@ -127,7 +146,7 @@ function BackendSummary({ backend }: { backend: ImageBackend }) {
       <span className="badge">{backend.accepts_nsfw ? 'Local · safe and NSFW' : 'Safe only'}</span>
       {backend.experimental && <span className="badge">Experimental</span>}
     </div>
-    <p className="subtle">{[where, backend.model, missingKey ? 'no API key' : ''].filter(Boolean).join(' · ')}</p>
+    <p className="subtle">{[where, backend.model, missingKey ? 'no API key' : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')}</p>
   </>
 }
 

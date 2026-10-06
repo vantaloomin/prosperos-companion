@@ -4,6 +4,7 @@ import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { isHeld } from './held'
 import { LinkNotes } from './LinkNotes'
+import { usePortrait } from './portrait'
 import { shownAttempt, statusDetail, type Turn } from './turns'
 
 interface Props {
@@ -100,7 +101,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
   if (held) return null
   return (
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
-      <Avatar name={name} />
+      <Avatar name={name} companion />
       <header>
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} />
@@ -158,7 +159,9 @@ function useHeld(message: Message): boolean {
 }
 
 /** Shown by the Community style; the other styles hide it. Decorative, since the article is already named. */
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, companion = false }: { name: string; companion?: boolean }) {
+  const portrait = usePortrait()
+  if (companion && portrait) return <img className="avatar" src={portrait} alt="" aria-hidden="true" />
   return <span className="avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
 }
 

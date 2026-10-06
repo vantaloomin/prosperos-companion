@@ -14,6 +14,15 @@ def size_for(kind, aspect) -> tuple[int, int]:
     return SIZES.get(kind, SIZES['default'])[aspect]
 
 
+def media_type(data: bytes) -> tuple[str, str]:
+    """(extension, media type) of a PNG, JPEG or WebP picture, from its first bytes."""
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return 'webp', 'image/webp'
+    if data[:3] == b'\xff\xd8\xff':
+        return 'jpg', 'image/jpeg'
+    return 'png', 'image/png'
+
+
 @dataclass
 class ImageRequest:
     job_id: str
@@ -28,6 +37,9 @@ class ImageRequest:
     raw_dir: Path | None = None
     # The adopted LoRA frozen with the job; only a ComfyUI backend applies it.
     lora: dict | None = None
+    # A picture the new one must follow (the same person), for backends that take one
+    # (backends.takes_reference). Only the onboarding portraits send one.
+    reference: bytes | None = None
 
 
 @dataclass

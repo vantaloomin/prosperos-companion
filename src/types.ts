@@ -166,6 +166,8 @@ export interface Companion {
   active_version_id: string
   active_timeline_id: string
   version: CharacterVersion
+  // One of their reference pictures, shown as their picture; null shows their initial.
+  portrait_reference_id?: string | null
 }
 
 export interface WorkspaceSettings {
@@ -487,6 +489,9 @@ export interface ImageBackend {
   api_style: 'images' | 'chat' | null
   cli_path: string
   custom_workflow: boolean
+  reference_workflow: boolean
+  // Can make a picture that follows an earlier one (the onboarding profile pictures).
+  takes_reference: boolean
   has_key: boolean
   controlled_machine: boolean
   concurrency: number
@@ -784,7 +789,11 @@ export interface PlannedShot {
   route_reason: string
   refusal: string | null
   backend: { id: string; label: string; kind: string; local: boolean } | null
+  // Onboarding portraits: the position of the picture this one follows.
+  follows?: number | null
 }
+
+export interface PortraitDraft extends GenerationDraft { any_backend: boolean; reference_backend: { id: string; label: string; kind: string; local: boolean } | null }
 
 export interface GeneratedImage {
   id: string
@@ -808,6 +817,7 @@ export interface GeneratedImage {
   decision: 'kept' | 'discarded' | null
   reference_id: string | null
   has_image: boolean
+  follows?: number | null
 }
 
 export interface Generation {

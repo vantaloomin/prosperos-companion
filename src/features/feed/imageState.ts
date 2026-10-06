@@ -73,5 +73,5 @@ export function disclosureFor(kind: BackendKind, provider: HostedProvider, baseU
   const destination = kind === 'codex' ? 'OpenAI, through the Codex CLI under your own codex login (your ChatGPT plan, or the API key Codex is signed in with)'
     : kind === 'comfyui' ? 'the ComfyUI server at this address, which is not on this computer'
       : provider === 'other' ? 'this image service' : PROVIDERS.find((item) => item.id === provider)?.label ?? 'this provider'
-  return `Each image request sends its prompt (built from the event and the character's appearance description) to ${destination}. Their retention rules apply. Conversation, memories and reference images are not sent.`
+  return `Each image request sends its prompt (built from the event and the character's appearance description) to ${destination}. Their retention rules apply. Conversation and memories are not sent. Reference pictures are sent only when you make profile pictures: the first one goes along with the other two.`
 }

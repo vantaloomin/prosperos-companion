@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 
 from companion.errors import DomainError
 from companion.images.storage import TYPES
-from companion.lora import appearance, evaluation, export, generation, references, training
+from companion.lora import appearance, evaluation, export, generation, portraits, references, training
 from companion.lora.models import (
     Adopt,
     EvaluationCreate,
@@ -14,6 +14,9 @@ from companion.lora.models import (
     GenerationPlan,
     KeepCheckpoint,
     LoraSettingsUpdate,
+    Portrait,
+    PortraitCreate,
+    PortraitPlan,
     Rating,
     ReferenceUpdate,
     RunCreate,
@@ -265,3 +268,37 @@ async def keep_generated(request: Request, image_id: str, role: Literal['train',
 @router.post('/generation-images/{image_id}/discard')
 def discard_generated(request: Request, image_id: str):
     return generation.discard(db(request), image_id)
+
+
+@router.get('/portraits/draft')
+def draft_portraits(request: Request):
+    return portraits.draft(db(request))
+
+
+@router.post('/portraits/preview')
+def preview_portraits(request: Request, body: PortraitPlan):
+    return portraits.preview(db(request), body)
+
+
+@router.get('/portraits')
+def latest_portraits(request: Request):
+    return {'portraits': portraits.latest(db(request))}
+
+
+@router.post('/portraits')
+async def create_portraits(request: Request, body: PortraitCreate):
+    created = portraits.create(db(request), body)
+    request.app.state.generations.start(created['id'])
+    return created
+
+
+@router.post('/portraits/{generation_id}/redo')
+async def redo_portrait(request: Request, generation_id: str, position: int = Query(ge=0, le=2)):
+    again = portraits.redo(db(request), generation_id, position)
+    request.app.state.generations.start(generation_id)
+    return again
+
+
+@router.put('/portrait')
+def set_portrait(request: Request, body: Portrait):
+    return portraits.set_portrait(db(request), body.reference_id)

@@ -7,7 +7,8 @@ Two request shapes cover the tested providers:
 - `chat`: `POST /chat/completions` with `modalities: ["image", "text"]`, used by OpenRouter's
   image models, which return the picture as a data URL in `message.images`.
 
-A request carries only the prompt (X2). Provider-reported usage is recorded as given; unknown
+A request carries only the prompt (X2), except an onboarding portrait, which also carries the
+picture it follows: in the chat message, or as the image of an OpenAI `/images/edits` request. Provider-reported usage is recorded as given; unknown
 cost stays unknown. A provider's content refusal is reported as `refused`, which reclassifies the
 request as NSFW so it is never offered to another hosted provider (F6).
 """
@@ -15,7 +16,7 @@ import base64
 
 import httpx
 
-from companion.images.adapters.base import AdapterError, Check, ImageResult
+from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
 
 REFUSAL_SIGNS = ('content_policy', 'content policy', 'safety', 'moderation', 'prohibited', 'blocked', 'nsfw')
 TIMEOUT_SECONDS = 180
@@ -33,6 +34,20 @@ def decode_data_url(url: str) -> bytes:
     return base64.b64decode(payload, validate=False)
 
 
+def takes_reference(config, provider) -> bool:
+    """Chat-style image models read a picture in the message; of the `images` style, only the
+    OpenAI API's `/images/edits` is a tested shape for one."""
+    return config.get('api_style') == 'chat' or provider == 'openai'
+
+
+def chat_content(prompt: str, reference: bytes | None):
+    if reference is None:
+        return prompt
+    _extension, kind = media_type(reference)
+    url = f"data:{kind};base64,{base64.b64encode(reference).decode('ascii')}"
+    return [{'type': 'text', 'text': prompt}, {'type': 'image_url', 'image_url': {'url': url}}]
+
+
 class HostedAdapter:
     def __init__(self, transport: httpx.AsyncBaseTransport | None = None, timeout_seconds=TIMEOUT_SECONDS):
         self.transport = transport
@@ -48,12 +63,17 @@ class HostedAdapter:
         config, provider = request.config, request.backend['provider']
         prompt = f'{request.prompt}\nAvoid: {request.negative}' if request.negative else request.prompt
         headers = {'Authorization': f'Bearer {request.key}'}
+        if request.reference is not None and not takes_reference(config, provider):
+            raise AdapterError('incompatible', 'This image API cannot make a picture from a reference picture.')
         async with self.client() as client:
             if config.get('api_style') == 'chat':
                 body = {'model': config['model'], 'modalities': ['image', 'text'],
-                        'messages': [{'role': 'user', 'content': prompt}]}
+                        'messages': [{'role': 'user', 'content': chat_content(prompt, request.reference)}]}
                 data = await self.post(client, config['base_url'] + '/chat/completions', headers, body)
                 image = self.chat_image(data)
+            elif request.reference is not None:
+                data = await self.edit(client, config, headers, prompt, request)
+                image = await self.images_image(client, data)
             else:
                 body = {'model': config['model'], 'prompt': prompt, 'n': 1, 'size': f'{request.width}x{request.height}'}
                 if provider != 'openai':
@@ -64,9 +84,17 @@ class HostedAdapter:
                            usage=data.get('usage') if isinstance(data.get('usage'), dict) else None,
                            remote_id=data.get('id') if isinstance(data.get('id'), str) else None)
 
-    async def post(self, client, url, headers, body) -> dict:
+    async def edit(self, client, config, headers, prompt, request) -> dict:
+        """OpenAI's `/images/edits`: the reference goes up as a file beside the prompt."""
+        extension, kind = media_type(request.reference)
+        fields = {'model': config['model'], 'prompt': prompt, 'n': '1', 'size': f'{request.width}x{request.height}'}
+        files = {'image': (f'reference.{extension}', request.reference, kind)}
+        return await self.post(client, config['base_url'] + '/images/edits', headers, None, data=fields, files=files)
+
+    async def post(self, client, url, headers, body, **form) -> dict:
         try:
-            response = await client.post(url, headers=headers, json=body)
+            response = await client.post(url, headers=headers, **form) if form else \
+                await client.post(url, headers=headers, json=body)
         except httpx.TimeoutException as error:
             raise AdapterError('timeout', 'The provider did not answer within the time limit.') from error
         except httpx.RequestError as error:

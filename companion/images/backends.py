@@ -19,7 +19,7 @@ HOSTED_DEFAULTS = {
     'other': {'base_url': '', 'api_style': 'images', 'label': 'Image API'},
 }
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
-CONFIG_KEYS = ('base_url', 'model', 'workflow', 'cli_path', 'api_style')
+CONFIG_KEYS = ('base_url', 'model', 'workflow', 'reference_workflow', 'cli_path', 'api_style')
 
 
 def credential_ref(backend_id: str) -> str:
@@ -39,6 +39,19 @@ def accepts_nsfw(backend: dict) -> bool:
     return is_local(backend)
 
 
+def takes_reference(backend: dict) -> bool:
+    """Whether this backend can make a picture that follows an earlier one (the onboarding
+    portraits): Codex attaches it to the prompt, chat-style APIs and OpenAI's image edits read it,
+    and ComfyUI needs the user's own reference workflow."""
+    config = decode(backend['config'])
+    if backend['kind'] == 'codex':
+        return True
+    if backend['kind'] == 'comfyui':
+        return bool(config.get('reference_workflow'))
+    from companion.images.adapters.hosted import takes_reference as hosted_takes
+    return hosted_takes(config, backend['provider'])
+
+
 def disclosure(backend: dict) -> str | None:
     """What a hosted request sends, shown before the provider is enabled (F9)."""
     if backend['kind'] == 'comfyui' and is_local(backend):
@@ -52,8 +65,9 @@ def disclosure(backend: dict) -> str | None:
         destination = HOSTED_DEFAULTS[backend['provider']]['label'] if backend['provider'] != 'other' \
             else 'this image service'
     return (f'Each image request sends its prompt (built from the event and the character\'s appearance '
-            f'description) to {destination}. Their retention rules apply. Conversation, memories and '
-            f'reference images are not sent.')
+            f'description) to {destination}. Their retention rules apply. Conversation and memories are '
+            f'not sent. Reference pictures are sent only when you make profile pictures: the first one goes '
+            f'along with the other two.')
 
 
 def view(backend: dict) -> dict:
@@ -63,6 +77,7 @@ def view(backend: dict) -> dict:
             'base_url': config.get('base_url', ''), 'model': config.get('model', ''),
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
             'custom_workflow': bool(config.get('workflow')),
+            'reference_workflow': bool(config.get('reference_workflow')), 'takes_reference': takes_reference(backend),
             'has_key': backend['credential_ref'] is not None,
             'controlled_machine': bool(backend['controlled_machine']), 'concurrency': backend['concurrency'],
             'local': is_local(backend), 'accepts_nsfw': accepts_nsfw(backend),
@@ -96,6 +111,9 @@ def validate(kind, provider, config, controlled_machine):
         if config.get('workflow'):
             from companion.images.adapters.comfyui import parse_workflow
             parse_workflow(config['workflow'])
+        if config.get('reference_workflow'):
+            from companion.images.adapters.comfyui import parse_workflow
+            parse_workflow(config['reference_workflow'], reference=True)
     elif kind == 'hosted':
         require(config.get('base_url'), 'Enter the API base URL.', 422)
         validate_compatible_url(config['base_url'])

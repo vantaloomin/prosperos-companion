@@ -9,6 +9,10 @@ encoder, the Qwen image VAE, 8 steps at CFG 1 with euler/simple). It is unverifi
 reports any node or model file the server does not have. A custom workflow in ComfyUI's API
 format can replace it, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
 `{{height}}` where the request's values belong.
+
+Onboarding portraits follow an earlier picture. A ComfyUI server makes those only with a second
+custom workflow that also has `{{reference_image}}` (a LoadImage node's image); the app uploads
+the picture through `/upload/image` and puts its name there. There is no built-in one.
 """
 import asyncio
 import json
@@ -18,16 +22,17 @@ from uuid import uuid4
 import httpx
 
 from companion.errors import DomainError
-from companion.images.adapters.base import AdapterError, Check, ImageResult
+from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
 
 TEMPLATE = Path(__file__).parent.parent / 'workflows' / 'krea2-turbo.json'
 TEMPLATE_NAME = 'krea2-turbo (unverified)'
 NUMERIC = {'{{seed}}', '{{width}}', '{{height}}'}
 MODEL_KEYS = ('unet_name', 'ckpt_name')
 LORA_NODE = 'prospero-lora'
+REFERENCE = '{{reference_image}}'
 
 
-def parse_workflow(text: str) -> dict:
+def parse_workflow(text: str, reference=False) -> dict:
     try:
         workflow = json.loads(text)
     except json.JSONDecodeError as error:
@@ -37,10 +42,17 @@ def parse_workflow(text: str) -> dict:
         raise DomainError('The workflow must be in ComfyUI API format: nodes with a class_type each.', 422)
     if '{{prompt}}' not in text:
         raise DomainError('Put {{prompt}} in the workflow where the prompt text belongs.', 422)
+    if reference and REFERENCE not in text:
+        raise DomainError('Put {{reference_image}} in the reference workflow as the image of a LoadImage node.', 422)
     return workflow
 
 
-def workflow_for(config) -> tuple[dict, str]:
+def workflow_for(config, reference=False) -> tuple[dict, str]:
+    if reference:
+        if not config.get('reference_workflow'):
+            raise AdapterError('incompatible', 'This ComfyUI server has no workflow for pictures made from a '
+                               'reference. Add one in Settings, Images.')
+        return parse_workflow(config['reference_workflow'], reference=True), 'custom reference'
     if config.get('workflow'):
         return parse_workflow(config['workflow']), 'custom'
     return json.loads(TEMPLATE.read_text(encoding='utf-8')), TEMPLATE_NAME
@@ -54,7 +66,7 @@ def fill(value, values: dict):
     if isinstance(value, str):
         if value in NUMERIC:
             return values[value]
-        for marker in ('{{prompt}}', '{{negative}}'):
+        for marker in ('{{prompt}}', '{{negative}}', REFERENCE):
             value = value.replace(marker, values[marker])
     return value
 
@@ -100,17 +112,19 @@ class ComfyAdapter:
                                  follow_redirects=False)
 
     async def generate(self, request) -> ImageResult:
-        workflow, name = workflow_for(request.config)
+        workflow, name = workflow_for(request.config, reference=request.reference is not None)
         prompt = request.prompt
         if request.lora and request.lora.get('trigger'):
             prompt = f"{request.lora['trigger']}, {prompt}"
         values = {'{{prompt}}': prompt, '{{negative}}': request.negative, '{{seed}}': request.seed,
-                  '{{width}}': request.width, '{{height}}': request.height}
-        graph = fill(workflow, values)
-        if request.lora:
-            graph = with_lora(graph, request.lora)
-            name = f"{name} + LoRA {request.lora['comfy_name']}"
+                  '{{width}}': request.width, '{{height}}': request.height, REFERENCE: ''}
         async with self.client(request.config['base_url']) as client:
+            if request.reference is not None:
+                values[REFERENCE] = await self.upload(client, request)
+            graph = fill(workflow, values)
+            if request.lora:
+                graph = with_lora(graph, request.lora)
+                name = f"{name} + LoRA {request.lora['comfy_name']}"
             prompt_id = await self.submit(client, graph)
             try:
                 async with asyncio.timeout(self.timeout_seconds):
@@ -149,6 +163,16 @@ class ComfyAdapter:
         if response.status_code >= 500:
             raise AdapterError('failed', f'ComfyUI returned HTTP {response.status_code}.')
         return response
+
+    async def upload(self, client, request) -> str:
+        """Put the reference picture in ComfyUI's input folder under this job's own name."""
+        extension, kind = media_type(request.reference)
+        response = await self.call(client, 'POST', '/upload/image', data={'overwrite': 'true'},
+                                   files={'image': (f'prospero-{request.job_id}.{extension}', request.reference, kind)})
+        body = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
+        if not response.is_success or not isinstance(body.get('name'), str):
+            raise AdapterError('failed', f'ComfyUI did not accept the reference picture (HTTP {response.status_code}).')
+        return f"{body['subfolder']}/{body['name']}" if body.get('subfolder') else body['name']
 
     async def submit(self, client, graph) -> str:
         response = await self.call(client, 'POST', '/prompt', json={'prompt': graph, 'client_id': uuid4().hex})
@@ -197,18 +221,8 @@ class ComfyAdapter:
             return [f'The adopted LoRA {lora_name} is not in ComfyUI\'s loras folder.']
         return []
 
-    async def check(self, backend, config, key=None) -> Check:
-        """Ask the server which nodes and model files it has; nothing is queued or downloaded."""
-        try:
-            workflow, name = workflow_for(config)
-        except DomainError as error:
-            return Check(False, error.message)
-        try:
-            async with self.client(config['base_url']) as client:
-                response = await self.call(client, 'GET', '/object_info')
-                info = response.json()
-        except (AdapterError, ValueError) as error:
-            return Check(False, getattr(error, 'message', 'ComfyUI returned an unreadable node list.'))
+    @staticmethod
+    def node_problems(info, workflow) -> list[str]:
         missing = []
         for node in workflow.values():
             spec = info.get(node['class_type'])
@@ -218,8 +232,27 @@ class ComfyAdapter:
             required = {**(spec.get('input', {}).get('required') or {}), **(spec.get('input', {}).get('optional') or {})}
             for key_name, value in node.get('inputs', {}).items():
                 options = required.get(key_name, [None])[0]
-                if isinstance(value, str) and isinstance(options, list) and value not in options:
+                # A placeholder such as {{reference_image}} is filled in per request.
+                if isinstance(value, str) and '{{' not in value and isinstance(options, list) and value not in options:
                     missing.append(f'Missing file or option for {node["class_type"]}.{key_name}: {value}.')
+        return missing
+
+    async def check(self, backend, config, key=None) -> Check:
+        """Ask the server which nodes and model files it has; nothing is queued or downloaded."""
+        try:
+            workflow, name = workflow_for(config)
+            reference = workflow_for(config, reference=True)[0] if config.get('reference_workflow') else None
+        except DomainError as error:
+            return Check(False, error.message)
+        try:
+            async with self.client(config['base_url']) as client:
+                response = await self.call(client, 'GET', '/object_info')
+                info = response.json()
+        except (AdapterError, ValueError) as error:
+            return Check(False, getattr(error, 'message', 'ComfyUI returned an unreadable node list.'))
+        missing = self.node_problems(info, workflow)
+        if reference is not None:
+            missing += [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)]
         missing += self.lora_problems(info, config.get('lora_name'))
         if missing:
             return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing)

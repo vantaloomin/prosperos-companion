@@ -135,6 +135,42 @@ asks for no photo.
 - In the chat, each style shows the picture under the reply with a line while it is on its way.
   The Visual novel stage also shows the latest photo (not meme) behind the portrait.
 
+## Profile pictures
+
+Right after a companion is created, when an image backend is enabled, the app offers three
+pictures of them (`companion/lora/portraits.py`, page `src/features/appearance/Portraits.tsx`). The
+step can be skipped and run again from the Character page (**Profile pictures**).
+
+1. **Profile picture**: waist up, facing the camera, in an everyday outfit, with an expression that
+   fits their personality.
+2. **Three-quarter view** in a second everyday outfit, made from picture 1.
+3. **Face close-up**, also made from picture 1.
+
+- The expression comes from words in their personality, identity and voice (shy, wry, playful,
+  warm and so on) and the two outfits are a fixed pick for that companion from a short list. No
+  model writes anything; the description and all three shots can be edited before sending.
+- Pictures 2 and 3 each send picture 1 along as a reference, so the set shows one person. The whole set goes to the first enabled backend that can take a reference picture:
+  **Codex** (attached with `codex exec --image`), a **chat-style API** such as OpenRouter (the
+  picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
+  a second, user-supplied *reference workflow* that has `{{reference_image}}` as a LoadImage
+  node's image (the app uploads the picture through `/upload/image`). There is no built-in
+  reference workflow, and Google's OpenAI-compatible endpoint and other `images`-style APIs
+  cannot take one.
+- When no enabled backend can, nothing is sent and the page says so. The user can choose to make
+  all three from the description alone; the page then says they may not look like one person.
+- Each picture is classified and routed like any image: NSFW goes to a local backend only and
+  Prohibited is refused. When picture 1 fails or is refused, the other two are not made. **Make
+  this one again** remakes that picture with a new seed; remaking picture 1 remakes all three.
+- **Keep these** adds the finished pictures to the character's reference pictures (as
+  `generated`, for training) and makes picture 1 the companion's picture: in the conversation
+  header, the Community style's avatars and the Visual novel stage. Any reference picture can be
+  chosen instead in Look and LoRA, and removing it brings back their initial.
+- The set runs through the LoRA maker's generation runner (one picture at a time, the shared
+  backend limits and the single Codex slot) as a `lora_generations` row of kind `portraits`, which
+  the LoRA maker's own list leaves out.
+- Every reference path has only been tested against stand-ins (a fake `codex`, mocked HTTP for
+  OpenRouter, OpenAI and ComfyUI), not a real backend.
+
 ## Interface
 
 Settings has an **Images** section: add a ComfyUI server, a Codex backend or an image API, accept
@@ -155,7 +191,7 @@ All writes need the `x-companion-client: workspace` header.
 | --- | --- |
 | `GET`, `PUT /api/images/settings` | `automatic_images`, `chat_photos`, `daily_limit` (0 to 24), `queue_limit` (1 to 20), `fallback`, `aspect` (`square`, `landscape`, `portrait`), `style` |
 | `GET /api/images/backends` | Backends in order, with `local`, `accepts_nsfw`, `disclosure`, `blocked_reason`, `has_key`; never a key |
-| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, cli_path?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
+| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, reference_workflow?, cli_path?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
 | `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address needs the disclosure again |
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |

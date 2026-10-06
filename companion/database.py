@@ -105,6 +105,11 @@ ADDED_COLUMNS = (
     # A full reply after a holding text, dropped unseen because the user wrote again first (life/pacing.py).
     ('messages', 'superseded_at', 'TEXT'),
     ('workspace_settings', 'chat_retro_dark', 'INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1))'),
+    # Onboarding portraits (lora/portraits.py): a set whose later pictures follow the profile picture,
+    # and the kept picture shown as the companion's profile picture.
+    ('lora_generations', 'kind', "TEXT NOT NULL DEFAULT 'dataset' CHECK (kind IN ('dataset', 'portraits'))"),
+    ('lora_gen_images', 'follows', 'INTEGER'),
+    ('companions', 'portrait_reference_id', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

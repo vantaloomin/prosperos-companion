@@ -218,6 +218,9 @@ def remove(database, reference_id) -> dict:
     with database.connect(write=True) as connection:
         row = get(connection, reference_id)
         connection.execute('DELETE FROM lora_references WHERE id=?', (reference_id,))
+        # A removed profile picture leaves the companion with their initial again.
+        connection.execute('UPDATE companions SET portrait_reference_id=NULL WHERE portrait_reference_id=?',
+                           (reference_id,))
     for name in (row['file'], row['crop_file']):
         if name:
             (directory(database) / name).unlink(missing_ok=True)
