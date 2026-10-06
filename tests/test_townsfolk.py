@@ -97,13 +97,25 @@ def test_the_companion_runs_into_townsfolk_and_learns_more_each_time(client, clo
     assert met and 'Got talking with ' in met[0]['entry']['summary']
     assert len({row['local_date'] for row in met}) == len(met)
     assert client.get('/api/life/townsfolk').json() == []
-    for _week in range(3):
+    # Who is where depends on the seeded city, so from here on the first person met is always around.
+    first = met[0]['entry']['townsfolk']['key']
+    seeded = encounters.present
+
+    def around(data, place_id, view, history):
+        found = seeded(data, place_id, view, history)
+        sheet = townsfolk.find(data, first)
+        return (found[0] if found else encounters.moments(view)[0]), {**(found[1] if found else {}), first: sheet}
+
+    monkeypatch.setattr(encounters, 'present', around)
+    for _week in range(2):
         clock.instant = clock.now() + timedelta(days=7)
         build(client)
     known = client.get('/api/life/townsfolk').json()
     assert known and all(person['times'] >= 1 for person in known)
-    often = max(known, key=lambda person: person['times'])
-    assert often['times'] >= 2, known
+    often = next(person for person in known if person['key'] == first)
+    assert often['times'] >= 3, known
+    news = [row['entry']['summary'] for row in build(client) if row['entry'] and row['entry'].get('townsfolk')]
+    assert any('turns out' in text for text in news)
     assert often['goal'] and often['flaw'] and often['desire'] and often['routine']
     once = [person for person in known if person['times'] == 1]
     assert all(person['goal'] is None and person['flaw'] is None for person in once)
