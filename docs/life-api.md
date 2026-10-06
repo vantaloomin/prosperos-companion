@@ -649,7 +649,7 @@ from the agenda, the circle, the city data and fixed phrasing, under seeded idem
 Social posts have `events: []` and `image: null`. They are read, reacted to, hidden, removed and
 discussed with the same endpoints. Likes and comments are derived, not stored: they come from the
 post, the active circle and the clock, arriving within a few hours of the post, at most three
-comments each. The companion likes and comments on friends' posts. A renamed friend shows their new
+comments each. No line is said twice on one post or repeated on the few posts just before it. The companion likes and comments on friends' posts. A renamed friend shows their new
 name; a removed one's posts and comments leave the feed. A branched timeline keeps the social posts from before it split off, with their read, reaction and answer state.
 
 ## Emotional traits and absence mood

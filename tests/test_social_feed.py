@@ -170,3 +170,25 @@ def test_a_branch_keeps_the_social_posts_from_before_it_split_off(client, city, 
     assert shown[(before[0]['kind'], before[0]['text'], before[0]['occurs_at'])]['reaction'] == 'wow'
     # Reading again on the branch does not post the copied ones a second time.
     assert len([post for post in feed(client)['posts'] if post['source'] == 'social']) == len(copied)
+
+
+def test_no_comment_repeats_on_a_post_or_the_posts_just_before(client, city, clock, monkeypatch):
+    monkeypatch.setattr(social, 'COMMENT_CHANCE', 1)
+    live_days(client, clock)
+    posts = list(reversed(feed(client)['posts']))
+    said = [[comment['text'] for comment in post['audience']['comments']] for post in posts]
+    assert any(said)
+    for index, lines in enumerate(said):
+        assert len(lines) == len(set(lines))
+        earlier = {line for before in said[max(0, index - social.NEARBY):index] for line in before}
+        assert not earlier & set(lines)
+    # A filter shows the same comments the full feed does.
+    everyone = {post['id']: post['audience'] for post in posts}
+    assert all(post['audience'] == everyone[post['id']] for post in feed(client, source='circle')['posts'])
+
+
+def test_reacting_returns_the_post_as_the_feed_shows_it(client, city, clock):
+    live_days(client, clock)
+    for post in feed(client)['posts'][:4]:
+        reacted = client.post(f"/api/feed/{post['id']}/reaction", json={'reaction': 'hug'}).json()
+        assert reacted['author'] == post['author'] and reacted['audience'] == post['audience']
