@@ -267,7 +267,7 @@ class ContextPreset(Input):
 
 
 class ContextBuiltin(Input):
-    kind: Literal['weather', 'pulse']
+    kind: Literal['weather', 'pulse', 'culture']
 
 
 class ToolArgument(Input):

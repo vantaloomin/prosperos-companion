@@ -14,7 +14,7 @@ an ordinary companion message with no `reply_to`, so the next reply sees it in t
 from dataclasses import dataclass
 from datetime import timedelta
 
-from companion import notifications, self_facts
+from companion import in_character, notifications, self_facts
 from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -253,6 +253,8 @@ class Openers:
         except DomainError:
             return trigger.template, 'template'
         written = ''.join(text).strip().strip('"').strip()
+        if in_character.applies('', companion['version']['definition']):
+            written = in_character.clean(written)
         if not written or len(written) > MAX_LENGTH:
             return trigger.template, 'template'
         return written, 'model'

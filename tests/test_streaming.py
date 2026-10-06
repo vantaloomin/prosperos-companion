@@ -25,10 +25,10 @@ class GatedProvider:
         self.release = asyncio.Event()
 
     async def stream(self, config, key, system, messages):
-        yield Chunk('Partial ')
+        yield Chunk('First part. ')
         self.started.set()
         await self.release.wait()
-        yield Chunk('and the rest.')
+        yield Chunk('And the rest.')
         yield Chunk('', 'stop')
 
 
@@ -69,11 +69,11 @@ def test_stream_sends_snapshot_then_new_text_then_the_saved_reply(app, connected
         return [first] + [event async for event in events]
 
     events = asyncio.run(scenario())
-    assert events[0] == ('snapshot', {'id': events[0][1]['id'], 'text': 'Partial '})
-    assert events[1][0] == 'delta' and events[1][1]['text'] == 'and the rest.'
+    assert events[0] == ('snapshot', {'id': events[0][1]['id'], 'text': 'First part. '})
+    assert events[1][0] == 'delta' and events[1][1]['text'] == 'And the rest.'
     assert events[-1][0] == 'done'
     assert events[-1][1]['status'] == 'complete'
-    assert events[-1][1]['text'] == 'Partial and the rest.'
+    assert events[-1][1]['text'] == 'First part. And the rest.'
 
 
 def test_closing_a_stream_does_not_stop_the_reply(app, connected):
@@ -92,7 +92,7 @@ def test_closing_a_stream_does_not_stop_the_reply(app, connected):
 
     reply = asyncio.run(scenario())
     assert reply['status'] == 'complete'
-    assert reply['text'] == 'Partial and the rest.'
+    assert reply['text'] == 'First part. And the rest.'
 
 
 def test_retrying_a_send_while_streaming_follows_the_same_reply(app, connected):

@@ -145,3 +145,25 @@ def test_deleting_waits_for_training_to_stop(client, app, companion):
     response = client.post('/api/companion/delete', json={'name': 'Mira'})
     assert response.status_code == 409 and 'training' in response.json()['detail']
     assert ok(client.get('/api/companion'))['companion'] is not None
+
+
+def test_lookups_and_the_city_news_from_them_go_with_the_companion(client, app, companion):
+    """Weather and local events looked up for the old companion's city never show for the next one."""
+    with app.state.database.connect(write=True) as connection:
+        connection.execute(
+            "INSERT INTO context_observations (id, service_name, category, purpose, tool, arguments, destination, "
+            "location, status, content, requested_at, fresh_until) VALUES ('obs', 'Built-in weather', 'weather', "
+            "'companion_city', 'get_forecast', '{}', 'this computer', '{}', 'ok', 'New York, clear', "
+            "'2026-10-05T12:00:00Z', '2026-10-06T12:00:00Z')")
+        for change_id, origin, observation in (('news', 'real', 'obs'), ('mine', 'user', None)):
+            connection.execute(
+                'INSERT INTO world_changes (id, city_id, kind, origin, name, announced_on, starts_on, observation_id, '
+                "created_at) VALUES (?, 'new-york', 'news', ?, 'Headline', '2026-10-05', '2026-10-05', ?, "
+                "'2026-10-05T12:00:00Z')", (change_id, origin, observation))
+
+    ok(client.post('/api/companion/delete', json={'name': 'Mira'}))
+
+    assert ok(client.get('/api/context/observations'))['observations'] == []
+    with app.state.database.connect() as connection:
+        kept = [row[0] for row in connection.execute('SELECT id FROM world_changes')]
+    assert kept == ['mine']

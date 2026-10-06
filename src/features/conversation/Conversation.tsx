@@ -58,6 +58,12 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   const onText = useCallback((id: string, text: string) => setLive((current) => ({ ...current, [id]: text })), [])
   const onDone = useCallback((reply: Message) => {
+    if (reply.superseded_at) {
+      // The user wrote again before it showed; the reply to their new message takes its place.
+      update((current) => current.filter((message) => message.id !== reply.id))
+      setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
+      return
+    }
     // A reply that shows at once shows the ones held before it; a held one stays quiet until its time.
     const held = isHeld(reply, Date.now())
     update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
@@ -86,7 +92,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }
 
   const accept = (result: SendResult) => {
-    update((current) => mergeMessages(current, [result.message, result.reply]))
+    const dropped = new Set(result.dropped ?? [])
+    update((current) => mergeMessages(current.filter((message) => !dropped.has(message.id)), [result.message, result.reply, result.follow_up]))
     if (result.connection === 'not_configured') setNotice({ tone: 'info', text: `Your message is saved. Connect a model in Settings so ${name} can reply.`, settings: true })
     else setNotice(null)
     setFound(null)

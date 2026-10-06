@@ -1,8 +1,8 @@
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextPurpose, ContextTool, MappingSuggestion, Observation, ToolArgument } from '../../types'
 
 export const CONTEXT_KEY = ['context-tools']
-export const CATEGORY_ORDER: ContextCategory[] = ['weather', 'news', 'local_events', 'web_search', 'link']
-export const CATEGORY_LABELS: Record<ContextCategory, string> = { weather: 'Weather', news: 'News and recent events', local_events: 'Local events', link: 'Reading links', web_search: 'Web search' }
+export const CATEGORY_ORDER: ContextCategory[] = ['weather', 'news', 'local_events', 'culture', 'web_search', 'link']
+export const CATEGORY_LABELS: Record<ContextCategory, string> = { weather: 'Weather', news: 'News and recent events', local_events: 'Local events', link: 'Reading links', web_search: 'Web search', culture: "Movies, shows, games and what's trending" }
 export const SOURCE_LABELS: Record<ArgumentSource, string> = {
   place: 'Your city or region', latitude: 'Latitude', longitude: 'Longitude', topic: 'Topic you asked about', date: "Today's date", literal: 'A fixed value', url: 'The link you pasted',
 }
@@ -28,12 +28,13 @@ export const SEARCH_PRESETS = [
 export function purposeLabel(category: ContextCategory, purpose: ContextPurpose, name: string): string {
   if (category === 'link') return 'When a link you paste cannot be read on this computer'
   if (category === 'web_search') return 'When you ask in chat to search or look something up'
+  if (category === 'culture') return 'When you ask in chat about movies, TV, games, music, books or what is trending'
   return purpose === 'conversation' ? 'When you ask about it in chat' : `For ${name}'s city, when it is a real place`
 }
 
-/** Categories with a "try it" button: those that look up a place, not a link or a search. */
+/** Categories with a "try it" button: those that look up a place, not a link, a search or what's out. */
 export function canTry(category: ContextCategory): boolean {
-  return category !== 'link' && category !== 'web_search'
+  return category !== 'link' && category !== 'web_search' && category !== 'culture'
 }
 
 /** Which of the built-in weather switches are on: your place, the companion's, or both. */
@@ -59,7 +60,7 @@ export function initialMapping(tools: ContextTool[], saved?: ContextMapping, sug
 /** Sources a category may send: only news, events and search send a topic, and only link reading sends the link. */
 export function sourcesFor(category: ContextCategory): ArgumentSource[] {
   if (category === 'link') return ['url', 'literal']
-  if (category === 'web_search') return ['topic', 'literal']
+  if (category === 'web_search' || category === 'culture') return ['topic', 'literal']
   const all: ArgumentSource[] = ['place', 'latitude', 'longitude', 'topic', 'date', 'literal']
   return category === 'weather' ? all.filter((source) => source !== 'topic') : all
 }

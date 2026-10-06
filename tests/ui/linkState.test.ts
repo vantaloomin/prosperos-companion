@@ -52,3 +52,11 @@ test('the built-in weather switches map to when the lookup runs', async () => {
   assert.deepEqual(weatherSwitches({ ...(mapping as object), approved: false } as never), { mine: false, theirs: false })
   assert.deepEqual(weatherSwitches(undefined), { mine: false, theirs: false })
 })
+
+test('the culture lookup sends only which sections you asked about and never a place', async () => {
+  const { canTry, purposeLabel, CATEGORY_ORDER } = await import('../../src/features/settings/contextTools.ts')
+  assert.deepEqual(sourcesFor('culture'), ['topic', 'literal'])
+  assert.equal(canTry('culture'), false)
+  assert.equal(purposeLabel('culture', 'conversation', 'Hana'), 'When you ask in chat about movies, TV, games, music, books or what is trending')
+  assert.ok(CATEGORY_ORDER.includes('culture'))
+})
