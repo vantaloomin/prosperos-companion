@@ -17,7 +17,7 @@ Writes require the `x-companion-client: workspace` header, which the local inter
 
 ## Installing on Windows
 
-Double-click `install.bat` once. It finds Python 3.12+ and Node.js 22.12+ (installing them with
+Double-click `install.bat` once. It finds Python 3.12+ and Node.js 22.13+ (installing them with
 WinGet if they are missing), creates `.venv`, installs the locked dependencies and builds the
 interface. Then double-click `launch.bat`: it starts the Companion on http://127.0.0.1:8775 and
 opens it in the browser. Keep its window open while using the app; close it or press Ctrl+C to

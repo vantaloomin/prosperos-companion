@@ -6,7 +6,7 @@ On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrato
 
 | Script | What it does |
 | --- | --- |
-| `install.bat` | Finds or installs Python 3.12+ and Node.js 22.12+, installs the locked dependencies and builds the interface. Run once, and again after changing dependencies. |
+| `install.bat` | Finds or installs Python 3.12+ and Node.js 22.13+, installs the locked dependencies and builds the interface. Run once, and again after changing dependencies. |
 | `launch.bat` | Starts the Companion on http://127.0.0.1:8775 and opens it in the browser. Keep its window open; close it to stop. |
 | `update.bat` | Pulls the latest `main` and reruns the install. Close the Companion first. |
 | `status.bat` | Says whether the Companion is running, and on which address. |
