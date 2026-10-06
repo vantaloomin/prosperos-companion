@@ -104,7 +104,8 @@ def test_cancelled_plans_become_a_night_in_and_the_companion_knows(client, mira,
     with client.app.state.database.connect() as connection:
         lines = disruptions.context_lines(connection, evening['timeline_id'], agenda.COMPANION, evening['local_date'],
                                           clock.now())
-    assert lines == [(evening['id'], f"- Today, evening out: you {evening['block']['shift']['text']}.")]
+    # Earlier slots today (work) still roll their own seeded shifts, so the evening's line is one of them.
+    assert (evening['id'], f"- Today, evening out: you {evening['block']['shift']['text']}.") in lines
     assert 'day_shifts' in context.HEADINGS
 
 

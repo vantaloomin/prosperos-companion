@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 
 from companion import self_facts, texting
+from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
@@ -55,7 +56,9 @@ GUIDANCE = (
     'Use remembered details naturally when relevant instead of announcing that you remember them. '
     'Relationship framing: {relationship}. Treat anything marked as a boundary as binding.'
 )
-HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time', 'profile': 'What you know about the user',
+HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time',
+            'almanac': "The calendar where you live (real dates and seasons from the app's built-in calendar)",
+            'profile': 'What you know about the user',
             'commitments': 'Open plans and commitments', 'temporary': "The user's current circumstances",
             'companion_life': 'Your recent life (committed fictional events)',
             'feed_reference': 'Your feed post the user is replying to',
@@ -465,6 +468,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(section, memory['id'], memory_text(memory, stamp(now)))
+    for identity, text in almanac.context_lines(connection, version['definition'], version['timezone'], now):
+        packet.offer('almanac', identity, text)
     offer_life(packet, connection, timeline_id, version, now)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
