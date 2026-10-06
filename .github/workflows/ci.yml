@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -116,3 +116,27 @@ jobs:
         env:
           COMPANION_DATA_DIR: ${{ runner.temp }}\companion-helpers-data
         run: .\scripts\windows\helpers-test.ps1
+
+  macos-install:
+    # Nobody on the team has a Mac, so this is the macOS scripts' only test. No setup-python or
+    # setup-node: install.command has to find (or install with Homebrew) what a Mac already has.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: The .command files are executable
+        run: for f in *.command; do test -x "$f" || { echo "$f is not executable"; exit 1; }; done
+      - name: Install with install.command
+        run: ./install.command
+      - name: Check the install
+        run: ./install.command --check-only
+      - name: Test the checkout scripts
+        env:
+          COMPANION_DATA_DIR: ${{ runner.temp }}/companion-data
+        run: /bin/bash --version | head -n 1 && ./scripts/macos/helpers-test.sh

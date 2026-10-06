@@ -151,6 +151,17 @@ def test_a_restored_workspace_turns_phone_access_off_and_unpairs(client, phone, 
     assert client.get('/api/phone').json()['devices'] == []
 
 
+def test_the_mac_app_bundles_the_tailscale_command(monkeypatch, tmp_path):
+    bundled = tmp_path / 'Tailscale'
+    bundled.write_text('')
+    monkeypatch.setattr(tailscale.shutil, 'which', lambda name: None)
+    monkeypatch.setattr(tailscale, 'MAC_PATHS', (str(bundled),))
+    monkeypatch.setattr(tailscale.sys, 'platform', 'darwin')
+    assert tailscale.binary() == str(bundled)
+    monkeypatch.setattr(tailscale.sys, 'platform', 'linux')
+    assert tailscale.binary() is None
+
+
 def test_serve_passes_on_the_link_to_allow_https(monkeypatch):
     monkeypatch.setattr(tailscale, 'binary', lambda: 'tailscale')
     link = 'https://login.tailscale.com/f/serve?node=abc123'

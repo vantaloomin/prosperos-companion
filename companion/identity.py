@@ -26,6 +26,8 @@ def data_dir() -> Path:
     if sys.platform == 'win32':
         base = os.environ.get('LOCALAPPDATA') or Path.home() / 'AppData' / 'Local'
         return Path(base) / 'ProsperoCompanion'
+    if sys.platform == 'darwin':
+        return Path.home() / 'Library' / 'Application Support' / 'ProsperoCompanion'
     base = os.environ.get('XDG_DATA_HOME') or Path.home() / '.local' / 'share'
     return Path(base) / APP_ID
 

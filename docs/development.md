@@ -3,7 +3,7 @@
 [Back to the README](../README.md)
 
 The backend is Python 3.12, FastAPI and SQLite; the interface is React 19, TypeScript and Vite.
-Development and CI run on Linux and Windows, while Windows x64 is the launch target.
+Development and CI run on Linux, Windows and macOS, while Windows x64 is the launch target.
 
 ```sh
 python -m venv .venv
@@ -38,8 +38,21 @@ running), runs `npm run dev` in its own, and stops the backend it started when V
 Dev mode uses the real workspace unless `COMPANION_DATA_DIR` points elsewhere. CI runs
 `scripts/windows/helpers-test.ps1` after the installer to exercise each helper through its `.bat`.
 
-On Linux or macOS, follow the commands above and below, then run
-`.venv/bin/python -m companion.launch`.
+On Linux, follow the commands above and below, then run `.venv/bin/python -m companion.launch`.
+
+## Installing on a Mac
+
+The root `.command` files are the Mac twins of the `.bat` files; each runs the matching script in
+`scripts/macos/` (bash 3.2 compatible, since that is macOS's `/bin/bash`), and `common.sh` there
+holds the port checks (`curl` and `lsof`). They behave as their Windows twins, with `--port`,
+`--no-browser`, `--check-only` and `--destination` in place of the PowerShell switches.
+`install.sh` uses Homebrew where WinGet is used on Windows, and otherwise opens the python.org or
+nodejs.org download page. `create-shortcut.command` writes a small `.app` bundle that opens
+`launch.command` in Terminal. The `macos-install` CI job runs `install.command` without
+setup-python or setup-node on Apple Silicon and Intel runners, then
+`scripts/macos/helpers-test.sh`; the backend tests also run on macOS. No one has run these on a
+real Mac. User-facing instructions, Gatekeeper and what is missing on a Mac are in
+[Installing on a Mac](macos.md).
 
 ## Windows bundle
 
@@ -123,7 +136,7 @@ The Companion has its own identity so it can run beside Prospero's Study without
 
 | Item | Companion | Study |
 | --- | --- | --- |
-| Data directory | `%LOCALAPPDATA%\ProsperoCompanion` (Windows), `$XDG_DATA_HOME/prospero-companion` elsewhere; `COMPANION_DATA_DIR` overrides | `data/` in the checkout |
+| Data directory | `%LOCALAPPDATA%\ProsperoCompanion` (Windows), `~/Library/Application Support/ProsperoCompanion` (macOS), `$XDG_DATA_HOME/prospero-companion` elsewhere; `COMPANION_DATA_DIR` overrides | `data/` in the checkout |
 | Database | `companion.sqlite3`; `COMPANION_DB` overrides | `roleplay.sqlite3` (`ROLEPLAY_DB`) |
 | Port | 8775 | 8765 |
 | Credential service | `Prospero Companion` (`COMPANION_API_KEY` fallback) | `Roleplay Interface` |
