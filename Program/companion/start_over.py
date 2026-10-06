@@ -46,7 +46,7 @@ HISTORY = (
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
     'closeness_jokes', 'closeness_settings', 'openers', 'self_facts', 'recommendations', 'storylines',
-    'storyline_days', 'home_log', 'home_items', 'home_state', 'acquaintances', 'circle_people', 'life_agenda',
+    'storyline_days', 'home_log', 'home_items', 'home_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
     'user_people', 'messages', 'timelines',
 )

@@ -281,6 +281,32 @@ entry still records the meeting. Later, out somewhere, the companion now and the
 six most recent acquaintances and where they met; forks keep those met before the fork. No model is
 involved.
 
+## Townsfolk around the city
+
+Every place in the city has two or three seeded background people (`companion/world/townsfolk.py`): staff
+(the barista, the barkeep, the librarian) and regulars, each with an era-fitting name and job, a home
+neighborhood near the place, a temperament, a quirk, a flaw, a desire and a list of goals. They are never
+stored; `town:<city>:<place>:<n>` rebuilds one. Plain if/then/else rules (`whereabouts`) put them somewhere
+at any hour: on shift, asleep, on their usual visit, off working toward their goal (a run in the park, study
+at the library), out at a bar on a weekend evening when they want company, or at home. Their goal moves
+week by week from 5 January 2026 (`story`): a seeded roll each week makes progress, stalls or is a setback,
+a driven temperament helps and a procrastinating or spendthrift flaw drags, and once enough progress is made
+they reach it and start the next goal.
+
+When the agenda sends the companion somewhere real for leisure, an errand or a social plan, someone there by
+their rules may cross paths with them (`companion/life/encounters.py`; at most one a day). The first time is
+a chat with a stranger; the second reveals what they are working toward; from the third the companion knows
+their flaw and what they seem to want, and later meetings bring their news. People already met can turn up
+wherever their rules take them. A meeting counts once its slot has happened and the entry still records it
+(`entry.townsfolk = {key, times}`), and forks keep meetings before the fork. The chat context lists the six
+most recently seen, with only what the companion has learned. No model is involved.
+
+```http
+GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
+GET /api/life/townsfolk/person?key=<key>    # one of them, plus `now`: where their rules put them right now
+GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the city's full view of a place's people
+```
+
 ## Precomputed agenda
 
 Every reconcile also brings a hidden agenda up to date, without a model (PRD T9). The agenda holds

@@ -61,6 +61,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.disruptions.ACTIVE', False)
     # And friends' gatherings and run-ins (companion/life/network.py), which add people met by chance.
     monkeypatch.setattr('companion.life.network.ACTIVE', False)
+    # And townsfolk met around the city (companion/life/encounters.py), likewise by chance.
+    monkeypatch.setattr('companion.life.encounters.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)
