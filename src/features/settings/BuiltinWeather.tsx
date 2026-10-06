@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { api } from '../../api'
-import type { ContextMapping, ContextOverview, ContextPurpose, ContextServiceInfo, MappingSuggestion } from '../../types'
+import type { ContextOverview, ContextServiceInfo } from '../../types'
 import { Toggle } from '../../components/Fields'
+import { saveBuiltin } from './builtinSave'
 import { weatherRunIn, weatherSwitches } from './contextTools'
 
 const DESTINATION = 'the built-in weather program on this computer, which asks Open-Meteo (and the National Weather Service for US places)'
@@ -14,30 +14,20 @@ interface Props {
   onError: (text: string) => void
 }
 
-/** Save when the lookup runs and confirm its disclosure, or turn it off when neither place is chosen. */
-async function save(path: string, run_in: ContextPurpose[], saved?: ContextMapping, suggestion?: MappingSuggestion) {
-  if (run_in.length === 0) return api(`${path}/disable`, {})
-  const base = saved ?? suggestion!
-  const updated = await api<ContextServiceInfo>(path, { tool: base.tool, arguments: base.arguments, run_in }, 'PUT')
-  const mapping = updated.mappings.find((item) => item.category === 'weather')
-  if (mapping) await api(`${path}/enable`, { digest: mapping.disclosure.digest })
-}
-
 /**
  * The built-in weather server as two plain switches. One server covers both places; turning a switch on saves the
- * lookup and confirms the disclosure written above the switches, so nothing is sent before it is described.
+ * lookup and confirms the disclosure written above the switches.
  */
 export function BuiltinWeather({ service, data, name, refresh, onError }: Props) {
   const [busy, setBusy] = useState(false)
   const saved = service.mappings.find((mapping) => mapping.category === 'weather')
   const suggestion = service.suggestions.weather
   const { mine, theirs } = weatherSwitches(saved)
-  const path = `/context/services/${service.id}/tools/weather`
   const change = async (next: { mine: boolean; theirs: boolean }) => {
     if (busy || (!saved && !suggestion)) return
     setBusy(true)
     try {
-      await save(path, weatherRunIn(next.mine, next.theirs), saved, suggestion)
+      await saveBuiltin(service.id, 'weather', weatherRunIn(next.mine, next.theirs), saved, suggestion)
       await refresh()
     } catch (error) { onError(error instanceof Error ? error.message : 'Not saved.') } finally { setBusy(false) }
   }

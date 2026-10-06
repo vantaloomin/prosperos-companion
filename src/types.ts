@@ -516,7 +516,7 @@ export interface ContextServiceInfo {
   transport: 'stdio' | 'http'
   command: string[] | null
   /** A server that ships with the app, run by the app itself. */
-  builtin: 'weather' | null
+  builtin: 'weather' | 'pulse' | null
   url: string | null
   has_key: boolean
   secret_name: string
