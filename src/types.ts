@@ -22,8 +22,10 @@ export interface Message {
   origin_id?: string | null
   /** A reply held while the companion was busy shows at this time (companion/life/pacing.py). */
   held_until?: string | null
-  /** What they sent meanwhile ("in a meeting, give me a bit"); none while asleep. */
+  /** The holding text sent before this full reply ("in a meeting, give me a bit"), kept as its own message. */
   held_line?: string | null
+  /** Set on a full reply dropped unseen because the user wrote again first; it is never shown. */
+  superseded_at?: string | null
   /** A photo of the moment this reply sent (photos in chat). */
   photo?: ChatPhoto | null
 }
@@ -77,6 +79,10 @@ export interface SearchResults { query: string; results: SearchResult[]; more: b
 export interface SendResult {
   message: Message
   reply: Message | null
+  /** The full reply after a holding text, held until the companion is free (companion/life/pacing.py). */
+  follow_up?: Message | null
+  /** Full replies dropped unseen because this message came first; the new reply takes their place. */
+  dropped?: string[]
   connection: 'ready' | 'not_configured'
 }
 

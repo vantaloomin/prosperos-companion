@@ -52,14 +52,42 @@ def test_the_style_reaches_the_model_and_the_saved_reply(client, office, provide
     assert reply['held_until'] is None
 
 
-def test_at_work_a_reply_can_come_later_with_a_holding_text(client, office, provider, clock, monkeypatch):
+def test_at_work_a_holding_text_stays_and_the_full_reply_follows(client, office, provider, clock, monkeypatch):
     way(monkeypatch, 'line')
     clock.instant = clock.now().replace(hour=10)
     says(provider, 'Okay so here is my full answer.')
-    reply = send(client, 'Quick question', 'client-text-02')['reply']
-    assert reply['text'] == 'okay so here is my full answer.'
-    waits = parse(reply['held_until']) - clock.now()
-    assert reply['held_line'] in pacing.LINES['work'] and timedelta(minutes=8) <= waits <= timedelta(minutes=45)
+    result = send(client, 'Quick question', 'client-text-02')
+    note, full = result['reply'], result['follow_up']
+    assert note['text'] in pacing.LINES['work'] and note['held_until'] is None
+    assert note['reply_to'] == result['message']['id'] and note['status'] == 'complete'
+    assert full['text'] == 'okay so here is my full answer.' and full['reply_to'] is None
+    assert full['seq'] > note['seq'] and f'"{note["text"]}"' in provider.requests[-1]['system']
+    waits = parse(full['held_until']) - clock.now()
+    assert timedelta(minutes=8) <= waits <= timedelta(minutes=45)
+    clock.advance(waits)
+    messages = client.get('/api/conversation').json()['messages']
+    assert [message['text'] for message in messages] == ['Quick question', note['text'], full['text']]
+
+
+def test_writing_again_after_a_holding_text_gets_one_full_reply_that_hears_it(client, office, provider, clock,
+                                                                               monkeypatch):
+    way(monkeypatch, 'line')
+    clock.instant = clock.now().replace(hour=10)
+    says(provider, 'Happy Tuesday!! (written before your ok)')
+    first = send(client, 'Happy tuesday', 'client-text-11')
+    clock.advance(timedelta(minutes=1))
+    says(provider, 'Happy Tuesday!! Sorry, finally free.')
+    second = send(client, 'Ok', 'client-text-12')
+    assert second['dropped'] == [first['follow_up']['id']] and 'follow_up' not in second
+    reply = second['reply']
+    assert reply['reply_to'] == second['message']['id'] and reply['held_until'] == first['follow_up']['held_until']
+    assert 'answer everything they have said since' in provider.requests[-1]['system']
+    sent = [message['content'] for message in provider.requests[-1]['messages']]
+    assert first['reply']['text'] in sent and 'Ok' in sent[-1] and not any('before your ok' in text for text in sent)
+    clock.advance(timedelta(hours=1))
+    messages = client.get('/api/conversation').json()['messages']
+    assert [message['text'] for message in messages] == ['Happy tuesday', first['reply']['text'], 'Ok',
+                                                          'happy tuesday!! sorry, finally free.']
 
 
 def test_at_work_a_reply_can_be_a_quick_note_now(client, office, provider, clock, monkeypatch):

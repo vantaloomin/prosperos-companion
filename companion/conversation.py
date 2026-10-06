@@ -67,7 +67,8 @@ def latest_user_message(connection, timeline_id) -> dict | None:
 def history(database, before_seq=None, limit=100) -> dict:
     with database.connect() as connection:
         companion = require_current(connection)
-        rows = many(connection, 'SELECT * FROM messages WHERE timeline_id=? AND seq<? ORDER BY seq DESC LIMIT ?',
+        rows = many(connection, 'SELECT * FROM messages WHERE timeline_id=? AND seq<? AND superseded_at IS NULL '
+                    'ORDER BY seq DESC LIMIT ?',
                     (companion['active_timeline_id'], before_seq or 2 ** 62, limit))
         return {'timeline_id': companion['active_timeline_id'],
                 'messages': photos.decorate(connection, [message_view(row) for row in reversed(rows)])}
@@ -87,6 +88,7 @@ def search(database, query: str, limit=SEARCH_LIMIT) -> dict:
             "SELECT message.id, message.seq, message.role, message.text, message.status, message.reply_to, "
             "message.created_at FROM messages message LEFT JOIN messages parent ON parent.id=message.reply_to "
             "WHERE message.timeline_id=? AND message.redacted_at IS NULL AND message.text<>'' "
+            "AND message.superseded_at IS NULL "
             "AND parent.redacted_at IS NULL ORDER BY message.seq DESC", (companion['active_timeline_id'],))
         results = []
         for row in rows:
@@ -207,8 +209,13 @@ class Conversation:
             except asyncio.CancelledError:
                 if not live.task.done():
                     raise
-        return {'message': message_view(user), 'reply': self.reply(prepared['attempt_id']),
-                'connection': 'ready'}
+        reply = self.reply(prepared['attempt_id'])
+        if prepared['note'] is None:
+            return {'message': message_view(user), 'reply': reply, 'connection': 'ready',
+                    'dropped': prepared['dropped']}
+        # A holding text answers the message now; the full reply follows as a message of its own.
+        return {'message': message_view(user), 'reply': self.reply(prepared['note']), 'follow_up': reply,
+                'connection': 'ready', 'dropped': prepared['dropped']}
 
     def start(self, prepared) -> LiveReply:
         attempt_id, live = prepared['attempt_id'], LiveReply()
@@ -252,19 +259,30 @@ class Conversation:
             companion = require_current(connection)
             require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
                     409)
-            attempt_id = identifier()
-            held = pacing.join(connection, user['timeline_id'],
-                               pacing.hold(connection, companion, self.database.clock.now(), attempt_id),
-                               self.database.now())
+            attempt_id, now = identifier(), self.database.now()
+            held, dropped = pacing.take_over(connection, user['timeline_id'],
+                                             pacing.hold(connection, companion, self.database.clock.now(), attempt_id),
+                                             now)
+            held = pacing.join(connection, user['timeline_id'], held, now)
+            note = None
+            if held['held_line']:
+                # Busy: a holding text now, which stays, and the full reply later as a message of its own.
+                note = identifier()
+                connection.execute(
+                    'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
+                    'character_version_id, memory_revision, created_at, completed_at) '
+                    "VALUES (?, ?, ?, 'companion', ?, ?, 'complete', 1, ?, ?, ?, ?)",
+                    (note, user['timeline_id'], next_seq(connection, user['timeline_id']), held['held_line'],
+                     user['id'], companion['active_version_id'], settings(connection)['memory_revision'], now, now))
             connection.execute(
                 'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
                 'character_version_id, memory_revision, created_at, held_until, held_line) '
                 "VALUES (?, ?, ?, 'companion', '', ?, 'streaming', 0, ?, ?, ?, ?, ?)",
-                (attempt_id, user['timeline_id'], next_seq(connection, user['timeline_id']), user['id'],
-                 companion['active_version_id'], settings(connection)['memory_revision'], self.database.now(),
-                 held['held_until'], held['held_line']))
+                (attempt_id, user['timeline_id'], next_seq(connection, user['timeline_id']),
+                 None if note else user['id'], companion['active_version_id'], settings(connection)['memory_revision'],
+                 now, held['held_until'], held['held_line']))
         return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user,
-                'quick': held['quick']}
+                'instruction': held['instruction'], 'note': note, 'dropped': dropped}
 
     async def assemble(self, prepared) -> dict:
         """Build the reply's inputs and record the memory revision and character version they reflect,
@@ -299,9 +317,9 @@ class Conversation:
             key = key_for(self.vault, prepared['config'])
             with self.scheduler.foreground_work():
                 packet = await self.assemble(prepared)
-                if prepared.get('quick'):
-                    # Busy: a quick note rather than a real conversation (companion/life/pacing.py).
-                    packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['quick']}"}
+                if prepared.get('instruction'):
+                    # Busy: a quick note now, or the full reply after a holding text (companion/life/pacing.py).
+                    packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['instruction']}"}
                 async with self.scheduler.reserve(prepared['config'], CONVERSATION):
                     async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
                                                             packet['messages']):
@@ -323,6 +341,11 @@ class Conversation:
         with self.database.connect(write=True) as connection:
             attempt = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
             companion = require_current(connection)
+            if attempt['superseded_at']:
+                # The user wrote again first and a newer reply took its place (companion/life/pacing.py).
+                connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
+                                   (text, status, error, self.database.now(), attempt_id))
+                return
             if status == 'complete' and not still_current(connection, attempt, companion):
                 status, error = 'withheld', 'Memories or the character changed while this reply was written.'
             if status == 'complete':
