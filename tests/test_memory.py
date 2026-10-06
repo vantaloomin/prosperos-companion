@@ -105,9 +105,10 @@ def test_tentative_memory_stays_out_until_confirmed(client, companion):
 def test_temporary_context_expires_without_being_erased(client, companion, clock):
     until = (clock.now() + timedelta(days=2)).isoformat()
     memory = remember(client, layer='temporary', subject='Travel', value='Away in Rome', applies_until=until)
-    assert 'Rome' in system_prompt(client)
+    assert 'Away in Rome' in system_prompt(client)
     clock.advance(timedelta(days=3))
-    assert 'Rome' not in system_prompt(client)
+    # The whole phrase: a generated circle member may be called Romero.
+    assert 'Away in Rome' not in system_prompt(client)
     assert [item['id'] for item in client.get('/api/memories').json()] == [memory['id']]
 
 
