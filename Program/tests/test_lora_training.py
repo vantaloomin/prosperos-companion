@@ -21,7 +21,7 @@ STAND_IN = Path(__file__).parent / 'stand_in_trainer'
 def app(tmp_path, clock, provider):
     adapters = {'comfyui': FakeAdapter(), 'codex': FakeAdapter(), 'hosted': FakeAdapter()}
     return create_app(tmp_path / 'workspace' / 'companion.sqlite3', clock=clock, vault=MemoryVault(),
-                      provider=provider, life_tasks=False, image_adapters=adapters)
+                      provider=provider, life_tasks=False, image_adapters=adapters, lora_maker=True)
 
 
 @pytest.fixture

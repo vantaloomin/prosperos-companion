@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RotateCcw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
-import type { View } from '../../companion'
+import { useWorkspaceSettings, type View } from '../../companion'
 import type { StartOverPreview, StartOverResult } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Notice } from '../../components/Feedback'
@@ -65,10 +65,11 @@ function dialogState(mode: StartOverMode, preview: StartOverPreview | undefined,
 }
 
 function Removed({ preview, mode }: { preview: StartOverPreview; mode: StartOverMode }) {
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   return <>
     <p>This removes {removedSummary(preview, mode)}. {mode === 'reset'
       ? `${preview.name} stays as you wrote them, with their look, and meets you fresh from now.`
-      : 'Training folders and adapter test pictures are not in backups and are removed for good.'}</p>
+      : loraMaker ? 'Training folders and adapter test pictures are not in backups and are removed for good.' : ''}</p>
     {preview.others.length > 0 && <p>{othersStay(preview, mode)}</p>}
   </>
 }

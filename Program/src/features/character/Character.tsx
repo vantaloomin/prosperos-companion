@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
-import { COMPANION_KEY, type View } from '../../companion'
+import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput } from '../../components/Fields'
@@ -174,6 +174,7 @@ function StartNotice({ drafted, onRestart }: { drafted: boolean; onRestart: () =
 }
 
 function CharacterHeading({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   return (<>
     <header className="page-header">
       <div>
@@ -182,7 +183,7 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
       </div>
       {companion && <div className="form-actions">
         <button type="button" className="button" onClick={() => go('portraits')}>Profile pictures</button>
-        <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>
+        {loraMaker && <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>}
       </div>}
     </header>
     {!companion && <StudyImport />}

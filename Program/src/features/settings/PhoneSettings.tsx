@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { QrCode, RefreshCw, Smartphone } from 'lucide-react'
 import { api } from '../../api'
+import { useWorkspaceSettings } from '../../companion'
 import { Notice } from '../../components/Feedback'
 import { linkParts } from '../phone/pairing'
 import { PHONE_ACCESS_KEY, PHONE_STATUS_KEY, usePhoneStatus, type PhoneAccess, type PhonePairing } from '../phone/phoneAccess'
@@ -23,6 +24,7 @@ export function PhoneSettings() {
 }
 
 function ThisPhone() {
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   const status = usePhoneStatus()
   const client = useQueryClient()
   const [error, setError] = useState('')
@@ -36,7 +38,7 @@ function ThisPhone() {
     <div className="form-stack">
       {error && <Notice tone="error">{error}</Notice>}
       <p>This phone is paired as <strong>{status.data?.device?.name}</strong>.</p>
-      <p className="subtle">Models, backups, imports, image backends, real-world lookup tools and LoRA training can only be changed on your PC. To keep the Companion on your home screen, use your browser’s Add to Home Screen.</p>
+      <p className="subtle">{pcOnly(loraMaker)} can only be changed on your PC. To keep the Companion on your home screen, use your browser’s Add to Home Screen.</p>
       <div className="form-actions"><button type="button" className="button" onClick={() => void signOut()}>Sign this phone out</button></div>
     </div>
   )
@@ -99,7 +101,13 @@ function OnThePc() {
   )
 }
 
+/** What only the PC can change; LoRA training is named only while the LoRA creator is switched on. */
+function pcOnly(loraMaker?: boolean) {
+  return `Models, backups, imports, image backends${loraMaker ? ', real-world lookup tools and LoRA training' : ' and real-world lookup tools'}`
+}
+
 function Explanation({ access: { enabled, address, tailscale } }: { access: PhoneAccess }) {
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   if (!tailscale.installed) {
     return <p>First, install Tailscale on this PC and on your phone, and sign in to both with the same account. It is free for personal use. <a className="text-button" href={tailscale.install_url} target="_blank" rel="noreferrer">Get Tailscale</a></p>
   }
@@ -108,7 +116,7 @@ function Explanation({ access: { enabled, address, tailscale } }: { access: Phon
   return (
     <>
       <p>Your phone opens the Companion at <strong>{address}</strong>.{!tailscale.serving && ' Tailscale is not sharing it right now; turn phone access off and on again.'}</p>
-      <p className="subtle">Install Tailscale on your phone and sign in with the same account, then pair it here. A paired phone can chat and use Today, the Feed, Memories and Character. Models, backups, imports, image backends, lookup tools and LoRA training stay on this PC.</p>
+      <p className="subtle">Install Tailscale on your phone and sign in with the same account, then pair it here. A paired phone can chat and use Today, the Feed, Memories and Character. {pcOnly(loraMaker)} stay on this PC.</p>
     </>
   )
 }

@@ -191,6 +191,8 @@ export interface WorkspaceSettings {
   paused: boolean
   paused_at: string | null
   review_required: boolean
+  /** The LoRA creator; hidden unless COMPANION_LORA_MAKER is set on the PC (docs/lora.md). */
+  lora_maker?: boolean
 }
 
 /** The conversation's model profile (GET /api/connection); Settings > Models has the rest. */
