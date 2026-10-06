@@ -3,6 +3,7 @@
 Every case drives a substitute clock; the host clock is never changed.
 """
 import asyncio
+import time
 from datetime import UTC, date, datetime, timedelta
 
 from conftest import life_reply, reconcile, set_life
@@ -423,3 +424,34 @@ def test_interests_make_matching_activities_more_likely(monkeypatch):
     assert bookish > plain * 1.8
     assert composer.leanings({'interests': ['party planning', 'artichokes'], 'life_themes': ['team building']}) == set()
     assert composer.leanings({'interests': ['art'], 'life_themes': ['learning to bake']}) == {'museum', 'home-cooking'}
+
+
+def test_catch_up_work_leaves_the_event_loop_free_for_chat(app, life, clock, monkeypatch):
+    """Database work and composition run on a worker thread, so a slow catch-up never stalls a streaming reply."""
+    from companion.life import agenda
+    extend = agenda.extend
+
+    def slow_extend(*args, **kwargs):
+        time.sleep(0.3)  # a large circle's agenda, standing in
+        return extend(*args, **kwargs)
+
+    monkeypatch.setattr(agenda, 'extend', slow_extend)
+    clock.advance(timedelta(days=1))
+
+    async def main():
+        ticks = 0
+
+        async def ticker():
+            nonlocal ticks
+            while True:
+                await asyncio.sleep(0.01)
+                ticks += 1
+
+        task = asyncio.create_task(ticker())
+        result = await app.state.life.reconcile('return')
+        task.cancel()
+        return result, ticks
+
+    result, ticks = asyncio.run(main())
+    assert result['run']['status'] == 'completed'
+    assert ticks >= 10

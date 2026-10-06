@@ -214,6 +214,26 @@ Open-Meteo's free API is for non-commercial use and its data is licensed CC BY 4
 carries "Weather data by Open-Meteo.com (CC BY 4.0)". A commercial distribution of the app would need
 an Open-Meteo subscription or a different source. NWS data is public domain.
 
+## The built-in local pulse server
+
+`companion/mcp/servers/pulse.py` is a second keyless server that ships with the app, added with
+**Add the built-in local pulse server** and stored as `@builtin:pulse`. It goes with the built-in
+calendar (docs/almanac.md): the calendar knows what season it is, and the pulse looks up what is
+actually happening. Its card has three switches: **Local headlines (your city)**, **Games and air quality near you**
+and **Games and air quality in <Companion>'s city**. Each names the place it uses, under a sentence saying what a switch
+sends and where; the full mappings are under **Advanced**.
+
+| | |
+| --- | --- |
+| `get_local_news(location, topic?)` | Mapped to **News**. Headlines from [Google News's RSS search](https://news.google.com/rss) for the topic you name ("news about the bridge"), else for your city. Without a topic it adds English Wikipedia's most-read articles from the day before ([Wikimedia feed API](https://api.wikimedia.org/wiki/Feed_API)) and the hot posts in the city's subreddit (r/baltimore, r/nyc, r/vegas…), with stickied and adult posts left out |
+| `get_local_happenings(location, latitude?, longitude?)` | Mapped to **Local events**. Pro games played in or near the city from yesterday through the next six days, with final scores for games already played: MLB from [MLB's stats API](https://statsapi.mlb.com), and the NFL, NBA, WNBA, NHL and MLS from ESPN's public scoreboards, each asked only in the months it plays. Venues in neighboring towns count for the big metros (MetLife Stadium for New York, Hard Rock Stadium for Miami). Plus the current US air quality index from [Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) |
+| Network | Only the place name, coordinates or topic are sent. Sources are asked in parallel, with a 6-second timeout each; a source that fails is left out, and the lookup fails only when every source does |
+
+Games for the companion's city reach the reply as real events listed for their city (they may want
+to go, but haven't been unless their life says so). ESPN's scoreboards are unofficial and can change
+without notice. Google News and Reddit can refuse requests that look automated. Air quality data is
+CC BY 4.0, like the weather data.
+
 ## Interface
 
 Settings has a **Real-world lookups** section: your location, the services, a suggested tool for

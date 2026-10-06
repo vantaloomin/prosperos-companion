@@ -3,7 +3,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
 from companion.events import view as event_view
-from companion.life import agenda, circle, feed, mood, routine, simulation
+from companion.life import agenda, circle, feed, mood, occasions, routine, simulation
 from companion.memory.records import OPEN_PLANS, eligible
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
@@ -89,6 +89,7 @@ def view(database) -> dict:
             'limits': simulation.settings_view(life),
             'mood': mood.active(connection, companion, now),
             'day': day(connection, timeline_id, now.astimezone(zone(version['timezone'])).date().isoformat()),
+            'occasions': occasions.occasions(connection, companion, now),
         }
     schedule, default = routine.blocks(version['definition'])
     current, upcoming = routine.current_and_next(schedule, version['timezone'], now)

@@ -15,7 +15,18 @@ from datetime import timedelta
 from companion import self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import body, circle, composer, routine
+from companion.life import (
+    body,
+    circle,
+    composer,
+    disruptions,
+    home,
+    network,
+    occasions,
+    recommendations,
+    routine,
+    storylines,
+)
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -42,8 +53,8 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
                                       'haunts': decode(person['details']).get('haunts', [])},
                        f"{person['id']}:{person['revision']}"))
     # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
-    result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id'])},
-                   version['id']))
+    result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id']),
+                               'own_birthday': occasions.own_birthday(companion)}, version['id']))
     return result
 
 
@@ -65,12 +76,13 @@ def extend(connection, companion, world, now) -> dict:
                        f'({marks})', (timeline_id, *active))
     written = 0
     for subject, definition, basis in found:
-        written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now)
+        written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
     settled = settle(connection, timeline_id, now)
-    return {'written': written, 'settled': settled}
+    started = storylines.advance(connection, companion, now)
+    return {'written': written, 'settled': settled, 'storylines': started}
 
 
-def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now) -> int:
+def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion=None) -> int:
     stale = connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
                                'AND basis!=?', (timeline_id, subject, basis)).rowcount
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
@@ -91,6 +103,8 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     days_off = public_holidays(world, definition, start, end)
     days = {}
     written = 0
+    scope = {'timeline_id': timeline_id, 'subject': subject, 'definition': definition, 'basis': basis, 'world': world,
+             'shifting': disruptions.enabled(connection), 'now': now, 'companion': companion}
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
@@ -99,25 +113,54 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         if local_date not in days:
             days[local_date] = day_facts(connection, timeline_id, subject, definition, world, slot.local_date,
                                          days_off.get(local_date))
-        block, entry = day_block(slot.block.view(), days[local_date]), None
-        if block['kind'] not in routine.RESTING:
-            company = free_people(connection, timeline_id, slot) if subject == COMPANION else []
-            celebrants = birthdays(connection, timeline_id, local_date, company) if subject == COMPANION else []
-            entry = composer.compose({**slot.view(), 'block': block}, definition, world,
-                                     seed_for(timeline_id, subject, slot.key), recent[-3:], company, celebrants)
-            if entry:
-                recent.append(entry['activity'])
-        connection.execute(
-            'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
-            'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (identifier(), timeline_id, subject, slot.key, stamp(slot.starts_at), stamp(slot.ends_at),
-             slot.local_date.isoformat(), encode(block), encode(entry) if entry else None, basis,
-             stamp(now)))
-        written += 1
+        written += write_slot(connection, scope, slot, days[local_date], recent)
     connection.execute('INSERT INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?) '
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',
                        (timeline_id, subject, stamp(end)))
     return written
+
+
+def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
+    """Compose one slot and write it, shifted when the day does not go to plan (companion/life/disruptions.py)."""
+    timeline_id, subject, definition = scope['timeline_id'], scope['subject'], scope['definition']
+    block, entry, shift = day_block(slot.block.view(), facts), None, None
+    seed = seed_for(timeline_id, subject, slot.key)
+    resting = block['kind'] in routine.RESTING
+    company = free_people(connection, timeline_id, slot) if subject == COMPANION and not resting else []
+    if scope['shifting'] and not resting:
+        shift = disruptions.roll(f'{seed}:shift', block, company)
+    starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
+    block = disruptions.shifted(block, shift)
+    if shift and shift['friend']:
+        company = [shift['friend']]
+    if block['kind'] not in routine.RESTING:
+        view = {**slot.view(), 'block': block, 'starts_at': stamp(starts_at), 'ends_at': stamp(ends_at)}
+        entry = compose_entry(connection, scope, slot, view, company, recent, seed)
+        entry = disruptions.entry_with(entry, shift, definition['name'])
+        entry = home.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition, scope['world'],
+                           scope['now'])
+        if entry:
+            recent.append(entry['activity'])
+    connection.execute(
+        'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
+        'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (identifier(), timeline_id, subject, slot.key, stamp(starts_at), stamp(ends_at), slot.local_date.isoformat(),
+         encode(block), encode(entry) if entry else None, scope['basis'], stamp(scope['now'])))
+    return 1
+
+
+def compose_entry(connection, scope: dict, slot, view: dict, company: list, recent: list, seed: str) -> dict | None:
+    """What a waking slot holds: for the companion a recommendation's session, a friend's gathering
+    (companion/life/network.py) or the composer's pick, maybe with a run-in; for others the composer's."""
+    timeline_id, definition, world, block = scope['timeline_id'], scope['definition'], scope['world'], view['block']
+    if scope['subject'] != COMPANION:
+        return composer.compose(view, definition, world, seed, recent[-3:], company, [])
+    celebrants = birthdays(connection, timeline_id, view['local_date'], company)
+    entry = recommendations.session_for(connection, timeline_id, slot, block, definition, seed, company)
+    if not entry and not celebrants and scope['companion']:
+        entry = network.gathering(connection, scope['companion'], view, block, company, seed)
+    entry = entry or composer.compose(view, definition, world, seed, recent[-3:], company, celebrants)
+    return network.run_in(connection, timeline_id, entry, view, block, seed)
 
 
 def day_facts(connection, timeline_id, subject, definition, world, day, holiday) -> dict:
@@ -290,11 +333,12 @@ def forget_person(connection, timeline_id, person_id, now):
 
 def circle_view(connection, timeline_id, now, include_removed=False) -> list[dict]:
     """The circle with where each person is right now and what they did recently."""
-    result = []
+    result, known = [], circle.ties(circle.people(connection, timeline_id))
     for row in circle.people(connection, timeline_id, include_removed):
         person = circle.view(row)
         block = current(connection, timeline_id, row['id'], now) if row['status'] == 'active' else None
-        result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3)})
+        result.append({**person, 'now': block, 'recent': diary(connection, timeline_id, row['id'], limit=3),
+                       'knows': known.get(row['id'], [])})
     return result
 
 

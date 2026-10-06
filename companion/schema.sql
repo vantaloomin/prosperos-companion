@@ -945,6 +945,41 @@ CREATE TABLE IF NOT EXISTS world_change_dismissals (
   dismissed_at TEXT NOT NULL
 );
 
+-- A recommendation the user made (companion/life/recommendations.py); its sessions are agenda entries
+-- that carry `recommendation.id`.
+CREATE TABLE IF NOT EXISTS recommendations (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  kind TEXT NOT NULL CHECK (kind IN ('show', 'movie', 'book', 'music', 'game', 'outing')),
+  title TEXT NOT NULL,
+  sessions INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('waiting', 'dropped')),
+  starts_after TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS recommendations_timeline ON recommendations(timeline_id, status);
+
+-- Storylines in the companion's and their circle's lives (companion/life/storylines.py): a seeded
+-- template, its cast (circle_people ids) and its beats with their local dates. Beats stay hidden
+-- until their date; `storyline_days` is how far starting days have been decided.
+CREATE TABLE IF NOT EXISTS storylines (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  story TEXT NOT NULL,
+  level INTEGER NOT NULL,
+  cast_ids TEXT NOT NULL,
+  stages TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('running', 'ended')),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS storylines_timeline ON storylines(timeline_id, status, started_on);
+
+CREATE TABLE IF NOT EXISTS storyline_days (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  through TEXT NOT NULL
+);
 -- A picture the companion sent with a chat reply (companion/images/photos.py): a photo, selfie or
 -- view of the current moment, made on the post keyed to the slot it shows so the chat and the feed
 -- share one picture, or a meme on a post of its own that never reaches the feed. `job_id` is the
@@ -961,6 +996,90 @@ CREATE TABLE IF NOT EXISTS chat_photos (
   -- 1 when the companion chose to send it without being asked.
   unasked INTEGER NOT NULL DEFAULT 0 CHECK (unasked IN (0, 1)),
   created_at TEXT NOT NULL
+);
+
+-- The companion's home and belongings (companion/life/home.py): assembled once per timeline from
+-- the city data and a seed, then changed slowly by seeded draws, at most one per two weeks.
+CREATE TABLE IF NOT EXISTS home_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  started TEXT NOT NULL,
+  era TEXT NOT NULL,
+  next_period INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- One belonging, kept from local date `since` until `until` (exclusive; NULL while they still have it).
+CREATE TABLE IF NOT EXISTS home_items (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('home', 'pet', 'plant', 'vehicle', 'favorite')),
+  name TEXT NOT NULL,
+  variety TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('generated', 'change', 'user')),
+  since TEXT NOT NULL,
+  until TEXT,
+  edited INTEGER NOT NULL DEFAULT 0 CHECK (edited IN (0, 1)),
+  revision INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS home_items_timeline ON home_items(timeline_id, since);
+
+-- Each change to the home, on the local date it happens; `until` ends a repair.
+CREATE TABLE IF NOT EXISTS home_log (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  period INTEGER NOT NULL,
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  item_id TEXT,
+  until TEXT,
+  text TEXT NOT NULL,
+  spend TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, period)
+);
+
+-- People the companion met through their circle (companion/life/network.py): a friend of a friend,
+-- keyed by the seeded path that builds them, with a snapshot of who they are. A meeting counts once
+-- the agenda slot it happened in has happened and still records it.
+CREATE TABLE IF NOT EXISTS acquaintances (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  person TEXT NOT NULL,
+  slot_key TEXT NOT NULL,
+  occasion TEXT NOT NULL,
+  met_on TEXT NOT NULL,
+  met_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, key, slot_key)
+);
+
+-- The social side of the feed (companion/life/social.py): the circle's posts and the companion's posts that
+-- are not life events. `author` is 'companion' or a circle person's id. Likes and comments are derived, not stored.
+CREATE TABLE IF NOT EXISTS social_posts (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('status', 'friend', 'birthday', 'holiday', 'city', 'question')),
+  author TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL UNIQUE,
+  content TEXT NOT NULL,
+  answer TEXT,
+  status TEXT NOT NULL DEFAULT 'visible' CHECK (status IN ('visible', 'hidden', 'removed')),
+  reaction TEXT,
+  occurs_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  read_at TEXT,
+  removed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS social_posts_order ON social_posts(timeline_id, occurs_at, id);
+
+-- A chat message written in reply to a social post.
+CREATE TABLE IF NOT EXISTS message_social_links (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  post_id TEXT NOT NULL REFERENCES social_posts(id)
 );
 
 -- People in the user's real life the companion has heard about (companion/memory/people.py). Everything said

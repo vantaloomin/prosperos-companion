@@ -125,6 +125,7 @@ textarea { resize: vertical; line-height: 1.6; }
 @media (max-width: 720px) { .trait-row { grid-template-columns: 1fr 110px 32px; } .trait-row > input:nth-of-type(2) { grid-column: 1 / 3; grid-row: 2; } }
 
 .memory-toolbar { margin: 4px 0 16px; }
+.feed .memory-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; max-width: 680px; }
 .memory-group { margin-top: 28px; max-width: 860px; }
 .memory-group > h2 { margin-bottom: 4px; }
 .memory-list { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-direction: column; gap: 10px; }
@@ -281,10 +282,19 @@ textarea { resize: vertical; line-height: 1.6; }
 .person-actions .text-button { padding-left: 0; }
 .diary-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: .95rem; }
 .diary-list time { color: var(--muted); margin-right: 6px; }
+.network-list { list-style: none; margin: 6px 0 0 12px; padding: 0 0 0 10px; border-left: 2px solid var(--border); display: grid; gap: 6px; font-size: .95rem; }
+.network-list .badge { margin-left: 6px; }
+.network-list .text-button { margin-left: 6px; }
+.acquaintances { margin-top: 16px; }
 .diary { border-top: 1px solid var(--border); padding-top: 8px; }
 .rename-form { display: grid; gap: 6px; }
 .rename-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .rename-row input { flex: 1; min-width: 140px; }
+.home-panel { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; display: grid; gap: 12px; }
+.home-panel h2 { margin: 0; }
+.home-panel > .button { justify-self: start; }
+.home-add select, .rename-form select { max-width: 280px; }
+.home-changes h3 { font-size: 1rem; margin: 4px 0; }
 
 /* First conversation */
 .getting-started { padding: 24px 0; display: grid; gap: 12px; }
@@ -477,6 +487,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-bubbles .message-user .prose { background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 5px; }
 .chat-bubbles .message-companion .prose { background: var(--raised); border-bottom-left-radius: 5px; }
 .chat-bubbles .message-companion .prose:empty { display: none; }
+/* A companion who texts in bursts: each paragraph is its own bubble. */
+.chat-bubbles .message-companion .prose.bursts { background: none; padding: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.chat-bubbles .message-companion .prose.bursts p.burst { margin: 0; padding: 9px 14px; border-radius: 18px; border-bottom-left-radius: 5px; background: var(--raised); }
 .chat-bubbles .message-user .link-notes { justify-content: flex-end; order: 3; }
 .chat-bubbles .reply-status { order: 3; }
 .chat-bubbles .chat-photo { margin-top: 4px; }
@@ -585,6 +598,18 @@ textarea { resize: vertical; line-height: 1.6; }
   .novel-stage { flex-basis: clamp(120px, 28dvh, 300px); }
 }
 .money-goal { width: 100%; accent-color: var(--accent); }
+
+/* A reply held while the companion is busy (companion/life/pacing.py). */
+
+/* The social side of the feed: who posted, likes and comments */
+.post-role { font-weight: 400; color: var(--faint); font-size: 0.8125rem; }
+.post-label { margin: 0; font-size: 0.75rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+.post-place { display: flex; align-items: center; gap: 4px; margin: 0; }
+.post-place svg { width: 14px; height: 14px; }
+.post-audience { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+.post-audience > p { margin: 0; font-size: 0.8125rem; }
+.post-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
+.post-comments strong { font-weight: 600; }
 
 /* People in your life (Memories). */
 .people-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

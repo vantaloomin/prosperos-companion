@@ -73,11 +73,14 @@ BUILTIN_SERVERS = {
                 'destination': 'the built-in weather program on this computer, which asks Open-Meteo '
                                '(open-meteo.com) and, for US places when Open-Meteo fails, the National Weather '
                                'Service (weather.gov)'},
+    'pulse': {'name': 'Built-in local pulse', 'script': 'pulse.py',
+              'destination': 'the built-in local pulse program on this computer, which asks Google News '
+                             '(news.google.com), Wikipedia, Reddit, ESPN, MLB (statsapi.mlb.com) and Open-Meteo'},
 }
 # Proxy and certificate settings let a built-in server reach the internet where the app can; the endpoint
 # override is for tests.
 BUILTIN_ENV = ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'NO_PROXY', 'no_proxy', 'SSL_CERT_FILE',
-               'PROSPERO_WEATHER_ENDPOINTS')
+               'PROSPERO_WEATHER_ENDPOINTS', 'PROSPERO_PULSE_ENDPOINTS')
 CHECK_TIMEOUT = 15
 
 

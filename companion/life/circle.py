@@ -7,7 +7,14 @@ regular haunts; relatives may live out of town and have no routine here. Elsewhe
 version picks a first name, a role and a career's routine. Their days advance through the same precomputed agenda as the companion's
 (companion/life/agenda.py). They are fictional supporting characters: never the user, never a
 real person, and never a source of facts about the user. The user can rename or remove them.
+
+How many people depends on who the companion is: a social butterfly (outgoing, extroverted, life of
+the party) gets a bigger circle with friends old and new, coworkers and both parents; a shy homebody
+a smaller one. The Life setting `circle_size` overrides it, and grow() adds people to a circle that
+was assembled smaller. Who knows whom inside the circle (family, coworkers, old friends) is derived
+from roles and a seed by ties(), so storylines between them stay consistent.
 """
+import re
 from datetime import date, timedelta
 
 from companion.clock import stamp
@@ -16,7 +23,20 @@ from companion.errors import require
 from companion.world import catalog, generators
 
 CIRCLE_SIZE = 5
+SIZES = {'quiet': 4, 'usual': CIRCLE_SIZE, 'social': 10}
 ROLES = ('close friend', 'old friend from school', 'coworker', 'sibling', 'neighbor', 'cousin', 'roommate from years ago')
+# The roles a sociable companion's circle fills in without city data (generators.SOCIAL with it).
+SOCIAL_ROLES = ('close friend', 'longtime friend', 'coworker', 'sibling', 'parent', 'new friend', 'coworker',
+                'friend', 'parent', 'new friend', 'cousin', 'friend')
+SOCIAL_WORDS = re.compile(r"\b(?:social butterfly|outgoing|extroverted|extrovert|extraverted|extravert|gregarious|"
+                          r"sociable|life of the party|people person|party (?:girl|guy|animal)|knows everyone|bubbly|"
+                          r"social life|loves (?:people|parties|meeting people))\b", re.IGNORECASE)
+QUIET_WORDS = re.compile(r"\b(?:introverted|introvert|shy|loner|reserved|homebody|recluse|reclusive|solitary|"
+                         r"keeps to (?:herself|himself|themselves|themself)|private person|antisocial|anti-social)\b",
+                         re.IGNORECASE)
+NEGATED = re.compile(r"\b(?:not|never|isn't|aren't|wasn't|hardly|far from|anything but)\s+(?:\w+\s+)?$", re.IGNORECASE)
+FAMILY = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother', 'cousin'}
+OLD_FRIENDS = {'close friend', 'longtime friend', 'old friend from school', 'old classmate'}
 # The first slot is always a close friend; the rest vary by seed.
 NAMES = (
     'Ada', 'Amara', 'Andre', 'Bea', 'Caleb', 'Camila', 'Dario', 'Dev', 'Elena', 'Eli', 'Farah', 'Felix', 'Gabe',
@@ -35,11 +55,34 @@ def city_data(definition: dict, world) -> dict | None:
     return None
 
 
-def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken: set[str]) -> dict:
+def sociability(definition: dict) -> str:
+    """'social', 'quiet' or 'usual', from words in their identity, personality, interests and themes."""
+    text = ' '.join([definition.get('identity') or '', definition.get('personality') or '',
+                     *(definition.get('interests') or ()), *(definition.get('life_themes') or ())])
+
+    def count(pattern):
+        return sum(1 for match in pattern.finditer(text)
+                   if not NEGATED.search(text[max(0, match.start() - 30):match.start()]))
+    social, quiet = count(SOCIAL_WORDS), count(QUIET_WORDS)
+    return 'social' if social > quiet else 'quiet' if quiet > social else 'usual'
+
+
+def target_size(definition: dict, setting: int = 0) -> int:
+    """How many people their circle has: the Life setting when set, else by how sociable they are."""
+    return setting or SIZES[sociability(definition)]
+
+
+def setting(connection) -> int:
+    row = optional(connection, 'SELECT circle_size FROM life_settings WHERE id=1')
+    return row['circle_size'] if row else 0
+
+
+def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken: set[str],
+             role: str | None = None) -> dict:
     """One person, the same for the same seed, ordinal, city data and names already taken."""
     names = [name for name in NAMES if name not in taken]
     name = generators.pick(seed, 'name', names) if names else f'Friend {ordinal + 1}'
-    role = ROLES[0] if ordinal == 0 else generators.pick(seed, 'role', list(ROLES[1:]))
+    role = role or (ROLES[0] if ordinal == 0 else generators.pick(seed, 'role', list(ROLES[1:])))
     offered = catalog.careers_for(data) if data else {
         key: career for key, career in catalog.careers().items() if 'modern' in career['eras']}
     career_id = generators.pick(seed, 'career', sorted(offered))
@@ -57,14 +100,19 @@ def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken
     return {'name': name, 'role': role, 'career': career_id, 'details': details, 'schedule': schedule}
 
 
-def from_city(data: dict, definition: dict, timeline_id: str) -> list[dict]:
+def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE_SIZE, seed: str | None = None,
+              taken: set[str] | None = None) -> list[dict]:
     """The circle from the world data's generator, closest first, living near the companion when
-    their location names a neighborhood."""
+    their location names a neighborhood. A circle bigger than the usual one fills in sociably."""
     match = catalog.resolve(definition.get('location') or '')
     hoods = {hood['id'] for hood in data['neighborhoods']}
     home = match['neighborhood'] if match and match['neighborhood'] in hoods else None
-    made = generators.circle(data, seed=f'circle:{timeline_id}', size=CIRCLE_SIZE, home=home)
-    result, taken = [], {definition['name']}
+    social = size > CIRCLE_SIZE
+    order = generators.SOCIAL if social else generators.CIRCLE
+    works = social and bool(work_blocks(definition))
+    made = generators.circle(data, seed=seed or f'circle:{timeline_id}', size=min(size, len(order)), home=home,
+                             order=order, coworkers=works)
+    result, taken = [], set(taken or ()) | {definition['name']}
     for member in made['people']:
         job = member['job'] or {}
         details = {'career': (job.get('career') or {}).get('name', 'Retired' if member['local'] else ''),
@@ -78,10 +126,44 @@ def from_city(data: dict, definition: dict, timeline_id: str) -> list[dict]:
         # Two people with the same first name go by their full names, so events stay unambiguous.
         shown = member['name']['given'] if member['name']['given'] not in taken else member['name']['full']
         taken.add(shown)
-        result.append({'name': shown, 'role': member['role'].replace('-', ' '),
+        made_person = {'name': shown, 'role': relation(member['role'], member['name']['pronouns']),
                        'career': (job.get('career') or {}).get('id', ''), 'details': details,
-                       'schedule': member['schedule'] or []})
+                       'schedule': member['schedule'] or []}
+        result.append(colleague(made_person, definition) if member['role'] == 'coworker' else made_person)
     return result
+
+
+def relation(role: str, pronouns: str) -> str:
+    """How the companion would say it: "mom" and "brother" rather than "parent" and "sibling"."""
+    words = {'parent': ('mom', 'dad'), 'sibling': ('sister', 'brother')}.get(role)
+    if words and pronouns in ('she/her', 'he/him'):
+        return words[pronouns != 'she/her']
+    return role.replace('-', ' ')
+
+
+def work_blocks(definition: dict) -> list[dict]:
+    from companion.life import routine
+    return [block.view() for block in routine.blocks(definition)[0] if block.kind == 'work']
+
+
+def colleague(person: dict, definition: dict) -> dict:
+    """A coworker works where the companion works, on the same hours; their own nights and free time
+    stay theirs where they do not clash with work."""
+    work = work_blocks(definition)
+    if not work:
+        return person
+    own = [block for block in person['schedule'] if block['kind'] != 'work'
+           and (block['kind'] == 'sleep' or not any(clashes(block, item) for item in work))]
+    details = {**person['details'], 'career': f"Works with {definition['name']}", 'employer': '',
+               'works_with_companion': True}
+    return {**person, 'career': '', 'details': details, 'schedule': [*work, *own]}
+
+
+def clashes(one_block: dict, other: dict) -> bool:
+    days = set(one_block.get('days', range(7))) & set(other.get('days', range(7)))
+    if not days or one_block['start'] >= one_block['end'] or other['start'] >= other['end']:
+        return bool(days)
+    return one_block['start'] < other['end'] and other['start'] < one_block['end']
 
 
 def birthday(person_id: str) -> str:
@@ -90,9 +172,32 @@ def birthday(person_id: str) -> str:
 
 
 def view(row: dict) -> dict:
-    return {'id': row['id'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
+    return {'id': row['id'], 'key': row['seed'], 'name': row['name'], 'role': row['role'], 'status': row['status'],
             'revision': row['revision'], **decode(row['details']), 'birthday': birthday(row['id']),
             'schedule': decode(row['schedule'])}
+
+
+def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=()) -> list[dict]:
+    """`size` people, closest first, from the city's generator when the world knows their city."""
+    base = seed or f'circle:{timeline_id}'
+    data = city_data(definition, world)
+    if data:
+        return from_city(data, definition, timeline_id, size, base, set(taken))
+    names, roles, built = set(taken) | {definition['name']}, SOCIAL_ROLES if size > CIRCLE_SIZE else None, []
+    for ordinal in range(min(size, len(SOCIAL_ROLES))):
+        person = assemble(f'{base}:{ordinal}', ordinal, definition, None, names, roles[ordinal] if roles else None)
+        built.append(colleague(person, definition) if roles and person['role'] == 'coworker' else person)
+        names.add(person['name'])
+    return built
+
+
+def insert(connection, timeline_id, built: list[dict], first: int, now):
+    for ordinal, person in enumerate(built, start=first):
+        connection.execute(
+            'INSERT OR IGNORE INTO circle_people (id, timeline_id, ordinal, seed, name, role, career, details, schedule, '
+            'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (identifier(), timeline_id, ordinal, f'circle:{timeline_id}:{ordinal}', person['name'], person['role'],
+             person['career'], encode(person['details']), encode(person['schedule']), stamp(now), stamp(now)))
 
 
 def ensure(connection, companion: dict, world, now) -> list[dict]:
@@ -102,21 +207,50 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
     if rows:
         return [row for row in rows if row['status'] == 'active']
     definition = companion['version']['definition']
-    data = city_data(definition, world)
-    if data:
-        built = from_city(data, definition, timeline_id)
-    else:
-        taken, built = {definition['name']}, []
-        for ordinal in range(CIRCLE_SIZE):
-            built.append(assemble(f'circle:{timeline_id}:{ordinal}', ordinal, definition, None, taken))
-            taken.add(built[-1]['name'])
-    for ordinal, person in enumerate(built):
-        seed = f'circle:{timeline_id}:{ordinal}'
-        connection.execute(
-            'INSERT OR IGNORE INTO circle_people (id, timeline_id, ordinal, seed, name, role, career, details, schedule, '
-            'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (identifier(), timeline_id, ordinal, seed, person['name'], person['role'], person['career'],
-             encode(person['details']), encode(person['schedule']), stamp(now), stamp(now)))
+    insert(connection, timeline_id, build(definition, world, timeline_id, target_size(definition, setting(connection))),
+           0, now)
+    return people(connection, timeline_id)
+
+
+def role_kind(role: str) -> str:
+    return {'mom': 'parent', 'dad': 'parent', 'sister': 'sibling', 'brother': 'sibling',
+            'old classmate': 'old friend from school'}.get(role, role)
+
+
+def room(connection, companion: dict) -> dict:
+    """How many people the circle has and could have, for the "add people" offer."""
+    definition = companion['version']['definition']
+    active = len(people(connection, companion['active_timeline_id']))
+    return {'people': active, 'target': target_size(definition, setting(connection)),
+            'sociability': sociability(definition)}
+
+
+def grow(connection, companion: dict, world, now) -> list[dict]:
+    """Add people to a circle smaller than it should be, filling the roles a sociable circle has and this
+    one lacks (coworkers, old and new friends, family) before anyone else. Nobody already there changes."""
+    timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
+    ensure(connection, companion, world, now)
+    rows = people(connection, timeline_id, include_removed=True)
+    active = [row for row in rows if row['status'] == 'active']
+    want = target_size(definition, setting(connection))
+    require(len(active) < want, 'Their circle already has everyone it should. Raise the circle size in Settings '
+            'to add more people.', 409)
+    taken = {row['name'] for row in rows}
+    candidates = build(definition, world, timeline_id, len(SOCIAL_ROLES), f'circle:{timeline_id}:more:{len(rows)}', taken)
+    have = {}
+    for row in active:
+        have[role_kind(row['role'])] = have.get(role_kind(row['role']), 0) + 1
+    need = {}
+    for role in SOCIAL_ROLES[:want]:
+        need[role] = need.get(role, 0) + 1
+    chosen = []
+    for person in candidates:
+        kind = role_kind(person['role'])
+        if need.get(kind, 0) > have.get(kind, 0):
+            chosen.append(person)
+            have[kind] = have.get(kind, 0) + 1
+    chosen += [person for person in candidates if person not in chosen]
+    insert(connection, timeline_id, chosen[:want - len(active)], max(row['ordinal'] for row in rows) + 1, now)
     return people(connection, timeline_id)
 
 
@@ -145,3 +279,40 @@ def set_status(connection, person_id, status: str, now) -> dict:
     connection.execute('UPDATE circle_people SET status=?, revision=revision+1, updated_at=? WHERE id=?',
                        (status, stamp(now), person_id))
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
+
+
+def tie(first: dict, second: dict) -> str | None:
+    """How two circle members know each other, the same every time for the same two people."""
+    kinds = {role_kind(first['role']), role_kind(second['role'])}
+    pair = ':'.join(sorted((first['id'], second['id'])))
+    if kinds == {'parent'}:
+        return 'divorced' if generators.unit(pair, 'divorced') < 0.25 else 'married'
+    if kinds <= FAMILY:
+        return 'family'
+    if kinds == {'coworker'}:
+        return 'coworkers'
+    if kinds <= OLD_FRIENDS:
+        return 'old friends'
+    if kinds & OLD_FRIENDS and kinds & FAMILY:
+        return 'known for years'
+    chance = 0.15 if 'new friend' in kinds else 0.3
+    return 'friends' if generators.unit(pair, 'friends') < chance else None
+
+
+def ties(rows: list[dict]) -> dict[str, list[dict]]:
+    """Who each active member knows inside the circle: {person id: [{id, name, how}]}."""
+    result = {row['id']: [] for row in rows}
+    for index, first in enumerate(rows):
+        for second in rows[index + 1:]:
+            if how := tie(first, second):
+                result[first['id']].append({'id': second['id'], 'name': second['name'], 'how': how})
+                result[second['id']].append({'id': first['id'], 'name': first['name'], 'how': how})
+    return result
+
+
+def ties_text(known: list[dict]) -> str:
+    """"Married to Rui. Knows Ana (family), Dev (coworkers).": for the chat context."""
+    partners = [f"{'Divorced from' if item['how'] == 'divorced' else 'Married to'} {item['name']}."
+                for item in known if item['how'] in ('married', 'divorced')]
+    others = [f"{item['name']} ({item['how']})" for item in known if item['how'] not in ('married', 'divorced')]
+    return ' '.join(partners + ([f"Knows {', '.join(others)}."] if others else []))

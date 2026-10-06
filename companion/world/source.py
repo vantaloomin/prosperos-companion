@@ -2,6 +2,7 @@
 from datetime import date, timedelta
 from typing import Sequence
 
+from companion.almanac import days as almanac_days
 from companion.life.world import Place
 from companion.world import catalog, changes, custom
 from companion.world.generators import SEASONS, conditions, unit
@@ -54,7 +55,8 @@ class CatalogWorld:
     def happenings(self, city: str, day: date) -> list[dict]:
         """The city's annual events held on this date. The data gives only their months, so each year
         one Saturday in one of those months is chosen from a seed of the city, event and year. Whole
-        seasons (a team's season, "The London Season") are not one-day outings and are left out."""
+        seasons (a team's season, "The London Season") are not one-day outings and are left out. Modern US
+        cities add the day's parties from the almanac (companion/almanac/days.py)."""
         data = self.find(city)
         if not data:
             return []
@@ -62,7 +64,7 @@ class CatalogWorld:
         return [{'id': item['id'], 'name': item['name'], 'kind': 'event', 'city': data['name'],
                  'neighborhood': hoods.get(item['neighborhood'], ''), 'summary': item['summary']}
                 for item in data['annual_events'] if day.month in item['months'] and not seasonal(item)
-                and festival_day(data['id'], item, day.year) == day]
+                and festival_day(data['id'], item, day.year) == day] + almanac_days.gatherings(data, day)
 
     def places(self, city: str, kinds: Sequence[str], *, day_part: str | None = None,
                day: date | None = None, near: str | None = None) -> list[Place]:

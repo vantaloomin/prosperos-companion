@@ -9,7 +9,20 @@ from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
 from companion.errors import require
-from companion.life import agenda, circle, feed, money, mood, routine, simulation, today
+from companion.life import (
+    agenda,
+    circle,
+    feed,
+    money,
+    mood,
+    network,
+    recommendations,
+    routine,
+    simulation,
+    social,
+    storylines,
+    today,
+)
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -31,6 +44,11 @@ class ReadPosts(Input):
 
 class Reaction(Input):
     reaction: Literal['heart', 'laugh', 'wow', 'sad', 'hug'] | None = None
+
+
+class Answer(Input):
+    option: str = Field(min_length=1, max_length=200)
+    client_id: str = Field(min_length=8, max_length=100)
 
 
 class PostCreate(Input):
@@ -55,6 +73,28 @@ def update_settings(request: Request, body: LifeSettingsUpdate):
 @router.post('/reconcile')
 async def reconcile(request: Request, body: Reconcile | None = None):
     return await request.app.state.life.reconcile((body or Reconcile()).mode)
+
+
+@router.get('/storylines')
+def list_storylines(request: Request, include_ended: bool = False):
+    """What is going on in the companion's and their circle's lives: beats that have happened so far."""
+    return storylines.listing(request.app.state.database, include_ended)
+
+
+@router.post('/storylines/{storyline_id}/end')
+def end_storyline(request: Request, storyline_id: str):
+    return storylines.end(request.app.state.database, storyline_id)
+
+
+@router.get('/recommendations')
+def list_recommendations(request: Request):
+    """What the user recommended, with how far the companion has got."""
+    return recommendations.listing(request.app.state.database)
+
+
+@router.post('/recommendations/{rec_id}/drop')
+def drop_recommendation(request: Request, rec_id: str):
+    return recommendations.drop(request.app.state.database, rec_id)
 
 
 @router.post('/texts/check')
@@ -129,6 +169,27 @@ def read_circle(request: Request, include_removed: bool = False):
         return agenda.circle_view(connection, companion['active_timeline_id'], now, include_removed)
 
 
+@router.get('/circle/room')
+def circle_room(request: Request):
+    """How many people the circle has and how many it should have, for the offer to add more."""
+    with db(request).connect() as connection:
+        return circle.room(connection, require_current(connection))
+
+
+@router.post('/circle/grow')
+def grow_circle(request: Request):
+    """Add people to a circle assembled smaller than it should be now (a sociable companion, or a
+    bigger circle size in Settings). Nobody already there changes."""
+    database, engine = db(request), request.app.state.life
+    now = database.clock.now()
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        circle.grow(connection, companion, engine.world, now)
+        if simulation.may_extend(settings(connection), 'return'):
+            agenda.extend(connection, companion, engine.world, now)
+        return agenda.circle_view(connection, companion['active_timeline_id'], now)
+
+
 @router.patch('/circle/{person_id}')
 def rename_person(request: Request, person_id: str, body: PersonUpdate):
     return circle_change(request, person_id,
@@ -157,8 +218,30 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
         return agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
 
 
+@router.get('/network')
+def network_people(request: Request, key: str):
+    """Someone's own people, a few layers out from the circle (companion/life/network.py): `key` is a circle
+    member's `key` or a key from an earlier answer. Built on request and never stored."""
+    with db(request).connect() as connection:
+        companion = require_current(connection)
+        found = network.find(connection, companion, key)
+        require(found is not None, 'That person is not around the circle.', 404)
+        return {'person': found, 'people': network.people_of(connection, companion, key),
+                'deeper': found['depth'] + 1 < network.MAX_DEPTH}
+
+
+@router.get('/acquaintances')
+def read_acquaintances(request: Request):
+    """People the companion has met through their circle, newest first."""
+    database = db(request)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        return network.acquaintances(connection, companion['active_timeline_id'], database.clock.now())
+
+
 @today_router.get('')
 def read_today(request: Request):
+    social.refresh(db(request))
     return today.view(db(request))
 
 
@@ -178,8 +261,10 @@ def reset_mood(request: Request, mood_id: str):
 
 
 @feed_router.get('')
-def read_feed(request: Request, before: str | None = None, limit: int = 20, hidden: bool = False):
-    return feed.listing(db(request), before, min(max(limit, 1), 100), hidden)
+def read_feed(request: Request, before: str | None = None, limit: int = 20, hidden: bool = False,
+              source: Literal['all', 'companion', 'circle'] = 'all'):
+    social.refresh(db(request))
+    return feed.listing(db(request), before, min(max(limit, 1), 100), hidden, source)
 
 
 @feed_router.get('/export')
@@ -231,3 +316,10 @@ async def discuss(request: Request, post_id: str, body: MessageCreate, wait: boo
     message = conversation.record_user(db(request), body)
     feed.link_message(db(request), message['id'], post_id)
     return await request.app.state.conversation.send(body, wait)
+
+
+@feed_router.post('/{post_id}/answer')
+async def answer(request: Request, post_id: str, body: Answer, wait: bool = True):
+    """Pick a choice on a question post; the pick goes to chat as a reply to the post."""
+    social.answer(db(request), post_id, body.option)
+    return await discuss(request, post_id, MessageCreate(text=body.option, client_id=body.client_id), wait)

@@ -176,6 +176,15 @@ def message(config, companion, posts, voiced) -> dict:
     return {'title': name, 'body': f'{voiced} {body}' if voiced else body}
 
 
+def ready_held(connection, companion, now) -> list[dict]:
+    """Replies held while the companion was busy (companion/life/pacing.py) whose time has come, unanswered."""
+    return many(connection, "SELECT id AS message_id, text FROM messages WHERE timeline_id=? AND held_until<=? "
+                "AND held_until>? AND held_notified IS NULL AND active=1 AND status='complete' AND NOT EXISTS "
+                "(SELECT 1 FROM messages later WHERE later.timeline_id=messages.timeline_id AND later.role='user' "
+                'AND later.seq>messages.seq) ORDER BY seq', (companion['active_timeline_id'], stamp(now),
+                                                             stamp(now - STALE)))
+
+
 def message_notice(config, companion, text) -> dict:
     name = companion['version']['name']
     if config['preview'] == 'private':
@@ -189,7 +198,10 @@ def deliver_message(connection, config, companion, ready, timestamp) -> dict:
     delivery_id = identifier()
     connection.execute("INSERT INTO notification_deliveries (id, kind, post_count, delivered_at) "
                        "VALUES (?, 'message', 0, ?)", (delivery_id, timestamp))
-    connection.executemany("UPDATE openers SET notify='delivered' WHERE id=?", [(item['id'],) for item in ready])
+    connection.executemany("UPDATE openers SET notify='delivered' WHERE id=?",
+                           [(item['id'],) for item in ready if 'id' in item])
+    connection.executemany('UPDATE messages SET held_notified=? WHERE id=?',
+                           [(timestamp, item['message_id']) for item in ready if 'id' not in item])
     return {'notification': {'id': delivery_id, 'kind': 'message', 'post_ids': [],
                              'message_id': ready[-1]['message_id'],
                              **message_notice(config, companion, ready[-1]['text'])}, 'held': None}
@@ -204,7 +216,8 @@ def deliver(database, focused=False) -> dict:
         companion = current(connection)
         if not config['enabled'] or companion is None:
             return {'notification': None, 'held': 'off'}
-        messages, ready = ready_messages(connection, companion, now), ready_posts(connection, companion, now)
+        messages = ready_messages(connection, companion, now) + ready_held(connection, companion, now)
+        ready = ready_posts(connection, companion, now)
         if not ready and not messages:
             return {'notification': None, 'held': None}
         reason = 'focused' if focused else held(connection, config, settings(connection), now)

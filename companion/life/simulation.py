@@ -32,7 +32,7 @@ from companion.workspace import overlapping_pause
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
-FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first')
+FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
 
@@ -176,10 +176,18 @@ def recent_threads(connection, timeline_id) -> list[str]:
     return [decode(row['details']).get('thread') for row in rows]
 
 
+def recommended(connection, timeline_id, slot_key) -> bool:
+    return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                         "AND slot_key=? AND json_extract(entry, '$.recommendation.id') IS NOT NULL",
+                         (timeline_id, slot_key)))
+
+
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
-    """Slots a committed plan names come first, so a plan happens when its time comes; so do slots
-    photographed in chat, so the moment the user saw becomes an event."""
+    """Slots a committed plan names come first, so a plan happens when its time comes; then sessions of
+    something the user recommended, so the companion's account follows it, and slots photographed in
+    chat, so the moment the user saw becomes an event."""
     planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)
+               or recommended(connection, timeline_id, slot.key)
                or feed.photographed(connection, event_key(timeline_id, slot.key))][:count]
     rest = spread([slot for slot in slots if slot not in planned], count - len(planned), seed)
     return sorted(planned + rest, key=lambda slot: slot.starts_at)
@@ -337,26 +345,35 @@ class LifeEngine:
     def now(self):
         return self.database.clock.now()
 
+    # Database work and composition run on a worker thread (asyncio.to_thread), as chat context
+    # building does, so a long catch-up never holds up a streaming reply. Only model calls stay on the loop.
+
     async def reconcile(self, mode='return') -> dict:
         async with self.lock:
-            with self.database.connect(write=True) as connection:
-                companion = current(connection)
-                if mode == 'return' and companion:
-                    mood.note_return(connection, self.now())
-                if companion and may_extend(settings(connection), mode):
-                    agenda.extend(connection, companion, self.world, self.now())
-                decision = decide(connection, self.owner, mode, self.now())
+            decision = await asyncio.to_thread(self.decide, mode)
             if decision['state'] in {'started', 'resumed'}:
                 await self.execute(decision['run_id'])
-            return self.outcome(decision)
+            return await asyncio.to_thread(self.outcome, decision)
+
+    def decide(self, mode) -> dict:
+        with self.database.connect(write=True) as connection:
+            companion = current(connection)
+            if mode == 'return' and companion:
+                mood.note_return(connection, self.now())
+            if companion and may_extend(settings(connection), mode):
+                agenda.extend(connection, companion, self.world, self.now())
+            return decide(connection, self.owner, mode, self.now())
 
     async def catch_up_pause(self, pause_id) -> dict:
         async with self.lock:
-            with self.database.connect(write=True) as connection:
-                decision = plan_pause(connection, self.owner, pause_id, self.now())
+            decision = await asyncio.to_thread(self.plan_pause, pause_id)
             if decision['state'] == 'started':
                 await self.execute(decision['run_id'])
-            return self.outcome(decision)
+            return await asyncio.to_thread(self.outcome, decision)
+
+    def plan_pause(self, pause_id) -> dict:
+        with self.database.connect(write=True) as connection:
+            return plan_pause(connection, self.owner, pause_id, self.now())
 
     def outcome(self, decision) -> dict:
         run = None
@@ -366,23 +383,28 @@ class LifeEngine:
         return {**{key: value for key, value in decision.items() if key != 'run_id'}, 'run': run}
 
     async def execute(self, run_id):
-        with self.database.connect() as connection:
-            run = one(connection, 'SELECT * FROM life_runs WHERE id=?', (run_id,))
+        run = await asyncio.to_thread(self.load_run, run_id)
         results = {result['slot']: result for result in decode(run['results'])}
         try:
             for slot in decode(run['plan']):
                 if slot['key'] in results:
                     continue
                 results[slot['key']] = await self.simulate(run, slot)
-                self.save(run_id, results, 'running')
-            self.save(run_id, results, 'completed')
+                await asyncio.to_thread(self.save, run_id, results, 'running')
+            await asyncio.to_thread(self.save, run_id, results, 'completed')
         except BackgroundInterrupted:
-            self.save(run_id, results, 'interrupted', 'Paused for the conversation; it resumes on the next visit.')
+            await asyncio.to_thread(self.save, run_id, results, 'interrupted',
+                                    'Paused for the conversation; it resumes on the next visit.')
         except DomainError as error:
             # A model outage leaves the batch resumable a few times before it is given up.
-            self.save(run_id, results, 'interrupted' if run['attempts'] < MAX_ATTEMPTS else 'failed', error.message)
+            await asyncio.to_thread(self.save, run_id, results,
+                                    'interrupted' if run['attempts'] < MAX_ATTEMPTS else 'failed', error.message)
         except Exception:  # noqa: BLE001 - a failed batch must still leave a visible state.
-            self.save(run_id, results, 'failed', 'The batch failed unexpectedly.')
+            await asyncio.to_thread(self.save, run_id, results, 'failed', 'The batch failed unexpectedly.')
+
+    def load_run(self, run_id):
+        with self.database.connect() as connection:
+            return one(connection, 'SELECT * FROM life_runs WHERE id=?', (run_id,))
 
     def save(self, run_id, results, status, error=None):
         with self.database.connect(write=True) as connection:
@@ -397,6 +419,15 @@ class LifeEngine:
 
     async def simulate(self, run, slot) -> dict:
         """One routine slot: compose it, record it as a proposal, and commit it if permitted."""
+        step = await asyncio.to_thread(self.compose_step, run, slot)
+        if 'result' in step:
+            return step['result']
+        written, phrasing = await self.phrase(step['config'], step['life'], step['version'], step['slot'],
+                                              step['composed'], step['prepared'])
+        return await asyncio.to_thread(self.record_step, run, step, written, phrasing)
+
+    def compose_step(self, run, slot) -> dict:
+        """Everything before the model: either a finished result or what phrasing needs."""
         key = event_key(run['timeline_id'], slot['key'])
         with self.database.connect() as connection:
             companion = current(connection)
@@ -408,17 +439,23 @@ class LifeEngine:
             precomputed = agenda.companion_entry(connection, run['timeline_id'], slot['key'],
                                                  companion['version']['id'])
         if existing:
-            return self.settle(events.view(existing), life)
+            return {'result': self.settle(events.view(existing), life)}
         if workspace['permission_revision'] != run['permission_revision'] or workspace['paused_at']:
-            return {'slot': slot['key'], 'outcome': 'skipped', 'reason': 'Activity permissions changed.'}
+            return {'result': {'slot': slot['key'], 'outcome': 'skipped', 'reason': 'Activity permissions changed.'}}
         if companion['active_timeline_id'] != run['timeline_id']:
-            return {'slot': slot['key'], 'outcome': 'skipped', 'reason': 'The timeline is no longer active.'}
+            return {'result': {'slot': slot['key'], 'outcome': 'skipped',
+                               'reason': 'The timeline is no longer active.'}}
         version = companion['version']
         composed, slot, prepared = self.compose_slot(slot, version, key, plan, precomputed, recent)
         if composed is None:
-            return {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.',
-                    **self.follow_threads(run, slot, version, life, key)}
-        written, phrasing = await self.phrase(config, life, version, slot, composed, prepared)
+            return {'result': {'slot': slot['key'], 'outcome': 'quiet', 'reason': 'Nothing notable happened.',
+                               **self.follow_threads(run, slot, version, life, key)}}
+        return {'key': key, 'config': config, 'life': life, 'version': version, 'slot': slot, 'plan': plan,
+                'composed': composed, 'prepared': prepared}
+
+    def record_step(self, run, step, written, phrasing) -> dict:
+        key, life, version, slot, plan, composed = (step[name] for name in (
+            'key', 'life', 'version', 'slot', 'plan', 'composed'))
         block = slot['block']
         event = events.propose(self.database, EventProposal(
             idempotency_key=key, kind='ordinary', summary=written['summary'],
@@ -427,7 +464,7 @@ class LifeEngine:
                      'local_date': slot['local_date'], 'timezone': version['timezone'],
                      'post': written['post'], 'mood': composed['mood'], 'with': composed.get('with'),
                      'fulfils': composed.get('fulfils'), 'weather': composed.get('weather'),
-                     'body': block.get('body')},
+                     'body': block.get('body'), 'recommendation': composed.get('recommendation')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
@@ -543,15 +580,10 @@ class LifeEngine:
     async def prepare_now(self, limit=PREPARE_AHEAD) -> dict:
         """Bring the agenda up to date, then phrase the companion's next few entries at background
         priority. A conversation interrupts this; the rest waits for the next call."""
-        with self.database.connect(write=True) as connection:
-            companion = current(connection)
-            workspace, life = settings(connection), life_settings(connection)
-            if companion is None or not may_extend(workspace, 'return'):
-                return {'prepared': 0}
-            agenda.extend(connection, companion, self.world, self.now())
-            config = config_for(connection, 'life')
-            version = companion['version']
-            due = agenda.unprepared(connection, companion['active_timeline_id'], version['id'], self.now(), limit)
+        ready = await asyncio.to_thread(self.due_for_preparing, limit)
+        if ready is None:
+            return {'prepared': 0}
+        config, life, version, due = ready
         if config is None or not life['phrase_with_model']:
             return {'prepared': 0}
         key, count = key_for(self.vault, config), 0
@@ -564,12 +596,26 @@ class LifeEngine:
                 break
             except (SynthesisInvalid, DomainError):
                 continue
-            with self.database.connect(write=True) as connection:
-                agenda.save_prepared(connection, row['id'], {
-                    **written, 'model': config['model'], 'base_url': config['base_url'],
-                    'prompt_version': PROMPT_VERSION, 'prepared_at': stamp(self.now())})
+            await asyncio.to_thread(self.save_prepared, row['id'], {
+                **written, 'model': config['model'], 'base_url': config['base_url'],
+                'prompt_version': PROMPT_VERSION, 'prepared_at': stamp(self.now())})
             count += 1
         return {'prepared': count}
+
+    def due_for_preparing(self, limit):
+        with self.database.connect(write=True) as connection:
+            companion = current(connection)
+            workspace, life = settings(connection), life_settings(connection)
+            if companion is None or not may_extend(workspace, 'return'):
+                return None
+            agenda.extend(connection, companion, self.world, self.now())
+            version = companion['version']
+            return (config_for(connection, 'life'), life, version,
+                    agenda.unprepared(connection, companion['active_timeline_id'], version['id'], self.now(), limit))
+
+    def save_prepared(self, row_id, prepared):
+        with self.database.connect(write=True) as connection:
+            agenda.save_prepared(connection, row_id, prepared)
 
     def settle(self, event, life) -> dict:
         if event['status'] == 'proposed' and life['automatic_events']:

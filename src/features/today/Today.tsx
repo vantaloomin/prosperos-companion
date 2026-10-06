@@ -9,7 +9,10 @@ import { Circle } from './Circle'
 import { CorrectEvent, type EventCorrection } from './CorrectEvent'
 import { EventItem } from './EventItem'
 import { MoneyPanel } from './MoneyPanel'
-import { availabilityText, bodyText, moodText, pauseToFill } from './todayText'
+import { Recommendations } from './Recommendations'
+import { Storylines } from './Storylines'
+import { occasionText } from './storyText'
+import { bodyText, moodText, pauseToFill } from './todayText'
 
 const TODAY_KEY = ['today']
 
@@ -57,7 +60,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <header className="page-header">
         <div>
           <h1>{name}'s day</h1>
-          <p className="subtle">{availabilityText(data, name)} You can message them any time.</p>
+          <p className="subtle">Message {name} any time. When they are busy or asleep, they answer when they can.</p>
           <Feeling data={data} name={name} />
         </div>
         {data.feed_unread > 0 && <button type="button" className="button" onClick={() => go('feed')}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
@@ -91,6 +94,8 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
         ))}
       </Section>
       <Plans data={data} name={name} />
+      <Recommendations name={name} />
+      <Storylines name={name} />
       <Routine data={data} name={name} go={go} />
       <MoneyPanel name={name} go={() => go('character')} />
       <Circle name={name} />
@@ -100,7 +105,10 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
 
 function Feeling({ data, name }: { data: TodayData; name: string }) {
   const text = bodyText(data.day?.body, name)
-  return text ? <p className="subtle">{text}</p> : null
+  return <>
+    {text && <p className="subtle">{text}</p>}
+    {(data.occasions ?? []).map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
+  </>
 }
 
 function Section({ id, title, hint, empty, children }: { id: string; title: string; hint?: string; empty?: string; children: ReactNode[] }) {

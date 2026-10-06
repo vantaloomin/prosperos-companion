@@ -194,6 +194,93 @@ them. Entries that already happened keep the earlier name. Social events can nam
 who is free at the time: the event's `details.with` is `{id, name}` or `null`. The chat context
 lists the circle with each person's current block and latest diary entry.
 
+### Circle size and who knows whom
+
+How many people the circle has depends on the companion. Words in their identity, personality,
+interests and themes decide how sociable they are (`social butterfly`, `outgoing`, `extroverted`
+against `shy`, `introvert`, `homebody`; a negated word such as "not shy" doesn't count): 4 people
+for a quiet one, 5 usually and 10 for a sociable one. The Life setting `circle_size` (0 to 12, 0 = decide
+from the character) overrides it. A sociable circle fills in as close friend, longtime friend, coworker,
+sibling, parent, new friend, a second coworker, friend, the other parent, a second new friend, cousin
+and friend. Parents and siblings are named as the companion would say it (`mom`, `dad`, `sister`,
+`brother`) when their pronouns say which. A coworker in a sociable circle works where the companion
+works: their `schedule` has the companion's work blocks, `career` reads "Works with {name}" and
+`works_with_companion` is `true`. A companion with no work block has friends instead of coworkers.
+
+```http
+GET  /api/life/circle/room     # {people, target, sociability}
+POST /api/life/circle/grow     # adds people up to the target; 409 when the circle is already full
+```
+
+A circle assembled smaller than its target (an existing companion, or a size raised in Settings)
+grows with `grow`: missing roles first, nobody already there changes. Each person also has `knows`:
+the other active members they know (`{id, name, how}`), derived from roles and a seed, so it is the
+same on every read. `how` is `family`, `married` or `divorced` (the two parents), `coworkers`, `old
+friends`, `known for years` (an old friend and the family) or `friends`. The chat context adds it to
+each person's line ("Married to Rui. Knows Ana (family).").
+## Home and belongings
+
+`companion/life/home.py` gives the companion a home and things they live with, assembled once per
+timeline without a model: the home the budget (`money.py`) pays rent on, same neighbourhood, size and rent
+(else one from `generators.home`), plus the kind of building and its quirks; maybe a
+pet, a few plants, a way to get around (a car is less likely in a city with a subway; earlier eras
+ride or cycle) and a few favourite things weighted toward their interests. Every two weeks a seeded
+draw may change one thing on one day: a new plant, a plant lost, the car into the shop for a few
+days, a new favourite thing, a vet visit, an adopted pet, rearranged furniture. Evolving in steps or
+all at once gives the same log.
+
+- **Events.** `agenda.extend_subject` calls `home.touch` once per companion entry (the only hook in
+  the life sim). It appends one plain sentence to the summary: the day's change, or now and then a
+  belonging that fits the activity (the dog on a walk, watering a plant while cooking, riding the
+  bike to the shops). `entry.home` records `{items, change, sentence}`. Circle entries are untouched.
+- **Images.** `images/prompts.build` adds `home.image_hint`: the room for a moment at home, and how a
+  belonging named in the event looks.
+- **Chat.** The context has a "Your home and belongings" section with today's inventory, any repair
+  under way and the last three weeks of changes.
+- **Money.** `home.monthly_costs(connection, timeline_id, day)` returns `{rent, rent_period, currency,
+  estimate, pets, vehicles}`; `home.purchases(connection, timeline_id, start, end)` returns the
+  changes that cost something (`spend` is `$` or `$$`). Read these rather than the tables.
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/api/life/home?include_removed=` | | `{today, items, removed, changes, costs, varieties}` |
+| POST | `/api/life/home/items` | `{kind, name, description?, variety?}` | the same view |
+| PATCH | `/api/life/home/items/{id}` | `{name?, description?, variety?}` | the same view |
+| POST | `/api/life/home/items/{id}/remove` / `restore` | | the same view |
+
+An item is `{id, kind, name, variety, description, origin: generated|change|user, since, until,
+edited, revision, out_of_action}`; the home also has `neighborhood, city, features, rent,
+rent_range, currency, rent_period, estimate`. `variety` is a pet's species or a vehicle's type
+(`varieties` lists the choices). The home itself can be edited but not removed. Any edit forgets
+the seeded changes still ahead and rebuilds the upcoming agenda entries that mention the home;
+moments that already happened keep what they said. A fork keeps the home as it was at the fork.
+
+## Friends of friends
+
+Everyone in the circle has their own people, and theirs have theirs, down to four layers from the
+companion (`companion/life/network.py`). Nobody out there is stored or simulated: a person is a seeded
+path from a circle member (`circle:<timeline>:<n>/2/0`) rebuilt the same way on request, with an
+era-fitting name (`companion/world/naming.py`) and only relatives sharing a family name. A partner gets no
+partner of their own.
+
+```http
+GET /api/life/network?key=<key>   # {person, people: [{key, full, relation, how, age, occupation, met}], deeper}
+GET /api/life/acquaintances       # people met through the circle, newest first
+```
+
+A circle member's `key` is on `GET /api/life/circle`; each person returned carries the key for the next
+layer while `deeper` is true.
+
+They come up at gatherings and run-ins. When the agenda writes a Friday or Saturday evening the companion
+has free, a free friend (not family) may host something: a Friendsgiving in November, a summer barbecue, a
+holiday party in December, game night, a dinner party, a housewarming. The companion goes, the entry names
+two to four of the host's people they met, sometimes one of a guest's people too, and each is saved as an
+acquaintance with a snapshot of who they are. An acquaintance counts once that evening has happened and its
+entry still records the meeting. Later, out somewhere, the companion now and then runs into one of them
+("Ran into Jordan Lee (Becca's coworker, from Becca's Friendsgiving) there."). The chat context lists the
+six most recent acquaintances and where they met; forks keep those met before the fork. No model is
+involved.
+
 ## Precomputed agenda
 
 Every reconcile also brings a hidden agenda up to date, without a model (PRD T9). The agenda holds
@@ -220,6 +307,66 @@ the day before with no model and seeded by the subject and date: a late night ou
 leisure and social time to calm activities at home or nearby. Events carry `details.body`, Today's
 `day.body` shows it and the chat context gets one line about it. Background reconciles extend the agenda only when background
 activity is on.
+
+### Recommendations
+
+When the user writes "you should watch / read / listen to / play / try / visit / go to / check out X"
+(not as a question or hypothetical), `companion/life/recommendations.py` records X with a kind
+(`show`, `movie`, `book`, `music`, `game` or `outing`) and a seeded number of sessions. From 12 hours
+later, the companion's free leisure, social or rest slots get one session a day (activity
+`recommendation`, `entry.recommendation: {id, title, kind, session, of, verdict}`), and the last one
+carries a verdict, seeded and tipped warmer by matching interests or stated likes. Return batches
+simulate these slots before others, so they become committed events. The chat context lists each
+recommendation's committed progress and tells the companion it knows nothing about it beyond its
+name. A finished one can open a conversation. `GET /api/life/recommendations` lists them as
+`{id, kind, title, state: waiting|started|finished, sessions_done, verdict}`, and
+`POST /api/life/recommendations/{id}/drop` takes one back, clearing its upcoming sessions.
+
+### Storylines
+
+Things unfold over days in the companion's life and their circle's (`companion/life/storylines.py`):
+"my dad just got a promotion", "the new guy at work keeps hitting on me", "I got drunk and kissed my
+best friend". Each is a fixed template with a cast from the circle (or the companion's own work) and
+one to three beats a few days apart. Whether one starts on a day, which template, who is in it and
+how each beat turns out are decided by a seed when it starts, never by a model; later beats stay
+hidden until their local date. The Life setting `drama` (0 quiet, 1 realistic, 2 dramatic, 3 soap
+opera; default 1) sets how often one starts (about 4%, 8%, 15% or 28% of days), how many run at once
+(1 to 4) and which templates can happen: quiet keeps to good news; realistic adds everyday trouble
+(a creepy new coworker, a friend's breakup, layoff rumors); dramatic adds health scares, feuds and
+secret romances; soap opera adds drunk kisses, separations and family secrets. A template doesn't
+repeat within 90 days, a person is in one running storyline at a time, and a companion in a romance
+with the user never gets one about their own love life.
+
+```http
+GET  /api/life/storylines                 # ?include_ended=true also lists ended ones
+POST /api/life/storylines/{id}/end        # it leaves Today and the context; later beats never happen
+```
+
+A storyline is `{id, story, level, started_on, status, cast: [{id, name, role}], beats: [{on, text,
+share, tone}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
+named now; removing someone ends the storylines they are in. The chat context lists the last three
+weeks' storylines and says when one is still unfolding, so the companion never guesses the ending.
+A beat from today or yesterday can open a conversation, using its `share` line when no model is
+connected. Days are decided as the agenda extends, up to 14 days back after time away.
+
+### Birthdays and anniversaries
+
+`companion/life/occasions.py` keeps three kinds of day, from the calendar and saved state only:
+
+- The companion's birthday: the definition's `birthday` (`"MM-DD"`), or a date seeded by the
+  companion's id when it is empty. On the day, their first free leisure or social slot from noon is a
+  celebration (`activity: "own-birthday"`), with a free circle member when there is one.
+- The user's birthday: the Life setting `user_birthday` (`"MM-DD"` or empty). It is filled in the first
+  time the user says it plainly ("my birthday is March 3rd", "it's my birthday today"; questions and
+  "if…" are skipped) and is never replaced by a later message; the user changes or clears it in
+  Settings.
+- How long they have talked, counted from the timeline's first message in the user's timezone: a
+  month, 100 days, three months, six months, then every year. For a romance it reads as their
+  anniversary.
+
+The chat context lists the day itself and birthdays within a week. Today's response has `occasions`
+(`[{key, kind, date, days, span, text, template}]`, `kind` one of `user_birthday`, `own_birthday`,
+`anniversary`). On the day, an occasion is the first reason the companion may message first.
 
 ## Limits and permissions
 
@@ -286,6 +433,54 @@ message is still unanswered), `daily_cap`, `interrupted` or `nothing`. A sent me
 companion message with `reply_to: null`; the chat shows it before the user's next message and the
 next reply sees it. With notifications on it is announced (kind `message`) before any waiting
 posts. A forked timeline keeps the triggers its parent already used.
+
+## Texting rhythm
+
+How the companion texts is part of their definition: `texting: {bursts, lowercase, typos}`, all off
+by default (`companion/texting.py`). The character section of the context tells the model the style.
+A complete reply is then restyled by fixed rules: all lowercase except links, and with typos on, a
+seeded one reply in eight gets one swapped pair of letters and a `*word` line after it. Bursts are
+blank-line separated parts, shown as separate bubbles in the Bubbles chat style.
+
+The companion decides when to answer, and the app never says whether they are free: the chat and
+Today show no availability (the `availability` field below is for the context only). With the Life
+setting `paced_replies` on (the default), a reply to a message sent while they are at work or out is,
+by a seeded choice (`companion/life/pacing.py`), one of:
+
+- written now and shown later: 8 to 45 minutes at work, 5 to 25 out, never past the end of the block;
+- a quick holding text now ("in a meeting, give me a bit", the message's `held_line`) and the full
+  reply later;
+- a quick short note now instead of a real conversation (the model is told to keep it brief).
+
+Asleep, the reply shows when they wake (at most ten hours). A held reply carries `held_until`; the
+chat shows nothing for it (or only the holding text) until then. A reply that shows at once also
+shows every earlier one still held, and one held while another is waiting shows no sooner than it,
+so replies keep their order. The day that counts is the precomputed agenda's, so a holiday or a sick
+day is not work, and a shifted day (see Day disruptions) counts as it ended up. A held reply that
+shows while the app is in the background is announced like a first message, unless the user has
+written since.
+
+## Day disruptions
+
+Nobody's day goes exactly to plan (`companion/life/disruptions.py`). When the agenda writes a slot,
+for the companion and for circle members alike, it rolls on a d100 table for that kind of block with
+the dice and table logic copied from Prospero's Study (`companion/life/chance.py`), seeded by the
+slot, so a slot always shifts the same way and a day never changes after the fact:
+
+| Block | No event | Shifts |
+| --- | --- | --- |
+| work, study | 84% | running late 10 to 45 minutes (9%), staying late 15 to 60 minutes (7%) |
+| social | 76% | running late (8%), plans falling through: a quiet night in (11%), something coming up: an errand (5%) |
+| leisure | 84% | something coming up (7%), a free circle member dropping by: company (9%) |
+
+Each shift rolls a reason on a child table ("missed the bus", "a meeting ran long"). Running late
+moves the slot's start and stretches the slot that ended there (often sleep); staying late moves
+its end, and the next slot starts when it ends. A changed block keeps what was `planned` and
+carries `shift: {key, minutes, reason, friend, text}`; the composed entry starts with the shift
+("Mira ran 20 minutes late (missed the bus). …"). Holidays, sick days and sleep never shift. The
+chat context lists today's shifts so far, so the companion knows why they were late, and paced
+replies follow the day as it turned out. The Life setting `day_shifts` (on by default) turns it off
+for slots written from then on.
 
 ## Routine
 
@@ -366,6 +561,12 @@ the model only phrases it (chat context section "Your money").
 - **Saving**: `goal` is the user's `saving_for` and `goal` amount (counted from `goal_since`), or a
   seeded everyday goal for each half of the year.
 
+- **Home**: once their home exists (`companion/life/home.py`), rent comes from its `monthly_costs`
+  (`rent_from: "home"`), pets and vehicles add `upkeep`, and home changes this pay period that cost
+  something (`purchases`: a new pet, a repair) are listed in `bought` and come out of what is left.
+  Before then the budget's own rent estimate applies (`rent_from: "budget"`). The composer's
+  `affordable` check uses the budget without the home, since it has no database.
+
 Where the setting has no money (Oz) or no known city, `available` is `false` with a `reason`.
 
 The composer calls `money.affordable(definition, activity_key, local_date)` once per option: an
@@ -375,7 +576,7 @@ nothing is affordable the routine happens as before.
 ## Feed
 
 ```http
-GET  /api/feed?limit=20&before=…&hidden=false
+GET  /api/feed?limit=20&before=…&hidden=false&source=all
 GET  /api/feed/{post_id}
 POST /api/feed/read                {"post_ids": ["…"]}   (omit the body to mark everything read)
 POST /api/feed/{post_id}/reaction  {"reaction": "heart"} (heart, laugh, wow, sad, hug, or null to clear)
@@ -383,6 +584,7 @@ POST /api/feed/{post_id}/hide
 POST /api/feed/{post_id}/unhide
 POST /api/feed/{post_id}/remove
 POST /api/feed/{post_id}/discuss   {"text": "…", "client_id": "…"}
+POST /api/feed/{post_id}/answer    {"option": "Tacos", "client_id": "…"}   (question posts)
 POST /api/feed/posts               {"event_id": "…", "intro": "…"}
 GET  /api/feed/export
 ```
@@ -422,8 +624,33 @@ A post:
 - `discuss` sends a chat message linked to the post and returns the same shape as
   `POST /api/conversation/messages`. The reply is written knowing which post the user meant.
 - `POST /api/feed/posts` posts an event committed by other means; it is idempotent per event.
-- `export` returns `{format: "prospero-companion-feed", version, exported_at, companion, posts}`,
+- `export` returns `{format: "prospero-companion-feed", version (2), exported_at, companion, posts}`,
   oldest first, hidden posts included.
+- Every post has `source` (`life` for the posts above, `social` below), an `author`
+  (`{kind: "companion" | "person", id, name, role}`) and an `audience`
+  (`{likes: [names], comments: [{author, name, text, at}]}`).
+
+### The social side
+
+`source=companion` keeps only the companion's posts and `source=circle` only their friends'.
+Reading the feed or Today writes the social posts due for the last few days
+([companion/life/social.py](../companion/life/social.py)). No model is involved: everything comes
+from the agenda, the circle, the city data and fixed phrasing, under seeded idempotency keys.
+
+- `friend`: a circle member shares a happened diary entry (`text` is their line, `context` what
+  happened, `place` where). A few a day across the circle, at most one per person.
+- `status`: a passing thought of the companion's from the day's weather, how they feel, the weekday
+  or an interest. It never claims anything happened.
+- `birthday` (a circle member's birthday), `holiday` (a public holiday), `city` (an opening,
+  closing or road works the day people hear of it, or an annual event on its day).
+- `question`: an either-or with `options`; `answer` records the user's pick and sends it to chat as
+  a reply to the post. `answer` is `null` until then.
+
+Social posts have `events: []` and `image: null`. They are read, reacted to, hidden, removed and
+discussed with the same endpoints. Likes and comments are derived, not stored: they come from the
+post, the active circle and the clock, arriving within a few hours of the post, at most three
+comments each. The companion likes and comments on friends' posts. A renamed friend shows their new
+name; a removed one's posts and comments leave the feed. A branched timeline keeps the social posts from before it split off, with their read, reaction and answer state.
 
 ## Emotional traits and absence mood
 

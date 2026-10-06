@@ -429,11 +429,15 @@ ROLES = {
     'close-friend': ('close', (-4, 4), False), 'friend': ('regular', (-7, 7), False),
     'coworker': ('regular', (-12, 12), False), 'neighbor': ('occasional', (-20, 25), False),
     'old-classmate': ('occasional', (-1, 1), False), 'mentor': ('occasional', (12, 30), False),
+    'longtime-friend': ('close', (-3, 3), False), 'new-friend': ('regular', (-8, 8), False),
     'sibling': ('close', (-8, 8), True), 'parent': ('close', (24, 36), True), 'cousin': ('occasional', (-10, 10), None),
 }
 # The order a circle fills in, so a small circle has the closest people.
 CIRCLE = ('close-friend', 'coworker', 'sibling', 'friend', 'parent', 'neighbor', 'friend', 'cousin', 'old-classmate',
           'friend', 'mentor', 'coworker')
+# A sociable companion's bigger circle: friends old and new, more than one coworker and both parents.
+SOCIAL = ('close-friend', 'longtime-friend', 'coworker', 'sibling', 'parent', 'new-friend', 'coworker', 'friend',
+          'parent', 'new-friend', 'cousin', 'friend')
 RETIRED_SCHEDULE = [
     {'key': 'sleep', 'label': 'Asleep', 'kind': 'sleep', 'days': list(range(7)), 'start': '22:30', 'end': '06:30',
      'themes': []},
@@ -586,17 +590,19 @@ def _home_in(data: dict, seed: str, bedrooms: str, hood_id: str) -> dict:
 @detached
 def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age: int | None = None,
            career: str | None = None, employer: str | None = None, family: str | None = None,
-           group: str | None = None) -> dict:
+           group: str | None = None, order: tuple[str, ...] = CIRCLE, coworkers: bool = False) -> dict:
     """The people around a companion: friends, coworkers, family and neighbors, closest first.
 
     Pass what is known about the companion (home neighborhood, age, career, workplace, family name and
     heritage group) so coworkers share their workplace (or their career, when only that is known),
     neighbors live nearby and relatives share a name. Without a career or workplace there are no coworkers.
+    `order` is the order roles fill in (SOCIAL for a sociable companion); `coworkers` keeps coworkers
+    when the caller places them at the companion's work itself.
     """
-    if not 1 <= size <= len(CIRCLE):
-        raise DomainError(f'A circle has 1 to {len(CIRCLE)} people.', 422)
-    roles = [role for role in CIRCLE if role != 'coworker' or employer or career]
-    if not (employer or career):
+    if not 1 <= size <= len(order):
+        raise DomainError(f'A circle has 1 to {len(order)} people.', 422)
+    roles = [role for role in order if role != 'coworker' or employer or career or coworkers]
+    if not (employer or career or coworkers):
         roles = [*roles, 'friend', 'friend']
     if not family:
         chosen = name(data, seed=f'{seed}:family', group=group)
