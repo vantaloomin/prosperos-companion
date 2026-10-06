@@ -148,18 +148,37 @@ def visible_posts(connection, timeline_id, include_hidden=False) -> list[dict]:
 
 def everything(connection, companion, now: str, include_hidden=False, source='all') -> list[dict]:
     """Life posts and social posts (companion/life/social.py) together, newest first, with the circle's
-    likes and comments. `source` keeps only the companion's own posts or only the circle's."""
+    likes and comments. `source` keeps only the companion's own posts or only the circle's. Likes and
+    comments are worked out over every post, so a filter or a hidden post never changes them."""
     timeline_id, name = companion['active_timeline_id'], companion['version']['name']
     people = social.active_people(connection, timeline_id)
-    posts = [] if source == 'circle' else [
-        {**post, 'author': social.author_view(social.COMPANION, people, name),
-         'audience': social.audience(post['id'], post['kind'], social.COMPANION,
-                                     {'mood': (post['events'] or [{}])[0].get('mood', '')}, post['occurs_at'], now,
-                                     people, name)}
-        for post in visible_posts(connection, timeline_id, include_hidden)]
-    posts += [post for post in social.visible(connection, companion, now, include_hidden)
-              if source == 'all' or (post['author']['kind'] == 'companion') == (source == 'companion')]
+    posts = [{**post, 'author': social.author_view(social.COMPANION, people, name),
+              '_basis': (social.COMPANION, {'mood': (post['events'] or [{}])[0].get('mood', '')})}
+             for post in visible_posts(connection, timeline_id, include_hidden=True)]
+    posts += social.visible(connection, companion, include_hidden=True)
+    social.add_audiences(posts, now, people, name)
+    posts = [post for post in posts if (include_hidden or post['status'] == 'visible')
+             and (source == 'all' or (post['author']['kind'] == 'companion') == (source == 'companion'))]
     return sorted(posts, key=lambda post: (post['occurs_at'], post['id']), reverse=True)
+
+
+def shown(connection, post_id, now: str) -> dict | None:
+    """One post as the feed shows it, author, likes and comments included. A removed post is shown
+    bare, with no likes or comments."""
+    companion = require_current(connection)
+    found = next((post for post in everything(connection, companion, now, include_hidden=True)
+                  if post['id'] == post_id), None)
+    if found:
+        return found
+    if row := social.find(connection, post_id):
+        post = social.view(row, social.active_people(connection, row['timeline_id']), companion['version']['name'])
+    else:
+        post = post_view(connection, one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,)))
+        post = post and {**post, 'author': social.author_view(social.COMPANION, {}, companion['version']['name'])}
+    if post:
+        post.pop('_basis', None)
+        post['audience'] = {'likes': [], 'comments': []}
+    return post
 
 
 def listing(database, before=None, limit=20, include_hidden=False, source='all') -> dict:
@@ -183,10 +202,7 @@ def unread(connection, timeline_id) -> int:
 
 def get(database, post_id) -> dict:
     with database.connect() as connection:
-        if social.find(connection, post_id):
-            view = social.single(connection, post_id, database.now())
-        else:
-            view = post_view(connection, one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,)))
+        view = shown(connection, post_id, database.now())
         require(view is not None, 'This item could not be found.', 404)
         return view
 
@@ -212,7 +228,7 @@ def set_status(database, post_id, status) -> dict:
     with database.connect(write=True) as connection:
         if row := social.find(connection, post_id):
             social.set_status(connection, row, status, database.now())
-            return social.single(connection, post_id, database.now())
+            return shown(connection, post_id, database.now())
         post = one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
         require(post['status'] != 'removed', 'This post was removed.', 409)
         if status == 'removed':
@@ -221,7 +237,7 @@ def set_status(database, post_id, status) -> dict:
             connection.execute('DELETE FROM feed_post_events WHERE post_id=?', (post_id,))
         else:
             connection.execute('UPDATE feed_posts SET status=? WHERE id=?', (status, post_id))
-        return post_view(connection, one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,)))
+        return shown(connection, post_id, database.now())
 
 
 def react(database, post_id, reaction) -> dict:
@@ -229,12 +245,12 @@ def react(database, post_id, reaction) -> dict:
     with database.connect(write=True) as connection:
         if row := social.find(connection, post_id):
             social.react(connection, row, reaction, database.now())
-            return social.single(connection, post_id, database.now())
+            return shown(connection, post_id, database.now())
         post = one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
         require(post['status'] != 'removed', 'This post was removed.', 409)
         connection.execute('UPDATE feed_posts SET reaction=?, read_at=COALESCE(read_at, ?) WHERE id=?',
                            (reaction, database.now(), post_id))
-        return post_view(connection, one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,)))
+        return shown(connection, post_id, database.now())
 
 
 def link_message(database, message_id, post_id):

@@ -455,3 +455,10 @@ def test_catch_up_work_leaves_the_event_loop_free_for_chat(app, life, clock, mon
     result, ticks = asyncio.run(main())
     assert result['run']['status'] == 'completed'
     assert ticks >= 10
+
+
+def test_a_block_named_for_an_activity_reads_as_a_time_of_day():
+    assert composer.span({'label': 'Solo gaming', 'kind': 'leisure', 'start': '20:00'}) == 'evening'
+    assert composer.span({'label': 'Stage performer', 'kind': 'work', 'start': '16:00'}) == 'shift'
+    assert composer.span({'label': 'Free time after work', 'kind': 'leisure'}) == 'free time after work'
+    assert composer.span({'label': 'Day off', 'kind': 'leisure'}) == 'day off'

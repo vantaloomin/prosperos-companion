@@ -314,14 +314,15 @@ def comment_pool(kind: str, content: dict, commenter: str, by_companion: bool) -
 
 
 def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str, now: str, people: dict,
-             companion_name: str) -> dict:
+             companion_name: str, avoid: frozenset[str] = frozenset()) -> dict:
     """Who liked and commented by `now`, from the post and the circle alone. The companion joins in
-    on friends' posts; friends join in on everyone's."""
+    on friends' posts; friends join in on everyone's. No line is said twice on a post, and lines in
+    `avoid` (said on the posts just before) are left for later."""
     occurred = parse(occurs_at)
     crowd = [(person_id, person['name'], LIKELY.get(person['role'], 0.45)) for person_id, person in people.items()]
     if author != COMPANION:
         crowd.append((COMPANION, companion_name, COMPANION_LIKES))
-    likes, comments = [], []
+    likes, speakers = [], []
     for who, name, chance in crowd:
         if who == author and kind != 'birthday':
             continue
@@ -331,17 +332,44 @@ def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str
         if (unit(seed, 'like') < chance or thanked) and liked_at <= now:
             likes.append(name)
         said = stamp(occurred + REACTION_WINDOW * unit(seed, 'comment-at'))
-        if (unit(seed, 'comment') < COMMENT_CHANCE or thanked) and said <= now and len(comments) < MAX_COMMENTS:
-            option = pick(seed, 'option', content.get('options') or [''])
-            line = pick(seed, 'comment', list(comment_pool(kind, content, who, who == COMPANION)))
-            comments.append({'author': 'companion' if who == COMPANION else 'person', 'name': name, 'at': said,
-                             'text': line.format(name=people.get(content.get('person'), {}).get('name', ''),
-                                                 option=option)})
-    return {'likes': likes, 'comments': sorted(comments, key=lambda comment: comment['at'])}
+        if (unit(seed, 'comment') < COMMENT_CHANCE or thanked) and said <= now:
+            speakers.append((said, who, name, seed))
+    comments, used = [], set(avoid)
+    for said, who, name, seed in sorted(speakers)[:MAX_COMMENTS]:
+        option = pick(seed, 'option', content.get('options') or [''])
+        lines = [line.format(name=people.get(content.get('person'), {}).get('name', ''), option=option)
+                 for line in comment_pool(kind, content, who, who == COMPANION)]
+        fresh = [line for line in lines if line not in used]
+        if not fresh:
+            continue  # Everything this person would say was just said.
+        text = pick(seed, 'comment', fresh)
+        used.add(text)
+        comments.append({'author': 'companion' if who == COMPANION else 'person', 'name': name, 'at': said,
+                         'text': text})
+    return {'likes': likes, 'comments': comments}
 
 
-def view(row: dict, people: dict, companion_name: str, now: str) -> dict | None:
-    """A social post shaped like a feed post: no events and no image, with its own text."""
+# How many earlier posts a comment line is not repeated across.
+NEARBY = 4
+
+
+def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str) -> None:
+    """Fill in each post's likes and comments, oldest first, so a line said on one post is not said
+    again on the next few. Posts carry their basis as `_basis` (author, content); it is removed here."""
+    recent: list[set[str]] = []
+    for post in sorted(posts, key=lambda post: (post['occurs_at'], post['id'])):
+        basis = post.pop('_basis', None)
+        if basis is None:
+            post['audience'] = {'likes': [], 'comments': []}
+            continue
+        post['audience'] = audience(post['id'], post['kind'], basis[0], basis[1], post['occurs_at'], now, people,
+                                    companion_name, frozenset().union(*recent[-NEARBY:]))
+        recent.append({comment['text'] for comment in post['audience']['comments']})
+
+
+def view(row: dict, people: dict, companion_name: str) -> dict | None:
+    """A social post shaped like a feed post: no events and no image, with its own text. Its likes and
+    comments are added by `add_audiences` from `_basis`."""
     author = author_view(row['author'], people, companion_name)
     removed = row['status'] == 'removed'
     if author is None and not removed:
@@ -352,30 +380,20 @@ def view(row: dict, people: dict, companion_name: str, now: str) -> dict | None:
             'place': content.get('place', ''), 'options': content.get('options', []), 'answer': row['answer'],
             'status': row['status'], 'read': row['read_at'] is not None, 'read_at': row['read_at'],
             'reaction': row['reaction'], 'occurs_at': row['occurs_at'], 'created_at': row['created_at'],
-            'image': None,
-            'audience': {'likes': [], 'comments': []} if removed else audience(
-                row['id'], row['kind'], row['author'], content, row['occurs_at'], now, people, companion_name)}
+            'image': None, '_basis': None if removed else (row['author'], content)}
 
 
-def visible(connection, companion, now: str, include_hidden=False) -> list[dict]:
+def visible(connection, companion, include_hidden=False) -> list[dict]:
     timeline_id = companion['active_timeline_id']
     statuses = "('visible','hidden')" if include_hidden else "('visible')"
     people = active_people(connection, timeline_id)
     rows = many(connection, f'SELECT * FROM social_posts WHERE timeline_id=? AND status IN {statuses} '
                 'ORDER BY occurs_at DESC, id DESC', (timeline_id,))
-    return [shown for shown in (view(row, people, companion['version']['name'], now) for row in rows) if shown]
+    return [shown for shown in (view(row, people, companion['version']['name']) for row in rows) if shown]
 
 
 def find(connection, post_id) -> dict | None:
     return optional(connection, 'SELECT * FROM social_posts WHERE id=?', (post_id,))
-
-
-def single(connection, post_id, now: str) -> dict | None:
-    row = find(connection, post_id)
-    if row is None:
-        return None
-    companion = require_current(connection)
-    return view(row, active_people(connection, row['timeline_id']), companion['version']['name'], now)
 
 
 def unread(connection, timeline_id) -> int:

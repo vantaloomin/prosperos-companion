@@ -8,6 +8,7 @@ A model may later rephrase the wording, but never chooses the place, activity or
 Some slots are deliberately quiet: an uneventful stretch is a valid outcome, not a failure.
 """
 import random
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -29,6 +30,25 @@ class Activity:
     generic: str = ''
     together: tuple[str, ...] = ()
 
+
+
+# Words that make a routine block's label read as a stretch of time ("the free time after work").
+SPAN_WORDS = {'morning', 'afternoon', 'evening', 'night', 'day', 'lunch', 'break', 'shift', 'time', 'hours',
+              'weekend', 'session', 'class', 'commute', 'off'}
+
+
+def span(block: dict) -> str:
+    """The block as a stretch of time for "during the {label}". A label that names an activity or a
+    job ("Solo gaming", "Stage performer") reads as the shift, study session or part of the day instead."""
+    label = block['label'].lower()
+    if set(re.findall(r'[a-z]+', label)) & SPAN_WORDS:
+        return label
+    if block.get('kind') == 'work':
+        return 'shift'
+    if block.get('kind') == 'study':
+        return 'study session'
+    hour = int((block.get('start') or '18:00')[:2])
+    return 'morning' if hour < 12 else 'afternoon' if hour < 17 else 'evening'
 
 def activity(key, place_kinds, summaries, captions, moods, generic='', together=()) -> Activity:
     """`generic` stands in for " at <place>" when the world has no matching place. `together` are
@@ -310,7 +330,7 @@ def find_places(world, definition: dict, slot: dict, kinds) -> list:
 
 
 def sick_day(rng, block: dict, definition: dict) -> dict:
-    return {'summary': rng.choice(SICK.summaries).format(name=definition['name'], label=block['label'].lower()),
+    return {'summary': rng.choice(SICK.summaries).format(name=definition['name'], label=span(block)),
             'post': rng.choice(SICK.captions), 'mood': SICK.moods[0], 'activity': SICK.key, 'place': None,
             'with': None, 'weather': block.get('weather'), 'composer_version': COMPOSER_VERSION}
 
@@ -358,7 +378,7 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
     if harsh(conditions):
         places = [place for place in places if place.kind not in OUTDOOR]
     place = rng.choice(places) if places else None
-    values = {'name': definition['name'], 'label': block['label'].lower(),
+    values = {'name': definition['name'], 'label': span(block),
               'at': f' at {place.name}' if place else chosen.generic, 'place': place.name if place else '',
               'area': f' in {place.neighborhood}' if place and place.neighborhood and place.neighborhood not in
               place.name else ''}
