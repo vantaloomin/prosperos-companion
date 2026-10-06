@@ -5,6 +5,8 @@ import type { NotificationPreview, NotificationSettings as Values } from '../../
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { currentPermission, permissionNote } from '../notifications/permission'
+import { usePhoneStatus } from '../phone/phoneAccess'
+import { PhonePush } from './PhonePush'
 
 const KEY = ['notification-settings']
 type Draft = Partial<Record<'quiet_start' | 'quiet_end' | 'daily_cap' | 'min_gap_minutes', string>>
@@ -21,6 +23,7 @@ export function NotificationSettings() {
   const settings = useQuery({ queryKey: KEY, queryFn: () => api<Values>('/notifications/settings') })
   const [result, setResult] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const [permission, setPermission] = useState(currentPermission)
+  const onPhone = !!usePhoneStatus().data?.remote
   const save = async (change: Partial<Values>, done?: string) => {
     try {
       client.setQueryData(KEY, await api<Values>('/notifications/settings', change, 'PUT'))
@@ -45,11 +48,15 @@ export function NotificationSettings() {
     <section className="settings-section form-stack" aria-labelledby="notifications-heading">
       <div>
         <h2 id="notifications-heading">Notifications</h2>
-        <p className="subtle">Desktop notifications for new posts made while the app runs in the background. They are shown only while the Companion is open in a browser tab. If several are waiting, you get one summary instead.</p>
+        <p className="subtle">{onPhone
+          ? 'Notifications for new posts and messages, with the same quiet hours and limits as on your PC. If several are waiting, you get one summary instead.'
+          : 'Desktop notifications for new posts made while the app runs in the background. They are shown only while the Companion is open in a browser tab. If several are waiting, you get one summary instead. Paired phones can also get them while the app is closed.'}</p>
       </div>
-      <Toggle label="Show desktop notifications" checked={data.enabled} disabled={!data.enabled && (permission === 'denied' || permission === 'unsupported')} onChange={(value) => void toggle(value)}
-        hint="Turning this off also cancels any that are waiting." />
-      {note && !data.enabled && <Notice tone="info">{note}</Notice>}
+      {onPhone ? <PhonePush enabled={data.enabled} onEnable={() => save({ enabled: true })} /> : <>
+        <Toggle label="Show desktop notifications" checked={data.enabled} disabled={!data.enabled && (permission === 'denied' || permission === 'unsupported')} onChange={(value) => void toggle(value)}
+          hint="Turning this off also cancels any that are waiting, on paired phones too." />
+        {note && !data.enabled && <Notice tone="info">{note}</Notice>}
+      </>}
       <Field label="What notifications show">
         {(id) => (
           <select id={id} value={data.preview} onChange={(event) => void save({ preview: event.target.value as NotificationPreview })}>

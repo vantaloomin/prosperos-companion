@@ -1113,3 +1113,13 @@ CREATE TABLE IF NOT EXISTS phone_devices (
   last_seen_at TEXT,
   revoked_at TEXT
 );
+
+-- Where to send a paired phone's notifications while the app is closed (companion/phone/push.py).
+CREATE TABLE IF NOT EXISTS phone_push (
+  id TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL REFERENCES phone_devices(id),
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

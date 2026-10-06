@@ -38,5 +38,17 @@ Restoring a backup turns phone access off and unpairs every phone.
 ## On the phone
 
 The interface has a bottom tab bar on narrow screens, leaves room for a notch and home bar, keeps the keyboard
-from covering the message box, and keeps each message's actions behind a ⋯ button on touch screens. While the
-app is open, notifications are shown through its service worker (`public/sw.js`), which caches nothing.
+from covering the message box, and keeps each message's actions behind a ⋯ button on touch screens.
+
+## Notifications on a phone
+
+In Settings > Notifications on a paired phone, **Notify this phone** subscribes it to Web Push (RFC 8030). The PC
+encrypts each notification for that phone (RFC 8291) and sends it to the phone's push service (Apple's or
+Google's), signed with a key kept in the OS credential vault (VAPID, RFC 8292). The push service carries it but
+cannot read it. On an iPhone this needs iOS 16.4 or later and the Companion opened from the home screen.
+
+What a notification says and when it comes are decided as on the PC: quiet hours, the daily cap, the gap
+between notifications and the preview setting all apply. Every notification the PC shows also goes to subscribed
+phones. When no window is asking, the Companion checks once a minute and sends to phones itself, but holds off
+while the Companion is open and focused on the PC. The PC has to be on. Removing a phone, or a push service
+saying a subscription is gone, stops its notifications. The service worker (`public/sw.js`) caches nothing.

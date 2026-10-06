@@ -1,7 +1,7 @@
 """Local HTTP API for the Companion backbone."""
 import json
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse
 
 from companion import (
@@ -380,6 +380,14 @@ def update_notification_settings(request: Request, body: NotificationSettingsUpd
 
 
 @router.post('/notifications/next')
-def next_notification(request: Request, body: NotificationCheck | None = None):
-    """The open interface asks for what to show; the answer respects quiet hours and the cap."""
-    return notifications.deliver(db(request), (body or NotificationCheck()).focused)
+def next_notification(request: Request, background: BackgroundTasks, body: NotificationCheck | None = None):
+    """The open interface asks for what to show; the answer respects quiet hours and the cap. Whatever it
+    shows also goes to phones subscribed to notifications (companion/phone/push.py)."""
+    focused = (body or NotificationCheck()).focused
+    pusher = request.app.state.push
+    if request.state.device is None:
+        pusher.pc_checked(focused)
+    result = notifications.deliver(db(request), focused)
+    if result['notification']:
+        background.add_task(pusher.send, result['notification'])
+    return result

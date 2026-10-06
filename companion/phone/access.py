@@ -32,7 +32,8 @@ SEEN_EVERY = timedelta(minutes=5)
 # What an unpaired phone may ask for, besides the app's own files.
 OPEN = {('GET', '/api/health'), ('GET', '/api/phone/status'), ('POST', '/api/phone/pair')}
 # What a paired phone may do under /api/phone: everything else there manages phones, from the PC.
-PHONE_SELF = OPEN | {('POST', '/api/phone/sign-out')}
+PHONE_SELF = OPEN | {('POST', '/api/phone/sign-out'), ('GET', '/api/phone/push'), ('PUT', '/api/phone/push'),
+                     ('DELETE', '/api/phone/push')}
 PC_ONLY = ('/api/phone', '/api/backups', '/api/import/study')
 # Changes here name programs, folders or addresses on the PC, or where a saved key is sent.
 PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/images/backends',
@@ -172,4 +173,5 @@ def revoke(database, device_id: str):
     with database.connect(write=True) as connection:
         changed = connection.execute('UPDATE phone_devices SET revoked_at=? WHERE id=? AND revoked_at IS NULL',
                                      (database.now(), device_id)).rowcount
+        connection.execute('DELETE FROM phone_push WHERE device_id=?', (device_id,))
     require(changed == 1, 'This phone is not paired.', 404)

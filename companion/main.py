@@ -32,6 +32,7 @@ from companion.mcp.lookups import Lookups
 from companion.memory import closeness_routes, people_routes
 from companion.memory.worker import MemoryWorker
 from companion.phone import access as phone_access
+from companion.phone import push as phone_push
 from companion.phone import routes as phone_routes
 from companion.providers.vault import SystemVault
 from companion.routes import router
@@ -67,7 +68,8 @@ async def lifespan(app):
     lora_evaluation.recover(app.state.database)
     lora_generation.recover(app.state.database)
     tasks = [asyncio.create_task(app.state.life.run_forever()),
-             asyncio.create_task(app.state.images.run_forever())] if app.state.life_tasks else []
+             asyncio.create_task(app.state.images.run_forever()),
+             asyncio.create_task(app.state.push.run_forever())] if app.state.life_tasks else []
     app.state.memory.kick()
     yield
     app.state.training.shutdown()
@@ -77,7 +79,7 @@ async def lifespan(app):
 
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
                life_tasks=True, world=None, embedder=None, image_adapters=None,
-               context_transports=None, trainer_spawn=None, link_reader=None) -> FastAPI:
+               context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
@@ -118,6 +120,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.middleware('http')(guard_writes)
     # Outermost: only this PC, or a paired phone through Tailscale, gets further (companion/phone/access.py).
     app.state.phone = phone_access.Gate(app.state.database)
+    app.state.push = phone_push.Pusher(app.state.database, app.state.vault, push_transport)
     app.middleware('http')(app.state.phone)
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)

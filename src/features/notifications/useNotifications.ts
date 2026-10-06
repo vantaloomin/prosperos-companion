@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { DesktopNotification, NotificationCheck, NotificationSettings } from '../../types'
+import { usePhoneStatus } from '../phone/phoneAccess'
 import { currentPermission, mustRevoke } from './permission'
 
 const EVERY_MS = 60_000
@@ -13,6 +14,7 @@ const EVERY_MS = 60_000
  */
 export function useNotifications(enabled: boolean, go: (view: 'feed' | 'conversation') => void) {
   const client = useQueryClient()
+  const onPhone = !!usePhoneStatus().data?.remote
   useEffect(() => {
     if (!enabled) return
     let running = false
@@ -20,12 +22,7 @@ export function useNotifications(enabled: boolean, go: (view: 'feed' | 'conversa
       if (running) return
       running = true
       try {
-        const settings = await api<NotificationSettings>('/notifications/settings')
-        if (!settings.enabled) return
-        if (mustRevoke(settings.enabled, currentPermission())) {
-          client.setQueryData(['notification-settings'], await api<NotificationSettings>('/notifications/settings', { enabled: false }, 'PUT'))
-          return
-        }
+        if (!await mayShow(onPhone, client)) return
         const result = await api<NotificationCheck>('/notifications/next', { focused: document.visibilityState === 'visible' && document.hasFocus() })
         const shown = result.notification
         if (!shown) return
@@ -40,7 +37,20 @@ export function useNotifications(enabled: boolean, go: (view: 'feed' | 'conversa
     const opened = (event: MessageEvent) => { if (event.data?.type === 'open-view') go(event.data.view === 'feed' ? 'feed' : 'conversation') }
     navigator.serviceWorker?.addEventListener('message', opened)
     return () => { window.clearInterval(timer); navigator.serviceWorker?.removeEventListener('message', opened) }
-  }, [enabled, client, go])
+  }, [enabled, client, go, onPhone])
+}
+
+/**
+ * Whether this window may show one now. On the PC a withdrawn browser permission turns notifications
+ * off, which cancels what is queued; settings are shared, so a phone without permission just skips them.
+ */
+async function mayShow(onPhone: boolean, client: QueryClient): Promise<boolean> {
+  const settings = await api<NotificationSettings>('/notifications/settings')
+  if (!settings.enabled) return false
+  if (onPhone) return currentPermission() === 'granted'
+  if (!mustRevoke(settings.enabled, currentPermission())) return true
+  client.setQueryData(['notification-settings'], await api<NotificationSettings>('/notifications/settings', { enabled: false }, 'PUT'))
+  return false
 }
 
 /**
