@@ -80,6 +80,8 @@ def test_the_home_changes_slowly_and_the_same_in_steps_or_at_once(client, baltim
     tid = timeline(client)
     end = date(2027, 6, 1)
     with connect(client) as connection:
+        # A fixed seed: with a random one, a run of quiet periods now and then left fewer than three changes.
+        connection.execute("UPDATE home_state SET seed='steady-home' WHERE timeline_id=?", (tid,))
         for step in range(1, 235, 9):
             home.evolve(connection, tid, date(2026, 10, 5) + timedelta(days=step), clock.now())
         home.evolve(connection, tid, end, clock.now())

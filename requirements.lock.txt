@@ -28,6 +28,7 @@ pytest==9.1.1
 pywin32-ctypes==0.2.3; sys_platform == "win32"
 ruff==0.16.7
 SecretStorage==3.5.0; sys_platform == "linux"
+segno==1.6.6
 starlette==1.7.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0

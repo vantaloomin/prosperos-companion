@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, type ReactNode } from 'react'
-import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, GitBranch, RotateCcw, Square } from 'lucide-react'
+import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { isHeld } from './held'
@@ -64,16 +64,21 @@ function TurnUser({ turn, highlight, onRemember, onDecline, onEdit }: { turn: Tu
 }
 
 function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }: { message: Message; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
+  // On a touch screen the actions wait behind a button, so each message is not followed by a row of them.
+  const [open, setOpen] = useState(false)
   return (
     <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
       <Avatar name="You" />
       <header>
         <span className="speaker">You</span>
-        <span className="message-actions">
+        <span className={classes('message-actions', { open })}>
           {!message.redacted && <>
-            <button type="button" className="text-button" onClick={() => onRemember(message)}><BookmarkPlus aria-hidden="true" />Remember this</button>
-            <button type="button" className="text-button" onClick={() => onDecline(message)}><BookmarkX aria-hidden="true" />Don't remember this</button>
-            <button type="button" className="text-button" onClick={() => onEdit(message)}><GitBranch aria-hidden="true" />Edit from here</button>
+            <button type="button" className="text-button message-more" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /><span className="visually-hidden">Message actions</span></button>
+            <span className="message-tools">
+              <button type="button" className="text-button" onClick={() => onRemember(message)}><BookmarkPlus aria-hidden="true" />Remember this</button>
+              <button type="button" className="text-button" onClick={() => onDecline(message)}><BookmarkX aria-hidden="true" />Don't remember this</button>
+              <button type="button" className="text-button" onClick={() => onEdit(message)}><GitBranch aria-hidden="true" />Edit from here</button>
+            </span>
           </>}
           <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
         </span>

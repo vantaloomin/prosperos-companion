@@ -169,6 +169,13 @@ textarea { resize: vertical; line-height: 1.6; }
 .message-actions .text-button { opacity: 0; font-size: 0.75rem; }
 .message:hover .message-actions .text-button, .message:focus-within .message-actions .text-button { opacity: 1; }
 @media (hover: none) { .message-actions .text-button { opacity: .8; } }
+/* Touch screens keep a message's actions behind its ⋯ button (TurnView.tsx). */
+.message-tools { display: contents; }
+.message-more { display: none; }
+@media (hover: none) {
+  .message-actions .message-more { display: inline-flex; justify-content: center; min-width: 36px; min-height: 28px; }
+  .message-actions:not(.open) .message-tools { display: none; }
+}
 
 .settings > .notice { max-width: 760px; margin-bottom: 16px; }
 .settings-search { max-width: 960px; margin-bottom: 20px; }
@@ -619,3 +626,20 @@ textarea { resize: vertical; line-height: 1.6; }
 .person-heading small { font-weight: normal; margin-left: 6px; }
 .person-form { margin: 12px 0; max-width: 420px; }
 .person-heading .memory-actions { flex-direction: row; }
+
+/* Phones (src/features/phone): room for a notch and home bar, no zoom when a field is focused, and
+   the tab bar steps aside while the keyboard is up for the chat. */
+.app-nav { padding-left: max(8px, env(safe-area-inset-left)); }
+@media (max-width: 720px) {
+  .app-shell { padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  .app-nav { padding: 4px 4px max(4px, env(safe-area-inset-bottom)); }
+  .app-shell:has(.composer textarea:focus) .app-nav { display: none; }
+}
+@media (pointer: coarse) { input, select, textarea { font-size: max(1rem, 16px); } }
+.gate { min-height: 100dvh; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top)) 16px 24px; background: var(--canvas); color: var(--text); }
+.gate-card { width: 100%; max-width: 420px; }
+.gate-icon { width: 2rem; height: 2rem; color: var(--accent); }
+.phone-pairing { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.phone-pairing .form-stack { gap: 10px; flex: 1; min-width: 220px; }
+.phone-qr svg { display: block; width: 200px; max-width: 100%; height: auto; border-radius: 8px; }
+.phone-code { font-size: 1.25rem; letter-spacing: .08em; }

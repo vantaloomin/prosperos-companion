@@ -7,7 +7,6 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from companion import local_zone, workspace
 from companion.conversation import Conversation, recover
@@ -32,6 +31,8 @@ from companion.mcp import weather as observed_weather
 from companion.mcp.lookups import Lookups
 from companion.memory import closeness_routes, people_routes
 from companion.memory.worker import MemoryWorker
+from companion.phone import access as phone_access
+from companion.phone import routes as phone_routes
 from companion.providers.vault import SystemVault
 from companion.routes import router
 from companion.text_model_routes import router as model_router
@@ -114,8 +115,10 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     # Local ComfyUI images wait while a trainer holds the GPU (compute and job control).
     app.state.images.gpu_busy = lambda: app.state.training.active
     app.state.life_tasks = life_tasks
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', '127.0.0.1', 'testserver'])
     app.middleware('http')(guard_writes)
+    # Outermost: only this PC, or a paired phone through Tailscale, gets further (companion/phone/access.py).
+    app.state.phone = phone_access.Gate(app.state.database)
+    app.middleware('http')(app.state.phone)
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
@@ -130,6 +133,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(lora_routes.router)
     app.include_router(import_routes.router)
     app.include_router(closeness_routes.router)
+    app.include_router(phone_routes.router)
     app.include_router(people_routes.router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')

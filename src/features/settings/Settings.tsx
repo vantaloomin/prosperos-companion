@@ -7,10 +7,12 @@ import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
 import { LifeSettings } from './LifeSettings'
 import { NotificationSettings } from './NotificationSettings'
+import { PhoneSettings } from './PhoneSettings'
 import { PromptSettings } from './PromptSettings'
 import { BackgroundSettings, MemorySettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
 import { Cities } from '../world/Cities'
 import { ModelSettings } from './models/ModelSettings'
+import { usePhoneStatus } from '../phone/phoneAccess'
 import { availableTabs, pickTab, searchSettings, type SettingsMatch, type SettingsTab } from './sections'
 
 interface Props {
@@ -21,16 +23,17 @@ interface Props {
 }
 
 export function Settings({ companion, tab, onTab }: Props) {
-  const current = pickTab(tab, !!companion)
+  const onPhone = !!usePhoneStatus().data?.remote
+  const current = pickTab(tab, !!companion, onPhone)
   const landing = useLanding()
   const land = (match: SettingsMatch) => { onTab(match.tab.id); landing(match.section.heading) }
   return (
     <section className="page settings">
       <header className="page-header"><h1>Settings</h1></header>
       {companion && <RestoredReview onDone={() => { onTab('memory'); landing('memory-heading') }} />}
-      <SettingsSearch hasCompanion={!!companion} onPick={land} />
+      <SettingsSearch hasCompanion={!!companion} onPhone={onPhone} onPick={land} />
       <div className="settings-layout">
-        <SettingsTabs current={current} hasCompanion={!!companion} onTab={onTab} />
+        <SettingsTabs current={current} hasCompanion={!!companion} onPhone={onPhone} onTab={onTab} />
         <div className="settings-panel" role="tabpanel" id={`settings-panel-${current}`} aria-labelledby={`settings-tab-${current}`}>
           <TabContent tab={current} companion={companion} />
         </div>
@@ -69,6 +72,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     lookups: <ContextSettings name={name} />,
     images: <ImageSettings />,
     notifications: <NotificationSettings />,
+    phone: <PhoneSettings />,
     data: <Backups />,
   }
   return content[tab]
@@ -77,8 +81,8 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
 const NEXT_KEYS: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }
 
 /** Vertical tabs beside the panel on wide windows, a scrolling row above it on narrow ones. */
-function SettingsTabs({ current, hasCompanion, onTab }: { current: SettingsTab; hasCompanion: boolean; onTab: (tab: SettingsTab) => void }) {
-  const tabs = availableTabs(hasCompanion)
+function SettingsTabs({ current, hasCompanion, onPhone, onTab }: { current: SettingsTab; hasCompanion: boolean; onPhone: boolean; onTab: (tab: SettingsTab) => void }) {
+  const tabs = availableTabs(hasCompanion, onPhone)
   const narrow = useNarrow()
   const list = useRef<HTMLDivElement>(null)
   // On a narrow window the row scrolls; keep the open tab in sight, as after a deep link.
@@ -118,9 +122,9 @@ function useNarrow() {
   return narrow
 }
 
-function SettingsSearch({ hasCompanion, onPick }: { hasCompanion: boolean; onPick: (match: SettingsMatch) => void }) {
+function SettingsSearch({ hasCompanion, onPhone, onPick }: { hasCompanion: boolean; onPhone: boolean; onPick: (match: SettingsMatch) => void }) {
   const [query, setQuery] = useState('')
-  const matches = searchSettings(query, hasCompanion)
+  const matches = searchSettings(query, hasCompanion, onPhone)
   const searching = query.trim().length > 0
   return (
     <div className="settings-search">

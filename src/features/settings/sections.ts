@@ -1,6 +1,6 @@
 /** Settings is split into tabs; this lists them, what each holds, and the words a search finds them by. */
 
-export type SettingsTab = 'general' | 'models' | 'life' | 'memory' | 'lookups' | 'images' | 'notifications' | 'data'
+export type SettingsTab = 'general' | 'models' | 'life' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data'
 
 export interface SettingsSection {
   /** The id of the section's heading, used to land on it from a search result. */
@@ -14,6 +14,8 @@ export interface SettingsTabInfo {
   label: string
   /** Shown before a companion exists. Everything else needs a workspace to change. */
   withoutCompanion?: boolean
+  /** Hidden on a paired phone: the Companion only allows it from the PC (companion/phone/access.py). */
+  pcOnly?: boolean
   sections: SettingsSection[]
 }
 
@@ -59,29 +61,34 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     ],
   },
   {
-    id: 'data', label: 'Backups', sections: [
+    id: 'phone', label: 'Phone access', sections: [
+      { heading: 'phone-heading', title: 'Phone access', keywords: 'phone mobile tailscale network remote away pair qr code device home screen install' },
+    ],
+  },
+  {
+    id: 'data', label: 'Backups', pcOnly: true, sections: [
       { heading: 'backup-heading', title: 'Backups', keywords: 'backup restore data export archive' },
     ],
   },
 ]
 
-export function availableTabs(hasCompanion: boolean): SettingsTabInfo[] {
-  return hasCompanion ? SETTINGS_TABS : SETTINGS_TABS.filter((tab) => tab.withoutCompanion)
+export function availableTabs(hasCompanion: boolean, onPhone = false): SettingsTabInfo[] {
+  return SETTINGS_TABS.filter((tab) => (hasCompanion || tab.withoutCompanion) && !(onPhone && tab.pcOnly))
 }
 
 /** The tab to show for a deep link: the one asked for when it is available, else the first one. */
-export function pickTab(requested: string | undefined, hasCompanion: boolean): SettingsTab {
-  const tabs = availableTabs(hasCompanion)
+export function pickTab(requested: string | undefined, hasCompanion: boolean, onPhone = false): SettingsTab {
+  const tabs = availableTabs(hasCompanion, onPhone)
   return (tabs.find((tab) => tab.id === requested) ?? tabs[0]).id
 }
 
 export interface SettingsMatch { tab: SettingsTabInfo; section: SettingsSection }
 
 /** Sections whose title, tab or keywords contain every word of the query. */
-export function searchSettings(query: string, hasCompanion: boolean): SettingsMatch[] {
+export function searchSettings(query: string, hasCompanion: boolean, onPhone = false): SettingsMatch[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   if (!words.length) return []
-  return availableTabs(hasCompanion).flatMap((tab) => tab.sections
+  return availableTabs(hasCompanion, onPhone).flatMap((tab) => tab.sections
     .filter((section) => {
       const text = `${section.title} ${tab.label} ${section.keywords}`.toLowerCase()
       return words.every((word) => text.includes(word))

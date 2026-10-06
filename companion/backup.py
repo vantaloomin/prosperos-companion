@@ -220,6 +220,9 @@ def hold_for_review(database: Database):
         connection.execute('UPDATE image_backends SET credential_ref=NULL')
         connection.execute('UPDATE image_settings SET automatic_images=0')
         connection.execute('UPDATE notification_settings SET enabled=0')
+        # Phones paired with the restored copy sign in again, and phone access waits to be turned back on.
+        connection.execute('UPDATE phone_settings SET enabled=0')
+        connection.execute('UPDATE phone_devices SET revoked_at=COALESCE(revoked_at, ?)', (timestamp,))
         connection.execute("UPDATE notifications SET status='cancelled', reason='Restored from a backup.' "
                            "WHERE status='queued'")
         # Context lookups send data out, so a restored workspace asks again before any run.

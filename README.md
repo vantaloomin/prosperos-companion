@@ -24,6 +24,7 @@ On Windows, run `ProsperoCompanion-<version>-win-x64-setup.exe` (no administrato
 - [Image generation](docs/images.md)
 - [Current context tools (MCP)](docs/context-tools.md)
 - [Character LoRA maker](docs/lora.md)
+- [Phone access](docs/phone-access.md)
 - [Acceptance status](docs/acceptance-status.md)
 
 Licensed under the GNU Affero General Public License v3.0, matching the Study code it reuses.
