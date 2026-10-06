@@ -530,6 +530,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-community .turn-actions { margin: 2px 0 10px 78px; }
 .chat-community .composer, .chat-community .conversation-notice { max-width: none; }
 .chat-community .load-earlier { margin-top: 8px; }
+/* The column is edge to edge so message hover rows span it; everything that isn't a message gets the same inset. */
+.chat-community .reading-column > :is(.getting-started, .notice) { margin-inline: 24px; }
 
 /* Retro IM: an early-2000s messenger window. Its own light palette keeps everything inside it readable. */
 .chat-retro { --canvas: #ffffff; --surface: #d4d0c8; --raised: #c4c0b8; --border: #808080; --text: #000000; --muted: #3a3a3a; --faint: #555555;
@@ -578,6 +580,22 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-retro .conversation-notice { max-width: none; padding: 6px 6px 0; }
 .chat-retro .conversation-search, .chat-retro .timeline-panel { margin: 0 6px; }
 
+/* Retro IM, dark: the same window after hours. Dialogs keep the app's own dark variables from above. */
+.chat-retro.retro-dark { --canvas: #101114; --surface: #2b2b2e; --raised: #3a3a3e; --border: #5a5a60; --text: #e8e8ea; --muted: #b8b8be; --faint: #8e8e96;
+  --accent: #8fb0ff; --accent-hover: #a9c2ff; --accent-tint: #1f2a44; --on-accent: #0b1430; --danger: #ff9b9b; --danger-tint: #4a1f1f;
+  color-scheme: dark; border-color: #4a4a50; }
+.chat-retro.retro-dark :focus-visible { outline-color: #8fb0ff; }
+.chat-retro.retro-dark .conversation-header { background: linear-gradient(90deg, #0b1636, #1b2f5c); }
+.chat-retro.retro-dark .conversation-header .portrait { background: #e8e8ea; color: #0b1636; }
+.chat-retro.retro-dark .chat-style-switch { background: #101114; color: #e8e8ea; }
+.chat-retro.retro-dark .transcript, .chat-retro.retro-dark .composer textarea, .chat-retro.retro-dark .chat-photo-frame > img,
+.chat-retro.retro-dark .chat-photo-waiting { border-color: #4a4a50; }
+.chat-retro.retro-dark .transcript { background: #101114; }
+.chat-retro.retro-dark .speaker { color: #ff7b7b; }
+.chat-retro.retro-dark .message-companion .speaker { color: #8fb0ff; }
+.chat-retro.retro-dark .prose, .chat-retro.retro-dark .message-user .prose { color: #e8e8ea; }
+.chat-retro.retro-dark .composer .button, .chat-retro.retro-dark .conversation-notice .button { border-color: #5a5a60; color: #e8e8ea; }
+
 /* Visual novel: their portrait on a stage, the conversation in dialogue boxes with name plates. */
 .novel-stage { flex: 0 0 clamp(140px, 36dvh, 420px); display: flex; justify-content: center; align-items: flex-end; overflow: hidden; border-bottom: 1px solid var(--border);
   background: radial-gradient(ellipse at 50% 110%, #43392a 0%, #27231d 48%, var(--canvas) 100%); }
@@ -603,6 +621,7 @@ textarea { resize: vertical; line-height: 1.6; }
   .chat-style-switch { max-width: 104px; }
   .chat-community .message { padding: 8px 14px; }
   .chat-community .turn-actions { margin-left: 68px; }
+  .chat-community .reading-column > :is(.getting-started, .notice) { margin-inline: 14px; }
   .chat-retro { margin: 4px; }
   .novel-stage { flex-basis: clamp(120px, 28dvh, 300px); }
 }

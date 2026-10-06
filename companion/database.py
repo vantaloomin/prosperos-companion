@@ -104,6 +104,7 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'ask_about_people', 'INTEGER NOT NULL DEFAULT 1 CHECK (ask_about_people IN (0, 1))'),
     # A full reply after a holding text, dropped unseen because the user wrote again first (life/pacing.py).
     ('messages', 'superseded_at', 'TEXT'),
+    ('workspace_settings', 'chat_retro_dark', 'INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

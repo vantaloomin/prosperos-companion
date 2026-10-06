@@ -48,6 +48,19 @@ def test_data_directory_is_separate_from_the_study(monkeypatch, tmp_path):
     assert identity.CREDENTIAL_SERVICE != 'Roleplay Interface'
 
 
+@pytest.mark.parametrize(('platform', 'expected'), [
+    ('darwin', ('Library', 'Application Support', 'ProsperoCompanion')),
+    ('linux', ('.local', 'share', 'prospero-companion')),
+])
+def test_data_directory_follows_the_platform(monkeypatch, tmp_path, platform, expected):
+    monkeypatch.delenv(identity.DATA_ENV, raising=False)
+    monkeypatch.delenv('XDG_DATA_HOME', raising=False)
+    monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))
+    monkeypatch.setattr(identity.sys, 'platform', platform)
+    assert identity.data_dir() == tmp_path.joinpath(*expected)
+
+
 def test_writes_require_the_local_client_header(app):
     with TestClient(app) as client:
         assert client.get('/api/health').json()['app_id'] == 'prospero-companion'

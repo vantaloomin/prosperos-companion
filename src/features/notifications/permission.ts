@@ -11,7 +11,7 @@ export const mustRevoke = (enabled: boolean, permission: Permission) => enabled 
 
 /** Neutral wording for each permission state; never in the companion's voice. */
 export function permissionNote(permission: Permission): string | null {
-  if (permission === 'denied') return 'Notifications are blocked for this page in your browser or Windows settings. Allow them there to turn this on.'
+  if (permission === 'denied') return 'Notifications are blocked for this page in your browser or system settings. Allow them there to turn this on.'
   if (permission === 'unsupported') return 'This browser cannot show desktop notifications.'
   return null
 }

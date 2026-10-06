@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import socket
+import sys
 import threading
 import time
 import urllib.error
@@ -60,12 +61,30 @@ def reuse(url, no_browser, wait=10.0) -> int:
     return 1
 
 
+def answers(port) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(0.5)
+        return probe.connect_ex((HOST, port)) == 0
+
+
 def reserve_port(port):
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         if os.name == 'nt':
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        else:
+            # Without SO_REUSEADDR, connections our own last run closed (TIME_WAIT) hold the port for a
+            # minute after a stop, so relaunching right away would report it as taken. On macOS it also lets
+            # 127.0.0.1 be bound beside another program's wildcard listener, so check nothing answers first.
+            if port and answers(port):
+                listener.close()
+                return None
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listener.bind((HOST, port))
+        if os.name != 'nt':
+            # Two bound sockets may share an address under SO_REUSEADDR until one listens; listening now keeps
+            # the reservation exclusive (Windows has SO_EXCLUSIVEADDRUSE for that).
+            listener.listen()
         return listener
     except OSError:
         listener.close()
@@ -177,8 +196,8 @@ def main(argv=None) -> int:
         with listener:
             return restore_backup(archive)
     if not (ROOT / 'dist' / 'index.html').is_file():
-        print(f"The interface is not built. Run {'install.bat' if os.name == 'nt' else 'npm run build'} first.",
-              flush=True)
+        installer = {'win32': 'install.bat', 'darwin': 'install.command'}.get(sys.platform, 'npm run build')
+        print(f'The interface is not built. Run {installer} first.', flush=True)
         return 1
     listener = reserve_port(args.port)
     if listener is None:
