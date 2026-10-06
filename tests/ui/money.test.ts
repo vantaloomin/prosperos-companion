@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { careersFor, todayIso } from '../../src/features/character/money.ts'
 import { completeDefinition } from '../../src/features/character/definition.ts'
-import { goalText, moodOfMoney, paydayText, workText } from '../../src/features/today/moneyText.ts'
+import { goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
 import type { MoneyView } from '../../src/types.ts'
 
 type Budget = Extract<MoneyView, { available: true }>
@@ -11,11 +11,12 @@ const budget: Budget = {
   date: '2026-10-05', available: true, currency: { code: 'USD', symbol: '$', name: 'US dollars' }, period: 'month', style: 'balanced',
   career: { id: 'registered-nurse', name: 'Registered nurse', pay: '$$', guessed: true },
   housing: { unit: 'studio', label: 'a studio', neighborhood: 'Towson' },
-  budget: { income: 4070, rent: 1280, essentials: 1220, fun: 1020, saving: 550 },
+  budget: { income: 4070, rent: 1280, upkeep: 0, essentials: 1220, fun: 1020, saving: 550 },
+  rent_from: 'budget', bought: [],
   payday: { last: '2026-10-02', next: '2026-10-16', cycle_days: 14, today: false },
   left: 200, fun_cycle: 470, tight: false, flush: false, splurge: null, surprise: null, cant_afford: [],
   goal: { label: 'a new laptop', amount: 1500, saved: 900, share: 0.6, custom: false, since: '2026-07-01', stalled: false },
-  text: { income: '$4,070', rent: '$1,280', essentials: '$1,220', fun: '$1,020', saving: '$550', left: '$200' },
+  text: { income: '$4,070', rent: '$1,280', upkeep: '$0', essentials: '$1,220', fun: '$1,020', saving: '$550', left: '$200' },
 }
 
 test('money text states payday, mood and goal plainly', () => {
@@ -25,6 +26,8 @@ test('money text states payday, mood and goal plainly', () => {
   assert.equal(moodOfMoney({ ...budget, tight: true }, 'Mara'), 'Money is tight for Mara until payday.')
   assert.equal(goalText(budget), 'Saving for a new laptop: 60% there.')
   assert.equal(goalText({ ...budget, goal: { ...budget.goal, stalled: true } }), 'Saving for a new laptop, but nothing is left over to save right now.')
+  assert.equal(rentText(budget), 'Rent: about $1,280 for a studio in Towson.')
+  assert.equal(rentText({ ...budget, rent_from: 'home' }), 'Rent: about $1,280 for their home.')
   assert.equal(workText(budget), 'Registered nurse (guessed from who they are), taking home about $4,070 a month.')
 })
 

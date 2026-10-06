@@ -11,6 +11,7 @@ import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
 import { ConversationSearch } from './ConversationSearch'
 import { GettingStarted } from './GettingStarted'
+import { isHeld, releaseHeld } from './held'
 import { TurnView } from './TurnView'
 import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
@@ -20,7 +21,6 @@ import { loadBack } from './search'
 import { useDraft } from './useDraft'
 import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
-import { useDoorSounds } from './useDoorSounds'
 import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
 
@@ -50,7 +50,6 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const chat = useChatStyle()
   const sounds = useRef(chat.sounds)
   useEffect(() => { sounds.current = chat.sounds })
-  useDoorSounds(chat.sounds)
 
   const timeline = useCurrentTimeline(draft, () => setNotice(null))
   const update = useCallback((change: (messages: Message[]) => Message[]) => {
@@ -59,8 +58,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   const onText = useCallback((id: string, text: string) => setLive((current) => ({ ...current, [id]: text })), [])
   const onDone = useCallback((reply: Message) => {
-    update((current) => applyFinished(current, reply))
+    // A reply that shows at once shows the ones held before it; a held one stays quiet until its time.
+    const held = isHeld(reply, Date.now())
+    update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
+    if (held) return
     setAnnouncement(replyAnnouncement(name, reply))
     if (sounds.current && reply.status === 'complete') playCue('message')
   }, [update, name])
@@ -179,7 +181,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} highlight={found?.id} />
+            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} />
           ))}
         </div>
       </div>

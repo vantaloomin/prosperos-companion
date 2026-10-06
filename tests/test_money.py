@@ -123,3 +123,43 @@ def test_money_endpoint_and_character_setup(client):
 def test_money_endpoint_without_a_city(client, companion):
     view = client.get('/api/today/money').json()
     assert view['available'] is False and 'home city' in view['reason']
+
+
+def home_costs(**overrides):
+    budget = money.profile(NURSE)
+    return {'rent': 1500, 'rent_period': 'month', 'currency': budget.city['currency'], 'estimate': True,
+            'pets': [], 'vehicles': [], **overrides}
+
+
+def test_rent_and_upkeep_come_from_the_home_when_there_is_one():
+    plain = money.snapshot(NURSE, '2026-10-05')
+    housed = money.snapshot(NURSE, '2026-10-05', {'costs': home_costs(pets=['dog'], vehicles=['car']),
+                                                  'purchases': []})
+    assert housed['rent_from'] == 'home' and housed['budget']['rent'] == 1500
+    assert housed['budget']['upkeep'] > 0 and housed['budget']['fun'] < plain['budget']['fun']
+    assert plain['rent_from'] == 'budget' and plain['budget']['upkeep'] == 0
+    lines = dict(money.context_lines(NURSE, '2026-10-05', {'costs': home_costs(pets=['cat']), 'purchases': []}))
+    assert 'for your home' in lines['money:2026-10-05:budget']
+    assert 'pets and getting around' in lines['money:2026-10-05:upkeep']
+    # A home with no rent of its own (or in another currency) keeps the budget's.
+    other = money.snapshot(NURSE, '2026-10-05', {'costs': home_costs(rent=None), 'purchases': []})
+    assert other['rent_from'] == 'budget' and other['budget']['rent'] == plain['budget']['rent']
+
+
+def test_home_purchases_count_as_spending_this_pay_period():
+    bought = [{'date': '2026-10-03', 'kind': 'new-pet', 'text': 'adopted Biscuit, a beagle mix', 'spend': '$$'},
+              {'date': '2026-10-04', 'kind': 'rearrange', 'text': 'rearranged the furniture', 'spend': ''}]
+    before = money.snapshot(NURSE, '2026-10-05', {'costs': home_costs(), 'purchases': []})
+    after = money.snapshot(NURSE, '2026-10-05', {'costs': home_costs(), 'purchases': bought})
+    assert [item['label'] for item in after['bought']] == ['adopted Biscuit, a beagle mix']
+    assert after['left'] == round(before['left'] - after['bought'][0]['cost'], 2)
+    lines = dict(money.context_lines(NURSE, '2026-10-05', {'costs': home_costs(), 'purchases': bought}))
+    assert lines['money:2026-10-05:bought:2026-10-03'].endswith('you adopted Biscuit, a beagle mix.')
+
+
+def test_the_money_endpoint_reads_the_home(client):
+    client.post('/api/companion', json={**NURSE, 'timezone': 'America/New_York'})
+    assert client.get('/api/today/money').json()['rent_from'] == 'budget'
+    costs = client.get('/api/life/home').json()['costs']
+    view = client.get('/api/today/money').json()
+    assert view['rent_from'] == 'home' and view['budget']['rent'] == costs['rent']

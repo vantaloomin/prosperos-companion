@@ -15,9 +15,9 @@ A timeline's life resumes from the moment it is chosen; time spent frozen is nev
 import re
 
 from companion.characters import require_current
-from companion.database import identifier, many, one, optional
+from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import feed
+from companion.life import feed, home, network, social
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
 FROZEN_EVENT = 'The timeline was frozen before this event was reviewed.'
@@ -124,6 +124,10 @@ def copy_history(connection, parent_id, new_id, message):
     people = many(connection, 'SELECT * FROM circle_people WHERE timeline_id=? ORDER BY ordinal', (parent_id,))
     for row in messages + events + people:
         ids[row['id']] = identifier()
+    recommended = [row for row in many(connection, 'SELECT * FROM recommendations WHERE timeline_id=?', (parent_id,))
+                   if row['message_id'] in ids]
+    for row in recommended:
+        ids[row['id']] = identifier()
     # A post links the version of an event it was made with; a corrected event's earlier versions
     # point at the copy of its current one, so the post carries over showing the correction.
     for row in many(connection, "SELECT id FROM life_events WHERE timeline_id=? AND status='superseded'",
@@ -141,16 +145,34 @@ def copy_history(connection, parent_id, new_id, message):
         'idempotency_key': copied_key(row['idempotency_key'], ids, new_id), 'details': remap(row['details'], ids),
     } for row in events])
     insert(connection, 'circle_people', [{**row, 'id': ids[row['id']], 'timeline_id': new_id} for row in people])
+    home.copy(connection, parent_id, new_id, cutoff, ids)
     copy_posts(connection, posts, ids, new_id)
+    social.copy(connection, parent_id, new_id, cutoff, ids, remap)
     # Triggers already used before the fork stay used, so the copy is not texted about them again.
     insert(connection, 'openers', [{**row, 'id': identifier(), 'timeline_id': new_id, 'message_id': ids[row['message_id']],
                                     'notify': None} for row in many(connection, 'SELECT * FROM openers WHERE timeline_id=?',
                                                                     (parent_id,)) if row['message_id'] in ids])
+    insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
+                                            'message_id': ids[row['message_id']]} for row in recommended])
+    copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
+    network.copy(connection, parent_id, new_id, cutoff)
     agenda = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND status IN ('happened','skipped') "
                   'AND ends_at<=?', (parent_id, cutoff))
     insert(connection, 'life_agenda', [{
         **row, 'id': identifier(), 'timeline_id': new_id, 'subject': ids.get(row['subject'], row['subject']),
         'entry': remap(row['entry'], ids), 'prepared': None} for row in agenda])
+
+
+def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
+    """Storylines that had started by the fork carry over with their cast; later starts are the copy's own."""
+    rows = [row for row in many(connection, 'SELECT * FROM storylines WHERE timeline_id=? AND started_on<=?',
+                                (parent_id, cutoff_date))
+            if all(person in ids for person in decode(row['cast_ids']))]
+    insert(connection, 'storylines', [{**row, 'id': identifier(), 'timeline_id': new_id,
+                                       'cast_ids': encode([ids[person] for person in decode(row['cast_ids'])])}
+                                      for row in rows])
+    if optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (parent_id,)):
+        connection.execute('INSERT INTO storyline_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
 
 
 def post_links(connection, post_id) -> list[dict]:

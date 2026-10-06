@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { displayName, personFacts, personNow, personWork } from '../../src/features/today/circleText.ts'
+import { displayName, personFacts, personNow, personTies, personWork } from '../../src/features/today/circleText.ts'
 import type { CirclePerson } from '../../src/types.ts'
 
 const person = (extra: Partial<CirclePerson> = {}): CirclePerson => ({
-  id: 'p', name: 'Ebony', role: 'friend', status: 'active', revision: 1, career: 'Nurse', employer: null,
+  id: 'p', key: 'circle:t:0', name: 'Ebony', role: 'friend', status: 'active', revision: 1, career: 'Nurse', employer: null,
   neighborhood: null, city: 'Baltimore', now: null, recent: [], ...extra,
 })
 
@@ -27,4 +27,10 @@ test('work and name fall back gracefully', () => {
   assert.equal(displayName(person({ full_name: 'Ebony Carter' })), 'Ebony Carter')
   assert.equal(displayName(person()), 'Ebony')
   assert.equal(displayName(person({ name: 'Rowan', full_name: 'Ebony Carter' })), 'Rowan')
+})
+
+test('ties name a partner first, then who else they know', () => {
+  assert.equal(personTies(person()), null)
+  assert.equal(personTies(person({ knows: [{ id: 'a', name: 'Ana', how: 'family' }, { id: 'r', name: 'Rui', how: 'married' }] })),
+    'Married to Rui. Knows Ana (family).')
 })

@@ -22,3 +22,13 @@ export function personWork(person: CirclePerson): string | null {
 export function displayName(person: CirclePerson): string {
   return person.full_name?.startsWith(`${person.name} `) ? person.full_name : person.name
 }
+
+/** "Married to Rui. Knows Ana (family), Dev (coworkers)": who they know inside the circle. */
+export function personTies(person: CirclePerson): string | null {
+  const known = person.knows ?? []
+  const partners = known.filter((item) => item.how === 'married' || item.how === 'divorced')
+    .map((item) => `${item.how === 'divorced' ? 'Divorced from' : 'Married to'} ${item.name}.`)
+  const others = known.filter((item) => item.how !== 'married' && item.how !== 'divorced').map((item) => `${item.name} (${item.how})`)
+  const text = [...partners, ...(others.length ? [`Knows ${others.join(', ')}.`] : [])].join(' ')
+  return text || null
+}

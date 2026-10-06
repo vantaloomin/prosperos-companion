@@ -141,3 +141,29 @@ def test_city_news_reads_naturally():
         "Bloom Cafe is opening in Fells Point on Saturday 10 October. Who's coming with me?"
     assert social.change_text({**opening, 'starts': '2026-10-01'}, '', today) == \
         'Bloom Cafe just opened. Who wants to try it?'
+
+
+def test_a_branch_keeps_the_social_posts_from_before_it_split_off(client, city, clock, monkeypatch):
+    monkeypatch.setattr(social, 'QUESTION_CHANCE', 1)
+    live_days(client, clock, 2)
+    sent = client.post('/api/conversation/messages', json={'text': 'Hi', 'client_id': 'branch-0001'}).json()['message']
+    before = [post for post in feed(client)['posts'] if post['source'] == 'social']
+    question = next(post for post in before if post['kind'] == 'question')
+    client.post(f"/api/feed/{question['id']}/answer", json={'option': question['options'][1], 'client_id': 'branch-0002'})
+    client.post(f"/api/feed/{before[0]['id']}/reaction", json={'reaction': 'wow'})
+    live_days(client, clock, 2)
+    after = {(post['kind'], post['text'], post['occurs_at']) for post in feed(client)['posts']
+             if post['source'] == 'social' and post['occurs_at'] > sent['created_at']}
+    branch = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'Hello'}).json()
+    client.post(f"/api/timelines/{branch['id']}/activate")
+    copied = [post for post in feed(client)['posts'] if post['source'] == 'social']
+    assert [(post['kind'], post['text'], post['occurs_at']) for post in copied if post['occurs_at'] <= sent['created_at']] \
+        == [(post['kind'], post['text'], post['occurs_at']) for post in before]
+    # What the parent posted after the split stays on the parent.
+    assert after and not after & {(post['kind'], post['text'], post['occurs_at']) for post in copied
+                                  if post['occurs_at'] > sent['created_at']}
+    shown = {post['text']: post for post in copied}
+    assert shown[question['text']]['answer'] == question['options'][1]
+    assert shown[before[0]['text']]['reaction'] == 'wow'
+    # Reading again on the branch does not post the copied ones a second time.
+    assert len([post for post in feed(client)['posts'] if post['source'] == 'social']) == len(copied)

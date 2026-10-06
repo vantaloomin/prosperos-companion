@@ -20,6 +20,10 @@ export interface Message {
   completed_at: string | null
   /** For a message copied into an alternate timeline, the message it was first written as. */
   origin_id?: string | null
+  /** A reply held while the companion was busy shows at this time (companion/life/pacing.py). */
+  held_until?: string | null
+  /** What they sent meanwhile ("in a meeting, give me a bit"); none while asleep. */
+  held_line?: string | null
   /** A photo of the moment this reply sent (photos in chat). */
   photo?: ChatPhoto | null
 }
@@ -42,6 +46,8 @@ export interface ChatPhoto {
   /** Sent without being asked. */
   unasked: boolean
 }
+
+export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
 
 export interface Timeline {
   id: string
@@ -80,6 +86,8 @@ export interface EmotionalTrait { name: string; intensity: Intensity; note: stri
 
 export interface CharacterDefinition {
   name: string
+  /** "MM-DD"; empty picks a date for them. */
+  birthday?: string
   identity: string
   personality: string
   voice: string
@@ -98,6 +106,7 @@ export interface CharacterDefinition {
   schedule: RoutineBlock[]
   life_themes: string[]
   money: MoneySetup
+  texting?: TextingStyle
 }
 
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'
@@ -122,7 +131,9 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   style: SpendingStyle
   career: { id: string; name: string; pay: string; guessed: boolean } | null
   housing: { unit: string; label: string; neighborhood: string }
-  budget: { income: number; rent: number; essentials: number; fun: number; saving: number }
+  budget: { income: number; rent: number; upkeep: number; essentials: number; fun: number; saving: number }
+  rent_from: 'home' | 'budget'
+  bought: MoneyHappening[]
   payday: { last: string; next: string; cycle_days: number; today: boolean }
   left: number
   fun_cycle: number
@@ -132,7 +143,7 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   surprise: MoneyHappening | null
   cant_afford: string[]
   goal: { label: string; amount: number; saved: number; share: number; custom: boolean; since: string; stalled: boolean }
-  text: { income: string; rent: string; essentials: string; fun: string; saving: string; left: string }
+  text: { income: string; rent: string; upkeep: string; essentials: string; fun: string; saving: string; left: string }
 })
 
 export interface CharacterVersion {
@@ -162,7 +173,7 @@ export interface WorkspaceSettings {
   model_memory_suggestions?: boolean
   /** How the chat looks; the messages and every action are the same in each style. */
   chat_style?: ChatStyle
-  /** Retro IM door, away and message sounds; off unless turned on. */
+  /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
@@ -272,6 +283,15 @@ export interface LifeSettings {
   texts_first: boolean
   texts_daily: number
   texts_gap_hours: number
+  /** 0 sizes the circle by how sociable the companion is. */
+  circle_size: number
+  /** "MM-DD" or empty; filled in when the user says it in chat. */
+  user_birthday: string
+  /** Replies wait while the companion is at work or asleep. */
+  paced_replies: boolean
+  day_shifts: boolean
+  /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
+  drama: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -318,6 +338,8 @@ export interface Today {
   mood: AbsenceMood | null
   last_seen_at: string | null
   day: { date: string; body: BodyState | null }
+  /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
+  occasions?: Occasion[]
 }
 
 /** How the companion feels physically today, carried over from the day before. */
@@ -372,6 +394,8 @@ export interface DiaryEntry {
 }
 export interface CirclePerson {
   id: string
+  /** Where their own people are built from (GET /life/network?key=). */
+  key: string
   name: string
   role: string
   status: 'active' | 'removed'
@@ -386,9 +410,33 @@ export interface CirclePerson {
   local?: boolean
   closeness?: string
   haunts?: string[]
+  works_with_companion?: boolean
+  /** Who they know inside the circle and how. */
+  knows?: CircleTie[]
   now: RoutineBlock | null
   recent: DiaryEntry[]
 }
+
+/** Someone around the circle, a few layers out (companion/life/network.py); built on request, never stored. */
+export interface NetworkPerson {
+  key: string
+  name: string
+  full: string
+  pronouns: string
+  age: number
+  relation: string
+  depth: number
+  of: string
+  how: string
+  occupation: string
+  /** Where the companion met them, when they have. */
+  met?: string | null
+}
+export interface NetworkAnswer { person: Pick<NetworkPerson, 'key' | 'name' | 'depth'>; people: NetworkPerson[]; deeper: boolean }
+export interface Acquaintance extends Omit<NetworkPerson, 'depth' | 'met'> { occasion: string; met_on: string; met_at: string }
+
+export interface CircleTie { id: string; name: string; how: string }
+export interface CircleRoom { people: number; target: number; sociability: 'quiet' | 'usual' | 'social' }
 
 export type ImageStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
 
@@ -776,4 +824,63 @@ export interface SelfFact {
   conflicts_with: string | null
   created_at: string
   decided_at: string | null
+}
+
+/** Something the user recommended (companion/life/recommendations.py). */
+export interface Recommendation {
+  id: string
+  kind: 'show' | 'movie' | 'book' | 'music' | 'game' | 'outing'
+  title: string
+  state: 'waiting' | 'started' | 'finished'
+  sessions_done: number
+  verdict: string | null
+  created_at: string
+  finished_at: string | null
+}
+
+export interface StoryBeat { on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed' }
+/** Something unfolding in the companion's or their circle's lives (companion/life/storylines.py). */
+export interface Storyline {
+  id: string
+  story: string
+  level: 'quiet' | 'realistic' | 'dramatic' | 'soap opera'
+  started_on: string
+  status: 'running' | 'ended'
+  cast: { id: string; name: string; role: string }[]
+  beats: StoryBeat[]
+  unfolding: boolean
+}
+
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null }
+export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
+
+export interface HomeItem {
+  id: string
+  kind: HomeKind
+  name: string
+  variety: string
+  description: string
+  origin: 'generated' | 'change' | 'user'
+  since: string
+  until: string | null
+  edited: boolean
+  revision: number
+  neighborhood?: string
+  city?: string
+  features?: string[]
+  rent?: number | null
+  rent_period?: 'month' | 'week'
+  currency?: { code: string; symbol: string; name: string }
+  out_of_action?: string | null
+}
+
+export interface HomeChange { local_date: string; kind: string; text: string }
+
+export interface HomeView {
+  today: string
+  items: HomeItem[]
+  removed: HomeItem[]
+  changes: HomeChange[]
+  costs: { rent: number | null; rent_period: string } | null
+  varieties: { pet: string[]; vehicle: string[] }
 }

@@ -11,7 +11,7 @@ import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from companion.life import body, money
+from companion.life import body, money, occasions
 
 COMPOSER_VERSION = 'compose-7'
 QUIET_SHARE = 0.2
@@ -138,6 +138,34 @@ BIRTHDAY = activity('birthday', ('restaurant', 'bar'), [],
 CALL = ("{name} called {friend} to wish them a happy birthday.",
         "{name} spent a while on the phone with {friend}, who turned a year older today.")
 BIRTHDAY_KINDS = {'leisure', 'social'}
+
+
+# The companion's own birthday (companion/life/occasions.py): a free evening goes to celebrating.
+OWN_BIRTHDAY = activity('own-birthday', ('restaurant', 'bar'), ['{name} treated themselves{at} for their birthday.'],
+                        ['Another trip around the sun.', 'Birthday dinner, birthday cake.', 'Older, not wiser.'],
+                        ['happy', 'warm'], '',
+                        ['{name} celebrated their birthday{at} with {friend}.',
+                         '{name} went out{at} with {friend} for their birthday.'])
+
+
+def own_birthday(slot: dict, definition: dict, world, seed: str, recent_activities, company, conditions):
+    """On the companion's birthday, a leisure or social slot is a celebration, with a free friend if any."""
+    mine = definition.get('own_birthday')
+    if not mine or not occasions.on(date.fromisoformat(slot['local_date']), mine) \
+            or slot['block']['kind'] not in BIRTHDAY_KINDS or slot['block']['start'] < '12:00' \
+            or OWN_BIRTHDAY.key in set(recent_activities):
+        return None
+    rng = random.Random(f'{seed}:own-birthday')
+    friend = company[0] if company else None
+    places = find_places(world, definition, slot, OWN_BIRTHDAY.place_kinds)
+    place = rng.choice(places) if places else None
+    at = f' at {place.name}' if place else ''
+    summary = (rng.choice(OWN_BIRTHDAY.together).format(name=definition['name'], friend=friend['name'], at=at)
+               if friend else rng.choice(OWN_BIRTHDAY.summaries).format(name=definition['name'], at=at))
+    return {'summary': summary, 'post': rng.choice(OWN_BIRTHDAY.captions), 'mood': rng.choice(OWN_BIRTHDAY.moods),
+            'activity': OWN_BIRTHDAY.key, 'place': place.view() if place else None,
+            'with': {'id': friend['id'], 'name': friend['name']} if friend else None,
+            'weather': conditions, 'composer_version': COMPOSER_VERSION}
 
 
 def birthday(slot: dict, definition: dict, world, seed: str, recent_activities, celebrants, conditions):
@@ -311,7 +339,8 @@ def compose(slot: dict, definition: dict, world, seed: str, recent_activities=()
         return sick_day(rng, block, definition)
     # Prefer activities that did not just happen, so variety comes from the routine, not drama.
     conditions = block.get('weather') or weather(world, definition, slot['local_date'])
-    if outing := birthday(slot, definition, world, seed, recent_activities, celebrants, conditions):
+    if outing := (own_birthday(slot, definition, world, seed, recent_activities, company, conditions)
+                  or birthday(slot, definition, world, seed, recent_activities, celebrants, conditions)):
         return outing
     low = state in body.LOW
     if not low and (outing := festival(slot, definition, world, seed, recent_activities, company, conditions)):

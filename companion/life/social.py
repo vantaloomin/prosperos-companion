@@ -103,7 +103,9 @@ def refresh(database) -> None:
 
 def write(connection, companion, now: datetime) -> int:
     timeline_id = companion['active_timeline_id']
-    started = parse(one(connection, 'SELECT created_at FROM timelines WHERE id=?', (timeline_id,))['created_at'])
+    # A branch shares its parent's history up to where it split off (copied in by `copy`).
+    started = parse(one(connection, 'SELECT COALESCE(forked_at, created_at) AS started FROM timelines WHERE id=?',
+                        (timeline_id,))['started'])
     since = max(now - LOOKBACK, started)
     people = active_people(connection, timeline_id)
     found = [*friend_posts(connection, timeline_id, people, since, now),
@@ -451,3 +453,22 @@ def reference_text(connection, row) -> str:
     if row['answer']:
         text += f" The user picked: {row['answer']}."
     return text
+
+
+def copy(connection, parent_id, new_id, cutoff: str, ids: dict, remap) -> None:
+    """A branch keeps the social posts its parent had by the time it split off, with their read,
+    reaction and answer state, and the chat replies to them. `ids` maps the parent's identities
+    (timeline, circle people, messages) to the copies; `remap` rewrites them inside stored text."""
+    rows = many(connection, 'SELECT * FROM social_posts WHERE timeline_id=? AND occurs_at<=?', (parent_id, cutoff))
+    copies = {row['id']: identifier() for row in rows}
+    connection.executemany(
+        'INSERT OR IGNORE INTO social_posts (id, timeline_id, kind, author, idempotency_key, content, answer, status, '
+        'reaction, occurs_at, created_at, read_at, removed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [(copies[row['id']], new_id, row['kind'], ids.get(row['author'], row['author']),
+          remap(row['idempotency_key'], ids), remap(row['content'], ids), row['answer'], row['status'],
+          row['reaction'], row['occurs_at'], row['created_at'], row['read_at'], row['removed_at']) for row in rows])
+    links = many(connection, 'SELECT * FROM message_social_links WHERE post_id IN (SELECT id FROM social_posts '
+                 'WHERE timeline_id=?)', (parent_id,))
+    connection.executemany('INSERT OR IGNORE INTO message_social_links (message_id, post_id) VALUES (?, ?)',
+                           [(ids[link['message_id']], copies[link['post_id']]) for link in links
+                            if link['message_id'] in ids and link['post_id'] in copies])

@@ -1,9 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { GitBranch, Search } from 'lucide-react'
-import { api } from '../../api'
-import type { ChatStyle, Companion, Today } from '../../types'
-import { availabilityShort } from '../today/todayText'
+import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
 import { useChatStyle } from './useChatStyle'
 
@@ -20,15 +17,12 @@ export function ConversationHeader({ companion, searching, searchButton, onSearc
   const [now, setNow] = useState(() => new Date())
   useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30_000); return () => window.clearInterval(timer) }, [])
   const time = localTime(timezone, now)
-  // Their routine explains a slow reply; it never blocks sending (PRD C5).
-  const today = useQuery({ queryKey: ['today'], queryFn: () => api<Today>('/today'), staleTime: 60_000, refetchInterval: 5 * 60_000 })
-  const activity = today.data ? availabilityShort(today.data.availability) : null
   return (
     <header className="conversation-header">
       <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>
       <div className="conversation-title">
         <h1>{name}</h1>
-        <p className="subtle">{[timeline, activity, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
+        <p className="subtle">{[timeline, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
       </div>
       <ChatStyleSwitch />
       <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>

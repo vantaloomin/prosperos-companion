@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Pencil, RotateCcw, UserMinus } from 'lucide-react'
+import { BookOpen, Pencil, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
 import { api } from '../../api'
-import type { CirclePerson, DiaryEntry } from '../../types'
+import type { CirclePerson, CircleRoom, DiaryEntry } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { displayName, personFacts, personNow, personWork } from './circleText'
+import { displayName, personFacts, personNow, personTies, personWork } from './circleText'
 import { eventWhen } from './todayText'
+import { Acquaintances, TheirPeople } from './Network'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -45,7 +46,23 @@ export function Circle({ name }: { name: string }) {
       {circle.isSuccess && circle.data.length > 0 && (
         <ul className="person-list">{circle.data.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
       )}
+      {circle.isSuccess && <MorePeople name={name} act={act} />}
+      {circle.isSuccess && <Acquaintances name={name} />}
     </section>
+  )
+}
+
+/** Offered when the circle is smaller than it should be: a sociable companion, or a bigger size in Settings. */
+function MorePeople({ name, act }: { name: string; act: Act }) {
+  const room = useQuery({ queryKey: [...CIRCLE_KEY, 'room'], queryFn: () => api<CircleRoom>('/life/circle/room') })
+  if (!room.data || room.data.people >= room.data.target) return null
+  const missing = room.data.target - room.data.people
+  const why = room.data.sociability === 'social' ? `${name} is the sociable type` : `Their circle size in Settings is ${room.data.target}`
+  return (
+    <div className="person-actions">
+      <p className="subtle">{why}, so there is room for {missing} more {missing === 1 ? 'person' : 'people'}: coworkers, old and new friends, family. Nobody already here changes.</p>
+      <button type="button" className="button" onClick={() => void act(() => api('/life/circle/grow', {}), `${missing === 1 ? 'Someone new is' : `${missing} new people are`} now part of ${name}'s life.`)}><UserPlus aria-hidden="true" />Add {missing === 1 ? 'one person' : `${missing} people`}</button>
+    </div>
   )
 }
 
@@ -53,6 +70,7 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
   const [renaming, setRenaming] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [diary, setDiary] = useState(false)
+  const [network, setNetwork] = useState(false)
   const gone = person.status === 'removed'
   const work = personWork(person)
   const remove = async () => { setRemoving(false); await act(() => api(`/life/circle/${person.id}/remove`, {}), `${person.name} is no longer part of ${companion}'s upcoming days.`) }
@@ -65,16 +83,10 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
       </header>
       {gone ? <p className="subtle">Removed. Moments that already happened still mention them.</p> : <PersonDetails person={person} work={work} />}
       {renaming && <RenameForm person={person} act={act} onDone={() => setRenaming(false)} />}
-      {!renaming && (
-        <div className="person-actions">
-          {!gone && <button type="button" className="text-button" onClick={() => setRenaming(true)}><Pencil aria-hidden="true" />Rename</button>}
-          <button type="button" className="text-button" aria-expanded={diary} onClick={() => setDiary((open) => !open)}><BookOpen aria-hidden="true" />{diary ? 'Hide diary' : 'Diary'}</button>
-          {gone
-            ? <button type="button" className="text-button" onClick={() => void restore()}><RotateCcw aria-hidden="true" />Restore</button>
-            : <button type="button" className="text-button" onClick={() => setRemoving(true)}><UserMinus aria-hidden="true" />Remove</button>}
-        </div>
-      )}
+      {!renaming && <PersonActions gone={gone} diary={diary} network={network} onRename={() => setRenaming(true)} onDiary={() => setDiary((open) => !open)}
+        onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void restore()} />}
       {diary && <Diary person={person} />}
+      {network && !gone && <TheirPeople personKey={person.key} name={person.name} />}
       {removing && (
         <ConfirmDialog title={`Remove ${person.name}?`} onClose={() => setRemoving(false)} actions={<>
           <button type="button" className="button" onClick={() => setRemoving(false)}>Cancel</button>
@@ -87,10 +99,26 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
   )
 }
 
+interface ActionsProps { gone: boolean; diary: boolean; network: boolean; onRename: () => void; onDiary: () => void; onNetwork: () => void; onRemove: () => void; onRestore: () => void }
+
+function PersonActions({ gone, diary, network, onRename, onDiary, onNetwork, onRemove, onRestore }: ActionsProps) {
+  return (
+    <div className="person-actions">
+      {!gone && <button type="button" className="text-button" onClick={onRename}><Pencil aria-hidden="true" />Rename</button>}
+      <button type="button" className="text-button" aria-expanded={diary} onClick={onDiary}><BookOpen aria-hidden="true" />{diary ? 'Hide diary' : 'Diary'}</button>
+      {!gone && <button type="button" className="text-button" aria-expanded={network} onClick={onNetwork}><Users aria-hidden="true" />{network ? 'Hide their people' : 'Their people'}</button>}
+      {gone
+        ? <button type="button" className="text-button" onClick={onRestore}><RotateCcw aria-hidden="true" />Restore</button>
+        : <button type="button" className="text-button" onClick={onRemove}><UserMinus aria-hidden="true" />Remove</button>}
+    </div>
+  )
+}
+
 function PersonDetails({ person, work }: { person: CirclePerson; work: string | null }) {
   return <>
     <p>{personNow(person)}</p>
     {work && <p className="subtle">{work}</p>}
+    {personTies(person) && <p className="subtle">{personTies(person)}</p>}
     {person.haunts && person.haunts.length > 0 && <p className="subtle">Often at {person.haunts.join(', ')}</p>}
     {person.recent.length > 0 && <ul className="diary-list">{person.recent.map((entry) => <DiaryLine key={entry.slot} entry={entry} />)}</ul>}
   </>

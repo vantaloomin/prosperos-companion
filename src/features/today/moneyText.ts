@@ -41,3 +41,10 @@ export function workText(view: Budget): string {
   const work = view.career ? `${view.career.name}${view.career.guessed ? ' (guessed from who they are)' : ''}` : 'Ordinary wage'
   return `${work}, taking home about ${view.text.income} ${per}.`
 }
+
+/** Rent on their home (from Home) or the budget's own estimate of where they live. */
+export function rentText(view: Budget): string {
+  return view.rent_from === 'home'
+    ? `Rent: about ${view.text.rent} for their home.`
+    : `Rent: about ${view.text.rent} for ${view.housing.label} in ${view.housing.neighborhood}.`
+}
