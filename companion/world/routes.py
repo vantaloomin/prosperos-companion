@@ -1,13 +1,14 @@
 """World data API: the built-in and user cities, the generators built on them, and the city builder."""
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Query, Request
 from pydantic import Field
 
 from companion.clock import zone
+from companion.errors import require
 from companion.models import Input
-from companion.world import catalog, changes, custom, generators
+from companion.world import catalog, changes, custom, generators, townsfolk
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
 
@@ -125,6 +126,24 @@ def read_sources(request: Request, city_id: str):
 def list_places(request: Request, city_id: str, kind: str | None = None, neighborhood: str | None = None,
                 tag: str | None = None, good_for: Company | None = None):
     return catalog.places(city(request, city_id), kind=kind, neighborhood=neighborhood, tag=tag, good_for=good_for)
+
+
+@router.get('/cities/{city_id}/places/{place_id}/people')
+def place_people(request: Request, city_id: str, place_id: str, on: date | None = None,
+                 at: str = Query('12:00', pattern=r'^([01][0-9]|2[0-3]):[0-5][0-9]$')):
+    """The townsfolk seeded at a place (companion/world/townsfolk.py): everything about them, how their goal
+    stands on `on` (default today) and where their rules put them at `at` that day. The companion only
+    learns this a little at a time; this is the city's own view."""
+    data = city(request, city_id)
+    day = on or request.app.state.database.clock.now().date()
+    moment = datetime.combine(day, time.fromisoformat(at))
+    result = []
+    for sheet in townsfolk.at_place(data, place_id):
+        result.append({**sheet, 'flaw_text': townsfolk.FLAWS[sheet['flaw']][0],
+                       'desire_text': townsfolk.DESIRES[sheet['desire']], 'routine': townsfolk.routine_text(sheet),
+                       'story': townsfolk.story(sheet, data, day), 'now': townsfolk.whereabouts(sheet, data, moment)})
+    require(result or catalog.find(data, place_id) is not None, 'No such place in this city.', 404)
+    return result
 
 
 @router.get('/cities/{city_id}/conditions')

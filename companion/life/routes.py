@@ -12,6 +12,7 @@ from companion.errors import require
 from companion.life import (
     agenda,
     circle,
+    encounters,
     feed,
     money,
     mood,
@@ -237,6 +238,29 @@ def read_acquaintances(request: Request):
     with database.connect() as connection:
         companion = require_current(connection)
         return network.acquaintances(connection, companion['active_timeline_id'], database.clock.now())
+
+
+@router.get('/townsfolk')
+def read_townsfolk(request: Request):
+    """Townsfolk the companion has run into around the city (companion/life/encounters.py), most recently seen
+    first, with only what the companion has learned about them so far."""
+    database = db(request)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        return encounters.known(connection, companion, database.clock.now())
+
+
+@router.get('/townsfolk/person')
+def read_townsperson(request: Request, key: str):
+    """One townsperson the companion has met, with where they probably are right now by their rules."""
+    database = db(request)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        now = database.clock.now()
+        found = next((person for person in encounters.known(connection, companion, now) if person['key'] == key),
+                     None)
+        require(found is not None, 'The companion has not met that person.', 404)
+        return {**found, 'now': encounters.whereabouts_now(connection, companion, key, now)}
 
 
 @today_router.get('')

@@ -913,3 +913,30 @@ export interface HomeView {
   costs: { rent: number | null; rent_period: string } | null
   varieties: { pet: string[]; vehicle: string[] }
 }
+
+/** A townsperson the companion has met around the city: only what the companion has learned so far. */
+export interface Townsperson {
+  key: string
+  name: string
+  full: string
+  pronouns: string
+  age: number
+  role: string
+  staff: boolean
+  place: { id: string; name: string; kind: string; neighborhood: string }
+  neighborhood: string
+  temperament: string
+  quirk: string
+  times: number
+  first_met: string
+  first_place: string
+  last_met: string
+  last_place: string
+  goal: string | null
+  lately: string | null
+  reached: string[]
+  routine: string | null
+  flaw: string | null
+  desire: string | null
+}
+export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }

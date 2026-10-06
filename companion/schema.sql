@@ -1123,3 +1123,17 @@ CREATE TABLE IF NOT EXISTS phone_push (
   auth TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+-- Townsfolk the companion ran into around the city (companion/life/encounters.py). The people are seeded
+-- from the city data (companion/world/townsfolk.py) and rebuilt from `key`; only the meeting is kept. A
+-- meeting counts once its agenda slot has happened and the slot's entry still records it.
+CREATE TABLE IF NOT EXISTS townsfolk_encounters (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  slot_key TEXT NOT NULL,
+  place TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  met_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, key, slot_key)
+);
+CREATE INDEX IF NOT EXISTS townsfolk_encounters_day ON townsfolk_encounters(timeline_id, local_date);
