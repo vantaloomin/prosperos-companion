@@ -179,9 +179,10 @@ def test_names_that_read_as_invented_are_retried_then_swapped(client, provider):
     definition = client.post('/api/companion/draft', json={'idea': 'a nurse', 'age': 'thirties'}).json()['definition']
     retry = provider.requests[1]['messages'][-1]['content']
     assert 'Elara' in retry and 'Voss' in retry and 'made up' in retry
-    first, last = definition['name'].split(' ', 1)
     assert 'Elara' not in definition['name'] and 'Voss' not in definition['name']
-    assert f'calls {first} every Sunday' in definition['background'] and 'Lyra' not in definition['background']
+    # Each invented name is swapped the same way everywhere (a swapped-in name may have two words: Maria Teresa).
+    swapped = re.search(r'calls (.+) every Sunday', definition['background'])[1]
+    assert definition['name'].startswith(f'{swapped} ') and 'Lyra' not in definition['background']
     # The quick start offers names people in their thirties really have, from the city's data.
     assert 'commonly have where they live' in provider.requests[0]['system']
 
@@ -205,3 +206,12 @@ def test_a_redone_field_cannot_bring_in_invented_names(client, provider):
 def test_quick_start_ages_are_read_from_the_pick():
     assert [drafting.age_value(text) for text in ('', 'twenties', 'thirties', '34', 'sixty or older')] == \
         [None, 25, 35, 34, 65]
+
+
+def test_invented_names_are_swapped_consistently_whatever_the_seed():
+    text = {'name': 'Elara Voss', 'background': 'Her sister Lyra still calls Elara every Sunday.'}
+    for index in range(300):
+        swapped = drafting.replace_invented(text, ['Elara', 'Voss', 'Lyra'], None, f'seed-{index}')
+        given = re.search(r'calls (.+) every Sunday', swapped['background'])[1]
+        assert swapped['name'].startswith(f'{given} ')
+        assert not drafting.naming.invented_in(json.dumps(swapped))

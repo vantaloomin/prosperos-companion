@@ -14,6 +14,7 @@ from conftest import send
 from companion import backup, workspace
 from companion.errors import DomainError
 from companion.memory import records
+from companion.memory.context import HEADINGS
 from companion.memory.formation import run_pending
 from companion.models import MemoryCorrection, SettingsUpdate
 
@@ -205,7 +206,8 @@ def test_forgetting_and_restore(client, app, connected, tmp_path, clock):
     client.post(f"/api/memories/{sister['id']}/exclude")
     say(client, 'What is my sister called again, Ana?')
     request = client.get('/api/context/preview').json()
-    assert 'Ana' not in request['system']
+    # The names offered for new people are generated from world data, so one may happen to contain "Ana".
+    assert 'Ana' not in without_newcomers(request['system'])
     assert 'My sister is called Ana' not in str(request)
 
     # A backup taken now still holds what is about to be deleted.
@@ -237,3 +239,12 @@ def test_forgetting_and_restore(client, app, connected, tmp_path, clock):
     workspace.update(restored, SettingsUpdate(automatic_memory=True, review_complete=True))
     result = run_pending(restored)
     assert result['processed'] == result['stale'] > 0, 'jobs queued before the backup never commit'
+
+
+def without_newcomers(system: str) -> str:
+    """The system prompt without the generated names offered for new people."""
+    heading = f"## {HEADINGS['newcomers']}"
+    if heading not in system:
+        return system
+    before, after = system.split(heading, 1)
+    return before + (after[after.index('\n## '):] if '\n## ' in after else '')
