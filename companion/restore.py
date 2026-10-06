@@ -130,13 +130,20 @@ def archive_path(workspace: Path, name: str) -> Path:
     return path
 
 
+# Backups the app makes on its own, named for what they came before (companion/start_over.py, upgrade.py).
+KINDS = ('pre-upgrade', 'before-reset', 'before-delete')
+
+
+def kind(name: str) -> str:
+    return next((item for item in KINDS if name.startswith(item + '-')), 'backup')
+
+
 def listing(workspace: Path) -> dict:
     """Backups in the workspace's folder, newest first, read from their manifests only."""
     items = []
     folder = backups_folder(workspace)
     for path in sorted(folder.glob('*.zip') if folder.is_dir() else (), key=lambda item: item.name, reverse=True):
-        entry = {'name': path.name, 'bytes': path.stat().st_size, 'kind': 'pre-upgrade'
-                 if path.name.startswith('pre-upgrade-') else 'backup', 'readable': False}
+        entry = {'name': path.name, 'bytes': path.stat().st_size, 'kind': kind(path.name), 'readable': False}
         try:
             with zipfile.ZipFile(path) as handle:
                 manifest = json.loads(handle.read(backup.MANIFEST_ENTRY))

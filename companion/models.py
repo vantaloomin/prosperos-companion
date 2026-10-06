@@ -124,6 +124,10 @@ class CharacterRevision(Input):
     expected_version_id: str
 
 
+class StartOverConfirm(Input):
+    name: str = Field(max_length=200)
+
+
 class SettingsUpdate(Input):
     user_timezone: str | None = Field(default=None, max_length=64)
     # 'detected': the interface reporting this PC's zone; 'pc': Use this PC's timezone; otherwise chosen.

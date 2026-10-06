@@ -13,6 +13,7 @@ from companion import (
     notifications,
     restore,
     self_facts,
+    start_over,
     text_models,
     timelines,
     workspace,
@@ -35,6 +36,7 @@ from companion.models import (
     NotificationSettingsUpdate,
     PromptUpdate,
     SettingsUpdate,
+    StartOverConfirm,
     TimelineFork,
     TimelineUpdate,
 )
@@ -129,6 +131,30 @@ def revise_companion(request: Request, body: CharacterRevision):
 @router.get('/companion/versions')
 def companion_versions(request: Request):
     return characters.versions(db(request))
+
+
+@router.get('/companion/start-over')
+def start_over_preview(request: Request):
+    """What starting over or deleting would remove, for the confirmation."""
+    return start_over.preview(db(request))
+
+
+@router.post('/companion/start-over')
+def start_companion_over(request: Request, body: StartOverConfirm):
+    """Same character, fresh history, after a verified backup."""
+    return stopped(request, start_over.start_over(db(request), body.name))
+
+
+@router.post('/companion/delete')
+def delete_companion(request: Request, body: StartOverConfirm):
+    """The companion and everything about them, after a verified backup."""
+    return stopped(request, start_over.delete(db(request), body.name))
+
+
+def stopped(request: Request, result: dict) -> dict:
+    for attempt_id in result['stopped_reply_ids']:
+        request.app.state.conversation.stop(attempt_id)
+    return result
 
 
 @router.get('/timelines')

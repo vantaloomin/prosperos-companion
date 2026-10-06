@@ -16,6 +16,7 @@ import { QuickStart } from './QuickStart'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
+import { StartOver } from './StartOver'
 
 interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
 
@@ -124,6 +125,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
         <Home name={companion.version.name} />
         <SelfFacts name={companion.version.name} />
         <Versions current={companion.active_version_id} />
+        <StartOver name={companion.version.name} go={go} />
       </>}
     </section>
   )

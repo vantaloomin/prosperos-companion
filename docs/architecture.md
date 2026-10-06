@@ -409,6 +409,18 @@ workspace. Restore only targets a new path, checks the format marker and digest,
 restored workspace paused with automatic memory and background activity off and its saved key
 reference cleared. Enabling memory or background activity requires marking the review complete.
 
+### Starting over and deleting
+
+`companion/start_over.py`, from the bottom of the Character page (PC only). The user types the
+companion's name; a full backup with reference pictures (`before-reset-*.zip` or
+`before-delete-*.zip`) is written and verified before anything is removed. Every table is in one
+group: WORKSPACE (settings, connections, backends, lookups, cities, phones) always stays,
+CHARACTER (companion, versions, look and LoRA) stays on start over, HISTORY (timelines and all
+they hold) is cleared by both. A test fails when a new table is in no group. Starting over gives
+the companion a fresh active timeline that begins now; deleting also removes `images/` and the
+LoRA folders, and waits while an adapter trains. Both bump the permission and memory revisions,
+stop replies being written and vacuum the database.
+
 ## Current context (X1–X3)
 
 `companion/mcp/` looks up real weather, news and local events through MCP servers the user
