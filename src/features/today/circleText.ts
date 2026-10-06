@@ -1,9 +1,10 @@
 import type { CirclePerson } from '../../types'
 
-/** "close friend · she/her · 40": how they relate to the companion, then what is known about them. */
+/** "close friend · she/her · 40" or "sister · married, born Smith · she/her · 31": how they relate to the companion, then what is known about them. */
 export function personFacts(person: CirclePerson): string {
   const role = person.closeness && person.closeness !== 'close' ? `${person.role} (${person.closeness})` : person.role
-  return [role, person.pronouns, person.age ? String(person.age) : null].filter(Boolean).join(' · ')
+  const married = person.married ? (person.birth_family ? `married, born ${person.birth_family}` : 'married') : null
+  return [role, married, person.pronouns, person.age ? String(person.age) : null].filter(Boolean).join(' · ')
 }
 
 /** Where they are in their week, without implying the companion is with them. */

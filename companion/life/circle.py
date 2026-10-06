@@ -13,6 +13,11 @@ the party) gets a bigger circle with friends old and new, coworkers and both par
 a smaller one. The Life setting `circle_size` overrides it, and grow() adds people to a circle that
 was assembled smaller. Who knows whom inside the circle (family, coworkers, old friends) is derived
 from roles and a seed by ties(), so storylines between them stay consistent.
+
+Parents and siblings carry the companion's family name. A difference needs a marriage to explain it: a
+sibling the circle records as married may go by a married name, and a companion who has married (or names
+a maiden name with "née") has relatives with their birth name, or a name of their own when none is given.
+Cousins may or may not share it.
 """
 import re
 from datetime import date, timedelta
@@ -20,7 +25,7 @@ from datetime import date, timedelta
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.world import catalog, generators
+from companion.world import catalog, generators, naming
 
 CIRCLE_SIZE = 5
 SIZES = {'quiet': 4, 'usual': CIRCLE_SIZE, 'social': 10}
@@ -36,6 +41,17 @@ QUIET_WORDS = re.compile(r"\b(?:introverted|introvert|shy|loner|reserved|homebod
                          re.IGNORECASE)
 NEGATED = re.compile(r"\b(?:not|never|isn't|aren't|wasn't|hardly|far from|anything but)\s+(?:\w+\s+)?$", re.IGNORECASE)
 FAMILY = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother', 'cousin'}
+# Relatives who share the companion's family name unless a marriage explains otherwise.
+IMMEDIATE = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother'}
+SUFFIXES = {'jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'}
+BIRTH_NAME = re.compile(r"\b(?:n[ée]e|maiden name(?: is| was|:)?|born with the (?:last|family) name)\s+"
+                        r"([A-Z][A-Za-z'’-]+)")
+MARRIED = re.compile(r"\b(?:(?:is|was|got|been|happily|recently|newly|now|i'm|she's|he's|they're)\s+"
+                     r"(?:married|divorced|widowed)|(?:a )?(?:widow|widower|divorcee)|"
+                     r"(?:my|her|his|their)\s+(?:late |ex-?)?(?:husband|wife|spouse))\b", re.IGNORECASE)
+# How likely a sibling of this age is married, and how likely a married sibling took their spouse's name.
+MARRIED_BY_AGE = ((25, 0.0), (30, 0.3), (200, 0.55))
+TAKES_NAME = {'she/her': 0.8, 'he/him': 0.03}
 OLD_FRIENDS = {'close friend', 'longtime friend', 'old friend from school', 'old classmate'}
 # The first slot is always a close friend; the rest vary by seed.
 NAMES = (
@@ -110,8 +126,9 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
     social = size > CIRCLE_SIZE
     order = generators.SOCIAL if social else generators.CIRCLE
     works = social and bool(work_blocks(definition))
+    family = family_name(definition)
     made = generators.circle(data, seed=seed or f'circle:{timeline_id}', size=min(size, len(order)), home=home,
-                             order=order, coworkers=works)
+                             order=order, coworkers=works, family=family, group=family_group(data, family))
     result, taken = [], set(taken or ()) | {definition['name']}
     for member in made['people']:
         job = member['job'] or {}
@@ -123,14 +140,71 @@ def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE
                    'closeness': member['closeness'], 'haunts': [spot['name'] for spot in member['haunts']],
                    'refs': member.get('refs', []), 'sources': member.get('sources', []),
                    'data_version': data['data_version']}
+        if family and member['role'] in ('parent', 'sibling'):
+            details['full_name'] = f"{member['name']['given']} {family_form(family, member['name']['pronouns'])}"
+            if member['role'] == 'sibling':
+                details |= married_sibling(data, timeline_id, member['name'], member['age'], family)
         # Two people with the same first name go by their full names, so events stay unambiguous.
-        shown = member['name']['given'] if member['name']['given'] not in taken else member['name']['full']
+        shown = member['name']['given'] if member['name']['given'] not in taken else details['full_name']
         taken.add(shown)
         made_person = {'name': shown, 'role': relation(member['role'], member['name']['pronouns']),
                        'career': (job.get('career') or {}).get('id', ''), 'details': details,
                        'schedule': member['schedule'] or []}
         result.append(colleague(made_person, definition) if member['role'] == 'coworker' else made_person)
     return result
+
+
+def family_name(definition: dict) -> str | None:
+    """The family name the companion's parents and siblings carry (in its listed form: Kowalski for Anna
+    Kowalska): their own last name, or the birth name they give with "née"; None for a one-word name or a companion who has married without naming one."""
+    text = ' '.join(definition.get(key) or '' for key in ('identity', 'background'))
+    if match := BIRTH_NAME.search(text):
+        return family_form(match.group(1), 'he/him')
+    words = [word for word in (definition.get('name') or '').split() if word.casefold() not in SUFFIXES]
+    if len(words) < 2 or MARRIED.search(text):
+        return None
+    return family_form(words[-1], 'he/him')
+
+
+def family_group(data: dict, family: str | None) -> str | None:
+    """A name group of the city whose family names (or linked cultures') include this one, for fitting given names."""
+    if not family:
+        return None
+    groups, mix = catalog.name_groups(data)
+    for key in sorted(mix, key=lambda item: -mix[item]):
+        group = groups[key]
+        if family in group.get('family', ()) or any(
+                naming.base_family(culture, family) in naming.culture_surnames(culture)
+                for culture in naming.links(group, data)):
+            return key
+    return None
+
+
+def family_form(family: str, pronouns: str) -> str:
+    """The family name as this relative carries it (Kowalski for a brother, Kowalska for a sister)."""
+    for culture in naming.FEMININE_ENDINGS:
+        base = naming.base_family(culture, family)
+        if base in naming.culture_surnames(culture):
+            return naming.gendered(culture, base, 'she' if pronouns == 'she/her' else 'he')
+    return family
+
+
+def married_sibling(data: dict | None, timeline_id: str, name: dict, age: int, family: str) -> dict:
+    """Whether a sibling is married, and the married name they go by when they took their spouse's.
+    Seeded by the timeline, given name and age, so a circle rebuilt or corrected gets the same answer."""
+    key = f"married:{timeline_id}:{name['given']}:{age}"
+    chance = next(share for limit, share in MARRIED_BY_AGE if (age or 0) < limit)
+    if generators.unit(key, 'married') >= chance:
+        return {}
+    details = {'married': True}
+    if data and generators.unit(key, 'takes-name') < TAKES_NAME.get(name['pronouns'], 0.3):
+        for attempt in range(5):
+            spouse = generators.name(data, seed=f'{key}:spouse:{attempt}')['family']
+            if spouse not in (family, name['given']):
+                details |= {'birth_family': family_form(family, name['pronouns']),
+                            'full_name': f"{name['given']} {family_form(spouse, name['pronouns'])}"}
+                break
+    return details
 
 
 def relation(role: str, pronouns: str) -> str:
@@ -205,11 +279,45 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
     timeline_id = companion['active_timeline_id']
     rows = people(connection, timeline_id, include_removed=True)
     if rows:
+        if match_family(connection, companion, world, rows, now):
+            rows = people(connection, timeline_id, include_removed=True)
         return [row for row in rows if row['status'] == 'active']
     definition = companion['version']['definition']
     insert(connection, timeline_id, build(definition, world, timeline_id, target_size(definition, setting(connection))),
            0, now)
     return people(connection, timeline_id)
+
+
+def match_family(connection, companion: dict, world, rows: list[dict], now) -> bool:
+    """Give parents and siblings assembled before relatives shared the companion's family name that name
+    (or a recorded married one). People the user renamed keep their name. True when anyone changed."""
+    definition = companion['version']['definition']
+    family = family_name(definition)
+    relatives = [row for row in rows if role_kind(row['role']) in ('parent', 'sibling')]
+    if not family or not relatives:
+        return False
+    data, changed = None, False
+    for row in relatives:
+        details = decode(row['details'])
+        full = details.get('full_name')
+        if not full or not (full == row['name'] or full.startswith(f"{row['name']} ")):
+            continue
+        given = row['name'] if full != row['name'] else full.split()[0]
+        pronouns = details.get('pronouns', '')
+        wanted = {'full_name': f'{given} {family_form(family, pronouns)}'}
+        if role_kind(row['role']) == 'sibling':
+            data = data or city_data(definition, world)
+            wanted |= married_sibling(data, row['timeline_id'], {'given': given, 'pronouns': pronouns},
+                                      details.get('age') or 0, family)
+        current = {key: details[key] for key in ('full_name', 'married', 'birth_family') if key in details}
+        if current == wanted:
+            continue
+        kept = {key: value for key, value in details.items() if key not in ('married', 'birth_family')}
+        name = wanted['full_name'] if full == row['name'] else row['name']
+        connection.execute('UPDATE circle_people SET name=?, details=?, updated_at=? WHERE id=?',
+                           (name, encode(kept | wanted), stamp(now), row['id']))
+        changed = True
+    return changed
 
 
 def role_kind(role: str) -> str:
