@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   -- How the chat looks; presentation only, the same messages in every style.
   chat_style TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel')),
   chat_sounds INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1)),
+  chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,

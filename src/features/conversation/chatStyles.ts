@@ -18,3 +18,8 @@ export function chatStyleOf(settings: Pick<WorkspaceSettings, 'chat_style'> | un
 export function soundsOn(settings: Pick<WorkspaceSettings, 'chat_style' | 'chat_sounds'> | undefined) {
   return chatStyleOf(settings) === 'retro' && !!settings?.chat_sounds
 }
+
+/** Retro IM's dark window, off until the user turns it on; the other styles already follow the app's dark theme. */
+export function retroDarkOn(settings: Pick<WorkspaceSettings, 'chat_style' | 'chat_retro_dark'> | undefined) {
+  return chatStyleOf(settings) === 'retro' && !!settings?.chat_retro_dark
+}

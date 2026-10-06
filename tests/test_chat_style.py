@@ -11,5 +11,12 @@ def test_chat_style_defaults_to_feed_and_saves(client):
     assert client.get('/api/settings').json()['chat_style'] == 'retro'
 
 
+def test_retro_dark_mode_is_off_until_turned_on(client):
+    assert client.get('/api/settings').json()['chat_retro_dark'] is False
+    saved = client.put('/api/settings', json={'chat_retro_dark': True})
+    assert saved.status_code == 200, saved.text
+    assert client.get('/api/settings').json()['chat_retro_dark'] is True
+
+
 def test_unknown_chat_style_is_refused(client):
     assert client.put('/api/settings', json={'chat_style': 'neon'}).status_code == 422

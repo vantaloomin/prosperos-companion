@@ -185,6 +185,7 @@ export interface WorkspaceSettings {
   chat_style?: ChatStyle
   /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
+  chat_retro_dark?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean
