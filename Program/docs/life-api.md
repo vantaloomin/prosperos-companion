@@ -293,6 +293,15 @@ week by week from 5 January 2026 (`story`): a seeded roll each week makes progre
 a driven temperament helps and a procrastinating or spendthrift flaw drags, and once enough progress is made
 they reach it and start the next goal.
 
+Every neighborhood also has 40 to 80 ordinary residents (`residents`, keys `town:<city>:~<neighborhood>:<n>`),
+about 1,250 in Baltimore on top of the 330 at its places. Their rules: asleep; waiting at their neighborhood's
+transit stop before work (leaving when their career's schedule says: early, office or evening hours); at work;
+walking home; their usual spot nearby; their goal's spot; a bar on weekend evenings when they want company;
+the weekly shop; out front on some evenings; else home. Each resident only ever goes to the few places in their
+`reach`, so `reaching(place)` checks the residents of the surrounding neighborhoods without building the whole
+city. None of this runs on a timer: asking where someone is at any moment gives the same answer a running
+simulation would, and costs nothing for the people nobody asks about.
+
 When the agenda sends the companion somewhere real for leisure, an errand or a social plan, someone there by
 their rules may cross paths with them (`companion/life/encounters.py`; at most one a day). The first time is
 a chat with a stranger; the second reveals what they are working toward; from the third the companion knows
@@ -305,6 +314,7 @@ most recently seen, with only what the companion has learned. No model is involv
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
 GET /api/life/townsfolk/person?key=<key>    # one of them, plus `now`: where their rules put them right now
 GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the city's full view of a place's people
+GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # a neighborhood's residents
 ```
 
 ## Precomputed agenda

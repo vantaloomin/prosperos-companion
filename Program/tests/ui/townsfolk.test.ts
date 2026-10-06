@@ -7,6 +7,7 @@ const place = { id: 'claddagh', name: 'The Claddagh Pub', kind: 'bar', neighborh
 test('a townsperson reads as their role and place', () => {
   assert.equal(townRole({ role: 'bartender', staff: true, place, neighborhood: 'Canton' }), 'Bartender at The Claddagh Pub, Canton')
   assert.equal(townRole({ role: 'regular', staff: false, place, neighborhood: '' }), 'A regular at The Claddagh Pub')
+  assert.equal(townRole({ role: 'electrician', kind: 'resident', staff: false, place, neighborhood: 'Canton' }), 'Electrician, lives in Canton')
 })
 
 test('meetings are counted', () => {

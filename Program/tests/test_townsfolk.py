@@ -6,6 +6,7 @@ from test_network import build
 from test_social_circle import make
 
 from companion.characters import require_current
+from companion.database import decode
 from companion.life import body, encounters
 from companion.world import catalog, naming, townsfolk
 
@@ -81,6 +82,54 @@ def test_goals_move_week_by_week_and_lead_to_the_next_one():
     assert townsfolk.story(sheet, data, date(2020, 1, 1))['beat'] == 'stall'
 
 
+def test_every_neighborhood_has_residents_with_their_own_days():
+    data = catalog.city('baltimore')
+    total = 0
+    for hood in data['neighborhoods']:
+        people = townsfolk.residents(data, hood['id'])
+        total += len(people)
+        assert townsfolk.RESIDENTS[0] <= len(people) <= townsfolk.RESIDENTS[1]
+        for sheet in people[:5]:
+            assert townsfolk.find(data, sheet['key']) == sheet and sheet['kind'] == 'resident'
+            assert sheet['home'] == hood['id'] and sheet['full'] and not naming.is_invented(sheet['full'])
+            assert sheet['place']['id'] in sheet['reach'] and f"~{hood['id']}" in sheet['reach']
+    assert total >= 1000
+    commuter = next(sheet for hood in data['neighborhoods'] for sheet in townsfolk.residents(data, hood['id'])
+                    if sheet.get('commute') and sheet['commute']['stop'] and sheet['commute']['leave'] < 9 * 60
+                    and not sheet['night_owl'])
+    monday = date(2026, 10, 5)
+    leave = datetime.combine(monday, datetime.min.time()) + timedelta(minutes=commuter['commute']['leave'] - 10)
+    waiting = townsfolk.whereabouts(commuter, data, leave)
+    assert waiting['place']['id'] == f"~{commuter['home']}" and waiting['doing'].startswith('waiting for the ')
+    assert townsfolk.whereabouts(commuter, data, leave + timedelta(hours=3))['doing'].startswith('at work')
+    assert townsfolk.whereabouts(commuter, data, datetime(2026, 10, 5, 3, 0))['doing'] == 'asleep'
+    assert commuter in [sheet for sheet in townsfolk.residents(data, commuter['home'])]
+    assert commuter['key'] in {sheet['key'] for sheet in townsfolk.reaching(data, f"~{commuter['home']}")}
+    regulars = townsfolk.reaching(data, commuter['place']['id'])
+    assert commuter['key'] in {sheet['key'] for sheet in regulars}
+    assert all(commuter['place']['id'] in sheet['reach'] for sheet in regulars)
+    assert townsfolk.find(data, 'town:baltimore:~nowhere:0') is None
+
+
+def test_the_city_view_lists_a_neighborhoods_residents(client):
+    hood = catalog.city('baltimore')['neighborhoods'][0]['id']
+    response = client.get(f'/api/world/cities/baltimore/neighborhoods/{hood}/people', params={'at': '08:00'})
+    assert response.status_code == 200, response.text
+    assert len(response.json()) >= townsfolk.RESIDENTS[0] and all(person['now']['doing'] for person in response.json())
+    assert client.get('/api/world/cities/baltimore/neighborhoods/nowhere/people').status_code == 404
+
+
+def test_neighbors_are_met_on_the_way_out(client, clock, chatty, monkeypatch):
+    make(client, 'Warm and curious.')
+    monkeypatch.setattr(encounters, 'KINDS', set())
+    build(client)
+    clock.instant = clock.now() + timedelta(days=14)
+    met = [row for row in build(client) if row['entry'] and row['entry'].get('townsfolk')]
+    assert met and all(decode(row['block'])['kind'] in encounters.COMMUTE_KINDS for row in met)
+    assert all('On the way out that morning, got talking with ' in row['entry']['summary'] and 'a neighbor' in
+               row['entry']['summary'] for row in met if row['entry']['townsfolk']['times'] == 1)
+
+
 def test_the_city_view_lists_everyone_at_a_place(client):
     response = client.get('/api/world/cities/baltimore/places/national-aquarium/people', params={'at': '10:00'})
     assert response.status_code == 200, response.text
@@ -94,17 +143,16 @@ def test_the_companion_runs_into_townsfolk_and_learns_more_each_time(client, clo
     make(client, 'Warm and curious.')
     rows = build(client)
     met = [row for row in rows if row['entry'] and row['entry'].get('townsfolk')]
-    assert met and 'Got talking with ' in met[0]['entry']['summary']
+    assert met and 'got talking with ' in met[0]['entry']['summary'].lower()
     assert len({row['local_date'] for row in met}) == len(met)
     assert client.get('/api/life/townsfolk').json() == []
     # Who is where depends on the seeded city, so from here on the first person met is always around.
     first = met[0]['entry']['townsfolk']['key']
     seeded = encounters.present
 
-    def around(data, place_id, view, history):
-        found = seeded(data, place_id, view, history)
-        sheet = townsfolk.find(data, first)
-        return (found[0] if found else encounters.moments(view)[0]), {**(found[1] if found else {}), first: sheet}
+    def around(data, place_id, times_of_day, history):
+        found = seeded(data, place_id, times_of_day, history)
+        return (found[0] if found else times_of_day[0]), {**(found[1] if found else {}), first: {'doing': ''}}
 
     monkeypatch.setattr(encounters, 'present', around)
     for _week in range(2):

@@ -146,6 +146,20 @@ def place_people(request: Request, city_id: str, place_id: str, on: date | None 
     return result
 
 
+@router.get('/cities/{city_id}/neighborhoods/{hood_id}/people')
+def neighborhood_people(request: Request, city_id: str, hood_id: str, on: date | None = None,
+                        at: str = Query('12:00', pattern=r'^([01][0-9]|2[0-3]):[0-5][0-9]$')):
+    """A neighborhood's ordinary residents (companion/world/townsfolk.py), with where their rules put them at
+    `at` on `on` (default today)."""
+    data = city(request, city_id)
+    require(any(hood['id'] == hood_id for hood in data['neighborhoods']), 'No such neighborhood in this city.', 404)
+    day = on or request.app.state.database.clock.now().date()
+    moment = datetime.combine(day, time.fromisoformat(at))
+    return [{**sheet, 'flaw_text': townsfolk.FLAWS[sheet['flaw']][0], 'desire_text': townsfolk.DESIRES[sheet['desire']],
+             'routine': townsfolk.routine_text(sheet), 'story': townsfolk.story(sheet, data, day),
+             'now': townsfolk.whereabouts(sheet, data, moment)} for sheet in townsfolk.residents(data, hood_id)]
+
+
 @router.get('/cities/{city_id}/conditions')
 def read_conditions(request: Request, city_id: str, day: date, seed: str = ''):
     data = city(request, city_id)
