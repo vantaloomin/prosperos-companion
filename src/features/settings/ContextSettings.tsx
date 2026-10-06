@@ -4,6 +4,7 @@ import { Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextOverview, ContextPurpose, ContextServiceInfo, MappingSuggestion, Observation, ToolArgument } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { BuiltinCulture } from './BuiltinCulture'
 import { BuiltinPulse } from './BuiltinPulse'
 import { BuiltinWeather } from './BuiltinWeather'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
@@ -33,14 +34,14 @@ export function ContextSettings({ name }: { name: string }) {
       </div>
       <LocationForm data={data} setResult={setResult} />
       <LinkReading data={data} name={name} setResult={setResult} />
-      {data.services.length === 0 && <p className="subtle">No lookup service is set up. {name} answers from what they already know. The built-in weather and local pulse servers need no key or account.</p>}
+      {data.services.length === 0 && <p className="subtle">No lookup service is set up. {name} answers from what they already know. The built-in weather, local pulse and culture pulse servers need no key or account.</p>}
       <ol className="backend-list">
         {data.services.map((service) => <ServiceRow key={service.id} service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}
       </ol>
       <SearchPresets data={data} refresh={refresh} setResult={setResult} />
       {adding ? <AddService onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
         : <div className="form-actions">
-          {(['weather', 'pulse'] as const).filter((kind) => !data.services.some((service) => service.builtin === kind))
+          {(['weather', 'pulse', 'culture'] as const).filter((kind) => !data.services.some((service) => service.builtin === kind))
             .map((kind) => <AddBuiltin key={kind} kind={kind} refresh={refresh} setResult={setResult} />)}
           <button type="button" className="button" onClick={() => setAdding(true)}>Add a lookup service</button>
         </div>}
@@ -82,10 +83,11 @@ function SearchPresets({ data, refresh, setResult }: { data: Overview; refresh: 
 const BUILTINS = {
   weather: { label: 'the built-in weather server', next: 'Review and turn on its weather lookup below.' },
   pulse: { label: 'the built-in local pulse server', next: 'Turn on headlines or games below.' },
+  culture: { label: 'the built-in culture pulse server', next: "Turn on movies, shows, games and what's trending below." },
 }
 
 /** A keyless server that ships with the app: added and checked in one step, still off until you approve it. */
-function AddBuiltin({ kind, refresh, setResult }: { kind: 'weather' | 'pulse'; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+function AddBuiltin({ kind, refresh, setResult }: { kind: keyof typeof BUILTINS; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
   const [busy, setBusy] = useState(false)
   const add = async () => {
     if (busy) return
@@ -145,9 +147,14 @@ function LocationForm({ data, setResult }: { data: Overview; setResult: (result:
   )
 }
 
+const BUILTIN_SOURCES = {
+  weather: 'Ships with the app; asks Open-Meteo, or the National Weather Service for US places when Open-Meteo fails',
+  pulse: 'Ships with the app; asks Google News, Wikipedia, Reddit, ESPN, MLB and Open-Meteo',
+  culture: 'Ships with the app; asks Google News, iTunes, Apple Music, TVmaze, Steam, Open Library, Google Trends, Wikipedia and Reddit',
+}
+
 function ServiceSummary({ service }: { service: ContextServiceInfo }) {
-  const where = service.builtin === 'weather' ? 'Ships with the app; asks Open-Meteo, or the National Weather Service for US places when Open-Meteo fails'
-    : service.builtin === 'pulse' ? 'Ships with the app; asks Google News, Wikipedia, Reddit, ESPN, MLB and Open-Meteo'
+  const where = service.builtin ? BUILTIN_SOURCES[service.builtin]
     : service.transport === 'http' ? service.url : (service.command ?? []).join(' ')
   const server = service.server_info ? `${service.server_info.name} · MCP ${service.server_info.protocol}` : ''
   return <>
@@ -184,7 +191,8 @@ function ServiceRow({ service, data, name, refresh, setResult }: { service: Cont
       {!service.checked_at && <p className="subtle">Check the service to see its tools. Checking connects and lists tools; it looks nothing up.</p>}
       {service.tools.length > 0 && (service.builtin ? <>
         {service.builtin === 'weather' ? <BuiltinWeather service={service} data={data} name={name} refresh={refresh} onError={(text) => setResult({ tone: 'error', text })} />
-          : <BuiltinPulse service={service} data={data} name={name} refresh={refresh} onError={(text) => setResult({ tone: 'error', text })} />}
+          : service.builtin === 'pulse' ? <BuiltinPulse service={service} data={data} name={name} refresh={refresh} onError={(text) => setResult({ tone: 'error', text })} />
+          : <BuiltinCulture service={service} name={name} refresh={refresh} onError={(text) => setResult({ tone: 'error', text })} />}
         <details className="advanced">
           <summary>Advanced</summary>
           <Mappings service={service} data={data} name={name} refresh={refresh} setResult={setResult} />

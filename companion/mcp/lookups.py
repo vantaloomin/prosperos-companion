@@ -23,7 +23,7 @@ from companion.mcp.servers.weather import US_STATES
 from companion.mcp.services import CATEGORIES, active_mappings, destination, place_settings, transport_for
 
 FRESH_FOR = {'weather': timedelta(hours=1), 'news': timedelta(hours=3), 'local_events': timedelta(hours=12),
-             'link': timedelta(hours=6), 'web_search': timedelta(hours=1)}
+             'link': timedelta(hours=6), 'web_search': timedelta(hours=1), 'culture': timedelta(hours=6)}
 HOURLY_LIMIT = 20
 DAILY_LIMIT = 100
 FAILURE_PAUSE = timedelta(minutes=5)
@@ -34,7 +34,7 @@ BACKGROUND_DEADLINE = 20.0
 SERVICES_PER_CATEGORY = 2
 MAX_CONTENT = 2000
 # A linked page is read in full enough to talk about; other lookups are short answers.
-MAX_CONTENT_FOR = {'link': links.MAX_TEXT, 'web_search': 4000}
+MAX_CONTENT_FOR = {'link': links.MAX_TEXT, 'web_search': 4000, 'culture': 3000}
 LINK_DEADLINE = 10.0
 LINKS_PER_HOUR = 30
 # Links read on this computer have no MCP service; their records carry this name instead.
@@ -53,6 +53,16 @@ TOPIC = re.compile(r"\bnews\s+(?:about|on|regarding|for|from)\s+([^?.!,;:\n]{2,8
 # "search for X", "google X", "look up X", "search reddit for X", "search the web for X"
 # Only as a request ("can you google…", "please search…", a sentence starting with it), so "I work at Google" or
 # "look up at the stars" never searches.
+# What's out and trending, by the section of the culture lookup each one asks for.
+CULTURE = {
+    'movies': re.compile(r"\b(movies?|films?|cinema|box office|in theaters?)\b", re.I),
+    'tv': re.compile(r"\b(tv|television|series|netflix|hbo|hulu|disney\+|prime video|streaming|binge(?:-watch)?(?:ing)?|"
+                     r"shows? (?:to watch|on))\b", re.I),
+    'games': re.compile(r"\b(video ?games?|new games?|gaming|steam|playstation|ps5|xbox|nintendo|switch 2)\b", re.I),
+    'music': re.compile(r"\b(albums?|new music|songs?|playlists?|the charts|spotify|apple music)\b", re.I),
+    'books': re.compile(r"\b(new books?|good books?|bestsellers?|best-sellers?|reading list|novels?)\b", re.I),
+    'trending': re.compile(r"\b(trending|viral|memes?|going on online|on the internet)\b", re.I),
+}
 SEARCH = re.compile(r"(?:^|[.!?]\s+|\b(?:can|could|would|will)\s+you\s+(?:please\s+)?|\bplease\s+|\b(?:go|to)\s+)"
                     r"(?:search|google|look\s+up(?!\s+(?:at|to|from|and)\b))\s+(?:(?:the\s+)?(?:web|internet|online)\s+)?"
                     r"(?:(reddit|twitter)\s+)?(?:for\s+|about\s+|on\s+)?([^?!.\n]{2,160})", re.I)
@@ -72,7 +82,16 @@ def triggers(text: str) -> list[dict]:
         found.append({'category': 'local_events', 'purpose': purpose, 'topic': None})
     if topic := search_topic(text):
         found.append({'category': 'web_search', 'purpose': 'conversation', 'topic': topic})
+    if sections := culture_topic(text):
+        found.append({'category': 'culture', 'purpose': 'conversation', 'topic': sections})
     return found
+
+
+def culture_topic(text: str) -> str | None:
+    """Which culture sections a message is about ("movies, tv"), in a fixed order, or None."""
+    text = links.URL.sub(' ', text)
+    sections = [section for section, pattern in CULTURE.items() if pattern.search(text)]
+    return ', '.join(sections) or None
 
 
 def search_topic(text: str) -> str | None:
@@ -271,8 +290,8 @@ class Lookups:
             where = target(connection, purpose, self.world, self.now()) if mappings else None
         if not mappings or where is None:
             return []
-        if category == 'web_search':
-            where = {**where, 'label': topic or ''}  # A search is about what was asked, not where the user is.
+        if category in {'web_search', 'culture'}:
+            where = {**where, 'label': topic or ''}  # About what was asked, not where the user is.
         results = await asyncio.gather(*(self.one(item['service'], item['mapping'], where, purpose, topic, deadline)
                                          for item in mappings))
         return [item for batch in results for item in batch]

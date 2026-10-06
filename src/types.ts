@@ -526,7 +526,7 @@ export interface ImageJob {
 }
 
 // Current context through MCP (PRD X1–X3)
-export type ContextCategory = 'weather' | 'news' | 'local_events' | 'link' | 'web_search'
+export type ContextCategory = 'weather' | 'news' | 'local_events' | 'link' | 'web_search' | 'culture'
 export type ContextPurpose = 'conversation' | 'companion_city'
 export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal' | 'url'
 export interface ToolArgument { source: ArgumentSource; value?: string | number | boolean }
@@ -550,7 +550,7 @@ export interface ContextServiceInfo {
   transport: 'stdio' | 'http'
   command: string[] | null
   /** A server that ships with the app, run by the app itself. */
-  builtin: 'weather' | 'pulse' | null
+  builtin: 'weather' | 'pulse' | 'culture' | null
   url: string | null
   has_key: boolean
   secret_name: string
