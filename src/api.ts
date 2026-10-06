@@ -21,8 +21,14 @@ export async function api<T>(path: string, body?: unknown, method?: string): Pro
     throw new ApiError('Cannot reach the Companion. Check that it is still running.', 0, 'offline')
   }
   const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new ApiError(errorMessage(data), response.status, data.code)
+  if (!response.ok) throw failure(response.status, data)
   return data as T
+}
+
+/** A phone whose pairing was removed on the PC goes back to the pairing screen (src/features/phone). */
+function failure(status: number, data: { detail?: unknown; code?: string }): ApiError {
+  if (data.code === 'phone_unpaired') window.dispatchEvent(new Event('companion:unpaired'))
+  return new ApiError(errorMessage(data), status, data.code)
 }
 
 export const newId = () => crypto.randomUUID()
@@ -40,6 +46,6 @@ export async function upload<T>(path: string, file: Blob, params: Record<string,
     throw new ApiError('Cannot reach the Companion. Check that it is still running.', 0, 'offline')
   }
   const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new ApiError(errorMessage(data), response.status, data.code)
+  if (!response.ok) throw failure(response.status, data)
   return data as T
 }

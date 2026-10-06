@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { NotificationCheck, NotificationSettings } from '../../types'
+import type { DesktopNotification, NotificationCheck, NotificationSettings } from '../../types'
 import { currentPermission, mustRevoke } from './permission'
 
 const EVERY_MS = 60_000
@@ -29,14 +29,30 @@ export function useNotifications(enabled: boolean, go: (view: 'feed' | 'conversa
         const result = await api<NotificationCheck>('/notifications/next', { focused: document.visibilityState === 'visible' && document.hasFocus() })
         const shown = result.notification
         if (!shown) return
-        const notification = new Notification(shown.title, { body: shown.body, tag: shown.id })
         const view = shown.kind === 'message' ? 'conversation' : 'feed'
-        notification.onclick = () => { window.focus(); go(view); notification.close() }
+        await show(shown, view, go)
         void client.invalidateQueries({ queryKey: view === 'conversation' ? ['conversation'] : ['feed'] })
       } catch { /* The next tick tries again. */ } finally { running = false }
     }
     void tick()
     const timer = window.setInterval(() => void tick(), EVERY_MS)
-    return () => window.clearInterval(timer)
+    // A notification shown by the service worker reports a tap here (public/sw.js).
+    const opened = (event: MessageEvent) => { if (event.data?.type === 'open-view') go(event.data.view === 'feed' ? 'feed' : 'conversation') }
+    navigator.serviceWorker?.addEventListener('message', opened)
+    return () => { window.clearInterval(timer); navigator.serviceWorker?.removeEventListener('message', opened) }
   }, [enabled, client, go])
+}
+
+/**
+ * Phones only show notifications through a service worker (Android refuses new Notification()), so
+ * use it when there is one, and the plain browser notification otherwise.
+ */
+async function show(shown: DesktopNotification, view: 'feed' | 'conversation', go: (view: 'feed' | 'conversation') => void) {
+  const registration = await navigator.serviceWorker?.getRegistration().catch(() => undefined)
+  if (registration) {
+    await registration.showNotification(shown.title, { body: shown.body, tag: shown.id, icon: '/icon-192.png', data: { view } })
+    return
+  }
+  const notification = new Notification(shown.title, { body: shown.body, tag: shown.id })
+  notification.onclick = () => { window.focus(); go(view); notification.close() }
 }

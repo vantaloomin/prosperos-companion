@@ -157,8 +157,10 @@ def test_a_branch_keeps_the_social_posts_from_before_it_split_off(client, city, 
     branch = client.post('/api/timelines', json={'message_id': sent['id'], 'text': 'Hello'}).json()
     client.post(f"/api/timelines/{branch['id']}/activate")
     copied = [post for post in feed(client)['posts'] if post['source'] == 'social']
-    assert [(post['kind'], post['text'], post['occurs_at']) for post in copied if post['occurs_at'] <= sent['created_at']] \
-        == [(post['kind'], post['text'], post['occurs_at']) for post in before]
+    # Posts at the same moment are ordered by id, and the copies have new ids, so compare them sorted.
+    assert sorted((post['kind'], post['text'], post['occurs_at']) for post in copied
+                  if post['occurs_at'] <= sent['created_at']) \
+        == sorted((post['kind'], post['text'], post['occurs_at']) for post in before)
     # What the parent posted after the split stays on the parent.
     assert after and not after & {(post['kind'], post['text'], post['occurs_at']) for post in copied
                                   if post['occurs_at'] > sent['created_at']}
