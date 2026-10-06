@@ -123,7 +123,8 @@ function ShotEditor({ shots, setShots, planned }: { shots: Shot[]; setShots: (sh
   return (
     <ol className="shot-list">{shots.map((shot, index) => (
       <li key={shot.key} className="shot-row">
-        <TextArea label={`${index + 1}. ${shot.label}`} value={shot.shot} rows={2} maxLength={500} onChange={(text) => setShots(shots.map((item, at) => at === index ? { ...item, shot: text } : item))} />
+        <TextArea label={`${index + 1}. ${shot.label}`} value={shot.shot} rows={2} maxLength={500} onChange={(text) => setShots(shots.map((item, at) => at === index ? { ...item, shot: text } : item))}
+          hint="Framing, pose, outfit and setting for this picture. How they look is added from above." />
         {planned?.[index] && <p className={planned[index].backend ? 'subtle' : 'error-text'}>{routeLine(planned[index])}</p>}
       </li>
     ))}</ol>

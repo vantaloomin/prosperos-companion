@@ -11,8 +11,8 @@ export function TextingFields({ value, onChange }: { value?: TextingStyle; onCha
       <legend>How they text</legend>
       <Toggle label="Several short texts instead of one paragraph" checked={style.bursts} onChange={(bursts) => onChange({ ...style, bursts })}
         hint="Shown as separate bubbles in the Bubbles chat style." />
-      <Toggle label="All lowercase" checked={style.lowercase} onChange={(lowercase) => onChange({ ...style, lowercase })} />
-      <Toggle label="The odd typo, then a *correction" checked={style.typos} onChange={(typos) => onChange({ ...style, typos })} />
+      <Toggle label="All lowercase" checked={style.lowercase} onChange={(lowercase) => onChange({ ...style, lowercase })} hint="Their texts skip capital letters, like a lot of people do on their phone." />
+      <Toggle label="The odd typo, then a *correction" checked={style.typos} onChange={(typos) => onChange({ ...style, typos })} hint="Now and then a word comes out wrong and they fix it in the next text." />
     </fieldset>
   )
 }

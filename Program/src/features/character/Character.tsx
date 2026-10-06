@@ -85,21 +85,21 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       {chrome.notice && <div className="start-notice">{chrome.notice}</div>}
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
-          <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} />
-          <Field label="Relationship" hint="Romance is only ever your choice; warmth alone never changes it.">
+          <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} hint="What they go by. Their family shares the last name." />
+          <Field label="Relationship" hint="Romance is only ever your choice; warmth alone never changes it." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
             {(id, hint) => (
               <select id={id} aria-describedby={hint} value={definition.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
                 {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             )}
           </Field>
-          <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." />
-          <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} hint="A fictional or real city for their life." />
+          <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
+          <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} hint="A fictional or real city for their life." tip="This is how they describe where they live. Home city, further down, is what builds their actual days." />
         </div>
         <datalist id="timezones">{timezones().map((zone) => <option key={zone} value={zone} />)}</datalist>
         <TextArea label="Who they are" value={definition.identity} onChange={(identity) => set({ identity })} maxLength={4000} hint="Age, work, what matters to them." />
         {help('identity', 'who they are')}
-        <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} />
+        <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} hint="Temperament, habits, what makes them laugh or snap. Specific beats general." />
         {help('personality', 'their personality')}
         <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} hint="How they talk: rhythm, humour, words they like." />
         {help('voice', 'their voice')}
@@ -110,9 +110,9 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('flaws', 'their flaws')}
         <TextInput label="Interests" value={texts.interests} onChange={setText('interests')} hint="Separate with commas." />
         {help('interests', 'their interests')}
-        <TextArea label="Background" value={definition.background} onChange={(background) => set({ background })} rows={4} maxLength={12000} />
+        <TextArea label="Background" value={definition.background} onChange={(background) => set({ background })} rows={4} maxLength={12000} hint="Where they grew up, family, past jobs and relationships, what shaped them." />
         {help('background', 'their background')}
-        <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} />
+        <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
         <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
         {help('routine', 'their routine')}
@@ -120,7 +120,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
         <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
           hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />
-        {companion && <TextInput label="What changed (optional)" value={note} onChange={setNote} maxLength={500} />}
+        {companion && <TextInput label="What changed (optional)" value={note} onChange={setNote} maxLength={500} hint="A note for the version history, so you can find this version again." />}
         <SaveFeedback result={result} saved={savedNow(saved, companion)} onReload={() => void client.invalidateQueries({ queryKey: COMPANION_KEY })} />
         {problems.length > 0 && <Notice tone="error">{problems.join(' ')}</Notice>}
         <div className="form-actions">

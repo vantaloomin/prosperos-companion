@@ -1,34 +1,53 @@
 import { useId, type ReactNode } from 'react'
+import { InfoTip } from './InfoTip'
 
-interface FieldProps { label: string; hint?: ReactNode; children: (id: string, describedBy?: string) => ReactNode }
+/** Help for a control: `hint` shows under it, `tip` sits behind a "?" next to its label. Both are read out with it. */
+interface Help { hint?: ReactNode; tip?: string }
+interface FieldProps extends Help { label: string; children: (id: string, describedBy?: string) => ReactNode }
 
-/** A labelled control with an optional hint read out with it. */
-export function Field({ label, hint, children }: FieldProps) {
+function joinIds(...ids: (string | false | undefined)[]) {
+  return ids.filter(Boolean).join(' ') || undefined
+}
+
+/** A labelled control with an optional hint and tip read out with it. */
+export function Field({ label, hint, tip, children }: FieldProps) {
   const id = useId()
   const hintId = hint ? `${id}-hint` : undefined
+  const tipId = tip ? `${id}-tip` : undefined
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
-      {children(id, hintId)}
+      <span className="label-row"><label htmlFor={id}>{label}</label>{tip && tipId && <InfoTip id={tipId} label={label} text={tip} />}</span>
+      {children(id, joinIds(hintId, tipId))}
       {hint && <small id={hintId}>{hint}</small>}
     </div>
   )
 }
 
-export function TextArea({ label, hint, value, onChange, rows = 3, maxLength, placeholder }: { label: string; hint?: ReactNode; value: string; onChange: (value: string) => void; rows?: number; maxLength?: number; placeholder?: string }) {
-  return <Field label={label} hint={hint}>{(id, describedBy) => <textarea id={id} rows={rows} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
+interface TextAreaProps extends Help { label: string; value: string; onChange: (value: string) => void; rows?: number; maxLength?: number; placeholder?: string }
+
+export function TextArea({ label, hint, tip, value, onChange, rows = 3, maxLength, placeholder }: TextAreaProps) {
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <textarea id={id} rows={rows} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
 }
 
-export function TextInput({ label, hint, value, onChange, required, maxLength, list, type = 'text', placeholder }: { label: string; hint?: ReactNode; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; list?: string; type?: string; placeholder?: string }) {
-  return <Field label={label} hint={hint}>{(id, describedBy) => <input id={id} type={type} value={value} required={required} maxLength={maxLength} list={list} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
+interface TextInputProps extends Help { label: string; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; list?: string; type?: string; placeholder?: string }
+
+export function TextInput({ label, hint, tip, value, onChange, required, maxLength, list, type = 'text', placeholder }: TextInputProps) {
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} required={required} maxLength={maxLength} list={list} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
 }
 
-export function Toggle({ label, hint, checked, onChange, disabled }: { label: string; hint?: ReactNode; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
+interface ToggleProps extends Help { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }
+
+export function Toggle({ label, hint, tip, checked, onChange, disabled }: ToggleProps) {
   const id = useId()
+  const hintId = hint ? `${id}-hint` : undefined
+  const tipId = tip ? `${id}-tip` : undefined
   return (
     <div className="toggle">
-      <input id={id} type="checkbox" checked={checked} disabled={disabled} aria-describedby={hint ? `${id}-hint` : undefined} onChange={(event) => onChange(event.target.checked)} />
-      <label htmlFor={id}>{label}{hint && <small id={`${id}-hint`}>{hint}</small>}</label>
+      <input id={id} type="checkbox" checked={checked} disabled={disabled} aria-describedby={joinIds(hintId, tipId)} onChange={(event) => onChange(event.target.checked)} />
+      <div className="toggle-text">
+        <span className="label-row"><label htmlFor={id}>{label}</label>{tip && tipId && <InfoTip id={tipId} label={label} text={tip} />}</span>
+        {hint && <small id={hintId}>{hint}</small>}
+      </div>
     </div>
   )
 }

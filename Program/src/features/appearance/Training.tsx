@@ -110,12 +110,12 @@ function OptionFields({ options, setOptions }: { options: RunOptions; setOptions
           <option value="lokr">LoKr</option><option value="lora">LoRA</option>
         </select>
       )}</Field>
-      {options.network === 'lora' && <TextInput label="Rank" type="number" value={String(options.rank)} onChange={(value) => set({ rank: number(value) })} />}
+      {options.network === 'lora' && <TextInput label="Rank" type="number" value={String(options.rank)} onChange={(value) => set({ rank: number(value) })} tip="How much detail the adapter can hold. Higher is a bigger file and can overfit. 16 to 32 is common for a character." />}
       <TextInput label="Steps" type="number" value={String(options.steps)} onChange={(value) => set({ steps: number(value) })} hint="Reports range from 500 to 3,500; 3,000 or more may overfit." />
       <TextInput label="Save a checkpoint every" type="number" value={String(options.save_every)} onChange={(value) => set({ save_every: number(value) })} hint="Steps. Checkpoints are what a run can resume from." />
-      <TextInput label="Learning rate" value={String(options.learning_rate)} onChange={(value) => set({ learning_rate: Number(value) || options.learning_rate })} />
-      <Field label="Resolution">{(id) => (
-        <select id={id} value={options.resolution} onChange={(event) => set({ resolution: Number(event.target.value) as RunOptions['resolution'] })}>
+      <TextInput label="Learning rate" value={String(options.learning_rate)} onChange={(value) => set({ learning_rate: Number(value) || options.learning_rate })} tip="How big each training step is. Leave the default unless a guide for your base model says otherwise." />
+      <Field label="Resolution" hint="Picture sizes it trains on. Both sizes give better detail; 512 only needs less GPU memory.">{(id, hint) => (
+        <select id={id} aria-describedby={hint} value={options.resolution} onChange={(event) => set({ resolution: Number(event.target.value) as RunOptions['resolution'] })}>
           <option value={1024}>512 and 1024</option><option value={512}>512 only (less memory)</option>
         </select>
       )}</Field>

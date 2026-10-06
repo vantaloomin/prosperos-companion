@@ -4,9 +4,10 @@ import { DAYS, KINDS, newBlock, starterSchedule, toggleDay, type BlockKind, type
 export function ScheduleEditor({ blocks, onChange, timezone }: { blocks: RoutineBlock[]; onChange: (blocks: RoutineBlock[]) => void; timezone: string }) {
   const set = (index: number, change: Partial<RoutineBlock>) => onChange(blocks.map((block, position) => position === index ? { ...block, ...change } : block))
   return (
-    <fieldset className="traits schedule">
+    <fieldset className="traits schedule" aria-describedby="schedule-about">
       <legend>Weekly routine</legend>
-      <p className="subtle">The shape of their week, in their time ({timezone}). Their life follows it: nothing happens while they sleep, and work or sleep explains a slow reply without ever stopping you from writing. A block that ends before it starts runs past midnight.</p>
+      <p className="subtle" id="schedule-about">The shape of their week, in their time ({timezone}). Their life follows it: nothing happens while they sleep, and work or sleep explains a slow reply without ever stopping you from writing. A block that ends before it starts runs past midnight.</p>
+      {blocks.length > 0 && <p className="subtle" id="schedule-themes-about">Themes are optional words that steer what happens in a block, such as regulars or new recipes for a bakery shift.</p>}
       {blocks.length === 0 && (
         <p className="subtle">They follow a gentle default day until you describe one. <button type="button" className="text-button inline" onClick={() => onChange(starterSchedule())}>Start from a typical week</button></p>
       )}
@@ -24,7 +25,7 @@ export function ScheduleEditor({ blocks, onChange, timezone }: { blocks: Routine
               <label key={day} className="day-pick"><input type="checkbox" checked={block.days.includes(number)} onChange={() => set(index, { days: toggleDay(block.days, number) })} /><span>{day}</span></label>
             ))}
           </div>
-          <input className="schedule-themes" aria-label="Themes (optional)" value={block.themes.join(', ')} placeholder="Themes, such as regulars, new recipes (optional)"
+          <input className="schedule-themes" aria-label="Themes (optional)" aria-describedby="schedule-themes-about" value={block.themes.join(', ')} placeholder="Themes, such as regulars, new recipes (optional)"
             onChange={(event) => set(index, { themes: event.target.value.split(',') })} />
         </div>
       ))}

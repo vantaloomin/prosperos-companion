@@ -2,6 +2,9 @@ import { useRef, type KeyboardEvent } from 'react'
 import { Send, Square } from 'lucide-react'
 import type { DraftState } from './useDraft'
 import { usePrepare } from './usePrepare'
+import { InfoTip } from '../../components/InfoTip'
+
+const OUT_OF_CHARACTER = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)) for a plain, honest answer.'
 
 export function Composer({ name, draft, streaming, onSend, onStop }: { name: string; draft: DraftState; streaming: boolean; onSend: () => void; onStop: () => void }) {
   const prepare = usePrepare()
@@ -21,7 +24,8 @@ export function Composer({ name, draft, streaming, onSend, onStop }: { name: str
       <label className="visually-hidden" htmlFor="composer-text">Message {name}</label>
       <textarea ref={text} id="composer-text" rows={2} value={draft.value.text} placeholder={`Message ${name}`} maxLength={40000}
         onChange={(event) => { draft.edit(event.target.value); prepare() }} onKeyDown={onKeyDown} aria-describedby="composer-help" />
-      <p id="composer-help" className="visually-hidden">Enter sends, Shift and Enter adds a new line{streaming ? ', Escape stops the reply' : ''}. Unsent text is kept if you leave.</p>
+      <p id="composer-help" className="visually-hidden">Enter sends, Shift and Enter adds a new line{streaming ? ', Escape stops the reply' : ''}. Unsent text is kept if you leave. {OUT_OF_CHARACTER}</p>
+      <InfoTip id="composer-tip" label="writing messages" above text={`Enter sends, Shift+Enter adds a new line. ${OUT_OF_CHARACTER}`} />
       {/* Send replaces Stop once the reply ends; keep the keyboard in the message box rather than losing focus. */}
       {streaming
         ? <button type="button" className="button" onClick={() => { onStop(); text.current?.focus() }}><Square aria-hidden="true" />Stop</button>

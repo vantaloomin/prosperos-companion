@@ -81,8 +81,8 @@ function PersonForm({ person, submit, onSave, onCancel }: { person?: Person; sub
   }
   return (
     <form className="person-form form-stack" onSubmit={save}>
-      <TextInput label="Name" value={name} onChange={setName} maxLength={80} />
-      <TextInput label="How they're related to you" value={relation} onChange={setRelation} maxLength={40} placeholder="sister, best friend, boss, dog…" />
+      <TextInput label="Name" value={name} onChange={setName} maxLength={80} hint="However you refer to them, such as Jo or Mum." />
+      <TextInput label="How they're related to you" value={relation} onChange={setRelation} maxLength={40} placeholder="sister, best friend, boss, dog…" hint="Helps them follow who you mean when you say my sister." />
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={saving || !ready}>{submit}</button>
         <button type="button" className="button" onClick={onCancel}>Cancel</button>

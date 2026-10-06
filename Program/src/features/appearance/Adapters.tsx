@@ -58,7 +58,7 @@ function AdapterCard({ adapter, current, adopt, refresh, setResult }: { adapter:
       {adapter.license_note && <p className="subtle">{adapter.license_note}</p>}
       {adapter.available && (
         <div className="post-actions">
-          <div className="lora-strength"><TextInput label="Strength" type="number" value={strength} onChange={setStrength} /></div>
+          <div className="lora-strength"><TextInput label="Strength" type="number" value={strength} onChange={setStrength} tip="How strongly the adapter pulls pictures toward the character, 0 to 2. 1 is the trained strength." /></div>
           <button type="button" className="button" onClick={() => void adopt({ method: 'lora', adapter_id: adapter.id, strength: Number(strength) || 1 })}>Adopt for future images</button>
           <a className="text-button" href={`/api/lora/adapters/${adapter.id}/export`} download><Download aria-hidden="true" />Export</a>
           {!current && <button type="button" className="text-button danger-text" onClick={() => void remove()}><Trash2 aria-hidden="true" />Remove</button>}
@@ -89,11 +89,11 @@ function ImportAdapter({ refresh, setResult }: { refresh: () => Promise<void>; s
     <form className="form-stack lora-panel" onSubmit={submit}>
       <h3>Import an adapter</h3>
       <p className="subtle">Already have a LoRA or LoKr for this character? Bring it in instead of training. It must be a .safetensors file for the model your ComfyUI workflow uses.</p>
-      <Field label="Adapter file">{(id) => <input id={id} type="file" accept=".safetensors" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />}</Field>
+      <Field label="Adapter file" hint="A .safetensors file.">{(id, hint) => <input id={id} aria-describedby={hint} type="file" accept=".safetensors" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />}</Field>
       <div className="form-grid">
-        <TextInput label="Name" value={name} maxLength={120} onChange={setName} />
-        <TextInput label="Base model it was trained on" value={base} maxLength={300} onChange={setBase} />
-        <TextInput label="Trigger word" value={trigger} maxLength={100} onChange={setTrigger} />
+        <TextInput label="Name" value={name} maxLength={120} onChange={setName} hint="Your name for it in this list." />
+        <TextInput label="Base model it was trained on" value={base} maxLength={300} onChange={setBase} hint="Such as Krea 2. It only works with that model." />
+        <TextInput label="Trigger word" value={trigger} maxLength={100} onChange={setTrigger} hint="The word it was trained to respond to, if any. Prompts include it." />
       </div>
       <div className="form-actions"><button type="submit" className="button" disabled={!file || busy || !base.trim()}>{busy ? 'Importing' : 'Import'}</button></div>
     </form>
