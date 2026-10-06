@@ -257,9 +257,14 @@ def test_a_shared_outing_shows_in_the_friends_diary(client, baltimore, clock):
     set_life(client, automatic_events=True, catch_up_max_events=6, catch_up_lookback_hours=96)
     clock.advance(timedelta(hours=1))
     reconcile(client)
-    clock.advance(timedelta(days=3))
-    reconcile(client)
-    shared = [event for event in client.get('/api/events').json() if event['details'].get('with')]
+    # Who comes along is seeded by the random timeline id, so a run can go a few days without a shared outing.
+    shared = []
+    for _ in range(5):
+        clock.advance(timedelta(days=3))
+        reconcile(client)
+        shared = [event for event in client.get('/api/events').json() if event['details'].get('with')]
+        if shared:
+            break
     assert shared
     event = shared[0]
     diary = client.get(f"/api/life/circle/{event['details']['with']['id']}/diary?limit=100").json()
