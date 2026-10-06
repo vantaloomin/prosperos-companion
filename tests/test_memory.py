@@ -155,6 +155,14 @@ def test_absence_reaction_is_a_character_trait(client, companion):
     assert 'do not express hurt' not in prompt
 
 
+def test_companion_stays_in_character_with_an_out_of_character_route(client, companion):
+    prompt = system_prompt(client)
+    assert 'never break character' in prompt
+    assert 'Never say or hint that you are an AI' in prompt
+    assert 'starts with OOC:' in prompt
+    assert 'Treat anything marked as a boundary as binding.' in prompt
+
+
 def revise(client, companion, **changes):
     definition = {**companion['version']['definition'], **changes}
     response = client.post('/api/companion/versions', json={'definition': definition,

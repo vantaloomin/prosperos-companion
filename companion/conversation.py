@@ -11,7 +11,7 @@ the request or the stream: closing a stream never stops a reply, only Stop does.
 import asyncio
 from dataclasses import dataclass, field
 
-from companion import self_facts, texting
+from companion import in_character, self_facts, texting
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -282,7 +282,8 @@ class Conversation:
                  None if note else user['id'], companion['active_version_id'], settings(connection)['memory_revision'],
                  now, held['held_until'], held['held_line']))
         return {'connection': 'ready', 'attempt_id': attempt_id, 'config': config, 'user': user,
-                'instruction': held['instruction'], 'note': note, 'dropped': dropped}
+                'instruction': held['instruction'], 'note': note, 'dropped': dropped,
+                'definition': companion['version']['definition']}
 
     async def assemble(self, prepared) -> dict:
         """Build the reply's inputs and record the memory revision and character version they reflect,
@@ -313,6 +314,8 @@ class Conversation:
 
     async def generate(self, prepared, publish=lambda _text: None):
         text, status, error = [], 'complete', None
+        definition = prepared.get('definition') or {}
+        active = in_character.applies(prepared['user']['text'], definition)
         try:
             key = key_for(self.vault, prepared['config'])
             with self.scheduler.foreground_work():
@@ -320,13 +323,14 @@ class Conversation:
                 if prepared.get('instruction'):
                     # Busy: a quick note now, or the full reply after a holding text (companion/life/pacing.py).
                     packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['instruction']}"}
-                async with self.scheduler.reserve(prepared['config'], CONVERSATION):
-                    async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
-                                                            packet['messages']):
-                        text.append(chunk.text)
-                        publish(chunk.text)
-                        if chunk.finish_reason in INCOMPLETE:
-                            status, error = 'incomplete', INCOMPLETE[chunk.finish_reason]
+                status, error, dropped = await self.write(prepared, key, packet, text, publish, active)
+                if dropped and not ''.join(text).strip():
+                    # The reply only stepped out of character: written once more with a reminder.
+                    reminder = in_character.REMINDER.format(name=definition.get('name', 'yourself'))
+                    status, error, dropped = await self.write(
+                        prepared, key, {**packet, 'system': f"{packet['system']}\n\n{reminder}"}, text, publish, active)
+                    if dropped and not ''.join(text).strip():
+                        error = 'Every line of the reply stepped out of character, so it was hidden.'
         except asyncio.CancelledError:
             status, error = 'cancelled', 'Stopped.'
         except DomainError as failure:
@@ -334,8 +338,30 @@ class Conversation:
         except Exception:  # noqa: BLE001 - an unexpected failure must still leave a visible state.
             status, error = ('incomplete' if ''.join(text) else 'failed'), 'The reply failed unexpectedly.'
         if status == 'complete' and not ''.join(text).strip():
-            status, error = 'failed', 'The model returned no reply text.'
+            status, error = 'failed', error or 'The model returned no reply text.'
         self.finish(prepared['attempt_id'], ''.join(text), status, error)
+
+    async def write(self, prepared, key, packet, text, publish, active) -> tuple[str, str | None, int]:
+        """One pass at the reply. Sentences that say the companion is an AI or not real are dropped before
+        they are shown (companion/in_character.py); returns the status, error and how many were dropped."""
+        status, error, guard = 'complete', None, in_character.Guard(active)
+        text.clear()
+
+        def keep(piece):
+            if piece:
+                text.append(piece)
+                publish(piece)
+
+        try:
+            async with self.scheduler.reserve(prepared['config'], CONVERSATION):
+                async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
+                                                        packet['messages']):
+                    keep(guard.feed(chunk.text))
+                    if chunk.finish_reason in INCOMPLETE:
+                        status, error = 'incomplete', INCOMPLETE[chunk.finish_reason]
+        finally:
+            keep(guard.flush())  # A stopped or failed reply keeps the text it had, still checked.
+        return status, error, guard.dropped
 
     def finish(self, attempt_id, text, status, error):
         with self.database.connect(write=True) as connection:
