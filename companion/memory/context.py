@@ -30,7 +30,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, people, vectors
+from companion.memory import closeness, people, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -304,13 +304,18 @@ def recall_text(kind, owner, hit) -> str:
     return f"- Earlier ({owner['created_at'][:10]}, {owner['role']}): {hit.chunk.text.strip()}"
 
 
-def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozenset()) -> list[tuple[str, str]]:
-    """Pinned memories first, then keyword and semantic recall fused over eligible memories, older turns and
-    episode summaries. An anecdote that keeps resurfacing needs the user's own words to come back."""
+def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozenset(),
+             when=None) -> list[tuple[str, str]]:
+    """Pinned memories first, then keyword, semantic and time recall fused over eligible memories, older turns
+    and episode summaries. An anecdote that keeps resurfacing needs the user's own words to come back.
+    `when` is (span, timezone) for a time the query names (companion/memory/time_recall.py)."""
     result = [(memory['id'], memory_text(memory)) for memory in memories if memory['pinned']]
     chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older, summaries)
     rankings = [list(ranking)] if ranking else []
-    hits = hybrid_hits(chunks, [query], {'rankings': rankings}, RECALL_LIMIT) if query.strip() else []
+    if when:
+        rankings.append(time_recall.ranking(chunks, owners, *when))
+    hits = hybrid_hits(chunks, [query], {'rankings': rankings}, RECALL_LIMIT * 2) if query.strip() else []
+    hits = time_recall.spread(hits, RECALL_LIMIT)
     seen = set()
     for hit in hits:
         kind, owner = owners[hit.chunk.id]
@@ -491,7 +496,10 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     ranking = semantic_ranking(connection, semantic, groups['recallable'], older)
     summaries = usable_summaries(connection, timeline_id, excluded_sources(connection, companion['id']))
     surfaced = recently_surfaced(connection, timeline_id)
-    for identity, text in recalled(groups['recallable'], older, query, ranking, summaries, surfaced):
+    timezone = settings(connection)['user_timezone']
+    span = time_recall.query_span(query, now, timezone)
+    for identity, text in recalled(groups['recallable'], older, query, ranking, summaries, surfaced,
+                                   (span, timezone) if span else None):
         packet.offer('recalled', identity, text)
     packet.semantic = bool(semantic)
     return render(packet, conversation)
