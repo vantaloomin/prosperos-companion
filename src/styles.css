@@ -528,6 +528,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-community .turn-actions { margin: 2px 0 10px 78px; }
 .chat-community .composer, .chat-community .conversation-notice { max-width: none; }
 .chat-community .load-earlier { margin-top: 8px; }
+/* The column is edge to edge so message hover rows span it; everything that isn't a message gets the same inset. */
+.chat-community .reading-column > :is(.getting-started, .notice) { margin-inline: 24px; }
 
 /* Retro IM: an early-2000s messenger window. Its own light palette keeps everything inside it readable. */
 .chat-retro { --canvas: #ffffff; --surface: #d4d0c8; --raised: #c4c0b8; --border: #808080; --text: #000000; --muted: #3a3a3a; --faint: #555555;
@@ -601,6 +603,7 @@ textarea { resize: vertical; line-height: 1.6; }
   .chat-style-switch { max-width: 104px; }
   .chat-community .message { padding: 8px 14px; }
   .chat-community .turn-actions { margin-left: 68px; }
+  .chat-community .reading-column > :is(.getting-started, .notice) { margin-inline: 14px; }
   .chat-retro { margin: 4px; }
   .novel-stage { flex-basis: clamp(120px, 28dvh, 300px); }
 }
