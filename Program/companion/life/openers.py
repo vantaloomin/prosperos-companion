@@ -2,24 +2,29 @@
 
 Fixed triggers decide when the companion opens a conversation, from saved state only: a plan the
 user mentioned whose day has passed, news from the companion's own committed life, an event that
-touches something the user told them, or, only for a character given an absence trait, a long
-silence. The facts come from that state; a model only phrases the message in the character's voice,
-and a trigger that needs phrasing waits when no model is connected.
+touches something the user told them, a follow-up the companion promised ("tell me how the search
+is going later") once they have a free moment, an ordinary check-in at a break in their day (lunch,
+after work or class, a free evening; rolled with seeded dice, so not every day), or, only for a
+character given an absence trait, a long silence. The facts come from that state; a model only
+phrases the message in the character's voice, and a trigger that needs phrasing waits when no model
+is connected.
 
-It is off until the user turns it on. It never texts while the workspace is paused, during quiet
+It is on by default and the user can turn it off. It never texts while the workspace is paused, during quiet
 hours, while the companion is asleep, soon after the last message, more often than the daily cap,
 or twice in a row without an answer. Each trigger fires once per timeline. The message is saved as
 an ordinary companion message with no `reply_to`, so the next reply sees it in the transcript.
 """
+import random
+import re
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import time, timedelta
 
 from companion import in_character, notifications, self_facts
 from companion.characters import current
-from companion.clock import parse, stamp
+from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import occasions, recommendations, routine, storylines
+from companion.life import occasions, pacing, recommendations, routine, storylines
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -46,6 +51,26 @@ FINISHED = {'loved it': 'Okay, I finished {title}. You were so right, I loved it
             'was not really into it': "So I finished {title}. Honestly? Not really my thing. Sorry!"}
 VOICE = {'mild': "Hey you. It's been a little while.", 'moderate': "You've been quiet. Everything okay?",
          'strong': 'So... are you ignoring me now?'}
+# Check-ins at breaks in the companion's day (off in tests unless a test turns them on).
+CHECK_INS = True
+BUSY = {'work', 'study'}
+LUNCH = (time(12, 0), time(13, 30))
+EVENING = (time(19, 0), time(21, 30))
+AFTER = timedelta(minutes=90)
+PROMISE_WITHIN = timedelta(hours=18)
+# How likely each break is to bring a check-in on a given day.
+CHANCE = {'lunch': 0.5, 'after': 0.7, 'evening': 0.35}
+MOMENTS = {'lunch': 'your lunch break', 'after': 'just after {done}', 'evening': 'a free evening'}
+CHECK_IN = {'lunch': ("Lunch break, finally. How's your day going?", 'Escaped my desk for lunch. How are you doing today?'),
+            'after': ("Finally done with {done} for today. How's your day been?", 'Okay, out of {done}. How was your day?'),
+            'evening': ("Hey you. How's your evening going?", 'Hi :) how was your day?')}
+DONE = {'work': 'work', 'study': 'class'}
+LATER = re.compile(r"\b(?:later|tonight|after work|after class|this evening|when i'?m (?:free|off|home|done|out)"
+                   r'|on my (?:lunch|break))\b', re.IGNORECASE)
+ASK = re.compile(r"\b(?:hear|tell me|fill me in|catch me up|ask you|check (?:in|on|back)|update me|know how|talk about)\b",
+                 re.IGNORECASE)
+TOPIC = re.compile(r"\bhow ((?:the|your) [a-z][a-z' -]{1,40}?|[a-z][a-z' -]{1,40}?) (?:is|are|was|went|goes|'s) going\b",
+                   re.IGNORECASE)
 INSTRUCTION = (
     'The user has not written. Write one short message to them yourself, as a text that starts a new exchange '
     '(one to three sentences, no greeting formula unless it fits your voice). Why you are writing: {reason} '
@@ -156,8 +181,93 @@ def occasion(connection, companion, now) -> list[Trigger]:
             if item['days'] == 0]
 
 
+def agenda_blocks(connection, companion, start, end) -> list[tuple[dict, object, object]]:
+    """(block, starts_at, ends_at) the companion's day holds between start and end: the precomputed agenda
+    (so a holiday or a sick day is not work) where it has entries, else the routine."""
+    rows = many(connection, "SELECT block, starts_at, ends_at FROM life_agenda WHERE timeline_id=? AND "
+                "subject='companion' AND ends_at>? AND starts_at<? ORDER BY starts_at",
+                (companion['active_timeline_id'], stamp(start), stamp(end)))
+    if rows:
+        return [(decode(row['block']), parse(row['starts_at']), parse(row['ends_at'])) for row in rows]
+    version = companion['version']
+    return [(slot.block.view(), slot.starts_at, slot.ends_at) for slot in
+            routine.slots(routine.blocks(version['definition'])[0], version['timezone'], start, end)]
+
+
+def busy(block: dict | None) -> bool:
+    return bool(block) and not block.get('holiday') and not block.get('sick_day') and block['kind'] in BUSY
+
+
+def free_moment(connection, companion, now) -> tuple[str, str, object] | None:
+    """(moment, what they just finished, when it began) when the companion has a natural minute to text:
+    lunch, just after work or class, or a free evening. None while they are busy or asleep."""
+    found = pacing.block_now(connection, companion, now)
+    block = found[0] if found else None
+    if block and block['kind'] in routine.RESTING:
+        return None
+    local = now.astimezone(zone(companion['version']['timezone']))
+    if LUNCH[0] <= local.time() < LUNCH[1]:
+        return 'lunch', '', local.replace(hour=LUNCH[0].hour, minute=LUNCH[0].minute, second=0, microsecond=0)
+    if busy(block) or (block and block['kind'] == 'social'):
+        return None
+    ended = [(item, ends_at) for item, _starts_at, ends_at in agenda_blocks(connection, companion, now - AFTER, now)
+             if busy(item) and now - AFTER < ends_at <= now]
+    if ended:
+        item, ends_at = ended[-1]
+        return 'after', DONE[item['kind']], ends_at
+    if EVENING[0] <= local.time() < EVENING[1]:
+        return 'evening', '', local.replace(hour=EVENING[0].hour, minute=EVENING[0].minute, second=0, microsecond=0)
+    return None
+
+
+def promises(connection, companion, now) -> list[Trigger]:
+    """The companion said they would hear about something later ("tell me how the search is going later"):
+    they ask once they have a free moment, if the conversation stopped there."""
+    if not CHECK_INS or not (moment := free_moment(connection, companion, now)):
+        return []
+    rows = many(connection, "SELECT id, role, text, created_at FROM messages WHERE timeline_id=? AND status='complete' "
+                'AND active=1 ORDER BY seq DESC LIMIT 4', (companion['active_timeline_id'],))
+    for row in rows:
+        if row['role'] != 'companion' or now - parse(row['created_at']) > PROMISE_WITHIN:
+            continue
+        for sentence in re.split(r'(?<=[.!?])\s+|\n+', row['text']):
+            if not (LATER.search(sentence) and ASK.search(sentence)):
+                continue
+            sentence = sentence.strip()
+            topic = TOPIC.search(sentence)
+            template = (f"Okay, free for a minute. How's {topic.group(1).lower()} going?" if topic
+                        else "Okay, free for a minute. How's everything going?")
+            return [Trigger(f"promise:{row['id']}", 'follow_up',
+                            f'Earlier you told the user: "{sentence}" Now you have a free moment '
+                            f"({MOMENTS[moment[0]].format(done=moment[1])}). Follow up on exactly that and ask about "
+                            'it in your own words. You do not know how it is going.', template, (row['id'],))]
+    return []
+
+
+def check_in(connection, companion, now) -> list[Trigger]:
+    """An ordinary check-in at a break in the companion's day, on seeded days and at a seeded minute."""
+    if not CHECK_INS or not (found := free_moment(connection, companion, now)):
+        return []
+    moment, done, began = found
+    local_date = began.astimezone(zone(companion['version']['timezone'])).date().isoformat()
+    key = f'checkin:{local_date}:{moment}'
+    rng = random.Random(f"{companion['id']}:{key}")
+    if rng.random() >= CHANCE[moment] or now < began + timedelta(minutes=rng.randint(5, 50)):
+        return []
+    last = optional(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND status='complete' "
+                    'ORDER BY seq DESC LIMIT 1', (companion['active_timeline_id'],))
+    since = (f"You last talked {round((now - parse(last['created_at'])).total_seconds() / 3600)} hours ago."
+             if last else 'You have not talked yet.')
+    return [Trigger(key, 'check_in',
+                    f"It is {MOMENTS[moment].format(done=done)} for you and you have a free minute. {since} Send a "
+                    'casual check-in, the way you would text someone you are close to: ask how their day is going, '
+                    'or pick up something from your last conversation. You may mention where you are in your day; '
+                    'do not invent events, places or people.',
+                    rng.choice(CHECK_IN[moment]).format(done=done))]
+
+
 # In priority order; later features add their own.
-FINDERS = [occasion, plan_follow_ups, finished, storyline_news, news, reminders, silence]
+FINDERS = [occasion, plan_follow_ups, promises, finished, storyline_news, news, reminders, silence, check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:

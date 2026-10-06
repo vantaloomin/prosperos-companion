@@ -411,7 +411,7 @@ PUT /api/life/settings
 | `return_gap_hours` | 4 | 1–48 | Unsimulated time needed before a return batch runs. |
 | `background_interval_minutes` | 60 | 15–1440 | Gap between background batches. |
 | `background_daily_events` | 3 | 0–8 | Most background events in 24 hours; one per batch. |
-| `texts_first` | `false` | | The companion may send the first message (see First messages). |
+| `texts_first` | `true` | | The companion may send the first message (see First messages). Workspaces from before it was on by default are switched on once. |
 | `texts_daily` | 2 | 1–6 | Most first messages in 24 hours. |
 | `texts_gap_hours` | 3 | 1–24 | Hours since the last message before the companion writes first. |
 
@@ -439,16 +439,24 @@ earlier batch). It is refused (409) while paused or for a pause that has not end
 POST /api/life/texts/check   → {state, kind?, message: Message | null}
 ```
 
-With `texts_first` on, the companion can start a conversation (`companion/life/openers.py`). The
-open app calls this about once a minute, and a server with background activity on checks on its own
-tick. Fixed triggers decide when, in this order, each at most once per timeline:
+With `texts_first` on (the default), the companion can start a conversation
+(`companion/life/openers.py`). The open app calls this about once a minute, and the server checks on
+its own tick whether or not background activity is on. Fixed triggers decide when, in this order,
+each at most once per timeline:
 
 | Kind | When | Needs a model |
 | --- | --- | --- |
 | `follow_up` | A plan the user mentioned ended between an hour and three days ago without an outcome | No (template: "Hey! How did the … go?") |
+| `follow_up` | One of the last four messages, from the companion in the last 18 hours, says they want to hear about something later ("I'd like to hear how the search is going later"), and they now have a free moment (below) | No (template: "Okay, free for a minute. How's … going?") |
 | `news` | An open thread in the companion's life settled in the last day | Yes |
 | `reminder` | An event committed in the last day shares a distinctive word with a user fact or shared experience | Yes |
 | `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
+| `check_in` | A free moment, on a seeded roll per day and moment (lunch 50%, after work or class 70%, free evening 35%), at a seeded minute 5 to 50 minutes into it | No (template per moment) |
+
+A free moment is lunch (12:00 to 13:30 in the companion's timezone, even on a work day), the 90
+minutes after a work or study block ends (by the precomputed agenda, so a holiday or sick day is not
+work) unless they are in another busy or social block, or a free evening (19:00 to 21:30). Never
+while asleep.
 
 The model gets the normal chat context plus the reason and its facts, and is told not to add events,
 places or people. A reply that is empty, cut off or longer than 600 characters falls back to the

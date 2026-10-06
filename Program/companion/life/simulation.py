@@ -43,7 +43,8 @@ def life_settings(connection) -> dict:
 
 
 def settings_view(row: dict) -> dict:
-    return {**row, **{flag: bool(row[flag]) for flag in FLAGS}}
+    view = {key: value for key, value in row.items() if key != 'texts_first_on_by_default'}
+    return {**view, **{flag: bool(row[flag]) for flag in FLAGS}}
 
 
 def read_settings(database) -> dict:
@@ -639,7 +640,9 @@ class LifeEngine:
             if background:
                 await self.quietly_observe()
                 await self.quietly_prepare()
-                await self.quietly_text()
+            # First messages have their own setting (texts_first), so the companion can text while the
+            # app is closed even when background activity is off; the open app also asks each minute.
+            await self.quietly_text()
 
     async def quietly_observe(self):
         """Real weather and local events for the companion's city, when the user allowed lookups for their

@@ -304,6 +304,7 @@ def share(client):
 
 def test_a_photo_text_waits_until_they_may_text_first(client, life, unasked):
     local_comfy(client)
+    set_life(client, texts_first=False)
     assert share(client) is None
     set_life(client, texts_first=True)
     sent = share(client)

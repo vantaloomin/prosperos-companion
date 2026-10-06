@@ -87,7 +87,7 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'chat_style',
      "TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel'))"),
     ('workspace_settings', 'chat_sounds', 'INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1))'),
-    ('life_settings', 'texts_first', 'INTEGER NOT NULL DEFAULT 0 CHECK (texts_first IN (0, 1))'),
+    ('life_settings', 'texts_first', 'INTEGER NOT NULL DEFAULT 1 CHECK (texts_first IN (0, 1))'),
     ('life_settings', 'texts_daily', 'INTEGER NOT NULL DEFAULT 2'),
     ('life_settings', 'texts_gap_hours', 'INTEGER NOT NULL DEFAULT 3'),
     ('life_settings', 'circle_size', 'INTEGER NOT NULL DEFAULT 0'),
@@ -110,6 +110,8 @@ ADDED_COLUMNS = (
     ('lora_generations', 'kind', "TEXT NOT NULL DEFAULT 'dataset' CHECK (kind IN ('dataset', 'portraits'))"),
     ('lora_gen_images', 'follows', 'INTEGER'),
     ('companions', 'portrait_reference_id', 'TEXT'),
+    # Texts first became on by default; a workspace from before that is switched on once (see initialize).
+    ('life_settings', 'texts_first_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -138,6 +140,8 @@ def initialize(connection, timestamp: str):
     for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings',
                   'notification_settings', 'phone_settings'):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))
+    connection.execute('UPDATE life_settings SET texts_first=1, texts_first_on_by_default=1 '
+                       'WHERE texts_first_on_by_default=0')
     connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',
                            (('schema_version', str(SCHEMA_VERSION)), ('schema_digest', schema_digest()),
                             ('app_version', VERSION)))
