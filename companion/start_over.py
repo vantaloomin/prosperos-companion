@@ -6,13 +6,13 @@ typing the companion's name.
 
 Every table in the schema is in exactly one group below (tests/test_start_over.py checks this):
 
-- WORKSPACE stays through both: settings, model connections, image backends, lookups, cities,
-  notification and phone setup. Deletion markers stay too, so a restore still honours them.
+- WORKSPACE stays through both: settings, model connections, image backends, lookup services,
+  cities and the user's changes to them, notification and phone setup. Deletion markers stay too, so a restore still honours them.
 - CHARACTER is who the companion is: the companion, every version of the character, and their
   look (reference pictures, adapters, training and test pictures). Starting over keeps it;
   deleting removes it.
 - HISTORY is everything that happened: every timeline with its chats, memories, life, feed,
-  circle, home, closeness and the people the user mentioned. Both remove it.
+  circle, home, closeness, the people the user mentioned and the real-world lookups made for them. Both remove it.
 
 There is one companion per workspace, so a group is cleared whole. Starting over then gives the
 companion a fresh active timeline that begins now, as a newly created companion has.
@@ -29,8 +29,7 @@ from companion.errors import require
 WORKSPACE = (
     'app_identity', 'workspace_settings', 'pauses', 'pause_catch_ups', 'connection', 'model_profiles',
     'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'image_settings',
-    'image_backends', 'context_settings', 'context_services', 'context_tools', 'context_observations',
-    'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
+    'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.
@@ -39,8 +38,11 @@ CHARACTER = (
     'appearance_versions', 'lora_adapters', 'lora_references', 'lora_runs', 'study_imports', 'character_versions',
     'companions',
 )
+# Lookups were made for the companion's replies and city, so they go with the history. City news
+# drawn from them (world_changes with origin 'real') goes with them by ON DELETE CASCADE; changes
+# the user made to a city stay.
 HISTORY = (
-    'context_uses', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
+    'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
     'closeness_jokes', 'closeness_settings', 'openers', 'self_facts', 'recommendations', 'storylines',
