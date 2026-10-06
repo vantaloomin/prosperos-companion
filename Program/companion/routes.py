@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from companion import (
     backup,
+    cast,
     characters,
     conversation,
     drafting,
@@ -21,6 +22,9 @@ from companion import (
 from companion.identity import APP_ID, VERSION
 from companion.memory import consolidation, formation, records
 from companion.models import (
+    CastDraftRequest,
+    CastFocus,
+    CastSwitch,
     CharacterDefinition,
     CharacterDraftRequest,
     CharacterRevision,
@@ -106,6 +110,36 @@ async def draft_companion(request: Request, body: CharacterDraftRequest):
 @router.post('/companion/draft/field')
 async def draft_field(request: Request, body: FieldDraftRequest):
     return await drafting.redo_field(request.app.state, body)
+
+
+@router.get('/companion/cast')
+def companion_cast(request: Request):
+    """Every companion in the workspace: the main character and those who stepped back."""
+    return {'members': cast.members(db(request))}
+
+
+@router.get('/companion/cast/draft')
+def cast_draft(request: Request, key: str):
+    """A profile for a townsperson the main character has met, from their sheet; nothing is saved."""
+    return cast.draft(db(request), key)
+
+
+@router.post('/companion/cast/draft')
+async def cast_fleshed(request: Request, body: CastDraftRequest):
+    """The same profile written out by the text model; nothing is saved."""
+    return await cast.fleshed(request.app.state, body.key)
+
+
+@router.post('/companion/cast/switch')
+def cast_switch(request: Request, body: CastSwitch):
+    """The townsperson becomes the main character; the current one steps back with their history."""
+    return cast.switch(db(request), body.key, body.definition)
+
+
+@router.post('/companion/cast/focus')
+def cast_focus(request: Request, body: CastFocus):
+    """Switch back to a companion who stepped back."""
+    return cast.focus_on(db(request), body.companion_id)
 
 
 @router.get('/prompts')

@@ -15,7 +15,7 @@ import sqlite3
 from pathlib import Path
 
 from companion import backup
-from companion.database import initialize, stored_identity
+from companion.database import free_companion_slot, initialize, stored_identity
 from companion.errors import DomainError
 
 BACKUP_DIRECTORY = 'backups'
@@ -34,6 +34,7 @@ def remove(path: Path):
 def migrate(staging: Path, timestamp: str):
     connection = sqlite3.connect(staging, isolation_level=None)
     try:
+        free_companion_slot(connection)
         connection.execute('PRAGMA foreign_keys=ON')
         connection.execute('BEGIN IMMEDIATE')
         initialize(connection, timestamp)

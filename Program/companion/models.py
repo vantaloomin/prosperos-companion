@@ -124,6 +124,21 @@ class CharacterRevision(Input):
     expected_version_id: str
 
 
+class CastDraftRequest(Input):
+    """A townsperson the main character has met (companion/cast.py)."""
+    key: str = Field(min_length=1, max_length=200)
+
+
+class CastSwitch(Input):
+    """Make that townsperson the main character, with the definition the user reviewed."""
+    key: str = Field(min_length=1, max_length=200)
+    definition: CharacterDefinition
+
+
+class CastFocus(Input):
+    companion_id: str = Field(min_length=1, max_length=64)
+
+
 class StartOverConfirm(Input):
     name: str = Field(max_length=200)
 
