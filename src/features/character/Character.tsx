@@ -2,7 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
 import { COMPANION_KEY, type View } from '../../companion'
-import type { CharacterDefinition, CharacterVersion, Companion, Connection, Relationship } from '../../types'
+import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, timezones } from './definition'
@@ -67,7 +67,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
       client.setQueryData(COMPANION_KEY, saved)
       onSaved(saved.version.number)
       void client.invalidateQueries({ queryKey: ['versions'] })
-      if (!companion) go('conversation')
+      if (!companion) go(await afterCreating())
     } catch (error) {
       setResult({ tone: 'error', text: error instanceof Error ? error.message : 'The character could not be saved.', conflict: error instanceof ApiError && error.status === 409 })
     } finally { setSaving(false) }
@@ -131,6 +131,14 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
   )
 }
 
+/** A new companion gets the profile pictures step when an image backend is ready; otherwise the chat. */
+async function afterCreating(): Promise<View> {
+  try {
+    const { backends } = await api<{ backends: ImageBackend[] }>('/images/backends')
+    return backends.some((backend) => backend.enabled && !backend.blocked_reason) ? 'portraits' : 'conversation'
+  } catch { return 'conversation' }
+}
+
 function initialForm(companion: Companion | null, start: Start | null): FormState {
   const definition = companion ? completeDefinition(companion.version.definition) : start?.definition ?? emptyDefinition(guessTimezone())
   return { definition, texts: listTexts(definition) }
@@ -155,7 +163,10 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
         <h1>{companion ? companion.version.name : 'Create your companion'}</h1>
         <p className="subtle">{companion ? `Version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Only a name is required, and you can change everything later.'}</p>
       </div>
-      {companion && <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>}
+      {companion && <div className="form-actions">
+        <button type="button" className="button" onClick={() => go('portraits')}>Profile pictures</button>
+        <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>
+      </div>}
     </header>
     {!companion && <StudyImport />}
   </>)

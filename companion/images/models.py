@@ -17,6 +17,8 @@ class BackendFields(Input):
     model: str | None = Field(default=None, max_length=200)
     # ComfyUI workflow in API format with {{prompt}}, {{negative}}, {{seed}}, {{width}} and {{height}}.
     workflow: str | None = Field(default=None, max_length=200000)
+    # A second ComfyUI workflow for pictures that follow an earlier one, with {{reference_image}} too.
+    reference_workflow: str | None = Field(default=None, max_length=200000)
     cli_path: str | None = Field(default=None, max_length=1000)
     api_style: Literal['images', 'chat'] | None = None
     api_key: str | None = Field(default=None, max_length=4000)

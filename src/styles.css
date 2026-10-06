@@ -511,6 +511,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-community .message > :not(.avatar) { grid-column: 2; }
 .chat-community .avatar { display: grid; place-items: center; grid-column: 1; grid-row: 1 / span 3; align-self: start; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 600; }
 .chat-community .message-user .avatar { background: var(--raised); color: var(--text); }
+/* Their profile picture in place of the initial (onboarding portraits). */
+img.avatar, img.portrait { object-fit: cover; object-position: center top; padding: 0; }
 .chat-community .message > header { flex-wrap: wrap; justify-content: flex-start; column-gap: 10px; min-height: 24px; margin-bottom: 2px; }
 .chat-community .message-actions, .chat-community .reply-tools { flex: 1 1 auto; }
 .chat-community .message-actions { justify-content: flex-start; }

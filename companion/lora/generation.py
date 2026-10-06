@@ -154,7 +154,8 @@ def listing(database) -> list[dict]:
     with database.connect() as connection:
         companion = require_current(connection)
         return [view(connection, row) for row in many(
-            connection, 'SELECT * FROM lora_generations WHERE companion_id=? ORDER BY created_at DESC, rowid DESC',
+            connection, "SELECT * FROM lora_generations WHERE companion_id=? AND kind='dataset' "
+                        'ORDER BY created_at DESC, rowid DESC',
             (companion['id'],))]
 
 
@@ -312,24 +313,40 @@ class GenerationRunner:
                 return backend
             await asyncio.sleep(self.pause)
 
+    def reference(self, image) -> bytes | None:
+        """The finished picture this one follows (onboarding portraits). Raises when it is missing."""
+        if image['follows'] is None:
+            return None
+        with self.database.connect() as connection:
+            row = connection.execute('SELECT output_file FROM lora_gen_images WHERE generation_id=? AND position=?',
+                                     (image['generation_id'], image['follows'])).fetchone()
+        if row is None or row['output_file'] is None:
+            raise LookupError(f"Picture {image['follows'] + 1} did not finish, so this one has nothing to follow.")
+        return files.inside(directory(self.database), row['output_file']).read_bytes()
+
     async def render(self, image):
+        try:
+            reference = self.reference(image)
+        except (LookupError, OSError) as error:
+            self.fail(image['id'], str(error) if isinstance(error, LookupError) else 'The picture to follow is missing.')
+            return
         backend = await self.admitted(image)
         if backend is None:
             return
         self.current = {'id': backend['id'], 'kind': backend['kind']}
         self.mark(image['id'], status='running', started_at=self.database.now())
         try:
-            await self.generate(image, backend)
+            await self.generate(image, backend, reference)
         finally:
             self.current = None
             self.images.wake()
 
-    async def generate(self, image, backend):
+    async def generate(self, image, backend, reference=None):
         width, height = size_for(backend['kind'], image['aspect'])
         config = decode(backend['config'])
         key = self.vault.get(backend['credential_ref']) if backend['credential_ref'] else None
         request = ImageRequest(image['id'], image['prompt'], image['negative'], image['seed'], width, height,
-                               backend, config, key, raw_directory(self.database))
+                               backend, config, key, raw_directory(self.database), reference=reference)
         try:
             result = await self.images.adapters[backend['kind']].generate(request)
             kind, out_width, out_height = sniff(result.data)

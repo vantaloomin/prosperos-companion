@@ -2,6 +2,7 @@ import { useState, type ChangeEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { api, upload } from '../../api'
+import { COMPANION_KEY, useCompanion } from '../../companion'
 import type { Crop, LoraReference, ReferenceRole, Rights } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput } from '../../components/Fields'
@@ -17,7 +18,8 @@ function useSave() {
   const [error, setError] = useState<string | null>(null)
   const save = async (action: () => Promise<unknown>) => {
     try { await action(); setError(null) } catch (failed) { setError(failure(failed, 'That did not save.')) }
-    await client.invalidateQueries({ queryKey: REFERENCES_KEY })
+    // Removing their profile picture changes the companion too.
+    await Promise.all([client.invalidateQueries({ queryKey: REFERENCES_KEY }), client.invalidateQueries({ queryKey: COMPANION_KEY })])
   }
   return { error, save }
 }
@@ -80,9 +82,18 @@ function PrepareCard({ item, names, save }: { item: LoraReference; names: LoraRe
       )}</Field>
       {item.role === 'excluded' && <TextInput label="Why it is excluded" value={reason} maxLength={500} onChange={setReason} />}
       {item.role === 'excluded' && reason !== item.exclusion_reason && <button type="button" className="text-button" onClick={() => void put({ exclusion_reason: reason })}>Save reason</button>}
+      <PortraitChoice item={item} save={save} />
       <button type="button" className="text-button danger-text" onClick={() => void save(() => api(`/lora/references/${item.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
     </li>
   )
+}
+
+/** Which picture shows as the companion's own picture in the chat. */
+function PortraitChoice({ item, save }: { item: LoraReference; save: (action: () => Promise<unknown>) => Promise<void> }) {
+  const current = useCompanion().data?.portrait_reference_id === item.id
+  const choose = (reference_id: string | null) => void save(() => api('/lora/portrait', { reference_id }, 'PUT'))
+  if (current) return <p className="subtle"><span className="badge">Profile picture</span> <button type="button" className="text-button inline" onClick={() => choose(null)}>Show their initial instead</button></p>
+  return <button type="button" className="text-button" onClick={() => choose(item.id)}>Use as profile picture</button>
 }
 
 function roleChange(role: ReferenceRole, reason: string) {

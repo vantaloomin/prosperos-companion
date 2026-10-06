@@ -85,3 +85,20 @@ class GenerationPlan(Input):
 
 class GenerationCreate(GenerationPlan):
     seed: int = Field(ge=1, lt=2**31)
+
+
+class PortraitPlan(Input):
+    base: str = Field(min_length=1, max_length=1500)
+    shots: list[Shot] = Field(min_length=1, max_length=3)
+    backend_id: str | None = None
+    # Make every picture from the description alone, for backends that cannot take a reference.
+    without_reference: bool = False
+    seed: int | None = Field(default=None, ge=1, lt=2**31)
+
+
+class PortraitCreate(PortraitPlan):
+    seed: int = Field(ge=1, lt=2**31)
+
+
+class Portrait(Input):
+    reference_id: str | None = None

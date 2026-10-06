@@ -41,3 +41,11 @@ export async function pngCopy(blob: Blob): Promise<Blob> {
   bitmap.close()
   return new Promise((resolve, reject) => canvas.toBlob((copy) => copy ? resolve(copy) : reject(new Error('The picture could not be converted.')), 'image/png'))
 }
+
+/** What keeping a generated picture sends: nothing extra, or a PNG copy of a WebP output, with its hash. */
+export async function keepBody(id: string): Promise<{ body: Blob; hash?: string }> {
+  const blob = await (await fetch(`/api/lora/generation-images/${id}/file`)).blob()
+  if (blob.type !== 'image/webp') return { body: new Blob([]), hash: await hashPicture(blob) }
+  const copy = await pngCopy(blob)
+  return { body: copy, hash: await hashPicture(copy) }
+}

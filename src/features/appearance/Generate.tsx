@@ -6,7 +6,7 @@ import type { Generation, GenerationDraft, GeneratedImage, ImageBackend, Planned
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { composePrompt, generationLine, routeLine } from './loraState'
-import { hashPicture, pngCopy } from './browserImage'
+import { keepBody } from './browserImage'
 import { REFERENCES_KEY } from './queries'
 
 const GENERATIONS_KEY = ['lora-generations']
@@ -183,13 +183,6 @@ function GenerationView({ generation }: { generation: Generation }) {
       <ul className="reference-grid">{generation.images.map((image) => <GeneratedCard key={image.id} image={image} refresh={refresh} />)}</ul>
     </section>
   )
-}
-
-async function keepBody(id: string): Promise<{ body: Blob; hash?: string }> {
-  const blob = await (await fetch(`/api/lora/generation-images/${id}/file`)).blob()
-  if (blob.type !== 'image/webp') return { body: new Blob([]), hash: await hashPicture(blob) }
-  const copy = await pngCopy(blob)
-  return { body: copy, hash: await hashPicture(copy) }
 }
 
 function GeneratedCard({ image, refresh }: { image: GeneratedImage; refresh: () => Promise<unknown> }) {
