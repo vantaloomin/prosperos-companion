@@ -81,7 +81,16 @@ kill -TERM "$background"
 wait "$background" 2>/dev/null
 background=''
 check 'closing dev mode stops its backend' wait_for_state stopped 8775
-check 'closing dev mode stops Vite' test -z "$(port_owner 5175)"
+# stop_tree only signals Vite, which then exits on its own, so give it a moment to let go of 5175.
+port_released() {
+    local tries=40
+    while [ "$tries" -gt 0 ]; do
+        [ -z "$(port_owner "$1")" ] && return 0
+        sleep 0.25; tries=$((tries - 1))
+    done
+    return 1
+}
+check 'closing dev mode stops Vite' port_released 5175
 
 # update: fast-forward from a local origin, then reinstall. CI checkouts are shallow, so the local
 # origin accepts shallow pushes.

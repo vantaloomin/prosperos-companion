@@ -2,13 +2,15 @@ name: Package
 
 # Builds the self-contained Windows bundle and its per-user installer, then launches the bundle and
 # installs, upgrades and uninstalls the setup on runners without Python or Node.
-# The bundle is a workflow artifact only: nothing here tags or publishes a release.
+# The bundle is a workflow artifact only: nothing here tags or publishes a release. release.yml calls
+# this workflow and publishes its windows-release artifact once every job here has passed.
 
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
