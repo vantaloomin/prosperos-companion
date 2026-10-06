@@ -171,7 +171,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const hasEarlier = !exhausted && messages.length >= PAGE
 
   return (
-    <section className={`conversation chat-${chat.style}`} aria-label={`Conversation with ${name}`}>
+    <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
       <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
       {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onDone={onDone} onLost={onLost} />)}
       <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>

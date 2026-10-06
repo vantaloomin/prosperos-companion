@@ -4,7 +4,7 @@ import { Toggle } from '../../components/Fields'
 import { CHAT_STYLES } from '../conversation/chatStyles'
 import { useChatStyle } from '../conversation/useChatStyle'
 
-/** General > Appearance: how the chat looks, and Retro IM's optional sounds. */
+/** General > Appearance: how the chat looks, and Retro IM's optional sounds and dark mode. */
 export function ChatStyleSettings() {
   const chat = useChatStyle()
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +28,8 @@ export function ChatStyleSettings() {
       </fieldset>
       <Toggle label="Retro IM sounds" checked={chat.soundsSetting} onChange={(checked) => void save({ chat_sounds: checked })}
         hint="A chime for each new reply. Only in the Retro IM style." />
+      <Toggle label="Retro IM dark mode" checked={chat.retroDarkSetting} onChange={(checked) => void save({ chat_retro_dark: checked })}
+        hint="A dark version of the messenger window. Only in the Retro IM style." />
     </section>
   )
 }
