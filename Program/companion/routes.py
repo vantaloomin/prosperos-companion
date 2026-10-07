@@ -7,29 +7,35 @@ from fastapi.responses import FileResponse, StreamingResponse
 from companion import (
     backup,
     cast,
+    character_helper,
     characters,
     conversation,
     drafting,
     events,
+    message_edits,
     notifications,
     pictures,
     prompt_library,
     restore,
     self_facts,
+    sidecar,
     start_over,
     text_models,
     timelines,
     workspace,
 )
 from companion.identity import APP_ID, VERSION
+from companion.imports import cards
 from companion.memory import consolidation, formation, records
 from companion.models import (
     CastDraftRequest,
     CastFocus,
     CastSwitch,
+    CharacterCardFile,
     CharacterDefinition,
     CharacterDraftRequest,
     CharacterRevision,
+    CharacterSplitRequest,
     ConnectionUpdate,
     EventCorrection,
     EventProposal,
@@ -38,10 +44,12 @@ from companion.models import (
     MemoryCreate,
     MemoryDelete,
     MessageCreate,
+    MessageEdit,
     NotificationCheck,
     NotificationSettingsUpdate,
     PromptUpdate,
     SettingsUpdate,
+    SidecarRequest,
     StartOverConfirm,
     TimelineFork,
     TimelineUpdate,
@@ -118,6 +126,30 @@ async def draft_companion(request: Request, body: CharacterDraftRequest):
 @router.post('/companion/draft/field')
 async def draft_field(request: Request, body: FieldDraftRequest):
     return await drafting.redo_field(request.app.state, body)
+
+
+@router.post('/companion/draft/split')
+async def split_character(request: Request, body: CharacterSplitRequest):
+    """A whole pasted character split into the form's fields for review; nothing is saved."""
+    return await character_helper.split(request.app.state, body)
+
+
+@router.post('/companion/draft/card')
+def read_character_card(body: CharacterCardFile):
+    """A character card file's text, for the paste box to show before anything is sent to a model."""
+    return cards.read_card(body.filename, body.data)
+
+
+@router.post('/sidecar')
+async def sidecar_message(request: Request, body: SidecarRequest):
+    """One message to the sidecar: a reply and proposed changes. Nothing is stored or applied."""
+    return await sidecar.chat(request.app.state, body)
+
+
+@router.post('/conversation/messages/{message_id}/edit')
+def edit_message(request: Request, message_id: str, body: MessageEdit):
+    """New wording for one of the companion's replies, keeping the old wording for Undo."""
+    return message_edits.edit(db(request), message_id, body.text, body.expected_text)
 
 
 @router.get('/companion/cast')

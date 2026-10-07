@@ -8,6 +8,11 @@ import { Field, TextArea, TextInput } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, timezones } from './definition'
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
 import { FieldHelp } from './FieldHelp'
+import { DetailsToggle } from './CharacterDetails'
+import { useCharacterDetails } from './useCharacterDetails'
+import { splitReply } from './helper'
+import { useFormBridge } from '../sidecar/useFormBridge'
+import { sidecar } from '../sidecar/store'
 import { TextingFields } from './TextingFields'
 import { Home } from './Home'
 import { Wardrobe } from './Wardrobe'
@@ -21,18 +26,23 @@ import { StartOver } from './StartOver'
 import { Cast } from './Cast'
 import { TownSeed } from './TownSeed'
 
-export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
+export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
 
 export function Character({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   const [saved, setSaved] = useState<number | null>(null)
   // A new companion starts with the quick start; the form then reviews the draft or starts empty.
   const [start, setStart] = useState<Start | null>(null)
-  const begin = (definition: CharacterDefinition, drafted: boolean) => setStart((current) => ({ definition, drafted, attempt: (current?.attempt ?? 0) + 1 }))
+  const begin = (definition: CharacterDefinition, drafted: boolean, split?: Start['split']) => {
+    setStart((current) => ({ definition, drafted, split, attempt: (current?.attempt ?? 0) + 1 }))
+    // A drafted character opens with the sidecar beside it, for changes in plain words; on a phone it would cover the form.
+    if (drafted && window.matchMedia?.('(min-width: 721px)').matches) sidecar.setOpen(true)
+  }
   if (!companion && !start) {
     return (
       <section className="page">
         <CharacterHeading companion={null} go={go} />
-        <QuickStart onDraft={(definition) => begin(definition, true)} onManual={() => begin(emptyDefinition(guessTimezone()), false)} go={go} />
+        <QuickStart onDraft={(definition) => begin(definition, true)} onSplit={(result) => begin(result.definition, true, { filledIn: result.filled_in, homeCity: result.home_city })} onManual={() => begin(emptyDefinition(guessTimezone()), false)} go={go} />
+        <StudyImport />
       </section>
     )
   }
@@ -53,6 +63,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
   const { definition, texts } = form
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const [details, setDetails] = useCharacterDetails()
   const [result, setResult] = useState<{ tone: 'info' | 'error'; text: string; conflict?: boolean } | null>(null)
   const set = (change: Partial<CharacterDefinition>) => setForm((current) => ({ ...current, definition: { ...current.definition, ...change } }))
   const setText = (key: keyof FormState['texts']) => (value: string) => setForm((current) => ({ ...current, texts: { ...current.texts, [key]: value } }))
@@ -60,6 +71,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
   const chrome = formChrome(companion, start, create, go, onRestart)
   const cleaned = () => cleanDefinition(definition, texts.interests, texts.themes, texts)
   // Rewriting one field with the text model, when one is connected.
+  useFormBridge(form, setForm, cleaned)
   const help = (field: DraftField, label: string): ReactNode => connection.data
     ? <FieldHelp field={field} label={label} definition={cleaned} current={fieldValue(form, field)} apply={(value) => setForm((current) => withField(current, field, value))} />
     : null
@@ -95,7 +107,6 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
               </select>
             )}
           </Field>
-          <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
           <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} hint="A fictional or real city for their life." tip="This is how they describe where they live. Home city, further down, is what builds their actual days." />
         </div>
         <datalist id="timezones">{timezones().map((zone) => <option key={zone} value={zone} />)}</datalist>
@@ -105,7 +116,6 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('personality', 'their personality')}
         <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} hint="How they talk: rhythm, humour, words they like." />
         {help('voice', 'their voice')}
-        <TextingFields value={definition.texting} onChange={(texting) => set({ texting })} />
         <TextArea label="Skills" value={texts.skills} onChange={setText('skills')} rows={4} hint="One per line. Concrete things they are good at, and a few they are only middling at." />
         {help('skills', 'their skills')}
         <TextArea label="Flaws" value={texts.flaws} onChange={setText('flaws')} rows={4} hint="One per line. Real flaws that show up in conversation make them feel like a person." />
@@ -116,12 +126,17 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('background', 'their background')}
         <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
-        <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
-        {help('routine', 'their routine')}
-        <LifeFields definition={definition} set={set} themes={texts.themes} setThemes={setText('themes')} help={help} />
-        <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
-        <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
-          hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />
+        <DetailsToggle shown={details} onChange={setDetails} />
+        {details && <>
+          <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
+          <TextingFields value={definition.texting} onChange={(texting) => set({ texting })} />
+          <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
+          {help('routine', 'their routine')}
+          <LifeFields definition={definition} set={set} themes={texts.themes} setThemes={setText('themes')} help={help} />
+          <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
+          <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
+            hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />
+        </>}
         {companion && <TextInput label="What changed (optional)" value={note} onChange={setNote} maxLength={500} hint="A note for the version history, so you can find this version again." />}
         <SaveFeedback result={result} saved={savedNow(saved, companion)} onReload={() => void client.invalidateQueries({ queryKey: COMPANION_KEY })} />
         {problems.length > 0 && <Notice tone="error">{problems.join(' ')}</Notice>}
@@ -129,17 +144,25 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
           <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{chrome.label}</button>
         </div>
       </form>
-      {companion && <>
-        <Home name={companion.version.name} />
-        <Wardrobe name={companion.version.name} />
-        <SelfFacts name={companion.version.name} />
-        <Versions current={companion.active_version_id} />
-        <Cast go={go} />
-        <TownSeed companion={companion} />
-        <StartOver name={companion.version.name} go={go} />
-      </>}
+      {companion && <SavedSections companion={companion} details={details} go={go} />}
     </section>
   )
+}
+
+/** What a saved companion has beyond the form; their home, wardrobe and own facts are life details too. */
+function SavedSections({ companion, details, go }: { companion: Companion; details: boolean; go: (view: View) => void }) {
+  const name = companion.version.name
+  return (<>
+    {details && <>
+      <Home name={name} />
+      <Wardrobe name={name} />
+      <SelfFacts name={name} />
+    </>}
+    <TownSeed companion={companion} />
+    <Versions current={companion.active_version_id} />
+    <Cast go={go} />
+    <StartOver name={name} go={go} />
+  </>)
 }
 
 /** The heading, the notice above a new character and the save button's words. */
@@ -147,7 +170,7 @@ function formChrome(companion: Companion | null, start: Start | null, create: Fo
   if (create) return { heading: create.heading, notice: create.notice, label: create.label }
   return {
     heading: <CharacterHeading companion={companion} go={go} />,
-    notice: companion ? null : <StartNotice drafted={!!start?.drafted} onRestart={onRestart} />,
+    notice: companion ? null : <StartNotice start={start} onRestart={onRestart} />,
     label: companion ? 'Save new version' : 'Create companion',
   }
 }
@@ -170,9 +193,12 @@ function savedNow(saved: number | null, companion: Companion | null): number | n
   return saved !== null && saved === companion?.version.number ? saved : null
 }
 
-function StartNotice({ drafted, onRestart }: { drafted: boolean; onRestart: () => void }) {
-  if (drafted) {
-    return <Notice action={<button type="button" className="text-button" onClick={onRestart}>Start over</button>}>This is a draft from your text model. Read it through and change anything you like; nothing is saved until you create the companion.</Notice>
+function StartNotice({ start, onRestart }: { start: Start | null; onRestart: () => void }) {
+  if (start?.split) {
+    return <Notice action={<button type="button" className="text-button" onClick={onRestart}>Start over</button>}>{splitReply({ definition: start.definition, filled_in: start.split.filledIn, home_city: start.split.homeCity })} Change anything you like; nothing is saved until you create the companion.</Notice>
+  }
+  if (start?.drafted) {
+    return <Notice action={<button type="button" className="text-button" onClick={onRestart}>Start over</button>}>This is a draft from your text model. Read it through and change anything here or ask the sidecar for changes; nothing is saved until you create the companion.</Notice>
   }
   return <p className="subtle"><button type="button" className="text-button inline" onClick={onRestart}>Back to the quick start</button></p>
 }
@@ -190,7 +216,6 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
         {loraMaker && <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>}
       </div>}
     </header>
-    {!companion && <StudyImport />}
   </>)
 }
 

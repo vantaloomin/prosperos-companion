@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Heart, Settings as SettingsIcon, UserRound } from 'lucide-react'
+import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { BookHeart, BookOpen, CalendarDays, Download, Heart, MessageSquareText, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api'
@@ -13,6 +13,8 @@ import { Loading, Notice } from './components/Feedback'
 import { DebugBanner } from './features/settings/DebugBanner'
 import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
+import { Welcome } from './features/character/Welcome'
+import { sidecar, useSidecarOpen } from './features/sidecar/store'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
@@ -24,6 +26,7 @@ const Settings = lazy(() => import('./features/settings/Settings').then((m) => (
 const Today = lazy(() => import('./features/today/Today').then((m) => ({ default: m.Today })))
 const Dating = lazy(() => import('./features/dating/Dating').then((m) => ({ default: m.Dating })))
 const Story = lazy(() => import('./features/story/Story').then((m) => ({ default: m.Story })))
+const Sidecar = lazy(() => import('./features/sidecar/Sidecar').then((m) => ({ default: m.Sidecar })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
 // The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
@@ -63,6 +66,7 @@ export default function App() {
   useFocusOnViewChange(view)
   // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
   const storyOn = !!useWorkspaceSettings().data?.story_mode
+  const sidecarOpen = useSidecarOpen()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
   const datingInstalled = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean }>('/dating/status') }).data?.installed ?? true
   return (
@@ -70,9 +74,15 @@ export default function App() {
       <a className="skip-link" href="#main">Skip to content</a>
       <nav className="app-nav" aria-label="Views">
         {VIEWS.filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
-            <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}<span>{label}</span>
-          </button>
+          <Fragment key={id}>
+            {/* The sidecar opens beside any view, so it is a toggle rather than a view. */}
+            {id === 'settings' && <button type="button" className="nav-sidecar" aria-pressed={sidecarOpen} onClick={() => sidecar.setOpen(!sidecarOpen)}>
+              <MessageSquareText aria-hidden="true" /><span>Sidecar</span>
+            </button>}
+            <button type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
+              <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}<span>{label}</span>
+            </button>
+          </Fragment>
         ))}
       </nav>
       <main id="main" className="app-main" tabIndex={-1}>
@@ -81,6 +91,7 @@ export default function App() {
           : companion.isError ? <Notice tone="error">{companion.error.message}</Notice>
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
       </main>
+      {sidecarOpen && <Suspense fallback={null}><Sidecar view={view} go={go} /></Suspense>}
     </div>
   )
 }
@@ -118,7 +129,7 @@ function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
   const storyOn = useWorkspaceSettings().data?.story_mode
   if (view === 'dating') return <Dating go={go} />
   if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />
-  if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
+  if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} onCreate={() => go('character')} />
   return storyOn ? <Story go={go} />
     : <Notice action={<button type="button" className="text-button" onClick={() => go('settings/advanced')}>Open Settings</button>}>Story mode is off. Turn it on in Settings &gt; Advanced.</Notice>
 }
@@ -131,15 +142,4 @@ function CompanionView({ view, companion, go }: { view: View; companion: Compani
   if (view === 'feed') return <Feed companion={companion} go={go} />
   if (view === 'memories') return <Memories companion={companion} />
   return <Conversation companion={companion} go={go} />
-}
-
-function Welcome({ go }: { go: (view: View) => void }) {
-  return (
-    <section className="welcome">
-      <p className="eyebrow">Prospero Companion</p>
-      <h1>Meet someone new</h1>
-      <p className="lede">Start by creating your companion: who they are, how they talk, and what kind of relationship you want. You can talk as soon as a model is connected, and change everything later.</p>
-      <button type="button" className="button primary" onClick={() => go('character')}>Create your companion</button>
-    </section>
-  )
 }

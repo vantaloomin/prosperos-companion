@@ -22,7 +22,7 @@ from companion.text_models import config_for, key_for
 from companion.traits import ABSENCE_WORDS
 from companion.world import catalog, custom, generators, naming
 
-PROMPT_VERSION = 'character-draft-2'
+PROMPT_VERSION = 'character-draft-3'
 PROMPTS = Path(__file__).parent / 'prompts'
 # Requested by the user and waited on, so it goes ahead of background life and memory work.
 DRAFTING = Work(5, 'character drafting')
@@ -213,12 +213,13 @@ def parse_object(text: str) -> dict:
     return data
 
 
-async def ask(state, config, system: str, tokens: int, shape):
+async def ask(state, config, system: str, tokens: int, shape, messages: list[dict] | None = None):
     """One request and, if the reply cannot be used, one retry that names the problem.
 
     `shape(raw, final)` is strict on the first reply; on the retry it makes do where it can.
+    `messages` is a conversation to answer (the character helper); otherwise the model is asked for the JSON.
     """
-    messages = [{'role': 'user', 'content': 'Write the JSON now.'}]
+    messages = messages or [{'role': 'user', 'content': 'Write the JSON now.'}]
     reply = ''
     try:
         reply = await complete(state, config, system, messages, tokens)

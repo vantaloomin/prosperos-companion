@@ -1345,3 +1345,13 @@ CREATE TABLE IF NOT EXISTS self_fact_jobs (
   status TEXT NOT NULL CHECK (status IN ('queued', 'done', 'skipped', 'failed', 'stale')),
   queued_at TEXT NOT NULL
 );
+
+-- Replies the user edited, through the sidecar (companion/message_edits.py): each edit keeps the text it replaced.
+CREATE TABLE IF NOT EXISTS message_edits (
+  id TEXT PRIMARY KEY,
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  before_text TEXT NOT NULL,
+  after_text TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS message_edits_message ON message_edits(message_id);

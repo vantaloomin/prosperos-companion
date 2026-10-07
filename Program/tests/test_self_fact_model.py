@@ -126,3 +126,14 @@ def test_a_shorter_form_of_the_same_team_is_not_a_conflict(client, app, connecte
     send(client, 'And now?', 'self-model-10')
     read(app)
     assert facts(client) == [('Team', 'Baltimore Blast', 'noted')]
+
+
+def test_an_edited_reply_is_read_again(client, app, connected, provider):
+    provider.respond = respond("we're the harbor hellions lol", [])
+    sent = send(client, "what's your derby team called?", 'self-model-edit')
+    assert read(app) == 1 and read(app) == 0
+    edited = client.post(f"/api/conversation/messages/{sent['reply']['id']}/edit",
+                         json={'text': "we're the harbor hellcats lol", 'expected_text': "we're the harbor hellions lol"})
+    assert edited.status_code == 200, edited.text
+    assert read(app) == 1
+    assert asked(provider)[-1][0]['text'] == "we're the harbor hellcats lol"

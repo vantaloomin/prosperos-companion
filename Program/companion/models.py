@@ -114,6 +114,39 @@ class FieldDraftRequest(Input):
     request: str = Field(default='', max_length=500)
 
 
+class CharacterSplitRequest(Input):
+    """A whole character the user already has, pasted in, to be split into the form's fields."""
+    text: str = Field(min_length=1, max_length=40000)
+    relationship: Relationship = 'friendship'
+    timezone: str = Field(default='UTC', max_length=64)
+    emotional_edges: bool = False
+
+
+class CharacterCardFile(Input):
+    """A character card file (JSON or PNG) read into plain text for the paste box; nothing is saved."""
+    filename: str = Field(min_length=1, max_length=260)
+    data: str = Field(min_length=1, max_length=14_000_000)
+
+
+class SidecarTurn(Input):
+    role: Literal['user', 'assistant']
+    content: str = Field(min_length=1, max_length=40000)
+
+
+class SidecarRequest(Input):
+    """One message to the sidecar. It reads the app's context; `definition` is the character form while it is open."""
+    message: str = Field(min_length=1, max_length=40000)
+    history: list[SidecarTurn] = Field(default_factory=list, max_length=12)
+    view: str = Field(default='', max_length=60)
+    definition: dict | None = None
+    focus_message_id: str | None = Field(default=None, max_length=100)
+
+
+class MessageEdit(Input):
+    text: str = Field(min_length=1, max_length=8000)
+    expected_text: str = Field(max_length=40000)
+
+
 class PromptUpdate(Input):
     text: str = Field(min_length=1, max_length=20000)
 
