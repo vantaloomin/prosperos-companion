@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyDiscovered, discoveredSettings, filterModels, profileReady, savedKeyApplies, typedModelSettings, type DiscoveredModel } from '../../src/features/settings/models/discovery.ts'
+import { applyDiscovered, discoveredSettings, filterModels, profileReady, recallReady, savedKeyApplies, typedModelSettings, type DiscoveredModel } from '../../src/features/settings/models/discovery.ts'
 import { jobChoice } from '../../src/features/settings/models/routing.ts'
-import { configFor, type ModelsOverview } from '../../src/features/settings/models/types.ts'
+import { configFor, recallConfigFor, type ModelsOverview } from '../../src/features/settings/models/types.ts'
 
 const sonnet: DiscoveredModel = { id: 'anthropic/claude-sonnet-5.5', name: 'Claude Sonnet 5.5', context_tokens: 200000, max_output_tokens: 500, limit_source: 'provider', supported_efforts: ['low', 'high'] }
 const mystery: DiscoveredModel = { id: 'mystery', name: 'mystery', context_tokens: null, max_output_tokens: null, limit_source: 'unreported' }
@@ -44,4 +44,12 @@ test('a job without its own profile shows the conversation profile it uses', () 
   assert.deepEqual(jobChoice(overview, 'life'), { value: '', inherited: 'Local' })
   assert.deepEqual(jobChoice(overview, 'drafting'), { value: 'b', inherited: null })
   assert.deepEqual(jobChoice(overview, 'chat'), { value: 'a', inherited: null })
+})
+
+test('recall profiles are apart from text profiles', () => {
+  const recall = { ...recallConfigFor('local'), embedding_model: 'qwen3-embedding' }
+  assert.equal(recallReady(recall), true)
+  assert.equal(profileReady({ ...recall, model: 'chat' }), false)
+  assert.equal(recallReady({ ...configFor('local'), embedding_model: 'qwen3-embedding' }), false)
+  assert.equal(recallReady({ ...recallConfigFor('anthropic'), embedding_model: 'x' }), false)
 })

@@ -47,7 +47,7 @@ chunks through the scheduler), versioned profiles and exact retries, and usage a
 | Character drafting | Quick start and Help me write. |
 | Seeing pictures | Describes each picture you send in chat, once, before the reply (OpenAI, Anthropic, Google, OpenRouter, local or compatible profiles with a vision model; Kobold and Codex cannot look at pictures here). |
 | Story narrator | Replies in the Story tab ([story.md](story.md)). |
-| Semantic recall | Embeddings, from the profile's `embedding_model` (OpenAI, local or compatible profiles only), or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). |
+| Semantic recall | Embeddings, from a recall profile, or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). Recall profiles (`purpose: recall`) have their own section, Settings > Models > Recall: an OpenAI, local or compatible service and an `embedding_model`, with no text model. They do this job and no other, text profiles never do it, and the first one saved takes the job when recall has none. Without one, recall matches keywords only. |
 
 There is no automatic fallback to another profile when a request fails; like the Study, a failed
 request reports its error, and OpenRouter requests forbid OpenRouter's own provider fallbacks. The one
@@ -61,7 +61,11 @@ their own settings under Images.
 Earlier versions had one OpenAI-compatible connection. The first start after upgrading turns it
 into a profile named "Text model" doing the conversation, so every other job keeps using it: a
 loopback address becomes a Local profile and any other a compatible one, so requests are unchanged.
-Its saved key and embedding model carry over. `GET /api/connection` still describes the
+Its saved key carries over, and its embedding model becomes a recall profile on the same service.
+
+Text profiles used to carry an optional embedding model. Each start moves any such model into a
+recall profile of its own on the same service, sharing the saved key (a key is removed only once no
+profile uses it), and recall keeps the profile it used. `GET /api/connection` still describes the
 conversation profile, and `PUT /api/connection` remains a one-call setup for a compatible or
 local server.
 

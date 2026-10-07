@@ -1,5 +1,5 @@
 // Applying a connection test's model list, adapted from prosperos-study src/features/models/discovery.ts at bbcbde4.
-import { initialConfig, type ProfileConfig } from './types.ts'
+import { embeddingProviders, initialConfig, type ProfileConfig } from './types.ts'
 
 export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported'; supported_parameters?: string[]; supported_efforts?: string[] }
 export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string }
@@ -35,7 +35,9 @@ export function filterModels(models: DiscoveredModel[], query: string) {
   return models.filter(model => words.every(word => `${model.name} ${model.id}`.toLocaleLowerCase().includes(word)))
 }
 
-export const profileReady = (config: ProfileConfig) => !!config.model.trim() && (config.provider === 'codex' || !!config.base_url.trim())
+export const profileReady = (config: ProfileConfig) => config.purpose !== 'recall' && !!config.model.trim() && (config.provider === 'codex' || !!config.base_url.trim())
+/** A recall profile with an embedding model can do recall, and only recall. */
+export const recallReady = (config: ProfileConfig) => config.purpose === 'recall' && !!config.embedding_model?.trim() && embeddingProviders.includes(config.provider) && !!config.base_url.trim()
 
 /** A key typed for one provider and address is never kept for another. */
 export function savedKeyApplies(initial: ProfileConfig | undefined, hasSavedKey: boolean, config: ProfileConfig) {

@@ -59,14 +59,61 @@ def test_a_job_can_use_its_own_profile(client, companion, provider):
         assert text_models.config_for(connection, 'drafting')['provider'] == 'local'
 
 
-def test_recall_needs_a_profile_with_an_embedding_model(client, companion):
-    plain = add(client, LOCAL)
-    response = client.put('/api/models/routes', json={'job': 'recall', 'profile_id': plain['id']})
-    assert response.status_code == 409
-    embeds = add(client, {**LOCAL, 'model': 'other', 'embedding_model': 'nomic-embed'})
-    assert client.put('/api/models/routes', json={'job': 'recall', 'profile_id': embeds['id']}).status_code == 200
-    rejected = add(client, {**ANTHROPIC, 'embedding_model': 'x'}, status=422)
-    assert 'Embeddings' in json.dumps(rejected)
+RECALL = {'provider': 'local', 'base_url': 'http://127.0.0.1:11434/v1', 'purpose': 'recall',
+          'embedding_model': 'qwen3-embedding'}
+
+
+def test_recall_has_its_own_profile_apart_from_text_profiles(client, companion):
+    chat = add(client, {**ANTHROPIC}, api_key='anthropic-key')
+    recall = add(client, RECALL)
+    assert not recall['ready'] and recall['recall_ready'] and recall['name'] == 'Local / LM Studio · qwen3-embedding'
+    assert client.get('/api/models').json()['routes'] == {'chat': chat['id'], 'recall': recall['id']}
+    with client.app.state.database.connect() as connection:
+        assert text_models.config_for(connection, 'recall')['embedding_model'] == 'qwen3-embedding'
+        assert text_models.config_for(connection, 'drafting')['profile_id'] == chat['id']
+    assert client.put('/api/models/routes', json={'job': 'drafting', 'profile_id': recall['id']}).status_code == 409
+    assert client.put('/api/models/routes', json={'job': 'recall', 'profile_id': chat['id']}).status_code == 409
+    emptied = client.put(f"/api/models/profiles/{recall['id']}", json={
+        'name': '', 'config': {**RECALL, 'embedding_model': ''}, 'expected_revision': 1})
+    assert emptied.status_code == 409
+    add(client, {**LOCAL, 'embedding_model': 'nomic-embed'}, status=422)
+    add(client, {**ANTHROPIC, 'purpose': 'recall', 'embedding_model': 'x'}, status=422)
+
+
+def test_without_a_recall_profile_the_conversation_profile_does_not_do_recall(client, companion):
+    add(client, LOCAL)
+    with client.app.state.database.connect() as connection:
+        assert text_models.config_for(connection, 'recall') is None
+
+
+def test_an_embedding_model_on_a_text_profile_moves_to_its_own_recall_profile(client, app, companion):
+    claude = add(client, ANTHROPIC, api_key='sk-ant')
+    local = add(client, LOCAL, api_key='local-key')
+    with app.state.database.connect(write=True) as connection:
+        config = json.loads(connection.execute('SELECT config FROM model_profiles WHERE id=?', (local['id'],)).fetchone()[0])
+        connection.execute('UPDATE model_profiles SET config=? WHERE id=?',
+                           (json.dumps({**config, 'embedding_model': 'nomic-embed'}), local['id']))
+        connection.execute("INSERT INTO model_routes (job, profile_id, updated_at) VALUES ('recall', ?, 'x')", (local['id'],))
+    for _ in range(2):
+        with app.state.database.connect(write=True) as connection:
+            text_models.split_recall(connection, '2026-10-07T12:00:00Z')
+    overview = client.get('/api/models').json()
+    recall = [profile for profile in overview['profiles'] if profile['recall_ready']]
+    assert len(recall) == 1 and recall[0]['config']['embedding_model'] == 'nomic-embed' and recall[0]['has_saved_key']
+    assert overview['routes']['recall'] == recall[0]['id'] and overview['routes']['chat'] == claude['id']
+    text = next(profile for profile in overview['profiles'] if profile['id'] == local['id'])
+    assert text['ready'] and not text['config']['embedding_model']
+    # The shared key stays until neither profile uses it.
+    client.delete(f"/api/models/profiles/{local['id']}")
+    with app.state.database.connect() as connection:
+        assert text_models.key_for(app.state.vault, text_models.config_for(connection, 'recall')) == 'local-key'
+    client.delete(f"/api/models/profiles/{recall[0]['id']}")
+    assert list(app.state.vault.secrets) == [claude_key(app, claude)]
+
+
+def claude_key(app, claude):
+    with app.state.database.connect() as connection:
+        return connection.execute('SELECT credential_ref FROM model_profiles WHERE id=?', (claude['id'],)).fetchone()[0]
 
 
 def test_official_addresses_and_adapter_limits_are_enforced(client):
@@ -128,14 +175,15 @@ def test_the_single_connection_becomes_the_conversation_profile_once(tmp_path, c
         raw.close()
     with app.state.database.connect() as connection:
         profiles = connection.execute('SELECT * FROM model_profiles').fetchall()
-        assert len(profiles) == 1
+        assert len(profiles) == 2  # The text profile and, for its embedding model, a recall profile.
         assert connection.execute('SELECT COUNT(*) FROM connection').fetchone()[0] == 0
         config = text_models.config_for(connection, 'chat')
         # Settings the old form allowed (no room left for input) survive the move untouched.
         assert config['provider'] == 'compatible' and config['model'] == 'old-model'
-        assert config['context_tokens'] == 900 and config['embedding_model'] == 'emb'
+        assert config['context_tokens'] == 900 and not config['embedding_model']
         assert text_models.key_for(vault, config) == 'old-key'
-        assert text_models.config_for(connection, 'recall')['embedding_model'] == 'emb'
+        recall = text_models.config_for(connection, 'recall')
+        assert recall['embedding_model'] == 'emb' and text_models.key_for(vault, recall) == 'old-key'
 
 
 def test_a_loopback_connection_becomes_a_local_profile(client, companion):
@@ -253,3 +301,21 @@ def test_testing_a_form_lists_models_with_their_reported_limits(tmp_path, clock)
         client.post('/api/models/discover', json={'config': {'provider': 'openrouter'}, 'profile_id': profile['id']})
         assert seen['auth'] == 'Bearer saved'
         assert client.post(f"/api/models/profiles/{profile['id']}/check").status_code == 200
+
+
+def test_duplicating_a_profile_copies_its_settings_and_key_but_not_its_jobs(client, app):
+    local = add(client, LOCAL)
+    claude = add(client, {**ANTHROPIC, 'temperature': 0.4}, name='Claude', api_key='sk-ant')
+    client.put('/api/models/routes', json={'job': 'drafting', 'profile_id': claude['id']})
+    copy = client.post(f"/api/models/profiles/{claude['id']}/duplicate")
+    assert copy.status_code == 201
+    copy = copy.json()
+    assert copy['name'] == 'Claude copy' and copy['config'] == claude['config'] and copy['has_saved_key']
+    assert client.post(f"/api/models/profiles/{claude['id']}/duplicate").json()['name'] == 'Claude copy 2'
+    assert client.get('/api/models').json()['routes'] == {'chat': local['id'], 'drafting': claude['id']}
+    # A new key on the copy leaves the original's alone; deleting one keeps the other's key.
+    client.put(f"/api/models/profiles/{copy['id']}", json={'name': 'Claude copy', 'config': copy['config'],
+                                                          'api_key': 'sk-other', 'expected_revision': 1})
+    client.delete(f"/api/models/profiles/{copy['id']}")
+    with app.state.database.connect() as connection:
+        assert text_models.key_for(app.state.vault, text_models.config_for(connection, 'drafting')) == 'sk-ant'

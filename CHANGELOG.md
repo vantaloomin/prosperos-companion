@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Recall has its own profiles:** embedding models moved out of text model profiles into a Recall
+  section of Settings > Models, beside Built-in recall. A recall profile is just a service and an
+  embedding model, so recall can use a different service from the one that writes replies (for example
+  Claude for chat and Ollama on this PC for embeddings). Existing embedding models move into recall
+  profiles on their own, sharing the saved key, and recall keeps working as before.
+- **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
+  its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
+  key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
+
 ## v0.1.4 (2026-10-07)
 
 - **Editable prompts:** Settings > Show advanced settings adds an Advanced tab to reword the core

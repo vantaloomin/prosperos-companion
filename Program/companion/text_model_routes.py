@@ -31,6 +31,11 @@ def update_profile(profile_id: str, body: ProfileUpdate, request: Request):
     return text_models.update(db(request), request.app.state.vault, profile_id, body)
 
 
+@router.post('/profiles/{profile_id}/duplicate', status_code=201)
+def duplicate_profile(profile_id: str, request: Request):
+    return text_models.duplicate(db(request), profile_id)
+
+
 @router.delete('/profiles/{profile_id}')
 def delete_profile(profile_id: str, request: Request):
     return text_models.delete(db(request), request.app.state.vault, profile_id)

@@ -153,8 +153,9 @@ def initialize(connection, timestamp: str):
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS memories_person ON memories(person_id)')
     backfill_subject_keys(connection)
-    from companion.text_models import adopt_legacy
+    from companion.text_models import adopt_legacy, split_recall
     adopt_legacy(connection, timestamp)
+    split_recall(connection, timestamp)
     for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings',
                   'notification_settings', 'phone_settings', 'builtin_recall'):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))

@@ -6,3 +6,4 @@ export function jobChoice(overview: ModelsOverview, job: string): { value: strin
   const chat = overview.profiles.find(profile => profile.id === overview.routes.chat)
   return { value: own, inherited: job === 'chat' || own ? null : chat?.name ?? null }
 }
+
