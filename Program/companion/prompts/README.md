@@ -3,7 +3,7 @@
 These are the instructions the Companion sends to the configured text model when it helps
 create a character (see [docs/character-drafting.md](../../docs/character-drafting.md)).
 They are plain text so they can be read and tuned without touching code. Users can also
-reword the four `.md` prompts in Settings; their wording is stored in the workspace and wins
+reword the four `.md` prompts in Settings > Advanced (docs/prompts.md); their wording is stored in the workspace and wins
 over these files until they reset it.
 
 - `character-rules.md`: what a believable character looks like. Shared by every request.

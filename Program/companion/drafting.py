@@ -13,7 +13,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from companion.database import identifier, optional
+from companion import prompt_library
+from companion.database import identifier
 from companion.errors import DomainError
 from companion.models import CharacterDefinition, EmotionalTrait, RoutineBlock
 from companion.providers.scheduling import Work
@@ -48,64 +49,15 @@ class Unusable(Exception):
         self.reply = reply
 
 
-# The prompts a user may reword in Settings; the field guides stay a shipped file.
-EDITABLE = {
-    'character-rules.md': ('What makes a character believable', 'Sent with every draft and rewrite.'),
-    'character-draft.md': ('Drafting a whole character', 'The quick start. Asks for the full character as JSON.'),
-    'character-field.md': ('Rewriting one field', 'The "Help me write" buttons in the character form.'),
-    'character-repair.md': ('Retrying an unusable reply', 'Sent once when a reply could not be used.'),
-}
-
-
 def template(name: str, database=None) -> str:
-    """The user's wording from Settings when there is one, otherwise the shipped file."""
-    if database is not None and name in EDITABLE:
+    """The user's wording from Settings > Advanced when there is one, otherwise the shipped file.
+
+    The four `.md` prompts are editable (companion/prompt_library.py); the field guides stay a shipped file.
+    """
+    if database is not None and name in prompt_library.PROMPTS:
         with database.connect() as connection:
-            row = optional(connection, 'SELECT text FROM prompt_overrides WHERE name=?', (name,))
-        if row:
-            return row['text']
+            return prompt_library.text(connection, name)
     return (PROMPTS / name).read_text(encoding='utf-8')
-
-
-def placeholders(text: str) -> list[str]:
-    return sorted(set(re.findall(r'\{\{(\w+)\}\}', text)))
-
-
-def prompt_view(database, name: str) -> dict:
-    label, description = EDITABLE[name]
-    default, text = template(name), template(name, database)
-    return {'name': name, 'label': label, 'description': description, 'text': text, 'default': default,
-            'customized': text != default, 'placeholders': placeholders(default)}
-
-
-def prompts(database) -> list[dict]:
-    return [prompt_view(database, name) for name in EDITABLE]
-
-
-def require_editable(name: str):
-    if name not in EDITABLE:
-        raise DomainError(f'No editable prompt named {name!r}.', 404, 'unknown_prompt')
-
-
-def save_prompt(database, name: str, text: str) -> dict:
-    """A rewording must keep every placeholder the app fills in, or drafts would lose their inputs."""
-    require_editable(name)
-    missing = [key for key in placeholders(template(name)) if '{{' + key + '}}' not in text]
-    if missing:
-        raise DomainError('Keep these placeholders in the prompt: ' + ', '.join('{{' + key + '}}' for key in missing)
-                          + '.', 422, 'missing_placeholders')
-    with database.connect(write=True) as connection:
-        connection.execute('INSERT INTO prompt_overrides (name, text, updated_at) VALUES (?, ?, ?) ON CONFLICT(name) '
-                           'DO UPDATE SET text=excluded.text, updated_at=excluded.updated_at',
-                           (name, text, database.now()))
-    return prompt_view(database, name)
-
-
-def reset_prompt(database, name: str) -> dict:
-    require_editable(name)
-    with database.connect(write=True) as connection:
-        connection.execute('DELETE FROM prompt_overrides WHERE name=?', (name,))
-    return prompt_view(database, name)
 
 
 def fill(text: str, **values: str) -> str:

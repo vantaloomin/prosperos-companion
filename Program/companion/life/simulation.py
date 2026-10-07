@@ -582,7 +582,7 @@ class LifeEngine:
             return {'summary': prepared['summary'], 'post': prepared['post']}, {**record, 'prepared': True}
         try:
             return await phrase(self.provider, self.scheduler, config, key_for(self.vault, config), version, slot,
-                                composed), record
+                                composed, self.database), record
         except BackgroundInterrupted:
             raise
         except (SynthesisInvalid, DomainError) as problem:
@@ -610,7 +610,8 @@ class LifeEngine:
             slot = {'key': row['slot_key'], 'block': row['block'], 'local_date': row['local_date'],
                     'starts_at': row['starts_at'], 'ends_at': row['ends_at']}
             try:
-                written = await phrase(self.provider, self.scheduler, config, key, version, slot, row['entry'])
+                written = await phrase(self.provider, self.scheduler, config, key, version, slot, row['entry'],
+                                       self.database)
             except BackgroundInterrupted:
                 break
             except (SynthesisInvalid, DomainError):

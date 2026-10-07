@@ -1,6 +1,6 @@
 /** Settings is split into tabs; this lists them, what each holds, and the words a search finds them by. */
 
-export type SettingsTab = 'general' | 'models' | 'life' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data' | 'debug'
+export type SettingsTab = 'general' | 'models' | 'life' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data' | 'debug' | 'advanced'
 
 export interface SettingsSection {
   /** The id of the section's heading, used to land on it from a search result. */
@@ -16,6 +16,8 @@ export interface SettingsTabInfo {
   withoutCompanion?: boolean
   /** Hidden on a paired phone: the Companion only allows it from the PC (companion/phone/access.py). */
   pcOnly?: boolean
+  /** Listed only while "Show advanced settings" is on. */
+  advanced?: boolean
   sections: SettingsSection[]
 }
 
@@ -32,7 +34,6 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     id: 'models', label: 'Models', withoutCompanion: true, sections: [
       { heading: 'models-heading', title: 'Models', keywords: 'model connection provider api key openai anthropic openrouter google local kobold codex profile chat life memory drafting recall temperature' },
       { heading: 'recall-heading', title: 'Built-in recall', keywords: 'recall embedding embeddings semantic llama.cpp llama-server gguf gemma embeddinggemma qwen local memory search' },
-      { heading: 'prompts-heading', title: 'Character drafting prompts', keywords: 'prompt drafting help me write quick start' },
     ],
   },
   {
@@ -76,25 +77,33 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'debug-heading', title: 'Debug time', keywords: 'debug test testing time travel jump skip ahead days fast forward speed accelerate spoof date clock' },
     ],
   },
+  {
+    id: 'advanced', label: 'Advanced', withoutCompanion: true, advanced: true, sections: [
+      { heading: 'prompts-heading', title: 'Prompts', keywords: 'advanced prompt prompts system instructions wording chat character in character first texts check-ins life phrasing memory suggestions pictures describe drafting help me write quick start power user' },
+    ],
+  },
 ]
 
-export function availableTabs(hasCompanion: boolean, onPhone = false): SettingsTabInfo[] {
-  return SETTINGS_TABS.filter((tab) => (hasCompanion || tab.withoutCompanion) && !(onPhone && tab.pcOnly))
+export function availableTabs(hasCompanion: boolean, onPhone = false, advanced = false): SettingsTabInfo[] {
+  return SETTINGS_TABS.filter((tab) => (hasCompanion || tab.withoutCompanion) && !(onPhone && tab.pcOnly) && (advanced || !tab.advanced))
 }
 
 /** The tab to show for a deep link: the one asked for when it is available, else the first one. */
-export function pickTab(requested: string | undefined, hasCompanion: boolean, onPhone = false): SettingsTab {
-  const tabs = availableTabs(hasCompanion, onPhone)
+export function pickTab(requested: string | undefined, hasCompanion: boolean, onPhone = false, advanced = false): SettingsTab {
+  const tabs = availableTabs(hasCompanion, onPhone, advanced)
   return (tabs.find((tab) => tab.id === requested) ?? tabs[0]).id
 }
 
 export interface SettingsMatch { tab: SettingsTabInfo; section: SettingsSection }
 
-/** Sections whose title, tab or keywords contain every word of the query. */
+/**
+ * Sections whose title, tab or keywords contain every word of the query. Advanced sections are found
+ * even while hidden; picking one turns "Show advanced settings" on.
+ */
 export function searchSettings(query: string, hasCompanion: boolean, onPhone = false): SettingsMatch[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   if (!words.length) return []
-  return availableTabs(hasCompanion, onPhone).flatMap((tab) => tab.sections
+  return availableTabs(hasCompanion, onPhone, true).flatMap((tab) => tab.sections
     .filter((section) => {
       const text = `${section.title} ${tab.label} ${section.keywords}`.toLowerCase()
       return words.every((word) => text.includes(word))

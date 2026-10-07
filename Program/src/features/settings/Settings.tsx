@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Search } from 'lucide-react'
 import type { Companion } from '../../types'
+import { useAdvancedSettings } from './advanced'
 import { Backups } from './Backups'
 import { DebugSettings } from './DebugSettings'
 import { ChatStyleSettings } from './ChatStyleSettings'
@@ -10,6 +11,7 @@ import { LifeSettings } from './LifeSettings'
 import { NotificationSettings } from './NotificationSettings'
 import { PhoneSettings } from './PhoneSettings'
 import { PromptSettings } from './PromptSettings'
+import { Toggle } from '../../components/Fields'
 import { BackgroundSettings, MemorySettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
 import { Cities } from '../world/Cities'
 import { BuiltinRecall } from './models/BuiltinRecall'
@@ -26,16 +28,26 @@ interface Props {
 
 export function Settings({ companion, tab, onTab }: Props) {
   const onPhone = !!usePhoneStatus().data?.remote
-  const current = pickTab(tab, !!companion, onPhone)
+  const [advanced, setAdvanced] = useAdvancedSettings()
+  const current = pickTab(tab, !!companion, onPhone, advanced)
   const landing = useLanding()
-  const land = (match: SettingsMatch) => { onTab(match.tab.id); landing(match.section.heading) }
+  const land = (match: SettingsMatch) => {
+    if (match.tab.advanced) setAdvanced(true)
+    onTab(match.tab.id); landing(match.section.heading)
+  }
   return (
     <section className="page settings">
       <header className="page-header"><h1>Settings</h1></header>
       {companion && <RestoredReview onDone={() => { onTab('memory'); landing('memory-heading') }} />}
       <SettingsSearch hasCompanion={!!companion} onPhone={onPhone} onPick={land} />
       <div className="settings-layout">
-        <SettingsTabs current={current} hasCompanion={!!companion} onPhone={onPhone} onTab={onTab} />
+        <div className="settings-nav">
+          <SettingsTabs current={current} hasCompanion={!!companion} onPhone={onPhone} advanced={advanced} onTab={onTab} />
+          <div className="advanced-switch">
+            <Toggle label="Show advanced settings" checked={advanced} onChange={setAdvanced}
+              hint={advanced ? 'The Advanced tab is now in the list of tabs.' : 'Adds an Advanced tab for power users, where you can reword the prompts sent to your models.'} />
+          </div>
+        </div>
         <div className="settings-panel" role="tabpanel" id={`settings-panel-${current}`} aria-labelledby={`settings-tab-${current}`}>
           <TabContent tab={current} companion={companion} />
         </div>
@@ -70,7 +82,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><PauseSettings /><BackgroundSettings /></>,
-    models: <><ModelSettings />{!remote && <BuiltinRecall />}<PromptSettings /></>,
+    models: <><ModelSettings />{!remote && <BuiltinRecall />}</>,
     life: <><LifeSettings name={name} /><Cities /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,
@@ -79,6 +91,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     phone: <PhoneSettings />,
     data: <Backups />,
     debug: <DebugSettings name={name} />,
+    advanced: <PromptSettings />,
   }
   return content[tab]
 }
@@ -86,8 +99,8 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
 const NEXT_KEYS: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }
 
 /** Vertical tabs beside the panel on wide windows, a scrolling row above it on narrow ones. */
-function SettingsTabs({ current, hasCompanion, onPhone, onTab }: { current: SettingsTab; hasCompanion: boolean; onPhone: boolean; onTab: (tab: SettingsTab) => void }) {
-  const tabs = availableTabs(hasCompanion, onPhone)
+function SettingsTabs({ current, hasCompanion, onPhone, advanced, onTab }: { current: SettingsTab; hasCompanion: boolean; onPhone: boolean; advanced: boolean; onTab: (tab: SettingsTab) => void }) {
+  const tabs = availableTabs(hasCompanion, onPhone, advanced)
   const narrow = useNarrow()
   const list = useRef<HTMLDivElement>(null)
   // On a narrow window the row scrolls; keep the open tab in sight, as after a deep link.

@@ -193,7 +193,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .settings-search input { flex: 1; min-width: 0; }
 .settings-results { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .settings-layout { display: flex; gap: 32px; align-items: flex-start; max-width: 1040px; }
-.settings-tabs { display: flex; flex-direction: column; gap: 2px; flex: 0 0 180px; position: sticky; top: 0; }
+.settings-nav { display: flex; flex-direction: column; gap: 16px; flex: 0 0 180px; position: sticky; top: 0; align-self: flex-start; }
+.settings-tabs { display: flex; flex-direction: column; gap: 2px; }
+.advanced-switch { padding: 12px 12px 0; border-top: 1px solid var(--border); font-size: 0.8125rem; }
 .settings-tabs [role='tab'] { text-align: left; padding: 9px 12px; border-radius: 7px; color: var(--muted); font-size: 0.875rem; }
 .settings-tabs [role='tab']:hover { background: var(--raised); color: var(--text); }
 .settings-tabs [role='tab'][aria-selected='true'] { background: var(--accent-tint); color: var(--accent); font-weight: 500; }
@@ -202,7 +204,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .settings-panel > .settings-section:first-child, .settings-panel > .notice:first-child + .settings-section { border-top: 0; padding-top: 0; }
 @media (max-width: 720px) {
   .settings-layout { flex-direction: column; gap: 16px; }
-  .settings-tabs { flex-direction: row; flex: 0 0 auto; width: 100%; overflow-x: auto; position: static; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .settings-nav { flex: 0 0 auto; width: 100%; position: static; gap: 10px; }
+  .settings-tabs { flex-direction: row; width: 100%; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .advanced-switch { padding: 0; border-top: 0; }
   .settings-tabs [role='tab'] { white-space: nowrap; flex: 0 0 auto; }
 }
 .settings-section h2 { margin-bottom: 6px; }
@@ -693,3 +697,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .sent-pictures { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .sent-picture { display: grid; gap: 6px; justify-items: start; margin: 0; max-width: min(100%, 320px); }
 .sent-picture > img { display: block; max-width: 100%; height: auto; max-height: 320px; border-radius: 12px; background: var(--accent-tint); }
+.prompt-default { margin-top: 12px; font-size: 0.8125rem; }
+.prompt-default > summary { cursor: pointer; color: var(--muted); }
+.prompt-default pre { margin: 8px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; border: 1px solid var(--border); border-radius: 7px; background: var(--raised); font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; line-height: 1.5; }

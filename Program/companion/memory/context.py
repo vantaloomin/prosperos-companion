@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from companion import pictures, self_facts, texting
+from companion import pictures, prompt_library, self_facts, texting
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
@@ -167,10 +167,14 @@ def emotional_lines(definition) -> list[str]:
     return lines or [NEUTRAL_ABSENCE]
 
 
-def character_text(version) -> str:
-    """How the character feels about absence is a user-chosen trait; product controls stay neutral."""
+def character_text(version, connection=None) -> str:
+    """How the character feels about absence is a user-chosen trait; product controls stay neutral.
+
+    With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced.
+    """
     definition = version['definition']
-    lines = [GUIDANCE.format(name=definition['name'], relationship=definition['relationship'])]
+    lines = [prompt_library.text(connection, 'chat-character', name=definition['name'],
+                                 relationship=definition['relationship'])]
     lines += emotional_lines(definition)
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
@@ -491,7 +495,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     recent, older = messages[-RECENT_MESSAGES:], messages[:-RECENT_MESSAGES]
     packet = Packet(budget)
-    packet.require('character', version['id'], character_text(version))
+    packet.require('character', version['id'], character_text(version, connection))
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
     previous = recent[-2]['created_at'] if len(recent) > 1 else None
