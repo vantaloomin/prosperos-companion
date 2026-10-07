@@ -152,6 +152,13 @@ recalled memories last. Consecutive replies then share a long unchanged start,
 which llama.cpp, LM Studio, Ollama and hosted providers reuse instead of processing it again
 (prompt caching). New sections go in the group that matches how often they change.
 
+The workspace setting `prompt_layout` picks how the sections are written. `headings` (the default)
+gives each a markdown heading. `tagged` wraps the character in `<character>` and each section in a tag
+that says whose it is (`<storylines about="you">`, `<user_profile about="user">`, `about="your_people"`,
+`about="both"`, `about="world"`, from `OWNERS`), after a short key telling the model never to move a fact
+from one owner to another. It is meant for small models that mix up the companion's news and the
+user's. The order is the same in both. A new section needs an owner in `OWNERS` (a test checks it).
+
 When the companion's last 15 replies keep reaching for the same wording, a "Your wording lately"
 section near the end gets one line naming it ('You keep repeating: "honestly" (8 of your last 15 messages). Say it
 differently.'). `companion/memory/phrases.py` finds phrases of three to eight words in at least three
