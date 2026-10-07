@@ -8,7 +8,8 @@ the way a user would. At each checkpoint it times the requests that grow with th
 No model is used: replies come from the user's model service, which this does not measure.
 
 `--speed` caps this process at a share of one CPU core (0.5 = half a core) to stand in for a slower
-computer. On Windows it uses a job object CPU rate limit; elsewhere it pauses and resumes the process.
+computer. It runs the benchmark as a child process: on Windows under a job object CPU rate limit, elsewhere
+(or if Windows refuses the job) by pausing and resuming it.
 `--score` prints only this computer's CPU score, to compare machines.
 """
 import argparse
@@ -36,21 +37,43 @@ HEADERS = {'X-Companion-Client': 'workspace'}
 # Standing in for a slower computer ------------------------------------------------------------------
 
 def cap_windows(speed: float):
+    """Runs the benchmark as a child process under a job object CPU hard cap. Where Windows will not put it
+    in a job (the console's own job can forbid it), the child is paused and resumed instead, as elsewhere."""
     import ctypes
     from ctypes import wintypes
 
     class Rate(ctypes.Structure):
         _fields_ = [('ControlFlags', wintypes.DWORD), ('CpuRate', wintypes.DWORD)]
 
-    kernel = ctypes.windll.kernel32
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel.CreateJobObjectW.argtypes = (wintypes.LPVOID, wintypes.LPCWSTR)
+    kernel.SetInformationJobObject.argtypes = (wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD)
+    kernel.AssignProcessToJobObject.argtypes = (wintypes.HANDLE, wintypes.HANDLE)
+    kernel.OpenProcess.restype = wintypes.HANDLE
+    kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    child = subprocess.Popen([sys.executable, *sys.argv], env={**os.environ, 'BENCH_THROTTLED': '1'},
+                             creationflags=0x4)  # CREATE_SUSPENDED: capped before it runs a line
+    handle = kernel.OpenProcess(0x0100 | 0x0001 | 0x0800 | 0x0400, False, child.pid)  # SET_QUOTA, TERMINATE, SUSPEND_RESUME, QUERY
     job = kernel.CreateJobObjectW(None, None)
     # CpuRate is in 1/100 of a percent of the whole machine; one core is 1/cpu_count of it.
     rate = Rate(0x1 | 0x4, max(1, round(speed * 10000 / os.cpu_count())))  # ENABLE | HARD_CAP
-    if not kernel.SetInformationJobObject(job, 15, ctypes.byref(rate), ctypes.sizeof(rate)):
-        raise OSError('Could not limit the CPU rate.')
-    if not kernel.AssignProcessToJobObject(job, kernel.GetCurrentProcess()):
-        raise OSError('Could not put this process in the job object.')
-    return job
+    capped = bool(job and kernel.SetInformationJobObject(job, 15, ctypes.byref(rate), ctypes.sizeof(rate))
+                  and kernel.AssignProcessToJobObject(job, handle))
+    ntdll = ctypes.WinDLL('ntdll')
+    ntdll.NtSuspendProcess.argtypes = ntdll.NtResumeProcess.argtypes = (wintypes.HANDLE,)
+    ntdll.NtResumeProcess(handle)
+    if capped:
+        print('CPU capped with a job object.', flush=True)
+        child.wait()
+    else:
+        print(f'No job object (error {ctypes.get_last_error()}); pausing and resuming instead.', flush=True)
+        while child.poll() is None:
+            time.sleep(0.1 * speed)
+            ntdll.NtSuspendProcess(handle)
+            time.sleep(0.1 * (1 - speed))
+            ntdll.NtResumeProcess(handle)
+    sys.exit(child.returncode)
 
 
 def cap_posix(speed: float):
@@ -201,7 +224,7 @@ def main():
     parser.add_argument('--out', type=Path, help='write results as JSON here as they come')
     parser.add_argument('--score', action='store_true', help="print this computer's CPU score and stop")
     args = parser.parse_args()
-    keep = cap(args.speed)  # noqa: F841 - the cap lasts as long as this object
+    cap(args.speed)  # with a cap, this runs the benchmark in a capped child process and exits with it
     if args.score:
         print(json.dumps({'cpu_score': cpu_score(), 'speed': args.speed}))
         return
