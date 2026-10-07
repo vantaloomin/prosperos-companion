@@ -42,8 +42,9 @@ def test_a_day_off_says_so_and_names_the_next_shift(client, companion, clock):
 
 
 def test_recent_life_reads_in_her_own_time(client, companion, clock):
-    set_life(client, automatic_events=True, catch_up_max_events=3, phrase_with_model=False)
-    clock.advance(timedelta(days=2))
+    # Each caught-up block is sometimes quiet, and three blocks were all quiet about one run in 200; six almost never are.
+    set_life(client, automatic_events=True, catch_up_max_events=6, phrase_with_model=False)
+    clock.advance(timedelta(days=5))
     reconcile(client)
     system = client.get('/api/context/preview').json()['system']
     section = system[system.index('## Your recent life'):].split('\n## ')[0]

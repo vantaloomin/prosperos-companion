@@ -142,6 +142,9 @@ class ChatProvider:
             check_status(response)
             yield kobold_result(response)
             return
+        model = (config['provider'], body.get('model'))
+        if model in THINKS_PAST_THE_LIMIT and (lower := low_effort(config, body)):
+            body = lower
         completion = Completion()
         held = []
         async for chunk in self.attempt(client, config, key, url, body, completion):
@@ -156,12 +159,17 @@ class ChatProvider:
         if completion.spent_on_thinking() and (lighter := lighter_body(config, body)):
             # The model spent the whole reply limit thinking (Sonnet 5.5 on OpenRouter cannot turn thinking
             # off). Ask once more with less thinking and more room rather than show an empty reply.
+            THINKS_PAST_THE_LIMIT.add(model)
             completion, held = Completion(), []
             async for chunk in self.attempt(client, config, key, url, lighter, completion):
                 yield chunk
         else:
             for waiting in held:
                 yield waiting
+        if completion.reasoning and completion.finish_reason == 'length':
+            # It also cuts replies short after some text, which can't be asked again once shown: from now on this
+            # model is asked to think less from the start.
+            THINKS_PAST_THE_LIMIT.add(model)
         completion.validate()
 
     async def attempt(self, client, config, key, url, body, completion) -> AsyncIterator[Chunk]:
@@ -190,26 +198,31 @@ class ChatProvider:
             return await check_with_deadline(discover_models, client, config, key)
 
 
+# (provider, model) pairs that ran out of reply room while reasoning, for this run of the app.
+THINKS_PAST_THE_LIMIT: set[tuple[str, str | None]] = set()
 OUTPUT_LIMITS = ('max_tokens', 'max_completion_tokens', 'max_output_tokens')
 
 
 def lighter_body(config: dict, body: dict) -> dict | None:
     """The same request with twice the output room and, unless the user chose a thinking setting, low effort."""
-    lighter = {**body}
-    limits = [key for key in OUTPUT_LIMITS if key in lighter]
+    limits = [key for key in OUTPUT_LIMITS if key in body]
     if not limits:
         return None
+    lighter = low_effort(config, body) or {**body}
     for key in limits:
         lighter[key] = lighter[key] * 2
-    chosen = config.get('reasoning_effort') or config.get('thinking_mode')
-    if not chosen:
-        if config['provider'] == 'openrouter':
-            lighter['reasoning'] = {'effort': 'low'}
-        elif config['provider'] == 'openai':
-            lighter['reasoning'] = {'effort': 'low'}
-        elif config['provider'] == 'anthropic':
-            lighter['output_config'] = {'effort': 'low'}
     return lighter
+
+
+def low_effort(config: dict, body: dict) -> dict | None:
+    """The same request asking for low reasoning effort, or None when the user chose a thinking setting."""
+    if config.get('reasoning_effort') or config.get('thinking_mode'):
+        return None
+    if config['provider'] in {'openrouter', 'openai'}:
+        return {**body, 'reasoning': {'effort': 'low'}}
+    if config['provider'] == 'anthropic':
+        return {**body, 'output_config': {'effort': 'low'}}
+    return None
 
 
 def kobold_result(response: httpx.Response) -> Chunk:

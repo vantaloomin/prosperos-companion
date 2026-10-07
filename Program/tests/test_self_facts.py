@@ -30,6 +30,13 @@ def test_talk_about_the_user_questions_and_maybes_are_not_facts():
     assert keys('*smiles* "I hate Mondays," she said in the film.') == []
 
 
+def test_reactions_to_the_conversation_are_not_tastes():
+    for text in ('lol i love the dedication.', 'i love this for you 😄 ten weeks is plenty', 'i love it almost as much',
+                 'i love what i do', 'honestly i just love the vibe of the games'):
+        assert keys(text) == [], text
+    assert keys('i just like going to games, eating overpriced food') == [('likes', 'going to games', 'going to games')]
+
+
 def test_lowercase_texting_names_people_and_pets_in_lowercase():
     text = 'omg my cat juniper knocked my coffee over. my sister ashley thinks its hilarious. my cat is named miso'
     assert keys(text) == [('pet', 'cat', 'Juniper'), ('person', 'sister', 'Ashley')]
