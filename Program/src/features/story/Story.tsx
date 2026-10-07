@@ -38,8 +38,8 @@ export function Story({ go }: { go: (view: View) => void }) {
         <StoryPeople people={story.data.people} canSwitch={story.data.can_switch} go={go}
           onFind={(key) => void run(null, () => api<StoryData>('/story/find', { key }).then(update))} />
       </header>
-      {!story.data.ready && <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Models</button>}>
-        Add a text model in Settings &gt; Models to tell the story.</Notice>}
+      {!story.data.ready && <div className="story-notice"><Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Models</button>}>
+        Add a text model in Settings &gt; Models to tell the story.</Notice></div>}
       <StoryLog messages={story.data.messages} pending={pending} onRetry={() => void run(null, () => api('/story/retry', {}))} />
       {error && <div className="story-notice"><Notice tone="error">{error}</Notice></div>}
       <StoryComposer busy={pending !== null} onSend={(text) => void send(text)} />
