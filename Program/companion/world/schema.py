@@ -194,6 +194,8 @@ class NameGroup(Record):
     cultures: dict[Id, float] = Field(default_factory=dict)
     # Keep this group's own family names even when a linked culture lists its own (a mill town's local names).
     own_family: bool = False
+    # Endings a woman's family name takes instead (Roman Cornelius becomes Cornelia): {"ius": "ia"}.
+    feminine_family: dict[str, str] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def check(self):
@@ -369,8 +371,8 @@ class Names(Record):
 
 class Cohort(Record):
     """The most popular given names for babies born in these years, most popular first."""
-    start: int = Field(ge=1800, le=2100)
-    end: int = Field(ge=1800, le=2100)
+    start: int = Field(ge=1700, le=2100)
+    end: int = Field(ge=1700, le=2100)
     estimate: bool
     feminine: list[Text] = Field(min_length=1)
     masculine: list[Text] = Field(min_length=1)

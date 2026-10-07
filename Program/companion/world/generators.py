@@ -493,8 +493,17 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
             if not family or not avoid & {family.casefold(), naming.base_family(culture, family).casefold()}:
                 break
             family = _family(f'{seed}:family:{attempt}', culture, pronouns, names, groups, mix)
+    if pronouns == 'she':
+        family = _feminine_family(family, names)
     return {'given': given, 'family': family, 'full': f'{given} {family}', 'pronouns': PRONOUNS[pronouns],
             'group': group, 'culture': culture}
+
+
+def _feminine_family(family: str, names: dict) -> str:
+    for ending, feminine in (names.get('feminine_family') or {}).items():
+        if family.endswith(ending):
+            return family[:-len(ending)] + feminine
+    return family
 
 
 def _family(seed: str, culture: str | None, pronouns: str, names: dict, groups: dict, mix: dict) -> str:

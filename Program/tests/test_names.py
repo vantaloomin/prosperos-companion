@@ -150,3 +150,9 @@ def test_every_bank_names_people_cleanly(bank):
     for index in range(60):
         person = generators.name(city, seed=f'{bank}-{index}', age=18 + index % 60)
         assert person['given'] and person['family'] and not naming.is_invented(person['full']), person['full']
+
+
+def test_a_roman_woman_takes_the_feminine_family_name():
+    city = catalog.city('baltimore') | {'era': 'other', 'names': {'bank': 'ancient-rome', 'mix': {'roman': 1}}}
+    assert generators.name(city, seed='rome', pronouns='she', family='Cornelius', age=30)['family'] == 'Cornelia'
+    assert generators.name(city, seed='rome', pronouns='he', family='Cornelius', age=30)['family'] == 'Cornelius'

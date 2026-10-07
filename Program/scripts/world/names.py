@@ -504,6 +504,10 @@ for bank, links in PERIOD_CULTURES.values():
     for key, culture in links.items():
         bank[key] |= {'cultures': {culture: 1}, 'own_family': True}
 
+# A Roman woman carries her family's name in its feminine form (Julius, Julia).
+for roman in ANCIENT_ROME.values():
+    roman['feminine_family'] = {'ius': 'ia', 'us': 'a'}
+
 BANKS = {'modern': MODERN, 'victorian': VICTORIAN, 'medieval': MEDIEVAL, 'frontier': FRONTIER, 'storybook': STORYBOOK,
          'edo-japan': EDO_JAPAN, 'qing-china': QING_CHINA, 'ottoman': OTTOMAN, 'ancient-rome': ANCIENT_ROME,
          'mughal-india': MUGHAL_INDIA}

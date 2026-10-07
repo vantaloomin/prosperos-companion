@@ -26,7 +26,7 @@ LINE = re.compile(r'^(\d{4})(s|-(\d{4}))?\s+([FM]):\s*(.*)$')
 COUNTRIES = {
     'united states': 'us', 'united states of america': 'us', 'usa': 'us', 'us': 'us', 'canada': 'us',
     'united kingdom': 'england-wales', 'uk': 'england-wales', 'great britain': 'england-wales',
-    'england': 'england-wales', 'wales': 'england-wales', 'scotland': 'england-wales',
+    'england': 'england-wales', 'wales': 'england-wales', 'scotland': 'scotland',
     'australia': 'england-wales', 'new zealand': 'england-wales',
     'ireland': 'ireland', 'italy': 'italy', 'mexico': 'mexico', 'spain': 'spain', 'germany': 'germany',
     'austria': 'germany', 'france': 'france', 'belgium': 'france', 'poland': 'poland', 'russia': 'russia',
