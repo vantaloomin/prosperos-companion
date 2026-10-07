@@ -39,6 +39,29 @@ def test_every_beat_fills_in():
                 assert beat.tone in ('good', 'bad', 'mixed')
 
 
+def test_the_context_tells_every_beat_to_the_companion_as_you():
+    names = {'p1': {'name': 'Cathy', 'role': 'mom'}, 'p2': {'name': 'Rui', 'role': 'dad'}}
+    row = {'cast_ids': '["p1", "p2"]'}
+    told = set()
+    for story in storylines.STORIES:
+        for stage in story.stages:
+            for beat in stage:
+                text = storylines.fill(beat.text, row, names, {'name': 'Mya Freeman'}, you=True)
+                assert 'Mya' not in text and 'Freeman' not in text and '{' not in text
+                told.add(text)
+    assert 'You heard you are being considered for a promotion.' in told
+    assert 'You got the promotion.' in told
+    assert 'Your mom Cathy got engaged.' in told and 'Cathy, your mom, got a promotion at work.' in told
+    assert 'A new guy at your work keeps hitting on you, and it is getting uncomfortable.' in told
+    assert 'There are rumors of layoffs at your work.' in told
+    assert "Cathy and Rui still aren't speaking; you are seeing them separately." in told
+    assert 'Your mom Cathy let slip that you have a half-sibling you never knew about.' in told
+    assert 'You looked the half-sibling up online but have not reached out.' in told
+    # Today keeps the third person.
+    third = storylines.fill('{name} got the promotion.', row, names, {'name': 'Mya Freeman'})
+    assert third == 'Mya Freeman got the promotion.'
+
+
 def test_only_an_unmarried_sibling_gets_engaged():
     engaged = storylines.find_story('sibling_engaged')
     people = [{'id': 'jo', 'role': 'sister', 'details': json.dumps({'married': True})},
@@ -81,7 +104,8 @@ def test_beats_stay_hidden_until_their_day_and_reach_the_context(client, social,
     first = listed[0]['beats'][0]['text']
     system = client.get('/api/context/preview').json()['system']
     assert "What is going on in your life and your people's lives" in system
-    assert first in system and 'Still unfolding' in system
+    section = system.split('## What is going on')[1].split('\n## ')[0]
+    assert 'Still unfolding' in section and 'Mira' not in section
     clock.advance(timedelta(days=30))
     reconcile(client)
     item = next(item for item in client.get('/api/life/storylines?include_ended=true').json() if item['id'] == listed[0]['id'])
@@ -134,3 +158,39 @@ def test_a_fork_keeps_storylines_that_had_started(client, social, clock, monkeyp
     assert original['story'] == copy['story'] and original['stages'] == copy['stages']
     cast, copied = json.loads(original['cast_ids']), json.loads(copy['cast_ids'])
     assert len(cast) == len(copied) and not set(cast) & set(copied)
+
+
+def test_a_settled_storyline_stays_by_its_outcome_then_goes_to_recall(client, social, clock, monkeypatch, provider):
+    from companion.characters import require_current
+    from companion.memory import vectors
+    monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('friend_new_job'),))
+    reconcile(client)
+    item = client.get('/api/life/storylines').json()[0]
+    friend = item['cast'][0]['name']
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    system = client.get('/api/context/preview').json()['system']
+    section = system.split('## What is going on')[1].split('\n## ')[0]
+    assert '- Settled on ' in section and friend in section
+    assert 'keeps asking you' not in section and 'Still unfolding' not in section
+
+    clock.advance(timedelta(days=40))
+    reconcile(client)
+    assert '## What is going on' not in client.get('/api/context/preview').json()['system']
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        assert storylines.context_lines(connection, companion, clock.now()) == []
+        stories = storylines.recall_items(connection, companion, clock.now())
+        assert [story['id'] for story in stories] == [item['id']] and friend in stories[0]['text']
+        owner = ('storyline', item['id'], stories[0]['text'])
+        timeline_id = companion['active_timeline_id']
+        assert owner in vectors.missing(connection, 'model', timeline_id, stories=stories)
+        assert vectors.store(connection, 'model', [owner], [[1.0, 0.0]], '2026-12-14T12:00:00Z') == 1
+        assert owner not in vectors.missing(connection, 'model', timeline_id, stories=stories)
+
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    send(client, f'Did {friend} ever take that job?', 'client-story-recall')
+    system = provider.requests[-1]['system']
+    assert 'Something that happened in your life, settled on' in system and friend in system

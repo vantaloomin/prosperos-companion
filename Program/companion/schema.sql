@@ -225,7 +225,7 @@ CREATE INDEX IF NOT EXISTS memory_candidates_status ON memory_candidates(compani
 
 -- Embeddings of memories and messages for semantic recall, keyed by the digest of the text embedded.
 CREATE TABLE IF NOT EXISTS memory_vectors (
-  owner_kind TEXT NOT NULL CHECK (owner_kind IN ('memory', 'message')),
+  owner_kind TEXT NOT NULL CHECK (owner_kind IN ('memory', 'message', 'storyline')),
   owner_id TEXT NOT NULL,
   model TEXT NOT NULL,
   digest TEXT NOT NULL,

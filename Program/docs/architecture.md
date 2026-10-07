@@ -141,6 +141,14 @@ timeline that the current conversation does not use (`in_timeline: false`).
 6. Older turns and episodic memories, ranked by the Study's lexical retrieval and rank fusion.
    When the recall profile names an embedding model, an embedding ranking of the same eligible pool
    joins the fusion, so a related memory is found without shared words ("puppy" finds "hound").
+   Settled storylines past their 60 days in the context join the same pool
+   (`storylines.recall_items`), told to the companion as "you".
+
+When the companion's last 15 replies keep reaching for the same wording, the character section gets
+one line naming it ('You keep repeating: "honestly" (8 of your last 15 messages). Say it
+differently.'). `companion/memory/phrases.py` finds phrases of three to eight words in at least three
+replies with the Study's phrase detection, plus single words in at least five replies, leaving out
+stopwords, ordinary words and names; up to three are named. It is rule-based and calls no model.
 
 ### Semantic recall
 

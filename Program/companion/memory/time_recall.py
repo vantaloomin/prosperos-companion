@@ -39,7 +39,7 @@ def query_span(query: str, now: datetime, timezone: str) -> tuple[datetime, date
 
 def moment(kind: str, owner: dict, timezone: str) -> tuple[datetime | None, datetime | None, datetime]:
     """(start, end, said): when the item happened, if known, and when it was said."""
-    if kind == 'summary':
+    if kind in ('summary', 'storyline'):
         start = dates.instant(date.fromisoformat(owner['day']), timezone)
         return None, None, start
     if kind == 'memory':
@@ -55,7 +55,7 @@ def within(kind: str, owner: dict, span: tuple[datetime, datetime], timezone: st
     return lower <= said < upper
 
 
-ORDER = {'memory': 0, 'summary': 1, 'message': 2}
+ORDER = {'memory': 0, 'summary': 1, 'storyline': 1, 'message': 2}
 
 
 def ranking(chunks, owners, span, timezone: str) -> list[str]:

@@ -128,6 +128,7 @@ ADDED_COLUMNS = (
 # contains). SQLite cannot alter a CHECK, so an older table is copied into the current definition.
 WIDENED_CHECKS = (
     ('notification_deliveries', "'message')"),
+    ('memory_vectors', "'storyline'))"),
 )
 
 

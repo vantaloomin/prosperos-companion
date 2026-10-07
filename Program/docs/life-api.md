@@ -408,6 +408,11 @@ A storyline is `{id, story, level, started_on, status, cast: [{id, name, role}],
 share, tone}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
 named now; removing someone ends the storylines they are in. The chat context lists the last three
 weeks' storylines and says when one is still unfolding, so the companion never guesses the ending.
+There the beats are told to the companion as "you" ("You got the promotion", "Cathy, your mom, got a
+promotion at work"), rewritten from each template, so the companion never hands its own news back to
+the user; Today keeps the third person. A settled storyline stays in the context by its outcome for
+60 days after its last beat; after that it joins memory search, so asking about it months later can
+still bring the outcome back (embedded like memories when semantic recall is on).
 A beat from today or yesterday can open a conversation, using its `share` line when no model is
 connected. Days are decided as the agenda extends, up to 14 days back after time away.
 

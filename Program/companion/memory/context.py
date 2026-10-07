@@ -32,7 +32,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, people, time_recall, vectors
+from companion.memory import closeness, people, phrases, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -97,8 +97,9 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time',
             'townsfolk': 'People around town (background characters you keep running into; you know only what is '
                          'listed here, so never invent more about them or claim to know them better)',
             'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
-            'storylines': "What is going on in your life and your people's lives (decided: bring it up the way "
-                          'a friend would, never contradict it, and never invent how an unfolding one ends)',
+            'storylines': "What is going on in your life and your people's lives (these happened to you and your "
+                          'people, never to the user; decided: bring it up the way a friend would, never contradict '
+                          'it, and never invent how an unfolding one ends)',
             'newcomers': 'Names for anyone new you mention who is not listed above (a new coworker, a neighbor); '
                          'use one of these that fits their age rather than making a name up',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
@@ -225,6 +226,14 @@ def person_text(person) -> str:
     return text
 
 
+def wording_text(connection, timeline_id, definition, messages) -> str | None:
+    """A nudge when the companion's last replies keep reaching for the same words (companion/memory/phrases.py)."""
+    replies = [message for message in messages if message['role'] == 'companion'][-phrases.RECENT_REPLIES:]
+    names = {word for row in circle.people(connection, timeline_id, include_removed=True)
+             for word in row['name'].split()} | set(definition['name'].split())
+    return phrases.repeats_line(replies, names)
+
+
 def local_time(instant: datetime, timezone: str) -> str:
     return instant.astimezone(zone(timezone)).strftime('%A %d %B %Y, %H:%M (%Z)')
 
@@ -314,8 +323,12 @@ def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     return [row for row in kept if row['role'] == 'user' or row['reply_to'] is None or row['reply_to'] in users]
 
 
-def recall_pool(memories, older, summaries=()) -> tuple[list, dict]:
+def recall_pool(memories, older, summaries=(), stories=()) -> tuple[list, dict]:
     chunks, owners = [], {}
+    for story in stories:
+        for chunk in compile_chunks(f"storyline:{story['id']}", story['day'], story['text'], 'storyline'):
+            chunks.append(chunk)
+            owners[chunk.id] = ('storyline', story)
     for summary in summaries:
         for chunk in compile_chunks(f"summary:{summary['id']}", summary['day'], summary['text'], 'summary'):
             chunks.append(chunk)
@@ -332,12 +345,13 @@ def recall_pool(memories, older, summaries=()) -> tuple[list, dict]:
     return chunks, owners
 
 
-def semantic_ranking(connection, semantic, memories, older) -> list[str]:
+def semantic_ranking(connection, semantic, memories, older, stories=()) -> list[str]:
     """Chunk ids ranked by embedding similarity over the eligible pool only (M10, M12)."""
     if not semantic:
         return []
     owners = {f"memory:{memory['id']}": vectors.memory_text(memory) for memory in memories if not memory['pinned']}
     owners |= {f"message:{message['id']}": message['text'] for message in older}
+    owners |= {f"storyline:{story['id']}": story['text'] for story in stories}
     ranked = vectors.rank(connection, semantic['model'], semantic['vector'], owners, RECALL_LIMIT * 2)
     chunk_ids = []
     for key in ranked:
@@ -346,6 +360,9 @@ def semantic_ranking(connection, semantic, memories, older) -> list[str]:
             memory = next(item for item in memories if item['id'] == identity)
             chunk_ids += [chunk.id for chunk in compile_chunks(key, memory['subject'],
                                                                f"{memory['subject']}: {memory['value']}", 'memory')]
+        elif kind == 'storyline':
+            story = next(item for item in stories if item['id'] == identity)
+            chunk_ids += [chunk.id for chunk in compile_chunks(key, story['day'], story['text'], 'storyline')]
         else:
             message = next(item for item in older if item['id'] == identity)
             chunk_ids += [chunk.id for chunk in compile_chunks(key, message['role'], message['text'])]
@@ -369,6 +386,8 @@ def recently_surfaced(connection, timeline_id) -> set[str]:
 def recall_text(kind, owner, hit) -> str:
     if kind == 'memory':
         return memory_text(owner)
+    if kind == 'storyline':
+        return f"- Something that happened in your life, settled on {owner['day']}: {owner['text']}"
     if kind == 'summary':
         return (f"- Your conversation on {owner['day']} (your own words, quoted; a reminder, not confirmation): "
                 f"{owner['text']}")
@@ -376,12 +395,12 @@ def recall_text(kind, owner, hit) -> str:
 
 
 def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozenset(),
-             when=None) -> list[tuple[str, str]]:
-    """Pinned memories first, then keyword, semantic and time recall fused over eligible memories, older turns
-    and episode summaries. An anecdote that keeps resurfacing needs the user's own words to come back.
+             when=None, stories=()) -> list[tuple[str, str]]:
+    """Pinned memories first, then keyword, semantic and time recall fused over eligible memories, older turns,
+    episode summaries and settled storylines past their pinned window. An anecdote that keeps resurfacing needs the user's own words to come back.
     `when` is (span, timezone) for a time the query names (companion/memory/time_recall.py)."""
     result = [(memory['id'], memory_text(memory)) for memory in memories if memory['pinned']]
-    chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older, summaries)
+    chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older, summaries, stories)
     rankings = [list(ranking)] if ranking else []
     if when:
         rankings.append(time_recall.ranking(chunks, owners, *when))
@@ -558,6 +577,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     if today := day_text(connection, companion, now):
         packet.offer('time', 'day', today)
     conversation = fit_conversation(packet, recent)
+    if wording := wording_text(connection, timeline_id, version['definition'], messages):
+        packet.offer('character', 'wording', wording)
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     for identity, text in self_facts.context_lines(connection, timeline_id):
@@ -579,13 +600,14 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('real_events', events['id'], f"- From {events['service_name']}, retrieved "
                                                   f"{events['retrieved_at'][11:16]} UTC: «{events['content']}»")
     query = latest['text'] if latest else ''
-    ranking = semantic_ranking(connection, semantic, groups['recallable'], older)
+    stories = storylines.recall_items(connection, companion, now)
+    ranking = semantic_ranking(connection, semantic, groups['recallable'], older, stories)
     summaries = usable_summaries(connection, timeline_id, excluded_sources(connection, companion['id']))
     surfaced = recently_surfaced(connection, timeline_id)
     timezone = settings(connection)['user_timezone']
     span = time_recall.query_span(query, now, timezone)
     for identity, text in recalled(groups['recallable'], older, query, ranking, summaries, surfaced,
-                                   (span, timezone) if span else None):
+                                   (span, timezone) if span else None, stories):
         packet.offer('recalled', identity, text)
     packet.semantic = bool(semantic)
     return render(packet, conversation)
