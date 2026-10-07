@@ -31,6 +31,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   {
     id: 'models', label: 'Models', withoutCompanion: true, sections: [
       { heading: 'models-heading', title: 'Models', keywords: 'model connection provider api key openai anthropic openrouter google local kobold codex profile chat life memory drafting recall temperature' },
+      { heading: 'recall-heading', title: 'Built-in recall', keywords: 'recall embedding embeddings semantic llama.cpp llama-server gguf gemma embeddinggemma qwen local memory search' },
       { heading: 'prompts-heading', title: 'Character drafting prompts', keywords: 'prompt drafting help me write quick start' },
     ],
   },

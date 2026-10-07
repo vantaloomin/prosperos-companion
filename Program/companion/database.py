@@ -147,7 +147,7 @@ def initialize(connection, timestamp: str):
     from companion.text_models import adopt_legacy
     adopt_legacy(connection, timestamp)
     for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings',
-                  'notification_settings', 'phone_settings'):
+                  'notification_settings', 'phone_settings', 'builtin_recall'):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))
     connection.execute('UPDATE life_settings SET texts_first=1, texts_first_on_by_default=1 '
                        'WHERE texts_first_on_by_default=0')

@@ -125,14 +125,37 @@ timeline that the current conversation does not use (`in_timeline: false`).
 
 ### Semantic recall
 
-Nothing is downloaded: embeddings come from the `/embeddings` endpoint of the profile doing
-semantic recall in Settings > Models ([Models](models.md)), with its optional `embedding_model`. The message being answered is embedded at conversation priority with a
+No model is downloaded for the user: embeddings come from the `/embeddings` endpoint of the profile
+doing semantic recall in Settings > Models ([Models](models.md)), with its optional `embedding_model`,
+or from built-in recall (below). Models known to want retrieval instructions (EmbeddingGemma, Qwen3
+Embedding, nomic-embed-text, mxbai, Arctic) get them on the query and on stored texts
+(`providers/embeddings.py`), and their vectors are kept under `<model>#prompted-1`, so vectors made
+before the instructions are re-made once. The message being answered is embedded at conversation priority with a
 two-second limit; any failure means keyword recall only, and the reply goes ahead. After each turn
 `MemoryWorker` embeds memories and messages that lack a vector, in batches at maintenance priority.
 `memory_vectors` keys each vector by owner, model and the digest of the exact text embedded, so an
 edited text never matches an old vector. Deleting a memory, correcting it or redacting a message
 deletes its vectors; excluded memories and their source messages never enter the pool, so their
 vectors are never ranked. The receipt records whether semantic recall took part.
+
+### Built-in recall
+
+`providers/builtin_recall.py` runs llama.cpp's `llama-server` in embedding mode for users without an
+embeddings service. The user downloads the model file (GGUF) and accepts its licence; Settings
+suggests EmbeddingGemma 2 and Qwen3 Embedding 0.6B and lists `*embed*.gguf` files found in the
+workspace's `embeddings/models/` folder and LM Studio's. llama.cpp itself (pinned build `b11457`,
+checked against its SHA-256) downloads on request into `embeddings/llama.cpp/`, which backups leave
+out. While on, `config_for('recall')` returns the built-in setup instead of a profile; its own
+resource group keeps recall from queueing behind a local chat model.
+
+The server is a separate process, like every model the Companion uses, so life and chat still share
+one server process. It runs CPU only (`-ngl 0`) with at most four threads, a 2,048-token context and
+texts cut to 6,000 characters, on a free loopback port. It starts with the app (or on the first
+embedding request) and stops with it. `embedding_guard.py` sits between the two: it starts the server
+and stops it when its stdin pipe closes, which also happens when the Companion is killed. A server
+that stops while loading is reported in Settings with the end of `embeddings/llama-server.log`, and is
+retried after 30 seconds. On Linux, or to test another build, `COMPANION_LLAMA_SERVER` names a
+llama-server to use; `COMPANION_EMBEDDING_MODELS` adds folders to search for model files.
 
 Eligibility is applied before ranking: only active, non-tentative, in-scope, currently applicable
 memories qualify, and source messages of excluded memories are kept out of raw recall too. A companion reply to an excluded

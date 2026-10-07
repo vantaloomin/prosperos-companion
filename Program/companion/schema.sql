@@ -1154,3 +1154,13 @@ CREATE TABLE IF NOT EXISTS debug_time (
   snapshot TEXT NOT NULL,
   backup TEXT NOT NULL
 );
+
+-- Built-in recall (Settings > Models, companion/providers/builtin_recall.py): a llama.cpp server the
+-- Companion starts on this PC with an embedding model file the user downloaded. While enabled it does
+-- semantic recall instead of a profile.
+CREATE TABLE IF NOT EXISTS builtin_recall (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+  model_path TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);

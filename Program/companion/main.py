@@ -37,7 +37,9 @@ from companion.memory.worker import MemoryWorker
 from companion.phone import access as phone_access
 from companion.phone import push as phone_push
 from companion.phone import routes as phone_routes
+from companion.providers.builtin_recall import BuiltinRecall
 from companion.providers.vault import SystemVault
+from companion.recall_routes import router as recall_router
 from companion.routes import router
 from companion.text_model_routes import router as model_router
 from companion.world import changes as city_changes
@@ -73,8 +75,12 @@ async def lifespan(app):
     tasks = [asyncio.create_task(app.state.life.run_forever()),
              asyncio.create_task(app.state.images.run_forever()),
              asyncio.create_task(app.state.push.run_forever())] if app.state.life_tasks else []
+    if app.state.life_tasks:
+        # Built-in recall loads its model now, so the first reply does not wait for it.
+        app.state.builtin_recall.kick()
     app.state.memory.kick()
     yield
+    app.state.builtin_recall.shutdown()
     app.state.training.shutdown()
     for task in tasks:
         task.cancel()
@@ -83,7 +89,7 @@ async def lifespan(app):
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
                life_tasks=True, world=None, embedder=None, image_adapters=None,
                context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None,
-               lora_maker=None) -> FastAPI:
+               lora_maker=None, builtin_spawn=None, builtin_transport=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
@@ -94,6 +100,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.lookups.listeners.append(lambda observation: city_changes.remember(app.state.database, observation))
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder,
                                           lookups=app.state.lookups)
+    app.state.builtin_recall = BuiltinRecall(app.state.database, builtin_spawn, builtin_transport)
+    app.state.conversation.embedder.builtin = app.state.builtin_recall
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
                                     app.state.conversation.embedder, enabled=life_tasks,
                                     provider=app.state.conversation.provider)
@@ -133,6 +141,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.include_router(router)
     app.include_router(model_router)
+    app.include_router(recall_router)
     app.include_router(life_routes.router)
     app.include_router(home_routes.router)
     app.include_router(life_routes.today_router)
