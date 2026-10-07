@@ -28,6 +28,7 @@ def values(client):
 
 
 def test_nothing_is_extracted_while_automatic_memory_is_off(client, connected):
+    client.put('/api/settings', json={'automatic_memory': False})
     send(client, 'I live in Chicago', 'client-0001')
     assert run(client)['processed'] == 0
     assert memories(client) == []
@@ -67,7 +68,7 @@ def test_companion_text_cannot_become_a_user_fact(client, connected, provider):
 
 
 def test_sensitive_facts_wait_for_permission(client, connected):
-    enable(client)
+    enable(client, sensitive_memory=False)
     send(client, "I'm allergic to peanuts", 'client-0001')
     run(client)
     assert memories(client) == []
@@ -87,7 +88,7 @@ def test_sensitive_permission_commits_directly(client, connected):
 
 
 def test_a_declined_suggestion_is_not_offered_again(client, connected):
-    enable(client)
+    enable(client, sensitive_memory=False)
     send(client, "I'm allergic to peanuts", 'client-0001')
     run(client)
     [suggestion] = client.get('/api/memory/suggestions').json()

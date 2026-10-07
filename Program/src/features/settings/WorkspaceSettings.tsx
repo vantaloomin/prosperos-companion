@@ -152,10 +152,10 @@ export function MemorySettings() {
           <Toggle label="Remember things automatically" checked={data.automatic_memory} onChange={(value) => void save({ automatic_memory: value })}
             hint="When on, facts you state directly in new messages (your name, where you live, a plan with a date) are saved with the messages they came from, after each reply. Questions, hypotheticals, quotes and roleplay are never saved. Earlier messages are not scanned. When off, only what you choose to remember is saved; your conversation is kept either way." />
           <Toggle label="Allow sensitive memories" checked={data.sensitive_memory} onChange={(value) => void save({ sensitive_memory: value })}
-            hint="Health, beliefs, money and similar details are only saved automatically with this on. Otherwise they wait in Memories as suggestions for you to keep or decline." />
-          <Toggle label="Let the model suggest more" checked={data.model_memory_suggestions ?? false} disabled={!data.automatic_memory}
+            hint="Health (like an allergy), beliefs, money and similar details are saved automatically with this on, so they can be remembered when it matters. Turn it off to have them wait in Memories as suggestions for you to keep or decline." />
+          <Toggle label="Let the model catch more" checked={data.model_memory_suggestions ?? true} disabled={!data.automatic_memory}
             onChange={(value) => void save({ model_memory_suggestions: value })}
-            hint="Messages the built-in rules found nothing in are sent to your model connection in the background, which proposes facts in your own words. Nothing is kept until you choose Remember in Memories. Uses extra model time." />
+            hint="Messages the built-in rules found nothing in are sent to your model connection in the background, which picks out facts in your own words. They are saved automatically and marked that way in Memories, where you can correct or delete them; anything that contradicts a saved fact waits for you. Uses extra model time." />
           <Toggle label="Ask about people in your life" checked={data.ask_about_people ?? true} onChange={(value) => void save({ ask_about_people: value })}
             hint="People you mention (your sister, your boss, a friend by name) and what you say about them are remembered under the same setting as everything else. With this on, they may now and then ask how someone is doing or how their news turned out, at most once per question. Never after a loss, or about anyone a boundary covers." />
           <Toggle label="Share what you've told them across alternate timelines" checked={data.share_profile_across_timelines} onChange={(value) => void save({ share_profile_across_timelines: value })}

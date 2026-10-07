@@ -35,7 +35,7 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 **They stay in character.** No "as an AI" disclaimers. Start a message with `OOC:` or wrap it in ((double parentheses)) when you want a plain answer.
 
-**Memory you control.** Facts you mention are remembered (automatic capture is opt-in), and the Memories page shows exactly what the next reply will use. Correct, pin, exclude or delete anything. Sensitive details wait for your OK, and conflicts are asked about rather than overwritten.
+**Memory you control.** Facts you mention are remembered automatically (you can turn this off), and the Memories page shows exactly what the next reply will use. Correct, pin, exclude or delete anything. Conflicts are asked about rather than overwritten.
 
 **Pictures.** Selfies, photos of what they're doing, views and memes, through the Codex CLI, a local ComfyUI or a hosted image API. Every request is classified on your PC first: NSFW only goes to a local ComfyUI, and prohibited content is refused everywhere.
 

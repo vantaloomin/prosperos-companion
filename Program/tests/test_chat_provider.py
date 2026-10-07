@@ -64,3 +64,45 @@ def test_unreachable_service_is_a_connection_error():
     with pytest.raises(DomainError) as error:
         collect(ChatProvider(httpx.MockTransport(handler)))
     assert error.value.code == 'connection'
+
+
+def sse(*events):
+    body = ''.join(f'data: {json.dumps(event)}\n\n' for event in events) + 'data: [DONE]\n\n'
+    return httpx.Response(200, text=body, headers={'content-type': 'text/event-stream'})
+
+
+THOUGHT_ONLY = ({'choices': [{'delta': {'content': '', 'reasoning': 'Let me think about Sam...'}}]},
+                {'choices': [{'delta': {}, 'finish_reason': 'length'}]},
+                {'choices': [], 'usage': {'completion_tokens': 100,
+                                          'completion_tokens_details': {'reasoning_tokens': 100}}})
+
+
+def test_a_reply_spent_entirely_on_thinking_is_asked_again_with_less_thinking():
+    bodies, answers = [], [sse(*THOUGHT_ONLY),
+                           sse({'choices': [{'delta': {'content': 'hey!'}, 'finish_reason': 'stop'}]})]
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return answers.pop(0)
+
+    config = {**CONFIG, 'provider': 'openrouter', 'base_url': 'https://openrouter.ai/api/v1'}
+
+    async def run():
+        provider = ChatProvider(httpx.MockTransport(handler))
+        return [chunk async for chunk in provider.stream(config, 'k', 'system', [{'role': 'user', 'content': 'hi'}])]
+    chunks = asyncio.run(run())
+    assert ''.join(chunk.text for chunk in chunks) == 'hey!'
+    assert [chunk.finish_reason for chunk in chunks if chunk.finish_reason] == ['stop']
+    assert 'reasoning' not in bodies[0] and bodies[0]['max_tokens'] == 100
+    assert bodies[1]['reasoning'] == {'effort': 'low'} and bodies[1]['max_tokens'] == 200
+
+
+def test_a_reply_cut_off_with_text_is_not_asked_again():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return sse({'choices': [{'delta': {'content': 'so anyway'}, 'finish_reason': 'length'}]})
+
+    chunks = collect(ChatProvider(httpx.MockTransport(handler)))
+    assert len(calls) == 1 and chunks[-1].finish_reason == 'length'

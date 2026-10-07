@@ -122,8 +122,11 @@ def test_memory_formation_and_authority(client, connected, provider):
     statements and companion guesses: only permitted, supported records are committed."""
     from companion.providers.chat import Chunk
 
+    settings = client.get('/api/settings').json()
+    assert settings['automatic_memory'] and settings['sensitive_memory'], 'memory is opt-out'
+    client.put('/api/settings', json={'automatic_memory': False, 'sensitive_memory': False})
     say(client, 'I live in Lisbon')
-    assert client.get('/api/memories').json() == [], 'automatic memory starts off'
+    assert client.get('/api/memories').json() == [], 'nothing is saved with automatic memory off'
 
     client.put('/api/settings', json={'automatic_memory': True})
     say(client, 'Hypothetically, I live on the moon')
@@ -140,7 +143,7 @@ def test_memory_formation_and_authority(client, connected, provider):
     assert 'jazz' not in preview(client)
     assert tentative['authority'] == 'tentative'
 
-    # Sensitive needs permission; deliberate Remember this is that permission.
+    # With sensitive memory off, sensitive facts need permission; deliberate Remember this is that permission.
     say(client, "I'm allergic to shellfish")
     assert [item['reason'] for item in client.get('/api/memory/suggestions').json()] == ['sensitive']
     message = say(client, "I'm allergic to penicillin")['message']

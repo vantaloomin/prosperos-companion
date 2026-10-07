@@ -168,15 +168,16 @@ def test_a_model_correction_of_something_not_sent_is_dropped(client, app, connec
     assert [item['value'] for item in memories(client)] == ['she loves gardening']
 
 
-def test_a_model_fact_that_only_mentions_a_memory_stays_a_plain_guess(client, app, connected, provider):
+def test_a_model_fact_that_only_mentions_a_memory_is_saved_as_a_new_fact(client, app, connected, provider):
     remember(client, **GARDENING)
     enable(client, model_memory_suggestions=True)
     provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Mom's garden",
                                      'value': 'tomatoes in the garden this summer'}])
     send(client, 'My mom planted tomatoes in the garden this summer', 'model-0001')
     suggest(client, app)
-    [suggestion] = suggestions(client)
-    assert suggestion['reason'] == 'model_guess' and 'corrects' not in suggestion
+    assert suggestions(client) == []
+    assert sorted(item['value'] for item in memories(client)) == ['she loves gardening',
+                                                                  'tomatoes in the garden this summer']
 
 
 def test_a_home_said_to_be_untrue_is_dropped_not_kept_as_a_past(client, provider, connected, monkeypatch):
@@ -204,6 +205,7 @@ def test_recalled_words_of_a_corrected_memory_carry_the_correction(client, app, 
     """The original message, the reply to it and a later reply repeating it can still be recalled; each says what
     the user changed it to, so the old value isn't taken as current."""
     monkeypatch.setattr(context, 'RECENT_MESSAGES', 2)
+    enable(client, automatic_memory=False)
     provider.replies += [[Chunk('Does she grow tomatoes?'), Chunk('', 'stop')],
                          [Chunk('Nice.'), Chunk('', 'stop')],
                          [Chunk('I bet her garden looks amazing this time of year'), Chunk('', 'stop')]]
