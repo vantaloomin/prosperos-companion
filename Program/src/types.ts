@@ -248,6 +248,8 @@ export interface Memory {
   current?: boolean
   /** False for a memory from another timeline, which the current conversation does not use. */
   in_timeline?: boolean
+  /** A value the user said was never true: replaced by nothing, and its old words are marked as wrong. */
+  retracted?: boolean
   /** Set on what you said about someone in your life; see Person. */
   person_id?: string | null
 }
@@ -888,6 +890,10 @@ export interface SelfFact {
   conflicts_with: string | null
   /** For a conflict with their circle: who the circle has in that role ("mom Cathy"). */
   circle_person?: string
+  /** For a fact the user said was wrong: what they wrote (empty once that message is deleted). */
+  user_said?: string
+  /** For a fact the character definition contradicts: the place it names. */
+  definition_says?: string
   created_at: string
   decided_at: string | null
 }

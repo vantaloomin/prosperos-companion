@@ -288,8 +288,12 @@ def listing(database, include_history=False) -> list[dict]:
         share = bool(settings(connection)['share_profile_across_timelines'])
         # Memories from another timeline stay listed so they can be corrected or deleted, marked as
         # not applying to the current one (C4, M6).
+        followed = {row['supersedes_id'] for row in rows if row['supersedes_id']}
+        # A superseded memory nothing replaced or absorbed was retracted: the user said it was wrong.
         return [{**with_sources(connection, row), 'current': current_at(row, now),
-                 'in_timeline': in_scope(row, timelines, share)} for row in rows]
+                 'in_timeline': in_scope(row, timelines, share),
+                 'retracted': row['status'] == 'superseded' and not row['merged_into_id'] and row['id'] not in followed}
+                for row in rows]
 
 
 # The real-user profile: what the setting to share across timelines covers (M6). Shared experiences

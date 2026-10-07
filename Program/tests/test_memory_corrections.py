@@ -62,8 +62,8 @@ def test_saying_a_remembered_fact_is_wrong_waits_as_a_correction_of_it(client, c
     result = accept(client, suggestion)
     assert result['outcome'] == 'corrected' and result['memory']['supersedes_id'] == old['id']
     assert [(item['subject'], item['value']) for item in memories(client)] == [("Mom's interests", 'not a gardener')]
-    history = {item['value']: item['status'] for item in memories(client, history=True)}
-    assert history == {'she loves gardening': 'superseded', 'not a gardener': 'active'}
+    history = {item['value']: (item['status'], item['retracted']) for item in memories(client, history=True)}
+    assert history == {'she loves gardening': ('superseded', False), 'not a gardener': ('active', False)}
 
 
 def test_something_that_stopped_being_true_ends_as_history(client, connected):
@@ -193,7 +193,8 @@ def test_a_home_said_to_be_untrue_is_dropped_not_kept_as_a_past(client, provider
     assert (suggestion['corrects'], suggestion['ends'], suggestion['retracts']) == (home['id'], False, True)
     assert accept(client, suggestion)['outcome'] == 'retracted'
     assert memories(client) == []
-    assert [(item['value'], item['status']) for item in memories(client, history=True)] == [('Chicago', 'superseded')]
+    assert [(item['value'], item['status'], item['retracted']) for item in memories(client, history=True)] == [
+        ('Chicago', 'superseded', True)]
     send(client, 'Any good pizza in Chicago?', 'client-0003')
     system = provider.requests[-1]['system']
     assert f"I live in Chicago [the user later said this was wrong: {home['subject']}: Chicago]" in system
