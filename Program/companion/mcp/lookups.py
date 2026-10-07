@@ -48,6 +48,10 @@ NEWS = re.compile(r"\b(news|headlines?|current events|in the world today)\b", re
 EVENTS = re.compile(r"\b(things to do|what'?s on|concerts?|festivals?|events?|shows?|gigs?)\b", re.I)
 NEARBY = re.compile(r"\b(near( me| here|by)?|around here|in town|local(ly)?|this weekend|tonight|today|tomorrow)\b",
                     re.I)
+# "Are the Ravens playing this week?": a game word and a time soon, for the games listing of the events lookup.
+SPORTS = re.compile(r"\b(games?|match(es)?|playing|kick-?off|first pitch|scores?)\b", re.I)
+SOON = re.compile(r"\b(tonight|today|tomorrow|yesterday|last night|this week(end)?|next week|"
+                  r"on (mon|tues|wednes|thurs|fri|satur|sun)day)\b", re.I)
 THERE = re.compile(r"\b(where you (are|live)|your (city|town|place|end|neck of the woods)|over there|by you)\b", re.I)
 TOPIC = re.compile(r"\bnews\s+(?:about|on|regarding|for|from)\s+([^?.!,;:\n]{2,80})", re.I)
 # "search for X", "google X", "look up X", "search reddit for X", "search the web for X"
@@ -78,7 +82,8 @@ def triggers(text: str) -> list[dict]:
         match = TOPIC.search(text)
         topic = ' '.join(match.group(1).split()[:TOPIC_WORDS]) if match else None
         found.append({'category': 'news', 'purpose': 'conversation', 'topic': topic})
-    if EVENTS.search(text) and (NEARBY.search(text) or purpose == 'companion_city'):
+    if (EVENTS.search(text) and (NEARBY.search(text) or purpose == 'companion_city')) or \
+            (SPORTS.search(text) and SOON.search(text)):
         found.append({'category': 'local_events', 'purpose': purpose, 'topic': None})
     if topic := search_topic(text):
         found.append({'category': 'web_search', 'purpose': 'conversation', 'topic': topic})

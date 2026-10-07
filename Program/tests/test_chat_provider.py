@@ -34,6 +34,23 @@ def test_streams_openai_compatible_events():
     assert seen['auth'] == 'Bearer k'
 
 
+def test_a_rate_limit_is_retried_once(monkeypatch):
+    waits, answers = [], [httpx.Response(429, headers={'retry-after': '30'}),
+                          httpx.Response(200, text='data: {"choices": [{"delta": {"content": "Hi"}, '
+                                         '"finish_reason": "stop"}]}\n\n', headers={'content-type': 'text/event-stream'}),
+                          httpx.Response(429), httpx.Response(429)]
+
+    async def wait(seconds):
+        waits.append(seconds)
+    monkeypatch.setattr('companion.providers.chat.asyncio.sleep', wait)
+    provider = ChatProvider(httpx.MockTransport(lambda request: answers.pop(0)))
+    assert ''.join(chunk.text for chunk in collect(provider)) == 'Hi'
+    assert waits == [5.0]
+    with pytest.raises(DomainError, match='rate or usage limit'):
+        collect(provider)
+    assert waits == [5.0, 2.0] and answers == []
+
+
 def test_authentication_failure_is_reported():
     provider = ChatProvider(httpx.MockTransport(lambda request: httpx.Response(401)))
     with pytest.raises(DomainError) as error:

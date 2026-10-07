@@ -129,6 +129,31 @@ def test_one_field_can_be_redone_in_keeping_with_the_rest(client, provider):
     assert '"flaws"' in system and 'harsher' in system and 'Cares too much' in system and '{{' not in system
 
 
+def test_a_redone_field_nested_in_its_own_json_is_unwrapped(client, provider):
+    connect(client)
+    character = {'name': 'Dana', 'identity': 'A nurse.', 'voice': 'Long sentences.', 'home_city': 'nowhere'}
+    for reply in ('{"value": "\\"voice\\": \\"Short, lowercase texts.\\""}',
+                  '{"value": "{\\"name\\": \\"Dana\\", \\"voice\\": \\"Short, lowercase texts.\\"}"}'):
+        provider.respond = replying(reply)
+        response = client.post('/api/companion/draft/field', json={'definition': character, 'field': 'voice'})
+        assert response.status_code == 200, response.text
+        assert response.json()['value'] == 'Short, lowercase texts.'
+
+
+def test_a_redone_field_cut_off_at_the_output_limit_is_retried(client, provider):
+    connect(client)
+    queue = [[Chunk('{"value": "Long'), Chunk('', 'length')], [Chunk('{"value": "Short texts."}'), Chunk('', 'stop')],
+             [Chunk('{"value": "Long'), Chunk('', 'length')], [Chunk('{"value": "Still'), Chunk('', 'length')]]
+    provider.respond = lambda system, messages: queue.pop(0)
+    character = {'name': 'Dana', 'identity': 'A nurse.', 'home_city': 'nowhere'}
+    response = client.post('/api/companion/draft/field', json={'definition': character, 'field': 'voice'})
+    assert response.status_code == 200, response.text
+    assert response.json()['value'] == 'Short texts.'
+    assert 'output token limit' in provider.requests[1]['messages'][-1]['content']
+    response = client.post('/api/companion/draft/field', json={'definition': character, 'field': 'voice'})
+    assert response.status_code == 502 and 'output token limit' in response.json()['detail']
+
+
 def test_skills_and_flaws_reach_the_chat_context(client, provider, connected):
     current = client.get('/api/companion').json()['companion']
     definition = {**current['version']['definition'], 'skills': ['Fixes bikes'], 'flaws': ['Runs late']}

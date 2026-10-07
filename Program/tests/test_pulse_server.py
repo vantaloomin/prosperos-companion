@@ -104,7 +104,26 @@ def test_happenings_list_local_games_with_scores_and_air_quality():
         'Air quality now: good (US AQI 42). Air quality data by Open-Meteo.com (CC BY 4.0).')
     assert set(result['structured']['leagues_checked']) == {'MLB', 'NFL', 'NBA', 'WNBA', 'NHL', 'MLS'}
     espn = next(request for request in seen if 'football/nfl' in str(request.url))
-    assert parse_qs(espn.url.query.decode())['dates'] == ['20261004-20261011']
+    assert parse_qs(espn.url.query.decode())['dates'] == ['202610']
+
+
+def test_a_week_across_two_months_asks_for_both_and_keeps_only_that_week():
+    def game(day, home):
+        return {'date': f'{day}T17:00Z', 'status': {'type': {'completed': False}}, 'competitions': [{
+            'venue': {'fullName': 'M&T Bank Stadium', 'address': {'city': 'Baltimore', 'state': 'MD'}},
+            'competitors': [{'homeAway': 'home', 'team': {'displayName': home}},
+                            {'homeAway': 'away', 'team': {'displayName': 'Visitors'}}]}]}
+    october = {'events': [game('2026-10-01', 'Too early'), game('2026-10-30', 'Ravens in October')]}
+    november = {'events': [game('2026-11-03', 'Ravens in November'), game('2026-11-20', 'Too late')]}
+    seen = []
+    client = recorded({'air-quality': AIR, 'football/nfl/scoreboard?dates=202610': october,
+                       'football/nfl/scoreboard?dates=202611': november, 'espn.com': {'events': []},
+                       'statsapi': {'dates': []}}, seen)
+    found = pulse.happenings({'location': 'Baltimore', 'latitude': 39.3, 'longitude': -76.6}, client, date(2026, 10, 29))
+    assert 'Ravens in October' in found['text'] and 'Ravens in November' in found['text']
+    assert 'Too early' not in found['text'] and 'Too late' not in found['text']
+    nfl = [parse_qs(request.url.query.decode())['dates'] for request in seen if 'football/nfl' in str(request.url)]
+    assert nfl == [['202610'], ['202611']]
 
 
 def test_metro_venues_count_and_no_games_is_said_plainly():
@@ -132,6 +151,11 @@ def test_failures_are_tool_errors():
     assert pulse.call('send_email', {}, down, TODAY)['isError'] is True
 
 
+def todays_nfl():
+    """The recorded game moved to today, since the program filters games by its own date."""
+    return {'events': [{**NFL['events'][0], 'date': f'{date.today():%Y-%m-%d}T17:00Z'}]}
+
+
 class Recorded(BaseHTTPRequestHandler):
     """The pulse's services on 127.0.0.1, for the server run as a real program."""
     requests: list = []
@@ -140,7 +164,7 @@ class Recorded(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         Recorded.requests.append(url.path)
         bodies = {'/news': RSS, '/geocoding': PLACES, '/air': AIR, '/mlb': MLB}
-        body = bodies.get(url.path) or (NFL if 'football' in url.path else FEATURED if url.path.startswith('/wiki')
+        body = bodies.get(url.path) or (todays_nfl() if 'football' in url.path else FEATURED if url.path.startswith('/wiki')
                                        else HOT if url.path.startswith('/r/') else {'events': []})
         self.send_response(200)
         self.send_header('Content-Type', 'application/xml' if isinstance(body, bytes) else 'application/json')

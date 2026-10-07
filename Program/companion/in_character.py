@@ -35,6 +35,9 @@ BREAKS = re.compile('|'.join((
     r"\bI (?:exist|live) (?:only )?(?:as|in) (?:code|software|the cloud|a computer|text)\b",
     r"\b(?:this|our) (?:role-?play|fictional scenario|fictional conversation)\b",
     r"\b(?:break|breaking|step(?:ping)? out of|stay(?:ing)? in) character\b",
+    r"\bI (?:don't|don’t|do not|can't|can’t|cannot) (?:have )?(?:access to )?real[- ]time\b",
+    # An aside in double parentheses is the user's out-of-character syntax, never the character's.
+    r"^\s*\(\(|\)\)\s*$",
 )), re.IGNORECASE)
 # A sentence ends at ., ! or ? (with any closing quotes, asterisks or brackets) followed by space, or at a line break.
 SENTENCE_END = re.compile(r"[.!?…]+[\"'”’*)\]_~]*\s+|\n+")
@@ -44,15 +47,25 @@ ARTIFICIAL_CHARACTER = re.compile(r"\b(?:ai|a\.i\.|artificial intelligence|andro
 REMINDER = ('Your previous draft stepped out of the story to talk about being an AI or not being real. Write the '
             'reply again fully in character as {name}, with no mention of AI, models, programming or roleplay.')
 DEFINITION_KEYS = ('identity', 'background', 'personality', 'appearance')
+# The persona prompt forbids admitting to being an AI, and models carry that into OOC answers unless told plainly.
+OUT_OF_CHARACTER_NOTE = (
+    "The user's latest message is out of character (it starts with OOC: or is in double parentheses), so this "
+    "one answer is not {name}'s. Answer as yourself, the AI language model writing {name}'s part ({model}), "
+    "plainly and honestly: if asked, say you are an AI and which model you are, and never claim to be a person or "
+    "only a character. The story resumes with their next message.")
 
 
 def breaks(sentence: str) -> bool:
     return bool(BREAKS.search(sentence))
 
 
+def out_of_character(user_text: str) -> bool:
+    return bool(OUT_OF_CHARACTER.match(user_text or ''))
+
+
 def applies(user_text: str, definition: dict) -> bool:
     """False when the user is speaking out of character, or the character really is artificial."""
-    if OUT_OF_CHARACTER.match(user_text or ''):
+    if out_of_character(user_text):
         return False
     return not any(ARTIFICIAL_CHARACTER.search(definition.get(key) or '') for key in DEFINITION_KEYS)
 

@@ -36,6 +36,19 @@ def provider_of(config: dict) -> str:
     return config.get('provider') or 'compatible'
 
 
+RATE_LIMIT_ATTEMPTS = 2
+RATE_LIMIT_WAIT = (1.0, 2.0, 5.0)  # Shortest, default and longest wait before the one retry, in seconds.
+
+
+def retry_delay(response: httpx.Response) -> float:
+    shortest, default, longest = RATE_LIMIT_WAIT
+    try:
+        wanted = float(response.headers.get('retry-after', default))
+    except ValueError:
+        wanted = default
+    return min(max(wanted, shortest), longest)
+
+
 def check_status(response: httpx.Response):
     descriptions = {401: "Authentication failed. Check the model profile's API key.",
                     403: 'This account cannot access the selected service or model.',
@@ -127,13 +140,19 @@ class ChatProvider:
             yield kobold_result(response)
             return
         completion, parser = Completion(), PARSERS[config['provider']]
-        async with client.stream('POST', url, headers=headers_for(config, key), json=body) as response:
-            check_status(response)
-            async for data in sse_data(response):
-                chunk = Chunk(done=True) if data.get('_done') else parser(data)
-                completion.observe(chunk)
-                if chunk.text or chunk.finish_reason:
-                    yield chunk
+        for attempt in range(RATE_LIMIT_ATTEMPTS):
+            async with client.stream('POST', url, headers=headers_for(config, key), json=body) as response:
+                if response.status_code == 429 and attempt + 1 < RATE_LIMIT_ATTEMPTS:
+                    # Hosted models answer 429 for a few seconds at busy times; one short wait usually clears it.
+                    await asyncio.sleep(retry_delay(response))
+                    continue
+                check_status(response)
+                async for data in sse_data(response):
+                    chunk = Chunk(done=True) if data.get('_done') else parser(data)
+                    completion.observe(chunk)
+                    if chunk.text or chunk.finish_reason:
+                        yield chunk
+            break
         completion.validate()
 
     async def check(self, config: dict, key: str | None) -> dict:

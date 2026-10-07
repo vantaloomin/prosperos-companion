@@ -239,10 +239,15 @@ def local_cities(place: dict) -> set[str]:
 
 def espn_games(client, league: tuple, start: date, end: date, cities: set[str]) -> list[dict]:
     sport, code = league
-    data = get_json(client, f"{endpoints()['espn']}/{sport}/{code}/scoreboard",
-                    {'dates': f'{start:%Y%m%d}-{end:%Y%m%d}', 'limit': 300})
+    # ESPN answers a date range ("20261004-20261011") with HTTP 400, so ask for each month the week touches.
+    events = []
+    for month in sorted({f'{start:%Y%m}', f'{end:%Y%m}'}):
+        data = get_json(client, f"{endpoints()['espn']}/{sport}/{code}/scoreboard", {'dates': month, 'limit': 300})
+        events += data.get('events') or []
     found = []
-    for event in data.get('events') or []:
+    for event in events:
+        if not start.isoformat() <= str(event.get('date'))[:10] <= end.isoformat():
+            continue
         competition = (event.get('competitions') or [{}])[0]
         venue = competition.get('venue') or {}
         if str((venue.get('address') or {}).get('city') or '').lower() not in cities:

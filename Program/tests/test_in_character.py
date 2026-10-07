@@ -7,7 +7,9 @@ from companion.providers.chat import Chunk
 def test_ai_denials_are_recognized():
     for line in ("As an AI, I don't have feelings.", "I'm just an AI language model.", "I'm not a real person.",
                  "I don't have a physical body.", "I was created by OpenAI.", "I’m not a human being.",
-                 "That's against my programming.", "Let's get back to our roleplay."):
+                 "That's against my programming.", "Let's get back to our roleplay.",
+                 "I don't have access to real-time weather data.", "((Sorry, the lookup failed.",
+                 "So I can't say.)) "):
         assert breaks(line), line
 
 
@@ -15,7 +17,7 @@ def test_ordinary_lines_are_left_alone():
     for line in ("I'm an AI researcher at the lab.", "As an AI engineer, I debug models all day.",
                  "I'm a software engineer.", "I'm not a real fan of jazz.", "I'm not real sure about that.",
                  "I don't have feelings for him.", "That was so out of character for her.",
-                 "My programming class ran late.", "He's such a bot about it lol"):
+                 "My programming class ran late.", "He's such a bot about it lol", "(Sorry (I mean it).)"):
         assert not breaks(line), line
 
 
@@ -58,3 +60,11 @@ def test_out_of_character_messages_get_a_plain_answer(client, connected, provide
     provider.replies = [[Chunk("I'm an AI language model playing Mira."), Chunk('', 'stop')]]
     reply = send(client, 'OOC: are you an AI?', 'client-0001')['reply']
     assert reply['text'] == "I'm an AI language model playing Mira."
+    # The persona prompt forbids admitting to being an AI, so the OOC turn says plainly that it may.
+    assert 'say you are an AI and which model you are' in provider.requests[0]['system']
+
+
+def test_in_character_messages_get_no_out_of_character_note(client, connected, provider):
+    provider.replies = [[Chunk('Real enough.'), Chunk('', 'stop')]]
+    send(client, 'Are you even real?', 'client-0001')
+    assert 'is out of character' not in provider.requests[0]['system']

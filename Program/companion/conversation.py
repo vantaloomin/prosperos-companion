@@ -22,7 +22,7 @@ from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
-from companion.text_models import CHAT, config_for, key_for
+from companion.text_models import CHAT, config_for, default_name, key_for
 
 LOG = logging.getLogger(__name__)
 
@@ -338,6 +338,10 @@ class Conversation:
                 if prepared.get('instruction'):
                     # Busy: a quick note now, or the full reply after a holding text (companion/life/pacing.py).
                     packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['instruction']}"}
+                if in_character.out_of_character(prepared['user']['text']):
+                    note = in_character.OUT_OF_CHARACTER_NOTE.format(
+                        name=definition.get('name', 'the character'), model=default_name(prepared['config']))
+                    packet = {**packet, 'system': f"{packet['system']}\n\n{note}"}
                 status, error, dropped = await self.write(prepared, key, packet, text, publish, active)
                 if dropped and not ''.join(text).strip():
                     # The reply only stepped out of character: written once more with a reminder.
