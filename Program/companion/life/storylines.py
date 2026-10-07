@@ -63,7 +63,7 @@ STORIES = (
     # Quiet and up: good news.
     Story('parent_promotion', 0, 'working parent', (
         beat('{a}, {name}\'s {a_rel}, got a promotion at work.', 'Omg, my {a_rel} just got a promotion!!', 'good'),)),
-    Story('sibling_engaged', 0, 'sibling', (
+    Story('sibling_engaged', 0, 'unmarried sibling', (
         beat('{name}\'s {a_rel} {a} got engaged.', 'BIG news: {a} just got engaged!!', 'good'),
         beat('{a} set a wedding date for next year.', "{a} set a date! I'm already stressing about what to wear lol",
              'good')), (5, 14)),
@@ -185,6 +185,8 @@ SINGLE_CASTS = {
     'working parent': lambda person: kind(person) == 'parent' and working(person),
     'parent': lambda person: kind(person) == 'parent',
     'sibling': lambda person: kind(person) == 'sibling',
+    # A sibling the circle records as married never gets engaged (companion/life/circle.py married_sibling).
+    'unmarried sibling': lambda person: kind(person) == 'sibling' and not decode(person['details']).get('married'),
     'cousin': lambda person: kind(person) == 'cousin',
     'coworker': lambda person: kind(person) == 'coworker',
     'friend': lambda person: kind(person) not in circle.FAMILY and kind(person) not in {'coworker', 'neighbor', 'mentor'},

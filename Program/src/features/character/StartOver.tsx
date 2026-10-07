@@ -9,6 +9,7 @@ import { Notice } from '../../components/Feedback'
 import { TextInput } from '../../components/Fields'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { nameMatches, othersStay, removedSummary, type StartOverMode } from './startOverText'
+import { refocus } from './refocus'
 
 const PREVIEW_KEY = ['start-over']
 
@@ -85,7 +86,7 @@ function useConfirm(mode: StartOverMode, typed: string, ready: boolean, done: ()
     try {
       await api<StartOverResult>(mode === 'reset' ? '/companion/start-over' : '/companion/delete', { name: typed })
       // Everything shown came from the old history; start every view from what is there now.
-      await client.resetQueries()
+      await refocus(client)
       done()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nothing was changed.')
