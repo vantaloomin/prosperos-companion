@@ -54,8 +54,9 @@ def test_a_townsperson_gets_a_full_profile_from_their_sheet(client, clock, chatt
     assert definition.identity.startswith(str(person['age'])) and definition.personality and definition.voice
     assert definition.flaws and 'Mira' in definition.background and definition.routine
     assert {day for block in definition.schedule if block.kind == 'sleep' for day in block.days} == set(range(7))
-    assert any(block.kind == 'work' for block in definition.schedule) == (person['kind'] == 'staff' or
-                                                                          bool(definition.money.career))
+    # Staff work their shift; anyone else with a career works or studies (a graduate student has classes).
+    assert any(block.kind in ('work', 'study') for block in definition.schedule) == (
+        person['kind'] == 'staff' or bool(definition.money.career))
     # Only someone the companion has met can take over.
     assert client.get('/api/companion/cast/draft', params={'key': 'town:baltimore:national-aquarium:2'}) \
         .status_code in (200, 404)
