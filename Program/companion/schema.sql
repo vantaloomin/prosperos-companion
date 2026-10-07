@@ -1185,3 +1185,19 @@ CREATE TABLE IF NOT EXISTS message_pictures (
   described_at TEXT
 );
 CREATE INDEX IF NOT EXISTS message_pictures_message ON message_pictures(message_id);
+
+-- Plans the companion made in chat for a date (companion/life/own_plans.py), tied to the message they came
+-- from like self_facts; the agenda gives each one the day's matching free slot.
+CREATE TABLE IF NOT EXISTS companion_plans (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  local_date TEXT NOT NULL,
+  at_time TEXT,
+  activity TEXT NOT NULL,
+  form TEXT NOT NULL CHECK (form IN ('doing', 'thing', 'scene')),
+  statement TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (message_id, local_date)
+);
+CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id);

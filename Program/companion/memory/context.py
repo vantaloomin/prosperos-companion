@@ -24,6 +24,7 @@ from companion.life import (
     money,
     network,
     occasions,
+    own_plans,
     pacing,
     recommendations,
     storylines,
@@ -86,6 +87,8 @@ HEADINGS = {'boundaries': "The user's boundaries", 'time': 'Time',
                                 'not something you did)',
             'self_facts': 'What you have said about yourself before (fiction about you, not the user; stay consistent '
                           'with it: you may add new details but never contradict these)',
+            'own_plans': 'Plans you have made in chat for a day (yours; keep to them, and when the day comes they '
+                         'happen as you said)',
             'recommendations': 'Things the user recommended to you. All you know about each is its name and what '
                                'the user said: never invent plot, people, songs or other details about it',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
@@ -583,6 +586,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     for identity, text in self_facts.context_lines(connection, timeline_id):
         packet.offer('self_facts', identity, text)
+    for identity, text in own_plans.context_lines(connection, timeline_id,
+                                                  now.astimezone(zone(version['timezone'])).date().isoformat()):
+        packet.offer('own_plans', identity, text)
     closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

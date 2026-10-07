@@ -24,7 +24,7 @@ from companion.characters import current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import occasions, pacing, recommendations, routine, storylines
+from companion.life import occasions, own_plans, pacing, recommendations, routine, storylines
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -405,6 +405,7 @@ class Openers:
             notifications.enqueue_message(connection, message_id, timestamp)
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
             self_facts.note(connection, row, timestamp)
+            own_plans.note(connection, row, latest, timestamp)
         return {'state': 'sent', 'kind': trigger.kind, 'message': message_view(row)}
 
 

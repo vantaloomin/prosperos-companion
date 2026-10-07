@@ -370,6 +370,28 @@ leisure and social time to calm activities at home or nearby. Events carry `deta
 `day.body` shows it and the chat context gets one line about it. Background reconciles extend the agenda only when background
 activity is on.
 
+### Plans made in chat
+
+When a completed companion message (a reply or a first message) states a plan of their own for one
+resolvable day, `companion/life/own_plans.py` pins it with no model: "my bout is Saturday the 24th,
+first whistle at 6", "I'm hosting a potluck at my place on Thanksgiving", "I'm going to my grandma's
+Sunday", "Christmas is just going to be me and Juniper on the couch". The day can be a weekday,
+"the 24th" (which must agree with a weekday given with it), a month and day, "tonight" or "tomorrow",
+or a holiday in the city's calendar (the US one when the city is unknown); a time is kept when given
+(a bare hour from 1 to 11 is read as pm unless the sentence says morning). Questions, maybes,
+conditionals, negations, past tense, vague days ("this weekend") and plans about the user or "we"
+are skipped. A plan belongs to its message the way a self fact does: it applies on every timeline
+holding that message or a copy, and goes when the reply is replaced or deleted.
+
+On that date the agenda gives the plan the companion's free block that holds its time, or with no
+time the free block around 7 pm (else the day's last free one), and the day's other free blocks stay
+quiet. Work, study and sleep are never overridden: a plan during a shift stays noted but places
+nowhere, though a public holiday's day off counts as free. The entry has activity `own-plan` and
+`entry.own_plan: {id, message_id, statement, at}`; every companion block on a date with plans lists
+their ids in `block.plans`, so upcoming entries are rebuilt whenever the plans in force for their date
+change. Return batches simulate these slots first, and the event carries `details.own_plan`. The chat
+context lists upcoming plans under "Plans you have made in chat".
+
 ### Recommendations
 
 When the user writes "you should watch / read / listen to / play / try / visit / go to / check out X"

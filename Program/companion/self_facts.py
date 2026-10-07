@@ -225,12 +225,18 @@ def opposite(fact: Fact) -> str | None:
 def in_force(connection, timeline_id) -> list[dict]:
     """Facts whose message, or a copy of it, is an active complete message on this timeline. A reply to
     a message the user excluded or deleted from recall usually repeats it, so its facts leave with it (M12)."""
-    from companion.memory.records import blocked_messages
     rows = many(connection, "SELECT self_facts.*, messages.reply_to AS reply_to, messages.id AS shown_id FROM "
                 "self_facts JOIN messages ON (messages.id=self_facts.message_id OR "
                 "messages.origin_id=self_facts.message_id) WHERE self_facts.status IN ('noted', 'kept') "
                 "AND messages.timeline_id=? AND messages.active=1 AND messages.status='complete' "
                 'AND messages.redacted_at IS NULL ORDER BY self_facts.created_at', (timeline_id,))
+    return shown(connection, timeline_id, rows)
+
+
+def shown(connection, timeline_id, rows: list[dict]) -> list[dict]:
+    """Rows joined to their shown message (`shown_id`, `reply_to`), once each, leaving out those whose
+    message or the message it answers is blocked or redacted."""
+    from companion.memory.records import blocked_messages
     if not rows:
         return []
     blocked = blocked_messages(connection, rows[0]['companion_id']) | {row['id'] for row in many(
