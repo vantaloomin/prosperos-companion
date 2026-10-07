@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
+from companion.providers.builtin_recall import recall_config
 from companion.providers.config import (
     DEFAULT_URLS,
     PROVIDER_NAMES,
@@ -75,8 +76,11 @@ def config_for(connection, job: str) -> dict | None:
     """Settings for a job's model calls, or None when no finished profile does it.
 
     The result is the profile's settings plus `credential_ref`, `profile_id` and `profile_name`, so
-    callers read it the way they read the single connection before profiles.
+    callers read it the way they read the single connection before profiles. While built-in recall is
+    on, it does recall instead of a profile.
     """
+    if job == 'recall' and (builtin := recall_config(connection)):
+        return builtin
     row = assigned(connection, job)
     if row is None:
         return None

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Built-in recall:** Settings > Models can run an embedding model on this PC with llama.cpp, apart
+  from LM Studio, Kobold or Ollama, so recall finds related memories without an embeddings service. You
+  download the model file (EmbeddingGemma 2 or Qwen3 Embedding 0.6B are suggested); llama.cpp
+  downloads on request and is checked against a pinned checksum. It runs on the processor only and
+  stops with the Companion. **Test recall** checks whatever does recall now.
+- **Better recall with instruction-trained embedding models:** EmbeddingGemma, Qwen3 Embedding,
+  nomic-embed-text, mxbai and Arctic now get the search instructions they were trained with. Their
+  stored vectors are re-made once in the background.
+
 ## v0.1.1 (2026-10-07)
 
 - **Form help:** plain-language helper text under fields whose effect is not obvious, and "?" tips

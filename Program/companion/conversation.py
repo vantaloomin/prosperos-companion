@@ -19,7 +19,7 @@ from companion.images import photos
 from companion.life import occasions, pacing, recommendations
 from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
-from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider
+from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
 from companion.text_models import CHAT, config_for, key_for
 
@@ -178,10 +178,10 @@ class Conversation:
         try:
             key = key_for(self.vault, config)
             async with self.scheduler.reserve(config, CONVERSATION):
-                [vector] = await self.embedder.embed(config, key, [user['text']], QUERY_TIMEOUT)
+                [vector] = await self.embedder.embed(config, key, [as_query(config, user['text'])], QUERY_TIMEOUT)
         except Exception:  # noqa: BLE001 - semantic recall is optional; the reply goes ahead without it.
             return None
-        return {'model': config['embedding_model'], 'vector': vector}
+        return {'model': vector_model(config), 'vector': vector}
 
     async def outside(self, user) -> list[dict]:
         """Lookups the message asks for; a failure of the lookup machinery never blocks the reply."""
