@@ -69,19 +69,23 @@ function TurnUser({ turn, name, highlight, onRemember, onDecline, onEdit }: { tu
 
 function UserMessage({ message, name, found, settled, onRemember, onDecline, onEdit }: { message: Message; name: string; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   // On a touch screen the actions wait behind a button, so each message is not followed by a row of them.
+  // Opened, they float over the messages below (styles.css) and close once one is used or focus leaves.
   const [open, setOpen] = useState(false)
+  const act = (action: (message: Message) => void) => () => { setOpen(false); action(message) }
   return (
     <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
       <Avatar name="You" />
       <header>
         <span className="speaker">You</span>
-        <span className={classes('message-actions', { open })}>
+        <span className={classes('message-actions', { open })}
+          onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
+          onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
           {!message.redacted && <>
             <button type="button" className="text-button message-more" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /><span className="visually-hidden">Message actions</span></button>
             <span className="message-tools">
-              <button type="button" className="text-button" onClick={() => onRemember(message)}><BookmarkPlus aria-hidden="true" />Remember this</button>
-              <button type="button" className="text-button" onClick={() => onDecline(message)}><BookmarkX aria-hidden="true" />Don't remember this</button>
-              <button type="button" className="text-button" onClick={() => onEdit(message)}><GitBranch aria-hidden="true" />Edit from here</button>
+              <button type="button" className="text-button" onClick={act(onRemember)}><BookmarkPlus aria-hidden="true" />Remember this</button>
+              <button type="button" className="text-button" onClick={act(onDecline)}><BookmarkX aria-hidden="true" />Don't remember this</button>
+              <button type="button" className="text-button" onClick={act(onEdit)}><GitBranch aria-hidden="true" />Edit from here</button>
             </span>
           </>}
           <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
