@@ -106,7 +106,11 @@ def test_her_job_negations_and_unnamed_relatives_are_left_out(client, app, conne
                                 {'message': 1, 'category': 'plays', 'subject': 'instrument', 'value': "i can't play a note"},
                                 {'message': 1, 'category': 'person', 'subject': 'mom', 'value': 'mom'},
                                 {'message': 1, 'category': 'detail', 'subject': 'profession', 'value': 'nursing'},
-                                {'message': 1, 'category': 'plays', 'subject': 'position', 'value': 'blocker'}])
+                                {'message': 1, 'category': 'plays', 'subject': 'position', 'value': 'blocker'},
+                                {'message': 1, 'category': 'works_at', 'subject': 'workplace', 'value': 'ER'},
+                                {'message': 1, 'category': 'person', 'subject': 'dad', 'value': "mom says hi"},
+                                {'message': 1, 'category': 'detail', 'subject': 'day',
+                                 'value': 'nursing in the er is wild'}])
     send(client, 'how was your day', 'self-model-08')
     read(app)
     assert facts(client) == [('Plays', 'blocker', 'noted')]

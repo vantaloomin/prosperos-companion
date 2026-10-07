@@ -22,6 +22,9 @@ BATCH = 8
 MIN_WORDS = 4
 # "my mom" without a name: nothing to keep the same.
 NOT_PERSON_NAMES = set(self_facts.RELATIVES) | set(self_facts.NOT_LOWER_NAMES) | {'friend', 'coworker', 'neighbor'}
+NAME = re.compile(r"[\w'’-]+(?: [\w'’-]+){0,2}")
+NOT_WORKPLACES = self_facts.NOT_WORKPLACES | {'er', 'the er', 'icu', 'hospital', 'the hospital', 'work', 'office',
+                                              'school', 'clinic', 'the clinic'}
 PLAYABLE = set(self_facts.SPORTS + self_facts.INSTRUMENTS + self_facts.POSITIONS)
 # Details the character definition and the life sim already hold.
 NOT_DETAILS = {'profession', 'job', 'work', 'occupation', 'career', 'name', 'age', 'city', 'mood', 'feeling'}
@@ -82,14 +85,17 @@ def rejected(category: str, subject: str, value: str) -> bool:
     """Answers that are not a fact to keep the same: "my mom" with no name, "i can't play a note", her job
     ("nursing", "the er") as a workplace, a detail the definition holds, a reaction as a taste."""
     lowered = value.lower()
-    if category == 'person':
-        return lowered in NOT_PERSON_NAMES or lowered == self_facts.SAME.get(subject, subject)
+    if category in {'person', 'pet'}:
+        return not NAME.fullmatch(value) or any(word in NOT_PERSON_NAMES for word in lowered.split()) or \
+            lowered == self_facts.SAME.get(subject, subject)
     if category == 'plays':
         return lowered not in PLAYABLE
     if category == 'detail':
-        return subject in NOT_DETAILS
+        # A short description ("short dark bob"), not a sentence about it ("bike has a flat and will be back").
+        return subject in NOT_DETAILS or len(subject.split()) > 3 or len(value.split()) > 6 or \
+            bool(re.search(r"\b(?:i|i'm|i've|has|have|is|are|was|will)\b", lowered))
     if category == 'works_at':
-        return len(value.split()) < 2 and value.islower()
+        return lowered in NOT_WORKPLACES or (len(value.split()) < 2 and value.islower())
     return category in {'likes', 'dislikes'} and not self_facts.taste(value)
 
 

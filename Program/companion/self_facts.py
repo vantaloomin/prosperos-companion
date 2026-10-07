@@ -118,7 +118,7 @@ NOT_TASTES = NOT_THINGS | {'it here', 'that too', 'this too', 'the idea', 'your'
 NOT_TASTE_STARTS = {'you', 'your', 'it', 'that', 'this', 'these', 'those', 'how', 'what', 'when', 'where', 'why', 'who',
                     'almost', 'about', 'as', 'so', 'too', 'being', 'seeing', 'hearing', 'having', 'everything',
                     'anything', 'nothing', 'all', 'both', 'dedication', 'idea', 'sound', 'thought', 'energy', 'vibe',
-                    'way', 'one', 'them', 'him', 'her', 'us', 'me', 'myself', 'yours', 'reading', 'getting', 'knowing'}
+                    'way', 'enthusiasm', 'commitment', 'effort', 'one', 'them', 'him', 'her', 'us', 'me', 'myself', 'yours', 'reading', 'getting', 'knowing'}
 
 
 @dataclass(frozen=True)
