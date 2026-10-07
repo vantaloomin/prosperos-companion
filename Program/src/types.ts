@@ -192,6 +192,8 @@ export interface WorkspaceSettings {
   /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
   chat_retro_dark?: boolean
+  /** Story mode (src/features/story) is opt-in, in Settings > Advanced. */
+  story_mode?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean

@@ -1,11 +1,21 @@
 """Story mode: a narrator for the user's own story around the cities, apart from the companion (companion/story.py)."""
 from datetime import timedelta
 
+import pytest
 from conftest import Chunk, send
 from test_drafting import connect
 from test_social_circle import make
 
 from companion import story
+
+
+@pytest.fixture(autouse=True)
+def story_on(client):
+    """Story mode is opt-in; every test here turns it on first, after checking it starts off."""
+    off = client.get('/api/story')
+    assert off.status_code == 404 and off.json()['code'] == 'story_off'
+    assert client.get('/api/settings').json()['story_mode'] is False
+    assert client.put('/api/settings', json={'story_mode': True}).json()['story_mode'] is True
 
 
 def ok(response):

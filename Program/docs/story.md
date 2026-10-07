@@ -5,6 +5,14 @@ narrator describes the place and voices the people there. It is apart from every
 story has its own tables (`story_scene`, `story_messages`), and no companion prompt reads them, so
 nothing said in the story reaches the companion's chat, memories or life.
 
+## Turning it on
+
+Story mode is opt-in and off by default. It sits beside the companion rather than at the heart of the
+app. Turn it on under Settings > Advanced (shown with "Show advanced settings") > Story mode > "Show the
+Story tab". That is the `story_mode` workspace setting (`PUT /api/settings {"story_mode": true}`). While it
+is off, the Story tab is hidden and every `/api/story` request answers 404 with code `story_off`.
+Features inside Story mode, such as the dating app, follow the same setting.
+
 ## Who decides what
 
 The app decides the scene, the same way the life sim decides the companion's day
