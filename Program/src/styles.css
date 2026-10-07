@@ -633,6 +633,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-style-option input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
 .chat-style-text { display: flex; flex-direction: column; gap: 3px; font-size: 0.9375rem; }
 .chat-style-text small { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+.chat-style-extras { display: grid; }
+.chat-style-extras-panel { grid-area: 1 / 1; display: flex; flex-direction: column; gap: 20px; margin: 0; }
+.chat-style-extras-panel[hidden] { display: flex; visibility: hidden; }
 
 /* Bubbles: texting-style. Names are read from each message's label, so they are only hidden visually. */
 .chat-bubbles .reading-column { display: flex; flex-direction: column; }
