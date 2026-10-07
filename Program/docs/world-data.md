@@ -134,7 +134,11 @@ American trends, England and Wales, Ireland, Italy, Mexico, Spain, Germany, Fran
 China, Korea, Japan, Vietnam, the Philippines, India, Arabic-speaking countries, Nigeria, Ghana,
 Jamaica, Haiti, Israel) were written from general knowledge of the published rankings because the
 statistics offices are unreachable from the build machine, and are marked `estimate`, as are every
-list before 1880.
+list before 1880. Most lists hold about 100 names per sex for each decade and 150 family names; their
+tops follow published rankings where they could be read (Office for National Statistics, National Records
+of Scotland and the Central Statistics Office Ireland through the CC0 `ukbabynames` data; INSEE's Fichier
+des prénoms; national top lists for Spain, Italy, Poland, Korea, Japan and others; each file's `source`
+line says which). Modern American family names follow the Census Bureau's 2000 surname table.
 
 **Invented-sounding names.** `given_names.json` also lists names that read as made up by a language
 model (Elara, Lyra, Kael, Vex, Voss, Thorne…; edit `name_sources/invented.txt`). No popular-name list
