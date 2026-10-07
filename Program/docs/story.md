@@ -11,7 +11,7 @@ Story mode is opt-in and off by default. It sits beside the companion rather tha
 app. Turn it on under Settings > Advanced (shown with "Show advanced settings") > Story mode > "Show the
 Story tab". That is the `story_mode` workspace setting (`PUT /api/settings {"story_mode": true}`). While it
 is off, the Story tab is hidden and every `/api/story` request answers 404 with code `story_off`.
-Features inside Story mode, such as the dating app, follow the same setting.
+The dating app is its own feature and does not depend on this setting.
 
 ## Who decides what
 
@@ -75,5 +75,5 @@ Starting a new story clears the people met too.
 
 ## Planned
 
-- A dating app for modern and future cities, and a lonely hearts column for older eras (its own thread).
-  A match becomes a date in the story.
+- Narrator-played dates with a dating-app match, when Story mode is on. The dating app itself is a
+  standalone feature for finding new companions.
