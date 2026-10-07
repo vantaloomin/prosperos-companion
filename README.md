@@ -110,7 +110,7 @@ The Companion only listens on your own computer (127.0.0.1); phone access goes t
 - **Not code-signed.** Windows SmartScreen may warn about the installer or scripts ("More info", then "Run anyway"), and macOS Gatekeeper blocks the first run of a downloaded ZIP.
 - **Mac is untested on real hardware.** The scripts and tests pass on GitHub's Apple Silicon and Intel Macs. Please report anything that behaves differently.
 - **Not yet tried on real setups:** phone access over Tailscale, and the Local Pulse and Culture Pulse lookups (tested only against recorded responses).
-- **Image generation** depends on your own backend; Krea 2 workflows for ComfyUI haven't been verified on real hardware.
+- **Image generation** depends on your own backend. The built-in Krea 2 Turbo workflow for ComfyUI has been run on an RTX 5090; the first picture waits while ComfyUI loads the model (a few minutes), and text inside pictures usually comes out garbled.
 - **Real-city data** (rents, prices, neighborhoods) comes from general knowledge and is labeled as estimates.
 
 Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/issues).
