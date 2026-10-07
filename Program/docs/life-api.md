@@ -248,6 +248,44 @@ all at once gives the same log.
 | PATCH | `/api/life/home/items/{id}` | `{name?, description?, variety?}` | the same view |
 | POST | `/api/life/home/items/{id}/remove` / `restore` | | the same view |
 
+### Wardrobe
+
+`companion/life/wardrobe.py` (piece catalogue in `companion/life/clothing.py`) assembles the
+companion's clothes once per timeline, without a model. The budget's pay tier and spending style
+(money.py) set how many pieces they own (about 22 for the lowest tier, 58 for the highest, more for
+spenders and people whose personality or interests talk about fashion, fewer for minimalists) and
+how fine they are (thrifted at the bottom, designer at the top). Their career sets a dress code and
+the work kit that comes with it (scrubs, chef whites, an all-black server outfit, a suit, a lab
+coat, or their own clothes). Words in their personality, identity, interests and appearance pick
+one to three styles (classic, sporty, bohemian, edgy, cozy, preppy, vintage, minimal) and their
+colours; pronouns decide whether dresses and skirts are in the mix. Clothing their appearance
+names ("her battered leather jacket") becomes a favourite worn often. The city's era decides what
+exists and its climate how many coats they need.
+
+- **Outfits** are drawn, never stored: `outfit(items, occasion, seed, weather, code)` picks what they
+  wear for work, casual, going out, at home, working out or in bed, from the moment's activity and
+  block kind (`occasion_for`), adding a coat when the day is cold or rainy and they are outside. The
+  same timeline, date, occasion and weather always give the same outfit.
+- **Change.** Every two weeks a seeded draw (likelier for spenders, the well-paid and fashion lovers)
+  may buy a piece (leaning to coats in autumn and light things in spring; when money is tight that
+  day they only eye it), wear one out, clear out two, or mend one. Purchases go in `wardrobe_log`
+  with a `spend` tier; `wardrobe.purchases` feeds them to `money.household`, so they count as
+  spending this pay period ("you spent money on clothes").
+- **Events.** `agenda.extend_subject` calls `wardrobe.touch` after `home.touch`; on the day of a
+  change it appends one sentence ("Kim bought a mustard raincoat.") to a non-work entry, once.
+  `entry.wardrobe` records `{change, sentence}`. Tests turn this off (`wardrobe.WEAVE`).
+- **Images.** Feed pictures (`images/prompts.setting`) and chat moments and selfies
+  (`build_moment`, not views) add `wardrobe.image_hint`: "Wearing a camel peacoat over …".
+- **Chat.** The context has a "Your clothes" section: their style and size, favourites, what they
+  have on right now, each category's pieces and the last three weeks of changes.
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/api/life/wardrobe?include_removed=` | | `{today, items, removed, changes, wearing, profile, categories, labels}` |
+| POST | `/api/life/wardrobe/items` | `{category, name, description?, favorite?}` | the same view |
+| PATCH | `/api/life/wardrobe/items/{id}` | `{name?, description?, category?, favorite?}` | the same view |
+| POST | `/api/life/wardrobe/items/{id}/remove` / `restore` | | the same view |
+
 An item is `{id, kind, name, variety, description, origin: generated|change|user, since, until,
 edited, revision, out_of_action}`; the home also has `neighborhood, city, features, rent,
 rent_range, currency, rent_period, estimate`. `variety` is a pet's species or a vehicle's type

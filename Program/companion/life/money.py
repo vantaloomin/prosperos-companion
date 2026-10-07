@@ -388,15 +388,18 @@ PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 
 
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
-    """The home's rent, pets and vehicles, and what home changes cost this pay cycle, read through
-    home.py's `monthly_costs` and `purchases`. None before the home exists or where money does not apply."""
-    from companion.life import home  # home builds its first rent from this budget, so import late
+    """The home's rent, pets and vehicles, and what home changes and new clothes cost this pay cycle,
+    read through home.py's `monthly_costs` and `purchases` and wardrobe.py's `purchases`. None before
+    the home exists or where money does not apply."""
+    from companion.life import home, wardrobe  # both build from this budget, so import late
 
     found = profile(definition)
     costs = home.monthly_costs(connection, timeline_id, day) if found else None
     if not costs:
         return None
-    return {'costs': costs, 'purchases': home.purchases(connection, timeline_id, cycle_start(found, day), day)}
+    start = cycle_start(found, day)
+    bought = home.purchases(connection, timeline_id, start, day) + wardrobe.purchases(connection, timeline_id, start, day)
+    return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date'])}
 
 
 def monthly_share(found: Profile) -> float:
@@ -419,10 +422,10 @@ def with_home(found: Profile, costs: dict) -> Profile:
 
 
 def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
-    """Home changes this cycle with what they cost ({label, on, cost})."""
+    """Home changes and clothes this cycle with what they cost ({label, on, cost, for})."""
     month = monthly_share(found)
-    return [{'label': item['text'], 'on': item['date'], 'cost': round(PURCHASES.get(item['spend'], 0) * month, 2)}
-            for item in purchases if PURCHASES.get(item['spend'])]
+    return [{'label': item['text'], 'on': item['date'], 'cost': round(PURCHASES.get(item['spend'], 0) * month, 2),
+             'for': item.get('for', 'home')} for item in purchases if PURCHASES.get(item['spend'])]
 
 
 def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dict:
@@ -478,7 +481,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:
-        lines.append((f"bought:{item['on']}", f"- This pay period you spent money at home: you {item['label']}."))
+        where = 'on clothes' if item['for'] == 'clothes' else 'at home'
+        lines.append((f"bought:{item['on']}" + (':clothes' if item['for'] == 'clothes' else ''), f"- This pay period you spent money {where}: you {item['label']}."))
     lines.append(('payday', '- ' + payday_text(view, local_date)))
     if view['splurge']:
         lines.append(('splurge', f"- This pay period you splurged on {view['splurge']['label']}."))

@@ -317,6 +317,13 @@ textarea { resize: vertical; line-height: 1.6; }
 .home-panel > .button { justify-self: start; }
 .home-add select, .rename-form select { max-width: 280px; }
 .home-changes h3 { font-size: 1rem; margin: 4px 0; }
+.wardrobe-group summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.wardrobe-group[open] summary { margin-bottom: 4px; }
+.wardrobe-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.wardrobe-piece { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.wardrobe-piece.removed { opacity: 0.7; }
+.wardrobe-piece .rename-form { flex-basis: 100%; }
+.wardrobe-star { width: 14px; height: 14px; margin-left: 6px; vertical-align: -2px; }
 
 /* First conversation */
 .getting-started { padding: 24px 0; display: grid; gap: 12px; }
