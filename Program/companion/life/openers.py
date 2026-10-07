@@ -19,7 +19,7 @@ import re
 from dataclasses import dataclass
 from datetime import time, timedelta
 
-from companion import in_character, notifications, self_facts
+from companion import in_character, notifications, prompt_library, self_facts
 from companion.characters import current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -342,7 +342,7 @@ class Openers:
         with self.database.connect() as connection:
             companion = current(connection)
             packet = context.build(connection, companion, now, config['context_tokens'] - config['max_output_tokens'])
-        ask = '(' + INSTRUCTION.format(reason=trigger.reason) + ')'
+            ask = '(' + prompt_library.text(connection, 'first-texts', reason=trigger.reason) + ')'
         messages = list(packet['messages'])
         if messages and messages[-1]['role'] == 'user':
             messages[-1] = {'role': 'user', 'content': messages[-1]['content'] + '\n\n' + ask}

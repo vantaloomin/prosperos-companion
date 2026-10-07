@@ -8,6 +8,7 @@ It never sees the user's memories: a life event is the companion's own fiction.
 import json
 import re
 
+from companion import prompt_library
 from companion.memory.context import character_text
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import LIFE_SYNTHESIS, BackgroundInterrupted
@@ -64,10 +65,18 @@ def parse_reply(text: str, composed) -> dict:
     return result
 
 
-async def phrase(provider, scheduler, config, key, version, slot, composed) -> dict:
-    """Background priority: a conversation request interrupts this and the batch resumes later."""
+async def phrase(provider, scheduler, config, key, version, slot, composed, database=None) -> dict:
+    """Background priority: a conversation request interrupts this and the batch resumes later.
+
+    With `database`, the prompts are the user's wording from Settings > Advanced when they changed them.
+    """
     text = []
-    system = character_text(version) + '\n\n' + RULES.format(name=version['definition']['name'])
+    if database is None:
+        system = character_text(version) + '\n\n' + RULES.format(name=version['definition']['name'])
+    else:
+        with database.connect() as connection:
+            system = character_text(version, connection) + '\n\n' + prompt_library.text(
+                connection, 'life-phrasing', name=version['definition']['name'])
     async with scheduler.reserve(config, LIFE_SYNTHESIS) as lease:
         async for chunk in provider.stream(config, key, system, [{'role': 'user',
                                                                  'content': facts_text(slot, composed)}]):

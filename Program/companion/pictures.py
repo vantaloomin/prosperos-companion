@@ -15,6 +15,7 @@ import base64
 import contextlib
 from pathlib import Path
 
+from companion import prompt_library
 from companion.clock import parse
 from companion.database import identifier, many, optional
 from companion.errors import DomainError, require
@@ -234,9 +235,11 @@ class Seer:
         data = base64.b64encode(path.read_bytes()).decode('ascii')
         words = f'Their message with it: «{said}»' if said.strip() else 'They sent it without a message.'
         content = [{'type': 'text', 'text': words}, {'type': 'image', 'media_type': media_type, 'data': data}]
+        with self.database.connect() as connection:
+            describe = prompt_library.text(connection, 'picture-description')
         text = []
         async with self.scheduler.reserve(config, CONVERSATION):
-            async for chunk in self.provider.stream(config, key_for(self.vault, config), DESCRIBE,
+            async for chunk in self.provider.stream(config, key_for(self.vault, config), describe,
                                                     [{'role': 'user', 'content': content}]):
                 text.append(chunk.text)
         return ''.join(text).strip()[:2000]

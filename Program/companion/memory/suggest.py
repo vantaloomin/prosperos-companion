@@ -8,6 +8,7 @@ and repeating a guess does not confirm it.
 """
 import json
 
+from companion import prompt_library
 from companion.characters import require_current
 from companion.database import encode, identifier, many, optional, settings
 from companion.memory import formation
@@ -79,12 +80,12 @@ def candidate(item, batch) -> tuple[dict, Candidate] | None:
                               plan_status='proposed' if layer == 'plan' else None)
 
 
-async def ask(provider, scheduler, config, key, batch) -> list[dict]:
+async def ask(provider, scheduler, config, key, batch, rules=RULES) -> list[dict]:
     content = json.dumps([{'message': index, 'text': message['text']} for index, message in enumerate(batch, 1)],
                          ensure_ascii=False)
     text = []
     async with scheduler.reserve(config, MAINTENANCE) as lease:
-        async for chunk in provider.stream(config, key, RULES, [{'role': 'user', 'content': content}]):
+        async for chunk in provider.stream(config, key, rules, [{'role': 'user', 'content': content}]):
             if lease.stop.is_set():
                 raise BackgroundInterrupted()
             text.append(chunk.text)
@@ -144,10 +145,11 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
         mark(connection, skipped, 'skipped')
         batch = [message for message in batch if eligible(message)]
         revision = row['permission_revision']
+        rules = prompt_library.text(connection, 'memory-suggestions')
     if not batch:
         return len(skipped)
     try:
-        items = await ask(provider, scheduler, config, vault_key(config), batch)
+        items = await ask(provider, scheduler, config, vault_key(config), batch, rules)
     except SuggestionsInvalid:
         with database.connect(write=True) as connection:
             mark(connection, batch, 'failed')

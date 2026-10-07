@@ -862,7 +862,8 @@ CREATE TABLE IF NOT EXISTS study_imports (
   imported_at TEXT NOT NULL
 );
 
--- The user's own wording for the character drafting prompts; without a row the shipped file is used.
+-- The user's own wording for an editable prompt (companion/prompt_library.py); without a row the default is used.
+-- default_text (ADDED_COLUMNS) is the default it replaced, so a newer default can be pointed out.
 CREATE TABLE IF NOT EXISTS prompt_overrides (
   name TEXT PRIMARY KEY,
   text TEXT NOT NULL,

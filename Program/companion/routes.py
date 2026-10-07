@@ -13,6 +13,7 @@ from companion import (
     events,
     notifications,
     pictures,
+    prompt_library,
     restore,
     self_facts,
     start_over,
@@ -150,17 +151,17 @@ def cast_focus(request: Request, body: CastFocus):
 
 @router.get('/prompts')
 def read_prompts(request: Request):
-    return drafting.prompts(db(request))
+    return prompt_library.views(db(request))
 
 
 @router.put('/prompts/{name}')
 def save_prompt(request: Request, name: str, body: PromptUpdate):
-    return drafting.save_prompt(db(request), name, body.text)
+    return prompt_library.save(db(request), name, body.text)
 
 
 @router.delete('/prompts/{name}')
 def reset_prompt(request: Request, name: str):
-    return drafting.reset_prompt(db(request), name)
+    return prompt_library.reset(db(request), name)
 
 
 @router.post('/companion/versions')

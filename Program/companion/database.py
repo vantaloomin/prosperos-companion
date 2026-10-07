@@ -121,6 +121,7 @@ ADDED_COLUMNS = (
     ('companions', 'stepped_back_at', 'TEXT'),
     # The routine slot still going when the life cursor last moved (companion/life/simulation.py).
     ('life_cursors', 'open_slot', 'TEXT'),
+    ('prompt_overrides', 'default_text', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
