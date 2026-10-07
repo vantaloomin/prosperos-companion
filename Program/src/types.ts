@@ -863,7 +863,8 @@ export interface Closeness {
 export interface SelfFact {
   id: string
   message_id: string
-  category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy'
+  category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy' | 'team' | 'plays'
+    | 'works_at'
   label: string
   subject: string
   value: string

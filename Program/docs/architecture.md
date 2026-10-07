@@ -328,12 +328,17 @@ fits the conversation.
 `companion/self_facts.py` keeps an LLM from flipping its own facts. After each completed companion
 message (a reply or a first message), fixed patterns pick out first-person statements about
 the character: likes and dislikes, a favorite, a named relative or pet, something they have never
-done, where they grew up, an allergy. Questions, hypotheticals ("maybe", "if only", "wish"),
+done, where they grew up, an allergy, their team ("my team, the X", "i play for the X"), a sport,
+instrument or position they play ("i play blocker"), and where they work ("i work at X"). When the
+message is texted in lowercase (no capitalised word but "I" and sentence starts, with a sentence
+starting lowercase) or the definition's texting style is lowercase, a lowercase word after "my
+sister" or "my cat" is taken as a name and stored title-cased ("my cat juniper" is Juniper), unless
+it is a common word ("my cat is sleeping", "my mom was mad", "my grandma calls"). Questions, hypotheticals ("maybe", "if only", "wish"),
 quoted lines and *actions* are skipped. Each fact keeps the sentence it came from and belongs to that
 message: it applies on any timeline that holds the message or a copy of it, and stops applying when
 the reply is replaced by another version or deleted. Facts in force go into the chat context as
 "What you have said about yourself before". A statement that contradicts one in force (likes
-against dislikes, a second favorite band, a second mom) waits as a `conflict` instead. In Character
+against dislikes, a second favorite band, a second mom, a second team or workplace) waits as a `conflict` instead. In Character
 Studio the user keeps a fact (marked confirmed in the context), removes it, or keeps the conflicting
 one, which removes the earlier fact. Stated likes and dislikes also steer the composer: a disliked
 activity is left out and a liked one counts like an interest, and noting either rebuilds the

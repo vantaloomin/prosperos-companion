@@ -12,8 +12,8 @@ def says(provider, text):
     provider.replies.append([Chunk(text), Chunk('', 'stop')])
 
 
-def keys(text):
-    return [(fact.category, fact.subject, fact.value) for fact in self_facts.extract(text)]
+def keys(text, lowercase=False):
+    return [(fact.category, fact.subject, fact.value) for fact in self_facts.extract(text, lowercase)]
 
 
 def test_first_person_statements_are_captured():
@@ -28,6 +28,49 @@ def test_talk_about_the_user_questions_and_maybes_are_not_facts():
     assert keys('I love that! I like talking to you. I love you too.') == []
     assert keys('Do you think I hate running? Maybe I would love sushi. If I grew up in Paris, who knows.') == []
     assert keys('*smiles* "I hate Mondays," she said in the film.') == []
+
+
+def test_lowercase_texting_names_people_and_pets_in_lowercase():
+    text = 'omg my cat juniper knocked my coffee over. my sister ashley thinks its hilarious. my cat is named miso'
+    assert keys(text) == [('pet', 'cat', 'Juniper'), ('person', 'sister', 'Ashley')]
+    assert keys('my cat is named miso') == [('pet', 'cat', 'Miso')]
+    assert keys('My cat is sleeping', lowercase=True) == []
+    assert keys('i love my sister ashley and my best friend kayla')[1:] == [('person', 'sister', 'Ashley'),
+                                                                           ('person', 'best friend', 'Kayla')]
+
+
+def test_lowercase_common_words_are_not_names():
+    for text in ('my cat is sleeping', 'my sister and i went out', 'my mom was mad', 'my dog just ate my sock',
+                 'my grandma calls every thursday', 'my ex boyfriend texted me', 'my dog snores so loud',
+                 'my cat knocked it over'):
+        assert keys(text) == [], text
+    assert keys('My cat is sleeping. My mom was mad.') == []
+
+
+def test_team_position_and_workplace_are_captured():
+    assert keys('my team, the baltimore crabshells, won tonight') == [('team', 'team', 'Baltimore Crabshells')]
+    assert keys('my team is the crabshells and we won') == [('team', 'team', 'Crabshells')]
+    assert keys('my roller derby team, the crabshells') == [('team', 'team', 'Crabshells')]
+    assert keys('i play for the Baltimore Crabshells') == [('team', 'team', 'Baltimore Crabshells')]
+    assert keys('i play blocker. I also play the cello.') == [('plays', 'blocker', 'blocker'),
+                                                              ('plays', 'cello', 'cello')]
+    assert keys('i play video games. I play it cool. my team won.') == []
+    assert keys('i work in the er at mercy hospital as a nurse') == [('works_at', 'workplace', 'mercy hospital')]
+    assert keys('I work at Blue Bottle on weekends.') == [('works_at', 'workplace', 'Blue Bottle')]
+    assert keys('i work at home. i work at 9 tomorrow') == []
+
+
+def test_a_second_team_is_a_contradiction(client, connected, provider):
+    says(provider, 'my team, the baltimore crabshells, is killing it')
+    send(client, 'Derby?', 'client-self-09')
+    says(provider, 'i play blocker for my team, the charm city furies')
+    send(client, 'Wait, which team?', 'client-self-10')
+    old, *rest = client.get('/api/self-facts').json()['facts']
+    new = next(fact for fact in rest if fact['category'] == 'team')
+    assert (old['label'], old['value'], old['status']) == ('Team', 'Baltimore Crabshells', 'noted')
+    assert new['value'] == 'Charm City Furies' and new['status'] == 'conflict' and new['conflicts_with'] == old['id']
+    assert ('Plays', 'blocker', 'noted') in [(fact['label'], fact['value'], fact['status']) for fact in rest]
+    assert '- Team: Baltimore Crabshells.' in client.get('/api/context/preview').json()['system']
 
 
 def test_said_facts_reach_the_context_and_the_list(client, connected, provider):
