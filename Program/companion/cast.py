@@ -6,10 +6,13 @@ definition, drafted from their rule sheet (or fleshed out by the text model), an
 plays them. The companion who steps back keeps every chat, memory and timeline, and goes on living in
 the same city by the townsfolk's rules (companion/life/encounters.py), where the new main character can
 run into them. Switching back puts them in slot 1 again, history intact.
+
+A match on the dating app (companion/dating.py) becomes a companion the same way, with or without a main
+character to step back, and starts as a romance unless the match was for friendship.
 """
 from datetime import date
 
-from companion import drafting
+from companion import dating, drafting, story
 from companion.characters import current, insert_version, require_current
 from companion.clock import zone
 from companion.database import identifier, many, optional
@@ -35,6 +38,9 @@ VOICES = {
     'dreamy': 'Wanders off on ideas and loses the thread, then laughs about it.',
 }
 # What working toward each goal says about them.
+# How a profile's line about who they know begins (shared_text).
+SHARED = ('Has crossed paths with', 'Has met the user', 'Matched with the user through')
+MATCHED = SHARED[2]
 GOAL_INTERESTS = {
     'own-place': 'saving up', 'race': 'running', 'band': 'music', 'exam': 'studying', 'novel': 'writing',
     'reconcile': 'family', 'move': 'apartment hunting', 'language': 'languages', 'promotion': 'work',
@@ -61,14 +67,34 @@ def met(connection, companion: dict, now) -> tuple[dict, dict, dict]:
     return data, cast, encounters.history_for(connection, companion, cast, now)
 
 
-def townsperson(connection, companion: dict, key: str, now) -> tuple[dict, dict, list[dict]]:
-    """A townsperson the main character has met, with the city and their meetings; refused otherwise."""
+def townsperson(connection, companion: dict, key: str, now) -> tuple[dict, dict, list[dict], dict | None]:
+    """A townsperson the main character or the user's own story has met (companion/story_people.py), with the
+    city, the companion's meetings and the story's record; refused otherwise."""
     require(not key.startswith('cast:'), 'They are already one of your companions. Switch to them instead.', 409)
     data, _cast, history = met(connection, companion, now)
+    in_story = optional(connection, 'SELECT * FROM story_people WHERE key=?', (key,))
+    if in_story and townsfolk.find(data, key) is None:
+        data = story.city_data(connection, in_story['city_id'])  # Met in the story in another city.
     sheet = townsfolk.find(data, key)
-    require(sheet is not None and key in history,
-            f"{companion['version']['name']} hasn't met them. Only someone they have met can take over.", 404)
-    return data, sheet, history[key]
+    require(sheet is not None and (key in history or in_story is not None),
+            f"{companion['version']['name']} hasn't met them. Only someone they or you have met can take over.", 404)
+    return data, sheet, history.get(key, []), in_story
+
+
+def candidate(connection, key: str, now) -> dict:
+    """Someone who may become the main character: a dating match who is not a companion yet, else a
+    townsperson the main character has met."""
+    require(not key.startswith('cast:'), 'They are already one of your companions. Switch to them instead.', 409)
+    matched = dating.match(connection, key)
+    if matched:
+        require(optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (key,)) is None,
+                'They are already one of your companions. Switch to them instead.', 409)
+        in_story = optional(connection, 'SELECT * FROM story_people WHERE key=?', (key,))
+        return {'data': matched['data'], 'sheet': matched['sheet'], 'meetings': [], 'focus': current(connection),
+                'match': matched, 'in_story': in_story}
+    focus = require_current(connection)
+    data, sheet, meetings, in_story = townsperson(connection, focus, key, now)
+    return {'data': data, 'sheet': sheet, 'meetings': meetings, 'focus': focus, 'match': None, 'in_story': in_story}
 
 
 # Their profile --------------------------------------------------------------------------------------
@@ -117,14 +143,36 @@ def article(word: str) -> str:
     return 'an' if word[:1].lower() in 'aeiou' else 'a'
 
 
-def shared_text(focus_name: str, meetings: list[dict]) -> str:
+def shared_text(focus_name: str, meetings: list[dict], in_story: dict | None = None) -> str:
+    """How they know the companion stepping back and the user. It starts with one of SHARED, so a rewrite of
+    the profile by the text model can keep it word for word."""
+    met_user = ''
+    if in_story:
+        count = in_story['meetings']
+        met_user = f" Has met the user in person {'once' if count == 1 else 'twice' if count == 2 else f'{count} times'}."
+    if not meetings:
+        return met_user.strip()
     places = list(dict.fromkeys(meeting['place'] for meeting in meetings if meeting['place']))[:3]
     times = 'once' if len(meetings) == 1 else 'twice' if len(meetings) == 2 else f'{len(meetings)} times'
     where = f" around {' and '.join(places)}" if places else ''
-    return f"Has crossed paths with {focus_name} {times}{where}, and has heard about the user through {focus_name}."
+    heard = '' if in_story else f", and has heard about the user through {focus_name}"
+    return f"{SHARED[0]} {focus_name} {times}{where}{heard}.{met_user}"
 
 
-def profile(data: dict, sheet: dict, focus: dict, meetings: list[dict], today: date) -> dict:
+def met_text(found: dict) -> str:
+    """How they know the user: through the dating app, or through the companion they ran into."""
+    if found['match']:
+        met = shared_text('', [], found['in_story'])
+        return f"{MATCHED} {found['match']['noun']}; the two of them have only just started talking. {met}".strip()
+    return shared_text(found['focus']['version']['name'], found['meetings'], found['in_story'])
+
+
+def relationship(found: dict) -> str:
+    """A match starts as a romance unless they matched for friendship; a townsperson met in town as a friend."""
+    return 'romance' if found['match'] and found['match']['details']['looking'] != 'friends' else 'friendship'
+
+
+def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     """A full character definition from a townsperson's sheet, with no model involved."""
     name, career = sheet['name'], career_for(data, sheet)
     state = townsfolk.story(sheet, data, today)
@@ -145,12 +193,12 @@ def profile(data: dict, sheet: dict, focus: dict, meetings: list[dict], today: d
         'skills': [f"Knows the regulars and the rhythms of {sheet['place']['name']}."],
         'interests': [item for item in (goal_interest, sheet['place']['kind']) if item],
         'background': f"Has lived in {home} for years. Right now {name} is trying to {state['goal']['text']}."
-                      f"{lately}{reached} {shared_text(focus['version']['name'], meetings)}",
+                      f"{lately}{reached} {met_text(found)}".rstrip(),
         'routine': townsfolk.routine_text(sheet)[:1].upper() + townsfolk.routine_text(sheet)[1:] + '.',
         'location': f"{home}, {data['name']}, {data['region']}",
         'home_city': data['id'],
         'timezone': data['timezone'],
-        'relationship': 'friendship',
+        'relationship': relationship(found),
         'schedule': schedule(data, sheet, career),
         'life_themes': list(career['themes'][:5]) if career else [sheet['place']['name']],
         'money': {'career': career['id'] if career else ''},
@@ -162,11 +210,11 @@ def draft(database, key: str) -> dict:
     """Their drafted profile for the form to review; nothing is saved."""
     now = database.clock.now()
     with database.connect() as connection:
-        focus = require_current(connection)
-        data, sheet, meetings = townsperson(connection, focus, key, now)
-        today = now.astimezone(zone(focus['version']['timezone'])).date()
-        return {'definition': profile(data, sheet, focus, meetings, today), 'person': person_view(data, sheet),
-                'stepping_back': focus['version']['name']}
+        found = candidate(connection, key, now)
+        data, sheet, focus = found['data'], found['sheet'], found['focus']
+        today = now.astimezone(zone(data['timezone'])).date()
+        return {'definition': profile(data, sheet, found, today), 'person': person_view(data, sheet),
+                'stepping_back': focus['version']['name'] if focus else None, 'matched': found['match'] is not None}
 
 
 def person_view(data: dict, sheet: dict) -> dict:
@@ -190,7 +238,8 @@ async def fleshed(state, key: str) -> dict:
                                  age=str(found['person']['age']), home_city=base['home_city'],
                                  timezone=base['timezone'])
     written = (await drafting.draft(state, body))['definition']
-    shared = base['background'][base['background'].rfind('Has crossed paths'):]
+    found_at = [at for at in (base['background'].rfind(start) for start in SHARED) if at >= 0]
+    shared = base['background'][min(found_at):] if found_at else ''
     written |= {field: base[field] for field in ('name', 'location', 'home_city', 'timezone', 'relationship')}
     written['background'] = f"{written['background'].rstrip()} {shared}".strip()[:12000]
     return {**found, 'definition': written}
@@ -209,14 +258,16 @@ def switch(database, key: str, definition) -> dict:
     zone(definition.timezone)
     timestamp = database.now()
     with database.connect(write=True) as connection:
-        focus = require_current(connection)
-        townsperson(connection, focus, key, database.clock.now())
+        found = candidate(connection, key, database.clock.now())
+        focus = found['focus']
         companion_id, timeline_id = identifier(), identifier()
-        # They live in the same town, among the same people, as the companion who met them.
+        # They live in the same town, among the same people, as the companion who met them (or the town the
+        # dating app found them in).
+        town = found['match']['town'] if found['match'] else focus.get('town_seed') or ''
         connection.execute('INSERT INTO companions (id, slot, townsfolk_key, town_seed, created_at) '
-                           'VALUES (?, NULL, ?, ?, ?)', (companion_id, key, focus.get('town_seed') or '', timestamp))
-        version_id = insert_version(connection, companion_id, 1, definition, f"Met {focus['version']['name']} in town.",
-                                    timestamp)
+                           'VALUES (?, NULL, ?, ?, ?)', (companion_id, key, town, timestamp))
+        note = 'Matched on the dating app.' if found['match'] else f"Met {focus['version']['name']} in town."
+        version_id = insert_version(connection, companion_id, 1, definition, note, timestamp)
         connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
                            (timeline_id, companion_id, timestamp))
         connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',

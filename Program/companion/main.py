@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from companion import local_zone, workspace
+from companion import dating_routes, local_zone, story_routes, workspace
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.debug_routes import router as debug_router
@@ -150,6 +150,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(world_routes.router)
     app.include_router(image_routes.router)
     app.include_router(context_routes.router)
+    app.include_router(story_routes.router)
+    app.include_router(dating_routes.router)
     app.include_router(lora_routes.router)
     if app.state.lora_maker:
         app.include_router(lora_routes.maker_router)

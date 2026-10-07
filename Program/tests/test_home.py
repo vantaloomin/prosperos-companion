@@ -154,7 +154,7 @@ def test_edits_forget_changes_still_ahead(client, baltimore, clock):
     client.get('/api/life/home')
     tid = timeline(client)
     with connect(client) as connection:
-        home.evolve(connection, tid, date(2027, 3, 1), clock.now())
+        home.evolve(connection, tid, date(2029, 1, 1), clock.now())  # long enough that some seeded change is due
         ahead = connection.execute("SELECT COUNT(*) FROM home_log WHERE local_date>'2026-10-05'").fetchone()[0]
     assert ahead > 0
     item = client.get('/api/life/home').json()['items'][0]

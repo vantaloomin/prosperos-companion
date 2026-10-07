@@ -79,6 +79,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   },
   {
     id: 'advanced', label: 'Advanced', withoutCompanion: true, advanced: true, sections: [
+      { heading: 'story-mode-heading', title: 'Story mode', keywords: 'story mode narrator roleplay role play travel townsfolk meet people dating experimental' },
       { heading: 'prompts-heading', title: 'Prompts', keywords: 'advanced prompt prompts system instructions wording chat character in character first texts check-ins life phrasing memory suggestions pictures describe drafting help me write quick start power user' },
     ],
   },

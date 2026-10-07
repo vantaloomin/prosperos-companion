@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   chat_style TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel')),
   chat_sounds INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1)),
   chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
+  -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
+  story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,
@@ -1246,6 +1248,79 @@ CREATE TABLE IF NOT EXISTS companion_plans (
   UNIQUE (message_id, local_date)
 );
 CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id);
+
+-- Story mode (companion/story.py): the user's own free-form story with a narrator, apart from every
+-- companion. One scene (where the user is) and its history; no companion prompt ever reads them.
+CREATE TABLE IF NOT EXISTS story_scene (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS story_messages (
+  id TEXT PRIMARY KEY,
+  seq INTEGER NOT NULL UNIQUE,
+  role TEXT NOT NULL CHECK (role IN ('user', 'narrator', 'scene')),
+  text TEXT NOT NULL,
+  client_id TEXT UNIQUE,
+  reply_to TEXT,
+  status TEXT NOT NULL DEFAULT 'complete' CHECK (status IN ('complete', 'failed')),
+  error TEXT,
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- People the user has met in their story (companion/story_people.py): one meeting a local day, a few notes.
+CREATE TABLE IF NOT EXISTS story_people (
+  key TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  first_met_at TEXT NOT NULL,
+  last_met_at TEXT NOT NULL,
+  last_day TEXT NOT NULL,
+  meetings INTEGER NOT NULL DEFAULT 1,
+  notes TEXT NOT NULL DEFAULT '[]'
+);
+
+-- The dating app (companion/dating.py): the user's own dating profile, who they swiped on and the dates they
+-- went on in Story mode. No companion prompt reads them. A person is a townsfolk
+-- key with the town it was drawn in (companion/world/townsfolk.py seed_for).
+CREATE TABLE IF NOT EXISTS dating_profile (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  name TEXT NOT NULL DEFAULT '',
+  age INTEGER NOT NULL CHECK (age >= 18),
+  gender TEXT NOT NULL CHECK (gender IN ('woman', 'man', 'nonbinary')),
+  interested_in TEXT NOT NULL,
+  looking_for TEXT NOT NULL CHECK (looking_for IN ('serious', 'casual', 'friends')),
+  age_min INTEGER NOT NULL CHECK (age_min >= 18),
+  age_max INTEGER NOT NULL,
+  bio TEXT NOT NULL DEFAULT '',
+  city_id TEXT NOT NULL,
+  seed TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dating_swipes (
+  person_key TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  town TEXT NOT NULL DEFAULT '',
+  liked INTEGER NOT NULL CHECK (liked IN (0, 1)),
+  matched INTEGER NOT NULL CHECK (matched IN (0, 1)),
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dating_dates (
+  id TEXT PRIMARY KEY,
+  person_key TEXT NOT NULL,
+  town TEXT NOT NULL DEFAULT '',
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  arrival_id TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  ended_at TEXT
+);
 
 -- Companion messages waiting for the memory model to read for what they say about the companion
 -- (companion/memory/self_suggest.py); queued by self_facts.note while model memory is on.

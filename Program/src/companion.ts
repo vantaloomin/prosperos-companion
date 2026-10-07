@@ -6,7 +6,9 @@ import type { Companion, WorkspaceSettings } from './types'
 import type { SettingsTab } from './features/settings/sections'
 
 /** A view, as named in the address after #. Settings can name a tab too: #settings/models. */
-export type View = 'conversation' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'portraits' | 'settings' | `settings/${SettingsTab}`
+export type View = 'conversation' | 'dating' | 'story' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'portraits' | 'settings' | `settings/${SettingsTab}`
+  /** A dating match becoming a companion: #match/<their key>. */
+  | `match/${string}`
   /** Making a townsperson the main character: #cast/<their key>. */
   | `cast/${string}`
 

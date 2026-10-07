@@ -25,7 +25,8 @@ def test_every_culture_a_name_group_links_to_exists_and_cohorts_are_full():
     for key, culture in cultures.items():
         for cohort in culture['cohorts']:
             assert cohort['start'] <= cohort['end']
-            assert len(cohort['feminine']) >= 20 and len(cohort['masculine']) >= 20, (key, cohort['start'])
+            # As much variety as the United States lists: about a hundred names a year or decade.
+            assert len(cohort['feminine']) >= 90 and len(cohort['masculine']) >= 90, (key, cohort['start'])
     us = cultures['us']
     assert [cohort['start'] for cohort in us['cohorts'] if not cohort['estimate']] == list(range(1880, 2009))
     assert all(len(cohort['feminine']) == 100 for cohort in us['cohorts'] if not cohort['estimate'])
@@ -156,3 +157,12 @@ def test_a_roman_woman_takes_the_feminine_family_name():
     city = catalog.city('baltimore') | {'era': 'other', 'names': {'bank': 'ancient-rome', 'mix': {'roman': 1}}}
     assert generators.name(city, seed='rome', pronouns='she', family='Cornelius', age=30)['family'] == 'Cornelia'
     assert generators.name(city, seed='rome', pronouns='he', family='Cornelius', age=30)['family'] == 'Cornelius'
+
+
+def test_period_banks_have_room_for_a_whole_town():
+    for era, bank in catalog.names()['banks'].items():
+        for key, group in bank.items():
+            # Modern groups take given names from the birth-year lists; only their family names are drawn here.
+            fields = ('family',) if era == 'modern' else ('feminine', 'masculine', 'family')
+            for field in fields:
+                assert len(group[field]) >= 60, (era, key, field)

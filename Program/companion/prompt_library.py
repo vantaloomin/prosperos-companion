@@ -76,6 +76,10 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'Sent with each picture you send, to the "Seeing pictures" model. The description is what the '
            'companion sees.',
            constant('companion.pictures', 'DESCRIBE')),
+    Prompt('story-narrator', CHAT, 'The Story narrator',
+           'Opens every reply in the Story tab, before the scene: the place, the hour, the weather and who is '
+           'there, which the app decides. OOC answers are also enforced by the app.',
+           constant('companion.story', 'NARRATOR')),
     Prompt('character-rules.md', DRAFTING, 'What makes a character believable', 'Sent with every draft and rewrite.',
            drafting_file('character-rules.md')),
     Prompt('character-draft.md', DRAFTING, 'Drafting a whole character',

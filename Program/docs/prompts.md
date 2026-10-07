@@ -16,6 +16,7 @@ for comparison.
 | Suggesting memories | The memory model's fact suggestions | `RULES` in `companion/memory/suggest.py` |
 | Noting the companion's own facts | The memory model reading her replies for her people, team, work | `RULES` in `companion/memory/self_suggest.py` |
 | Describing your pictures | The "Seeing pictures" model | `DESCRIBE` in `companion/pictures.py` |
+| The Story narrator | Every reply in the Story tab, before the scene ([story.md](story.md)) | `NARRATOR` in `companion/story.py` |
 | Character drafting (4) | The quick start and "Help me write" | `companion/prompts/*.md` ([character-drafting.md](character-drafting.md)) |
 
 `companion/prompt_library.py` is the list. Defaults are read from the constants above when needed,

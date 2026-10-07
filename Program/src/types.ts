@@ -192,6 +192,8 @@ export interface WorkspaceSettings {
   /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
   chat_retro_dark?: boolean
+  /** Story mode (src/features/story) is opt-in, in Settings > Advanced. */
+  story_mode?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean
@@ -508,6 +510,10 @@ export interface ImageBackend {
   custom_workflow: boolean
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
+  // ComfyUI: LoRAs applied after the character's own, in order; null for other kinds.
+  style_loras: StyleLora[] | null
+  // ComfyUI: the built-in workflow's sampler; null in a field means the workflow's own value.
+  sampler: SamplerSettings | null
   reference_workflow: boolean
   // Can make a picture that follows an earlier one (the onboarding profile pictures).
   takes_reference: boolean
@@ -528,8 +534,12 @@ export interface BackendCheck { ok: boolean; summary: string; details: string[] 
 
 export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name'
 export type ModelFiles = Record<ModelFileKey, string>
-/** What a ComfyUI server offers the built-in workflow's loaders; ok is false when it could not be asked. */
-export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; options: Record<ModelFileKey, string[]> }
+export type FileListKey = ModelFileKey | 'lora' | 'sampler_name' | 'scheduler'
+export interface SamplerSettings { steps: number | null; cfg: number | null; sampler_name: string | null; scheduler: string | null }
+export interface StyleLora { name: string; strength: number; trigger: string }
+/** What a ComfyUI server offers the built-in workflow's loaders and its LoRAs, Krea 2's first (`krea` lists
+ * those); ok is false when it could not be asked. The character's own LoRA is left out of `lora`. */
+export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; sampler_defaults: SamplerSettings; options: Record<FileListKey, string[]>; krea: Record<FileListKey, string[]>; character_lora: string | null }
 export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae'; file: string | null; url: string; licence: string }
 
 export interface ImageJob {
@@ -1021,7 +1031,9 @@ export interface CastMember { id: string; name: string; main: boolean; from_town
 export interface CastDraft {
   definition: CharacterDefinition
   person: { key: string; name: string; full: string; age: number; role: string; kind: string; place: string; neighborhood: string }
-  stepping_back: string
+  /** Who steps back; null when there is no main character yet (a dating match as the first companion). */
+  stepping_back: string | null
+  matched?: boolean
 }
 export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }
 
@@ -1038,4 +1050,62 @@ export interface DebugTime {
   backup: string | null
   jumping: { to: string; done: number } | null
   kept?: boolean
+}
+
+/** Story mode (companion/story.py): the user's own story with a narrator, apart from the companion. */
+export interface StoryPlace { id: string; name: string; kind: string; neighborhood: string; summary?: string }
+export interface StoryScene {
+  city: { id: string; name: string; era: string }
+  place: StoryPlace
+  local_time: string
+  weather: string
+  places: StoryPlace[]
+  /** Who is around, as the user would see them ("the barista there"); never names they have not been given. */
+  around: string[]
+}
+export interface StoryMessage {
+  id: string; seq: number; role: 'user' | 'narrator' | 'scene'; text: string; reply_to: string | null
+  status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
+}
+/** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
+export interface StoryPerson {
+  key: string; name: string; role: string; city: string; meetings: number; last_met_at: string; notes: string[]
+  doing: string; place: { id: string; name: string; city_id: string } | null
+}
+export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; ready: boolean; can_switch: boolean }
+
+/** The dating app (companion/dating.py): the user's profile, the deck, matches and any Story mode date. */
+export type DatingGender = 'woman' | 'man' | 'nonbinary'
+export type DatingAim = 'serious' | 'casual' | 'friends'
+export interface DatingProfile {
+  name: string; age: number; gender: DatingGender; interested_in: DatingGender[]; looking_for: DatingAim
+  age_min: number; age_max: number; bio: string
+}
+export interface DatingCard {
+  key: string; name: string; age: number; gender: DatingGender; pronouns: string; orientation: string
+  looking: DatingAim; looking_text: string; looks: string; job: string; neighborhood: string; bio: string
+  /** An older era's personal-column notice, with initials only; '' on a dating app. */
+  notice: string
+}
+export interface DatingPlace { id: string; name: string; kind: string; neighborhood: string; theirs: boolean }
+export interface DatingMatch extends DatingCard {
+  city: { id: string; name: string }
+  /** Set once the match became a companion. */
+  companion_id: string | null
+  places: DatingPlace[]
+}
+export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; empty: string; tagline: string; get: string; getting: string }
+export interface Dating {
+  surface: 'app' | 'column' | 'matchmaker'
+  words: DatingWords
+  city: { id: string; name: string }
+  profile: DatingProfile | null
+  /** Whether Story mode is on, so a match can be met there. */
+  story: boolean
+  deck: DatingCard[]
+  remaining: number
+  matches: DatingMatch[]
+  date: { key: string; name: string; place_id: string } | null
+  /** After a like: the person, when they liked the user back. */
+  matched?: DatingCard | null
 }
