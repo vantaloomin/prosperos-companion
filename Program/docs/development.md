@@ -32,7 +32,10 @@ installer and a launch on Windows.
 
 Each `.bat` in `Windows/` runs the PowerShell script of the same name in `scripts/windows/`;
 `common.ps1` there holds the shared paths and port checks. `update.bat` runs
-`git pull --ff-only origin main` and then `install.ps1`; it refuses
+`git pull --ff-only origin main` and then `install.ps1`. In a copy without `.git` (a downloaded ZIP)
+it downloads main's ZIP instead, copies it over the folder and records the copied files in
+`.zip-update-files`, so the next ZIP update can remove files main dropped; `COMPANION_UPDATE_ZIP`
+points it at a local ZIP for tests. It refuses
 while the Companion runs (Windows locks the files a reinstall replaces) or when the checkout is on
 another branch. `status.bat` exits 0 when the Companion answers, 1 when nothing does and 2 when
 another program holds the port. `stop.bat` ends the process tree that owns the port, but only after

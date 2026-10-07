@@ -133,6 +133,28 @@ try {
 Invoke-TestGit @('checkout', '--quiet', '-b', 'elsewhere')
 Check ((Invoke-Bat 'update.bat') -eq 1) 'update.bat refuses a branch other than main'
 
-# The last check expects exit code 1 from update.bat; don't let it become this script's result.
+# update from a ZIP download: a copy without .git gets main's ZIP (here a local one) copied over it.
+# Files an earlier ZIP update listed and main no longer has are removed; anything else stays.
+$zip = Join-Path $temp 'update-main.zip'
+Invoke-TestGit @('archive', '--format=zip', '--prefix=prosperos-companion-main/', '--output', $zip, 'HEAD')
+Remove-Item -LiteralPath (Join-Path $WindowsFolder 'README.txt')
+Set-Content -LiteralPath (Join-Path $CheckoutRoot 'stale-from-zip.txt') -Value 'stale'
+Set-Content -LiteralPath (Join-Path $CheckoutRoot 'my-own-file.txt') -Value 'mine'
+Set-Content -LiteralPath (Join-Path $CheckoutRoot '.zip-update-files') -Value 'stale-from-zip.txt'
+$gitAside = "$CheckoutRoot.git-aside"
+Move-Item -LiteralPath (Join-Path $CheckoutRoot '.git') -Destination $gitAside
+$env:COMPANION_UPDATE_ZIP = $zip
+try { $code = Invoke-Bat 'update.bat' } finally {
+  Remove-Item Env:COMPANION_UPDATE_ZIP
+  Move-Item -LiteralPath $gitAside -Destination (Join-Path $CheckoutRoot '.git')
+}
+Check ($code -eq 0) 'update.bat updates a copy downloaded as a ZIP'
+Check (Test-Path -LiteralPath (Join-Path $WindowsFolder 'README.txt')) 'the ZIP was copied in'
+Check (-not (Test-Path -LiteralPath (Join-Path $CheckoutRoot 'stale-from-zip.txt'))) 'a file the last ZIP update listed and main dropped is removed'
+Check (Test-Path -LiteralPath (Join-Path $CheckoutRoot 'my-own-file.txt')) 'a file of your own is kept'
+Check ((Get-Content -LiteralPath (Join-Path $CheckoutRoot '.zip-update-files')) -contains 'Windows/update.bat') 'the new file list was written'
+Check (Test-Path -LiteralPath 'dist\index.html') 'the interface was rebuilt after the ZIP update'
+
+# Earlier checks expect exit code 1 from update.bat; don't let one become this script's result.
 Write-Host 'All checkout helper checks passed.'
 exit 0

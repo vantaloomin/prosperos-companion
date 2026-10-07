@@ -120,4 +120,25 @@ wait_for_state stopped 8775 >/dev/null
 git checkout --quiet -b elsewhere
 check 'update.command refuses a branch other than main' exits 1 update.command
 
+# update from a ZIP download: a copy without .git gets main's ZIP (here a local one) copied over it.
+# Files an earlier ZIP update listed and main no longer has are removed; anything else stays.
+zip="$temp/update-main.zip"
+git archive --format=zip --prefix=prosperos-companion-main/ --output "$zip" HEAD
+rm "$MAC_FOLDER/README.txt"
+echo stale > "$CHECKOUT_ROOT/stale-from-zip.txt"
+echo mine > "$CHECKOUT_ROOT/my-own-file.txt"
+printf 'stale-from-zip.txt\n' > "$CHECKOUT_ROOT/.zip-update-files"
+mv "$CHECKOUT_ROOT/.git" "$CHECKOUT_ROOT.git-aside"
+COMPANION_UPDATE_ZIP="$zip" "$MAC_FOLDER/update.command" >"$temp/helper-out.txt" 2>&1
+code=$?
+mv "$CHECKOUT_ROOT.git-aside" "$CHECKOUT_ROOT/.git"
+cat "$temp/helper-out.txt"
+check 'update.command updates a copy downloaded as a ZIP' test "$code" -eq 0
+check 'the ZIP was copied in' test -f "$MAC_FOLDER/README.txt"
+check 'the scripts are still executable' test -x "$MAC_FOLDER/launch.command"
+check 'a file the last ZIP update listed and main dropped is removed' test ! -e "$CHECKOUT_ROOT/stale-from-zip.txt"
+check 'a file of your own is kept' test -f "$CHECKOUT_ROOT/my-own-file.txt"
+check 'the new file list was written' grep -qx 'Mac/update.command' "$CHECKOUT_ROOT/.zip-update-files"
+check 'the interface was rebuilt after the ZIP update' test -f dist/index.html
+
 echo 'All checkout helper checks passed.'
