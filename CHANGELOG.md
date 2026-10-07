@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.2 (2026-10-07)
 
 - **Send pictures in chat:** attach, paste or drop up to four pictures with a message, or send one on
   its own. They are shrunk and stripped of location data first. The model for **Seeing pictures** in
