@@ -174,7 +174,8 @@ def find(data: dict, key: str) -> dict | None:
         return None
     if parts[2].startswith('~'):
         hood_id, index = parts[2][1:], int(parts[3])
-        if not any(hood['id'] == hood_id for hood in data['neighborhoods']) or index >= resident_count(data, hood_id):
+        if not any(hood['id'] == hood_id for hood in data['neighborhoods']) or \
+                index >= resident_count(data, hood_id) + APP_MEMBERS:
             return None
         return resident(data, hood_id, index)
     place = catalog.find(data, parts[2])
@@ -211,6 +212,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     order = sorted(GOALS, key=lambda goal: generators.unit(seed, 'goal', goal[0]))
     sheet = {
         'key': key, 'seed': seed, 'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age,
+        'heritage': name['culture'] or name['group'],
         'role': title, 'kind': 'staff' if role[2] else 'regular', 'staff': role[2], 'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'],
                                                    'neighborhood': place['neighborhood']},
         'home': generators.pick(seed, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
@@ -427,6 +429,10 @@ def routine_text(sheet: dict) -> str:
 # so finding who is at a place looks at the residents of the neighborhoods around it, not the whole city.
 
 RESIDENTS = (40, 80)
+# People living in each neighborhood beyond the residents the town simulates, who only turn up on the dating
+# app (companion/world/dating.py): a city has far more singles than the few dozen neighbors anyone runs into.
+# They take the indexes after the residents', so they are rebuilt from a key like any resident.
+APP_MEMBERS = 500
 HAUNT_KINDS = ('cafe', 'bar', 'tavern', 'restaurant', 'park', 'library', 'fitness', 'market', 'garden', 'square')
 # When people leave for work (earliest, latest) and how long they are out, by the career's schedule.
 COMMUTES = {'early': ((4 * 60 + 30, 6 * 60), 8 * 60 + 30), 'evening': ((15 * 60, 16 * 60 + 30), 9 * 60),
@@ -508,7 +514,7 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
                              *(spot['id'] for spot in sheet['spots'].values() if spot)})
     if named:
         name = generators.name(data, seed=seed, age=age)
-        sheet |= {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns']}
+        sheet |= {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'heritage': name['culture'] or name['group']}
     return sheet
 
 

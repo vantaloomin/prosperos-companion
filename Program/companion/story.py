@@ -106,7 +106,8 @@ def present(connection, data: dict, place_id: str, moment: datetime) -> list[dic
         sheet = encounters.resolve(data, key, cast)
         if sheet and not key.startswith('cast:') and key not in cast['aliases']:
             people.append({'sheet': sheet, **townsfolk.whereabouts(sheet, data, moment)})
-    return people
+    from companion import dating  # The user's date, while one is going on here (docs/dating.md).
+    return dating.with_date(connection, data, place_id, moment, people)
 
 
 def scene(connection, now: datetime) -> dict:
@@ -130,7 +131,7 @@ def person_line(person: dict, place: dict, data: dict, known: dict | None = None
     pronouns = f", {sheet['pronouns']}" if sheet.get('pronouns') else ''
     return (f"- {seen[0].upper()}{seen[1:]}: {sheet['full']}{pronouns}, {sheet['age']}, {person['doing']}, "
             f"{sheet.get('occupation') or sheet['role']}. {townsfolk.first_impression(sheet).capitalize()}; "
-            f"{sheet['quirk']}. Mood: {person['mood']}.{story_people.remembered(known)}")
+            f"{sheet['quirk']}. Mood: {person['mood']}.{story_people.remembered(known)}{person.get('note', '')}")
 
 
 def scene_text(view: dict) -> str:
@@ -160,6 +161,8 @@ def scene_view(view: dict) -> dict:
 
 def seen(person: dict, view: dict) -> str:
     """'the barista', or 'Dana, the barista' once the user has met her."""
+    if person.get('shown'):  # The user's date (companion/dating.py).
+        return person['shown']
     sheet = person['sheet']
     who = encounters.who(sheet, {'id': view['place']['id']}, view['data'], None, person['doing']).removesuffix(' there')
     return f"{sheet['name']}, {who}" if sheet['key'] in view['known'] else who

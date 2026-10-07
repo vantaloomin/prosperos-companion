@@ -1284,6 +1284,44 @@ CREATE TABLE IF NOT EXISTS story_people (
   notes TEXT NOT NULL DEFAULT '[]'
 );
 
+-- The dating app (companion/dating.py): the user's own dating profile, who they swiped on and the dates they
+-- went on in Story mode. No companion prompt reads them. A person is a townsfolk
+-- key with the town it was drawn in (companion/world/townsfolk.py seed_for).
+CREATE TABLE IF NOT EXISTS dating_profile (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  name TEXT NOT NULL DEFAULT '',
+  age INTEGER NOT NULL CHECK (age >= 18),
+  gender TEXT NOT NULL CHECK (gender IN ('woman', 'man', 'nonbinary')),
+  interested_in TEXT NOT NULL,
+  looking_for TEXT NOT NULL CHECK (looking_for IN ('serious', 'casual', 'friends')),
+  age_min INTEGER NOT NULL CHECK (age_min >= 18),
+  age_max INTEGER NOT NULL,
+  bio TEXT NOT NULL DEFAULT '',
+  city_id TEXT NOT NULL,
+  seed TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dating_swipes (
+  person_key TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  town TEXT NOT NULL DEFAULT '',
+  liked INTEGER NOT NULL CHECK (liked IN (0, 1)),
+  matched INTEGER NOT NULL CHECK (matched IN (0, 1)),
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dating_dates (
+  id TEXT PRIMARY KEY,
+  person_key TEXT NOT NULL,
+  town TEXT NOT NULL DEFAULT '',
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  arrival_id TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  ended_at TEXT
+);
+
 -- Replies the user edited, through the sidecar (companion/message_edits.py): each edit keeps the text it replaced.
 CREATE TABLE IF NOT EXISTS message_edits (
   id TEXT PRIMARY KEY,
