@@ -3,6 +3,8 @@
 A user city is validated exactly like a built-in one, so every generator works on it. Ids are
 shared with the built-in cities and cannot shadow them.
 """
+import logging
+
 from pydantic import ValidationError
 
 from companion.characters import current
@@ -11,6 +13,8 @@ from companion.errors import DomainError, require
 from companion.world import catalog
 
 TEMPLATE_SOURCE = 'user'
+LOG = logging.getLogger(__name__)
+_reported: set[tuple[str, str]] = set()
 
 
 def _invalid(error: Exception) -> DomainError:
@@ -36,9 +40,37 @@ def _view(row) -> dict:
                    'updated_at': row['updated_at']}
 
 
+def _load(connection) -> tuple[dict[str, dict], list[dict]]:
+    """The user's cities that still validate, and the ones that no longer do (an older app's rules, a hand edit)."""
+    cities, broken = {}, []
+    for row in connection.execute('SELECT * FROM world_cities ORDER BY id').fetchall():
+        try:
+            cities[row['id']] = _view(row)
+        except (ValidationError, ValueError, KeyError, TypeError) as error:
+            try:
+                definition = decode(row['definition'])
+            except ValueError:
+                definition = None
+            name = definition.get('name') if isinstance(definition, dict) else None
+            broken.append({'id': row['id'], 'name': name if isinstance(name, str) and name else row['id'],
+                           'error': _invalid(error).message, 'definition': definition})
+    return cities, broken
+
+
 def all_cities(connection) -> dict[str, dict]:
-    rows = connection.execute('SELECT * FROM world_cities ORDER BY id').fetchall()
-    return {row['id']: _view(row) for row in rows}
+    """The user's cities. One that no longer validates is left out, so it cannot empty every city list."""
+    cities, broken = _load(connection)
+    for item in broken:
+        if (item['id'], item['error']) not in _reported:
+            _reported.add((item['id'], item['error']))
+            LOG.warning('Your city %r no longer loads and was skipped: %s', item['id'], item['error'])
+    return cities
+
+
+def broken(database) -> list[dict]:
+    """The user's cities that no longer load, with their saved definition so they can be fixed or deleted."""
+    with database.connect() as connection:
+        return _load(connection)[1]
 
 
 def read(database) -> dict[str, dict]:

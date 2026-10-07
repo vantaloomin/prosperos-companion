@@ -15,6 +15,9 @@ export interface CityListing {
   distribution: 'public' | 'private'
 }
 
+/** One of the user's own cities that no longer loads, with its saved definition. */
+export interface BrokenCity { id: string; name: string; error: string; definition: unknown }
+
 export interface PackReport { folders: string[]; loaded: { id: string; file: string }[]; errors: { file: string; error: string }[] }
 
 /** Keys the server adds when it loads a city; they are not part of a definition. */

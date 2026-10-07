@@ -283,6 +283,11 @@ others. Pack folders:
 the reason; `POST /api/world/packs/reload` rereads them without restarting. A pack cannot reuse a
 built-in city's id.
 
+A city of your own that stops validating (saved under an older app's rules, or edited by hand in the
+database) is left out of every list rather than failing them all, and is logged once.
+`GET /api/world/broken-cities` returns each one with the reason and its saved definition; Settings >
+Cities shows them with Save as file and Delete.
+
 **Checking a city file.** `python -m companion.world.check [FILE_OR_FOLDER ...]` validates files
 exactly as the app loads them, and with no arguments checks the built-in cities and every pack
 folder. Errors mean the file will not load. Warnings point out thin spots that make days there

@@ -5,25 +5,35 @@ import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
 import { TextInput } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { cityFacts, definitionOf, exportName, groupCities, GROUPS, parseDefinition, slugify, type CityListing, type PackReport } from './cityText'
+import { cityFacts, definitionOf, exportName, groupCities, GROUPS, parseDefinition, slugify, type BrokenCity, type CityListing, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
+const BROKEN_KEY = ['broken-cities']
 type Feedback = { tone: 'info' | 'error'; text: string } | null
 // What the editor is working on: a new city (from the template, a file or a copy) or one of the user's own.
 type Editing = { mode: 'create'; text: string } | { mode: 'update'; id: string; revision: number; text: string }
 
 const pretty = (value: unknown) => JSON.stringify(value, null, 1)
 
+function saveFile(id: string, definition: unknown) {
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(new Blob([pretty(definition)], { type: 'application/json' }))
+  link.download = exportName(id)
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+
 /** Build, import, copy, edit and export cities (PRD W5). Built-in and pack cities are read-only here. */
 export function Cities() {
   const client = useQueryClient()
   const cities = useQuery({ queryKey: CITIES_KEY, queryFn: () => api<CityListing[]>('/world/cities') })
+  const broken = useQuery({ queryKey: BROKEN_KEY, queryFn: () => api<BrokenCity[]>('/world/broken-cities') })
   const [feedback, setFeedback] = useState<Feedback>(null)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [copying, setCopying] = useState<CityListing | null>(null)
-  const [deleting, setDeleting] = useState<CityListing | null>(null)
+  const [deleting, setDeleting] = useState<Pick<CityListing, 'id' | 'name'> | null>(null)
   const file = useRef<HTMLInputElement>(null)
-  const refresh = () => client.invalidateQueries({ queryKey: CITIES_KEY })
+  const refresh = () => Promise.all([client.invalidateQueries({ queryKey: CITIES_KEY }), client.invalidateQueries({ queryKey: BROKEN_KEY })])
   const fail = (error: unknown) => setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work.' })
 
   const startNew = async () => {
@@ -43,16 +53,9 @@ export function Cities() {
     if (file.current) file.current.value = ''
   }
   const exportCity = async (city: CityListing) => {
-    try {
-      const data = await api<Record<string, unknown>>(`/world/cities/${city.id}`)
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(new Blob([pretty(definitionOf(data))], { type: 'application/json' }))
-      link.download = exportName(city.id)
-      link.click()
-      URL.revokeObjectURL(link.href)
-    } catch (error) { fail(error) }
+    try { saveFile(city.id, definitionOf(await api<Record<string, unknown>>(`/world/cities/${city.id}`))) } catch (error) { fail(error) }
   }
-  const remove = async (city: CityListing) => {
+  const remove = async (city: Pick<CityListing, 'id' | 'name'>) => {
     setDeleting(null)
     try {
       await api(`/world/cities/${city.id}`, undefined, 'DELETE')
@@ -77,6 +80,14 @@ export function Cities() {
         onSaved={(name) => { setEditing(null); setFeedback({ tone: 'info', text: `Saved ${name}.` }); void refresh() }} />}
       {cities.isPending && <Loading label="Loading cities" />}
       {cities.isError && <Notice tone="error">{cities.error.message}</Notice>}
+      {broken.data?.map((city) => (
+        <Notice key={city.id} tone="error" action={<span className="person-actions">
+          <button type="button" className="text-button" onClick={() => saveFile(city.id, city.definition)}><Download aria-hidden="true" />Save as file</button>
+          <button type="button" className="text-button" onClick={() => setDeleting(city)}><Trash2 aria-hidden="true" />Delete</button>
+        </span>}>
+          Your city {city.name} no longer loads, so it is left out of every list. {city.error} Save it as a file, fix it, delete it here, then open the fixed file.
+        </Notice>
+      ))}
       {groups && GROUPS.filter((group) => groups[group.origin].length > 0 || group.origin === 'user').map((group) => (
         <div key={group.origin} className="city-group">
           <h3>{group.title}</h3>
