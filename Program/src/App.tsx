@@ -115,9 +115,9 @@ function inWorkspace(view: View) {
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
+  const storyOn = useWorkspaceSettings().data?.story_mode
   if (view === 'dating') return <Dating go={go} />
   if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />
-  const storyOn = useWorkspaceSettings().data?.story_mode
   if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
   return storyOn ? <Story go={go} />
     : <Notice action={<button type="button" className="text-button" onClick={() => go('settings/advanced')}>Open Settings</button>}>Story mode is off. Turn it on in Settings &gt; Advanced.</Notice>
