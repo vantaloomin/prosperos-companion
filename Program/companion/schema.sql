@@ -1185,3 +1185,48 @@ CREATE TABLE IF NOT EXISTS message_pictures (
   described_at TEXT
 );
 CREATE INDEX IF NOT EXISTS message_pictures_message ON message_pictures(message_id);
+
+-- The companion's wardrobe (companion/life/wardrobe.py): assembled once per timeline from their pay,
+-- job, personality and city, then changed slowly by seeded draws, at most one per two weeks. `profile`
+-- keeps what it was assembled from (styles, size, dress code). Outfits are drawn, never stored.
+CREATE TABLE IF NOT EXISTS wardrobe_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  started TEXT NOT NULL,
+  profile TEXT NOT NULL,
+  next_period INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- One piece of clothing, kept from local date `since` until `until` (exclusive; NULL while they still have it).
+CREATE TABLE IF NOT EXISTS wardrobe_items (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  category TEXT NOT NULL,
+  name TEXT NOT NULL,
+  variety TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('generated', 'change', 'user')),
+  since TEXT NOT NULL,
+  until TEXT,
+  edited INTEGER NOT NULL DEFAULT 0 CHECK (edited IN (0, 1)),
+  revision INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS wardrobe_items_timeline ON wardrobe_items(timeline_id, since);
+
+-- Each change to the wardrobe, on the local date it happens; `spend` is a purchase's price tier.
+CREATE TABLE IF NOT EXISTS wardrobe_log (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  period INTEGER NOT NULL,
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  item_id TEXT,
+  text TEXT NOT NULL,
+  spend TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, period)
+);
