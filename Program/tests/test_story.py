@@ -1,11 +1,21 @@
 """Story mode: a narrator for the user's own story around the cities, apart from the companion (companion/story.py)."""
 from datetime import timedelta
 
+import pytest
 from conftest import Chunk, send
 from test_drafting import connect
 from test_social_circle import make
 
 from companion import story
+
+
+@pytest.fixture(autouse=True)
+def story_on(client):
+    """Story mode is opt-in; every test here turns it on first, after checking it starts off."""
+    off = client.get('/api/story')
+    assert off.status_code == 404 and off.json()['code'] == 'story_off'
+    assert client.get('/api/settings').json()['story_mode'] is False
+    assert client.put('/api/settings', json={'story_mode': True}).json()['story_mode'] is True
 
 
 def ok(response):
@@ -115,3 +125,61 @@ def test_a_failed_reply_can_be_told_again_and_a_new_story_started(client, clock,
     cleared = ok(client.delete('/api/story'))
     assert cleared['messages'] == [] and cleared['scene']['place']
     assert client.post('/api/story/retry').status_code == 409
+
+
+def test_people_named_in_the_story_are_met_and_remembered(client, clock, provider):
+    make(client, 'Warm and curious.')
+    connect(client)
+    place, people = busy_place(client, clock)
+    ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': place['id']}))
+    them = people[0]['sheet']
+    provider.replies = [[Chunk('Nobody looks up.'), Chunk('', 'stop')],
+                        [Chunk(f'"I\'m {them["name"]}," they say, wiping the counter. "New here?"'), Chunk('', 'stop')]]
+    say(client, 'I sit down.', 'story-0001')
+    assert ok(client.get('/api/story'))['people'] == []
+    say(client, 'I say hello and give my name.', 'story-0002')
+    story_now = ok(client.get('/api/story'))
+    [met] = story_now['people']
+    assert met['key'] == them['key'] and met['name'] == them['full'] and met['meetings'] == 1
+    assert met['notes'] == [f'"I\'m {them["name"]}," they say, wiping the counter.'] and met['doing']
+    assert any(item.startswith(f"{them['name']}, ") for item in story_now['scene']['around'])
+
+    # Next time they are in the scene, the narrator remembers; another mention the same day is not another meeting.
+    provider.replies = [[Chunk(f'{them["name"]} nods.'), Chunk('', 'stop')]]
+    say(client, f'I wave at {them["name"]}.', 'story-0003')
+    assert 'The user has met them once and knows their name' in provider.requests[-1]['system']
+    assert 'From before: "I\'m' in provider.requests[-1]['system']
+    assert ok(client.get('/api/story'))['people'][0]['meetings'] == 1
+
+    # They can become the main character, with the story's meeting in their profile.
+    drafted = ok(client.get('/api/companion/cast/draft', params={'key': them['key']}))
+    assert 'Has met the user in person once.' in drafted['definition']['background']
+    switched = ok(client.post('/api/companion/cast/switch', json={'key': them['key'],
+                                                                  'definition': drafted['definition']}))
+    assert switched['version']['name'] == them['full']
+
+    cleared = ok(client.delete('/api/story'))
+    assert cleared['people'] == []
+
+
+def test_finding_someone_goes_to_where_they_are(client, clock, provider):
+    connect(client)
+    place, people = busy_place(client, clock)
+    ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': place['id']}))
+    them = people[0]['sheet']
+    provider.replies = [[Chunk(f'{them["name"]} smiles.'), Chunk('', 'stop')]]
+    say(client, 'Hi!', 'story-0001')
+    ok(client.put('/api/story/scene', json={'city_id': 'new-york'}))
+    found = ok(client.post('/api/story/find', json={'key': them['key']}))
+    assert found['scene']['place']['id'] == place['id'] and found['scene']['city']['id'] == 'baltimore'
+    assert client.post('/api/story/find', json={'key': 'town:baltimore:nowhere:0'}).status_code == 404
+    # Once they have gone home, there is nowhere to go.
+    for _hour in range(24):
+        clock.instant = clock.now() + timedelta(hours=1)
+        person = ok(client.get('/api/story'))['people'][0]
+        if person['place'] is None:
+            refused = client.post('/api/story/find', json={'key': them['key']})
+            assert refused.status_code == 409 and person['doing'] in refused.json()['detail']
+            break
+    else:
+        raise AssertionError('They never went home.')

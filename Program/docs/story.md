@@ -5,6 +5,14 @@ narrator describes the place and voices the people there. It is apart from every
 story has its own tables (`story_scene`, `story_messages`), and no companion prompt reads them, so
 nothing said in the story reaches the companion's chat, memories or life.
 
+## Turning it on
+
+Story mode is opt-in and off by default. It sits beside the companion rather than at the heart of the
+app. Turn it on under Settings > Advanced (shown with "Show advanced settings") > Story mode > "Show the
+Story tab". That is the `story_mode` workspace setting (`PUT /api/settings {"story_mode": true}`). While it
+is off, the Story tab is hidden and every `/api/story` request answers 404 with code `story_off`.
+The dating app is its own feature and does not depend on this setting.
+
 ## Who decides what
 
 The app decides the scene, the same way the life sim decides the companion's day
@@ -35,18 +43,37 @@ job in Settings > Models, which is the conversation profile unless another is ch
 
 | Request | Does |
 | --- | --- |
-| `GET /api/story` | `{scene, messages, ready}`. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places` and `around` (who is there, unnamed). `ready` is false without a model. |
+| `GET /api/story` | `{scene, messages, people, ready, can_switch}`. `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places` and `around` (who is there, named only once met). `ready` is false without a model. |
 | `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. 404 for an unknown city or place. |
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply}`. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved reply, or tries again if it failed. 409 `no_connection` without a model; the line stays saved. |
+| `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now. 404 if not met, 409 if they are nowhere the story can go. |
 | `POST /api/story/retry` | Tells the reply to the latest user line again, replacing the one there. |
-| `DELETE /api/story` | Starts a new story: the history goes, the scene stays. |
+| `DELETE /api/story` | Starts a new story: the history and the people met go, the scene stays. |
 
 Start over and Delete character keep the story (it is in `start_over.WORKSPACE`).
 
+## People you've met
+
+Someone present in the scene is met once their name comes up, either because the narrator voices them
+giving it or because the user uses it (`companion/story_people.py`, table `story_people`). Each local day
+they come up counts as one meeting. Up to eight sentences of narration that name them are kept as
+notes. The next time they are in the scene, the narrator is told the user has met them, how often and
+when, along with the latest notes, so they remember the user however far back the story has been
+trimmed. The screen then shows their given name ("Dana, the barista").
+
+The list is the user's alone. It is not the companion's `townsfolk_encounters`, and a townsperson keeps no
+memories of their own. Under "People you've met" each person shows how often the user has met them and
+what their rules have them doing now. "Go to …" moves the story to where they are (refused while they
+are at home, at work elsewhere or on their street). "Make … the main character…" opens the usual switch
+(`companion/cast.py`). `cast.townsperson` accepts anyone met in the story, in any city, and their
+profile says "Has met the user in person …".
+
+Other features that put the user with someone (a date, say) record the meeting with
+`story_people.meet(connection, sheet, city_id, now, local_day, notes)`.
+
+Starting a new story clears the people met too.
+
 ## Planned
 
-- Meeting people: the story records who the user has met and what they have learned, in a list of
-  the user's own that is not the companion's. Anyone met can become the main character through the
-  existing switch.
-- A dating app for modern and future cities, and a lonely hearts column for older eras. Townsfolk
-  would get seeded looks, orientation and what they are looking for. A match becomes a date in the story.
+- Narrator-played dates with a dating-app match, when Story mode is on. The dating app itself is a
+  standalone feature for finding new companions.

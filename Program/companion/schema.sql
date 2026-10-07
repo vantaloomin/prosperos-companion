@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   chat_style TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel')),
   chat_sounds INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1)),
   chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
+  -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
+  story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,
@@ -1268,4 +1270,16 @@ CREATE TABLE IF NOT EXISTS story_messages (
   city_id TEXT NOT NULL,
   place_id TEXT NOT NULL,
   created_at TEXT NOT NULL
+);
+
+-- People the user has met in their story (companion/story_people.py): one meeting a local day, a few notes.
+CREATE TABLE IF NOT EXISTS story_people (
+  key TEXT PRIMARY KEY,
+  city_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  first_met_at TEXT NOT NULL,
+  last_met_at TEXT NOT NULL,
+  last_day TEXT NOT NULL,
+  meetings INTEGER NOT NULL DEFAULT 1,
+  notes TEXT NOT NULL DEFAULT '[]'
 );

@@ -9,7 +9,7 @@ only voices it. Moving somewhere else is the user's choice in the place picker, 
 """
 from datetime import datetime
 
-from companion import in_character, prompt_library
+from companion import in_character, prompt_library, story_people
 from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
@@ -120,16 +120,17 @@ def scene(connection, now: datetime) -> dict:
             'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'summary': place.get('summary', ''),
                       'neighborhood': hood},
             'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather) if weather else '',
-            'people': present(connection, data, place['id'], moment), 'data': data}
+            'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
+            'known': story_people.known(connection)}
 
 
-def person_line(person: dict, place: dict, data: dict) -> str:
+def person_line(person: dict, place: dict, data: dict, known: dict | None = None) -> str:
     sheet = person['sheet']
     seen = encounters.who(sheet, place, data, None, person['doing'])
     pronouns = f", {sheet['pronouns']}" if sheet.get('pronouns') else ''
     return (f"- {seen[0].upper()}{seen[1:]}: {sheet['full']}{pronouns}, {sheet['age']}, {person['doing']}, "
             f"{sheet.get('occupation') or sheet['role']}. {townsfolk.first_impression(sheet).capitalize()}; "
-            f"{sheet['quirk']}. Mood: {person['mood']}.")
+            f"{sheet['quirk']}. Mood: {person['mood']}.{story_people.remembered(known)}")
 
 
 def scene_text(view: dict) -> str:
@@ -141,8 +142,9 @@ def scene_text(view: dict) -> str:
              f"Local time: {when}, {moment.strftime('%H:%M')} ({townsfolk.part_of_day(moment.hour * 60 + moment.minute)})."]
     if view['weather']:
         lines.append(f"Weather: {view['weather']}")
-    lines.append('Who is here (their names are for you; the user learns one only when it is given):')
-    lines += [person_line(person, {'id': place['id']}, data) for person in view['people']] or \
+    lines.append('Who is here (their names are for you; the user knows only the names of people they have met):')
+    lines += [person_line(person, {'id': place['id']}, data, view['known'].get(person['sheet']['key']))
+              for person in view['people']] or \
         ['- Nobody the story knows; only passers-by.']
     return '## Scene\n' + '\n'.join(lines)
 
@@ -153,8 +155,14 @@ def scene_view(view: dict) -> dict:
     return {key: view[key] for key in ('city', 'place', 'local_time', 'weather')} | {
         'places': [{'id': item['id'], 'name': item['name'], 'kind': item['kind'],
                     'neighborhood': townsfolk.neighborhood_name(data, item['neighborhood'])} for item in data['places']],
-        'around': [encounters.who(person['sheet'], {'id': view['place']['id']}, data, None, person['doing'])
-                   .removesuffix(' there') for person in view['people']]}
+        'around': [seen(person, view) for person in view['people']]}
+
+
+def seen(person: dict, view: dict) -> str:
+    """'the barista', or 'Dana, the barista' once the user has met her."""
+    sheet = person['sheet']
+    who = encounters.who(sheet, {'id': view['place']['id']}, view['data'], None, person['doing']).removesuffix(' there')
+    return f"{sheet['name']}, {who}" if sheet['key'] in view['known'] else who
 
 
 # History ------------------------------------------------------------------------------------------
@@ -182,8 +190,42 @@ def messages(connection, limit: int = HISTORY_LIMIT) -> list[dict]:
 def story(database) -> dict:
     with database.connect() as connection:
         view = scene(connection, database.clock.now())
-        return {'scene': scene_view(view), 'messages': messages(connection),
-                'ready': config_for(connection, JOB) is not None}
+        return {'scene': scene_view(view), 'messages': messages(connection), 'people': people(connection, view),
+                'ready': config_for(connection, JOB) is not None, 'can_switch': current(connection) is not None}
+
+
+def people(connection, view: dict) -> list[dict]:
+    """Everyone the user has met in the story, most recent first, with where their rules put them now."""
+    result, cities = [], {}
+    for row in view['known'].values():
+        if row['city_id'] not in cities:
+            try:
+                cities[row['city_id']] = city_data(connection, row['city_id'])
+            except DomainError:
+                cities[row['city_id']] = None
+        data = cities[row['city_id']]
+        sheet = townsfolk.find(data, row['key']) if data else None
+        if sheet is None:
+            continue  # Their city is gone, or its townsfolk were seeded anew.
+        now = townsfolk.whereabouts(sheet, data, local_moment(data, view['now']))
+        result.append({'key': row['key'], 'name': row['name'], 'role': sheet.get('occupation') or sheet['role'],
+                       'city': data['name'], 'meetings': row['meetings'], 'last_met_at': row['last_met_at'],
+                       'notes': row['notes'], 'doing': now['doing'],
+                       'place': now['place'] and {'id': now['place']['id'], 'name': now['place']['name'],
+                                                  'city_id': data['id']}})
+    return result
+
+
+def find(database, key: str) -> dict:
+    """Go to where someone the user has met is right now."""
+    with database.connect() as connection:
+        view = scene(connection, database.clock.now())
+        person = next((item for item in people(connection, view) if item['key'] == key), None)
+    require(person is not None, "You haven't met them in your story.", 404)
+    place = person['place']
+    require(place is not None and not place['id'].startswith('~'),
+            f"{person['name'].split()[0]} isn't anywhere you can go right now ({person['doing']}).", 409)
+    return move(database, place['city_id'], place['id'])
 
 
 def move(database, city_id: str, place_id: str | None) -> dict:
@@ -204,9 +246,10 @@ def move(database, city_id: str, place_id: str | None) -> dict:
 
 
 def clear(database) -> dict:
-    """A new story: the history goes, the scene stays where it is."""
+    """A new story: the history and the people met go, the scene stays where it is."""
     with database.connect(write=True) as connection:
         connection.execute('DELETE FROM story_messages')
+        connection.execute('DELETE FROM story_people')
     return story(database)
 
 
@@ -237,7 +280,8 @@ def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
         system += '\n\n' + in_character.OUT_OF_CHARACTER_NOTE.format(name='the narrator', model=default_name(config))
     budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system)
     rows = [row for row in messages(connection) if row['seq'] <= latest['seq']]
-    return {'system': system, 'messages': model_messages(rows, max(budget, 2000))}
+    return {'system': system, 'messages': model_messages(rows, max(budget, 2000)), 'people': view['people'],
+            'city_id': view['city']['id'], 'day': datetime.fromisoformat(view['local_time']).date()}
 
 
 async def narrate(state, packet: dict, config: dict, active: bool) -> tuple[str, str | None]:
@@ -269,6 +313,9 @@ async def answer(state, user: dict) -> dict:
     error = None if status == 'complete' else error or 'The model returned no story text.'
     with database.connect(write=True) as connection:
         connection.execute("DELETE FROM story_messages WHERE reply_to=? AND status='failed'", (user['id'],))
+        if status == 'complete' and not in_character.out_of_character(user['text']):
+            story_people.note_exchange(connection, packet['people'], packet['city_id'], user['text'], text,
+                                       database.now(), packet['day'])
         return add(connection, database.now(), 'narrator', text, user, reply_to=user['id'], status=status, error=error)
 
 

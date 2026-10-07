@@ -187,6 +187,7 @@ class SettingsUpdate(Input):
     chat_sounds: bool | None = None
     chat_retro_dark: bool | None = None
     ask_about_people: bool | None = None
+    story_mode: bool | None = None
     review_complete: bool | None = None
 
 

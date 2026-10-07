@@ -101,6 +101,11 @@ textarea { resize: vertical; line-height: 1.6; }
 .story-narration p { white-space: pre-wrap; margin-bottom: 1em; }
 .story-user { margin: 0 0 20px auto; max-width: 85%; padding: 10px 14px; border-radius: 12px; background: var(--accent-tint); white-space: pre-wrap; overflow-wrap: anywhere; width: fit-content; }
 .story-move { margin-bottom: 20px; text-align: center; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
+.story-people summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }
+.story-people ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; max-height: 40dvh; overflow-y: auto; }
+.story-people li { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
+.story-people .form-actions { gap: 14px; }
+.story-note { font-family: 'Literata', Georgia, serif; font-size: 0.875rem; color: var(--muted); font-style: italic; }
 .story-empty { text-align: center; margin-top: 24px; }
 .story-notice, .story-footer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .story-footer { padding-bottom: 16px; }
