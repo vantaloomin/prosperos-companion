@@ -1,10 +1,11 @@
 """What the companion has said about themselves (realism: an LLM must not flip its own facts).
 
-Rule-based capture, no model: after each completed companion message, first-person statements
+Rules first: after each completed companion message, first-person statements
 about their own tastes, people, pets, history, team and work ("I hate cilantro", "my brother Theo",
 "I've never been to Europe", "I grew up in Duluth", "i play blocker") are noted with the sentence
-they came from. Noted facts go into the chat context so later replies stay consistent, and the user
-can keep or remove each one in Character Studio. A new statement that contradicts one already on
+they came from. With model memory on, the memory model later reads the same message for what the
+rules miss (companion/memory/self_suggest.py), and its facts are noted the same way. Noted facts go
+into the chat context so later replies stay consistent, and the user can keep or remove each one in Character Studio. A new statement that contradicts one already on
 record waits as a conflict instead of quietly replacing it. A companion who texts in lowercase
 writes names in lowercase too ("my cat juniper"), so in lowercase text a plain word after "my cat"
 counts as a name unless it is a common word ("my cat is sleeping").
@@ -107,12 +108,17 @@ LOWERCASE_RULES = {'person': re.compile(kin_lowercase(RELATIVES), re.IGNORECASE)
 SINGLE = {'favorite', 'grew_up', 'person', 'team', 'works_at'}
 LABELS = {'likes': 'Likes', 'dislikes': 'Dislikes', 'favorite': 'Favorite', 'person': 'Person', 'pet': 'Pet',
           'never': 'Never', 'grew_up': 'Grew up', 'allergy': 'Allergic to', 'team': 'Team', 'plays': 'Plays',
-          'works_at': 'Works at'}
+          'works_at': 'Works at', 'detail': 'Detail'}
 STATUSES = ('noted', 'kept', 'rejected', 'conflict')
 IN_FORCE = ('noted', 'kept')
 # Objects that are the conversation, not a taste ("I love that", "I like talking to you").
 NOT_TASTES = NOT_THINGS | {'it here', 'that too', 'this too', 'the idea', 'your', 'how you', 'when you', 'the way you',
                            'hearing', 'hearing that', 'that you', 'what you', 'having you', 'you too', 'us'}
+# First words of a "liked" object that make it about the moment, not a taste.
+NOT_TASTE_STARTS = {'you', 'your', 'it', 'that', 'this', 'these', 'those', 'how', 'what', 'when', 'where', 'why', 'who',
+                    'almost', 'about', 'as', 'so', 'too', 'being', 'seeing', 'hearing', 'having', 'everything',
+                    'anything', 'nothing', 'all', 'both', 'dedication', 'idea', 'sound', 'thought', 'energy', 'vibe',
+                    'way', 'one', 'them', 'him', 'her', 'us', 'me', 'myself', 'yours', 'reading', 'getting', 'knowing'}
 
 
 @dataclass(frozen=True)
@@ -187,9 +193,17 @@ def fact_for(category: str, match, sentence: str, lowercase=False) -> Fact | Non
     if category == 'grew_up':
         return Fact('grew_up', 'hometown', groups[0].rstrip('.'), sentence)
     thing = clean(groups[0])
-    if not thing or thing.lower() in NOT_TASTES or thing.lower().split()[0] in {'you', 'your', 'it', 'that', 'how'}:
+    if not taste(thing):
         return None
     return Fact(category, thing.lower(), thing, sentence)
+
+
+def taste(thing: str) -> bool:
+    """A thing someone can like: "hiking", "the vibe of the games". Not a reaction to the conversation ("this for
+    you", "the dedication"), a comparison ("almost as much") or half a sentence."""
+    words = thing.lower().split()
+    return bool(words) and thing.lower() not in NOT_TASTES and words[0] not in NOT_TASTE_STARTS and len(words) <= 5 \
+        and all(re.fullmatch(r"[\w'’&-]+", word) for word in words)
 
 
 def extract(text: str, lowercase=False) -> list[Fact]:
@@ -254,8 +268,8 @@ def contradiction(fact: Fact, current: list[dict]) -> dict | None:
     for row in current:
         if row['key'] == opposite(fact):
             return row
-        if row['category'] == fact.category and row['subject'] == fact.subject and row['value'].lower() != \
-                fact.value.lower() and fact.category in SINGLE and (
+        if row['category'] == fact.category and row['subject'] == fact.subject and not \
+                same_value(row['value'], fact.value) and fact.category in SINGLE and (
                     fact.category != 'person' or fact.subject in ONE_OF):
             return row
     return None
@@ -288,15 +302,30 @@ def family_clash(connection, timeline_id, fact: Fact, definition: dict) -> dict 
 
 
 def note(connection, message: dict, timestamp: str) -> list[dict]:
-    """Record what one completed companion message says about the character. Idempotent per message."""
+    """Record what one completed companion message says about the character. Idempotent per message.
+    The message also waits for the memory model to read (companion/memory/self_suggest.py)."""
     if message['role'] != 'companion' or message['status'] != 'complete':
         return []
     companion = require_current(connection)
+    from companion.memory import self_suggest
+    self_suggest.queue(connection, message, timestamp)
+    return record(connection, companion, message,
+                  extract(message['text'], texting.style(companion['version']['definition'])['lowercase']), timestamp)
+
+
+def same_value(old: str, new: str) -> bool:
+    """The same name said shorter or longer: "the Blast" for "Baltimore Blast", "Harbor Hellions" for "Hellions"."""
+    old_words, new_words = set(old.casefold().split()), set(new.casefold().split())
+    return old_words <= new_words or new_words <= old_words
+
+
+def record(connection, companion: dict, message: dict, facts: list[Fact], timestamp: str) -> list[dict]:
+    """Note facts from one message, each as a conflict when it contradicts what is on record."""
     current = in_force(connection, message['timeline_id'])
     known = {row['key']: row for row in current}
     added = []
-    for fact in extract(message['text'], texting.style(companion['version']['definition'])['lowercase']):
-        if fact.key in known and known[fact.key]['value'].lower() == fact.value.lower():
+    for fact in facts:
+        if fact.key in known and same_value(known[fact.key]['value'], fact.value):
             continue
         clash = contradiction(fact, current)
         definition = companion['version']['definition']
@@ -391,6 +420,8 @@ def context_line(row: dict) -> str:
         return f"- Your favorite {row['subject']}: {row['value']}{confirmed}."
     if row['category'] == 'never':
         return f"- You have never {row['subject']}{confirmed}."
+    if row['category'] == 'detail':
+        return f"- Your {row['subject']}: {row['value']}{confirmed}."
     return f"- {LABELS[row['category']]}: {row['value']}{confirmed}."
 
 

@@ -1246,3 +1246,11 @@ CREATE TABLE IF NOT EXISTS companion_plans (
   UNIQUE (message_id, local_date)
 );
 CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id);
+
+-- Companion messages waiting for the memory model to read for what they say about the companion
+-- (companion/memory/self_suggest.py); queued by self_facts.note while model memory is on.
+CREATE TABLE IF NOT EXISTS self_fact_jobs (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  status TEXT NOT NULL CHECK (status IN ('queued', 'done', 'skipped', 'failed', 'stale')),
+  queued_at TEXT NOT NULL
+);

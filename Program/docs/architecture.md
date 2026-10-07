@@ -378,7 +378,19 @@ message is texted in lowercase (no capitalised word but "I" and sentence starts,
 starting lowercase) or the definition's texting style is lowercase, a lowercase word after "my
 sister" or "my cat" is taken as a name and stored title-cased ("my cat juniper" is Juniper), unless
 it is a common word ("my cat is sleeping", "my mom was mad", "my grandma calls"). Questions, hypotheticals ("maybe", "if only", "wish"),
-quoted lines and *actions* are skipped. Each fact keeps the sentence it came from and belongs to that
+quoted lines and *actions* are skipped. A "liked" object that reacts to the conversation ("I love this for you",
+"I love the dedication", "I love what I do") or runs past five words is not a taste.
+
+With model memory on (the default), each completed companion message of four words or more is also queued in
+`self_fact_jobs`, and `companion/memory/self_suggest.py` sends queued messages eight at a time, each with the
+message it answered, to the memory model at maintenance priority. The rules missed most of what the six-month
+test needed: "we're the Harbor Hellions" answering "what's your derby team called?", relatives named in passing,
+a car or a tattoo. The model answers with a category (the rule categories plus `detail`, subject like "car"), a
+subject and a value in her own words; an answer whose value is not mostly the message's own words, or names a
+message outside the batch, is dropped. The rest go through the same `self_facts.record` as rule-found facts, so
+the same checks below hold a new value as a conflict. The prompt is editable ("Noting the companion's own facts").
+
+Each fact keeps the sentence it came from and belongs to that
 message: it applies on any timeline that holds the message or a copy of it, and stops applying when
 the reply is replaced by another version or deleted. Facts in force go into the chat context as
 "What you have said about yourself before". A statement that contradicts one in force (likes

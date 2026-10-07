@@ -65,9 +65,13 @@ PROMPTS = {prompt.name: prompt for prompt in (
            constant('companion.life.synthesis', 'RULES'),
            {'name': "the companion's name"}),
     Prompt('memory-suggestions', CHAT, 'Suggesting memories',
-           'Asks the memory model which facts in your messages are worth remembering. Suggestions still '
-           'wait for your review, and replies in the wrong shape are ignored.',
+           'Asks the memory model which facts in your messages are worth remembering. What it finds is saved '
+           'automatically and can be corrected on the Memories page; replies in the wrong shape are ignored.',
            constant('companion.memory.suggest', 'RULES')),
+    Prompt('self-facts', CHAT, "Noting the companion's own facts",
+           "Asks the memory model what the companion's replies say about their own life (people, pets, team, "
+           'work), so later replies keep those the same. Answers must use the reply\'s own words.',
+           constant('companion.memory.self_suggest', 'RULES'), {'name': "the companion's name"}),
     Prompt('picture-description', CHAT, 'Describing your pictures',
            'Sent with each picture you send, to the "Seeing pictures" model. The description is what the '
            'companion sees.',

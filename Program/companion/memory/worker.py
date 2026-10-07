@@ -10,7 +10,7 @@ import time
 from companion.characters import require_current
 from companion.database import settings
 from companion.life import storylines
-from companion.memory import consolidation, vectors
+from companion.memory import consolidation, self_suggest, vectors
 from companion.memory import suggest as model_suggestions
 from companion.memory.formation import run_pending
 from companion.providers.embeddings import EmbeddingProvider, as_documents, vector_model
@@ -49,7 +49,8 @@ class MemoryWorker:
                 formed = (await asyncio.to_thread(run_pending, self.database))['processed']
                 indexed = await self.index()
                 suggested = await self.suggest()
-                if not formed and not indexed and not suggested:
+                read = await self.read_self_facts()
+                if not formed and not indexed and not suggested and not read:
                     await self.consolidate()
                     return
             except Exception:  # noqa: BLE001 - memory work is optional; the next kick retries.
@@ -60,6 +61,12 @@ class MemoryWorker:
             return 0
         return await model_suggestions.suggest(self.database, self.provider, self.scheduler,
                                      lambda config: key_for(self.vault, config))
+
+    async def read_self_facts(self) -> int:
+        if self.provider is None:
+            return 0
+        return await self_suggest.suggest(self.database, self.provider, self.scheduler,
+                                          lambda config: key_for(self.vault, config))
 
     async def consolidate(self):
         """At most once per CONSOLIDATE_SECONDS, and only while automatic memory is on (M11)."""

@@ -13,6 +13,7 @@ test('facts read as short lines', () => {
   assert.equal(selfFactText(fact('favorite', 'band', 'The National')), 'Favorite band: The National')
   assert.equal(selfFactText(fact('never', 'been to europe', 'Europe')), 'Has never been to europe')
   assert.equal(selfFactText(fact('dislikes', 'cilantro', 'cilantro')), 'Dislikes: cilantro')
+  assert.equal(selfFactText(fact('detail', 'car', 'a blue 2009 Civic')), 'Car: a blue 2009 Civic')
 })
 
 test('conflicts come first', () => {
