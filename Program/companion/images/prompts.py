@@ -7,13 +7,14 @@ import random
 import re
 
 from companion.characters import require_current
+from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
 from companion.life import feed, home, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 
-PROMPT_VERSION = 2
+PROMPT_VERSION = 3
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -65,20 +66,139 @@ def without_clothes(appearance: str) -> str:
     return '. '.join(kept)
 
 
-def compose(name, appearance, events, style, setting='', dressed=False) -> str:
+# Krea 2 reads one descriptive paragraph (github.com/krea-ai/krea-2, docs/prompting.md): the medium
+# first, each subject with what can be seen of them and what they do, then the setting, the light and
+# the camera. A name, a backstory, a caption or a mood word gives the image model nothing to draw.
+BACKSTORY = re.compile(r"\s+(?:in (?:college|high school|school)|as an? (?:kid|child|teen(?:ager)?)|growing up|"
+                       r"since\b|(?:years|months) ago|back when|because\b|despite\b|after (?:a|an|her|his|their|the|years)\b|"
+                       r"from (?:a|an|her|his|their|the|years)\b|when (?:she|he|they) (?:was|were)\b).*$", re.IGNORECASE)
+IMPRESSION = re.compile(r"\b(?:looks like (?:someone|somebody|a person|the kind|the type)|the (?:kind|type|sort) of "
+                        r"(?:person|woman|man|girl|guy)|seems|gives off|people (?:say|tell|think)|tends to|likes to|"
+                        r"loves|hates|prefers|never|always says)\b", re.IGNORECASE)
+VERBS = {'is': 'are', 'has': 'have', 'was': 'were'}
+PRONOUNS = {'she': ('She', 'her'), 'he': ('He', 'his'), 'they': ('They', 'their')}
+EXPRESSIONS = {
+    'focused': 'a focused, concentrating expression', 'steady': 'a calm, steady expression',
+    'tired': 'tired eyes and a weary half-smile', 'busy': 'a brisk, slightly harried look',
+    'refreshed': 'a bright, rested look', 'satisfied': 'a quiet, satisfied smile', 'practical': 'a relaxed, matter-of-fact look',
+    'content': 'a soft, contented smile', 'productive': 'a pleased, accomplished look', 'happy': 'a wide, easy smile',
+    'warm': 'a warm smile', 'cheerful': 'a cheerful grin', 'excited': 'a bright, excited smile',
+    'calm': 'a calm, peaceful expression', 'relaxed': 'a relaxed, easy expression', 'curious': 'a curious, absorbed look',
+    'inspired': 'a lit-up, absorbed look', 'energized': 'flushed cheeks and a pleased grin', 'proud': 'a proud little smile',
+    'cozy': 'a sleepy, cozy smile', 'rested': 'a rested, unhurried look', 'under the weather': 'a pale, sniffly, tired look',
+}
+
+
+def pronoun(appearance: str) -> str:
+    """She, he or they, as the appearance itself speaks of them; 'they' when it never says."""
+    words = re.findall(r"[a-z]+", appearance.lower())
+    counts = {'she': sum(word in ('she', 'her', 'hers', 'woman', 'girl') for word in words),
+              'he': sum(word in ('he', 'him', 'his', 'man', 'guy') for word in words)}
+    best = max(counts, key=counts.get)
+    return best if counts[best] and counts['she'] != counts['he'] else 'they'
+
+
+def unnamed(text: str, name: str, who: str) -> str:
+    """The text with the character's name (full or first) said as a pronoun: the image model cannot
+    know who Kimberly is, and a name invites lettering."""
+    subject, possessive = PRONOUNS[who]
+    for form in sorted({name.strip(), name.strip().split(' ')[0]} - {''}, key=len, reverse=True):
+        pattern = re.escape(form)
+        text = re.sub(rf"(^|[.!?]\s+){pattern}'s\b", lambda m: m.group(1) + possessive.capitalize(), text)
+        text = re.sub(rf"\b{pattern}'s\b", possessive, text)
+        text = re.sub(rf"(^|[.!?]\s+){pattern}\b", lambda m: m.group(1) + subject, text)
+        text = re.sub(rf"\b{pattern}\b", subject.lower(), text)
+    if who == 'they':
+        text = re.sub(r'\b(They|they) (is|has|was)\b', lambda m: f"{m.group(1)} {VERBS[m.group(2)]}", text)
+    return text
+
+
+def visible(appearance: str, name: str, who: str) -> str:
+    """What a camera can show of them: impressions ("looks like someone who...") are dropped and
+    backstory is cut off a clause ("a scar on her chin from a derby fall" keeps the scar)."""
+    kept = []
+    for sentence in re.split(r'(?<=[.!?])\s+', unnamed(appearance.strip(), name, who)):
+        if IMPRESSION.search(sentence):
+            continue
+        clauses = [BACKSTORY.sub('', clause).strip() for clause in CLAUSE.split(sentence.rstrip('.!? ')) if clause]
+        if clauses := [clause for clause in clauses if clause]:
+            kept.append(', '.join(clauses))
+    return '. '.join(f'{sentence[:1].upper()}{sentence[1:]}' for sentence in kept)
+
+
+def light(hour, weather) -> str:
+    """The light of the moment's hour and weather, or '' when neither is known."""
+    weather = weather or {}
+    if hour is None:
+        parts = []
+    elif 5 <= hour < 8:
+        parts = ['soft early-morning light']
+    elif 8 <= hour < 11:
+        parts = ['bright morning daylight']
+    elif 11 <= hour < 15:
+        parts = ['even midday daylight']
+    elif 15 <= hour < 18:
+        parts = ['warm late-afternoon light']
+    elif 18 <= hour < 20:
+        parts = ['low golden evening light']
+    else:
+        parts = ['night, lit by warm lamps and streetlights']
+    if weather.get('rain'):
+        parts.append('a grey, rainy day with wet surfaces' if hour is None or 6 <= hour < 20 else 'rain-wet streets')
+    elif isinstance(weather.get('high_f'), (int, float)) and weather['high_f'] <= 38:
+        parts.append('a cold winter day')
+    elif isinstance(weather.get('high_f'), (int, float)) and weather['high_f'] >= 90:
+        parts.append('a hot, hazy summer day')
+    return f"{', '.join(parts)[:1].upper()}{', '.join(parts)[1:]}." if parts else ''
+
+
+CAMERAS = {'moment': 'Shot at eye level on a phone camera, natural colours, realistic skin texture, shallow depth of field.',
+           'selfie': 'Slight wide-angle phone-camera look, natural colours, realistic skin texture.',
+           'view': 'Phone-camera look, natural colours, everything in the scene in focus.'}
+
+
+def camera(style: str, framing='moment') -> str:
+    """Camera details for a photographic style the user left plain; a painted or drawn style keeps its own."""
+    style = style.lower()
+    if 'photo' not in style or any(word in style for word in ('lens', 'mm', 'depth of field', 'shot on', 'film')):
+        return ''
+    return CAMERAS.get(framing, CAMERAS['moment'])
+
+
+def compose(name, appearance, events, style, setting='', dressed=False, framing='moment', who=None) -> str:
     """A digest is illustrated by its first event; one picture of several outings would invent a
     moment that never happened. `dressed` means `setting` says what they wear, so the appearance's
-    usual clothes are left out."""
+    usual clothes are left out. The event may carry the local `hour` and `weather` for the light;
+    its caption is never drawn (the feed shows it under the picture). A chat photo's `framing` opens
+    the paragraph in place of the plain moment; `who` overrides the pronoun read from the appearance."""
     event = events[0]
+    who = who or pronoun(appearance)
+    subject, possessive = PRONOUNS[who]
     where = f" at {event['place']}" if event['place'] and event['place'] not in event['summary'] else ''
     if dressed:
         appearance = without_clothes(appearance)
-    person = f'{name}, {appearance.strip().rstrip(".")}' if appearance.strip() else name
-    parts = [f"{(style or DEFAULT_STYLE).strip().rstrip('.')}. A fictional everyday moment.", f'{person}.',
-             f"{event['summary'].rstrip('.')}{where}.", setting, event['caption'].strip()]
-    if event['mood']:
-        parts.append(f"Mood: {event['mood']}.")
+    look = visible(appearance, name, who)
+    style = (style or DEFAULT_STYLE).strip().rstrip('.')
+    setting = re.sub(r'(^|\.\s+)Wearing\b', lambda m: f"{m.group(1)}{subject} {'are' if who == 'they' else 'is'} wearing",
+                     setting)
+    action = unnamed(f"{event['summary'].strip().rstrip('.')}{where}.", name, who)
+    expression = EXPRESSIONS.get((event.get('mood') or '').strip().lower()) or \
+        (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
+    opening = FRAMINGS[framing].format(subject=subject.lower(), possessive=possessive) if FRAMINGS[framing] else \
+        ''
+    parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment.', f'{look}.' if look else '', setting, action,
+             f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
+             light(event.get('hour'), event.get('weather')), camera(style, framing)]
     return ' '.join(part for part in parts if part)
+
+
+def local_hour(stamp_text, timezone) -> int | None:
+    if not stamp_text:
+        return None
+    try:
+        return parse(stamp_text).astimezone(zone(timezone)).hour
+    except (ValueError, TypeError):
+        return None
 
 
 def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> dict:
@@ -90,8 +210,10 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     events = scene(connection, post_id)
     require(events, 'This post has no committed event to illustrate yet.', 409)
     definition = companion['version']['definition']
+    first = {**events[0], 'hour': local_hour(events[0]['starts_at'], companion['version']['timezone']),
+             'weather': events[0]['moment'].get('weather')}
     return {'prompt_version': PROMPT_VERSION,
-            'prompt': compose(definition['name'], definition.get('appearance', ''), events, image_settings['style'],
+            'prompt': compose(definition['name'], definition.get('appearance', ''), [first], image_settings['style'],
                               *setting(connection, post['timeline_id'], events[0])),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
@@ -122,9 +244,9 @@ def stale(connection, inputs) -> bool:
 # How a chat photo frames the moment: the default photo, a selfie, or what they can see.
 FRAMINGS = {
     'moment': '',
-    'selfie': "A selfie {name} is taking right now at arm's length with a phone's front camera, face and "
-              'shoulders in frame, looking into the lens.',
-    'view': 'A phone photo of what {name} can see right now, first-person point of view, nobody in focus.',
+    'selfie': "a fictional selfie taken at arm's length with a phone's front camera, face and shoulders in "
+              'frame, looking into the lens',
+    'view': 'a fictional first-person phone photo of what {subject} can see right now, nobody in focus',
 }
 
 
@@ -135,12 +257,11 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     companion out of the picture, so it carries no likeness."""
     companion = require_current(connection)
     definition = companion['version']['definition']
-    scene_text = {key: moment[key] for key in ('summary', 'caption', 'mood', 'place')}
+    scene_text = {key: moment.get(key) for key in ('summary', 'caption', 'mood', 'place', 'hour', 'weather')}
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
-    prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing))
-    if FRAMINGS[framing]:
-        prompt = f"{FRAMINGS[framing].format(name=definition['name'])} {prompt}"
+    prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),
+                     framing, pronoun(definition.get('appearance', '')))
     likeness = current_for_images(connection)
     if framing == 'view':
         likeness = {**likeness, 'lora': None}
@@ -158,9 +279,10 @@ def build_meme(connection, meme, image_settings) -> dict:
         prompt = f"Reaction-meme style photo, simple and centered: {meme['subject']}. A fictional scene."
         likeness = {**current_for_images(connection), 'lora': None}
     else:
-        person = f"{definition['name']}, {definition.get('appearance', '').strip().rstrip('.')}".rstrip(', ')
-        prompt = (f"Reaction-meme style photo, simple and centered: {person}, with a {meme['expression']} "
-                  f"expression{meme['where']}. A fictional moment, room above and below the face.")
+        appearance = definition.get('appearance', '')
+        look = visible(appearance, definition['name'], pronoun(appearance))
+        prompt = (f"Reaction-meme style photo, simple and centered, of a fictional person with a {meme['expression']} "
+                  f"expression{meme['where']}, room above and below the face. {look}.").rstrip(' .') + '.'
         likeness = current_for_images(connection)
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
             'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],

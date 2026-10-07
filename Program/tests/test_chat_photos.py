@@ -193,7 +193,8 @@ def test_a_selfie_is_a_new_version_of_the_moment_and_each_reply_keeps_its_own(cl
     selfie = ask(client, 'send me a selfie!', 'ask-0002')
     drain(client)
     assert selfie['photo']['post_id'] == plain['photo']['post_id'] and selfie['photo']['kind'] == 'selfie'
-    assert adapters['comfyui'].requests[-1].prompt.startswith('A selfie Mira is taking')
+    prompt = adapters['comfyui'].requests[-1].prompt
+    assert 'fictional selfie' in prompt.split('.')[0] and 'Mira' not in prompt
     first = client.get(f"/api/images/photos/{plain['id']}").json()
     second = client.get(f"/api/images/photos/{selfie['id']}").json()
     assert first['ref'] and second['ref'] and first['ref'] != second['ref']

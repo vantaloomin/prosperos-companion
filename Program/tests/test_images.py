@@ -942,3 +942,27 @@ def test_a_moment_with_its_own_outfit_leaves_the_usual_clothes_out():
     assert 'flats' not in dressed and 'white sneakers' in dressed and '..' not in dressed
     plain = prompts.compose('Kim', appearance, [event], 'Candid phone photo, natural light.')
     assert 'black flats' in plain and '..' not in plain
+
+
+def test_the_prompt_is_one_krea_style_paragraph_of_what_a_camera_can_see():
+    """Krea 2's guide (docs/prompting.md): medium first, the subject with what can be seen of them and what
+    they do, then the light and the camera. A name, backstory, caption or bare mood word gives it nothing to draw."""
+    from companion.images import prompts
+    appearance = ("Kimberly is a 32-year-old woman with long auburn hair, thin eyebrows she overplucked in college, "
+                  "and freckles. She has a faint scar on her chin from a derby fall. She looks like someone who never "
+                  "sleeps enough. Kimberly's smile is lopsided.")
+    event = {'summary': 'Kimberly studied at the library.', 'place': 'Enoch Pratt Library',
+             'caption': 'I am literally so locked in right now', 'mood': 'focused', 'hour': 16,
+             'weather': {'rain': True, 'high_f': 60}}
+    prompt = prompts.compose('Kimberly Smith', appearance, [event], 'Candid, natural-light photograph',
+                             'Wearing a grey hoodie.', dressed=True)
+    assert prompt.startswith('Candid, natural-light photograph of a fictional everyday moment.')
+    assert 'Kimberly' not in prompt and 'locked in' not in prompt and 'Mood:' not in prompt
+    assert 'in college' not in prompt and 'derby' not in prompt and 'looks like someone' not in prompt
+    assert 'faint scar on her chin' in prompt and 'Her smile is lopsided' in prompt
+    assert 'She is wearing a grey hoodie.' in prompt and 'She studied at the library at Enoch Pratt Library.' in prompt
+    assert 'focused, concentrating expression' in prompt and 'late-afternoon light' in prompt and 'rainy' in prompt
+    assert prompt.endswith('shallow depth of field.') and '..' not in prompt
+    painted = prompts.compose('Kimberly Smith', appearance, [event], 'Watercolour sketch')
+    assert 'phone camera' not in painted
+    assert prompts.pronoun('') == 'they' and prompts.pronoun('He has a beard.') == 'he'

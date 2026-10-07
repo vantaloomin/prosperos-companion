@@ -85,6 +85,18 @@ asks a service. `routing.py` then decides where it may go:
   On the shipped city data that is 4 of 3,749 names and descriptions; the composer's own captions
   produce none (`tests/test_images.py`).
 
+## Prompts
+
+`companion/images/prompts.py` writes one descriptive paragraph in the shape Krea 2's guide asks for
+(github.com/krea-ai/krea-2, `docs/prompting.md`), with no model: the style line as the medium (or a
+chat photo's selfie or view framing), then the person as a camera would see them, what they wear in
+this moment, what they are doing and where, an expression for the event's mood, the light for the
+local hour and weather, and camera details when the style is a plain photograph. The character's
+name is said as she, he or they (read from the appearance description; "they" when it never says),
+impressions ("looks like someone who...") are dropped and backstory is cut from a clause ("a scar
+from a derby fall" keeps the scar). The post's caption is not in the prompt: the feed shows it
+under the picture. Other backends get the same paragraph, which reads as a plain description.
+
 ## Jobs (F3, F4)
 
 A job freezes its inputs: the prompt and negatives, the aspect, a seed, the events and their
