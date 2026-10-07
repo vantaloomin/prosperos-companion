@@ -1031,7 +1031,9 @@ export interface CastMember { id: string; name: string; main: boolean; from_town
 export interface CastDraft {
   definition: CharacterDefinition
   person: { key: string; name: string; full: string; age: number; role: string; kind: string; place: string; neighborhood: string }
-  stepping_back: string
+  /** Who steps back; null when there is no main character yet (a dating match as the first companion). */
+  stepping_back: string | null
+  matched?: boolean
 }
 export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }
 
@@ -1071,3 +1073,39 @@ export interface StoryPerson {
   doing: string; place: { id: string; name: string; city_id: string } | null
 }
 export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; ready: boolean; can_switch: boolean }
+
+/** The dating app (companion/dating.py): the user's profile, the deck, matches and any Story mode date. */
+export type DatingGender = 'woman' | 'man' | 'nonbinary'
+export type DatingAim = 'serious' | 'casual' | 'friends'
+export interface DatingProfile {
+  name: string; age: number; gender: DatingGender; interested_in: DatingGender[]; looking_for: DatingAim
+  age_min: number; age_max: number; bio: string
+}
+export interface DatingCard {
+  key: string; name: string; age: number; gender: DatingGender; pronouns: string; orientation: string
+  looking: DatingAim; looking_text: string; looks: string; job: string; neighborhood: string; bio: string
+  /** An older era's personal-column notice, with initials only; '' on a dating app. */
+  notice: string
+}
+export interface DatingPlace { id: string; name: string; kind: string; neighborhood: string; theirs: boolean }
+export interface DatingMatch extends DatingCard {
+  city: { id: string; name: string }
+  /** Set once the match became a companion. */
+  companion_id: string | null
+  places: DatingPlace[]
+}
+export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; empty: string; tagline: string; get: string; getting: string }
+export interface Dating {
+  surface: 'app' | 'column' | 'matchmaker'
+  words: DatingWords
+  city: { id: string; name: string }
+  profile: DatingProfile | null
+  /** Whether Story mode is on, so a match can be met there. */
+  story: boolean
+  deck: DatingCard[]
+  remaining: number
+  matches: DatingMatch[]
+  date: { key: string; name: string; place_id: string } | null
+  /** After a like: the person, when they liked the user back. */
+  matched?: DatingCard | null
+}
