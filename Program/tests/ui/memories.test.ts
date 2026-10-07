@@ -68,6 +68,11 @@ test('a conflicting suggestion names the value it would replace', () => {
   assert.match(suggestionReason('conflict'), /^This is different, and/)
 })
 
+test('a correction suggestion names the memory it corrects or ends', () => {
+  assert.match(suggestionReason('correction', ['she loves gardening']), /^This corrects “she loves gardening”\. Remember replaces it/)
+  assert.match(suggestionReason('correction', ['Chicago'], true), /^You said “Chicago” is no longer true\./)
+})
+
 test('a memory from another timeline is marked', () => {
   assert.ok(statusLabels(memory('m', { in_timeline: false })).includes('Another timeline'))
   assert.ok(!statusLabels(memory('m', { in_timeline: true })).includes('Another timeline'))

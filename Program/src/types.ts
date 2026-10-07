@@ -277,8 +277,11 @@ export interface Suggestion {
   dates_uncertain: boolean
   excerpt: string
   reason: string | null
-  /** For a conflict: the current values keeping this would replace. */
+  /** For a conflict or a correction: the current values keeping this would replace. */
   replaces?: string[]
+  /** For a correction: the id of the memory it corrects, and whether keeping it ends that memory as history. */
+  corrects?: string
+  ends?: boolean
   created_at: string
 }
 

@@ -26,7 +26,7 @@ export function Suggestions({ name, run }: { name: string; run: <T>(action: () =
             <div className="memory-main">
               <p className="memory-subject">{suggestion.subject}</p>
               <p className="memory-value">{suggestion.value || suggestion.excerpt}</p>
-              <p className="memory-meta">{suggestion.sensitive && <span className="badge">Sensitive</span>}<span>{suggestionReason(suggestion.reason, suggestion.replaces)}</span></p>
+              <p className="memory-meta">{suggestion.sensitive && <span className="badge">Sensitive</span>}<span>{suggestionReason(suggestion.reason, suggestion.replaces, suggestion.ends)}</span></p>
               <p className="memory-source">From your message: <q>{suggestion.excerpt}</q></p>
             </div>
             <div className="memory-actions" role="group" aria-label={`Decide about ${suggestion.subject}`}>

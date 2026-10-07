@@ -6,8 +6,10 @@ revision is unchanged at commit time, so turning automatic memory off stops queu
 Explicitly stated ordinary facts commit directly; sensitive ones wait as suggestions unless the
 user allowed sensitive memory. A new value that contradicts a current one without saying it changed
 ("I live in Denver" while Chicago is current) also waits, so two ambiguous statements stay
-unresolved until the user says which holds (M8). Remember this on a message is deliberate, so it commits what it
-finds, sensitive or not. Every step leaves an activity record of identities and reason codes.
+unresolved until the user says which holds (M8). A sentence that says a current memory is wrong ("my mom is not
+a gardener") waits as a correction of that memory (`corrections.py`). Remember this on a message is deliberate, so
+it commits what it finds, sensitive or not; corrections still wait. Every step leaves an activity record of
+identities and reason codes.
 """
 import hashlib
 
@@ -16,7 +18,7 @@ from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
 from companion.lineage import declined, related
-from companion.memory import extraction, people, records
+from companion.memory import corrections, extraction, people, records
 
 JOB_BATCH = 20
 PENDING_LIMIT = 50
@@ -162,6 +164,9 @@ def form(connection, companion, message, timestamp, *, deliberate: bool) -> list
             message_id=message['id'])
         if memory:
             written.append(memory)
+    for fields in corrections.found(connection, companion, message, timestamp):
+        if corrections.record(connection, companion, message, fields, 'rule', corrections.RULE, timestamp):
+            log(connection, timestamp, 'suggested', message_id=message['id'], detail=corrections.RULE)
     return written
 
 
@@ -265,7 +270,11 @@ def replaces(connection, companion, fields, now) -> list[str]:
 
 def suggestion_view(connection, companion, row, now) -> dict:
     fields = people.bind_existing(connection, companion['id'], decode(row['proposal']))
-    current = replaces(connection, companion, fields, now) if row['reason'] == 'conflict' else []
+    if fields.get('corrects'):
+        corrected = corrections.current(connection, fields, now)
+        current = [corrected['value']] if corrected else []
+    else:
+        current = replaces(connection, companion, fields, now) if row['reason'] == 'conflict' else []
     return {'id': row['id'], 'message_id': row['message_id'], 'source': row['source'], 'rule': row['rule'],
             'reason': row['reason'], 'created_at': row['created_at'], 'replaces': current, **fields}
 
@@ -290,7 +299,11 @@ def accept(database, candidate_id) -> dict:
         timestamp = database.now()
         fields = decode(row['proposal'])
         authority = 'confirmed' if row['source'] == 'model' else 'stated'
-        memory, outcome = commit(connection, companion, fields, [message['id']], timestamp, 'suggestion', authority)
+        if fields.get('corrects'):
+            memory, outcome = corrections.apply(connection, fields, message['id'], timestamp)
+        else:
+            memory, outcome = commit(connection, companion, fields, [message['id']], timestamp, 'suggestion',
+                                     authority)
         resolve(connection, candidate_id, 'committed' if memory else 'dismissed', memory, outcome, timestamp)
         log(connection, timestamp, 'accepted', memory_id=memory and memory['id'], candidate_id=candidate_id,
             message_id=message['id'], detail=outcome)
