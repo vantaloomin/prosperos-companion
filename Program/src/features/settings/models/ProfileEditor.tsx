@@ -7,7 +7,7 @@ import { Notice } from '../../../components/Feedback'
 import { TextInput } from '../../../components/Fields'
 import { GenerationSettings } from './GenerationSettings'
 import { ModelCombobox } from './ModelCombobox'
-import { applyDiscovered, discoveredSettings, profileReady, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
+import { applyDiscovered, discoveredSettings, profileReady, recallReady, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
 import { configFor, embeddingProviders, providerOrder, providers, type ModelProfile, type ProfileConfig, type Provider } from './types'
 
 const failure = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
@@ -67,7 +67,7 @@ function useProfileForm(profile: ModelProfile | undefined) {
 function readiness(profile: ModelProfile | undefined, config: ProfileConfig, key: string) {
   const savedKey = savedKeyApplies(profile?.config, profile?.has_saved_key ?? false, config)
   const ready = profileReady(config)
-  return { savedKey, ready, canSave: ready || !!key.trim() || savedKey }
+  return { savedKey, ready, recallOnly: !ready && recallReady(config), canSave: ready || recallReady(config) || !!key.trim() || savedKey }
 }
 
 export function ProfileEditor({ profile, onDone }: { profile?: ModelProfile; onDone: (saved?: ModelProfile) => void }) {
@@ -81,13 +81,14 @@ export function ProfileEditor({ profile, onDone }: { profile?: ModelProfile; onD
     <ConnectionFields config={config} patch={patch} savedKey={form.savedKey} apiKey={form.key} onKey={form.changeKey} />
     <ModelDiscovery config={config} discovery={discovery} onTest={form.test} patch={patch} />
     <ModelFields config={config} patch={patch} discovery={discovery} />
-    <SaveActions ready={form.ready} canSave={form.canSave} saving={saving.saving} error={saving.error} onCancel={() => onDone()} />
+    <SaveActions ready={form.ready} recallOnly={form.recallOnly} canSave={form.canSave} saving={saving.saving} error={saving.error} onCancel={() => onDone()} />
   </form>
 }
 
-function SaveActions({ ready, canSave, saving, error, onCancel }: { ready: boolean; canSave: boolean; saving: boolean; error: string; onCancel: () => void }) {
+function SaveActions({ ready, recallOnly, canSave, saving, error, onCancel }: { ready: boolean; recallOnly: boolean; canSave: boolean; saving: boolean; error: string; onCancel: () => void }) {
   return <>
-    {!ready && <p className="subtle">You can save the key now and choose a model later. A profile needs a model before it can do a job.</p>}
+    {recallOnly && <p className="subtle">With no text model, this profile does recall only. It takes over Semantic recall unless you already chose a profile for it.</p>}
+    {!ready && !recallOnly && <p className="subtle">You can save the key now and choose a model later. A profile needs a model before it can do a job.</p>}
     {error && <Notice tone="error">{error}</Notice>}
     <div className="form-actions"><button type="submit" className="button primary" disabled={!canSave} aria-disabled={saving}>{saving ? 'Saving…' : 'Save profile'}</button><button type="button" className="button" onClick={onCancel}>Cancel</button><span className="subtle">Keys are kept in your system keychain, never in the workspace or its backups.</span></div>
   </>
@@ -126,9 +127,9 @@ function TestButton({ blocked, busy, connected, onTest }: { blocked: boolean; bu
 function ModelFields({ config, patch, discovery }: { config: ProfileConfig; patch: Patch; discovery: Discovered }) {
   const models = discovery.result?.model_details ?? []
   return <>
-    <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder="Choose from the list, or type the model's ID"
+    <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder={embeddingProviders.includes(config.provider) ? "Choose from the list, type the model's ID, or leave empty for recall only" : "Choose from the list, or type the model's ID"}
       hint="Test connection lists the models this service offers. Picking one fills in its settings." tip="The exact name the service uses for the model, such as gpt-4o-mini or llama3.1:8b." />
-    {embeddingProviders.includes(config.provider) && <TextInput label="Embedding model (optional)" value={config.embedding_model ?? ''} onChange={value => patch({ embedding_model: value })} maxLength={200} hint="Lets recall find related memories even when the words differ, using this service’s embeddings. EmbeddingGemma 2 and Qwen3 Embedding 0.6B work well; Built-in recall below can run one without this service." />}
+    {embeddingProviders.includes(config.provider) && <TextInput label="Embedding model (optional)" value={config.embedding_model ?? ''} onChange={value => patch({ embedding_model: value })} maxLength={200} hint="Lets recall find related memories even when the words differ. EmbeddingGemma 2 and Qwen3 Embedding 0.6B work well. Recall does not have to use the service that writes replies: leave Model ID empty for a profile that only does recall, such as Ollama on this PC, or use Built-in recall below." />}
     <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></details>
   </>
 }

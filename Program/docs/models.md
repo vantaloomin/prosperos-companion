@@ -44,7 +44,7 @@ chunks through the scheduler), versioned profiles and exact retries, and usage a
 | Character drafting | Quick start and Help me write. |
 | Seeing pictures | Describes each picture you send in chat, once, before the reply (OpenAI, Anthropic, Google, OpenRouter, local or compatible profiles with a vision model; Kobold and Codex cannot look at pictures here). |
 | Story narrator | Replies in the Story tab ([story.md](story.md)). |
-| Semantic recall | Embeddings, from the profile's `embedding_model` (OpenAI, local or compatible profiles only), or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). |
+| Semantic recall | Embeddings, from the profile's `embedding_model` (OpenAI, local or compatible profiles only), or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). A profile with an embedding model and no text model is recall-only: it can do this job and no other, and the first one saved takes the job when recall has no profile of its own. |
 
 There is no automatic fallback to another profile when a request fails; like the Study, a failed
 request reports its error, and OpenRouter requests forbid OpenRouter's own provider fallbacks. The one

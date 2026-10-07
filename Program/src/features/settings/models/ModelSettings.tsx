@@ -5,7 +5,7 @@ import { api } from '../../../api'
 import { Notice } from '../../../components/Feedback'
 import { useReturnFocus } from '../../../components/returnFocus'
 import { ProfileEditor } from './ProfileEditor'
-import { jobChoice } from './routing'
+import { jobChoice, recallFallback } from './routing'
 import type { ModelJob, ModelProfile, ModelsOverview } from './types'
 
 const KEY = ['models']
@@ -40,7 +40,7 @@ export function ModelSettings() {
     </ul>}
     {editing === 'new' ? <ProfileEditor onDone={done} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => { setResult(null); setEditing('new') }}>Add a model profile</button></div>}
-    {profiles.some(profile => profile.ready) && <JobAssignments overview={query.data} onChanged={refresh} setResult={setResult} />}
+    {profiles.some(profile => profile.ready || profile.recall_ready) && <JobAssignments overview={query.data} onChanged={refresh} setResult={setResult} />}
     {result && <Notice tone={result.tone}>{result.text}</Notice>}
   </section>
 }
@@ -57,7 +57,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
   const where = profile.config.provider === 'codex' ? 'Codex CLI login' : profile.config.base_url
   return <li className="model-profile">
     <div><span className="eyebrow">{profile.provider_name}</span><h3>{profile.name}</h3>
-      <p className="subtle">{profile.config.model || 'Unfinished: choose a model'} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>
+      <p className="subtle">{profile.config.model || (profile.recall_ready ? `Recall only: ${profile.config.embedding_model}` : 'Unfinished: choose a model')} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>
       {jobs.length > 0 && <p className="model-jobs"><Check size={14} aria-hidden="true" />{jobs.map(job => job.name).join(', ')}</p>}
       {check && <p className="subtle" role="status">Connected. {check.count ? `${check.count} models available. ` : ''}No text was generated.{check.note ? ` ${check.note}` : ''}</p>}
     </div>
@@ -71,6 +71,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
 
 function JobAssignments({ overview, onChanged, setResult }: { overview: ModelsOverview; onChanged: (data?: ModelsOverview) => void; setResult: (result: Result) => void }) {
   const ready = overview.profiles.filter(profile => profile.ready)
+  const recall = overview.profiles.filter(profile => profile.recall_ready)
   const change = async (job: ModelJob, profileId: string) => {
     try {
       onChanged(await api<ModelsOverview>('/models/routes', { job: job.key, profile_id: profileId || null }, 'PUT'))
@@ -80,11 +81,11 @@ function JobAssignments({ overview, onChanged, setResult }: { overview: ModelsOv
   return <fieldset className="model-routes form-stack"><legend>Which profile does each job</legend>
     {overview.jobs.map(job => {
       const choice = jobChoice(overview, job.key)
-      const options = job.key === 'recall' ? ready.filter(profile => profile.config.embedding_model) : ready
+      const options = job.key === 'recall' ? recall : ready
       return <div className="field" key={job.key}>
         <label htmlFor={`model-job-${job.key}`}>{job.name}</label>
         <select id={`model-job-${job.key}`} value={choice.value} aria-describedby={`model-job-${job.key}-hint`} onChange={event => void change(job, event.target.value)}>
-          <option value="">{job.key === 'chat' ? 'None' : `Same as conversation${choice.inherited ? ` (${choice.inherited})` : ''}`}</option>
+          <option value="">{job.key === 'chat' ? 'None' : job.key === 'recall' ? recallFallback(overview) : `Same as conversation${choice.inherited ? ` (${choice.inherited})` : ''}`}</option>
           {options.map(profile => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
         </select>
         <small id={`model-job-${job.key}-hint`}>{job.detail}</small>

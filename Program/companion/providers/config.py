@@ -62,6 +62,16 @@ def profile_ready(config) -> bool:
     return bool(config.get('model', '').strip()) and (config['provider'] == 'codex' or bool(config.get('base_url')))
 
 
+def recall_ready(config) -> bool:
+    """Recall needs only an embedding model and an address: a profile can be for recall alone."""
+    return bool(config.get('embedding_model', '').strip()) and config['provider'] in EMBEDDING_PROVIDERS and \
+        bool(config.get('base_url'))
+
+
+def ready_for(config, job: str) -> bool:
+    return recall_ready(config) if job == 'recall' else profile_ready(config)
+
+
 class ReportedCapabilities(Input):
     model_id: str
     context_tokens: int | None = Field(default=None, gt=0)
@@ -95,7 +105,8 @@ class ProfileConfig(Input):
     output_token_parameter: Literal['max_tokens', 'max_completion_tokens'] = 'max_tokens'
     reported_capabilities: ReportedCapabilities | None = None
     resource_group: str = Field(default='', max_length=80, pattern=r'^[a-zA-Z0-9 _.-]*$')
-    # Optional; semantic recall uses this model through the same service's /embeddings.
+    # Optional; semantic recall uses this model through the same service's /embeddings. A profile with only
+    # this and no text model does recall alone.
     embedding_model: str = Field(default='', max_length=200)
 
     @model_validator(mode='after')

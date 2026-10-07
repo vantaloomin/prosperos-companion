@@ -1,5 +1,5 @@
 // Applying a connection test's model list, adapted from prosperos-study src/features/models/discovery.ts at bbcbde4.
-import { initialConfig, type ProfileConfig } from './types.ts'
+import { embeddingProviders, initialConfig, type ProfileConfig } from './types.ts'
 
 export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported'; supported_parameters?: string[]; supported_efforts?: string[] }
 export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string }
@@ -36,6 +36,8 @@ export function filterModels(models: DiscoveredModel[], query: string) {
 }
 
 export const profileReady = (config: ProfileConfig) => !!config.model.trim() && (config.provider === 'codex' || !!config.base_url.trim())
+/** A profile with an embedding model can do recall, even with no text model: recall can use another service than replies. */
+export const recallReady = (config: ProfileConfig) => !!config.embedding_model?.trim() && embeddingProviders.includes(config.provider) && !!config.base_url.trim()
 
 /** A key typed for one provider and address is never kept for another. */
 export function savedKeyApplies(initial: ProfileConfig | undefined, hasSavedKey: boolean, config: ProfileConfig) {

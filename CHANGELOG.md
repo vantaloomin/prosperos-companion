@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Recall on its own connection:** a model profile can now hold just an embedding model, with no text
+  model, so recall can use a different service from the one that writes replies (for example Claude for
+  chat and Ollama on this PC for embeddings). A recall-only profile takes over Semantic recall when you
+  save it, and the Semantic recall picker says "Keywords only" when nothing does it.
+
 ## v0.1.4 (2026-10-07)
 
 - **Editable prompts:** Settings > Show advanced settings adds an Advanced tab to reword the core

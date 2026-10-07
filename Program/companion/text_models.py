@@ -22,6 +22,8 @@ from companion.providers.config import (
     ProfileCreate,
     ProfileUpdate,
     profile_ready,
+    ready_for,
+    recall_ready,
 )
 from companion.providers.urls import is_loopback, validate_compatible_url
 from companion.providers.vault import credential_for
@@ -43,8 +45,9 @@ JOBS = [
      'Studio or Ollama.'},
     {'key': 'story', 'name': 'Story narrator', 'detail': 'Tells your story in the Story tab, apart from the '
      'companion.'},
-    {'key': 'recall', 'name': 'Semantic recall', 'detail': "Embeddings that find related memories. Uses the profile's "
-     'embedding model; without one, recall matches keywords only.'},
+    {'key': 'recall', 'name': 'Semantic recall', 'detail': 'Embeddings that find related memories. Any profile with an '
+     'embedding model can do it, including one with no text model, so recall can use a different service from '
+     'replies. Built-in recall, when on, does it instead. Without any, recall matches keywords only.'},
 ]
 JOB_KEYS = {job['key'] for job in JOBS}
 
@@ -57,7 +60,7 @@ def profile_view(row: dict) -> dict:
     config = decode(row['config'])
     return {'id': row['id'], 'name': row['name'], 'revision': row['revision'], 'config': config,
             'provider_name': PROVIDER_NAMES[config['provider']], 'has_saved_key': bool(row['credential_ref']),
-            'ready': profile_ready(config), 'updated_at': row['updated_at']}
+            'ready': profile_ready(config), 'recall_ready': recall_ready(config), 'updated_at': row['updated_at']}
 
 
 def routes(connection) -> dict[str, str]:
@@ -93,7 +96,7 @@ def config_for(connection, job: str) -> dict | None:
     if row is None:
         return None
     config = decode(row['config'])
-    if not profile_ready(config):
+    if not ready_for(config, job):
         return None
     return {**config, 'credential_ref': row['credential_ref'], 'profile_id': row['id'], 'profile_name': row['name']}
 
@@ -117,8 +120,11 @@ def probe_key(database, vault, body) -> str | None:
 
 
 def default_name(config: dict) -> str:
-    return f"{PROVIDER_NAMES[config['provider']]} · {config['model']}" if config.get('model') else \
-        f"{PROVIDER_NAMES[config['provider']]} connection"
+    if config.get('model'):
+        return f"{PROVIDER_NAMES[config['provider']]} · {config['model']}"
+    if config.get('embedding_model', '').strip():
+        return f"{PROVIDER_NAMES[config['provider']]} · {config['embedding_model'].strip()} (recall)"
+    return f"{PROVIDER_NAMES[config['provider']]} connection"
 
 
 def store_key(vault, body, reference: str | None) -> str | None:
@@ -143,6 +149,9 @@ def create(database, vault, body: ProfileCreate) -> dict:
         # The first finished profile answers in chat, so a new user is ready to talk after one form.
         if CHAT not in routes(connection) and profile_ready(config):
             assign(connection, CHAT, profile_id, timestamp)
+        # A profile made for recall alone takes recall, unless the user already chose one for it.
+        elif not profile_ready(config) and recall_ready(config) and 'recall' not in routes(connection):
+            assign(connection, 'recall', profile_id, timestamp)
         return profile_view(profile_row(connection, profile_id))
 
 
@@ -170,9 +179,9 @@ def require_assignable(connection, profile_id: str):
     """A profile doing a job must stay able to do it."""
     row = profile_row(connection, profile_id)
     jobs = [job for job, assigned_id in routes(connection).items() if assigned_id == profile_id]
-    require(not jobs or profile_ready(decode(row['config'])),
-            'This profile does a job in Settings > Models. Choose a model before saving it, or assign the job '
-            'to another profile first.', 409)
+    require(all(ready_for(decode(row['config']), job) for job in jobs),
+            'This profile does a job in Settings > Models. Choose a model (an embedding model, for recall) before '
+            'saving it, or assign the job to another profile first.', 409)
 
 
 def delete(database, vault, profile_id: str) -> dict:
@@ -194,9 +203,10 @@ def assign(connection, job: str, profile_id: str | None, timestamp: str):
         return
     row = profile_row(connection, profile_id)
     config = decode(row['config'])
-    require(profile_ready(config), 'Finish this profile: choose a model before giving it a job.', 409)
     if job == 'recall':
-        require(bool(config.get('embedding_model')), 'Semantic recall needs a profile with an embedding model.', 409)
+        require(recall_ready(config), 'Semantic recall needs a profile with an embedding model.', 409)
+    else:
+        require(profile_ready(config), 'Finish this profile: choose a model before giving it a job.', 409)
     connection.execute('INSERT INTO model_routes (job, profile_id, updated_at) VALUES (?, ?, ?) ON CONFLICT(job) '
                        'DO UPDATE SET profile_id=excluded.profile_id, updated_at=excluded.updated_at',
                        (job, profile_id, timestamp))

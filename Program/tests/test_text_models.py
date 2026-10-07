@@ -59,6 +59,21 @@ def test_a_job_can_use_its_own_profile(client, companion, provider):
         assert text_models.config_for(connection, 'drafting')['provider'] == 'local'
 
 
+def test_recall_can_use_its_own_connection_with_no_text_model(client, companion):
+    chat = add(client, {**ANTHROPIC}, api_key='anthropic-key')
+    recall = add(client, {'provider': 'local', 'base_url': 'http://127.0.0.1:11434/v1', 'embedding_model': 'qwen3-embedding'})
+    assert not recall['ready'] and recall['recall_ready'] and recall['name'] == 'Local / LM Studio · qwen3-embedding (recall)'
+    assert client.get('/api/models').json()['routes'] == {'chat': chat['id'], 'recall': recall['id']}
+    with client.app.state.database.connect() as connection:
+        assert text_models.config_for(connection, 'recall')['embedding_model'] == 'qwen3-embedding'
+        assert text_models.config_for(connection, 'drafting')['profile_id'] == chat['id']
+    refused = client.put('/api/models/routes', json={'job': 'drafting', 'profile_id': recall['id']})
+    assert refused.status_code == 409
+    emptied = client.put(f"/api/models/profiles/{recall['id']}", json={
+        'name': '', 'config': {'provider': 'local', 'base_url': 'http://127.0.0.1:11434/v1'}, 'expected_revision': 1})
+    assert emptied.status_code == 409
+
+
 def test_recall_needs_a_profile_with_an_embedding_model(client, companion):
     plain = add(client, LOCAL)
     response = client.put('/api/models/routes', json={'job': 'recall', 'profile_id': plain['id']})

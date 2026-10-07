@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyDiscovered, discoveredSettings, filterModels, profileReady, savedKeyApplies, typedModelSettings, type DiscoveredModel } from '../../src/features/settings/models/discovery.ts'
-import { jobChoice } from '../../src/features/settings/models/routing.ts'
+import { applyDiscovered, discoveredSettings, filterModels, profileReady, recallReady, savedKeyApplies, typedModelSettings, type DiscoveredModel } from '../../src/features/settings/models/discovery.ts'
+import { jobChoice, recallFallback } from '../../src/features/settings/models/routing.ts'
 import { configFor, type ModelsOverview } from '../../src/features/settings/models/types.ts'
 
 const sonnet: DiscoveredModel = { id: 'anthropic/claude-sonnet-5.5', name: 'Claude Sonnet 5.5', context_tokens: 200000, max_output_tokens: 500, limit_source: 'provider', supported_efforts: ['low', 'high'] }
@@ -44,4 +44,12 @@ test('a job without its own profile shows the conversation profile it uses', () 
   assert.deepEqual(jobChoice(overview, 'life'), { value: '', inherited: 'Local' })
   assert.deepEqual(jobChoice(overview, 'drafting'), { value: 'b', inherited: null })
   assert.deepEqual(jobChoice(overview, 'chat'), { value: 'a', inherited: null })
+})
+
+test('recall without its own profile says whether it borrows the conversation profile or matches keywords', () => {
+  const profile = (id: string, embedding: string) => ({ id, name: id, revision: 1, config: { ...configFor('local'), embedding_model: embedding }, provider_name: 'Local', has_saved_key: false, ready: true, recall_ready: !!embedding })
+  assert.equal(recallFallback({ profiles: [profile('Chat', '')], routes: { chat: 'Chat' }, jobs: [] }), 'Keywords only')
+  assert.equal(recallFallback({ profiles: [profile('Chat', 'nomic')], routes: { chat: 'Chat' }, jobs: [] }), 'Same as conversation (Chat)')
+  assert.equal(recallReady({ ...configFor('local'), embedding_model: 'qwen3-embedding' }), true)
+  assert.equal(recallReady({ ...configFor('anthropic'), embedding_model: 'x' }), false)
 })
