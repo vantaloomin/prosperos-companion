@@ -58,14 +58,20 @@ def validate_profile_url(provider, url, allow_incomplete=False):
         raise ValueError('This provider uses its official API address.')
 
 
+def is_recall(config) -> bool:
+    return config.get('purpose') == 'recall'
+
+
 def profile_ready(config) -> bool:
-    return bool(config.get('model', '').strip()) and (config['provider'] == 'codex' or bool(config.get('base_url')))
+    """A text profile with a model can do every job but recall."""
+    return not is_recall(config) and bool(config.get('model', '').strip()) and \
+        (config['provider'] == 'codex' or bool(config.get('base_url')))
 
 
 def recall_ready(config) -> bool:
-    """Recall needs only an embedding model and an address: a profile can be for recall alone."""
-    return bool(config.get('embedding_model', '').strip()) and config['provider'] in EMBEDDING_PROVIDERS and \
-        bool(config.get('base_url'))
+    """A recall profile with an embedding model can do recall, and only recall."""
+    return is_recall(config) and bool((config.get('embedding_model') or '').strip()) and \
+        config['provider'] in EMBEDDING_PROVIDERS and bool(config.get('base_url'))
 
 
 def ready_for(config, job: str) -> bool:
@@ -105,8 +111,9 @@ class ProfileConfig(Input):
     output_token_parameter: Literal['max_tokens', 'max_completion_tokens'] = 'max_tokens'
     reported_capabilities: ReportedCapabilities | None = None
     resource_group: str = Field(default='', max_length=80, pattern=r'^[a-zA-Z0-9 _.-]*$')
-    # Optional; semantic recall uses this model through the same service's /embeddings. A profile with only
-    # this and no text model does recall alone.
+    # Text profiles write; recall profiles only turn text into embeddings for semantic recall, through
+    # the service's /embeddings with embedding_model, so recall can use a different service from replies.
+    purpose: Literal['text', 'recall'] = 'text'
     embedding_model: str = Field(default='', max_length=200)
 
     @model_validator(mode='after')
@@ -117,8 +124,12 @@ class ProfileConfig(Input):
             raise ValueError('Codex CLI does not support a temperature setting here.')
         if self.provider == 'anthropic' and self.temperature is not None and self.temperature > 1:
             raise ValueError('Anthropic temperature must be between 0 and 1.')
-        if self.embedding_model.strip() and self.provider not in EMBEDDING_PROVIDERS:
-            raise ValueError('Embeddings need an OpenAI, local or OpenAI-compatible connection.')
+        if self.purpose == 'recall':
+            if self.provider not in EMBEDDING_PROVIDERS:
+                raise ValueError('Recall profiles need an OpenAI, local or OpenAI-compatible connection.')
+            self.model = ''
+        elif self.embedding_model.strip():
+            raise ValueError('Embedding models go in a recall profile, apart from text profiles.')
         validate_options(self)
         return self
 

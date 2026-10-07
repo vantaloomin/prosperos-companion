@@ -160,9 +160,9 @@ stopwords, ordinary words and names; up to three are named. It is rule-based and
 
 ### Semantic recall
 
-No model is downloaded for the user: embeddings come from the `/embeddings` endpoint of the profile
-doing semantic recall in Settings > Models ([Models](models.md)), with its optional `embedding_model`,
-or from built-in recall (below). Models known to want retrieval instructions (EmbeddingGemma, Qwen3
+No model is downloaded for the user: embeddings come from the `/embeddings` endpoint of the recall
+profile chosen in Settings > Models > Recall ([Models](models.md)), a profile with `purpose: recall`
+and an `embedding_model` and no text model, or from built-in recall (below). Models known to want retrieval instructions (EmbeddingGemma, Qwen3
 Embedding, nomic-embed-text, mxbai, Arctic) get them on the query and on stored texts
 (`providers/embeddings.py`), and their vectors are kept under `<model>#prompted-1`, so vectors made
 before the instructions are re-made once. The message being answered is embedded at conversation priority with a

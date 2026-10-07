@@ -8,7 +8,7 @@ import { TextInput } from '../../../components/Fields'
 import { GenerationSettings } from './GenerationSettings'
 import { ModelCombobox } from './ModelCombobox'
 import { applyDiscovered, discoveredSettings, profileReady, recallReady, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
-import { configFor, embeddingProviders, providerOrder, providers, type ModelProfile, type ProfileConfig, type Provider } from './types'
+import { configFor, embeddingProviders, isRecall, providerOrder, providers, recallConfigFor, type ModelProfile, type ProfileConfig, type Provider } from './types'
 
 const failure = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 
@@ -51,52 +51,54 @@ function useSave(profile: ModelProfile | undefined, onDone: (saved?: ModelProfil
   return { saving, error, save }
 }
 
-function useProfileForm(profile: ModelProfile | undefined) {
+function useProfileForm(profile: ModelProfile | undefined, recall: boolean) {
+  const fresh = recall ? recallConfigFor : configFor
   const [name, setName] = useState(profile?.name ?? '')
-  const [config, setConfig] = useState<ProfileConfig>(profile?.config ?? configFor('local'))
+  const [config, setConfig] = useState<ProfileConfig>(profile?.config ?? fresh('local'))
   const [key, setKey] = useState('')
   const discovery = useDiscovery(profile)
   const patch: Patch = (change) => { if (change.base_url !== undefined) discovery.reset(); setConfig(current => ({ ...current, ...change })) }
-  const changeProvider = (provider: Provider) => { discovery.reset(); setConfig(configFor(provider)); setKey('') }
+  const changeProvider = (provider: Provider) => { discovery.reset(); setConfig(fresh(provider)); setKey('') }
   const changeKey = (value: string) => { discovery.reset(); setKey(value) }
-  const test = () => { void discovery.connect(config, key, result => setConfig(current => applyDiscovered(result, current))) }
+  const test = () => { void discovery.connect(config, key, result => setConfig(current => isRecall(current) ? current : applyDiscovered(result, current))) }
   return { name, setName, config, key, discovery, patch, changeProvider, changeKey, test, ...readiness(profile, config, key),
     body: { name: name.trim(), config, api_key: key || null } }
 }
 
 function readiness(profile: ModelProfile | undefined, config: ProfileConfig, key: string) {
   const savedKey = savedKeyApplies(profile?.config, profile?.has_saved_key ?? false, config)
-  const ready = profileReady(config)
-  return { savedKey, ready, recallOnly: !ready && recallReady(config), canSave: ready || recallReady(config) || !!key.trim() || savedKey }
+  const ready = isRecall(config) ? recallReady(config) : profileReady(config)
+  return { savedKey, ready, canSave: ready || !!key.trim() || savedKey }
 }
 
-export function ProfileEditor({ profile, onDone }: { profile?: ModelProfile; onDone: (saved?: ModelProfile) => void }) {
-  const form = useProfileForm(profile)
+/** A text profile writes; a recall profile (`recall`) only makes embeddings, so recall can use a different service. */
+export function ProfileEditor({ profile, recall = false, onDone }: { profile?: ModelProfile; recall?: boolean; onDone: (saved?: ModelProfile) => void }) {
+  const form = useProfileForm(profile, recall || (!!profile && isRecall(profile.config)))
   const saving = useSave(profile, onDone)
   const { config, patch, discovery } = form
+  const recalls = isRecall(config)
   const submit = (event: FormEvent) => { event.preventDefault(); if (form.canSave) void saving.save(form.body) }
-  return <form className="model-profile-editor form-stack" onSubmit={submit} aria-label={profile ? `Edit ${profile.name}` : 'New model profile'}>
-    <ProviderPicker selected={config.provider} onChange={form.changeProvider} />
-    <TextInput label="Profile name" value={form.name} onChange={form.setName} maxLength={120} placeholder="Everyday chat, careful drafting…" hint="Leave empty to name it after the provider and model." />
+  return <form className="model-profile-editor form-stack" onSubmit={submit} aria-label={profile ? `Edit ${profile.name}` : recalls ? 'New recall profile' : 'New model profile'}>
+    <ProviderPicker selected={config.provider} choices={recalls ? embeddingProviders : providerOrder} onChange={form.changeProvider} />
+    <TextInput label="Profile name" value={form.name} onChange={form.setName} maxLength={120} placeholder={recalls ? 'Ollama embeddings…' : 'Everyday chat, careful drafting…'} hint={`Leave empty to name it after the provider and ${recalls ? 'embedding ' : ''}model.`} />
     <ConnectionFields config={config} patch={patch} savedKey={form.savedKey} apiKey={form.key} onKey={form.changeKey} />
     <ModelDiscovery config={config} discovery={discovery} onTest={form.test} patch={patch} />
-    <ModelFields config={config} patch={patch} discovery={discovery} />
-    <SaveActions ready={form.ready} recallOnly={form.recallOnly} canSave={form.canSave} saving={saving.saving} error={saving.error} onCancel={() => onDone()} />
+    {recalls ? <EmbeddingFields config={config} patch={patch} discovery={discovery} /> : <ModelFields config={config} patch={patch} discovery={discovery} />}
+    <SaveActions ready={form.ready} recall={recalls} canSave={form.canSave} saving={saving.saving} error={saving.error} onCancel={() => onDone()} />
   </form>
 }
 
-function SaveActions({ ready, recallOnly, canSave, saving, error, onCancel }: { ready: boolean; recallOnly: boolean; canSave: boolean; saving: boolean; error: string; onCancel: () => void }) {
+function SaveActions({ ready, recall, canSave, saving, error, onCancel }: { ready: boolean; recall: boolean; canSave: boolean; saving: boolean; error: string; onCancel: () => void }) {
   return <>
-    {recallOnly && <p className="subtle">With no text model, this profile does recall only. It takes over Semantic recall unless you already chose a profile for it.</p>}
-    {!ready && !recallOnly && <p className="subtle">You can save the key now and choose a model later. A profile needs a model before it can do a job.</p>}
+    {!ready && <p className="subtle">{recall ? 'You can save the key now and choose an embedding model later. A recall profile needs one before it can do recall.' : 'You can save the key now and choose a model later. A profile needs a model before it can do a job.'}</p>}
     {error && <Notice tone="error">{error}</Notice>}
     <div className="form-actions"><button type="submit" className="button primary" disabled={!canSave} aria-disabled={saving}>{saving ? 'Saving…' : 'Save profile'}</button><button type="button" className="button" onClick={onCancel}>Cancel</button><span className="subtle">Keys are kept in your system keychain, never in the workspace or its backups.</span></div>
   </>
 }
 
-function ProviderPicker({ selected, onChange }: { selected: Provider; onChange: (provider: Provider) => void }) {
+function ProviderPicker({ selected, choices, onChange }: { selected: Provider; choices: Provider[]; onChange: (provider: Provider) => void }) {
   return <><fieldset className="provider-picker"><legend>Provider</legend>
-    {providerOrder.map(provider => <button key={provider} type="button" className={`button${selected === provider ? ' selected' : ''}`} aria-pressed={selected === provider} onClick={() => onChange(provider)}>{providers[provider].name}</button>)}
+    {choices.map(provider => <button key={provider} type="button" className={`button${selected === provider ? ' selected' : ''}`} aria-pressed={selected === provider} onClick={() => onChange(provider)}>{providers[provider].name}</button>)}
   </fieldset><p className="subtle">{providers[selected].description}</p></>
 }
 
@@ -116,7 +118,7 @@ function ModelDiscovery({ config, discovery, onTest, patch }: { config: ProfileC
     <TestButton blocked={config.provider === 'compatible' && !config.base_url.trim()} busy={discovery.busy} connected={!!discovery.result} onTest={onTest} />
     {discovery.error && <Notice tone="error">{discovery.error}</Notice>}
     {discovery.result?.note && <p className="subtle">{discovery.result.note}</p>}
-    {models.length > 0 && <ModelCombobox models={models} value={models.some(model => model.id === config.model) ? config.model : ''} onChange={choose} />}
+    {models.length > 0 && !isRecall(config) && <ModelCombobox models={models} value={models.some(model => model.id === config.model) ? config.model : ''} onChange={choose} />}
   </section>
 }
 
@@ -127,10 +129,19 @@ function TestButton({ blocked, busy, connected, onTest }: { blocked: boolean; bu
 function ModelFields({ config, patch, discovery }: { config: ProfileConfig; patch: Patch; discovery: Discovered }) {
   const models = discovery.result?.model_details ?? []
   return <>
-    <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder={embeddingProviders.includes(config.provider) ? "Choose from the list, type the model's ID, or leave empty for recall only" : "Choose from the list, or type the model's ID"}
+    <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder="Choose from the list, or type the model's ID"
       hint="Test connection lists the models this service offers. Picking one fills in its settings." tip="The exact name the service uses for the model, such as gpt-4o-mini or llama3.1:8b." />
-    {embeddingProviders.includes(config.provider) && <TextInput label="Embedding model (optional)" value={config.embedding_model ?? ''} onChange={value => patch({ embedding_model: value })} maxLength={200} hint="Lets recall find related memories even when the words differ. EmbeddingGemma 2 and Qwen3 Embedding 0.6B work well. Recall does not have to use the service that writes replies: leave Model ID empty for a profile that only does recall, such as Ollama on this PC, or use Built-in recall below." />}
     <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></details>
+  </>
+}
+
+function EmbeddingFields({ config, patch, discovery }: { config: ProfileConfig; patch: Patch; discovery: Discovered }) {
+  const models = discovery.result?.model_details ?? []
+  const value = config.embedding_model ?? ''
+  return <>
+    {models.length > 0 && <ModelCombobox models={models} value={models.some(model => model.id === value) ? value : ''} onChange={id => patch({ embedding_model: id })} />}
+    <TextInput label="Embedding model" value={value} onChange={text => patch({ embedding_model: text.trim() })} maxLength={200} placeholder="Choose from the list, or type the model's ID"
+      hint="Turns memories into embeddings so recall finds related ones even when the words differ. EmbeddingGemma 2, Qwen3 Embedding 0.6B or nomic-embed-text work well." />
   </>
 }
 

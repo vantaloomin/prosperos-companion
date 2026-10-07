@@ -25,6 +25,8 @@ export interface ProfileConfig {
   output_token_parameter?: 'max_tokens' | 'max_completion_tokens'
   reported_capabilities?: ReportedCapabilities | null
   resource_group?: string
+  /** Text profiles write; recall profiles only make embeddings for semantic recall. */
+  purpose?: 'text' | 'recall'
   embedding_model?: string
 }
 export interface ModelProfile { id: string; name: string; revision: number; config: ProfileConfig; provider_name: string; has_saved_key: boolean; ready: boolean; recall_ready?: boolean }
@@ -44,4 +46,6 @@ export const providers: Record<Provider, { name: string; url: string; descriptio
 export const providerOrder = Object.keys(providers) as Provider[]
 export const initialConfig: ProfileConfig = { provider: 'local', model: '', base_url: providers.local.url, max_output_tokens: 800, context_tokens: 16000, timeout_seconds: 180 }
 export const configFor = (provider: Provider): ProfileConfig => ({ ...initialConfig, provider, base_url: providers[provider].url })
+export const recallConfigFor = (provider: Provider): ProfileConfig => ({ ...configFor(provider), purpose: 'recall', embedding_model: '' })
+export const isRecall = (config: ProfileConfig) => config.purpose === 'recall'
 export const embeddingProviders: Provider[] = ['openai', 'compatible', 'local']
