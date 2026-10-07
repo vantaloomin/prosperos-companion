@@ -172,3 +172,37 @@ def test_a_relative_named_unlike_the_circle_waits_as_a_conflict(client, app, con
     assert 'named Linda' not in system and '- Your mom is named Cathy.' in system
     facts = client.post(f"/api/self-facts/{linda['id']}/keep").json()['facts']
     assert ('Linda', 'kept') in [(fact['value'], fact['status']) for fact in facts]
+
+
+def test_the_user_correcting_them_in_chat_holds_what_they_said(client, connected, provider):
+    """"Your sister is Ashley, not Jo" takes Jo out of the very next reply's context, and Jo said again waits too."""
+    says(provider, 'My sister Jo is visiting. I grew up in Ohio.')
+    send(client, 'Family?', 'client-self-13')
+    says(provider, 'Oh right, sorry!')
+    sent = send(client, "Your sister is Ashley, not Jo. And you didn't grow up in Ohio.", 'client-self-14')['message']
+    request = provider.requests[-1]['system']
+    assert 'named Jo' not in request and 'Ohio' not in request.split('What you have said about yourself before')[-1]
+    facts = {fact['value']: fact for fact in client.get('/api/self-facts').json()['facts']}
+    assert facts['Jo']['status'] == facts['Ohio']['status'] == 'conflict'
+    assert facts['Jo']['conflicts_with'] == f"user:{sent['id']}" and facts['Jo']['user_said'].startswith('Your sister')
+    says(provider, 'My sister Jo says hi.')
+    send(client, 'Hm?', 'client-self-15')
+    assert [fact['status'] for fact in client.get('/api/self-facts').json()['facts'] if fact['value'] == 'Jo'] == \
+        ['conflict', 'conflict']
+    says(provider, 'Ha, fine.')
+    send(client, 'What if your sister was called Jo?', 'client-self-16')
+    kept = client.post(f"/api/self-facts/{facts['Ohio']['id']}/keep").json()['facts']
+    assert ('Ohio', 'kept') in [(fact['value'], fact['status']) for fact in kept]
+
+
+def test_a_place_the_definition_contradicts_waits(client, provider):
+    response = client.post('/api/companion', json={'name': 'Mira', 'timezone': 'Europe/Lisbon',
+                                                   'identity': 'A nurse who works at Mercy Hospital and grew up in Duluth.'})
+    assert response.status_code == 200, response.text
+    client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
+                                        'api_key': 'secret-key'})
+    says(provider, 'I work at Starbucks now. I grew up in Duluth, Minnesota.')
+    send(client, 'Work?', 'client-self-17')
+    facts = {fact['value']: fact for fact in client.get('/api/self-facts').json()['facts']}
+    assert (facts['Starbucks']['status'], facts['Starbucks']['definition_says']) == ('conflict', 'Mercy Hospital')
+    assert facts['Duluth']['status'] == 'noted'

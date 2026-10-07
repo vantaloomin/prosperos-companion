@@ -319,7 +319,8 @@ transcript, where raw recall can still find them: the user's original message, t
 later reply of theirs that repeated the old value before the correction, and a day summary quoting one of those.
 `companion/memory/corrected.py` marks each of them when it is recalled, with what the user changed it to ("the
 user later changed this; it now reads: Mom's interests: not a gardener") or that they said it was wrong, so the
-model never meets the old value bare. It is worked out from saved state on every reply and stores nothing. A sentence with a
+model never meets the old value bare. It is worked out from saved state on every reply and stores nothing. A
+retracted memory is listed in Memories history as "You said this was wrong". A sentence with a
 correction counts as handled, so the model does not see it again.
 
 **Supersession.** Single-valued subjects (`preferred_name`, `home_city`, `work`, `birthday`,
@@ -379,7 +380,13 @@ the reply is replaced by another version or deleted. Facts in force go into the 
 against dislikes, a second favorite band, a second mom, a second team or workplace) waits as a `conflict` instead,
 and so does a mom, dad, sister or brother named unlike anyone in that role in the companion's circle (the record
 their feed, diary and storylines use), unless the character definition gives that name; Character Studio shows
-who the circle has. In Character
+who the circle has. Two more checks (`companion/self_checks.py`, rules only) hold a fact the same way. When the
+user corrects the companion in chat ("your sister is Ashley, not Jo", "you don't have a brother", "you're an only
+child", "you don't work at Starbucks", "you didn't grow up in Ohio"), the facts that sentence contradicts become
+conflicts as the message is saved, so the reply to it no longer sees them, and the same value said again later
+waits too. When the definition says where the companion grew up or works ("grew up in Duluth", "works at Mercy
+Hospital", a work block "Shift at Mercy"), a reply naming somewhere else waits. `conflicts_with` holds
+`user:<message id>`, `definition:<place>` or `circle:<person id>`, and Character Studio shows which. In Character
 Studio the user keeps a fact (marked confirmed in the context), removes it, or keeps the conflicting
 one, which removes the earlier fact. Stated likes and dislikes also steer the composer: a disliked
 activity is left out and a liked one counts like an interest, and noting either rebuilds the

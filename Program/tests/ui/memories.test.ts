@@ -30,6 +30,7 @@ test('history, uncertainty and automatic saving are labelled', () => {
   assert.deepEqual(statusLabels(memory('chicago', { current: false, origin: 'automatic', dates_uncertain: true })),
     ['No longer current', 'Dates uncertain', 'Saved automatically'])
   assert.deepEqual(statusLabels(memory('plan', { layer: 'plan', plan_status: 'agreed', current: false })), ['Agreed'])
+  assert.deepEqual(statusLabels(memory('chicago', { status: 'superseded', retracted: true })), ['You said this was wrong'])
 })
 
 test('remember this describes what was kept', () => {
