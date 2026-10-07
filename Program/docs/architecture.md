@@ -144,8 +144,16 @@ timeline that the current conversation does not use (`in_timeline: false`).
    Settled storylines past their 60 days in the context join the same pool
    (`storylines.recall_items`), told to the companion as "you".
 
-When the companion's last 15 replies keep reaching for the same wording, the character section gets
-one line naming it ('You keep repeating: "honestly" (8 of your last 15 messages). Say it
+That is the order sections are offered for the budget. The prompt itself is written in a different
+order, by how often each section changes (`HEADINGS`): the character, boundaries, what the user told
+the companion, its own facts and its home first; daily things (calendar, weather, diary, storylines)
+next; then the circle (each person's "right now"), the clock, the wording nudge, lookups and
+recalled memories last. Consecutive replies then share a long unchanged start,
+which llama.cpp, LM Studio, Ollama and hosted providers reuse instead of processing it again
+(prompt caching). New sections go in the group that matches how often they change.
+
+When the companion's last 15 replies keep reaching for the same wording, a "Your wording lately"
+section near the end gets one line naming it ('You keep repeating: "honestly" (8 of your last 15 messages). Say it
 differently.'). `companion/memory/phrases.py` finds phrases of three to eight words in at least three
 replies with the Study's phrase detection, plus single words in at least five replies, leaving out
 stopwords, ordinary words and names; up to three are named. It is rule-based and calls no model.
