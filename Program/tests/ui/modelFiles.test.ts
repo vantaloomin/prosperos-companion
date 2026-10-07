@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { FILE_SLOTS, MISSING, fileChoices, filesBody, isChosen, linksByRole, serverFiles, shownFiles } from '../../src/features/settings/modelFiles.ts'
+import { FILE_SLOTS, MISSING, fileChoices, filesBody, hasKrea, isChosen, linksByRole, serverFiles, shownFiles, stylesBody } from '../../src/features/settings/modelFiles.ts'
 import type { ModelFiles, ModelLink } from '../../src/types.ts'
 
 const DEFAULTS: ModelFiles = { unet_name: 'krea2_turbo_fp8_scaled.safetensors', clip_name: 'qwen3vl_4b_fp8_scaled.safetensors', clip_type: 'krea2', vae_name: 'qwen_image_vae.safetensors' }
@@ -40,15 +40,30 @@ test('the shipped download list links to pages, never to a file download', () =>
 })
 
 test('a server that cannot be asked leaves typed names, and one that answers fills the lists', () => {
-  const options = { unet_name: [MUSE], clip_name: [], clip_type: ['krea2'], vae_name: [] }
-  assert.deepEqual(serverFiles(undefined, null, NONE), { answered: false, defaults: NONE, options: { ...options, unet_name: [], clip_type: [] }, error: null })
-  const down = serverFiles({ ok: false, error: 'Cannot reach the ComfyUI server.', defaults: DEFAULTS, options }, null, NONE)
+  const options = { unet_name: [MUSE], clip_name: [], clip_type: ['krea2'], vae_name: [], lora: [] }
+  const krea = { unet_name: [MUSE], clip_name: [], clip_type: [], vae_name: [], lora: [] }
+  assert.deepEqual(serverFiles(undefined, null, NONE), { answered: false, defaults: NONE, options: { ...options, unet_name: [], clip_type: [] }, krea: { ...options, unet_name: [], clip_type: [] }, error: null })
+  const down = serverFiles({ ok: false, error: 'Cannot reach the ComfyUI server.', defaults: DEFAULTS, options, krea, character_lora: null }, null, NONE)
   assert.ok(down.answered && down.options.unet_name.length === 0 && down.defaults === DEFAULTS && down.error?.startsWith('Cannot reach'))
-  assert.deepEqual(serverFiles({ ok: true, error: null, defaults: DEFAULTS, options }, null, NONE).options, options)
+  assert.deepEqual(serverFiles({ ok: true, error: null, defaults: DEFAULTS, options, krea, character_lora: null }, null, NONE).options, options)
   assert.equal(serverFiles(undefined, 'Not found.', NONE).error, 'Not found.')
 })
 
 test('the settings page opens download pages in a new tab', () => {
   const source = readFileSync('src/features/settings/ImageSettings.tsx', 'utf8')
   assert.match(source, /href=\{link\.url\} target="_blank" rel="noreferrer"/)
+})
+
+test('"Only Krea 2 files" narrows a list to its Krea 2 files but never drops the current choice', () => {
+  const other = 'sdxl\\juggernaut.safetensors'
+  assert.deepEqual(fileChoices([MUSE, other], '', [MUSE], true).map(choice => choice.value), [MUSE])
+  assert.deepEqual(fileChoices([MUSE, other], other, [MUSE], true), [{ value: other, label: other }, { value: MUSE, label: MUSE }])
+  assert.deepEqual(fileChoices([MUSE, other], '', [], true).map(choice => choice.value), [MUSE, other])
+  assert.ok(hasKrea({ unet_name: [], clip_name: [], clip_type: [], vae_name: [], lora: ['a'] }))
+})
+
+test('style LoRAs are saved without empty rows, trimmed, at most three', () => {
+  const row = { name: ' Krea 2\\phone_photography_2025_krea2.safetensors ', strength: 0.7, trigger: ' phone photo ' }
+  assert.deepEqual(stylesBody([row, { name: '', strength: 1, trigger: '' }, row, row, row]).style_loras,
+    Array(3).fill({ name: 'Krea 2\\phone_photography_2025_krea2.safetensors', strength: 0.7, trigger: 'phone photo' }))
 })

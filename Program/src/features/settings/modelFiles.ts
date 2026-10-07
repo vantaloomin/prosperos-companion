@@ -1,4 +1,4 @@
-import type { BackendFiles, ModelFileKey, ModelFiles, ModelLink } from '../../types'
+import type { BackendFiles, FileListKey, ModelFileKey, ModelFiles, ModelLink, StyleLora } from '../../types'
 
 export interface FileSlot { key: ModelFileKey; label: string; role: ModelLink['role'] | null; hint: string; tip?: string }
 
@@ -12,7 +12,9 @@ export const FILE_SLOTS: FileSlot[] = [
 
 export const MISSING = ' (not on this server)'
 export const NO_CHOICE: ModelFiles = { unet_name: '', clip_name: '', clip_type: '', vae_name: '' }
-const NO_FILES: BackendFiles['options'] = { unet_name: [], clip_name: [], clip_type: [], vae_name: [] }
+const NO_FILES: BackendFiles['options'] = { unet_name: [], clip_name: [], clip_type: [], vae_name: [], lora: [] }
+export const MAX_STYLE_LORAS = 3
+export const NEW_STYLE_LORA: StyleLora = { name: '', strength: 0.7, trigger: '' }
 
 /** What the server said, ready to show: its lists only when it answered, and the reason when it could not
  * be asked (`failed`, a request error). Until the app answers, the saved choice stands in for the defaults. */
@@ -21,15 +23,26 @@ export function serverFiles(data: BackendFiles | undefined, failed: string | nul
     answered: Boolean(data) || failed !== null,
     defaults: data?.defaults ?? saved,
     options: data?.ok ? data.options : NO_FILES,
+    krea: data?.ok ? data.krea : NO_FILES,
     error: data && !data.ok ? data.error : failed,
   }
 }
 
-/** The choices for one slot: the server's files, with the current value first when the server does not list it. */
-export function fileChoices(options: string[], current: string): { value: string; label: string }[] {
-  const listed = options.map(value => ({ value, label: value }))
-  return current && !options.includes(current) ? [{ value: current, label: current + MISSING }, ...listed] : listed
+/** The choices for one slot: the server's files (only Krea 2's when `kreaOnly` and it has any), with the
+ * current value first when the list leaves it out. */
+export function fileChoices(options: string[], current: string, krea: string[] = [], kreaOnly = false): { value: string; label: string }[] {
+  const shown = kreaOnly && krea.length > 0 ? krea : options
+  const listed = shown.map(value => ({ value, label: value }))
+  if (!current || shown.includes(current)) return listed
+  return [{ value: current, label: options.includes(current) ? current : current + MISSING }, ...listed]
 }
+
+/** Whether the server listed any Krea 2 file, so "Only Krea 2 files" has something to narrow to. */
+export const hasKrea = (krea: Record<FileListKey, string[]>) => Object.values(krea).some(list => list.length > 0)
+
+/** The request body for the style LoRAs: rows without a file are dropped, trigger words trimmed. */
+export const stylesBody = (rows: StyleLora[]): { style_loras: StyleLora[] } =>
+  ({ style_loras: rows.filter(row => row.name.trim()).slice(0, MAX_STYLE_LORAS).map(row => ({ name: row.name.trim(), strength: row.strength, trigger: row.trigger.trim() })) })
 
 /** What each slot shows: the draft, else the saved choice, else the workflow's default file. */
 export const shownFiles = (draft: Partial<ModelFiles>, saved: ModelFiles, defaults: ModelFiles): ModelFiles =>

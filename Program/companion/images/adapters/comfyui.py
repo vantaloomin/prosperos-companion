@@ -22,6 +22,7 @@ the picture through `/upload/image` and puts its name there. There is no built-i
 """
 import asyncio
 import json
+import re
 from pathlib import Path
 from uuid import uuid4
 
@@ -39,6 +40,13 @@ REFERENCE = '{{reference_image}}'
 # The built-in workflow's loader inputs the user can choose files for: config key -> (node, input).
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
                'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
+LORA_INPUT = ('LoraLoaderModelOnly', 'lora_name')
+# Which listed files are Krea 2's, matched on the whole path so a "Krea 2" folder counts. ComfyUI
+# cannot say a file's model family, so these only sort a list; nothing is hidden for not matching.
+KREA_FILES = {'unet_name': re.compile(r'krea|kr2|kera', re.IGNORECASE),
+              'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?4b', re.IGNORECASE),
+              'vae_name': re.compile(r'qwen.*vae|krea', re.IGNORECASE),
+              'lora': re.compile(r'krea|kr2|kera', re.IGNORECASE)}
 
 
 def parse_workflow(text: str, reference=False) -> dict:
@@ -115,19 +123,51 @@ def fill(value, values: dict):
     return value
 
 
-def with_lora(graph: dict, lora: dict) -> dict:
-    """Insert a LoraLoaderModelOnly after the workflow's model loader and point everything that
-    used the loader's model at it instead. LoKr files load through the same node."""
-    source = next((node_id for node_id, node in graph.items()
-                   if any(key in node.get('inputs', {}) for key in MODEL_KEYS)), None)
+def with_lora(graph: dict, lora: dict, node=LORA_NODE, source=None) -> dict:
+    """Insert a LoraLoaderModelOnly after the workflow's model loader (or after `source`, an
+    earlier LoRA) and point everything that used that model at it instead. LoKr files load
+    through the same node."""
+    source = source or next((node_id for node_id, item in graph.items()
+                             if any(key in item.get('inputs', {}) for key in MODEL_KEYS)), None)
     if source is None:
-        raise AdapterError('incompatible', 'The workflow has no model loader to attach the adopted LoRA to.')
-    rewired = {node_id: {**node, 'inputs': {key: [LORA_NODE, 0] if value == [source, 0] else value
-                                            for key, value in node.get('inputs', {}).items()}}
-               for node_id, node in graph.items()}
-    rewired[LORA_NODE] = {'class_type': 'LoraLoaderModelOnly', 'inputs': {
+        raise AdapterError('incompatible', 'The workflow has no model loader to attach the LoRA to.')
+    rewired = {node_id: {**item, 'inputs': {key: [node, 0] if value == [source, 0] else value
+                                            for key, value in item.get('inputs', {}).items()}}
+               for node_id, item in graph.items()}
+    rewired[node] = {'class_type': 'LoraLoaderModelOnly', 'inputs': {
         'model': [source, 0], 'lora_name': lora['comfy_name'], 'strength_model': lora['strength']}}
     return rewired
+
+
+def with_loras(graph: dict, character: dict | None, styles: list[dict]) -> dict:
+    """The character's LoRA first, so its likeness always applies, then each style LoRA after it."""
+    source = None
+    if character:
+        graph, source = with_lora(graph, character), LORA_NODE
+    for index, style in enumerate(styles, start=1):
+        node = f'prospero-style-lora-{index}'
+        graph = with_lora(graph, {'comfy_name': style['name'], 'strength': style['strength']}, node, source)
+        source = node
+    return graph
+
+
+def style_loras(config, character: dict | None) -> list[dict]:
+    """The backend's style LoRAs, leaving out the character's own file so it is never applied twice."""
+    skip = character and character.get('comfy_name')
+    return [lora for lora in config.get('style_loras') or [] if lora.get('name') and lora['name'] != skip]
+
+
+def triggered(prompt: str, character: dict | None, styles: list[dict]) -> str:
+    words = [character['trigger']] if character and character.get('trigger') else []
+    words += [style['trigger'] for style in styles if style.get('trigger')]
+    return ', '.join([*words, prompt])
+
+
+def krea_first(key: str, options: list[str]) -> tuple[list[str], list[str]]:
+    """The list with Krea 2's files first, and which those are."""
+    pattern = KREA_FILES.get(key)
+    found = [option for option in options if pattern and pattern.search(option)]
+    return found + [option for option in options if option not in found], found
 
 
 def output_images(entry) -> list[dict]:
@@ -157,18 +197,20 @@ class ComfyAdapter:
 
     async def generate(self, request) -> ImageResult:
         workflow, name = workflow_for(request.config, reference=request.reference is not None)
-        prompt = request.prompt
-        if request.lora and request.lora.get('trigger'):
-            prompt = f"{request.lora['trigger']}, {prompt}"
+        styles = style_loras(request.config, request.lora)
+        prompt = triggered(request.prompt, request.lora, styles)
         values = {'{{prompt}}': prompt, '{{negative}}': request.negative, '{{seed}}': request.seed,
                   '{{width}}': request.width, '{{height}}': request.height, REFERENCE: ''}
         async with self.client(request.config['base_url']) as client:
             if request.reference is not None:
                 values[REFERENCE] = await self.upload(client, request)
             graph = fill(workflow, values)
+            if request.lora or styles:
+                graph = with_loras(graph, request.lora, styles)
             if request.lora:
-                graph = with_lora(graph, request.lora)
                 name = f"{name} + LoRA {request.lora['comfy_name']}"
+            for style in styles:
+                name = f"{name} + style LoRA {style['name']} at {style['strength']:g}"
             prompt_id = await self.submit(client, graph)
             try:
                 async with asyncio.timeout(self.timeout_seconds):
@@ -253,17 +295,19 @@ class ComfyAdapter:
             pass
 
     @staticmethod
-    def lora_problems(info, lora_name) -> list[str]:
-        """The adopted LoRA must be in ComfyUI's loras folder under the name images will ask for."""
-        if not lora_name:
+    def lora_problems(info, lora_name, styles=()) -> list[str]:
+        """The adopted LoRA and each style LoRA must be in ComfyUI's loras folder under the name
+        images will ask for."""
+        wanted = [(f'The adopted LoRA {lora_name}', lora_name)] if lora_name else []
+        wanted += [(f"The style LoRA {style['name']}", style['name']) for style in styles]
+        if not wanted:
             return []
         spec = info.get('LoraLoaderModelOnly')
         if spec is None:
-            return ['Missing node: LoraLoaderModelOnly, which applies the adopted LoRA.']
+            return ['Missing node: LoraLoaderModelOnly, which applies LoRAs.']
         options = options_of((spec.get('input', {}).get('required') or {}).get('lora_name'))
-        if options is not None and lora_name not in options:
-            return [f'The adopted LoRA {lora_name} is not in ComfyUI\'s loras folder.']
-        return []
+        return [f"{label} is not in ComfyUI's loras folder." for label, name in wanted
+                if options is not None and name not in options]
 
     @staticmethod
     def node_problems(info, workflow) -> list[str]:
@@ -297,7 +341,8 @@ class ComfyAdapter:
         missing = self.node_problems(info, workflow)
         if reference is not None:
             missing += [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)]
-        missing += self.lora_problems(info, config.get('lora_name'))
+        missing += self.lora_problems(info, config.get('lora_name'),
+                                      style_loras(config, {'comfy_name': config.get('lora_name')}))
         if missing:
             return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing)
         return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses.')
@@ -307,7 +352,7 @@ class ComfyAdapter:
         address with the same client as the check. Nothing is queued or downloaded."""
         found = {}
         async with self.client(config['base_url']) as client:
-            for class_type in dict.fromkeys(class_type for class_type, _ in FILE_INPUTS.values()):
+            for class_type in dict.fromkeys([*(class_type for class_type, _ in FILE_INPUTS.values()), LORA_INPUT[0]]):
                 response = await self.call(client, 'GET', f'/object_info/{class_type}')
                 try:
                     found[class_type] = response.json() if response.is_success else {}
@@ -316,4 +361,4 @@ class ComfyAdapter:
                 if not isinstance(found[class_type], dict):
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.')
         return {key: input_options(found[class_type], class_type, name)
-                for key, (class_type, name) in FILE_INPUTS.items()}
+                for key, (class_type, name) in {**FILE_INPUTS, 'lora': LORA_INPUT}.items()}

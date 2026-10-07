@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 from companion.database import decode, encode, identifier, many, one
 from companion.errors import DomainError, require
+from companion.images import content
 from companion.providers.urls import is_loopback, validate_compatible_url
 
 HOSTED_DEFAULTS = {
@@ -80,6 +81,7 @@ def view(backend: dict) -> dict:
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
             'custom_workflow': bool(config.get('workflow')),
             'model_files': {key: config.get(key, '') for key in FILE_KEYS} if backend['kind'] == 'comfyui' else None,
+            'style_loras': config.get('style_loras', []) if backend['kind'] == 'comfyui' else None,
             'reference_workflow': bool(config.get('reference_workflow')), 'takes_reference': takes_reference(backend),
             'has_key': backend['credential_ref'] is not None,
             'controlled_machine': bool(backend['controlled_machine']), 'concurrency': backend['concurrency'],
@@ -140,9 +142,25 @@ def merged_config(kind, provider, previous: dict, body) -> dict:
             config[key] = value.strip()
         if kind != 'comfyui' or not config.get(key):
             config.pop(key, None)
+    if body.style_loras is not None:
+        config['style_loras'] = [{'name': lora.name.strip(), 'strength': lora.strength, 'trigger': lora.trigger.strip()}
+                                 for lora in body.style_loras]
+    if kind != 'comfyui' or not config.get('style_loras'):
+        config.pop('style_loras', None)
     if kind != 'hosted':
         config.pop('api_style', None)
     return config
+
+
+def require_safe_loras(backend: dict):
+    """A style LoRA never makes a server less strict: one whose name or trigger words are not plainly
+    safe needs a server that accepts NSFW requests (F6), so it is refused anywhere else."""
+    if accepts_nsfw(backend):
+        return
+    for lora in decode(backend['config']).get('style_loras') or []:
+        found = content.classify({'prompt': f"{lora['name']}\n{lora['trigger']}"})
+        require(found.tier == content.SAFE, f"The LoRA {lora['name']} reads as {', '.join(found.reasons) or 'not safe'}; "
+                'it can only be used on a ComfyUI server on this computer or one you control.', 422)
 
 
 def provider_for(kind, provider) -> str:
@@ -163,6 +181,7 @@ def create(database, vault, body) -> dict:
     provider = provider_for(body.kind, body.provider)
     config = merged_config(body.kind, provider, {}, body)
     validate(body.kind, provider, config, body.controlled_machine)
+    require_safe_loras({'kind': body.kind, 'config': encode(config), 'controlled_machine': int(bool(body.controlled_machine))})
     backend_id = identifier()
     label = body.label or KIND_LABELS.get(body.kind) or HOSTED_DEFAULTS[provider]['label']
     reference = None
@@ -208,6 +227,7 @@ def update(database, vault, backend_id, body) -> dict:
         enabled = backend['enabled'] if body.enabled is None else int(body.enabled)
         candidate = {**backend, 'config': encode(config), 'controlled_machine': controlled}
         require_disclosure(candidate, enabled, accepted)
+        require_safe_loras(candidate)
         reference = backend['credential_ref']
         if body.api_key:
             vault.put(credential_ref(backend_id), body.api_key)

@@ -556,6 +556,7 @@ class ComfyStandIn:
 MODEL = 'Krea 2\\Muse by Stable Yogi Krea2 V3.5 Civ NVFP4 C84.safetensors'
 ENCODER = 'LLM\\qwen3-vl-4b-heretic_nvfp4.safetensors'
 VAE = 'Qwen\\qwenImageVAESharpKrea2_bf16.safetensors'
+PHONE = 'Krea 2\\phone_photography_2025_krea2.safetensors'
 # The user's own files, in both of ComfyUI's combo formats (the newer one is ["COMBO", {"options": [...]}]).
 USER_FILES = {
     'UNETLoader': {'input': {'required': {
@@ -565,6 +566,8 @@ USER_FILES = {
         'clip_name': ['COMBO', {'options': [ENCODER]}],
         'type': ['COMBO', {'options': ['stable_diffusion', 'krea2']}]}, 'optional': {'device': [['default', 'cpu']]}}},
     'VAELoader': {'input': {'required': {'vae_name': [[VAE, 'pixel_space']]}}},
+    'LoraLoaderModelOnly': {'input': {'required': {'lora_name': [[PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors']],
+                                                   'strength_model': ['FLOAT', {}]}}},
 }
 CHOSEN = {'unet_name': MODEL, 'clip_name': ENCODER, 'vae_name': VAE}
 
@@ -626,9 +629,10 @@ def test_comfyui_lists_the_servers_files_for_each_loader():
     adapter = ComfyAdapter(httpx.MockTransport(server))
     files = asyncio.run(adapter.files({'base_url': 'http://127.0.0.1:8188'}))
     assert files == {'unet_name': [MODEL, 'krea2_turbo_fp8_scaled.safetensors'], 'clip_name': [ENCODER],
-                     'clip_type': ['stable_diffusion', 'krea2'], 'vae_name': [VAE, 'pixel_space']}
+                     'clip_type': ['stable_diffusion', 'krea2'], 'vae_name': [VAE, 'pixel_space'],
+                     'lora': [PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors']}
     assert server.info_calls == [f'http://127.0.0.1:8188/object_info/{name}'
-                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader')]
+                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader', 'LoraLoaderModelOnly')]
 
 
 def test_comfyui_puts_chosen_files_in_the_built_in_workflow_only():
@@ -707,6 +711,46 @@ def test_backend_files_from_an_unreachable_server_or_another_kind(comfy_client):
     assert comfy_client.get(f"/api/images/backends/{codex['id']}/files").status_code == 422
     assert codex['model_files'] is None
     assert ok(comfy_client.put(f"/api/images/backends/{codex['id']}", json={'unet_name': 'x'}))['model_files'] is None
+
+
+def test_backend_files_put_krea_2_files_first_and_style_loras_are_saved(comfy_client):
+    """The lists only sort: Krea 2's files (by name or folder, or the Qwen encoder and VAE it uses)
+    come first and are named in `krea`; nothing is hidden for not matching."""
+    backend = local_comfy(comfy_client)
+    listed = ok(comfy_client.get(f"/api/images/backends/{backend['id']}/files"))
+    assert listed['options']['unet_name'] == [MODEL, 'krea2_turbo_fp8_scaled.safetensors']
+    assert listed['krea']['clip_name'] == [ENCODER] and listed['krea']['vae_name'] == [VAE]
+    assert listed['options']['lora'][0] == PHONE and listed['krea']['lora'] == [PHONE]
+    assert 'sdxl\\detail.safetensors' in listed['options']['lora'] and listed['character_lora'] is None
+    assert backend['style_loras'] == []
+    style = {'name': PHONE, 'strength': 0.7, 'trigger': 'phone photo'}
+    saved = ok(comfy_client.put(f"/api/images/backends/{backend['id']}", json={'style_loras': [style]}))
+    assert saved['style_loras'] == [style]
+    details = ok(comfy_client.post(f"/api/images/backends/{backend['id']}/check"))['details']
+    assert 'Missing node: LoraLoaderModelOnly, which applies LoRAs.' in details  # This stand-in has no LoRA node.
+    info = {'LoraLoaderModelOnly': USER_FILES['LoraLoaderModelOnly']}
+    assert ComfyAdapter.lora_problems(info, None, [style]) == []
+    assert ComfyAdapter.lora_problems(info, 'prospero-x.safetensors', [{'name': 'gone.safetensors'}]) == [
+        "The style LoRA gone.safetensors is not in ComfyUI's loras folder."]
+    assert ok(comfy_client.put(f"/api/images/backends/{backend['id']}", json={'style_loras': []}))['style_loras'] == []
+    too_many = comfy_client.put(f"/api/images/backends/{backend['id']}", json={'style_loras': [style] * 4})
+    assert too_many.status_code == 422
+
+
+def test_a_style_lora_never_makes_a_server_less_strict(comfy_client):
+    """A LoRA whose name or trigger reads as adult content only goes on a server that accepts NSFW
+    requests: one on this computer or one the user controls (F6)."""
+    nsfw = {'name': 'nsfw_nude_krea2.safetensors', 'strength': 0.8, 'trigger': ''}
+    remote = add_backend(comfy_client, kind='comfyui', base_url='http://gpu.example:8188')
+    refused = comfy_client.put(f"/api/images/backends/{remote['id']}", json={'style_loras': [nsfw]})
+    assert refused.status_code == 422 and 'this computer' in refused.json()['detail']
+    safe = {'name': PHONE, 'strength': 0.7, 'trigger': 'phone photo'}
+    assert ok(comfy_client.put(f"/api/images/backends/{remote['id']}", json={'style_loras': [safe]}))['style_loras'] == [safe]
+    local = local_comfy(comfy_client)
+    assert ok(comfy_client.put(f"/api/images/backends/{local['id']}", json={'style_loras': [nsfw]}))['style_loras'] == [nsfw]
+    created = comfy_client.post('/api/images/backends', json={'kind': 'comfyui', 'base_url': 'http://gpu.example:8188',
+                                                             'style_loras': [nsfw]})
+    assert created.status_code == 422
 
 
 def test_model_links_are_pages_with_a_licence_note(client):

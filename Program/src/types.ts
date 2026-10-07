@@ -506,6 +506,8 @@ export interface ImageBackend {
   custom_workflow: boolean
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
+  // ComfyUI: LoRAs applied after the character's own, in order; null for other kinds.
+  style_loras: StyleLora[] | null
   reference_workflow: boolean
   // Can make a picture that follows an earlier one (the onboarding profile pictures).
   takes_reference: boolean
@@ -526,8 +528,11 @@ export interface BackendCheck { ok: boolean; summary: string; details: string[] 
 
 export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name'
 export type ModelFiles = Record<ModelFileKey, string>
-/** What a ComfyUI server offers the built-in workflow's loaders; ok is false when it could not be asked. */
-export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; options: Record<ModelFileKey, string[]> }
+export type FileListKey = ModelFileKey | 'lora'
+export interface StyleLora { name: string; strength: number; trigger: string }
+/** What a ComfyUI server offers the built-in workflow's loaders and its LoRAs, Krea 2's first (`krea` lists
+ * those); ok is false when it could not be asked. The character's own LoRA is left out of `lora`. */
+export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; options: Record<FileListKey, string[]>; krea: Record<FileListKey, string[]>; character_lora: string | null }
 export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae'; file: string | null; url: string; licence: string }
 
 export interface ImageJob {

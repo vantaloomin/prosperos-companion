@@ -9,7 +9,7 @@ from companion.database import decode
 from companion.errors import DomainError
 from companion.images import backends, jobs, photos, storage
 from companion.images.adapters.base import AdapterError
-from companion.images.adapters.comfyui import FILE_INPUTS, default_files
+from companion.images.adapters.comfyui import FILE_INPUTS, default_files, krea_first
 from companion.images.models import (
     BackendCreate,
     BackendFields,
@@ -86,19 +86,28 @@ async def check_backend(request: Request, backend_id: str):
 
 @router.get('/backends/{backend_id}/files')
 async def backend_files(request: Request, backend_id: str):
-    """The model files a ComfyUI server offers the built-in workflow, from the address the user
-    entered. An unreachable server is not an error: the page then takes typed names."""
+    """The model files and LoRAs a ComfyUI server offers the built-in workflow, from the address the
+    user entered, Krea 2's first (`krea` lists those). The character's own LoRA is left out of the
+    LoRA list: it is applied by itself. An unreachable server is not an error: the page then takes
+    typed names."""
     with db(request).connect() as connection:
         backend = backends.get(connection, backend_id)
+        character = current_for_images(connection)['lora'] if connection.execute(
+            'SELECT 1 FROM companions').fetchone() else None
     if backend['kind'] != 'comfyui':
         raise DomainError('Only a ComfyUI server lists its model files.', 422)
     config = decode(backend['config'])
-    result = {'ok': True, 'error': None, 'defaults': default_files(),
-              'options': {key: [] for key in FILE_INPUTS}}
+    keys = [*FILE_INPUTS, 'lora']
+    result = {'ok': True, 'error': None, 'defaults': default_files(), 'options': {key: [] for key in keys},
+              'krea': {key: [] for key in keys}, 'character_lora': character['comfy_name'] if character else None}
     try:
-        result['options'] = await runner(request).adapters['comfyui'].files(config)
+        found = await runner(request).adapters['comfyui'].files(config)
     except AdapterError as error:
         result.update(ok=False, error=error.message)
+        return result
+    for key in keys:
+        options = [name for name in found.get(key, []) if not (key == 'lora' and character and name == character['comfy_name'])]
+        result['options'][key], result['krea'][key] = krea_first(key, options)
     return result
 
 

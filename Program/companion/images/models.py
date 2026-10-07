@@ -11,6 +11,13 @@ Aspect = Literal['square', 'landscape', 'portrait']
 FILE_NAME = r'^[^\x00-\x1f\x7f]*$'
 
 
+class StyleLora(Input):
+    """A LoRA from ComfyUI's loras folder applied after the character's own, with its trigger words."""
+    name: str = Field(min_length=1, max_length=300, pattern=FILE_NAME)
+    strength: float = Field(default=0.7, ge=-2, le=2)
+    trigger: str = Field(default='', max_length=200, pattern=FILE_NAME)
+
+
 class BackendFields(Input):
     label: str | None = Field(default=None, max_length=80)
     enabled: bool | None = None
@@ -25,6 +32,8 @@ class BackendFields(Input):
     clip_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
     clip_type: str | None = Field(default=None, max_length=60, pattern=FILE_NAME)
     vae_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
+    # Style LoRAs for ComfyUI, in order; an empty list removes them.
+    style_loras: list[StyleLora] | None = Field(default=None, max_length=3)
     cli_path: str | None = Field(default=None, max_length=1000)
     api_style: Literal['images', 'chat'] | None = None
     api_key: str | None = Field(default=None, max_length=4000)
