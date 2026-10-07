@@ -27,7 +27,7 @@ def test_every_culture_a_name_group_links_to_exists_and_cohorts_are_full():
             assert cohort['start'] <= cohort['end']
             assert len(cohort['feminine']) >= 20 and len(cohort['masculine']) >= 20, (key, cohort['start'])
     us = cultures['us']
-    assert [cohort['start'] for cohort in us['cohorts'] if not cohort['estimate']] == list(range(1920, 2009))
+    assert [cohort['start'] for cohort in us['cohorts'] if not cohort['estimate']] == list(range(1880, 2009))
     assert all(len(cohort['feminine']) == 100 for cohort in us['cohorts'] if not cohort['estimate'])
 
 
@@ -99,3 +99,54 @@ def test_polish_and_russian_family_names_take_the_feminine_form():
     sister = generators.name(city, seed='pl', pronouns='she', family='Nowak', age=30)
     brother = generators.name(city, seed='pl', pronouns='he', family='Kowalska', age=30)
     assert sister['family'] == 'Nowak' and brother['family'] == 'Kowalski'
+
+
+def test_names_a_model_coins_are_caught_even_off_the_list():
+    for coined in ('Vaeryn', 'Kaelith', 'Elaria', 'Duskmere', 'Ravencrest', 'Stormvale', 'Ashwood'):
+        assert naming.is_invented(coined), coined
+    for real in ('Bronwyn', 'Lyric', 'Ishmael', 'Mikael', 'Michael', 'Ashley', 'Ashford', 'Sunlight', 'Aerospace'):
+        assert not naming.is_invented(real), real
+
+
+def test_no_shipped_name_looks_coined():
+    for era, bank in catalog.names()['banks'].items():
+        for key, group in bank.items():
+            for field in ('feminine', 'masculine', 'neutral', 'family'):
+                assert not [name for name in group[field] if naming.is_invented(name)], (era, key, field)
+
+
+def test_period_and_future_settings_count_from_their_own_year():
+    assert naming.present_year({'era': 'victorian'}) == 1895
+    assert naming.present_year({'era': 'future'}) == 2077
+    assert naming.present_year({'era': 'victorian', 'names': {'year': 1870}}) == 1870
+    assert naming.present_year({'era': 'medieval'}) is None
+
+
+def test_victorian_people_get_names_from_their_birth_year_and_period_family_names():
+    city = catalog.city('baltimore') | {'era': 'victorian', 'names': {'bank': 'victorian', 'mix': {'english': 1}}}
+    english = naming.culture('england-wales')
+    family = set(catalog.names()['banks']['victorian']['english']['family'])
+    for index in range(30):
+        person = generators.name(city, seed=f'vic-{index}', age=60, pronouns='he')
+        born = 1895 - 60
+        years = [cohort for cohort in english['cohorts']
+                 if born - naming.SPREAD <= cohort['end'] and cohort['start'] <= born + naming.SPREAD]
+        assert any(person['given'] in cohort['masculine'] for cohort in years), person['given']
+        assert person['family'] in family
+
+
+@pytest.mark.parametrize('era', sorted(catalog.names()['eras']))
+def test_every_era_names_people_cleanly(era):
+    setting = catalog.names()['eras'][era]
+    city = catalog.city('baltimore') | {'era': era, 'names': {'bank': setting['bank'], 'mix': setting['mix']}}
+    for index in range(80):
+        person = generators.name(city, seed=f'{era}-{index}', age=18 + index % 60)
+        assert person['given'] and person['family'] and not naming.is_invented(person['full']), person['full']
+
+
+@pytest.mark.parametrize('bank', sorted(catalog.names()['banks']))
+def test_every_bank_names_people_cleanly(bank):
+    city = catalog.city('baltimore') | {'era': 'other', 'names': {'bank': bank}}
+    for index in range(60):
+        person = generators.name(city, seed=f'{bank}-{index}', age=18 + index % 60)
+        assert person['given'] and person['family'] and not naming.is_invented(person['full']), person['full']

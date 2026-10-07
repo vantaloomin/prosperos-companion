@@ -224,14 +224,27 @@ FRONTIER = {
 
 STORYBOOK = {
     'plain': group(
-        'Hester Marigold Tansy Prudence Wilhelmina Bettony Dulcie Maud Clover Ottilie Hazel Posy Clemency Ada '
-        'Bryony Winnie Lettice Petunia Tibby Gwendolyn',
+        'Hester Marigold Tansy Prudence Wilhelmina Bettony Dulcie Maud Bess Ottilie Hazel Posy Clemency Ada '
+        'Bryony Winnie Lettice Nell Tibby Gwendolyn',
         'Tobin Bram Hob Wendel Barnaby Ambrose Jory Ned Ferris Osgood Pip Cuthbert Dunstan Rollo Jasper Ezekiel '
         'Lem Horace Bartholomew Wilbur',
-        'Robin Wren Ash Sorrel',
-        'Thistlewood Bramblecot Greenhollow Puddifoot Hobbs Mossley Applegarth Tumblestone Wickham Fennimore '
-        'Butterbridge Larkspur Crumb Featherstone Tillbrook Underhay Copperkettle Pennywhistle Oakshott Fairweather'),
+        'Robin Kit Jem Frankie',
+        'Thistlewood Puddifoot Hobbs Mossley Applegarth Wickham Fennimore Crumb Featherstone Tillbrook Underhay '
+        'Oakshott Fairweather Cotton Tanner Pickering Dimmock Hobday Gammage Ottley Brewster Cobb Pennington Ashby '
+        'Goodbody Littlejohn Shepherd Weaver Hatcher Merriman'),
 }
+
+# Victorian and frontier people take given names popular in their birth year too (era_years in
+# given_names.py sets the year the story is told), but keep the period family names above.
+PERIOD_CULTURES = {
+    'victorian': (VICTORIAN, {'english': 'england-wales', 'west-riding': 'england-wales', 'irish': 'ireland',
+                              'scottish': 'scotland', 'jewish': 'jewish-diaspora', 'italian': 'italy'}),
+    'frontier': (FRONTIER, {'american': 'us', 'mexican': 'mexico', 'cornish': 'england-wales', 'irish': 'ireland',
+                            'german': 'germany'}),
+}
+for bank, links in PERIOD_CULTURES.values():
+    for key, culture in links.items():
+        bank[key] |= {'cultures': {culture: 1}, 'own_family': True}
 
 BANKS = {'modern': MODERN, 'victorian': VICTORIAN, 'medieval': MEDIEVAL, 'frontier': FRONTIER, 'storybook': STORYBOOK}
 
@@ -247,7 +260,10 @@ NAMES = {
         'modern': {'bank': 'modern', 'mix': {'anglo': 4, 'black-american': 1.5, 'hispanic': 2, 'east-asian': 0.7,
                                              'south-asian': 0.5, 'jewish': 0.4, 'italian': 0.5, 'irish': 0.5,
                                              'slavic': 0.3, 'arabic': 0.3, 'west-african': 0.2, 'caribbean': 0.2}},
-        'future': {'bank': 'modern', 'mix': {}},
+        # A city in 2077, mixed from the whole world rather than one country.
+        'future': {'bank': 'modern', 'mix': {'anglo': 2, 'hispanic': 2.5, 'east-asian': 2.5, 'south-asian': 2,
+                                             'black-american': 1.5, 'west-african': 1.5, 'arabic': 1, 'slavic': 0.8,
+                                             'caribbean': 0.5, 'italian': 0.4, 'irish': 0.4, 'jewish': 0.3}},
         'other': {'bank': 'modern', 'mix': {}},
         'victorian': {'bank': 'victorian', 'mix': {'english': 8, 'irish': 1.5, 'scottish': 1, 'jewish': 0.6,
                                                    'italian': 0.3}},

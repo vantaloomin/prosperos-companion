@@ -192,6 +192,8 @@ class NameGroup(Record):
     # In modern settings, the shares of given names drawn from each culture's popular names for the person's
     # birth year (given_names.json) instead of the lists above. `local` is the city's own country.
     cultures: dict[Id, float] = Field(default_factory=dict)
+    # Keep this group's own family names even when a linked culture lists its own (a mill town's local names).
+    own_family: bool = False
 
     @model_validator(mode='after')
     def check(self):
@@ -205,6 +207,8 @@ class CityNames(Record):
     bank: Id | None = None
     mix: dict[Id, float] = Field(default_factory=dict)
     groups: dict[Id, NameGroup] = Field(default_factory=dict)
+    # The year the city's present day is set in, so ages count back from it (2077 for a future city).
+    year: int | None = Field(default=None, ge=1, le=3000)
 
 
 class Holiday(Record):
@@ -389,6 +393,8 @@ class GivenNames(Record):
     schema_version: Literal[1]
     # Ages count back from this year, so a name never changes with the clock.
     present_year: int = Field(ge=1900, le=2100)
+    # The year each era's present day is set in. Eras listed here ground given names in birth years.
+    era_years: dict[str, int]
     cultures: dict[Id, Culture] = Field(min_length=1)
     # Country names (lower case) to the culture whose names are local there.
     countries: dict[str, Id]

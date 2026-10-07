@@ -105,11 +105,17 @@ A city may set `names` to pick another `bank`, weight groups with `mix`, or add 
 (`{"feminine": […], "masculine": […], "neutral": […], "family": […]}`); a city with its own groups and no
 `mix` uses only those. Weights for groups a bank lacks are ignored, so changing a city's era keeps working.
 
-**Names by birth year.** In modern, future and other settings a group's `cultures` weights
+**Names by birth year.** A group's `cultures` weights
 (`{"us-black": 0.6, "local": 0.4}`) send the given name to what babies were actually called around the
 person's birth year: `given_names.json` holds, per culture, the most popular names per birth year or
 cohort, most popular first, and the generator samples a year up to three either side of
-`present_year − age` and favours higher-ranked names. `local` is the city's own country (`countries`
+`present_year − age` and favours higher-ranked names. The present year is 2026 in modern and other
+settings, 1895 for Victorian, 1890 for steampunk, 1885 for frontier and 2077 for the future (`era_years`;
+a city may set its own `names.year`); people born after the newest lists take the newest. Medieval and
+fantasy settings have no birth-year lists and use their banks' own names. Victorian and frontier groups
+take given names from England and Wales, Scotland, Ireland, Jewish diaspora, Italian, United States,
+Mexican and German lists going back to the 1790s, but set `own_family` to keep their period family
+names. The future mixes the modern groups from across the world rather than one country. `local` is the city's own country (`countries`
 maps country names to cultures; the United States lists stand in elsewhere). A culture with its own
 `surnames` (India, Korea, Mexico…) supplies the family name too, so a Korean given name never meets a
 Japanese family name; a relative keeps the shared family name and draws from a culture that fits it. Polish and Russian
@@ -120,17 +126,19 @@ name and everyone else's name stay as they were. The life simulation's city (`co
 sets `kin` to the companion's family names and their relatives', so townsfolk, residents, newcomers and
 friends of friends never share them; a circle's friends, coworkers and neighbors never share its `family`.
 The world API's own city views (`/api/world/cities/...`) have no companion and show the plain draw.
-The United States lists for 1920–2008 are the Social Security Administration's top 100 per year and sex
+The United States lists for 1880–2008 are the Social Security Administration's top 100 per year and sex
 (`scripts/world/fetch_us_names.py`); 2009 onwards and every other culture (Black American and Hispanic
 American trends, England and Wales, Ireland, Italy, Mexico, Spain, Germany, France, Poland, Russia,
 China, Korea, Japan, Vietnam, the Philippines, India, Arabic-speaking countries, Nigeria, Ghana,
 Jamaica, Haiti, Israel) were written from general knowledge of the published rankings because the
-statistics offices are unreachable from the build machine, and are marked `estimate`. Historical
-eras keep their banks' own lists.
+statistics offices are unreachable from the build machine, and are marked `estimate`, as are every
+list before 1880.
 
 **Invented-sounding names.** `given_names.json` also lists names that read as made up by a language
 model (Elara, Lyra, Kael, Vex, Voss, Thorne…; edit `name_sources/invented.txt`). No popular-name list
-may contain one (validation fails), generators never produce one, and `companion/world/naming.py`
+may contain one (validation fails), generators never produce one, and a pattern check also catches
+the coined names a model reaches for that are not listed (Vaeryn, Kaelith, Duskmere, Ravencrest), while
+any word found in a real list (Bronwyn, Mikael) passes.  `companion/world/naming.py`
 checks model-written text for them: character drafting retries once naming the problem, then swaps
 each one for an ordinary name; a name the user typed (or one in the world data) is always allowed. Chat
 gets a short "names for anyone new" context section of ready-made names for the companion's city and a

@@ -470,14 +470,14 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
         modern = data['era'] in ('modern', 'future', 'other')
         pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], [47, 47, 6 if modern else 2])
     links = naming.links(names, data)
-    if family:
+    if family and not names.get('own_family'):
         # A relative's given name comes from a culture that fits the family name they share.
         links = {key: weight for key, weight in links.items() if not naming.culture(key)['surnames']
                  or naming.base_family(key, family) in naming.culture_surnames(key)}
     culture = pick(seed, 'culture', list(links), list(links.values())) if links else None
     if culture:
         age = age if age is not None else 22 + round(unit(seed, 'name-age') * 42)
-        given = _given_for(seed, culture, naming.present_year() - age, pronouns)
+        given = _given_for(seed, culture, naming.present_year(data) - age, pronouns)
     else:
         pools = [names[GIVEN[pronouns]]] if pronouns in GIVEN else [names['neutral']]
         if names['neutral'] and unit(seed, 'neutral-name') < 0.12:
@@ -498,7 +498,7 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
 
 
 def _family(seed: str, culture: str | None, pronouns: str, names: dict, groups: dict, mix: dict) -> str:
-    surnames = naming.culture(culture)['surnames'] if culture else []
+    surnames = naming.culture(culture)['surnames'] if culture and not names.get('own_family') else []
     if surnames:
         family = pick(seed, 'family', surnames, naming.rank_weights(surnames))
         return naming.gendered(culture, naming.base_family(culture, family), pronouns)
