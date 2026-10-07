@@ -5,9 +5,15 @@ import httpx
 import pytest
 
 from companion.errors import DomainError
+from companion.providers import chat
 from companion.providers.chat import ChatProvider
 
 CONFIG = {'base_url': 'http://127.0.0.1:1234/v1', 'model': 'm', 'max_output_tokens': 100, 'timeout_seconds': 10}
+
+
+@pytest.fixture(autouse=True)
+def fresh_models(monkeypatch):
+    monkeypatch.setattr(chat, 'THINKS_PAST_THE_LIMIT', set())
 
 
 def collect(provider, key=None):
@@ -95,6 +101,26 @@ def test_a_reply_spent_entirely_on_thinking_is_asked_again_with_less_thinking():
     assert [chunk.finish_reason for chunk in chunks if chunk.finish_reason] == ['stop']
     assert 'reasoning' not in bodies[0] and bodies[0]['max_tokens'] == 100
     assert bodies[1]['reasoning'] == {'effort': 'low'} and bodies[1]['max_tokens'] == 200
+
+
+def test_a_model_that_ran_out_while_thinking_is_asked_to_think_less_from_then_on():
+    """A reply cut short after some text can't be asked again once shown, so the next one asks for low effort."""
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return sse({'choices': [{'delta': {'reasoning': 'hmm', 'content': 'so anyway'}, 'finish_reason': 'length'}]})
+
+    config = {**CONFIG, 'provider': 'openrouter', 'base_url': 'https://openrouter.ai/api/v1'}
+
+    async def run(*configs):
+        provider = ChatProvider(httpx.MockTransport(handler))
+        for each in configs:
+            [chunk async for chunk in provider.stream(each, 'k', 'system', [{'role': 'user', 'content': 'hi'}])]
+    asyncio.run(run(config, config, {**config, 'reasoning_effort': 'high'}))
+    assert 'reasoning' not in bodies[0] and bodies[1]['reasoning'] == {'effort': 'low'}
+    assert bodies[1]['max_tokens'] == bodies[0]['max_tokens']
+    assert bodies[2]['reasoning'] == {'effort': 'high'}, "the user's own thinking setting wins"
 
 
 def test_a_reply_cut_off_with_text_is_not_asked_again():
