@@ -205,6 +205,7 @@ def test_recalled_words_of_a_corrected_memory_carry_the_correction(client, app, 
     """The original message, the reply to it and a later reply repeating it can still be recalled; each says what
     the user changed it to, so the old value isn't taken as current."""
     monkeypatch.setattr(context, 'RECENT_MESSAGES', 2)
+    enable(client, automatic_memory=False)
     provider.replies += [[Chunk('Does she grow tomatoes?'), Chunk('', 'stop')],
                          [Chunk('Nice.'), Chunk('', 'stop')],
                          [Chunk('I bet her garden looks amazing this time of year'), Chunk('', 'stop')]]
