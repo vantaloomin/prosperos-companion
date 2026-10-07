@@ -1,10 +1,15 @@
 """Image backends, settings and jobs API (PRD F3–F9)."""
+import json
+from pathlib import Path
+
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
 from companion.database import decode
 from companion.errors import DomainError
 from companion.images import backends, jobs, photos, storage
+from companion.images.adapters.base import AdapterError
+from companion.images.adapters.comfyui import FILE_INPUTS, default_files
 from companion.images.models import (
     BackendCreate,
     BackendFields,
@@ -17,6 +22,7 @@ from companion.images.models import (
 from companion.lora.appearance import current_for_images
 
 router = APIRouter(prefix='/api/images')
+MODEL_LINKS = Path(__file__).parent / 'model_links.json'
 
 
 def db(request: Request):
@@ -76,6 +82,30 @@ async def check_backend(request: Request, backend_id: str):
     adapter = runner(request).adapters[backend['kind']]
     config = {**decode(backend['config']), **({'lora_name': lora['comfy_name']} if lora else {})}
     return (await adapter.check(backend, config, key)).view()
+
+
+@router.get('/backends/{backend_id}/files')
+async def backend_files(request: Request, backend_id: str):
+    """The model files a ComfyUI server offers the built-in workflow, from the address the user
+    entered. An unreachable server is not an error: the page then takes typed names."""
+    with db(request).connect() as connection:
+        backend = backends.get(connection, backend_id)
+    if backend['kind'] != 'comfyui':
+        raise DomainError('Only a ComfyUI server lists its model files.', 422)
+    config = decode(backend['config'])
+    result = {'ok': True, 'error': None, 'defaults': default_files(),
+              'options': {key: [] for key in FILE_INPUTS}}
+    try:
+        result['options'] = await runner(request).adapters['comfyui'].files(config)
+    except AdapterError as error:
+        result.update(ok=False, error=error.message)
+    return result
+
+
+@router.get('/model-links')
+def model_links():
+    """Pages where the built-in workflow's model files can be downloaded (checked by hand)."""
+    return {'links': json.loads(MODEL_LINKS.read_text(encoding='utf-8'))}
 
 
 @router.post('/backends/{backend_id}/unblock')
