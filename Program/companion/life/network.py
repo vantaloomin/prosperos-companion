@@ -115,7 +115,8 @@ def occupation(data: dict, key: str, age: int) -> str:
 
 def city(connection, companion: dict) -> dict:
     """The companion's city, carrying the family names strangers there never have (generators.name)."""
-    return newcomers.city_for(connection, companion['version']['definition']) | {'kin': kin(connection, companion)}
+    return newcomers.city_for(connection, companion['version']['definition']) | {
+        'kin': kin(connection, companion), 'town': companion.get('town_seed') or ''}
 
 
 def kin(connection, companion: dict) -> list[str]:

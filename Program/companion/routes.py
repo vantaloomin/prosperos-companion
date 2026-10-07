@@ -45,6 +45,7 @@ from companion.models import (
     StartOverConfirm,
     TimelineFork,
     TimelineUpdate,
+    TownSeed,
 )
 
 router = APIRouter(prefix='/api')
@@ -141,6 +142,12 @@ async def cast_fleshed(request: Request, body: CastDraftRequest):
 def cast_switch(request: Request, body: CastSwitch):
     """The townsperson becomes the main character; the current one steps back with their history."""
     return cast.switch(db(request), body.key, body.definition)
+
+
+@router.post('/companion/town')
+def companion_town(request: Request, body: TownSeed):
+    """New townsfolk of the companion's own, or the city's shared ones again."""
+    return cast.reseed_town(db(request), body.fresh)
 
 
 @router.post('/companion/cast/focus')

@@ -135,6 +135,11 @@ class CastSwitch(Input):
     definition: CharacterDefinition
 
 
+class TownSeed(Input):
+    """Seed new townsfolk for the companion, or go back to the city's shared ones."""
+    fresh: bool
+
+
 class CastFocus(Input):
     companion_id: str = Field(min_length=1, max_length=64)
 

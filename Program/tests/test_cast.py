@@ -134,3 +134,34 @@ def test_the_text_model_can_write_the_profile_out(client, clock, chatty, provide
     assert definition['location'].endswith('Baltimore, Maryland')
     assert definition['background'].startswith(GOOD['background']) and 'Has crossed paths with Mira' in \
         definition['background']
+
+
+def test_new_townsfolk_can_be_seeded_for_one_companion(client, clock, chatty):
+    """The city's townsfolk are shared until the user seeds a town of the companion's own."""
+    mira, _person = met_someone(client, clock)
+    shared = ok(client.get('/api/world/cities/baltimore/places/national-aquarium/people'))
+    assert mira['town_seed'] == ''
+
+    seeded = ok(client.post('/api/companion/town', json={'fresh': True}))
+    assert seeded['town_seed']
+    own = ok(client.get('/api/world/cities/baltimore/places/national-aquarium/people'))
+    assert [p['full'] for p in own] != [p['full'] for p in shared]
+    # Whoever Mira had met is a stranger in the new town.
+    assert ok(client.get('/api/life/townsfolk')) == []
+    for _week in range(2):
+        clock.instant = clock.now() + timedelta(days=7)
+        build(client)
+    met = ok(client.get('/api/life/townsfolk'))
+    with client.app.state.database.connect() as connection:
+        data = encounters.network.city(connection, require_current(connection))
+    assert met and all(item['full'] == encounters.townsfolk.find(data, item['key'])['full'] for item in met)
+
+    back = ok(client.post('/api/companion/town', json={'fresh': False}))
+    assert back['town_seed'] == ''
+    assert [p['full'] for p in ok(client.get('/api/world/cities/baltimore/places/national-aquarium/people'))] == \
+        [p['full'] for p in shared]
+
+    # With a second companion, the town is shared between them and stays as it is.
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("INSERT INTO companions (id, slot, created_at) VALUES ('other', NULL, 'x')")
+    assert client.post('/api/companion/town', json={'fresh': True}).status_code == 409

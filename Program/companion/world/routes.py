@@ -5,6 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Query, Request
 from pydantic import Field
 
+from companion.characters import current
 from companion.clock import zone
 from companion.errors import require
 from companion.models import Input
@@ -128,13 +129,20 @@ def list_places(request: Request, city_id: str, kind: str | None = None, neighbo
     return catalog.places(city(request, city_id), kind=kind, neighborhood=neighborhood, tag=tag, good_for=good_for)
 
 
+def town(request: Request, data: dict) -> dict:
+    """The city as the current companion's townsfolk live in it: each companion has their own."""
+    with request.app.state.database.connect() as connection:
+        companion = current(connection)
+    return data | {'town': companion.get('town_seed') or ''} if companion else data
+
+
 @router.get('/cities/{city_id}/places/{place_id}/people')
 def place_people(request: Request, city_id: str, place_id: str, on: date | None = None,
                  at: str = Query('12:00', pattern=r'^([01][0-9]|2[0-3]):[0-5][0-9]$')):
     """The townsfolk seeded at a place (companion/world/townsfolk.py): everything about them, how their goal
     stands on `on` (default today) and where their rules put them at `at` that day. The companion only
     learns this a little at a time; this is the city's own view."""
-    data = city(request, city_id)
+    data = town(request, city(request, city_id))
     day = on or request.app.state.database.clock.now().date()
     moment = datetime.combine(day, time.fromisoformat(at))
     result = []
@@ -151,7 +159,7 @@ def neighborhood_people(request: Request, city_id: str, hood_id: str, on: date |
                         at: str = Query('12:00', pattern=r'^([01][0-9]|2[0-3]):[0-5][0-9]$')):
     """A neighborhood's ordinary residents (companion/world/townsfolk.py), with where their rules put them at
     `at` on `on` (default today)."""
-    data = city(request, city_id)
+    data = town(request, city(request, city_id))
     require(any(hood['id'] == hood_id for hood in data['neighborhoods']), 'No such neighborhood in this city.', 404)
     day = on or request.app.state.database.clock.now().date()
     moment = datetime.combine(day, time.fromisoformat(at))
