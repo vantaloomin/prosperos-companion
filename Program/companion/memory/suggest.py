@@ -1,7 +1,7 @@
 """Model-proposed memory suggestions (PRD M1, M7): optional, background-only and never committed alone.
 
-When the user turns on model suggestions (with automatic memory), messages in which the rules found
-nothing are sent in small batches to the configured model at maintenance priority. Its answers are
+When the user turns on model suggestions (with automatic memory), the sentences of each message the
+rules found nothing in are sent in small batches to the configured model at maintenance priority. Its answers are
 only candidates: each must name a message in the batch and use that message's own words, then it
 waits as a suggestion the user keeps or declines. A model guess never becomes a fact on its own,
 and repeating a guess does not confirm it.
@@ -37,11 +37,20 @@ class SuggestionsInvalid(Exception):
 
 
 def pending(connection, limit=BATCH) -> list[dict]:
-    """Finished jobs whose message the rules found nothing in and the model has not seen."""
-    return many(connection, "SELECT messages.* FROM memory_jobs JOIN messages ON messages.id=memory_jobs.message_id "
+    """Finished jobs the model has not seen, each with only the sentences the rules found nothing in:
+    "I'm allergic to shellfish. I'm Sam." keeps "I'm Sam." for the model."""
+    rows = many(connection, "SELECT messages.* FROM memory_jobs JOIN messages ON messages.id=memory_jobs.message_id "
                 "WHERE memory_jobs.status='done' AND memory_jobs.model_status IS NULL AND messages.redacted_at IS NULL "
-                'AND NOT EXISTS (SELECT 1 FROM memory_candidates c WHERE c.message_id=messages.id) '
                 'ORDER BY memory_jobs.queued_at LIMIT ?', (limit,))
+    return [{**row, 'text': unhandled(connection, row)} for row in rows]
+
+
+def unhandled(connection, message) -> str:
+    handled = {json.loads(row['proposal']).get('excerpt') for row in many(
+        connection, 'SELECT proposal FROM memory_candidates WHERE message_id=?', (message['id'],))}
+    if not handled:
+        return message['text']
+    return ' '.join(f'{sentence}.' for sentence in sentences(message['text']) if sentence not in handled)
 
 
 def eligible(message) -> bool:

@@ -68,6 +68,19 @@ def test_messages_the_rules_handled_are_not_sent(client, app, connected, provide
     assert asked == []
 
 
+def test_sentences_the_rules_missed_still_reach_the_model(client, app, connected, provider):
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Hobby',
+                                     'value': 'weekly pottery class with Jun'}])
+    send(client, f'I live in Chicago. {LONG}.', 'model-0001')
+    assert run(client, app) == 1
+    [asked] = [request for request in provider.requests if 'help a companion app remember' in request['system']]
+    sent = json.loads(asked['messages'][0]['content'])
+    assert sent == [{'message': 1, 'text': f'{LONG}.'}]
+    assert [item['value'] for item in client.get('/api/memory/suggestions').json() if item['source'] == 'model'] == [
+        'weekly pottery class with Jun']
+
+
 def test_a_declined_guess_is_not_suggested_again(client, app, connected, provider):
     enable(client)
     provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Hobby',

@@ -268,8 +268,8 @@ the user's timezone (`companion/memory/dates.py`); an ambiguous one is kept but 
   stays.
 
 **Model suggestions.** Off by default, and only with automatic memory on, the user can let the
-model suggest more (`model_memory_suggestions`). Messages in which the rules found nothing, of six
-words or more, go to the chat connection in batches of eight at maintenance priority, so a
+model suggest more (`model_memory_suggestions`). The sentences of each message the rules found
+nothing in, six words or more, go to the chat connection in batches of eight at maintenance priority, so a
 conversation interrupts them. Each answer must name a message in the batch and take most of its
 words from that message, or it is dropped. Survivors wait as `model_guess` suggestions; keeping one
 makes it `confirmed`, and nothing the model says is ever committed on its own. A malformed answer
