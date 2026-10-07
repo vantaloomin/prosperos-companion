@@ -135,25 +135,49 @@ VICTORIAN = {
         'Green Walker Hughes Edwards Lewis Turner Jackson Harris Clarke Cooper Ward Morris King Baker Harrison '
         'Allen Mitchell Hill Parker Price Bennett Cox Fletcher Pearce Webb Holloway Marsh Pritchard'),
     'irish': group(
-        'Bridget Catherine Margaret Honora Ellen Mary Johanna Nora Kate Julia',
-        'Patrick Michael John Daniel Timothy Cornelius Dennis Thomas Jeremiah Owen',
+        'Bridget Catherine Margaret Honora Ellen Mary Johanna Nora Kate Julia Anne Winifred Eliza Sarah '
+        'Elizabeth Annie Teresa Agnes Alice Delia Sabina Abina Kitty Hannah Jane Rose Josephine Maggie Lizzie '
+        'Bessie Christina Susan',
+        'Patrick Michael John Daniel Timothy Cornelius Dennis Thomas Jeremiah Owen James William Edward '
+        'Bartholomew Florence Terence Hugh Martin Peter Francis Joseph Bernard Matthew Laurence Christopher '
+        'Andrew Charles Edmund Richard Maurice Thady Myles Felix',
         '',
-        "Sullivan Murphy O'Brien Kelly Driscoll Connell Mahony Callaghan Doyle Byrne Flynn Brennan"),
+        "Sullivan Murphy O'Brien Kelly Driscoll Connell Mahony Callaghan Doyle Byrne Flynn Brennan Ryan Walsh "
+        "O'Neill Kennedy McCarthy Donovan Leary Regan Kavanagh Fitzgerald Burke Hayes Carroll Nolan Keane Quinn "
+        "Daly Healy Kearney Moriarty Fitzpatrick Hogan Connolly"),
     'scottish': group(
-        'Jessie Isabella Christina Janet Agnes Margaret Euphemia Marion Grace Helen',
-        'Alexander Duncan Hugh Angus Donald Archibald Malcolm Robert Andrew David',
+        'Jessie Isabella Christina Janet Agnes Margaret Euphemia Marion Grace Helen Mary Elizabeth Ann Jane '
+        'Catherine Elspeth Barbara Williamina Jemima Robina Georgina Jean Flora Annie Effie Rachel Sarah Bella '
+        'Davina Jacobina Thomasina',
+        'Alexander Duncan Hugh Angus Donald Archibald Malcolm Robert Andrew David John James William Thomas '
+        'George Peter Colin Neil Kenneth Allan Ewan Lachlan Murdo Roderick Dugald Walter Gilbert Adam Charles '
+        'Henry Daniel Ninian Hector Norman Gavin Matthew',
         '',
-        'Macdonald Campbell Stewart Robertson Murray Fraser Grant Reid Cameron Ross Henderson Paterson'),
+        'Macdonald Campbell Stewart Robertson Murray Fraser Grant Reid Cameron Ross Henderson Paterson '
+        'Mackenzie Mackay Macleod Maclean Johnston Scott Anderson Smith Brown Thomson Wilson Kerr Hamilton '
+        'Mitchell Watson Gordon Morrison Ferguson Sinclair Munro Douglas Cunningham Kennedy'),
     'jewish': group(
-        'Rachel Leah Rebecca Esther Hannah Miriam Rosa Fanny Sophia Betsy',
-        'Isaac Samuel Moses Solomon Abraham Joseph Lewis Nathan Benjamin Hyman',
+        'Rachel Leah Rebecca Esther Hannah Miriam Rosa Fanny Sophia Betsy Sarah Rose Kate Annie Dinah Judith '
+        'Bella Golda Rivka Chaya Malka Feiga Deborah Rosetta Kitty Amelia Julia Matilda Phoebe Bertha Clara '
+        'Minnie Lily',
+        'Isaac Samuel Moses Solomon Abraham Joseph Lewis Nathan Benjamin Hyman David Jacob Aaron Mark Henry '
+        'Israel Barnett Woolf Lazarus Morris Myer Simon Michael Emanuel Asher Phineas Mordecai Harris Louis '
+        'Jonas Philip Alfred Reuben Joel Elias',
         '',
-        'Cohen Levy Isaacs Jacobs Hart Moss Abrahams Myers Solomon Lazarus Goldsmith Mendoza'),
+        'Cohen Levy Isaacs Jacobs Hart Moss Abrahams Myers Solomon Lazarus Goldsmith Mendoza Samuels Davis '
+        'Harris Lyons Phillips Marks Joseph Nathan Levi Moses Benjamin Franks Barnett Rosenberg Goldstein '
+        'Lipman Woolf Emanuel Henriques Schwartz Silverman Gompertz'),
     'italian': group(
-        'Maria Giuseppina Rosa Teresa Angela Lucia Carmela',
-        'Giuseppe Antonio Giovanni Luigi Pietro Carlo Domenico',
+        'Maria Giuseppina Rosa Teresa Angela Lucia Carmela Anna Caterina Francesca Margherita Luigia Antonia '
+        'Giovanna Filomena Assunta Carolina Elisabetta Domenica Concetta Annunziata Raffaella Vincenza '
+        'Michelina Angiolina Pasqualina Marianna Clementina Giulia Elena Clotilde Adelaide Agnese Luisa',
+        'Giuseppe Antonio Giovanni Luigi Pietro Carlo Domenico Francesco Angelo Michele Vincenzo Pasquale '
+        'Lorenzo Andrea Battista Giacomo Paolo Stefano Raffaele Alfonso Gaetano Salvatore Filippo Bartolomeo '
+        'Enrico Achille Ercole Cesare Agostino Natale Emilio Federico Vittorio',
         '',
-        'Ricci Bianchi Gatti Ferrari Costa Ortelli Gazzi Negretti'),
+        'Ricci Bianchi Gatti Ferrari Costa Ortelli Gazzi Negretti Zambra Pagliai Rossi Romano Russo Lombardi '
+        'Colombo Bertolini Mariani Conti Rinaldi Fontana Moretti Bruno Marino Galli Cavalli Grossi Brunetti '
+        'Sartori Mancini Ronchetti Pagani Gianelli'),
     'west-riding': group(
         'Hannah Martha Sarah Ann Mary Ellen Elizabeth Alice Emma Ruth Phoebe Mercy Esther Annie Ada Polly '
         'Edith Lizzie',
@@ -168,22 +192,37 @@ VICTORIAN = {
 MEDIEVAL = {
     'norman': group(
         'Alice Isabel Matilda Joan Margery Agnes Emma Juliana Petronilla Avice Cecily Rohese Sybil Beatrice '
-        'Eleanor Mabel',
+        'Eleanor Mabel Margaret Hawise Amice Constance Adeliza Ela Lucy Eva Basilia Maud Gundreda Aline '
+        'Clemence Nichola Idonea',
         'William Robert Richard Ralph Hugh Walter Geoffrey Roger Gilbert Henry Simon Thomas Nicholas Baldwin '
-        'Reginald Guy',
+        'Reginald Guy Hamo Ranulf Eustace Fulk Alan Bertram Payn Roland Stephen Peter Philip Humphrey Miles '
+        'Waleran Osbert',
         '',
-        'de_Clare de_Lacy Mortimer Peverel Basset Beauchamp Mandeville Giffard Clifford Malet Ferrers Talbot'),
+        'de_Clare de_Lacy Mortimer Peverel Basset Beauchamp Mandeville Giffard Clifford Malet Ferrers Talbot '
+        'de_Vere Bigod Percy Mowbray de_Warenne Fitzalan Courtenay Neville Despenser Grey de_Bohun Marshal '
+        'de_Montfort Lovel Saint_John Bardolf Devereux Paynel'),
     'english': group(
-        'Agnes Alice Maud Edith Joan Emma Margery Christina Godiva Elfrida Wymarc Ellen Annot Tibb Mariot',
-        'John Thomas Adam Walter Wat Hob Robin Peter Simkin Edwin Godric Alfred Osric Wulfric Tom Dickon',
+        'Agnes Alice Maud Edith Joan Emma Margery Christina Godiva Elfrida Wymarc Ellen Annot Tibb Mariot '
+        'Isabel Cecily Juliana Matilda Margaret Katherine Lettice Amice Avice Sibyl Mabel Hawise Denise Felicia '
+        'Rose Lucy Beatrice Gunnild Idonea Eva',
+        'John Thomas Adam Walter Wat Hob Robin Peter Simkin Edwin Godric Alfred Osric Wulfric Tom Dickon '
+        'William Richard Robert Henry Roger Hugh Nicholas Ralph Geoffrey Gilbert Stephen Alan Simon Philip '
+        'Laurence Jordan Elias Osbert Hamo Ranulf Gervase Martin',
         '',
         'Atwood Miller Smith Baker Fletcher Carter Thatcher Webster Brewer Cooper Turner Shepherd Fisher Wright '
-        'Chapman Mason Ward Fowler Gardner Bowyer'),
+        'Chapman Mason Ward Fowler Gardner Bowyer Cook Taylor Skinner Tanner Dyer Hunt Reeve Glover Webb Walker '
+        'Spencer Palmer Fuller Barker Attwell Bywater Underwood'),
     'welsh': group(
-        'Gwen Angharad Nest Gwenllian Morfudd Eluned Tangwystl Lleucu',
-        'Dafydd Rhys Owain Gruffudd Madog Iorwerth Llywelyn Hywel',
+        'Gwen Angharad Nest Gwenllian Morfudd Eluned Tangwystl Lleucu Efa Generys Gwladus Dyddgu Mallt Margred '
+        'Annes Gwerful Myfanwy Gwenhwyfar Elen Senena Ales Hunydd Gwenfrewi Mabli Iwerydd Cristin Euron Jonet '
+        'Lowri Catrin Elliw',
+        'Dafydd Rhys Owain Gruffudd Madog Iorwerth Llywelyn Hywel Ieuan Einion Cadwgan Maredudd Cynan Tudur '
+        'Goronwy Ithel Bleddyn Rhodri Cadwaladr Morgan Trahaearn Ednyfed Phylip Gwilym Llywarch Meurig Cynwrig '
+        'Heilyn Cadell Rhirid Seisyll Caradog Elidir Iago Adda',
         '',
-        'ap_Rhys ap_Owain ferch_Madog Gwyn Llwyd Vychan Goch Ddu'),
+        'ap_Rhys ap_Owain ferch_Madog Gwyn Llwyd Vychan Goch Ddu ap_Dafydd ap_Gruffudd ap_Ieuan ap_Hywel '
+        'ap_Madog ap_Llywelyn ap_Einion ap_Iorwerth ap_Maredudd ap_Tudur ap_Cynwrig ap_Goronwy ap_Ithel '
+        'ferch_Dafydd ferch_Rhys ferch_Gruffudd ferch_Ieuan ferch_Hywel Moel Bach Hir Crach Gethin'),
 }
 
 FRONTIER = {
@@ -196,30 +235,59 @@ FRONTIER = {
         'Clanton Hughes Bradshaw Pruitt Tolliver Haskell Whitfield Gentry Burris Coffey Rutledge Spence Dunlap '
         'Crenshaw Harlan Fenton Rhodes McKinney Baird Bascom Puckett Yancey'),
     'mexican': group(
-        'Maria Josefa Refugio Guadalupe Dolores Manuela Juana Soledad Petra Ramona Trinidad Carmen',
-        'Jose Juan Manuel Francisco Jesus Ignacio Pedro Ramon Antonio Santiago Esteban Rafael',
+        'Maria Josefa Refugio Guadalupe Dolores Manuela Juana Soledad Petra Ramona Trinidad Carmen Francisca '
+        'Antonia Rosa Teresa Luz Paula Rafaela Concepcion Encarnacion Ignacia Jesusa Gertrudis Isabel Ana Rita '
+        'Lugarda Mercedes Altagracia Marcelina Feliciana Leonor Victoria Margarita',
+        'Jose Juan Manuel Francisco Jesus Ignacio Pedro Ramon Antonio Santiago Esteban Rafael Miguel Jose_Maria '
+        'Luis Tomas Joaquin Felipe Andres Agustin Vicente Cristobal Julian Bernardo Teodoro Marcos Nicolas '
+        'Mariano Lorenzo Gregorio Ysidro Tiburcio Atanacio Bartolo Anastasio Diego',
         '',
-        'Romero Elias Ochoa Pacheco Ortiz Telles Leon Aguirre Robles Samaniego Contreras Salazar Montoya'),
+        'Romero Elias Ochoa Pacheco Ortiz Telles Leon Aguirre Robles Samaniego Contreras Salazar Montoya Garcia '
+        'Martinez Lopez Sanchez Chavez Vigil Lucero Baca Sandoval Archuleta Valdez Gallegos Armijo Otero Luna '
+        'Sena Trujillo Gonzales Duran Moreno Estrada Carrillo'),
     'cornish': group(
-        'Jenefer Mary Elizabeth Grace Thomasine Loveday Jane Kitty',
-        'John Richard William Nicholas Josiah Hart Jabez Thomas Samuel Edward',
+        'Jenefer Mary Elizabeth Grace Thomasine Loveday Jane Kitty Ann Mary_Ann Honour Philippa Wilmot Tamsin '
+        'Patience Prudence Jenny Emily Eliza Catherine Susan Martha Charity Mercy Sarah Hannah Ellen Harriet '
+        'Emma Bessie Annie Johanna',
+        'John Richard William Nicholas Josiah Hart Jabez Thomas Samuel Edward James Henry Joseph George Peter '
+        'Stephen Francis Matthew Philip Charles Simon Benjamin Joel Elisha Ezekiel Digory Hannibal Mark Michael '
+        'Paul Abraham Jacob Silas Walter',
         '',
-        'Trevithick Penrose Polglase Tregear Pascoe Trelawny Nankivell Rowe Bolitho Pengelly Tremayne Chenoweth'),
+        'Trevithick Penrose Polglase Tregear Pascoe Trelawny Nankivell Rowe Bolitho Pengelly Tremayne Chenoweth '
+        'Trevena Trethewey Tregonning Penhaligon Pendarves Jory Jago Hocking Hosking Williams Rule Nance Oates '
+        'Tonkin Uren Rodda Curnow Trewartha Kitto Polkinghorne Spargo Dunstan'),
     'irish': group(
-        'Bridget Mary Margaret Annie Kate Nora Ellen',
-        'Patrick Michael Dennis Timothy Cornelius Owen Daniel',
+        'Bridget Mary Margaret Annie Kate Nora Ellen Catherine Johanna Honora Julia Ann Mary_Ann Elizabeth '
+        'Delia Winifred Sarah Hannah Alice Teresa Agnes Rose Jane Eliza Maggie Lizzie Nellie Bessie Abbie Susan '
+        'Josephine Celia',
+        'Patrick Michael Dennis Timothy Cornelius Owen Daniel John James Thomas William Edward Bartholomew '
+        'Jeremiah Terence Hugh Martin Peter Francis Joseph Bernard Matthew Laurence Andrew Charles Richard '
+        'Maurice Myles Felix Edmund Thady Barney',
         '',
-        "O'Rourke Sweeney Daly Hogan Mahoney Riordan Cassidy Moran"),
+        "O'Rourke Sweeney Daly Hogan Mahoney Riordan Cassidy Moran Sullivan Murphy O'Brien Kelly Ryan Walsh "
+        "Kennedy McCarthy Donovan Burke Fitzgerald Carroll Nolan Quinn Connolly Dwyer Kearney Duffy Lynch "
+        "McGrath Shea Hennessy Brady Tobin"),
     'german': group(
-        'Anna Katharina Margaretha Elisabeth Louisa Wilhelmina Emma',
-        'Johann Friedrich Heinrich Wilhelm Karl August Otto',
+        'Anna Katharina Margaretha Elisabeth Louisa Wilhelmina Emma Maria Christina Sophia Barbara Magdalena '
+        'Dorothea Friederike Caroline Johanna Bertha Amalia Paulina Rosina Augusta Mathilde Theresa Clara Lina '
+        'Minna Ida Helena Henriette Charlotte Frieda Eva',
+        'Johann Friedrich Heinrich Wilhelm Karl August Otto Georg Jakob Philipp Peter Ludwig Christian Adam '
+        'Konrad Michael Franz Joseph Hermann Gottlieb Ernst Gustav Martin Andreas Valentin Anton Fritz '
+        'Christoph Nikolaus Matthias Adolph Rudolph',
         '',
-        'Schmidt Becker Vogel Hartmann Kessler Lutz Brunner Weber Zimmermann'),
+        'Schmidt Becker Vogel Hartmann Kessler Lutz Brunner Weber Zimmermann Mueller Schneider Fischer Meyer '
+        'Wagner Schulz Hoffmann Koch Bauer Richter Klein Wolf Schroeder Neumann Schwarz Braun Krueger Hofmann '
+        'Lange Werner Krause Meier Lehmann'),
     'chinese': group(
-        'Ah_Ying Mei_Lan Gum_Moy Sing_Toy Lai_Ho',
-        'Ah_Sam Wing Chung Fook Quong Hop_Kee Sing',
+        'Ah_Ying Mei_Lan Gum_Moy Sing_Toy Lai_Ho Ah_Toy Ah_Moy Ah_Kum Ah_Lan Ah_Yuk Ah_Hoy Ah_Choy Ah_Sue Ah_Ho '
+        'Ah_Yoke Ah_Fah Ah_Ngan Ah_Kew Ah_Chun Ah_Lin Gum_Ying Kum_Ho Yut_Ho Yee_Toy Sing_Moy Lin_Moy Kum_Fong '
+        'Lai_Ying Fung_Moy Choy_Lin Moy_Ying Yuen_Kum Sue_Kum',
+        'Ah_Sam Wing Chung Fook Quong Hop_Kee Sing Ah_Sing Ah_Lee Ah_Kee Ah_Wing Ah_Fong Ah_Chung Ah_Hing '
+        'Ah_Quong Ah_Yen Ah_Fook Ah_Louie Ah_Chew Ah_Gow Ah_Hop Ah_Jim Ah_Tom Hong Hing Kee Lung Chew Yuen Bing '
+        'Gong Tong Fat Quan Yick',
         '',
-        'Lee Wong Chan Chin Yee Ng Fong Louie'),
+        'Lee Wong Chan Chin Yee Ng Fong Louie Moy Lum Fung Quan Leong Gin Tom Jue Dea Toy Hom Woo Eng Yuen Hong '
+        'Lau Mah Poon Chew Dong Joe Gee Kwong Jung'),
 }
 
 STORYBOOK = {
@@ -234,6 +302,196 @@ STORYBOOK = {
         'Goodbody Littlejohn Shepherd Weaver Hatcher Merriman'),
 }
 
+EDO_JAPAN = {
+    'townsfolk': group(
+        'Ume Kiku Matsu Take Haru Tsuru Kame Sen Toku Fuku Kin Gin Tome Sato Yoshi Tami Ito Masa Tsune Nobu '
+        'Hisa Kiyo Shige Fusa Mitsu Toyo Naka Rin Sayo Chiyo Yasu Mine Kane',
+        'Kichibei Jinbei Rokubei Chobei Kyubei Sobei Zenbei Mohei Kihei Gohei Jiroemon Tasuke Yasubei Kahei '
+        'Kichizo Shinsuke Tokubei Ihei Seijiro Manzo Shinzo Tomekichi Kichiemon Gosuke Denbei Sakichi Genshichi '
+        'Heisuke Yohei Chojiro Ichibei Kyuzo Hachibei Seibei',
+        '',
+        'Echigoya Mitsui Omiya Iseya Daikokuya Kinokuniya Masuya Yamatoya Kagiya Tsutaya Shirokiya Daimaruya '
+        'Matsuzakaya Konoike Izumiya Fujiya Edoya Kazusaya Owariya Mikawaya Tokiwaya Ebisuya Kikuya Sakaiya '
+        'Naraya Tamaya Yorozuya Echizenya Surugaya Tachibanaya Yamazakiya Nagasakiya'),
+    'samurai': group(
+        'Tsuru Kayo Ei Kiku Nui Sachi Iyo Teru Fusa Masa Toshi Yuki Sano Hide Sumi Michi Ritsu Sono Waka Tama '
+        'Chika Nao Yoshi Shizu Mine Iso Tomo Sen Kazu Fumi Matsu Taka',
+        'Kurando Hayato Gunji Denzaemon Kyuzaemon Kazuma Heima Hyogo Tatewaki Gonnosuke Sakon Ukon Jubei Kanbei '
+        'Matabei Hikoemon Shozaemon Tadataka Masanobu Yoshinobu Tadashige Shigemasa Kiyomasa Masayuki Yoshitaka '
+        'Naoyuki Tomonori Sadanobu Tadakuni Gennai Sanai Heihachiro Kuranosuke Chuzaemon',
+        '',
+        'Matsudaira Honda Sakai Okubo Ishikawa Sakakibara Naito Abe Mizuno Ogasawara Hosokawa Kuroda Asano '
+        'Nabeshima Shimazu Mori Yamauchi Todo Hachisuka Uesugi Satake Tsugaru Hotta Inaba Doi Toda Ando Itakura '
+        'Okudaira Oishi Saigo Yoshida Katsu Watanabe'),
+    'farming': group(
+        'Ume Take Matsu Tora Kuma Iku Tatsu Sute Natsu Aki Kayo Shina Tome Kame Haru Yae Fuji Nami Sada Toki '
+        'Kuni Mitsu Iwa Tsuta Hana Tsuya Miyo Sue Hatsu Kiyo Ine Riku',
+        'Gonbei Sakubei Tasaku Mosuke Yosaku Kyusaku Jinsaku Hachiro Genzo Magoemon Gorobei Matazo Jinzaemon '
+        'Kichiji Tomezo Kumazo Torakichi Sankichi Yoshizo Kanzo Heizo Isaku Sakuzo Tokuzo Matsuzo Kamekichi '
+        'Ushimatsu Uemon Yazaemon Gonzo Denzo Shichibei',
+        '',
+        'Kamimura Shimomura Nakamura Kitamura Nishimura Tanaka Yamashita Ishida Hara Ota Ikeda Hayashi '
+        'Kawaguchi Hirano Inoue Matsumoto Takeuchi Sakamoto Ogawa Fujita Kawai Ono Uchida Murakami Noguchi '
+        'Sugiyama Tsuchiya Yokoyama Okada Iwasaki'),
+}
+
+QING_CHINA = {
+    'han': group(
+        'Guiying Xiulan Yulan Shuzhen Guizhen Yuzhen Xiuzhen Fengying Cuiying Jinlan Yulian Guilan Suzhen '
+        'Lanying Qiaoyun Cuilan Aizhen Shuying Huilan Baozhu Jinfeng Caifeng Yufeng Meilan Lianying Xiuying '
+        'Hehua Qiuxiang Chunmei Shuyun Jinying Guifang Yinzhu Xiaomei',
+        'Dehai Fugui Changgeng Yongfu Shunfa Rongbao Tianci Jinbao Qingyun Dexing Fuquan Yongqing Jinsheng '
+        'Baoshan Changshun Laifu Wanfu Shoushan Zhaolin Hongen Tingyu Jishan Mingde Zhenbang Shoulin Guozhen '
+        'Hanzhang Liansheng Fuhai Zengxiang Wenbin Guoliang',
+        '',
+        'Wang Li Zhang Liu Chen Yang Zhao Huang Zhou Wu Xu Sun Hu Zhu Gao Lin He Guo Ma Luo Liang Song Zheng '
+        'Xie Han Tang Feng Yu Dong Xiao Cao Cheng'),
+    'manchu': group(
+        'Shuxian Yurong Wanrong Huifen Shuhua Yuxiu Jingfang Shufang Ruiyun Guixiang Rongfen Defang Jingyi '
+        'Yuqing Shulan Rongzhen Yinghua Fengxian Lanxiang Xiuyun Cuifeng Guiqin Shuqin Yuqin Jingzhen Daniu '
+        'Erniu Sanniu Siniu Xiaoniu Fuxiang Ruifen',
+        'Ronglu Wenxiang Baojun Gangyi Duanfang Ruilin Linggui Chongqi Chonghou Shengyu Yulu Kuijun Jingshan '
+        'Yinchang Tieliang Xiliang Lianyuan Chongli Guangshou Yuqian Qishan Ruichang Jinliang Enming Duolonga '
+        'Mingliang Shengbao Delenggetai Huaitapu Zhirui Wenqing Mukedengbu',
+        '',
+        'Aisin_Gioro Gioro Gualgiya Niohuru Tunggiya Heseri Fuca Yehe_Nara Ula_Nara Hada_Nara Hoifa_Nara Nara '
+        'Magiya Irgen_Gioro Sirin_Gioro Donggo Janggiya Uya Sakda Bayara Tatara Socoro Ligiya Hitara Sumuru '
+        'Ujala Gorolo Wanggiya Guan Tong Fu'),
+    'hakka': group(
+        'Xiumei Jiaomei Lanmei Yumei Fengmei Jinmei Chunmei Qiumei Dongmei Guimei Ermei Sanmei Simei Taomei '
+        'Lianmei Xuanjiao Lianying Yingniang Jinniang Yuniang Fengniang Xiuniang Lanniang Cuiniang Meiniang '
+        'Yuzhen Shuying Jiaoying Guiying Ahfeng Siying Jinhua',
+        'Xiuquan Rengan Yunshan Xiuqing Chaogui Dakai Rengda Renfa Fengxiang Jinfa Renlong Tianfu Guangyao '
+        'Wenhai Yongfa Zhongliang Dingguo Rongguang Sihai Mingqing Huanzhang Jiaxiang Fuchang Delin Shaoxiang '
+        'Zhaohe Ahfu Agui Ashun Asheng Along Ahai',
+        '',
+        'Chen Li Huang Zhang Liu Lin Zeng Wu Luo Xie Ye Zhong Peng Qiu Liao Yang He Xu Jiang Lai Fan Hong Wen '
+        'Tang Gu Wei Hou Yu Zhuo Tu Feng'),
+}
+
+OTTOMAN = {
+    'turkish': group(
+        'Ayse Fatma Emine Hatice Zeynep Hafize Saliha Nefise Rukiye Hayriye Nazife Sadiye Saide Hamide Habibe '
+        'Esma Sakine Meryem Zehra Naile Halime Fitnat Gulsum Nazli Mihri Pakize Nadide Cemile Feride Behiye '
+        'Refika Atiye Safiye Huriye',
+        'Mehmed Ahmed Ali Mustafa Hasan Huseyin Ibrahim Ismail Osman Suleyman Halil Yusuf Abdullah Hakki Hilmi '
+        'Rifat Sadik Tevfik Kamil Emin Salih Riza Nuri Halim Fehmi Edhem Ragip Necib Sevket Fuad Zeki Arif Omer '
+        'Bekir',
+        '',
+        'Ahmedoglu Kasapzade Hoca Hacioglu Mehmedoglu Hasanoglu Osmanoglu Alioglu Mustafaoglu Ibrahimoglu '
+        'Kalaycioglu Demircioglu Karaosmanoglu Cerrahzade Imamzade Hafizzade Kadizade Mollazade Bakkal Berber '
+        'Terzi Kunduraci Haci Arnavut Topal Deli Kara Uzun Sarioglu Bostanci Hamal Kaptan'),
+    'greek': group(
+        'Maria Eleni Aikaterini Sofia Anna Despina Kalliopi Evanthia Theodora Vasiliki Eirini Zoe Chrysoula '
+        'Angeliki Alexandra Smaragda Efrosyni Paraskevi Kyriaki Marigo Evdokia Anastasia Ioanna Georgia '
+        'Polyxeni Fotini Stamatia Argyro Penelope Euterpe Chrysanthi',
+        'Georgios Ioannis Konstantinos Dimitrios Nikolaos Vasileios Panagiotis Christos Athanasios Antonios '
+        'Stylianos Michail Alexandros Emmanouil Theodoros Stavros Pavlos Petros Spyridon Evangelos Charalambos '
+        'Apostolos Leonidas Grigorios Andreas Stefanos Kyriakos Anastasios Prodromos Ilias Aristeidis Zacharias',
+        '',
+        'Papadopoulos Karatzas Mavrokordatos Zografos Vlastos Zarifis Georgiadis Ioannidis Konstantinidis '
+        'Nikolaidis Dimitriadis Hatziioannou Oikonomou Theodoridis Christodoulou Sideridis Pappas Vafiadis '
+        'Eugenidis Stavridis Kalfas Antoniadis Pavlidis Michailidis Hatzopoulos Vasileiou Raftopoulos Mavros '
+        'Siniossoglou Baltazzi Skouloudis'),
+    'armenian': group(
+        'Mariam Anna Takuhi Zabel Srpuhi Hripsime Arshaluys Nvart Siranush Haiganush Satenik Lusin Gayane '
+        'Anahid Hermine Elmas Mari Aznive Vartanush Shushan Zaruhi Araksi Hranush Nazeli Makruhi Yeranuhi '
+        'Varsenik Ovsanna Sirarpi Agavni Diruhi Marta',
+        'Hagop Garabed Krikor Boghos Bedros Hovhannes Mardiros Ohannes Sarkis Kevork Haroutioun Mihran Nishan '
+        'Avedis Arshag Dikran Vahan Levon Aram Nerses Mesrob Zareh Setrak Simon Kaloust Vartan Khachadur Diran '
+        'Hrant Onnik Minas Hovsep',
+        '',
+        'Gulbenkian Dadian Balyan Duzian Bezjian Kazazian Hagopian Garabedian Krikorian Boghosian Bedrosian '
+        'Ohanian Sarkisian Kevorkian Haroutiounian Mardirosian Nishanian Avedisian Tashjian Kouyoumjian '
+        'Demirjian Yazejian Terzian Bakalian Kalfayan Papazian Topalian Hovsepian Abajian Simonian Odian '
+        'Kalebjian'),
+    'sephardic': group(
+        'Rahel Reina Sol Luna Estrea Bulisa Djoya Vida Allegra Sara Ester Rivka Lea Miryam Klara Rosa Buena '
+        'Fortuna Oro Perla Sultana Benvenida Gracia Mazal Palomba Rebeka Djamila Flor Signora Merkada Simha '
+        'Dudu',
+        'Avram Isak Yakov Moshe Yosef Shemuel Shabetay Haim Bohor Nissim Eliau Yehuda Menahem Salomon Mordehai '
+        'Rafael Daniel Aron David Bension Mair Yom_Tov Zaharia Jako Leon Vitali Gavriel Pinhas Hezkia Albert '
+        'Ezra Marko',
+        '',
+        'Behar Levi Kohen Alhadeff Abravanel Benveniste Camondo Carasso Franco Gabay Hasson Halfon Eskenazi '
+        'Farhi Mizrahi Navarro Toledano Saporta Amado Algranti Baruh Bensussan Kamhi Pardo Policar Russo '
+        'Taragan Uziel Varon Danon Ventura Arditi Mitrani Mallah'),
+}
+
+ANCIENT_ROME = {
+    'roman': group(
+        'Julia Cornelia Claudia Antonia Valeria Caecilia Flavia Domitia Sulpicia Pompeia Fabia Aemilia Junia '
+        'Livia Octavia Calpurnia Licinia Plotina Annia Vibia Statilia Servilia Marcia Tullia Porcia Agrippina '
+        'Faustina Sabina Plautia Ulpia Paulina Pomponia Sempronia Terentia Lucilla',
+        'Gaius Lucius Marcus Publius Quintus Titus Tiberius Gnaeus Aulus Sextus Decimus Servius Spurius Manius '
+        'Appius Numerius Mamercus Vibius Rufus Secundus Maximus Severus Priscus Gallus Celer Crispus Sabinus '
+        'Fuscus Paullus Proculus Clemens Firmus',
+        '',
+        'Julius Cornelius Claudius Valerius Caecilius Flavius Domitius Sulpicius Pompeius Fabius Aemilius '
+        'Junius Livius Octavius Calpurnius Licinius Annius Vibius Statilius Servilius Marcius Tullius Porcius '
+        'Plautius Ulpius Antonius Sempronius Cassius Fulvius Terentius Petronius Pomponius'),
+    'greek': group(
+        'Chloe Tyche Helpis Phoebe Daphne Irene Eutychia Agathe Chrysis Eutyche Nymphe Syntyche Tryphaena '
+        'Tryphosa Euhodia Lydia Persis Doris Zosime Callityche Erotis Thais Philumena Glycera Nice Moschis '
+        'Charis Hermione Antiochis Stephanis Euphrosyne Hedone',
+        'Hermes Eros Philemon Onesimus Epaphroditus Narcissus Pallas Diogenes Eutychus Trophimus Hermas '
+        'Philetus Alexander Dionysius Apollonius Zosimus Antiochus Heraclides Aristobulus Chrysippus Callistus '
+        'Epictetus Philologus Isidorus Sosthenes Stephanus Theophilus Tychicus Agathocles Demetrius Menander '
+        'Herodion Asclepiades',
+        '',
+        'Julius Claudius Flavius Ulpius Cocceius Domitius Antonius Valerius Cornelius Aemilius Caecilius '
+        'Licinius Pompeius Sempronius Terentius Statilius Vettius Lollius Mussius Naevius Publicius Sallustius '
+        'Marcius Annaeus Seius Herennius Plotius Tullius Volusius Calpurnius'),
+    'provincial': group(
+        'Prima Secunda Tertia Quarta Maxima Severa Saturnina Januaria Fortunata Victorina Honorata Donata '
+        'Felicula Rogata Urbica Verecunda Regina Namgedde Successa Ingenua Materna Candida Optata Quieta '
+        'Restituta Crescentia Rustica Lepidina Victoria Primitiva Felicitas Perpetua',
+        'Saturninus Rogatus Donatus Fortunatus Felix Victor Januarius Honoratus Vitalis Secundus Tertius Primus '
+        'Crescens Faustus Ingenuus Datus Optatus Successus Verecundus Senecio Cintusmus Bellicus Catavignus '
+        'Vepogenus Brigomaglos Tasciovanus Hanno Himilco Mago Namphamo Restitutus Rusticus',
+        '',
+        'Julius Claudius Flavius Ulpius Cocceius Pompeius Valerius Antonius Cornelius Caecilius Fabius Junius '
+        'Licinius Aemilius Sempronius Maternius Secundinius Victorius Primius Justinius Sentius Sulpicius '
+        'Marius Vibius Gargilius Sittius Egnatius Helvius Atilius Arruntius'),
+}
+
+MUGHAL_INDIA = {
+    'muslim': group(
+        'Fatima Zainab Ayesha Khadija Maryam Amina Halima Sakina Rabia Zubaida Hamida Salima Rahima Karima '
+        'Jamila Hasina Gulnar Shirin Zahra Habiba Latifa Najma Sultana Bilqis Ruqaiya Mahbuba Asma Saliha '
+        'Dilaram Mehrunnisa Gulbadan Sharifa',
+        'Muhammad Ahmad Ali Hasan Husain Abdullah Abdul_Karim Abdul_Rahim Ismail Ibrahim Yusuf Daud Sulaiman '
+        'Qasim Jafar Mahmud Farid Nur_Muhammad Sher Khizr Mansur Rahmat Hafiz Karim Latif Salim Murad Bahadur '
+        'Fazl Inayat Rustam Hamid Nasir',
+        '',
+        'Khan Shaikh Sayyid Mirza Beg Ansari Siddiqui Qureshi Lodi Barlas Chughtai Bukhari Naqvi Rizvi Hashmi '
+        'Farooqi Usmani Gilani Qadiri Chishti Badakhshi Husaini Bilgrami Tirmizi Kirmani Shirazi Isfahani '
+        'Mashhadi Kashmiri Abbasi Yusufzai'),
+    'hindu': group(
+        'Sita Radha Lakshmi Parvati Ganga Yamuna Kamala Savitri Durga Gauri Saraswati Tulsi Rukmini Champa '
+        'Chameli Malati Kausalya Anandi Bhagwati Devaki Godavari Janki Kesar Kunti Padma Sundari Uma Lilavati '
+        'Mohini Hira Phulmati Annapurna',
+        'Ram Krishna Gopal Govind Hari Mohan Shyam Balram Kishan Narayan Raghunath Tukaram Keshav Madhav '
+        'Ram_Das Mathura_Das Jagannath Gangadhar Damodar Shankar Mahadev Ganesh Lalchand Sundar Dayaram Gokul '
+        'Banarasi Bhagwan_Das Hiranand Sitaram Virji Shantidas',
+        '',
+        'Mishra Tiwari Pandey Dubey Shukla Chaturvedi Trivedi Joshi Bhatt Dikshit Upadhyay Agarwal Khatri Mehta '
+        'Shah Seth Verma Saxena Mathur Srivastava Nagar Desai Patil Deshmukh Kulkarni Pandit Chaudhuri Mazumdar '
+        'Basu Ghosh Mitra Datta Sen Vora Jhaveri'),
+    'rajput': group(
+        'Padmavati Karnavati Jaivanta Mira Hansa Tara Sajjan_Kanwar Chand_Kanwar Ratan_Kanwar Gulab_Kanwar '
+        'Sugan_Kanwar Kishan_Kanwar Indra_Kanwar Roop_Kanwar Anand_Kanwar Bhanwar_Kanwar Champa_Kanwar '
+        'Phool_Kanwar Kesar_Kanwar Suraj_Kanwar Dhan_Kanwar Man_Bai Hira_Bai Lakshmi_Bai Rupa_Bai Sona_Bai '
+        'Ajab_Kanwar Jas_Kanwar Ganga_Bai Padma_Kanwar Shyam_Kanwar Umade',
+        'Pratap Amar Karan Jagat Man Jaswant Gaj Ajit Bhim Ratan Sur Jai Bishan Chandrasen Maldeo Jaimal Patta '
+        'Raghunath Kesri Hammir Anand Prithviraj Kalyan Kumbha Sangram Sujan Indra Bhupat Udai Mukund Durgadas '
+        'Bhagwant',
+        '',
+        'Singh Rathore Sisodia Kachhwaha Chauhan Hada Bhati Parmar Solanki Tomar Jhala Gaur Chandel Bundela '
+        'Baghela Guhilot Shekhawat Champawat Jadeja Deora Sengar Bais Raghuvanshi Bhadoria Gaharwar Katoch '
+        'Pundir Bargujar Khichi Songara Kumpawat Jodha'),
+}
+
 # Victorian and frontier people take given names popular in their birth year too (era_years in
 # given_names.py sets the year the story is told), but keep the period family names above.
 PERIOD_CULTURES = {
@@ -246,7 +504,9 @@ for bank, links in PERIOD_CULTURES.values():
     for key, culture in links.items():
         bank[key] |= {'cultures': {culture: 1}, 'own_family': True}
 
-BANKS = {'modern': MODERN, 'victorian': VICTORIAN, 'medieval': MEDIEVAL, 'frontier': FRONTIER, 'storybook': STORYBOOK}
+BANKS = {'modern': MODERN, 'victorian': VICTORIAN, 'medieval': MEDIEVAL, 'frontier': FRONTIER, 'storybook': STORYBOOK,
+         'edo-japan': EDO_JAPAN, 'qing-china': QING_CHINA, 'ottoman': OTTOMAN, 'ancient-rome': ANCIENT_ROME,
+         'mughal-india': MUGHAL_INDIA}
 
 NAMES = {
     'schema_version': 1,

@@ -98,7 +98,9 @@ event's generation inputs.
 
 **Names.** Each era has a bank of name groups (`GET /api/world/names`): modern American heritages,
 Victorian Britain, a West Riding mill town, medieval England and Wales, the 1880s territories, and a
-plain storybook set for fantasy. Most of a resident's family names come from the same group as the
+plain storybook set for fantasy. Cities can also pick banks for Edo Japan (`edo-japan`), Qing China
+(`qing-china`), the Ottoman Empire (`ottoman`), ancient Rome (`ancient-rome`) and Mughal India
+(`mughal-india`). Most of a resident's family names come from the same group as the
 given name; one in five come from any group in the city. Real cities weight the groups by rough
 local estimates in their `names.mix` (Miami leans Hispanic and Caribbean, Baltimore Black American).
 A city may set `names` to pick another `bank`, weight groups with `mix`, or add its own `groups`
