@@ -132,7 +132,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[] }
 
-interface MoneyHappening { label: string; on: string; cost: number }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -935,6 +935,35 @@ export interface HomeView {
   changes: HomeChange[]
   costs: { rent: number | null; rent_period: string } | null
   varieties: { pet: string[]; vehicle: string[] }
+}
+
+export type WardrobeCategory = 'top' | 'bottom' | 'dress' | 'suit' | 'layer' | 'outerwear' | 'shoes' | 'accessory' | 'active' | 'lounge' | 'sleep' | 'work'
+
+export interface WardrobeItem {
+  id: string
+  category: WardrobeCategory
+  name: string
+  variety: string
+  description: string
+  occasions: string
+  favorite: boolean
+  slot: string | null
+  origin: 'generated' | 'change' | 'user'
+  since: string
+  until: string | null
+  edited: boolean
+  revision: number
+}
+
+export interface WardrobeView {
+  today: string
+  items: WardrobeItem[]
+  removed: WardrobeItem[]
+  changes: HomeChange[]
+  wearing: { occasion: string; label: string; text: string; items: string[] } | null
+  profile: { styles: string[]; size: number; count: number; tier: number; spending: string; work: string | null; career: string | null; summary: string }
+  categories: WardrobeCategory[]
+  labels: Record<WardrobeCategory, string>
 }
 
 /** A townsperson the companion has met around the city: only what the companion has learned so far. */

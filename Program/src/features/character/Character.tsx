@@ -10,6 +10,7 @@ import { fieldValue, withField, type DraftField, type FormState } from './drafti
 import { FieldHelp } from './FieldHelp'
 import { TextingFields } from './TextingFields'
 import { Home } from './Home'
+import { Wardrobe } from './Wardrobe'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { QuickStart } from './QuickStart'
@@ -129,6 +130,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       </form>
       {companion && <>
         <Home name={companion.version.name} />
+        <Wardrobe name={companion.version.name} />
         <SelfFacts name={companion.version.name} />
         <Versions current={companion.active_version_id} />
         <Cast go={go} />

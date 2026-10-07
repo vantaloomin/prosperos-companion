@@ -8,7 +8,7 @@ import random
 from companion.characters import require_current
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import feed, home
+from companion.life import feed, home, wardrobe
 from companion.lora.appearance import current_for_images
 
 PROMPT_VERSION = 1
@@ -21,13 +21,19 @@ def place_name(event) -> str:
     return place.get('name', '') if isinstance(place, dict) else ''
 
 
+def when(event) -> dict:
+    """What the wardrobe needs to dress the moment: its activity, block kind, local date and weather."""
+    details = decode(event['details'])
+    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather')}
+
+
 def scene(connection, post_id) -> list[dict]:
     result = []
     for link in connection.execute('SELECT event_id FROM feed_post_events WHERE post_id=? ORDER BY position',
                                    (post_id,)).fetchall():
         event = feed.current_revision(connection, link['event_id'])
         if event and event['status'] == 'committed':
-            result.append({**feed.event_view(event), 'place': place_name(event)})
+            result.append({**feed.event_view(event), 'place': place_name(event), 'moment': when(event)})
     return result
 
 
@@ -55,7 +61,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     definition = companion['version']['definition']
     return {'prompt_version': PROMPT_VERSION,
             'prompt': compose(definition['name'], definition.get('appearance', ''), events, image_settings['style'],
-                              home.image_hint(connection, post['timeline_id'], events[0])),
+                              setting(connection, post['timeline_id'], events[0])),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
@@ -63,6 +69,13 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
             'marked_nsfw': bool(marked_nsfw), **current_for_images(connection)}
+
+
+def setting(connection, timeline_id, event) -> str:
+    """Their home where the moment is at home, and what they are wearing (companion/life/wardrobe.py)."""
+    parts = [home.image_hint(connection, timeline_id, event),
+             wardrobe.image_hint(connection, timeline_id, event.get('moment') or {})]
+    return ' '.join(part for part in parts if part)
 
 
 def stale(connection, inputs) -> bool:
@@ -92,7 +105,8 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     definition = companion['version']['definition']
     scene_text = {key: moment[key] for key in ('summary', 'caption', 'mood', 'place')}
     appearance = '' if framing == 'view' else definition.get('appearance', '')
-    prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'])
+    wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
+    prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing)
     if FRAMINGS[framing]:
         prompt = f"{FRAMINGS[framing].format(name=definition['name'])} {prompt}"
     likeness = current_for_images(connection)
