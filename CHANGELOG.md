@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.3 (2026-10-07)
+
+- **Fix:** every chat reply failed in v0.1.0 to v0.1.2 (a townsfolk lookup in the reply context).
+  Unexpected reply failures are now logged.
+- **Built-in recall:** the first model file found is preselected, a newly added model file shows up
+  when you return to the window, the status reads "Loading the model…" right after you switch it on,
+  and a model llama.cpp cannot load shows llama.cpp's reason.
+
 ## v0.1.2 (2026-10-07)
 
 - **Send pictures in chat:** attach, paste or drop up to four pictures with a message, or send one on

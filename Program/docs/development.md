@@ -130,6 +130,10 @@ workflow on that commit, and only when every job passes tags `v<version>` on it 
 setup, the portable zip and `SHA256SUMS.txt` as a GitHub release. It refuses a version that is
 already released.
 
+To change the notes of a published release (say, to warn about a bug in it), edit its
+`docs/releases/v<version>.md`, merge, then run the `Release notes` workflow on `main` with the tags
+to update, separated by spaces.
+
 ## Interface
 
 Node 22 or newer. `npm run build` writes `dist/`, which the backend serves at
