@@ -119,6 +119,9 @@ ADDED_COLUMNS = (
     # when they last stepped back from slot 1.
     ('companions', 'townsfolk_key', 'TEXT'),
     ('companions', 'stepped_back_at', 'TEXT'),
+    # Townsfolk of the companion's own, once the user seeds new ones (companion/cast.py); empty keeps the
+    # city's shared townsfolk.
+    ('companions', 'town_seed', "TEXT NOT NULL DEFAULT ''"),
     # The routine slot still going when the life cursor last moved (companion/life/simulation.py).
     ('life_cursors', 'open_slot', 'TEXT'),
     ('prompt_overrides', 'default_text', 'TEXT'),

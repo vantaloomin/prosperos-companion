@@ -508,6 +508,7 @@ class ComfyStandIn:
         self.history_calls = 0
         self.history_status = history_status
         self.pending = True
+        self.info_calls = []
 
     def __call__(self, request: httpx.Request):
         path = request.url.path
@@ -535,12 +536,37 @@ class ComfyStandIn:
         if path == '/interrupt':
             self.interrupted.append(json.loads(request.content))
             return httpx.Response(200)
-        if path == '/object_info':
+        if path.startswith('/object_info'):
+            return self.object_info(request)
+        return httpx.Response(404)
+
+    def object_info(self, request: httpx.Request):
+        """The whole node list for the check; one node's entry, from the user's files, for a listing."""
+        if request.url.path == '/object_info':
             return httpx.Response(200, json={
                 'UNETLoader': {'input': {'required': {'unet_name': [['other.safetensors'], {}],
                                                       'weight_dtype': [['default'], {}]}}},
                 'CLIPTextEncode': {'input': {'required': {'text': ['STRING', {}], 'clip': ['CLIP']}}}})
-        return httpx.Response(404)
+        self.info_calls.append(str(request.url))
+        return httpx.Response(200, json={key: value for key, value in USER_FILES.items()
+                                         if request.url.path == f'/object_info/{key}'})
+
+
+# A real Windows ComfyUI 0.39.0 lists files in subfolders with backslashes; they are kept exactly.
+MODEL = 'Krea 2\\Muse by Stable Yogi Krea2 V3.5 Civ NVFP4 C84.safetensors'
+ENCODER = 'LLM\\qwen3-vl-4b-heretic_nvfp4.safetensors'
+VAE = 'Qwen\\qwenImageVAESharpKrea2_bf16.safetensors'
+# The user's own files, in both of ComfyUI's combo formats (the newer one is ["COMBO", {"options": [...]}]).
+USER_FILES = {
+    'UNETLoader': {'input': {'required': {
+        'unet_name': [[MODEL, 'krea2_turbo_fp8_scaled.safetensors']],
+        'weight_dtype': [['default', 'fp8_e4m3fn']]}}},
+    'CLIPLoader': {'input': {'required': {
+        'clip_name': ['COMBO', {'options': [ENCODER]}],
+        'type': ['COMBO', {'options': ['stable_diffusion', 'krea2']}]}, 'optional': {'device': [['default', 'cpu']]}}},
+    'VAELoader': {'input': {'required': {'vae_name': [[VAE, 'pixel_space']]}}},
+}
+CHOSEN = {'unet_name': MODEL, 'clip_name': ENCODER, 'vae_name': VAE}
 
 
 def test_comfyui_fills_the_krea2_template_and_fetches_the_output():
@@ -551,7 +577,7 @@ def test_comfyui_fills_the_krea2_template_and_fetches_the_output():
     assert graph['4']['inputs']['text'] == 'A café' and graph['5']['inputs']['text'] == 'text'
     assert graph['7']['inputs']['seed'] == 7 and graph['6']['inputs']['width'] == 1024
     assert result.data.startswith(b'\x89PNG') and result.model == 'krea2_turbo_fp8_scaled.safetensors'
-    assert result.workflow == 'krea2-turbo (unverified)' and result.remote_id == 'p1'
+    assert result.workflow == 'krea2-turbo' and result.remote_id == 'p1'
 
 
 def test_comfyui_reports_execution_errors_and_timeouts():
@@ -593,6 +619,103 @@ def test_comfyui_custom_workflow_needs_a_prompt_marker(client, companion):
     bad = client.post('/api/images/backends', json={'kind': 'comfyui', 'base_url': 'http://127.0.0.1:8188',
                                                      'workflow': json.dumps({'1': {'class_type': 'X', 'inputs': {}}})})
     assert bad.status_code == 422 and '{{prompt}}' in bad.json()['detail']
+
+
+def test_comfyui_lists_the_servers_files_for_each_loader():
+    server = ComfyStandIn()
+    adapter = ComfyAdapter(httpx.MockTransport(server))
+    files = asyncio.run(adapter.files({'base_url': 'http://127.0.0.1:8188'}))
+    assert files == {'unet_name': [MODEL, 'krea2_turbo_fp8_scaled.safetensors'], 'clip_name': [ENCODER],
+                     'clip_type': ['stable_diffusion', 'krea2'], 'vae_name': [VAE, 'pixel_space']}
+    assert server.info_calls == [f'http://127.0.0.1:8188/object_info/{name}'
+                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader')]
+
+
+def test_comfyui_puts_chosen_files_in_the_built_in_workflow_only():
+    server = ComfyStandIn()
+    adapter = ComfyAdapter(httpx.MockTransport(server), poll_seconds=0)
+    config = {'base_url': 'http://127.0.0.1:8188', **CHOSEN}
+    result = asyncio.run(adapter.generate(request_for('comfyui', config)))
+    graph = server.prompts[0]
+    assert graph['1']['inputs']['unet_name'] == CHOSEN['unet_name'] and result.model == CHOSEN['unet_name']
+    assert graph['2']['inputs'] == {'clip_name': CHOSEN['clip_name'], 'type': 'krea2'}
+    assert graph['3']['inputs']['vae_name'] == CHOSEN['vae_name']
+    custom = {'1': {'class_type': 'UNETLoader', 'inputs': {'unet_name': 'mine.safetensors'}},
+              '2': {'class_type': 'CLIPTextEncode', 'inputs': {'text': '{{prompt}}'}}}
+    asyncio.run(adapter.generate(request_for('comfyui', {**config, 'workflow': json.dumps(custom)})))
+    assert server.prompts[1]['1']['inputs']['unet_name'] == 'mine.safetensors'
+
+
+def test_comfyui_check_reports_the_chosen_files():
+    def server(request):
+        if request.url.path == '/object_info':
+            return httpx.Response(200, json={**USER_FILES, **{name: {'input': {'required': {}}} for name in (
+                'CLIPTextEncode', 'EmptyLatentImage', 'KSampler', 'VAEDecode', 'SaveImage')}})
+        return httpx.Response(404)
+    adapter = ComfyAdapter(httpx.MockTransport(server))
+    defaults = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188'}))
+    assert not defaults.ok and any('qwen_image_vae.safetensors' in line for line in defaults.details)
+    chosen = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN}))
+    assert chosen.ok, chosen.details
+    missing = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN, 'vae_name': 'gone.safetensors'}))
+    assert missing.details == ['Missing file or option for VAELoader.vae_name: gone.safetensors.']
+    # The subfolder is part of the name: the bare file name is not the server's file.
+    bare = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN,
+                                          'clip_name': 'qwen3-vl-4b-heretic_nvfp4.safetensors'}))
+    assert bare.details == ['Missing file or option for CLIPLoader.clip_name: qwen3-vl-4b-heretic_nvfp4.safetensors.']
+
+
+@pytest.fixture
+def comfy_client(tmp_path, clock, provider):
+    def handler(request):
+        if request.url.host == 'down.example':
+            raise httpx.ConnectError('refused')
+        return stand_in(request)
+    stand_in = ComfyStandIn()
+    adapters = {'comfyui': ComfyAdapter(httpx.MockTransport(handler)), 'codex': FakeAdapter(), 'hosted': FakeAdapter()}
+    app = create_app(tmp_path / 'workspace' / 'companion.sqlite3', clock=clock, vault=MemoryVault(),
+                     provider=provider, life_tasks=False, image_adapters=adapters)
+    with TestClient(app, headers={CLIENT_HEADER: 'workspace'}) as test_client:
+        yield test_client
+
+
+def test_backend_model_files_are_saved_listed_and_cleared(comfy_client):
+    backend = local_comfy(comfy_client)
+    assert backend['model_files'] == {'unet_name': '', 'clip_name': '', 'clip_type': '', 'vae_name': ''}
+    listed = ok(comfy_client.get(f"/api/images/backends/{backend['id']}/files"))
+    assert listed['ok'] and listed['options']['clip_name'] == [ENCODER]
+    assert listed['defaults'] == {'unet_name': 'krea2_turbo_fp8_scaled.safetensors',
+                                  'clip_name': 'qwen3vl_4b_fp8_scaled.safetensors', 'clip_type': 'krea2',
+                                  'vae_name': 'qwen_image_vae.safetensors'}
+    saved = ok(comfy_client.put(f"/api/images/backends/{backend['id']}", json={**CHOSEN, 'clip_type': 'krea2'}))
+    assert saved['model_files'] == {**CHOSEN, 'clip_type': 'krea2'}
+    details = ok(comfy_client.post(f"/api/images/backends/{backend['id']}/check"))['details']
+    assert f"Missing file or option for UNETLoader.unet_name: {CHOSEN['unet_name']}." in details
+    assert not any('krea2_turbo_fp8_scaled' in line for line in details)
+    cleared = ok(comfy_client.put(f"/api/images/backends/{backend['id']}", json={'unet_name': '', 'label': 'GPU'}))
+    assert cleared['model_files'] == {**CHOSEN, 'unet_name': '', 'clip_type': 'krea2'}
+    bad = comfy_client.put(f"/api/images/backends/{backend['id']}", json={'vae_name': 'a\nb.safetensors'})
+    assert bad.status_code == 422
+
+
+def test_backend_files_from_an_unreachable_server_or_another_kind(comfy_client):
+    down = add_backend(comfy_client, kind='comfyui', base_url='http://down.example:8188', controlled_machine=True)
+    listed = ok(comfy_client.get(f"/api/images/backends/{down['id']}/files"))
+    assert not listed['ok'] and 'Cannot reach' in listed['error'] and listed['options']['unet_name'] == []
+    assert listed['defaults']['vae_name'] == 'qwen_image_vae.safetensors'
+    codex = add_backend(comfy_client, kind='codex')
+    assert comfy_client.get(f"/api/images/backends/{codex['id']}/files").status_code == 422
+    assert codex['model_files'] is None
+    assert ok(comfy_client.put(f"/api/images/backends/{codex['id']}", json={'unet_name': 'x'}))['model_files'] is None
+
+
+def test_model_links_are_pages_with_a_licence_note(client):
+    links = ok(client.get('/api/images/model-links'))['links']
+    assert {link['role'] for link in links} == {'model', 'clip', 'vae'}
+    for link in links:
+        assert link['url'].startswith('https://huggingface.co/') and '/resolve/' not in link['url']
+        assert link['name'] and link['licence']
+    assert any('Gated' in link['licence'] for link in links if link['url'].endswith('krea/Krea-2-Turbo'))
 
 
 FAKE_CODEX = '''

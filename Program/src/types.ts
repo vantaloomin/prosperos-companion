@@ -172,6 +172,8 @@ export interface Companion {
   version: CharacterVersion
   // One of their reference pictures, shown as their picture; null shows their initial.
   portrait_reference_id?: string | null
+  /** Set once the user seeds townsfolk of their own; empty means the city's shared townsfolk. */
+  town_seed?: string
 }
 
 export interface WorkspaceSettings {
@@ -500,6 +502,8 @@ export interface ImageBackend {
   api_style: 'images' | 'chat' | null
   cli_path: string
   custom_workflow: boolean
+  // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
+  model_files: ModelFiles | null
   reference_workflow: boolean
   // Can make a picture that follows an earlier one (the onboarding profile pictures).
   takes_reference: boolean
@@ -517,6 +521,12 @@ export interface ImageBackend {
 export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[] }
+
+export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name'
+export type ModelFiles = Record<ModelFileKey, string>
+/** What a ComfyUI server offers the built-in workflow's loaders; ok is false when it could not be asked. */
+export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; options: Record<ModelFileKey, string[]> }
+export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae'; file: string | null; url: string; licence: string }
 
 export interface ImageJob {
   id: string

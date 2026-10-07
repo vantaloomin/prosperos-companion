@@ -19,6 +19,7 @@ import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
 import { StartOver } from './StartOver'
 import { Cast } from './Cast'
+import { TownSeed } from './TownSeed'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
 
@@ -134,6 +135,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         <SelfFacts name={companion.version.name} />
         <Versions current={companion.active_version_id} />
         <Cast go={go} />
+        <TownSeed companion={companion} />
         <StartOver name={companion.version.name} go={go} />
       </>}
     </section>

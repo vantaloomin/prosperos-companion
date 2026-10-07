@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
-import type { BackendCheck, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits } from '../../types'
+import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, PROVIDERS, disclosureFor } from '../feed/imageState'
+import { FILE_SLOTS, NO_CHOICE, fileChoices, filesBody, isChosen, linksByRole, serverFiles, shownFiles, type FileSlot } from './modelFiles'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -90,9 +91,9 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
   const [busy, setBusy] = useState(false)
   // Busy controls are marked, not disabled: disabling the focused control would drop keyboard focus.
   const act = async (action: () => Promise<unknown>) => {
-    if (busy) return
+    if (busy) return false
     setBusy(true)
-    try { await action(); await refresh(); setResult(null) } catch (error) { setResult({ tone: 'error', text: failure(error, 'That did not work.') }) } finally { setBusy(false) }
+    try { await action(); await refresh(); setResult(null); return true } catch (error) { setResult({ tone: 'error', text: failure(error, 'That did not work.') }); return false } finally { setBusy(false) }
   }
   const pending = Boolean(backend.disclosure && !backend.disclosure_accepted)
   return (
@@ -107,6 +108,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       <Toggle label="Enabled" checked={backend.enabled}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { enabled: value, accept_disclosure: value && pending ? true : undefined }, 'PUT'))}
         hint={pending ? 'Turning it on accepts what it receives, described above.' : undefined} />
+      {backend.model_files && !backend.custom_workflow && <ModelFilePicker backend={backend} saved={backend.model_files} save={(files) => act(() => api(`/images/backends/${backend.id}`, files, 'PUT'))} />}
       {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
       <div className="post-actions">
@@ -119,8 +121,76 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
   )
 }
 
+/** The built-in workflow's model, text encoder and VAE, picked from the files the ComfyUI server
+ * lists. The server is only asked once this is opened; a server that cannot be asked takes typed names. */
+function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; saved: ModelFiles; save: (files: ModelFiles) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState<Partial<ModelFiles>>({})
+  const files = useQuery({ queryKey: ['image-backend-files', backend.id], queryFn: () => api<BackendFiles>(`/images/backends/${backend.id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  const links = useQuery({ queryKey: ['image-model-links'], queryFn: () => api<{ links: ModelLink[] }>('/images/model-links'), enabled: open, staleTime: Infinity })
+  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, saved)
+  const shown = shownFiles(draft, saved, server.defaults)
+  const store = async (body: ModelFiles) => { if (await save(body)) setDraft({}) }
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="subtle">Model files for the built-in workflow {isChosen(saved) ? '(your choice)' : '(defaults)'}</summary>
+      <div className="form-stack">
+        <p className="subtle">Pick the files your ComfyUI server has. The lists come from the server at this backend's address; nothing is downloaded or installed.</p>
+        {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}
+        {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
+        {server.answered && <div className="form-grid">
+          {FILE_SLOTS.map((slot) => <FileField key={slot.key} slot={slot} options={server.options[slot.key]} value={shown[slot.key]} fallback={server.defaults[slot.key]} onChange={(value) => setDraft({ ...draft, [slot.key]: value })} />)}
+        </div>}
+        <FileActions changed={Object.keys(draft).length > 0} chosen={isChosen(saved)} busy={files.isFetching}
+          save={() => void store(filesBody(shown, server.defaults))} cancel={() => setDraft({})} reset={() => void store(NO_CHOICE)} refresh={() => void files.refetch()} />
+        <ModelLinks links={links.data?.links ?? []} />
+      </div>
+    </details>
+  )
+}
+
+interface FileActionProps { changed: boolean; chosen: boolean; busy: boolean; save: () => void; cancel: () => void; reset: () => void; refresh: () => void }
+
+function FileActions({ changed, chosen, busy, save, cancel, reset, refresh }: FileActionProps) {
+  return <div className="form-actions">
+    {changed && <>
+      <button type="button" className="button primary" onClick={save}>Save files</button>
+      <button type="button" className="button" onClick={cancel}>Cancel</button>
+    </>}
+    {chosen && <button type="button" className="text-button" onClick={reset}>Use the defaults</button>}
+    {/* Marked busy, not disabled, so keyboard focus stays on it. */}
+    <button type="button" className="text-button" aria-disabled={busy} onClick={() => { if (!busy) refresh() }}><RefreshCw aria-hidden="true" />Refresh list</button>
+  </div>
+}
+
+/** A dropdown of the server's files, or a text box when it listed none. */
+function FileField({ slot, options, value, fallback, onChange }: { slot: FileSlot; options: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
+  const { label, hint, tip } = slot
+  if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback} hint={hint} tip={tip} onChange={onChange} />
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => (
+    <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
+      {fileChoices(options, value).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+    </select>
+  )}</Field>
+}
+
+/** Official pages for the built-in workflow's files. Pages only, never a direct download. */
+function ModelLinks({ links }: { links: ModelLink[] }) {
+  const groups = linksByRole(links)
+  if (groups.length === 0) return null
+  return <div>
+    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list. Check the licence on each page before downloading.</p>
+    <ul className="plain-list">
+      {groups.flatMap(({ slot, links: items }) => items.map(link => <li key={link.name}>
+        {slot.label}: <a className="text-button" href={link.url} target="_blank" rel="noreferrer">{link.name}</a>{link.file && <> · {link.file}</>}
+        <br /><span className="subtle">{link.licence}</span>
+      </li>))}
+    </ul>
+  </div>
+}
+
 /** ComfyUI makes a picture that follows another (the profile pictures) only with the user's own workflow for it. */
-function ReferenceWorkflow({ backend, save }: { backend: ImageBackend; save: (value: string) => Promise<void> }) {
+function ReferenceWorkflow({ backend, save }: { backend: ImageBackend; save: (value: string) => Promise<unknown> }) {
   const [text, setText] = useState('')
   return (
     <details>
@@ -198,7 +268,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
         <TextInput label="ComfyUI address" value={baseUrl} required onChange={setBaseUrl} hint="The app connects to this server only. It never starts or stops ComfyUI." />
         <Toggle label="This address is a machine I control" checked={controlled} onChange={setControlled} hint="Only for your own computer on your network. A rented or shared GPU service is not." />
         <TextArea label="Custom workflow (optional)" value={workflow} rows={3} onChange={setWorkflow}
-          hint="Leave empty for the built-in Krea 2 Turbo workflow (unverified). A custom one is ComfyUI's API format with {{prompt}}, {{negative}}, {{seed}}, {{width}} and {{height}}." />
+          hint="Leave empty for the built-in Krea 2 Turbo workflow; its model files can be picked once the backend is added. A custom one is ComfyUI's API format with {{prompt}}, {{negative}}, {{seed}}, {{width}} and {{height}}." />
       </>}
       {kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={cliPath} onChange={setCliPath} hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />}
       {kind === 'hosted' && <>
