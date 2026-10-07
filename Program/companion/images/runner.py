@@ -53,6 +53,8 @@ class ImageRunner:
         self.sharing: list = []
         # Set by the app: maybe text the user a photo of the companion's moment (images/photos.py).
         self.share = lambda: None
+        # Other image queues started on the same tick (dating_photos.py).
+        self.others: list = []
 
     def wake(self):
         if self.wakeup:
@@ -65,6 +67,8 @@ class ImageRunner:
                 self.automatic()
                 self.share()
                 self.dispatch()
+                for other in self.others:
+                    other()
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(self.wakeup.wait(), tick_seconds)
             self.wakeup.clear()

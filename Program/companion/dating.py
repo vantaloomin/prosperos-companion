@@ -13,6 +13,7 @@ from companion import story, story_people
 from companion.characters import current
 from companion.database import decode, encode, identifier, many, optional, settings
 from companion.errors import DomainError, require
+from companion.images import backends
 from companion.life import encounters
 from companion.world import catalog, dating, townsfolk
 
@@ -331,6 +332,6 @@ def state(database) -> dict:
         return {'surface': kind, 'words': SURFACES[kind], 'city': {'id': data['id'], 'name': data['name']},
                 'profile': mine and {key: mine[key] for key in ('name', 'age', 'gender', 'interested_in', 'looking_for',
                                                                  'age_min', 'age_max', 'bio')},
-                'story': story_on(connection),
+                'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
                 'deck': [dating.card(sheet, data, database.clock.now().date(), found) for sheet, found in shown],
                 'remaining': left, 'matches': matches(connection, database), 'date': date}

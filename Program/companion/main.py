@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from companion import dating_routes, local_zone, story_routes, workspace
 from companion.conversation import Conversation, recover
 from companion.database import Database
+from companion.dating_photos import DatingPhotos
 from companion.debug_routes import router as debug_router
 from companion.debug_time import DebugTime
 from companion.errors import DomainError
@@ -72,6 +73,7 @@ async def lifespan(app):
     lora_training.recover(app.state.database)
     lora_evaluation.recover(app.state.database)
     lora_generation.recover(app.state.database)
+    app.state.dating_photos.recover()
     tasks = [asyncio.create_task(app.state.life.run_forever()),
              asyncio.create_task(app.state.images.run_forever()),
              asyncio.create_task(app.state.push.run_forever())] if app.state.life_tasks else []
@@ -117,6 +119,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.conversation.photos = ChatPhotos(app.state.database, app.state.images, app.state.life,
                                                app.state.openers)
     app.state.images.share = app.state.conversation.photos.share
+    app.state.dating_photos = DatingPhotos(app.state.database, app.state.vault, app.state.images)
 
     def after_turn():
         # A local image waits while a reply is written (compute and job control); a finished turn lets it start.
