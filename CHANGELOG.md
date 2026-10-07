@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.1 (2026-10-07)
 
 - **Form help:** plain-language helper text under fields whose effect is not obvious, and "?" tips
   next to technical ones (model sampling, MCP services, image backends). Tips open on hover, keyboard

@@ -19,7 +19,7 @@ It runs on your computer and talks to whichever model you choose: a hosted API (
 
 It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/prosperos-study) and reuses its foundations.
 
-> **v0.1.0 is an early beta.** It works end to end on Windows, and the Mac scripts pass CI but haven't been tried on a real Mac yet. See [Known issues](#known-issues).
+> **This is an early beta.** It works end to end on Windows, and the Mac scripts pass CI but haven't been tried on a real Mac yet. See [Known issues](#known-issues).
 
 ## What it does
 
