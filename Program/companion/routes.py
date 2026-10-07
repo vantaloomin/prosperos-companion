@@ -2,7 +2,7 @@
 import json
 
 from fastapi import APIRouter, BackgroundTasks, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from companion import (
     backup,
@@ -12,6 +12,7 @@ from companion import (
     drafting,
     events,
     notifications,
+    pictures,
     restore,
     self_facts,
     start_over,
@@ -233,6 +234,19 @@ def search_conversation(request: Request, q: str = ''):
 @router.post('/conversation/messages')
 async def send_message(request: Request, body: MessageCreate, wait: bool = True):
     return await request.app.state.conversation.send(body, wait)
+
+
+@router.post('/pictures', status_code=201)
+async def upload_picture(request: Request):
+    """The body is the picture, already shrunk by the interface (companion/pictures.py)."""
+    data = await request.body()
+    return pictures.save(db(request), data)
+
+
+@router.get('/pictures/{picture_id}')
+def read_picture(request: Request, picture_id: str):
+    path, media_type = pictures.path_of(db(request), picture_id)
+    return FileResponse(path, media_type=media_type, headers={'Cache-Control': 'private, max-age=31536000, immutable'})
 
 
 @router.post('/conversation/messages/{message_id}/alternatives')

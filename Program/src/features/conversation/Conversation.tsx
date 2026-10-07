@@ -103,11 +103,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const fail = (error: unknown) => setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work. Please try again.', settings: error instanceof ApiError && error.code === 'not_configured' })
 
   const send = async () => {
-    const { text, clientId } = draft.value
-    if (!text.trim()) return
+    const { text, clientId, pictures = [] } = draft.value
+    if (!text.trim() && !pictures.length) return
     draft.setSending(true)
     try {
-      accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId }))
+      accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId, picture_ids: pictures.map((picture) => picture.id) }))
       draft.clear()
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }

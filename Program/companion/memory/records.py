@@ -3,6 +3,7 @@
 Every change advances the workspace memory revision so in-flight replies built from an older
 revision are withheld instead of reaching the active conversation (M9).
 """
+from companion import pictures
 from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import bump_memory_revision, identifier, many, one, optional, settings
@@ -261,6 +262,7 @@ def redact_messages(connection, message_ids, timestamp):
     connection.executemany("DELETE FROM memory_candidates WHERE message_id=? AND status<>'committed'",
                            [(identity,) for identity in message_ids])
     vectors.forget(connection, 'message', message_ids)
+    pictures.forget(connection, message_ids)
     # Episode summaries quoting a deleted message go with it.
     connection.executemany('DELETE FROM memory_summaries WHERE EXISTS (SELECT 1 FROM json_each(source_message_ids) '
                            'WHERE value=?)', [(identity,) for identity in message_ids])

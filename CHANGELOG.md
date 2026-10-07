@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Send pictures in chat:** attach, paste or drop up to four pictures with a message, or send one on
+  its own. They are shrunk and stripped of location data first. The model for **Seeing pictures** in
+  Settings > Models (the conversation model unless you pick another) describes each picture once, so
+  the companion sees it and remembers it later. A model that cannot look at pictures leaves it unseen:
+  the companion says it would not load, and the real reason shows under the picture.
 - **Built-in recall:** Settings > Models can run an embedding model on this PC with llama.cpp, apart
   from LM Studio, Kobold or Ollama, so recall finds related memories without an embeddings service. You
   download the model file (EmbeddingGemma 2 or Qwen3 Embedding 0.6B are suggested); llama.cpp

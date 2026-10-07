@@ -682,3 +682,14 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 #debug-progress { width: 100%; accent-color: var(--accent); }
 .info-tip.above .info-tip-text { top: auto; bottom: calc(100% + 6px); left: auto; right: -4px; }
 .composer > .info-tip { align-self: center; }
+
+/* Pictures you send (companion/pictures.py): thumbnails waiting in the composer, then the pictures in your message. */
+.composer:has(.composer-pictures) { flex-wrap: wrap; }
+.composer-pictures { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.composer-picture { position: relative; }
+.composer-picture > img { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
+.composer-picture > button { position: absolute; top: -6px; right: -6px; padding: 2px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); }
+.composer-picture > button svg { width: 14px; height: 14px; }
+.sent-pictures { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.sent-picture { display: grid; gap: 6px; justify-items: start; margin: 0; max-width: min(100%, 320px); }
+.sent-picture > img { display: block; max-width: 100%; height: auto; max-height: 320px; border-radius: 12px; background: var(--accent-tint); }

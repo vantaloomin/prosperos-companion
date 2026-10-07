@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from companion import self_facts, texting
+from companion import pictures, self_facts, texting
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
@@ -251,7 +251,7 @@ def memory_text(memory, now: str | None = None) -> str:
 def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     rows = many(connection, "SELECT * FROM messages WHERE timeline_id=? AND active=1 AND status='complete' "
                 "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, until_seq or 2 ** 62))
-    kept = [row for row in rows if row['id'] not in blocked]
+    kept = pictures.described(connection, [row for row in rows if row['id'] not in blocked])
     # A reply to a deleted or excluded message usually repeats it, so it leaves context with it (M12).
     users = {row['id'] for row in kept if row['role'] == 'user'}
     return [row for row in kept if row['role'] == 'user' or row['reply_to'] is None or row['reply_to'] in users]
@@ -460,6 +460,18 @@ def offer_attachments(packet, connection, latest, photo):
         packet.offer('photo', photo['post_id'], photo['text'])
 
 
+def offer_outside(packet, connection, timeline_id, now, outside, latest):
+    """Lookups made for this message, and a picture in it that would not load: both say what is not known,
+    with a reason that fits what the companion is doing."""
+    unseen = bool(latest and pictures.UNSEEN in latest['text'])
+    block = agenda.current(connection, timeline_id, agenda.COMPANION, now) if outside or unseen else None
+    doing = block.get('label') if block else None
+    for identity, text in lookups.context_lines(outside or [], now, settings(connection)['user_timezone'], doing):
+        packet.offer('outside', identity, text)
+    if unseen:
+        packet.offer('outside', f"pictures:{latest['id']}", pictures.unseen_note(doing))
+
+
 def offer_home(packet, connection, timeline_id, today: str):
     for identity, text in home.context_lines(connection, timeline_id, date.fromisoformat(today)):
         packet.offer('home', identity, text)
@@ -501,10 +513,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     offer_attachments(packet, connection, latest, photo)
-    block = agenda.current(connection, timeline_id, agenda.COMPANION, now) if outside else None
-    doing = block.get('label') if block else None
-    for identity, text in lookups.context_lines(outside or [], now, settings(connection)['user_timezone'], doing):
-        packet.offer('outside', identity, text)
+    offer_outside(packet, connection, timeline_id, now, outside, latest)
     events = lookups.fresh_city_events(connection, now)
     if events and events['id'] not in {item['id'] for item in outside or []}:
         packet.offer('real_events', events['id'], f"- From {events['service_name']}, retrieved "

@@ -24,7 +24,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-from companion import backup
+from companion import backup, pictures
 from companion.characters import require_current
 from companion.database import identifier, many
 from companion.errors import require
@@ -51,7 +51,7 @@ HISTORY = (
     'closeness_jokes', 'closeness_settings', 'openers', 'self_facts', 'recommendations', 'storylines',
     'storyline_days', 'home_log', 'home_items', 'home_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
-    'user_people', 'messages', 'timelines',
+    'user_people', 'message_pictures', 'messages', 'timelines',
 )
 # LoRA folders the backup does not carry: training runs and the test and prepared pictures.
 UNBACKED_LORA = ('runs', 'evaluations', 'generated')
@@ -80,6 +80,7 @@ OWN = {
     'feed_post_events': 'post_id IN gone_posts OR event_id IN gone_events',
     'memory_sources': 'message_id IN gone_messages OR memory_id IN gone_memories',
     'memory_declines': 'message_id IN gone_messages',
+    'message_pictures': 'message_id IN gone_messages',
     'memory_jobs': 'message_id IN gone_messages',
     'memory_vectors': 'owner_id IN gone_messages OR owner_id IN gone_memories',
     'memory_proposals': 'keep_id IN gone_memories OR merge_id IN gone_memories',
@@ -163,7 +164,7 @@ def image_files(connection, companion_id: str | None = None) -> list[str]:
     mine = ' WHERE timeline_id IN (SELECT id FROM timelines WHERE companion_id=?)' if companion_id else ''
     rows = many(connection, f'SELECT output_file, raw_file FROM image_jobs{mine}', (companion_id,) if companion_id else ())
     return [f'images/{row["output_file"]}' for row in rows if row['output_file']] + \
-        [f'images/raw/{row["raw_file"]}' for row in rows if row['raw_file']]
+        [f'images/raw/{row["raw_file"]}' for row in rows if row['raw_file']] + pictures.files_of(connection, companion_id)
 
 
 def lora_files(connection, companion_id: str) -> tuple[list[str], list[str]]:
@@ -273,7 +274,7 @@ def delete(database, typed: str) -> dict:
     made = take_backup(database, 'delete')
     streaming, files, folders = wipe(database, keep_character=False)
     if folders is None:
-        remove_files(database.path.parent, [], ('images', *(f'lora/{name}' for name in
+        remove_files(database.path.parent, [], ('images', pictures.FOLDER, *(f'lora/{name}' for name in
                                                             ('adapters', 'references', *UNBACKED_LORA))))
     else:
         remove_files(database.path.parent, files, tuple(folders))

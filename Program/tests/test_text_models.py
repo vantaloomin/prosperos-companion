@@ -33,7 +33,7 @@ def test_the_first_finished_profile_answers_in_chat_and_other_jobs_inherit_it(cl
     local = add(client, LOCAL)
     overview = client.get('/api/models').json()
     assert overview['routes'] == {'chat': local['id']}
-    assert {job['key'] for job in overview['jobs']} == {'chat', 'life', 'memory', 'drafting', 'recall'}
+    assert {job['key'] for job in overview['jobs']} == {'chat', 'life', 'memory', 'drafting', 'vision', 'recall'}
     with client.app.state.database.connect() as connection:
         assert text_models.config_for(connection, 'drafting')['profile_id'] == local['id']
     assert client.get('/api/connection').json()['connection']['provider'] == 'local'

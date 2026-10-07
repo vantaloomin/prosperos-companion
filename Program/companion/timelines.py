@@ -14,6 +14,7 @@ A timeline's life resumes from the moment it is chosen; time spent frozen is nev
 """
 import re
 
+from companion import pictures
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
@@ -193,6 +194,7 @@ def copy_messages(connection, messages, ids, new_id):
             'INSERT OR IGNORE INTO memory_vectors (owner_kind, owner_id, model, digest, vector, created_at) '
             "SELECT owner_kind, ?, model, digest, vector, created_at FROM memory_vectors "
             "WHERE owner_kind='message' AND owner_id=?", (ids[row['id']], row['id']))
+    pictures.copy(connection, {row['id']: ids[row['id']] for row in messages})
 
 
 def copy_posts(connection, posts, ids, new_id):

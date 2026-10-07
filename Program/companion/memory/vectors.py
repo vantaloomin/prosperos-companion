@@ -8,6 +8,7 @@ import hashlib
 import math
 from array import array
 
+from companion import pictures
 from companion.database import many
 
 INDEX_BATCH = 32
@@ -51,12 +52,15 @@ def missing(connection, model: str, timeline_id: str, limit=INDEX_BATCH) -> list
                     "AND v.owner_id=memories.id AND v.model=? WHERE memories.status='active' AND v.owner_id IS NULL "
                     'LIMIT ?', (model, limit))
     found = [('memory', row['id'], memory_text(row)) for row in memories]
-    messages = many(connection, "SELECT messages.id, messages.text FROM messages LEFT JOIN memory_vectors v "
-                    "ON v.owner_kind='message' AND v.owner_id=messages.id AND v.model=? WHERE messages.timeline_id=? "
-                    "AND messages.status='complete' AND messages.active=1 AND messages.redacted_at IS NULL "
-                    "AND messages.text<>'' AND v.owner_id IS NULL ORDER BY messages.seq DESC LIMIT ?",
+    messages = many(connection, "SELECT messages.id, messages.role, messages.text FROM messages "
+                    "LEFT JOIN memory_vectors v ON v.owner_kind='message' AND v.owner_id=messages.id AND v.model=? "
+                    "WHERE messages.timeline_id=? AND messages.status='complete' AND messages.active=1 "
+                    "AND messages.redacted_at IS NULL AND (messages.text<>'' OR EXISTS (SELECT 1 FROM "
+                    "message_pictures p WHERE p.message_id=messages.id AND p.status<>'pending')) "
+                    "AND v.owner_id IS NULL ORDER BY messages.seq DESC LIMIT ?",
                     (model, timeline_id, limit - len(found)))
-    return found + [('message', row['id'], row['text']) for row in messages]
+    # A message's text includes what its pictures show (companion/pictures.py).
+    return found + [('message', row['id'], row['text']) for row in pictures.described(connection, messages)]
 
 
 def store(connection, model, items, vectors, timestamp) -> int:
@@ -76,8 +80,8 @@ def current_text(connection, kind, owner_id) -> str | None:
     if kind == 'memory':
         rows = many(connection, "SELECT * FROM memories WHERE id=? AND status='active'", (owner_id,))
         return memory_text(rows[0]) if rows else None
-    rows = many(connection, 'SELECT text FROM messages WHERE id=? AND redacted_at IS NULL', (owner_id,))
-    return rows[0]['text'] if rows else None
+    rows = many(connection, 'SELECT id, role, text FROM messages WHERE id=? AND redacted_at IS NULL', (owner_id,))
+    return pictures.described(connection, rows)[0]['text'] if rows else None
 
 
 def rank(connection, model: str, query_vector, owners: dict[str, str], limit: int) -> list[str]:

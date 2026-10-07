@@ -1164,3 +1164,23 @@ CREATE TABLE IF NOT EXISTS builtin_recall (
   model_path TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL
 );
+
+-- Pictures the user sends in chat (companion/pictures.py). `message_id` is empty until the message that
+-- carries the upload is sent. The description is written once by the Seeing pictures model; `unseen`
+-- keeps the reason it could not be described. Copies in forked timelines share the file.
+CREATE TABLE IF NOT EXISTS message_pictures (
+  id TEXT PRIMARY KEY,
+  message_id TEXT REFERENCES messages(id),
+  position INTEGER NOT NULL DEFAULT 0,
+  file TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'seen', 'unseen')),
+  description TEXT,
+  reason TEXT,
+  model TEXT,
+  created_at TEXT NOT NULL,
+  described_at TEXT
+);
+CREATE INDEX IF NOT EXISTS message_pictures_message ON message_pictures(message_id);

@@ -28,7 +28,11 @@ export interface Message {
   superseded_at?: string | null
   /** A photo of the moment this reply sent (photos in chat). */
   photo?: ChatPhoto | null
+  /** Pictures the user sent with this message (companion/pictures.py). */
+  pictures?: SentPicture[]
 }
+
+export interface SentPicture { id: string; width: number; height: number; status: 'pending' | 'seen' | 'unseen'; reason: string | null }
 
 /** A picture a reply sent: a photo, selfie or view of the moment (shared with its feed post), or a meme. */
 export interface ChatPhoto {
