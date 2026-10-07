@@ -21,9 +21,11 @@ backend is off until the user sets it up, and text never waits for an image. The
 - **The built-in workflow** (`workflows/krea2-turbo.json`) targets Krea 2 Turbo with the files
   ComfyUI's own Krea 2 template uses: `UNETLoader` with `krea2_turbo_fp8_scaled.safetensors`,
   `CLIPLoader` of type `krea2` with `qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`,
-  8 steps at CFG 1 with euler and simple. It ran unchanged on an RTX 5090 with ComfyUI 0.39.0 (about
-  2.7 seconds an image once loaded), with a Krea 2 fine-tune in NVFP4 and a Qwen3-VL 4B NVFP4 text
-  encoder chosen for its loaders; the default files themselves have not been run.
+  8 steps at CFG 1 with euler and simple. Verified on Windows with an RTX 5090 and ComfyUI 0.39.0,
+  unchanged, with a Krea 2 fine-tune in NVFP4 (Muse Krea2 V3.5) and a Qwen3-VL 4B NVFP4 text encoder
+  chosen for its loaders: about 3 seconds an image once loaded, after a first load of about 216
+  seconds. Text drawn inside a picture usually comes out garbled. The default files themselves
+  have not been run.
 - **Model files.** Under the backend, **Model files for the built-in workflow** asks the server
   (`/object_info/UNETLoader`, `/object_info/CLIPLoader`, `/object_info/VAELoader`, at the address
   entered only) which files it has and offers them in dropdowns: Model, Text encoder, Text encoder
