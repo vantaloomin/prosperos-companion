@@ -357,6 +357,19 @@ GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the ci
 GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # a neighborhood's residents
 ```
 
+### Shared or seeded townsfolk
+
+A city's townsfolk are the same for every companion living in it, so the shipped cities come with their own
+people. The user can seed new townsfolk for their companion in Character > Townsfolk: the companion gets a
+`town_seed`, mixed into every person's seed (`townsfolk.seed_for`), so the same places and neighborhoods hold
+different people. Seeding again draws another town; clearing it goes back to the shared one. Either way the
+companion's meetings are forgotten, since they name people who are no longer there. Companions who switched
+(below) share one town, so this is only offered with one companion in the workspace.
+
+```
+POST /api/companion/town {fresh: true}    # new townsfolk of their own; {fresh: false} for the shared ones
+```
+
 ### Switching the main character
 
 The user can make any townsperson the companion has met the main character (`companion/cast.py`). Their

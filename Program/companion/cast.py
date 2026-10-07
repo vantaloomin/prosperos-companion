@@ -212,8 +212,9 @@ def switch(database, key: str, definition) -> dict:
         focus = require_current(connection)
         townsperson(connection, focus, key, database.clock.now())
         companion_id, timeline_id = identifier(), identifier()
-        connection.execute('INSERT INTO companions (id, slot, townsfolk_key, created_at) VALUES (?, NULL, ?, ?)',
-                           (companion_id, key, timestamp))
+        # They live in the same town, among the same people, as the companion who met them.
+        connection.execute('INSERT INTO companions (id, slot, townsfolk_key, town_seed, created_at) '
+                           'VALUES (?, NULL, ?, ?, ?)', (companion_id, key, focus.get('town_seed') or '', timestamp))
         version_id = insert_version(connection, companion_id, 1, definition, f"Met {focus['version']['name']} in town.",
                                     timestamp)
         connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
@@ -232,4 +233,22 @@ def focus_on(database, companion_id: str) -> dict:
             raise DomainError('That companion is no longer in this workspace.', 404)
         if found['slot'] != 1:
             step_back(connection, database.now(), companion_id)
+        return current(connection)
+
+
+# Their own town -------------------------------------------------------------------------------------
+
+def reseed_town(database, fresh: bool) -> dict:
+    """Seed new townsfolk for the companion (`fresh`), or go back to the city's shared ones. Everyone they had
+    met becomes someone they never met, so those meetings are forgotten; earlier diary entries keep their
+    words. Only while they are the workspace's one companion, since others share their town."""
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        others = connection.execute('SELECT COUNT(*) FROM companions WHERE id!=?', (companion['id'],)).fetchone()[0]
+        require(others == 0, 'Your companions share one town. Seeding new townsfolk is only possible with one '
+                'companion.', 409)
+        connection.execute('UPDATE companions SET town_seed=? WHERE id=?',
+                           (identifier()[:16] if fresh else '', companion['id']))
+        connection.execute('DELETE FROM townsfolk_encounters WHERE timeline_id IN '
+                           '(SELECT id FROM timelines WHERE companion_id=?)', (companion['id'],))
         return current(connection)

@@ -172,6 +172,8 @@ export interface Companion {
   version: CharacterVersion
   // One of their reference pictures, shown as their picture; null shows their initial.
   portrait_reference_id?: string | null
+  /** Set once the user seeds townsfolk of their own; empty means the city's shared townsfolk. */
+  town_seed?: string
 }
 
 export interface WorkspaceSettings {

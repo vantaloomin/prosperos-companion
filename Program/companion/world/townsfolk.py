@@ -151,8 +151,19 @@ def at_place(data: dict, place_id: str) -> list[dict]:
     return [person(data, place, index) for index in range(count(data, place))]
 
 
+def seed_for(data: dict, key: str) -> str:
+    """What a person is drawn from: their key, mixed with the companion's own town (`data['town']`, set by
+    companion/life/network.py) so two companions in one city meet different people. Companions from before
+    towns were their own have none and keep the people they already knew."""
+    return f"{key}|{data['town']}" if data.get('town') else key
+
+
+def drawn(sheet: dict) -> str:
+    return sheet.get('seed', sheet['key'])
+
+
 def count(data: dict, place: dict) -> int:
-    seed = f"town:{data['id']}:{place['id']}"
+    seed = seed_for(data, f"town:{data['id']}:{place['id']}")
     return PEOPLE[0] + int(generators.unit(seed, 'count') * (PEOPLE[1] - PEOPLE[0] + 1))
 
 
@@ -181,6 +192,7 @@ def person(data: dict, place: dict, index: int) -> dict:
 def _build(data: dict, place_id: str, index: int) -> dict:
     place = catalog.find(data, place_id)
     key = f"town:{data['id']}:{place['id']}:{index}"
+    seed = seed_for(data, key)
     roles = ROLES.get(place['kind'], (REGULAR,))
     # The first person at a staffed place runs it day to day; the second is another role there or a regular,
     # the rest are regulars or anyone else the place draws.
@@ -189,36 +201,36 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     if index == 0 and staffed:
         role = staffed[0]
     elif index == 1:
-        role = generators.pick(key, 'role', others)
+        role = generators.pick(seed, 'role', others)
     else:
-        role = generators.pick(key, 'role', [role for role in others if not role[2]] or others)
+        role = generators.pick(seed, 'role', [role for role in others if not role[2]] or others)
     title = role[0] if modern(data) else role[1]
-    age = 19 + round((generators.unit(key, 'age-a') + generators.unit(key, 'age-b')) / 2 * 52)
-    name = generators.name(data, seed=key, age=age)
+    age = 19 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 52)
+    name = generators.name(data, seed=seed, age=age)
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
-    order = sorted(GOALS, key=lambda goal: generators.unit(key, 'goal', goal[0]))
+    order = sorted(GOALS, key=lambda goal: generators.unit(seed, 'goal', goal[0]))
     sheet = {
-        'key': key, 'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age,
+        'key': key, 'seed': seed, 'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age,
         'role': title, 'kind': 'staff' if role[2] else 'regular', 'staff': role[2], 'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'],
                                                    'neighborhood': place['neighborhood']},
-        'home': generators.pick(key, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
-        'occupation': title if role[2] else _occupation(data, key, age),
-        'temperament': generators.pick(key, 'temperament', sorted(TEMPERAMENTS)),
-        'quirk': generators.pick(key, 'quirk', list(QUIRKS)),
-        'flaw': generators.pick(key, 'flaw', sorted(FLAWS)),
-        'desire': generators.pick(key, 'desire', sorted(DESIRES)),
+        'home': generators.pick(seed, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
+        'occupation': title if role[2] else _occupation(data, seed, age),
+        'temperament': generators.pick(seed, 'temperament', sorted(TEMPERAMENTS)),
+        'quirk': generators.pick(seed, 'quirk', list(QUIRKS)),
+        'flaw': generators.pick(seed, 'flaw', sorted(FLAWS)),
+        'desire': generators.pick(seed, 'desire', sorted(DESIRES)),
         'goals': [goal[0] for goal in order],
-        'night_owl': generators.unit(key, 'owl') < 0.25,
+        'night_owl': generators.unit(seed, 'owl') < 0.25,
     }
     parts = place.get('day_parts') or ['afternoon']
     if role[2]:
-        off = sorted(generators.pick(key, f'off-{n}', list(range(7))) for n in range(2))
-        part = generators.pick(key, 'shift', parts)
+        off = sorted(generators.pick(seed, f'off-{n}', list(range(7))) for n in range(2))
+        part = generators.pick(seed, 'shift', parts)
         sheet['shifts'] = {'days': [day for day in range(7) if day not in off] or [0, 1, 2], 'part': part,
                            'window': list(SHIFTS[part])}
     else:
-        days = sorted({generators.pick(key, f'visit-{n}', list(range(7))) for n in range(3)})
-        part = generators.pick(key, 'visit', parts)
+        days = sorted({generators.pick(seed, f'visit-{n}', list(range(7))) for n in range(3)})
+        part = generators.pick(seed, 'visit', parts)
         sheet['visits'] = {'days': days, 'part': part, 'window': list(VISITS[part])}
     return sheet
 
@@ -277,7 +289,7 @@ def story(sheet: dict, data: dict, day: date) -> dict:
     """Where their goals stand on `day`: the current goal, progress, this week's beat and goals reached."""
     weeks = min(max(week_of(day), 0), MAX_WEEKS)
     steps = tuple({item[0]: item[2] for item in GOALS}[goal_id] for goal_id in sheet['goals'])
-    history = _weeks(sheet['key'], sheet['temperament'], sheet['flaw'], weeks, steps)
+    history = _weeks(drawn(sheet), sheet['temperament'], sheet['flaw'], weeks, steps)
     number, progress, beat = history[-1] if week_of(day) >= 0 else (0, 0, 'stall')
     reached = [goal(sheet, data, n)['text'] for n in range(number)][-3:]
     if beat == 'achieved':
@@ -337,7 +349,7 @@ def whereabouts(sheet: dict, data: dict, moment: datetime) -> dict:
         return {**here, 'doing': f"at their usual spot at {sheet['place']['name']}", 'mood': mood}
     # 4. Working toward their goal, where it takes them.
     practice = state['goal']['practice']
-    if practice and part_of_day(minute) == practice[1] and generators.unit(sheet['key'], 'practice', day) < 0.5:
+    if practice and part_of_day(minute) == practice[1] and generators.unit(drawn(sheet), 'practice', day) < 0.5:
         spot = spot_near(data, sheet, GOAL_KINDS[practice[0]])
         if spot:
             return {'place': view(spot), 'at_place': spot['id'] == sheet['place']['id'],
@@ -429,7 +441,7 @@ def street(data: dict, hood_id: str) -> dict:
 
 
 def resident_count(data: dict, hood_id: str) -> int:
-    return RESIDENTS[0] + int(generators.unit(f"town:{data['id']}:~{hood_id}", 'count') * (RESIDENTS[1] - RESIDENTS[0] + 1))
+    return RESIDENTS[0] + int(generators.unit(seed_for(data, f"town:{data['id']}:~{hood_id}"), 'count') * (RESIDENTS[1] - RESIDENTS[0] + 1))
 
 
 def area(data: dict, hood_id: str) -> dict:
@@ -458,43 +470,44 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
     who stepped back, companion/life/encounters.py)."""
     where = where or area(data, hood_id)
     key = key or f"town:{data['id']}:~{hood_id}:{index}"
-    age = 18 + round((generators.unit(key, 'age-a') + generators.unit(key, 'age-b')) / 2 * 66)
-    occupation = _occupation(data, key, age)
-    haunt = generators.pick(key, 'haunt', where['haunts']) if where['haunts'] else None
+    seed = seed_for(data, key)
+    age = 18 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 66)
+    occupation = _occupation(data, seed, age)
+    haunt = generators.pick(seed, 'haunt', where['haunts']) if where['haunts'] else None
     place = view(haunt) if haunt else street(data, hood_id)
-    order = sorted(GOALS, key=lambda goal: generators.unit(key, 'goal', goal[0]))
+    order = sorted(GOALS, key=lambda goal: generators.unit(seed, 'goal', goal[0]))
     sheet = {
-        'key': key, 'name': '', 'full': '', 'pronouns': '', 'age': age, 'kind': 'resident',
+        'key': key, 'seed': seed, 'name': '', 'full': '', 'pronouns': '', 'age': age, 'kind': 'resident',
         'role': occupation or 'local', 'staff': False, 'place': place, 'home': hood_id, 'occupation': occupation,
         'street': street(data, hood_id),
-        'spots': {kind: generators.pick(key, f'spot-{kind}', options) for kind, options in where['spots'].items()},
-        'temperament': generators.pick(key, 'temperament', sorted(TEMPERAMENTS)),
-        'quirk': generators.pick(key, 'quirk', list(QUIRKS)),
-        'flaw': generators.pick(key, 'flaw', sorted(FLAWS)),
-        'desire': generators.pick(key, 'desire', sorted(DESIRES)),
+        'spots': {kind: generators.pick(seed, f'spot-{kind}', options) for kind, options in where['spots'].items()},
+        'temperament': generators.pick(seed, 'temperament', sorted(TEMPERAMENTS)),
+        'quirk': generators.pick(seed, 'quirk', list(QUIRKS)),
+        'flaw': generators.pick(seed, 'flaw', sorted(FLAWS)),
+        'desire': generators.pick(seed, 'desire', sorted(DESIRES)),
         'goals': [goal[0] for goal in order],
-        'night_owl': generators.unit(key, 'owl') < 0.2,
-        'errand_day': int(generators.unit(key, 'errand') * 7),
+        'night_owl': generators.unit(seed, 'owl') < 0.2,
+        'errand_day': int(generators.unit(seed, 'errand') * 7),
     }
     parts = (haunt or {}).get('day_parts') or ['afternoon']
-    part = generators.pick(key, 'visit', parts)
+    part = generators.pick(seed, 'visit', parts)
     working = occupation not in ('', 'retired')
     # Someone with a weekday job drops in on weekends, unless their spot is an evening one.
     days = [5, 6] if working and part in ('morning', 'afternoon') else list(range(7))
-    sheet['visits'] = {'days': sorted({generators.pick(key, f'visit-{n}', days) for n in range(2)}), 'part': part,
+    sheet['visits'] = {'days': sorted({generators.pick(seed, f'visit-{n}', days) for n in range(2)}), 'part': part,
                        'window': list(VISITS[part])}
     if working:
         schedule = next((career['schedule'] for career in catalog.careers_for(data).values()
                          if career['name'].lower() == occupation), 'office')
         (earliest, latest), hours = COMMUTES.get(schedule, COMMUTE)
-        leave = earliest + round(generators.unit(key, 'leave') * (latest - earliest) / 15) * 15
-        stop = generators.pick(key, 'stop', where['stops']) if where['stops'] else None
+        leave = earliest + round(generators.unit(seed, 'leave') * (latest - earliest) / 15) * 15
+        stop = generators.pick(seed, 'stop', where['stops']) if where['stops'] else None
         sheet['commute'] = {'days': [0, 1, 2, 3, 4], 'leave': leave, 'back': min(leave + hours, 24 * 60 - 20),
                             'stop': stop}
     sheet['reach'] = sorted({place['id'], sheet['street']['id'],
                              *(spot['id'] for spot in sheet['spots'].values() if spot)})
     if named:
-        name = generators.name(data, seed=key, age=age)
+        name = generators.name(data, seed=seed, age=age)
         sheet |= {'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns']}
     return sheet
 
@@ -551,7 +564,7 @@ def resident_whereabouts(sheet: dict, data: dict, moment: datetime) -> dict:
     # 4. Their goal, where it takes them.
     practice = state['goal']['practice']
     spot = sheet['spots'].get(practice[0]) if practice else None
-    if spot and part_of_day(minute) == practice[1] and generators.unit(sheet['key'], 'practice', day) < 0.5:
+    if spot and part_of_day(minute) == practice[1] and generators.unit(drawn(sheet), 'practice', day) < 0.5:
         return at(spot, f"working on their goal: {state['goal']['text']}")
     # 5. Lonely on a weekend evening.
     spot = sheet['spots'].get('company')
@@ -562,7 +575,7 @@ def resident_whereabouts(sheet: dict, data: dict, moment: datetime) -> dict:
     if spot and weekday == sheet['errand_day'] and 10 * 60 <= minute < 12 * 60:
         return at(spot, 'doing the weekly shop')
     # 7. Out front on an evening, else at home.
-    if inside(STREET_EVENING, minute) and generators.unit(sheet['key'], 'out front', day) < 0.3:
+    if inside(STREET_EVENING, minute) and generators.unit(drawn(sheet), 'out front', day) < 0.3:
         doing = 'walking the dog' if 'dog' in sheet['quirk'] else 'out front, chatting with whoever passes'
         return at(sheet['street'], doing)
     return {**home, 'doing': 'at home'}
