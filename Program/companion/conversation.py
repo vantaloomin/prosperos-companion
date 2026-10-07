@@ -9,6 +9,7 @@ is saved and the client follows its text with `events()`. Generation belongs to 
 the request or the stream: closing a stream never stops a reply, only Stop does.
 """
 import asyncio
+import logging
 from dataclasses import dataclass, field
 
 from companion import in_character, pictures, self_facts, texting
@@ -22,6 +23,8 @@ from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
 from companion.text_models import CHAT, config_for, key_for
+
+LOG = logging.getLogger(__name__)
 
 
 def next_seq(connection, timeline_id) -> int:
@@ -348,6 +351,7 @@ class Conversation:
         except DomainError as failure:
             status, error = ('incomplete' if ''.join(text) else 'failed'), failure.message
         except Exception:  # noqa: BLE001 - an unexpected failure must still leave a visible state.
+            LOG.exception('A reply failed unexpectedly.')
             status, error = ('incomplete' if ''.join(text) else 'failed'), 'The reply failed unexpectedly.'
         if status == 'complete' and not ''.join(text).strip():
             status, error = 'failed', error or 'The model returned no reply text.'

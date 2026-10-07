@@ -418,25 +418,25 @@ def offer_day(packet, connection, timeline_id, version, now, today):
         packet.offer('day_shifts', identity, text)
 
 
-def offer_people(packet, connection, timeline_id, version, now, today):
+def offer_people(packet, connection, companion, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
+    timeline_id = companion['active_timeline_id']
     for person in agenda.circle_view(connection, timeline_id, now):
         packet.offer('circle', person['id'], person_text({**person, 'birthday_today': person['birthday'] == today[5:]}))
     for identity, text in network.context_lines(connection, timeline_id, now):
         packet.offer('acquaintances', identity, text)
-    for identity, text in encounters.context_lines(connection, {'active_timeline_id': timeline_id, 'version': version},
-                                                   now):
+    for identity, text in encounters.context_lines(connection, companion, now):
         packet.offer('townsfolk', identity, text)
-    for identity, text in storylines.context_lines(connection, {'active_timeline_id': timeline_id,
-                                                                'version': version}, now):
+    for identity, text in storylines.context_lines(connection, companion, now):
         packet.offer('storylines', identity, text)
 
 
-def offer_life(packet, connection, timeline_id, version, now):
+def offer_life(packet, connection, companion, now):
     """The companion's fictional world: today's weather, their circle, likely next steps and recent events."""
+    timeline_id, version = companion['active_timeline_id'], companion['version']
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     offer_day(packet, connection, timeline_id, version, now, today)
-    offer_people(packet, connection, timeline_id, version, now, today)
+    offer_people(packet, connection, companion, now, today)
     budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
     for identity, text in money.context_lines(version['definition'], today, budget_home):
         packet.offer('money', identity, text)
@@ -509,7 +509,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     for identity, text in almanac.context_lines(connection, version['definition'], version['timezone'], now):
         packet.offer('almanac', identity, text)
     people.offer(packet, connection, companion, groups['people'], groups['boundaries'], now)
-    offer_life(packet, connection, timeline_id, version, now)
+    offer_life(packet, connection, companion, now)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     offer_attachments(packet, connection, latest, photo)

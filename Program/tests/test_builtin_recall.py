@@ -148,7 +148,8 @@ def test_turning_on_needs_the_runtime_and_a_model_file(client, model_file):
 
 
 def test_built_in_recall_starts_a_guarded_cpu_server_and_passes_the_recall_test(client, machine, model_file):
-    turn_on(client, model_file)
+    # The answer to turning it on already says it is loading, so the page keeps checking until it runs.
+    assert turn_on(client, model_file)['state'] == 'starting'
     result = client.post('/api/models/recall-test').json()
     assert result['found_related'] is True and result['dimensions'] == 2
     [process] = machine.processes
@@ -227,3 +228,20 @@ def test_a_real_llama_server_finds_the_related_memory(tmp_path, clock, provider)
         print(result)
         assert result['found_related'] is True
         test_client.put('/api/models/builtin-recall', json={'enabled': False, 'model_path': ''})
+
+
+def test_a_model_llama_cpp_cannot_load_names_llama_cpp_reason(tmp_path):
+    log = tmp_path / 'llama-server.log'
+    log.write_text("I srv load_model: loading model 'x.gguf'\n"
+                   "E llama_model_load: error loading model: unknown model architecture: 'gemma-embedding2'\n"
+                   'E srv llama_server: exiting due to model loading error\n', encoding='utf-8')
+    assert builtin_recall.log_tail(log) == "llama.cpp could not load the model: unknown model architecture: 'gemma-embedding2'"
+
+
+def test_the_guard_exits_cleanly_when_the_server_stops_on_its_own(tmp_path):
+    server = [sys.executable, '-c', 'import sys; sys.exit(3)']
+    guard = subprocess.Popen([sys.executable, '-I', str(builtin_recall.GUARD), *server], stdin=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    assert guard.wait(timeout=30) == 3
+    assert b'Fatal Python error' not in guard.stderr.read()
+    guard.stdin.close()
