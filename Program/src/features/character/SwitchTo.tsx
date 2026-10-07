@@ -7,6 +7,7 @@ import type { CastDraft, CharacterDefinition, Companion, Connection } from '../.
 import { Loading, Notice } from '../../components/Feedback'
 import { CharacterForm, type Start } from './Character'
 import { givenName } from './castText'
+import { refocus } from './refocus'
 
 interface Props { townKey: string; go: (view: View) => void }
 
@@ -27,7 +28,7 @@ export function SwitchTo({ townKey, go }: Props) {
   const current = start ?? { definition: draft.data.definition, drafted: false, attempt: 0 }
   const save = async (definition: CharacterDefinition) => {
     const saved = await api<Companion>('/companion/cast/switch', { key: townKey, definition })
-    await client.resetQueries()
+    await refocus(client)
     return saved
   }
   return (

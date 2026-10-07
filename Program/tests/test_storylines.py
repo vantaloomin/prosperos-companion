@@ -39,6 +39,13 @@ def test_every_beat_fills_in():
                 assert beat.tone in ('good', 'bad', 'mixed')
 
 
+def test_only_an_unmarried_sibling_gets_engaged():
+    engaged = storylines.find_story('sibling_engaged')
+    people = [{'id': 'jo', 'role': 'sister', 'details': json.dumps({'married': True})},
+              {'id': 'al', 'role': 'brother', 'details': json.dumps({})}]
+    assert storylines.casts(engaged, people, {}) == [('al',)]
+
+
 def test_drama_sets_what_can_happen(client, social, monkeypatch):
     monkeypatch.setattr(storylines, 'START', storylines.CHANCES)
     with client.app.state.database.connect() as connection:
