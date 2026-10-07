@@ -83,7 +83,7 @@ export function LifeSettings({ name }: { name: string }) {
 function DramaSlider({ name, value, onChange }: { name: string; value: number; onChange: (value: number) => void }) {
   const level = DRAMA_LEVELS[value] ?? DRAMA_LEVELS[1]
   return (
-    <Field label={`Drama in ${name}'s world: ${level.label}`} hint={`${level.hint} Storylines in their life and their people's, from quiet to soap opera.`}>
+    <Field label={`Drama in ${name}'s world: ${level.label}`} hint={level.hint}>
       {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={value} aria-valuetext={level.label} aria-describedby={describedBy}
         onChange={(event) => onChange(Number(event.target.value))} />}
     </Field>
