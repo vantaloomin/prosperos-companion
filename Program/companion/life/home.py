@@ -142,7 +142,7 @@ def place_item(seed: str, definition: dict, data: dict | None) -> dict:
                 'details': {'description': 'an apartment', 'features': features, 'city': definition.get('location', '')}}
     budget = money.profile(definition) if data['id'] == (money.city_for(definition) or {}).get('id') else None
     if budget:
-        return budgeted(seed, data, budget, features)
+        return budgeted(seed, data, budget, features, money.where_they_live(definition))
     match = catalog.resolve(definition.get('location') or '')
     near = match['neighborhood'] if match and match['city'] == data['id'] else None
     bedrooms = generators.pick(seed, 'bedrooms', list(SIZES), [3, 5, 2])
@@ -164,11 +164,13 @@ def home_name(housing: str, bedrooms: str, data: dict) -> str:
     return f'{SIZES[bedrooms]} in {article(text)}' if modern(data) else article(text)
 
 
-def budgeted(seed: str, data: dict, budget, features: list[str]) -> dict:
+def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = '') -> dict:
     """The home the budget (companion/life/money.py) already pays rent on: its neighbourhood, size and
-    rent, so chat, the budget and this panel agree. Only the kind of building and its quirks are new."""
+    rent, so chat, the budget and this panel agree. Only the kind of building and its quirks are new,
+    and the building is the one the draft names ("a small rowhouse") when the neighbourhood has it."""
     hood = next(hood for hood in data['neighborhoods'] if hood['name'] == budget.neighborhood)
-    housing = generators.pick(seed, 'housing', hood['housing'])
+    named = [kind for kind in hood['housing'] if re.search(rf"\b{re.escape(housing_text(kind))}s?\b", lived, re.IGNORECASE)]
+    housing = named[0] if named else generators.pick(seed, 'housing', hood['housing'])
     name = home_name(housing, budget.unit, data)
     step = 25 if budget.rent >= 400 else 5 if budget.rent >= 40 else 1
     return {'kind': 'home', 'name': name, 'variety': housing, 'details': {

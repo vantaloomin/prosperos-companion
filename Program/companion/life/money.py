@@ -192,11 +192,26 @@ def take_home(city: dict, tier: int) -> float:
     return typical_rent(city) * RENT_MULTIPLE[tier]
 
 
+LIVES = re.compile(r'\b(lives?|living|home|apartment|flat|house|rowhouse|condo)\b', re.IGNORECASE)
+
+
+def where_they_live(definition: dict) -> str:
+    """The sentences of who they are (and their routine) that say where they live, such as "He lives
+    alone in a small rowhouse in Canton." Their background is left out: it is where they grew up."""
+    text = ' '.join(definition.get(key) or '' for key in ('identity', 'routine'))
+    return ' '.join(sentence for sentence in re.split(r'(?<=[.!?])\s+', text) if LIVES.search(sentence))
+
+
 def home_hood(definition: dict, city: dict, tier: int, seed: str) -> dict:
-    """Their neighbourhood: one named in their location, else one with rents that fit their pay."""
+    """Their neighbourhood: one named in their location, else in the draft's own words about where
+    they live, else one with rents that fit their pay."""
     hoods = [hood for hood in city['neighborhoods'] if hood.get('rent')]
     text = ' '.join(definition.get(key) or '' for key in ('near', 'location')).casefold()
     named = [hood for hood in hoods if hood['name'].casefold() in text or hood['id'] == text]
+    if named:
+        return named[0]
+    lived = where_they_live(definition)
+    named = [hood for hood in hoods if re.search(rf"\b{re.escape(hood['name'])}\b", lived, re.IGNORECASE)]
     if named:
         return named[0]
     fitting = [hood for hood in hoods if hood['rent_tier'] in HOOD_TIERS[tier]] or hoods

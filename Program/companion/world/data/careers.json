@@ -434,6 +434,20 @@
    ]
   },
   {
+   "id": "biologist",
+   "name": "Biologist",
+   "sector": "education",
+   "schedule": "office",
+   "pay": "$$",
+   "summary": "Field work, samples and reports for a university, agency, aquarium or conservation group.",
+   "themes": [
+    "field work",
+    "samples",
+    "reports",
+    "the weather"
+   ]
+  },
+  {
    "id": "fitness-trainer",
    "name": "Personal trainer",
    "sector": "fitness",
