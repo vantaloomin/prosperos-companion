@@ -15,7 +15,7 @@ first, a photo text of something they are out doing (`share`). Both go through t
 are capped, and the first-message rules (`openers.held`) decide when a photo text may go out.
 
 Every picture goes through the same classification and routing as any other image (F6): NSFW only
-to a local backend, the prohibited tier nowhere, and anything uncertain counts as NSFW. A request
+to a backend that accepts it, the prohibited tier nowhere, and anything uncertain counts as NSFW. A request
 with nowhere to go sends nothing, and nothing here ever holds up the reply.
 """
 import random

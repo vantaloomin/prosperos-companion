@@ -191,6 +191,49 @@ def test_nsfw_goes_only_to_a_local_backend(client, companion, clock, adapters):
     assert google['accepts_nsfw'] is False
 
 
+def test_an_image_api_switched_to_nsfw_takes_nsfw_requests(client, companion, clock, adapters):
+    plain = add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k')
+    assert plain['nsfw_switch'] is True and plain['allows_nsfw'] is False and plain['accepts_nsfw'] is False
+    assert 'NSFW' not in plain['disclosure']
+    post = make_post(client, clock, summary='Mira posed nude for a life drawing class.')
+    assert generate(client, post)['error_code'] == 'no_local_backend'
+    # A new destination for NSFW requests: switching it on needs the disclosure accepted again.
+    unaccepted = client.put(f"/api/images/backends/{plain['id']}", json={'allows_nsfw': True})
+    assert unaccepted.status_code == 409 and unaccepted.json()['code'] == 'disclosure_required'
+    switched = ok(client.put(f"/api/images/backends/{plain['id']}", json={'allows_nsfw': True, 'accept_disclosure': True}))
+    assert switched['accepts_nsfw'] is True and switched['local'] is False and switched['allows_nsfw'] is True
+    assert switched['disclosure_accepted'] is True and 'NSFW requests go there too' in switched['disclosure']
+    job = generate(client, post)
+    assert job['status'] == 'queued' and job['backend_id'] == plain['id'] and job['classification'] == 'nsfw'
+    drain(client)
+    assert len(adapters['hosted'].requests) == 1
+    prohibited = make_post(client, clock, key='event-0002', summary='A nude 15-year-old at the lake.')
+    assert generate(client, prohibited)['error_code'] == 'prohibited'
+
+
+def test_google_openai_and_codex_cannot_take_nsfw(client, companion):
+    for body in ({'kind': 'hosted', 'provider': 'google', 'model': 'imagen-4'},
+                 {'kind': 'hosted', 'provider': 'openai', 'model': 'gpt-image-1'}, {'kind': 'codex'}):
+        response = client.post('/api/images/backends', json={**body, 'allows_nsfw': True, 'accept_disclosure': True})
+        assert response.status_code == 422
+        backend = add_backend(client, **body)
+        assert backend['nsfw_switch'] is False
+        assert client.put(f"/api/images/backends/{backend['id']}", json={'allows_nsfw': True}).status_code == 422
+
+
+def test_a_refusal_on_an_nsfw_image_api_is_not_sent_back_to_it(client, companion, clock, adapters):
+    hosted = add_backend(client, kind='hosted', provider='other', base_url='https://images.example.com/v1',
+                         model='m', api_key='k', allows_nsfw=True)
+    local = local_comfy(client)
+    ok(client.put('/api/images/settings', json={'fallback': True}))
+    adapters['hosted'].outcomes = [AdapterError('refused', 'refused')]
+    post = make_post(client, clock, summary='Mira posed nude for a life drawing class.')
+    generate(client, post)
+    drain(client)
+    assert [request.backend['id'] for request in adapters['hosted'].requests] == [hosted['id']]
+    assert [request.backend['id'] for request in adapters['comfyui'].requests] == [local['id']]
+
+
 def test_a_remote_comfyui_counts_as_hosted_unless_marked_controlled(client, companion, clock):
     remote = add_backend(client, kind='comfyui', base_url='https://gpu.example.com')
     assert remote['local'] is False and remote['accepts_nsfw'] is False

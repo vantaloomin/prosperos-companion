@@ -43,6 +43,8 @@ class BackendFields(Input):
     api_style: Literal['images', 'chat'] | None = None
     api_key: str | None = Field(default=None, max_length=4000)
     controlled_machine: bool | None = None
+    # Image APIs other than Google and OpenAI: also take NSFW requests (the provider's terms apply).
+    allows_nsfw: bool | None = None
     concurrency: int | None = Field(default=None, ge=1, le=4)
     accept_disclosure: bool | None = None
 

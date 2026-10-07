@@ -50,7 +50,7 @@ export function provenance(job: ImageJob): [string, string][] {
 export const BACKEND_KINDS: { id: BackendKind; label: string; hint: string }[] = [
   { id: 'comfyui', label: 'ComfyUI', hint: 'A ComfyUI server you run. On this computer it can also make NSFW images.' },
   { id: 'codex', label: 'Codex (ChatGPT subscription)', hint: "Experimental. Uses the Codex CLI's built-in image generation under your own codex login. Safe images only." },
-  { id: 'hosted', label: 'Image API', hint: 'OpenRouter, Google or another provider, with your own API key. Safe images only.' },
+  { id: 'hosted', label: 'Image API', hint: 'OpenRouter, Google or another provider, with your own API key. Safe images only, unless you switch on NSFW for a provider that allows it.' },
 ]
 
 export const PROVIDERS: { id: HostedProvider; label: string }[] = [
@@ -60,6 +60,9 @@ export const PROVIDERS: { id: HostedProvider; label: string }[] = [
   { id: 'other', label: 'Other OpenAI-compatible API' },
 ]
 
+/** Hosted providers the NSFW switch is offered for, matching the server's NSFW_PROVIDERS. */
+export const NSFW_PROVIDERS: HostedProvider[] = ['openrouter', 'other']
+
 export function isLoopback(url: string): boolean {
   try {
     const host = new URL(url).hostname.replace(/^\[|\]$/g, '')
@@ -67,11 +70,17 @@ export function isLoopback(url: string): boolean {
   } catch { return false }
 }
 
+function destinationFor(kind: BackendKind, provider: HostedProvider): string {
+  if (kind === 'codex') return 'OpenAI, through the Codex CLI under your own codex login (your ChatGPT plan, or the API key Codex is signed in with)'
+  if (kind === 'comfyui') return 'the ComfyUI server at this address, which is not on this computer'
+  return provider === 'other' ? 'this image service' : PROVIDERS.find((item) => item.id === provider)?.label ?? 'this provider'
+}
+
 /** What a new backend will receive, matching the server's disclosure; null when nothing leaves this computer. */
-export function disclosureFor(kind: BackendKind, provider: HostedProvider, baseUrl: string, controlled: boolean): string | null {
+export function disclosureFor(kind: BackendKind, provider: HostedProvider, baseUrl: string, controlled: boolean, nsfw = false): string | null {
   if (kind === 'comfyui' && (isLoopback(baseUrl) || controlled)) return null
-  const destination = kind === 'codex' ? 'OpenAI, through the Codex CLI under your own codex login (your ChatGPT plan, or the API key Codex is signed in with)'
-    : kind === 'comfyui' ? 'the ComfyUI server at this address, which is not on this computer'
-      : provider === 'other' ? 'this image service' : PROVIDERS.find((item) => item.id === provider)?.label ?? 'this provider'
-  return `Each image request sends its prompt (built from the event and the character's appearance description) to ${destination}. Their retention rules apply. Conversation and memories are not sent. Reference pictures are sent only when you make profile pictures: the first one goes along with the other two.`
+  const text = `Each image request sends its prompt (built from the event and the character's appearance description) to ${destinationFor(kind, provider)}. Their retention rules apply. Conversation and memories are not sent. Reference pictures are sent only when you make profile pictures: the first one goes along with the other two.`
+  return kind === 'hosted' && nsfw && NSFW_PROVIDERS.includes(provider)
+    ? `${text} NSFW requests go there too, so their terms decide what they will make and keep. Prohibited requests are still never sent.`
+    : text
 }

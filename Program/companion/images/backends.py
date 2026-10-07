@@ -2,8 +2,9 @@
 
 Three classes: a ComfyUI instance, the Codex/ChatGPT subscription CLI and hosted image APIs.
 Every backend is off until configured, and the user orders them. What a backend may receive
-follows F6: only a local ComfyUI instance takes NSFW requests; Codex, Google and, in the first
-release, every other hosted API take Safe requests only.
+follows F6: a local ComfyUI instance takes NSFW requests; Codex, Google and the OpenAI API take
+Safe requests only; any other image API takes Safe requests unless the user switches it to NSFW too
+(Vanta, 2026-10-07: a provider like NovelAI accepts NSFW prompts under its own terms).
 """
 from urllib.parse import urlsplit
 
@@ -20,6 +21,8 @@ HOSTED_DEFAULTS = {
     'openai': {'base_url': 'https://api.openai.com/v1', 'api_style': 'images', 'label': 'OpenAI API'},
     'other': {'base_url': '', 'api_style': 'images', 'label': 'Image API'},
 }
+# Hosted providers the NSFW switch is offered for. Google and OpenAI's own API stay safe-only, like Codex.
+NSFW_PROVIDERS = {'openrouter', 'other'}
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
 CONFIG_KEYS = ('base_url', 'model', 'workflow', 'reference_workflow', 'cli_path', 'api_style')
 # ComfyUI only: the files chosen for the built-in workflow's loaders (see adapters/comfyui.py).
@@ -39,8 +42,15 @@ def is_local(backend: dict) -> bool:
     return is_loopback(host) or bool(backend['controlled_machine'])
 
 
+def can_allow_nsfw(kind, provider) -> bool:
+    """Whether the user may switch this backend to take NSFW requests: image APIs other than Google
+    and OpenAI. A local ComfyUI takes them anyway; Codex, Google and OpenAI never do."""
+    return kind == 'hosted' and provider in NSFW_PROVIDERS
+
+
 def accepts_nsfw(backend: dict) -> bool:
-    return is_local(backend)
+    return is_local(backend) or (can_allow_nsfw(backend['kind'], backend['provider'])
+                                 and bool(backend.get('allows_nsfw')))
 
 
 def takes_reference(backend: dict) -> bool:
@@ -68,10 +78,14 @@ def disclosure(backend: dict) -> str | None:
     else:
         destination = HOSTED_DEFAULTS[backend['provider']]['label'] if backend['provider'] != 'other' \
             else 'this image service'
-    return (f'Each image request sends its prompt (built from the event and the character\'s appearance '
+    text = (f'Each image request sends its prompt (built from the event and the character\'s appearance '
             f'description) to {destination}. Their retention rules apply. Conversation and memories are '
             f'not sent. Reference pictures are sent only when you make profile pictures: the first one goes '
             f'along with the other two.')
+    if accepts_nsfw(backend) and not is_local(backend):
+        text += (' NSFW requests go there too, so their terms decide what they will make and keep. '
+                 'Prohibited requests are still never sent.')
+    return text
 
 
 def view(backend: dict) -> dict:
@@ -88,6 +102,8 @@ def view(backend: dict) -> dict:
             'has_key': backend['credential_ref'] is not None,
             'controlled_machine': bool(backend['controlled_machine']), 'concurrency': backend['concurrency'],
             'local': is_local(backend), 'accepts_nsfw': accepts_nsfw(backend),
+            'allows_nsfw': bool(backend.get('allows_nsfw')),
+            'nsfw_switch': can_allow_nsfw(backend['kind'], backend['provider']),
             'blocked_reason': backend['blocked_reason'], 'disclosure': disclosure(backend),
             'disclosure_accepted': backend['disclosure_accepted_at'] is not None,
             'experimental': backend['kind'] == 'codex'}
@@ -107,7 +123,7 @@ def get(connection, backend_id) -> dict:
     return one(connection, 'SELECT * FROM image_backends WHERE id=?', (backend_id,))
 
 
-def validate(kind, provider, config, controlled_machine):
+def validate(kind, provider, config, controlled_machine, allows_nsfw=False):
     if kind == 'comfyui':
         require(config.get('base_url'), 'Enter the address of your ComfyUI server.', 422)
         url = config['base_url']
@@ -127,6 +143,9 @@ def validate(kind, provider, config, controlled_machine):
         require(config.get('model'), 'Choose the image model to use.', 422)
     require(not (controlled_machine and kind != 'comfyui'),
             'Only a ComfyUI server can be marked as a machine you control.', 422)
+    require(not allows_nsfw or can_allow_nsfw(kind, provider),
+            'Only an image API other than Google or OpenAI can take NSFW requests; '
+            'for NSFW images on this computer, use a local ComfyUI server.', 422)
 
 
 def merged_config(kind, provider, previous: dict, body) -> dict:
@@ -195,8 +214,10 @@ def concurrency_for(kind, requested) -> int:
 def create(database, vault, body) -> dict:
     provider = provider_for(body.kind, body.provider)
     config = merged_config(body.kind, provider, {}, body)
-    validate(body.kind, provider, config, body.controlled_machine)
-    require_safe_loras({'kind': body.kind, 'config': encode(config), 'controlled_machine': int(bool(body.controlled_machine))})
+    allows = int(bool(body.allows_nsfw))
+    validate(body.kind, provider, config, body.controlled_machine, allows)
+    require_safe_loras({'kind': body.kind, 'provider': provider, 'config': encode(config),
+                        'controlled_machine': int(bool(body.controlled_machine)), 'allows_nsfw': allows})
     backend_id = identifier()
     label = body.label or KIND_LABELS.get(body.kind) or HOSTED_DEFAULTS[provider]['label']
     reference = None
@@ -207,16 +228,16 @@ def create(database, vault, body) -> dict:
         timestamp = database.now()
         position = len(ordered(connection))
         row = {'kind': body.kind, 'config': encode(config), 'controlled_machine': int(bool(body.controlled_machine)),
-               'provider': provider, 'blocked_reason': None, 'disclosure_accepted_at': None}
+               'provider': provider, 'allows_nsfw': allows, 'blocked_reason': None, 'disclosure_accepted_at': None}
         accepted = timestamp if body.accept_disclosure else None
         enabled = body.enabled if body.enabled is not None else True
         require_disclosure(row, enabled, accepted)
         connection.execute(
             'INSERT INTO image_backends (id, kind, provider, label, enabled, position, config, credential_ref, '
-            'controlled_machine, concurrency, disclosure_accepted_at, created_at, updated_at) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'controlled_machine, allows_nsfw, concurrency, disclosure_accepted_at, created_at, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (backend_id, body.kind, provider, label, int(enabled), position, encode(config), reference,
-             int(bool(body.controlled_machine)), concurrency_for(body.kind, body.concurrency), accepted,
+             int(bool(body.controlled_machine)), allows, concurrency_for(body.kind, body.concurrency), accepted,
              timestamp, timestamp))
         return view(get(connection, backend_id))
 
@@ -232,15 +253,17 @@ def update(database, vault, backend_id, body) -> dict:
         backend = get(connection, backend_id)
         config = merged_config(backend['kind'], backend['provider'], decode(backend['config']), body)
         controlled = backend['controlled_machine'] if body.controlled_machine is None else int(body.controlled_machine)
-        validate(backend['kind'], backend['provider'], config, controlled)
+        allows = backend['allows_nsfw'] if body.allows_nsfw is None else int(body.allows_nsfw)
+        validate(backend['kind'], backend['provider'], config, controlled, allows)
         timestamp = database.now()
         accepted = timestamp if body.accept_disclosure else backend['disclosure_accepted_at']
+        # Sending NSFW requests somewhere new is a new destination for them, so it is accepted again.
         changed_destination = config.get('base_url') != decode(backend['config']).get('base_url') \
-            or controlled != backend['controlled_machine']
+            or controlled != backend['controlled_machine'] or allows > backend['allows_nsfw']
         if changed_destination and not body.accept_disclosure:
             accepted = None
         enabled = backend['enabled'] if body.enabled is None else int(body.enabled)
-        candidate = {**backend, 'config': encode(config), 'controlled_machine': controlled}
+        candidate = {**backend, 'config': encode(config), 'controlled_machine': controlled, 'allows_nsfw': allows}
         require_disclosure(candidate, enabled, accepted)
         require_safe_loras(candidate)
         reference = backend['credential_ref']
@@ -249,8 +272,8 @@ def update(database, vault, backend_id, body) -> dict:
             reference = credential_ref(backend_id)
         connection.execute(
             'UPDATE image_backends SET label=?, enabled=?, config=?, credential_ref=?, controlled_machine=?, '
-            'concurrency=?, disclosure_accepted_at=?, blocked_reason=?, updated_at=? WHERE id=?',
-            (body.label or backend['label'], enabled, encode(config), reference, controlled,
+            'allows_nsfw=?, concurrency=?, disclosure_accepted_at=?, blocked_reason=?, updated_at=? WHERE id=?',
+            (body.label or backend['label'], enabled, encode(config), reference, controlled, allows,
              concurrency_for(backend['kind'], body.concurrency or backend['concurrency']), accepted,
              None if body.api_key else backend['blocked_reason'], timestamp, backend_id))
         return view(get(connection, backend_id))

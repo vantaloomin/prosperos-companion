@@ -6,7 +6,7 @@ import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBack
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
-import { BACKEND_KINDS, PROVIDERS, disclosureFor } from '../feed/imageState'
+import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 
 const SETTINGS_KEY = ['image-settings']
@@ -38,10 +38,10 @@ export function ImageSettings() {
     <section className="settings-section form-stack" aria-labelledby="images-heading">
       <div>
         <h2 id="images-heading">Images</h2>
-        <p className="subtle">Feed posts can have an illustration. Every request is checked on this computer first. NSFW requests only go to a ComfyUI server on this computer; Codex and image APIs only ever receive safe requests, and some things are never made anywhere.</p>
+        <p className="subtle">Feed posts can have an illustration. Every request is checked on this computer first. NSFW requests only go to a ComfyUI server on this computer, or to an image API you switched to take NSFW; Codex, Google and the OpenAI API only ever receive safe requests, and some things are never made anywhere.</p>
       </div>
       {list.length === 0 && <p className="subtle">No image backend is set up yet. Posts stay text-only until you add one.</p>}
-      {list.length > 0 && !hasLocal && <p className="subtle">No local backend is enabled, so NSFW requests will be refused.</p>}
+      {list.length > 0 && !hasLocal && <p className="subtle">No enabled backend takes NSFW requests, so they will be refused.</p>}
       <ol className="backend-list">
         {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
       </ol>
@@ -108,6 +108,9 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       <Toggle label="Enabled" checked={backend.enabled}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { enabled: value, accept_disclosure: value && pending ? true : undefined }, 'PUT'))}
         hint={pending ? 'Turning it on accepts what it receives, described above.' : undefined} />
+      {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
+        onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
+        hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
       <ComfyFiles backend={backend} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
@@ -301,21 +304,29 @@ function BackendSummary({ backend }: { backend: ImageBackend }) {
   return <>
     <div className="backend-title">
       <strong>{backend.label}</strong>
-      <span className="badge">{backend.accepts_nsfw ? 'Local · safe and NSFW' : 'Safe only'}</span>
+      <span className="badge">{backend.accepts_nsfw ? (backend.local ? 'Local · safe and NSFW' : 'Safe and NSFW') : 'Safe only'}</span>
       {backend.experimental && <span className="badge">Experimental</span>}
     </div>
     <p className="subtle">{[where, backend.model, missingKey ? 'no API key' : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')}</p>
   </>
 }
 
-interface Draft { kind: BackendKind; provider: HostedProvider; baseUrl: string; model: string; apiKey: string; cliPath: string; workflow: string; controlled: boolean }
+interface Draft { kind: BackendKind; provider: HostedProvider; baseUrl: string; model: string; apiKey: string; cliPath: string; workflow: string; controlled: boolean; nsfw: boolean }
 
 /** The request body for a new backend; only the fields its kind uses. */
 function backendBody(draft: Draft, disclosure: string | null, accepted: boolean): Record<string, unknown> {
   const body: Record<string, unknown> = { kind: draft.kind, accept_disclosure: disclosure ? accepted : undefined, enabled: !disclosure || accepted }
   if (draft.kind === 'comfyui') return { ...body, base_url: draft.baseUrl, controlled_machine: draft.controlled, workflow: draft.workflow.trim() || undefined }
   if (draft.kind === 'codex') return { ...body, cli_path: draft.cliPath.trim() || undefined }
-  return { ...body, provider: draft.provider, model: draft.model, api_key: draft.apiKey || undefined, base_url: draft.baseUrl.trim() || undefined }
+  return { ...body, provider: draft.provider, model: draft.model, api_key: draft.apiKey || undefined, base_url: draft.baseUrl.trim() || undefined,
+    allows_nsfw: NSFW_PROVIDERS.includes(draft.provider) ? draft.nsfw : undefined }
+}
+
+/** The NSFW switch for a new image API backend; Google and the OpenAI API only say they stay safe-only. */
+function NsfwChoice({ provider, checked, onChange }: { provider: HostedProvider; checked: boolean; onChange: (value: boolean) => void }) {
+  if (!NSFW_PROVIDERS.includes(provider)) return <p className="subtle">{PROVIDERS.find((item) => item.id === provider)?.label} only receives safe requests.</p>
+  return <Toggle label="Also take NSFW requests" checked={checked} onChange={onChange}
+    hint="Off: safe images only. On: NSFW requests can go to this provider too, so only turn it on if its terms allow them. Every request is still checked on this computer first, and prohibited ones are never sent." />
 }
 
 function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (result: Result) => void }) {
@@ -327,9 +338,10 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
   const [cliPath, setCliPath] = useState('')
   const [workflow, setWorkflow] = useState('')
   const [controlled, setControlled] = useState(false)
+  const [nsfw, setNsfw] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [busy, setBusy] = useState(false)
-  const disclosure = disclosureFor(kind, provider, baseUrl, controlled)
+  const disclosure = disclosureFor(kind, provider, baseUrl, controlled, nsfw)
   const chooseKind = (next: BackendKind) => {
     setKind(next)
     setBaseUrl(next === 'comfyui' ? 'http://127.0.0.1:8188' : '')
@@ -339,7 +351,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
     event.preventDefault()
     setBusy(true)
     try {
-      await api('/images/backends', backendBody({ kind, provider, baseUrl, model, apiKey, cliPath, workflow, controlled }, disclosure, accepted))
+      await api('/images/backends', backendBody({ kind, provider, baseUrl, model, apiKey, cliPath, workflow, controlled, nsfw }, disclosure, accepted))
       const leftOff = disclosure && !accepted
       setResult({ tone: 'info', text: leftOff ? 'Added, but left off until you accept what it receives.' : 'Backend added. Use Check to confirm it can run.' })
       onDone()
@@ -369,6 +381,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
           hint="The model's exact name from the provider's documentation." />
         <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />
         {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} hint="For an OpenAI-compatible image service, usually ending in /v1." />}
+        <NsfwChoice provider={provider} checked={nsfw} onChange={(value) => { setNsfw(value); setAccepted(false) }} />
       </>}
       {disclosure && <Toggle label="I understand what it receives" checked={accepted} onChange={setAccepted} hint={disclosure} />}
       <div className="form-actions">

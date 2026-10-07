@@ -30,6 +30,9 @@ test('loopback addresses are local and others need a disclosure', () => {
   assert.match(disclosureFor('comfyui', 'other', 'https://gpu.example.com', false) ?? '', /not on this computer/)
   assert.match(disclosureFor('codex', 'other', '', false) ?? '', /Codex CLI under your own codex login/)
   assert.match(disclosureFor('hosted', 'openrouter', '', false) ?? '', /OpenRouter/)
+  assert.doesNotMatch(disclosureFor('hosted', 'openrouter', '', false) ?? '', /NSFW/)
+  assert.match(disclosureFor('hosted', 'other', '', false, true) ?? '', /NSFW requests go there too/)
+  assert.doesNotMatch(disclosureFor('hosted', 'google', '', false, true) ?? '', /NSFW/)
 })
 
 test('provenance names the backend, likeness method, content check and routing', () => {
