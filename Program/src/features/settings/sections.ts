@@ -1,6 +1,6 @@
 /** Settings is split into tabs; this lists them, what each holds, and the words a search finds them by. */
 
-export type SettingsTab = 'general' | 'models' | 'life' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data'
+export type SettingsTab = 'general' | 'models' | 'life' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data' | 'debug'
 
 export interface SettingsSection {
   /** The id of the section's heading, used to land on it from a search result. */
@@ -31,6 +31,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   {
     id: 'models', label: 'Models', withoutCompanion: true, sections: [
       { heading: 'models-heading', title: 'Models', keywords: 'model connection provider api key openai anthropic openrouter google local kobold codex profile chat life memory drafting recall temperature' },
+      { heading: 'recall-heading', title: 'Built-in recall', keywords: 'recall embedding embeddings semantic llama.cpp llama-server gguf gemma embeddinggemma qwen local memory search' },
       { heading: 'prompts-heading', title: 'Character drafting prompts', keywords: 'prompt drafting help me write quick start' },
     ],
   },
@@ -68,6 +69,11 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   {
     id: 'data', label: 'Backups', pcOnly: true, sections: [
       { heading: 'backup-heading', title: 'Backups', keywords: 'backup restore data export archive' },
+    ],
+  },
+  {
+    id: 'debug', label: 'Debug', pcOnly: true, sections: [
+      { heading: 'debug-heading', title: 'Debug time', keywords: 'debug test testing time travel jump skip ahead days fast forward speed accelerate spoof date clock' },
     ],
   },
 ]

@@ -28,7 +28,11 @@ export interface Message {
   superseded_at?: string | null
   /** A photo of the moment this reply sent (photos in chat). */
   photo?: ChatPhoto | null
+  /** Pictures the user sent with this message (companion/pictures.py). */
+  pictures?: SentPicture[]
 }
+
+export interface SentPicture { id: string; width: number; height: number; status: 'pending' | 'seen' | 'unseen'; reason: string | null }
 
 /** A picture a reply sent: a photo, selfie or view of the moment (shared with its feed post), or a meme. */
 export interface ChatPhoto {
@@ -191,6 +195,8 @@ export interface WorkspaceSettings {
   paused: boolean
   paused_at: string | null
   review_required: boolean
+  /** The LoRA creator; hidden unless COMPANION_LORA_MAKER is set on the PC (docs/lora.md). */
+  lora_maker?: boolean
 }
 
 /** The conversation's model profile (GET /api/connection); Settings > Models has the rest. */
@@ -321,12 +327,14 @@ export interface LifeSettings {
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
 export interface BackupEntry {
-  name: string; bytes: number; kind: 'backup' | 'pre-upgrade' | 'before-reset' | 'before-delete'; readable: boolean
+  name: string; bytes: number; kind: 'backup' | 'pre-upgrade' | 'before-reset' | 'before-delete' | 'before-debug'; readable: boolean
   created_at?: string; app_version?: string; files?: number; datasets_included?: boolean
 }
 export interface StartOverPreview {
   name: string; messages: number; memories: number; timelines: number; images: number
   versions: number; adapters: number; references: number; training: boolean
+  /** Other companions in the workspace, who stay; deleting brings back the first of them. */
+  others: string[]
 }
 export interface StartOverResult { backup: { name: string; path: string } }
 export interface BackupList { backups: BackupEntry[]; pending: { name: string; requested_at: string } | null }
@@ -933,6 +941,8 @@ export interface Townsperson {
   pronouns: string
   age: number
   role: string
+  /** Staff at their place, a regular there, or an ordinary resident of `neighborhood`. */
+  kind: 'staff' | 'regular' | 'resident'
   staff: boolean
   place: { id: string; name: string; kind: string; neighborhood: string }
   neighborhood: string
@@ -949,5 +959,30 @@ export interface Townsperson {
   routine: string | null
   flaw: string | null
   desire: string | null
+  /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
+  cast: string | null
+}
+/** A companion in the workspace: the main character, or one who stepped back. */
+export interface CastMember { id: string; name: string; main: boolean; from_town: boolean; stepped_back_at: string | null; created_at: string }
+/** A townsperson's drafted profile, before they become the main character. */
+export interface CastDraft {
+  definition: CharacterDefinition
+  person: { key: string; name: string; full: string; age: number; role: string; kind: string; place: string; neighborhood: string }
+  stepping_back: string
 }
 export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }
+
+/** Debug time (Settings > Debug, companion/debug_time.py): the app clock moved ahead or running faster. */
+export interface DebugTime {
+  active: boolean
+  /** The app's time, and the PC's real time. */
+  now: string
+  real_now: string
+  speed: number
+  speeds: number[]
+  started_at: string | null
+  app_started_at: string | null
+  backup: string | null
+  jumping: { to: string; done: number } | null
+  kept?: boolean
+}

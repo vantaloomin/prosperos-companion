@@ -89,8 +89,8 @@ export function EditDialog({ message, name, onClose, onDone }: { message: Messag
       <button type="button" className="button primary" onClick={() => void submit(true)} disabled={busy || !text.trim()}>Switch to it</button>
     </>}>
       <p>This starts an alternate timeline from just before this message. Your current conversation with {name} stays exactly as it is, and you can switch back any time.</p>
-      <TextArea label="Your message" value={text} onChange={setText} rows={4} maxLength={40000} />
-      <TextInput label="Name for the new timeline (optional)" value={label} onChange={setLabel} maxLength={80} />
+      <TextArea label="Your message" value={text} onChange={setText} rows={4} maxLength={40000} hint="Sent in place of the original message in the new timeline." />
+      <TextInput label="Name for the new timeline (optional)" value={label} onChange={setLabel} maxLength={80} hint="Shown in the timeline list so you can tell them apart." />
       {error && <Notice tone="error">{error}</Notice>}
     </ConfirmDialog>
   )

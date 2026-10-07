@@ -293,6 +293,15 @@ week by week from 5 January 2026 (`story`): a seeded roll each week makes progre
 a driven temperament helps and a procrastinating or spendthrift flaw drags, and once enough progress is made
 they reach it and start the next goal.
 
+Every neighborhood also has 40 to 80 ordinary residents (`residents`, keys `town:<city>:~<neighborhood>:<n>`),
+about 1,250 in Baltimore on top of the 330 at its places. Their rules: asleep; waiting at their neighborhood's
+transit stop before work (leaving when their career's schedule says: early, office or evening hours); at work;
+walking home; their usual spot nearby; their goal's spot; a bar on weekend evenings when they want company;
+the weekly shop; out front on some evenings; else home. Each resident only ever goes to the few places in their
+`reach`, so `reaching(place)` checks the residents of the surrounding neighborhoods without building the whole
+city. None of this runs on a timer: asking where someone is at any moment gives the same answer a running
+simulation would, and costs nothing for the people nobody asks about.
+
 When the agenda sends the companion somewhere real for leisure, an errand or a social plan, someone there by
 their rules may cross paths with them (`companion/life/encounters.py`; at most one a day). The first time is
 a chat with a stranger; the second reveals what they are working toward; from the third the companion knows
@@ -305,6 +314,30 @@ most recently seen, with only what the companion has learned. No model is involv
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
 GET /api/life/townsfolk/person?key=<key>    # one of them, plus `now`: where their rules put them right now
 GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the city's full view of a place's people
+GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # a neighborhood's residents
+```
+
+### Switching the main character
+
+The user can make any townsperson the companion has met the main character (`companion/cast.py`). Their
+profile is drafted from their sheet with no model (job and shift as the weekly routine, temperament, quirk,
+flaw, desire, goal, and the meetings with the companion), or written out by the text model from the same
+sheet, and the user reviews it before switching. The new main character gets their own companion record,
+character versions and timeline; the one who steps back keeps all of theirs, with no slot
+(`companions.slot` is 1 only for the main character, `stepped_back_at` says when they left it).
+
+Companions who stepped back live in the same city by the townsfolk rules under the key `cast:<companion id>`:
+their old sheet if they came from town (under their current name), else a resident's sheet in their own
+neighborhood. Meetings count both ways, so the new main character already knows the companion they met,
+and the townsperson who took over never appears in town. Start over and delete then touch only the main
+character's rows (`companion/start_over.py`); deleting brings back whoever stepped back most recently.
+
+```
+GET  /api/companion/cast                  # every companion: {id, name, main, from_town, stepped_back_at}
+GET  /api/companion/cast/draft?key=<key>  # {definition, person, stepping_back}; 404 unless they have met
+POST /api/companion/cast/draft {key}      # the same, written out by the text model
+POST /api/companion/cast/switch {key, definition}
+POST /api/companion/cast/focus {companion_id}   # switch back
 ```
 
 ## Precomputed agenda
@@ -411,7 +444,7 @@ PUT /api/life/settings
 | `return_gap_hours` | 4 | 1–48 | Unsimulated time needed before a return batch runs. |
 | `background_interval_minutes` | 60 | 15–1440 | Gap between background batches. |
 | `background_daily_events` | 3 | 0–8 | Most background events in 24 hours; one per batch. |
-| `texts_first` | `false` | | The companion may send the first message (see First messages). |
+| `texts_first` | `true` | | The companion may send the first message (see First messages). Workspaces from before it was on by default are switched on once. |
 | `texts_daily` | 2 | 1–6 | Most first messages in 24 hours. |
 | `texts_gap_hours` | 3 | 1–24 | Hours since the last message before the companion writes first. |
 
@@ -439,16 +472,24 @@ earlier batch). It is refused (409) while paused or for a pause that has not end
 POST /api/life/texts/check   → {state, kind?, message: Message | null}
 ```
 
-With `texts_first` on, the companion can start a conversation (`companion/life/openers.py`). The
-open app calls this about once a minute, and a server with background activity on checks on its own
-tick. Fixed triggers decide when, in this order, each at most once per timeline:
+With `texts_first` on (the default), the companion can start a conversation
+(`companion/life/openers.py`). The open app calls this about once a minute, and the server checks on
+its own tick whether or not background activity is on. Fixed triggers decide when, in this order,
+each at most once per timeline:
 
 | Kind | When | Needs a model |
 | --- | --- | --- |
 | `follow_up` | A plan the user mentioned ended between an hour and three days ago without an outcome | No (template: "Hey! How did the … go?") |
+| `follow_up` | One of the last four messages, from the companion in the last 18 hours, says they want to hear about something later ("I'd like to hear how the search is going later"), and they now have a free moment (below) | No (template: "Okay, free for a minute. How's … going?") |
 | `news` | An open thread in the companion's life settled in the last day | Yes |
 | `reminder` | An event committed in the last day shares a distinctive word with a user fact or shared experience | Yes |
 | `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
+| `check_in` | A free moment, on a seeded roll per day and moment (lunch 50%, after work or class 70%, free evening 35%), at a seeded minute 5 to 50 minutes into it | No (template per moment) |
+
+A free moment is lunch (12:00 to 13:30 in the companion's timezone, even on a work day), the 90
+minutes after a work or study block ends (by the precomputed agenda, so a holiday or sick day is not
+work) unless they are in another busy or social block, or a free evening (19:00 to 21:30). Never
+while asleep.
 
 The model gets the normal chat context plus the reason and its facts, and is told not to add events,
 places or people. A reply that is empty, cut off or longer than 600 characters falls back to the

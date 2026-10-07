@@ -11,7 +11,7 @@ the request or the stream: closing a stream never stops a reply, only Stop does.
 import asyncio
 from dataclasses import dataclass, field
 
-from companion import in_character, self_facts, texting
+from companion import in_character, pictures, self_facts, texting
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -19,7 +19,7 @@ from companion.images import photos
 from companion.life import occasions, pacing, recommendations
 from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
-from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider
+from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
 from companion.text_models import CHAT, config_for, key_for
 
@@ -45,6 +45,7 @@ def record_user(database, body) -> dict:
             "created_at, completed_at) VALUES (?, ?, ?, 'user', ?, ?, 'complete', ?, ?, ?)",
             (message_id, timeline_id, next_seq(connection, timeline_id), body.text, body.client_id,
              companion['active_version_id'], database.now(), database.now()))
+        pictures.attach(connection, message_id, body.picture_ids)
         # Sending on a timeline made by a historical edit uses up its waiting draft (C4).
         connection.execute('UPDATE timelines SET draft=NULL WHERE id=?', (timeline_id,))
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
@@ -71,7 +72,8 @@ def history(database, before_seq=None, limit=100) -> dict:
                     'ORDER BY seq DESC LIMIT ?',
                     (companion['active_timeline_id'], before_seq or 2 ** 62, limit))
         return {'timeline_id': companion['active_timeline_id'],
-                'messages': photos.decorate(connection, [message_view(row) for row in reversed(rows)])}
+                'messages': pictures.decorate(connection, photos.decorate(
+                    connection, [message_view(row) for row in reversed(rows)]))}
 
 
 SEARCH_LIMIT = 50
@@ -138,16 +140,23 @@ class Conversation:
         self.lookups = lookups
         # Photos in chat (companion/images/photos.py); the app, not the model, decides when one is sent.
         self.photos = None
+        # Pictures the user sends, described once before the reply (companion/pictures.py).
+        self.seer = pictures.Seer(database, vault, self.provider, self.scheduler)
         self.running: dict[str, LiveReply] = {}
         # Called once a turn needs nothing more from the model, so memory work never runs ahead of a reply.
         self.after_turn = after_turn
+
+    def user_view(self, user) -> dict:
+        with self.database.connect() as connection:
+            [view] = pictures.decorate(connection, [message_view(user)])
+            return view
 
     async def send(self, body, wait: bool = True) -> dict:
         user = record_user(self.database, body)
         with self.database.connect() as connection:
             reply = active_reply(connection, user['id']) or self.in_progress(connection, user['id'])
         if reply:
-            return {'message': message_view(user), 'reply': message_view(reply), 'connection': 'ready'}
+            return {'message': self.user_view(user), 'reply': message_view(reply), 'connection': 'ready'}
         return await self.respond(user, wait)
 
     def in_progress(self, connection, user_message_id) -> dict | None:
@@ -178,10 +187,10 @@ class Conversation:
         try:
             key = key_for(self.vault, config)
             async with self.scheduler.reserve(config, CONVERSATION):
-                [vector] = await self.embedder.embed(config, key, [user['text']], QUERY_TIMEOUT)
+                [vector] = await self.embedder.embed(config, key, [as_query(config, user['text'])], QUERY_TIMEOUT)
         except Exception:  # noqa: BLE001 - semantic recall is optional; the reply goes ahead without it.
             return None
-        return {'model': config['embedding_model'], 'vector': vector}
+        return {'model': vector_model(config), 'vector': vector}
 
     async def outside(self, user) -> list[dict]:
         """Lookups the message asks for; a failure of the lookup machinery never blocks the reply."""
@@ -201,7 +210,7 @@ class Conversation:
         prepared = self.prepare(user)
         if prepared['connection'] != 'ready':
             self.after_turn()
-            return {'message': message_view(user), 'reply': None, 'connection': prepared['connection']}
+            return {'message': self.user_view(user), 'reply': None, 'connection': prepared['connection']}
         live = self.start(prepared)
         if wait:
             try:
@@ -211,10 +220,10 @@ class Conversation:
                     raise
         reply = self.reply(prepared['attempt_id'])
         if prepared['note'] is None:
-            return {'message': message_view(user), 'reply': reply, 'connection': 'ready',
+            return {'message': self.user_view(user), 'reply': reply, 'connection': 'ready',
                     'dropped': prepared['dropped']}
         # A holding text answers the message now; the full reply follows as a message of its own.
-        return {'message': message_view(user), 'reply': self.reply(prepared['note']), 'follow_up': reply,
+        return {'message': self.user_view(user), 'reply': self.reply(prepared['note']), 'follow_up': reply,
                 'connection': 'ready', 'dropped': prepared['dropped']}
 
     def start(self, prepared) -> LiveReply:
@@ -290,7 +299,10 @@ class Conversation:
         so a change made after this point withholds the reply (M9)."""
         user = prepared['user']
         photo = self.photos.for_message(user, prepared['attempt_id']) if self.photos else None
-        semantic, outside = await asyncio.gather(self.query_vector(user), self.outside(user))
+        shown = await self.seer.look(user)
+        # Recall also looks for what the pictures show; lookups answer only what the user wrote.
+        seen = {**user, 'text': pictures.with_pictures(user['text'], shown)} if shown else user
+        semantic, outside = await asyncio.gather(self.query_vector(seen), self.outside(user))
         return await asyncio.to_thread(self.build_packet, prepared, semantic, outside, photo)
 
     def build_packet(self, prepared, semantic, outside, photo=None) -> dict:

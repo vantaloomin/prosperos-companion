@@ -68,9 +68,9 @@ function Picks({ request, set }: { request: DraftRequest; set: (change: Partial<
           </select>
         )}
       </Field>
-      <Field label="Age">
-        {(id) => (
-          <select id={id} value={request.age} onChange={(event) => set({ age: event.target.value })}>
+      <Field label="Age" hint="Companions are always adults.">
+        {(id, hint) => (
+          <select id={id} aria-describedby={hint} value={request.age} onChange={(event) => set({ age: event.target.value })}>
             {AGES.map((age) => <option key={age.value} value={age.value}>{age.label}</option>)}
           </select>
         )}

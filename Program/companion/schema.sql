@@ -69,9 +69,11 @@ CREATE TABLE IF NOT EXISTS model_routes (
   updated_at TEXT NOT NULL
 );
 
+-- The companion in slot 1 is the one the app is about. Others the user has switched away from keep
+-- their history with no slot (companion/cast.py).
 CREATE TABLE IF NOT EXISTS companions (
   id TEXT PRIMARY KEY,
-  slot INTEGER NOT NULL UNIQUE DEFAULT 1 CHECK (slot = 1),
+  slot INTEGER UNIQUE DEFAULT 1 CHECK (slot = 1),
   active_version_id TEXT,
   active_timeline_id TEXT,
   created_at TEXT NOT NULL
@@ -1138,3 +1140,47 @@ CREATE TABLE IF NOT EXISTS townsfolk_encounters (
   PRIMARY KEY (timeline_id, key, slot_key)
 );
 CREATE INDEX IF NOT EXISTS townsfolk_encounters_day ON townsfolk_encounters(timeline_id, local_date);
+
+-- Debug time (Settings > Debug, companion/debug_time.py). While the row exists the app clock reads
+-- app_anchor + (real time since real_anchor) * speed. `snapshot` is the database copy taken first, which
+-- returning to real time restores unless the user keeps what happened; `backup` is the verified archive.
+CREATE TABLE IF NOT EXISTS debug_time (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  app_anchor TEXT NOT NULL,
+  real_anchor TEXT NOT NULL,
+  speed REAL NOT NULL DEFAULT 1 CHECK (speed >= 1),
+  started_at TEXT NOT NULL,
+  app_started_at TEXT NOT NULL,
+  snapshot TEXT NOT NULL,
+  backup TEXT NOT NULL
+);
+
+-- Built-in recall (Settings > Models, companion/providers/builtin_recall.py): a llama.cpp server the
+-- Companion starts on this PC with an embedding model file the user downloaded. While enabled it does
+-- semantic recall instead of a profile.
+CREATE TABLE IF NOT EXISTS builtin_recall (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+  model_path TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+-- Pictures the user sends in chat (companion/pictures.py). `message_id` is empty until the message that
+-- carries the upload is sent. The description is written once by the Seeing pictures model; `unseen`
+-- keeps the reason it could not be described. Copies in forked timelines share the file.
+CREATE TABLE IF NOT EXISTS message_pictures (
+  id TEXT PRIMARY KEY,
+  message_id TEXT REFERENCES messages(id),
+  position INTEGER NOT NULL DEFAULT 0,
+  file TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'seen', 'unseen')),
+  description TEXT,
+  reason TEXT,
+  model TEXT,
+  created_at TEXT NOT NULL,
+  described_at TEXT
+);
+CREATE INDEX IF NOT EXISTS message_pictures_message ON message_pictures(message_id);

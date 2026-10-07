@@ -1,3 +1,4 @@
+import { appNow } from '../../appTime.ts'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
@@ -65,7 +66,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       return
     }
     // A reply that shows at once shows the ones held before it; a held one stays quiet until its time.
-    const held = isHeld(reply, Date.now())
+    const held = isHeld(reply, appNow())
     update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     if (held) return
@@ -102,11 +103,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const fail = (error: unknown) => setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work. Please try again.', settings: error instanceof ApiError && error.code === 'not_configured' })
 
   const send = async () => {
-    const { text, clientId } = draft.value
-    if (!text.trim()) return
+    const { text, clientId, pictures = [] } = draft.value
+    if (!text.trim() && !pictures.length) return
     draft.setSending(true)
     try {
-      accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId }))
+      accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId, picture_ids: pictures.map((picture) => picture.id) }))
       draft.clear()
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }

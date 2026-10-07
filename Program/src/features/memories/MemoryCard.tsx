@@ -1,3 +1,4 @@
+import { appDate } from '../../appTime.ts'
 import { useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
@@ -97,7 +98,7 @@ const PLAN_STATUSES: PlanStatus[] = ['proposed', 'agreed', 'postponed', 'cancell
 
 /** A focused question: whether a past plan happened, or when an unclear date applies (PRD M8). */
 function FollowUp({ memory, correct, onEdit }: { memory: Memory; correct: MemoryActions['correct']; onEdit: () => void }) {
-  const question = followUp(memory, new Date())
+  const question = followUp(memory, appDate())
   const mark = (plan_status: PlanStatus) => void correct(memory, { value: memory.value, plan_status })
   if (question === 'outcome') {
     return (
@@ -133,7 +134,7 @@ function CorrectForm({ memory, correct, onDone }: { memory: Memory; correct: Mem
   return (
     <form className="correct-form" onSubmit={submit}>
       <label className="visually-hidden" htmlFor={id}>Corrected value for {memory.subject}</label>
-      <textarea id={id} rows={2} value={draft.value} maxLength={4000} autoFocus onChange={(event) => setDraft({ ...draft, value: event.target.value })} />
+      <textarea id={id} aria-describedby={`${id}-hint`} rows={2} value={draft.value} maxLength={4000} autoFocus onChange={(event) => setDraft({ ...draft, value: event.target.value })} />
       <div className="correct-dates">
         {memory.plan_status && (
           <label>Status
@@ -145,7 +146,7 @@ function CorrectForm({ memory, correct, onDone }: { memory: Memory; correct: Mem
         <label>From<input type="date" value={draft.from} onChange={(event) => setDraft({ ...draft, from: event.target.value })} /></label>
         <label>Until<input type="date" value={draft.until} onChange={(event) => setDraft({ ...draft, until: event.target.value })} /></label>
       </div>
-      <p className="subtle">The old value is kept as history and stops being used from the next reply.{memory.dates_uncertain ? ' Saving the dates marks them as confirmed.' : ''}</p>
+      <p className="subtle" id={`${id}-hint`}>The old value is kept as history and stops being used from the next reply.{memory.dates_uncertain ? ' Saving the dates marks them as confirmed.' : ''}</p>
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={saving || !body}>Save correction</button>
         <button type="button" className="button" onClick={onDone}>Cancel</button>

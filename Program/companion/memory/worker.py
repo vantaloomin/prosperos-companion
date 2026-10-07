@@ -12,7 +12,7 @@ from companion.database import settings
 from companion.memory import consolidation, vectors
 from companion.memory import suggest as model_suggestions
 from companion.memory.formation import run_pending
-from companion.providers.embeddings import EmbeddingProvider
+from companion.providers.embeddings import EmbeddingProvider, as_documents, vector_model
 from companion.providers.scheduling import MAINTENANCE
 from companion.text_models import config_for, key_for
 
@@ -77,11 +77,11 @@ class MemoryWorker:
             if not config or not config.get('embedding_model'):
                 return 0
             timeline_id = require_current(connection)['active_timeline_id']
-            items = vectors.missing(connection, config['embedding_model'], timeline_id)
+            items = vectors.missing(connection, vector_model(config), timeline_id)
         if not items:
             return 0
         key = key_for(self.vault, config)
         async with self.scheduler.reserve(config, MAINTENANCE):
-            found = await self.embedder.embed(config, key, [text for _kind, _id, text in items])
+            found = await self.embedder.embed(config, key, as_documents(config, [text for _kind, _id, text in items]))
         with self.database.connect(write=True) as connection:
-            return vectors.store(connection, config['embedding_model'], items, found, self.database.now())
+            return vectors.store(connection, vector_model(config), items, found, self.database.now())

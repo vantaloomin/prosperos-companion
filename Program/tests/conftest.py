@@ -63,6 +63,8 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.network.ACTIVE', False)
     # And townsfolk met around the city (companion/life/encounters.py), likewise by chance.
     monkeypatch.setattr('companion.life.encounters.ACTIVE', False)
+    # And check-ins at breaks in the companion's day (companion/life/openers.py), a seeded chance.
+    monkeypatch.setattr('companion.life.openers.CHECK_INS', False)
 
 
 @pytest.fixture(autouse=True)

@@ -126,8 +126,9 @@ function TestButton({ blocked, busy, connected, onTest }: { blocked: boolean; bu
 function ModelFields({ config, patch, discovery }: { config: ProfileConfig; patch: Patch; discovery: Discovered }) {
   const models = discovery.result?.model_details ?? []
   return <>
-    <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder="Choose from the list, or type the model's ID" />
-    {embeddingProviders.includes(config.provider) && <TextInput label="Embedding model (optional)" value={config.embedding_model ?? ''} onChange={value => patch({ embedding_model: value })} maxLength={200} hint="Lets recall find related memories even when the words differ, using this service’s embeddings. Nothing is downloaded." />}
+    <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder="Choose from the list, or type the model's ID"
+      hint="Test connection lists the models this service offers. Picking one fills in its settings." tip="The exact name the service uses for the model, such as gpt-4o-mini or llama3.1:8b." />
+    {embeddingProviders.includes(config.provider) && <TextInput label="Embedding model (optional)" value={config.embedding_model ?? ''} onChange={value => patch({ embedding_model: value })} maxLength={200} hint="Lets recall find related memories even when the words differ, using this service’s embeddings. EmbeddingGemma 2 and Qwen3 Embedding 0.6B work well; Built-in recall below can run one without this service." />}
     <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></details>
   </>
 }

@@ -1,9 +1,11 @@
+import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useEffect, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { isHeld } from './held'
 import { LinkNotes } from './LinkNotes'
+import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
 import { shownAttempt, statusDetail, type Turn } from './turns'
 
@@ -36,7 +38,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
   return (
     <>
       <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} bursts={bursts} />
-      <TurnUser turn={turn} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
+      <TurnUser turn={turn} name={name} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} bursts={bursts} />
@@ -59,12 +61,12 @@ function Leads({ messages, name, highlight, onStop, bursts }: { messages: Messag
   return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} bursts={bursts} />)}</>
 }
 
-function TurnUser({ turn, highlight, onRemember, onDecline, onEdit }: { turn: Turn; highlight?: string | null; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
+function TurnUser({ turn, name, highlight, onRemember, onDecline, onEdit }: { turn: Turn; name: string; highlight?: string | null; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   if (!turn.user) return null
-  return <UserMessage message={turn.user} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
+  return <UserMessage message={turn.user} name={name} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
 }
 
-function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }: { message: Message; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
+function UserMessage({ message, name, found, settled, onRemember, onDecline, onEdit }: { message: Message; name: string; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
   // On a touch screen the actions wait behind a button, so each message is not followed by a row of them.
   const [open, setOpen] = useState(false)
   return (
@@ -85,6 +87,7 @@ function UserMessage({ message, found, settled, onRemember, onDecline, onEdit }:
         </span>
       </header>
       <div className="prose">{message.redacted ? <p className="subtle">This message was deleted.</p> : <Paragraphs text={message.text} />}</div>
+      {!message.redacted && <SentPictures message={message} name={name} />}
       <LinkNotes message={message} settled={settled} />
     </article>
   )
@@ -148,11 +151,11 @@ function ReplyBody({ text, name, streaming, bursts }: { text: string; name: stri
 
 /** True until the reply's time comes; re-renders once at that moment. */
 function useHeld(message: Message): boolean {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => appNow())
   const held = isHeld(message, now)
   useEffect(() => {
     if (!held) return undefined
-    const timer = window.setTimeout(() => setNow(Date.now()), Math.min(Date.parse(message.held_until!) - now + 500, 2 ** 31 - 1))
+    const timer = window.setTimeout(() => setNow(appNow()), Math.min(realDelay(Date.parse(message.held_until!) - now) + 500, 2 ** 31 - 1))
     return () => window.clearTimeout(timer)
   }, [held, message.held_until, now])
   return held

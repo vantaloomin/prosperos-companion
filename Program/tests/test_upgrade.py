@@ -92,3 +92,41 @@ def test_only_recent_pre_upgrade_backups_are_kept(tmp_path):
     upgrade.prune(directory)
     assert sorted(item.name for item in directory.iterdir()) == [
         'pre-upgrade-20261003T000000.zip', 'pre-upgrade-20261004T000000.zip', 'pre-upgrade-20261005T000000.zip']
+
+
+def test_upgrade_frees_the_companion_slot_and_keeps_everything(tmp_path):
+    """Before switching companions, a CHECK allowed one companions row; the upgrade rebuilds the table
+    without it and keeps the companion and everything pointing at them."""
+    from companion.characters import create
+    from companion.models import CharacterDefinition
+
+    path = tmp_path / 'companion.sqlite3'
+    database = Database(path)
+    made = create(database, CharacterDefinition(name='Ada', timezone='UTC'))
+    connection = sqlite3.connect(path, isolation_level=None)
+    try:
+        connection.execute('PRAGMA foreign_keys=OFF')
+        connection.execute('BEGIN')
+        connection.execute('CREATE TABLE companions_old (id TEXT PRIMARY KEY, slot INTEGER NOT NULL UNIQUE DEFAULT 1 '
+                           'CHECK (slot = 1), active_version_id TEXT, active_timeline_id TEXT, created_at TEXT NOT NULL, '
+                           'portrait_reference_id TEXT)')
+        connection.execute('INSERT INTO companions_old SELECT id, slot, active_version_id, active_timeline_id, '
+                           'created_at, portrait_reference_id FROM companions')
+        connection.execute('DROP TABLE companions')
+        connection.execute('ALTER TABLE companions_old RENAME TO companions')
+        connection.execute("DELETE FROM app_identity WHERE key='schema_digest'")
+        connection.execute('COMMIT')
+    finally:
+        connection.close()
+
+    database = Database(path)
+
+    with database.connect() as connection:
+        sql = connection.execute("SELECT sql FROM sqlite_master WHERE name='companions'").fetchone()[0]
+        assert 'NOT NULL UNIQUE' not in sql
+        row = dict(connection.execute('SELECT * FROM companions').fetchone())
+        assert row['id'] == made['id'] and row['active_timeline_id'] == made['active_timeline_id']
+        assert 'townsfolk_key' in row and 'stepped_back_at' in row
+        assert connection.execute('PRAGMA foreign_key_check').fetchall() == []
+        # A second companion row can exist now, without a slot.
+        connection.execute("INSERT INTO companions (id, slot, created_at) VALUES ('other', NULL, 'x')")

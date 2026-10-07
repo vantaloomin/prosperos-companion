@@ -49,8 +49,8 @@ export function StudyImport() {
         {found && (found.characters.length === 0
           ? <Notice>This Study workspace has no characters in its library.</Notice>
           : <div className="study-import-row">
-              <Field label="Character">
-                {(id) => <select id={id} value={characterId} onChange={(event) => { setCharacterId(event.target.value); setReview(null) }}>
+              <Field label="Character" hint="Characters found in that Study workspace. Nothing is copied until you review it.">
+                {(id, hint) => <select id={id} aria-describedby={hint} value={characterId} onChange={(event) => { setCharacterId(event.target.value); setReview(null) }}>
                   {found.characters.map((item) => <option key={item.id} value={item.id}>{item.name} (version {item.version_number}{item.has_artwork ? ', with artwork' : ''})</option>)}
                 </select>}
               </Field>

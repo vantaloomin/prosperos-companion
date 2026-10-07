@@ -51,8 +51,8 @@ function PairScreen() {
         <h1>Pair this phone</h1>
         <p className="subtle">On your PC, open Settings &gt; Phone access and choose Pair a phone. Scan the code with this phone, or type the code shown under it.</p>
         {error && <Notice tone="error">{error}</Notice>}
-        <Field label="Pairing code">
-          {(id) => <input id={id} value={code} onChange={(event) => setCode(event.target.value)} autoCapitalize="characters" autoComplete="one-time-code" spellCheck={false} placeholder="ABCD-EFGH" required />}
+        <Field label="Pairing code" hint="Letters and numbers, shown under the QR code on your PC. It works once and expires after 10 minutes.">
+          {(id, hint) => <input id={id} aria-describedby={hint} value={code} onChange={(event) => setCode(event.target.value)} autoCapitalize="characters" autoComplete="one-time-code" spellCheck={false} placeholder="ABCD-EFGH" required />}
         </Field>
         <TextInput label="Name for this phone" hint="Shown in the list of paired phones on your PC." value={name} onChange={setName} maxLength={80} />
         <div className="form-actions"><button type="submit" className="button primary" aria-disabled={busy}>Pair</button></div>

@@ -7,6 +7,8 @@ import type { SettingsTab } from './features/settings/sections'
 
 /** A view, as named in the address after #. Settings can name a tab too: #settings/models. */
 export type View = 'conversation' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'portraits' | 'settings' | `settings/${SettingsTab}`
+  /** Making a townsperson the main character: #cast/<their key>. */
+  | `cast/${string}`
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

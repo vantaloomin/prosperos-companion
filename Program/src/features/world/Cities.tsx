@@ -139,9 +139,9 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
   return (
     <div className="city-editor form-stack">
       <h3>{editing.mode === 'create' ? 'New city' : `Editing ${editing.id}`}</h3>
-      <p className="subtle">A city is a JSON file. Every place, college and employer names its neighbourhood, and every record names a source. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+      <p className="subtle" id="city-json-hint">A city is a JSON file. Every place, college and employer names its neighbourhood, and every record names a source. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
       <label htmlFor="city-json" className="visually-hidden">City definition</label>
-      <textarea id="city-json" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
+      <textarea id="city-json" aria-describedby="city-json-hint" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
       <div aria-live="polite">{result && <Notice tone={result.tone}>{result.text}</Notice>}</div>
       <div className="form-actions">
         <button type="button" className="button primary" disabled={busy} onClick={() => void run(true)}>Save</button>

@@ -68,7 +68,8 @@ def test_relatives_named_before_get_the_family_name_unless_the_user_renamed_them
             row = dict(connection.execute('SELECT details FROM circle_people WHERE id=?', (person['id'],)).fetchone())
             details = {key: value for key, value in decode(row['details']).items()
                        if key not in ('married', 'birth_family')}
-            details['full_name'] = f"{person['name']} Freeman"
+            # `name` is the full name when two people share a first name; build from the first name alone.
+            details['full_name'] = f"{person['full_name'].split()[0]} Freeman"
             connection.execute('UPDATE circle_people SET details=? WHERE id=?', (encode(details), person['id']))
     assert client.patch(f"/api/life/circle/{second['id']}", json={'name': 'Kaity'}).status_code == 200
     after = {person['id']: person for person in client.get('/api/life/circle').json()}

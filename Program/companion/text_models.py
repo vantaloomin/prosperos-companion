@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
+from companion.providers.builtin_recall import recall_config
 from companion.providers.config import (
     DEFAULT_URLS,
     PROVIDER_NAMES,
@@ -34,6 +35,9 @@ JOBS = [
     {'key': 'memory', 'name': 'Memory suggestions', 'detail': 'Suggests memories from your messages in the '
      'background, when model suggestions are on.'},
     {'key': 'drafting', 'name': 'Character drafting', 'detail': 'Quick start and Help me write on the character page.'},
+    {'key': 'vision', 'name': 'Seeing pictures', 'detail': 'Describes pictures you send, once, so the companion '
+     'sees them. Needs a model that can look at images, such as GPT-4o, Claude, Gemini, or a vision model in LM '
+     'Studio or Ollama.'},
     {'key': 'recall', 'name': 'Semantic recall', 'detail': "Embeddings that find related memories. Uses the profile's "
      'embedding model; without one, recall matches keywords only.'},
 ]
@@ -75,8 +79,11 @@ def config_for(connection, job: str) -> dict | None:
     """Settings for a job's model calls, or None when no finished profile does it.
 
     The result is the profile's settings plus `credential_ref`, `profile_id` and `profile_name`, so
-    callers read it the way they read the single connection before profiles.
+    callers read it the way they read the single connection before profiles. While built-in recall is
+    on, it does recall instead of a profile.
     """
+    if job == 'recall' and (builtin := recall_config(connection)):
+        return builtin
     row = assigned(connection, job)
     if row is None:
         return None

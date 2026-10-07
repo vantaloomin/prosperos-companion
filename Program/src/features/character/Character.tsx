@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../../api'
-import { COMPANION_KEY, type View } from '../../companion'
+import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput } from '../../components/Fields'
@@ -17,8 +17,9 @@ import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
 import { SelfFacts } from './SelfFacts'
 import { StartOver } from './StartOver'
+import { Cast } from './Cast'
 
-interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
+export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
 
 export function Character({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   const [saved, setSaved] = useState<number | null>(null)
@@ -37,9 +38,13 @@ export function Character({ companion, go }: { companion: Companion | null; go: 
   return <CharacterForm key={companion?.active_version_id ?? `new-${start?.attempt}`} companion={companion} start={start} onRestart={() => setStart(null)} go={go} saved={saved} onSaved={setSaved} />
 }
 
-interface FormProps { companion: Companion | null; start: Start | null; onRestart: () => void; go: (view: View) => void; saved: number | null; onSaved: (version: number) => void }
+interface FormProps {
+  companion: Companion | null; start: Start | null; onRestart: () => void; go: (view: View) => void; saved: number | null; onSaved: (version: number) => void
+  /** Saving a new character some other way than creating the first companion (a townsperson taking over). */
+  create?: { save: (definition: CharacterDefinition) => Promise<Companion>; label: string; heading: ReactNode; notice: ReactNode }
+}
 
-function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: FormProps) {
+export function CharacterForm({ companion, start, onRestart, go, saved, onSaved, create }: FormProps) {
   const client = useQueryClient()
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   const [form, setForm] = useState<FormState>(() => initialForm(companion, start))
@@ -50,6 +55,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
   const set = (change: Partial<CharacterDefinition>) => setForm((current) => ({ ...current, definition: { ...current.definition, ...change } }))
   const setText = (key: keyof FormState['texts']) => (value: string) => setForm((current) => ({ ...current, texts: { ...current.texts, [key]: value } }))
   const problems = scheduleProblems(definition.schedule)
+  const chrome = formChrome(companion, start, create, go, onRestart)
   const cleaned = () => cleanDefinition(definition, texts.interests, texts.themes, texts)
   // Rewriting one field with the text model, when one is connected.
   const help = (field: DraftField, label: string): ReactNode => connection.data
@@ -63,7 +69,7 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
     try {
       const saved = companion
         ? await api<Companion>('/companion/versions', { definition: body, note, expected_version_id: companion.active_version_id })
-        : await api<Companion>('/companion', body)
+        : create ? await create.save(body) : await api<Companion>('/companion', body)
       client.setQueryData(COMPANION_KEY, saved)
       onSaved(saved.version.number)
       void client.invalidateQueries({ queryKey: ['versions'] })
@@ -75,25 +81,25 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
 
   return (
     <section className="page">
-      <CharacterHeading companion={companion} go={go} />
-      {!companion && <div className="start-notice"><StartNotice drafted={!!start?.drafted} onRestart={onRestart} /></div>}
+      {chrome.heading}
+      {chrome.notice && <div className="start-notice">{chrome.notice}</div>}
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
-          <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} />
-          <Field label="Relationship" hint="Romance is only ever your choice; warmth alone never changes it.">
+          <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} hint="What they go by. Their family shares the last name." />
+          <Field label="Relationship" hint="Romance is only ever your choice; warmth alone never changes it." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
             {(id, hint) => (
               <select id={id} aria-describedby={hint} value={definition.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
                 {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             )}
           </Field>
-          <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." />
-          <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} hint="A fictional or real city for their life." />
+          <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
+          <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} hint="A fictional or real city for their life." tip="This is how they describe where they live. Home city, further down, is what builds their actual days." />
         </div>
         <datalist id="timezones">{timezones().map((zone) => <option key={zone} value={zone} />)}</datalist>
         <TextArea label="Who they are" value={definition.identity} onChange={(identity) => set({ identity })} maxLength={4000} hint="Age, work, what matters to them." />
         {help('identity', 'who they are')}
-        <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} />
+        <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} hint="Temperament, habits, what makes them laugh or snap. Specific beats general." />
         {help('personality', 'their personality')}
         <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} hint="How they talk: rhythm, humour, words they like." />
         {help('voice', 'their voice')}
@@ -104,9 +110,9 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
         {help('flaws', 'their flaws')}
         <TextInput label="Interests" value={texts.interests} onChange={setText('interests')} hint="Separate with commas." />
         {help('interests', 'their interests')}
-        <TextArea label="Background" value={definition.background} onChange={(background) => set({ background })} rows={4} maxLength={12000} />
+        <TextArea label="Background" value={definition.background} onChange={(background) => set({ background })} rows={4} maxLength={12000} hint="Where they grew up, family, past jobs and relationships, what shaped them." />
         {help('background', 'their background')}
-        <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} />
+        <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
         <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
         {help('routine', 'their routine')}
@@ -114,21 +120,32 @@ function CharacterForm({ companion, start, onRestart, go, saved, onSaved }: Form
         <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
         <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
           hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />
-        {companion && <TextInput label="What changed (optional)" value={note} onChange={setNote} maxLength={500} />}
+        {companion && <TextInput label="What changed (optional)" value={note} onChange={setNote} maxLength={500} hint="A note for the version history, so you can find this version again." />}
         <SaveFeedback result={result} saved={savedNow(saved, companion)} onReload={() => void client.invalidateQueries({ queryKey: COMPANION_KEY })} />
         {problems.length > 0 && <Notice tone="error">{problems.join(' ')}</Notice>}
         <div className="form-actions">
-          <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{companion ? 'Save new version' : 'Create companion'}</button>
+          <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{chrome.label}</button>
         </div>
       </form>
       {companion && <>
         <Home name={companion.version.name} />
         <SelfFacts name={companion.version.name} />
         <Versions current={companion.active_version_id} />
+        <Cast go={go} />
         <StartOver name={companion.version.name} go={go} />
       </>}
     </section>
   )
+}
+
+/** The heading, the notice above a new character and the save button's words. */
+function formChrome(companion: Companion | null, start: Start | null, create: FormProps['create'], go: (view: View) => void, onRestart: () => void) {
+  if (create) return { heading: create.heading, notice: create.notice, label: create.label }
+  return {
+    heading: <CharacterHeading companion={companion} go={go} />,
+    notice: companion ? null : <StartNotice drafted={!!start?.drafted} onRestart={onRestart} />,
+    label: companion ? 'Save new version' : 'Create companion',
+  }
 }
 
 /** A new companion gets the profile pictures step when an image backend is ready; otherwise the chat. */
@@ -157,6 +174,7 @@ function StartNotice({ drafted, onRestart }: { drafted: boolean; onRestart: () =
 }
 
 function CharacterHeading({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   return (<>
     <header className="page-header">
       <div>
@@ -165,7 +183,7 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
       </div>
       {companion && <div className="form-actions">
         <button type="button" className="button" onClick={() => go('portraits')}>Profile pictures</button>
-        <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>
+        {loraMaker && <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>}
       </div>}
     </header>
     {!companion && <StudyImport />}

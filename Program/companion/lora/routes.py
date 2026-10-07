@@ -1,4 +1,9 @@
-"""LoRA maker API: references, adapters and appearance versions."""
+"""LoRA maker API: references, adapters and appearance versions.
+
+`router` is what profile pictures need (their pictures are references), so it is always served.
+`maker_router` is the LoRA creator itself and is only served when it is switched on
+(companion.lora.maker_enabled, docs/lora.md).
+"""
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Query, Request
@@ -23,18 +28,19 @@ from companion.lora.models import (
 )
 
 router = APIRouter(prefix='/api/lora')
+maker_router = APIRouter(prefix='/api/lora')
 
 
 def db(request: Request):
     return request.app.state.database
 
 
-@router.get('/settings')
+@maker_router.get('/settings')
 def read_settings(request: Request):
     return appearance.read_settings(db(request))
 
 
-@router.put('/settings')
+@maker_router.put('/settings')
 def update_settings(request: Request, body: LoraSettingsUpdate):
     return appearance.update_settings(db(request), body)
 
@@ -44,7 +50,7 @@ def list_references(request: Request):
     return references.listing(db(request))
 
 
-@router.post('/references')
+@maker_router.post('/references')
 async def add_reference(request: Request, name: str = Query('', max_length=200),
                         dhash: str | None = Query(None, max_length=16)):
     """The body is the picture itself."""
@@ -52,12 +58,12 @@ async def add_reference(request: Request, name: str = Query('', max_length=200),
     return references.add(db(request), data, name, dhash)
 
 
-@router.put('/references/{reference_id}')
+@maker_router.put('/references/{reference_id}')
 def update_reference(request: Request, reference_id: str, body: ReferenceUpdate):
     return references.update(db(request), reference_id, body)
 
 
-@router.post('/references/{reference_id}/crop')
+@maker_router.post('/references/{reference_id}/crop')
 async def crop_reference(request: Request, reference_id: str, x: float = Query(ge=0, le=1),
                          y: float = Query(ge=0, le=1), width: float = Query(gt=0, le=1),
                          height: float = Query(gt=0, le=1)):
@@ -67,12 +73,12 @@ async def crop_reference(request: Request, reference_id: str, x: float = Query(g
     return references.set_crop(db(request), reference_id, crop, data)
 
 
-@router.delete('/references/{reference_id}/crop')
+@maker_router.delete('/references/{reference_id}/crop')
 def clear_crop(request: Request, reference_id: str):
     return references.clear_crop(db(request), reference_id)
 
 
-@router.delete('/references/{reference_id}')
+@maker_router.delete('/references/{reference_id}')
 def remove_reference(request: Request, reference_id: str):
     return references.remove(db(request), reference_id)
 
@@ -86,17 +92,17 @@ def reference_file(request: Request, reference_id: str, cropped: bool = False):
     return FileResponse(path, media_type=media_type, headers={'Cache-Control': 'private, max-age=60'})
 
 
-@router.post('/references/captions')
+@maker_router.post('/references/captions')
 def suggest_captions(request: Request):
     return references.suggest_captions(db(request))
 
 
-@router.get('/adapters')
+@maker_router.get('/adapters')
 def list_adapters(request: Request):
     return {'adapters': appearance.adapters(db(request))}
 
 
-@router.post('/adapters/import')
+@maker_router.post('/adapters/import')
 async def import_adapter(request: Request, name: str = Query(min_length=1, max_length=120),
                          base_model: str = Query(min_length=1, max_length=300),
                          trigger: str = Query('', max_length=100), note: str = Query('', max_length=500)):
@@ -105,17 +111,17 @@ async def import_adapter(request: Request, name: str = Query(min_length=1, max_l
                                            trigger=trigger, note=note)
 
 
-@router.delete('/adapters/{adapter_id}')
+@maker_router.delete('/adapters/{adapter_id}')
 def remove_adapter(request: Request, adapter_id: str):
     return {'adapters': appearance.remove_adapter(db(request), adapter_id)}
 
 
-@router.get('/appearance')
+@maker_router.get('/appearance')
 def read_appearance(request: Request):
     return appearance.versions(db(request))
 
 
-@router.post('/appearance')
+@maker_router.post('/appearance')
 def adopt(request: Request, body: Adopt):
     return appearance.adopt(db(request), body)
 
@@ -124,29 +130,29 @@ def runner(request: Request) -> training.TrainingRunner:
     return request.app.state.training
 
 
-@router.get('/trainer')
+@maker_router.get('/trainer')
 def describe_trainer(request: Request):
     return training.describe(db(request))
 
 
-@router.get('/runs')
+@maker_router.get('/runs')
 def list_runs(request: Request):
     return {'runs': training.listing(db(request))}
 
 
-@router.post('/runs')
+@maker_router.post('/runs')
 async def create_run(request: Request, body: RunCreate):
     run = training.create(db(request), body)
     runner(request).start(run['id'])
     return run
 
 
-@router.get('/runs/{run_id}')
+@maker_router.get('/runs/{run_id}')
 def read_run(request: Request, run_id: str):
     return training.get(db(request), run_id)
 
 
-@router.get('/runs/{run_id}/log', response_class=PlainTextResponse)
+@maker_router.get('/runs/{run_id}/log', response_class=PlainTextResponse)
 def run_log(request: Request, run_id: str):
     with db(request).connect() as connection:
         run = training.get_row(connection, run_id)
@@ -154,56 +160,56 @@ def run_log(request: Request, run_id: str):
     return path.read_text(encoding='utf-8', errors='replace')[-200_000:] if path.is_file() else ''
 
 
-@router.post('/runs/{run_id}/cancel')
+@maker_router.post('/runs/{run_id}/cancel')
 async def cancel_run(request: Request, run_id: str):
     return await runner(request).cancel(run_id)
 
 
-@router.post('/runs/{run_id}/resume')
+@maker_router.post('/runs/{run_id}/resume')
 async def resume_run(request: Request, run_id: str):
     return runner(request).resume(run_id)
 
 
-@router.post('/runs/{run_id}/restart')
+@maker_router.post('/runs/{run_id}/restart')
 async def restart_run(request: Request, run_id: str):
     return runner(request).restart(run_id)
 
 
-@router.post('/runs/{run_id}/keep')
+@maker_router.post('/runs/{run_id}/keep')
 def keep_checkpoint(request: Request, run_id: str, body: KeepCheckpoint):
     """Make a verified intermediate checkpoint an adapter, to evaluate or adopt."""
     return training.keep(db(request), run_id, body.step)
 
 
-@router.get('/evaluations')
+@maker_router.get('/evaluations')
 def list_evaluations(request: Request, adapter_id: str | None = None):
     return {'evaluations': evaluation.listing(db(request), adapter_id), 'prompts': [
         {'key': key, 'label': label} for key, label, *_rest in evaluation.PROMPTS]}
 
 
-@router.post('/evaluations')
+@maker_router.post('/evaluations')
 async def create_evaluation(request: Request, body: EvaluationCreate):
     created = evaluation.create(db(request), body, runner(request).active)
     request.app.state.evaluations.start(created['id'])
     return created
 
 
-@router.get('/evaluations/{evaluation_id}')
+@maker_router.get('/evaluations/{evaluation_id}')
 def read_evaluation(request: Request, evaluation_id: str):
     return evaluation.get(db(request), evaluation_id)
 
 
-@router.post('/evaluations/{evaluation_id}/cancel')
+@maker_router.post('/evaluations/{evaluation_id}/cancel')
 async def cancel_evaluation(request: Request, evaluation_id: str):
     return await request.app.state.evaluations.cancel(evaluation_id)
 
 
-@router.put('/evaluation-images/{image_id}/rating')
+@maker_router.put('/evaluation-images/{image_id}/rating')
 def rate_image(request: Request, image_id: str, body: Rating):
     return evaluation.rate(db(request), image_id, body.rating)
 
 
-@router.get('/evaluation-images/{image_id}/file')
+@maker_router.get('/evaluation-images/{image_id}/file')
 def evaluation_file(request: Request, image_id: str):
     try:
         path = evaluation.file_of(db(request), image_id)
@@ -213,7 +219,7 @@ def evaluation_file(request: Request, image_id: str):
                         headers={'Cache-Control': 'private, max-age=31536000, immutable'})
 
 
-@router.get('/adapters/{adapter_id}/export')
+@maker_router.get('/adapters/{adapter_id}/export')
 def export_adapter(request: Request, adapter_id: str, background: BackgroundTasks):
     """A zip with the adapter, its metadata and license notice; never the training pictures."""
     path, name = export.build(db(request), adapter_id)
@@ -221,22 +227,22 @@ def export_adapter(request: Request, adapter_id: str, background: BackgroundTask
     return FileResponse(path, media_type='application/zip', filename=name)
 
 
-@router.get('/generations/draft')
+@maker_router.get('/generations/draft')
 def draft_generation(request: Request):
     return generation.draft(db(request))
 
 
-@router.post('/generations/preview')
+@maker_router.post('/generations/preview')
 def preview_generation(request: Request, body: GenerationPlan):
     return generation.preview(db(request), body)
 
 
-@router.get('/generations')
+@maker_router.get('/generations')
 def list_generations(request: Request):
     return {'generations': generation.listing(db(request))}
 
 
-@router.post('/generations')
+@maker_router.post('/generations')
 async def create_generation(request: Request, body: GenerationCreate):
     created = generation.create(db(request), body)
     request.app.state.generations.start(created['id'])
@@ -265,7 +271,7 @@ async def keep_generated(request: Request, image_id: str, role: Literal['train',
     return generation.keep(db(request), image_id, role, dhash, converted or None)
 
 
-@router.post('/generation-images/{image_id}/discard')
+@maker_router.post('/generation-images/{image_id}/discard')
 def discard_generated(request: Request, image_id: str):
     return generation.discard(db(request), image_id)
 

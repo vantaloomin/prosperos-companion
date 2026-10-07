@@ -53,13 +53,14 @@ export function LifeSettings({ name }: { name: string }) {
         <h2 id="life-heading">{name}'s life</h2>
         <p className="subtle">When you come back, a few things that fit {name}'s routine are written for the time you were away. Nothing is written for time while paused.</p>
       </div>
-      <Toggle label="Catch up when you return" checked={data.catch_up_on_return} onChange={(value) => void save({ catch_up_on_return: value })} />
+      <Toggle label="Catch up when you return" checked={data.catch_up_on_return} onChange={(value) => void save({ catch_up_on_return: value })}
+        hint="Off: nothing is written for the time you were away, and their life picks up from when you return." />
       <Toggle label="Add everyday events without asking" checked={data.automatic_events} onChange={(value) => void save({ automatic_events: value })}
         hint="Off: new events wait in Today for you to keep or discard. Big changes to who they are or your relationship always wait for you." />
       <Toggle label="Let the model word their days" checked={data.phrase_with_model} onChange={(value) => void save({ phrase_with_model: value })}
         hint="What happens is always built from their routine and city. With this on, your model rewrites it in their voice; off, plain wording is used and no model calls are made." />
       <Toggle label={`Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
-        hint={`${name} may start a conversation: to ask how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
+        hint={`${name} may start a conversation: to check in on a break or after work, to ask about something they said they'd ask about, how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
       <Toggle label={`Reply at ${name}'s pace`} checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When ${name} is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. Turn off for replies right away.`} />
       <Toggle label={`Let ${name}'s days go off plan`} checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}

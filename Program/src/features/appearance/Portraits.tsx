@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, upload } from '../../api'
-import { COMPANION_KEY, type View } from '../../companion'
+import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { Companion, GeneratedImage, Generation, PlannedShot, PortraitDraft, Shot } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { TextArea } from '../../components/Fields'
@@ -25,12 +25,13 @@ export function Portraits({ companion, go }: { companion: Companion; go: (view: 
   const [planning, setPlanning] = useState(false)
   const set = latest.data
   const showPlanner = latest.isSuccess && (!set || planning)
+  const loraMaker = useWorkspaceSettings().data?.lora_maker
   return (
     <section className="page">
       <header className="page-header">
         <div>
           <h1>Pictures of {name}</h1>
-          <p className="subtle">A profile picture of {name} in everyday clothes, then a three-quarter view in another outfit and a close-up of their face, both made from it. The pictures you keep become {name}'s profile picture and join their reference pictures for the LoRA maker. You can skip this and come back from the Character page.</p>
+          <p className="subtle">A profile picture of {name} in everyday clothes, then a three-quarter view in another outfit and a close-up of their face, both made from it. {keptLine(name, loraMaker)} You can skip this and come back from the Character page.</p>
         </div>
         <button type="button" className="button" onClick={() => go('conversation')}>{companion.portrait_reference_id ? 'Go to the chat' : 'Skip for now'}</button>
       </header>
@@ -40,6 +41,10 @@ export function Portraits({ companion, go }: { companion: Companion; go: (view: 
     </section>
   )
 }
+
+/** The LoRA maker is named only while it is switched on. */
+const keptLine = (name: string, loraMaker?: boolean) =>
+  `The pictures you keep become ${name}'s profile picture${loraMaker ? ' and join their reference pictures for the LoRA maker' : ''}.`
 
 function useDebounced<T>(value: T, delay = 400): T {
   const [settled, setSettled] = useState(value)
@@ -118,7 +123,8 @@ function ShotEditor({ shots, setShots, planned }: { shots: Shot[]; setShots: (sh
   return (
     <ol className="shot-list">{shots.map((shot, index) => (
       <li key={shot.key} className="shot-row">
-        <TextArea label={`${index + 1}. ${shot.label}`} value={shot.shot} rows={2} maxLength={500} onChange={(text) => setShots(shots.map((item, at) => at === index ? { ...item, shot: text } : item))} />
+        <TextArea label={`${index + 1}. ${shot.label}`} value={shot.shot} rows={2} maxLength={500} onChange={(text) => setShots(shots.map((item, at) => at === index ? { ...item, shot: text } : item))}
+          hint="Framing, pose, outfit and setting for this picture. How they look is added from above." />
         {planned?.[index] && <p className={planned[index].backend ? 'subtle' : 'error-text'}>{routeLine(planned[index])}</p>}
       </li>
     ))}</ol>

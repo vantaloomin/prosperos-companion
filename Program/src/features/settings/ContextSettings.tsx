@@ -139,8 +139,9 @@ function LocationForm({ data, setResult }: { data: Overview; setResult: (result:
       <TextInput label="Your city or region" value={place ?? data.location.user_place} maxLength={120} placeholder="Baltimore, MD" onChange={setPlace}
         hint="Where you are, for weather and events near you. It is separate from where your companion lives, and is never detected automatically." />
       <div className="form-grid">
-        <TextInput label="Latitude (optional)" value={latitude ?? (data.location.user_latitude === null ? '' : String(data.location.user_latitude))} onChange={setLatitude} hint="Only for services that need coordinates." />
-        <TextInput label="Longitude (optional)" value={longitude ?? (data.location.user_longitude === null ? '' : String(data.location.user_longitude))} onChange={setLongitude} />
+        <TextInput label="Latitude (optional)" value={latitude ?? (data.location.user_latitude === null ? '' : String(data.location.user_latitude))} onChange={setLatitude} hint="Only for services that need coordinates." tip="Decimal degrees, such as 39.29. North is positive." />
+        <TextInput label="Longitude (optional)" value={longitude ?? (data.location.user_longitude === null ? '' : String(data.location.user_longitude))} onChange={setLongitude}
+          hint="Decimal degrees, such as -76.61. West is negative." />
       </div>
       {dirty && <div className="form-actions"><button type="submit" className="button primary">Save location</button><button type="button" className="button" onClick={() => { setPlace(null); setLatitude(null); setLongitude(null) }}>Cancel</button></div>}
     </form>
@@ -309,8 +310,8 @@ function MappingEditor({ category, service, data, name, draft: initial, busy, on
   return (
     <div className="context-mapping form-stack">
       <strong>{CATEGORY_LABELS[category]}</strong>
-      <Field label="Tool">{(id) => (
-        <select id={id} value={draft.tool} onChange={(event) => setDraft({ tool: event.target.value, arguments: {}, run_in: draft.run_in })}>
+      <Field label="Tool" hint="Which of this service's tools runs for this lookup. What it does is described below.">{(id, hint) => (
+        <select id={id} aria-describedby={hint} value={draft.tool} onChange={(event) => setDraft({ tool: event.target.value, arguments: {}, run_in: draft.run_in })}>
           {service.tools.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
         </select>
       )}</Field>
@@ -345,7 +346,7 @@ function ArgumentRow({ category, property, description, required, argument, onSo
           {sourcesFor(category).map((source) => <option key={source} value={source}>{SOURCE_LABELS[source]}</option>)}
         </select>
       )}</Field>
-      {argument?.source === 'literal' && <TextInput label="Value" value={String(argument.value ?? '')} maxLength={200} onChange={onValue} />}
+      {argument?.source === 'literal' && <TextInput label="Value" value={String(argument.value ?? '')} maxLength={200} onChange={onValue} hint="Sent exactly as written every time." />}
     </div>
   )
 }
@@ -366,9 +367,9 @@ function AddService({ onDone, setResult }: { onDone: () => void; setResult: (res
   }
   return (
     <form className="form-stack add-backend" onSubmit={submit}>
-      <TextInput label="Name" value={draft.name} required maxLength={80} placeholder="Weather" onChange={(name) => set({ name })} />
-      <Field label="How it runs">{(id) => (
-        <select id={id} value={draft.transport} onChange={(event) => set({ transport: event.target.value as ServiceDraft['transport'] })}>
+      <TextInput label="Name" value={draft.name} required maxLength={80} placeholder="Weather" onChange={(name) => set({ name })} hint="Your name for it, shown in this list." />
+      <Field label="How it runs" hint="The service's instructions say which one it is." tip="An MCP service either runs as a program on this computer (stdio) or answers at a web address (streamable HTTP).">{(id, hint) => (
+        <select id={id} aria-describedby={hint} value={draft.transport} onChange={(event) => set({ transport: event.target.value as ServiceDraft['transport'] })}>
           <option value="stdio">A program on this computer (stdio)</option>
           <option value="http">A server address (streamable HTTP)</option>
         </select>
@@ -376,7 +377,7 @@ function AddService({ onDone, setResult }: { onDone: () => void; setResult: (res
       {draft.transport === 'stdio' ? <>
         <TextInput label="Program" value={draft.program} required maxLength={1000} placeholder="C:\Tools\weather-mcp.exe" onChange={(program) => set({ program })}
           hint="The app starts it only to check it or look something up, with a short time limit." />
-        <TextArea label="Arguments, one per line" value={draft.args} rows={2} onChange={(args) => set({ args })} />
+        <TextArea label="Arguments, one per line" value={draft.args} rows={2} onChange={(args) => set({ args })} hint="Anything the program needs after its name, such as --stdio. Leave empty if it needs nothing." />
       </> : (
         <TextInput label="Server address" value={draft.url} required maxLength={2000} placeholder="https://example.com/mcp" onChange={(url) => set({ url })}
           hint="HTTPS, or HTTP for a server on this computer." />
@@ -384,7 +385,8 @@ function AddService({ onDone, setResult }: { onDone: () => void; setResult: (res
       <div className="form-grid">
         <TextInput label="Key (optional)" type="password" value={draft.secret} maxLength={4000} onChange={(secret) => set({ secret })} hint="Kept in your system's credential store and sent only to this service." />
         <TextInput label={draft.transport === 'stdio' ? 'Environment variable for the key' : 'Header for the key'} value={draft.secretName} maxLength={100}
-          placeholder={draft.transport === 'stdio' ? 'API_KEY' : 'Authorization'} onChange={(secretName) => set({ secretName })} />
+          placeholder={draft.transport === 'stdio' ? 'API_KEY' : 'Authorization'} onChange={(secretName) => set({ secretName })}
+          hint={draft.transport === 'stdio' ? 'The name the program reads its key from. Its instructions say which.' : 'The header the server reads its key from. Its instructions say which.'} />
       </div>
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={busy}>Add and check</button>

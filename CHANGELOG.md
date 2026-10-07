@@ -1,0 +1,54 @@
+# Changelog
+
+## v0.1.2 (2026-10-07)
+
+- **Send pictures in chat:** attach, paste or drop up to four pictures with a message, or send one on
+  its own. They are shrunk and stripped of location data first. The model for **Seeing pictures** in
+  Settings > Models (the conversation model unless you pick another) describes each picture once, so
+  the companion sees it and remembers it later. A model that cannot look at pictures leaves it unseen:
+  the companion says it would not load, and the real reason shows under the picture.
+- **Built-in recall:** Settings > Models can run an embedding model on this PC with llama.cpp, apart
+  from LM Studio, Kobold or Ollama, so recall finds related memories without an embeddings service. You
+  download the model file (EmbeddingGemma 2 or Qwen3 Embedding 0.6B are suggested); llama.cpp
+  downloads on request and is checked against a pinned checksum. It runs on the processor only and
+  stops with the Companion. **Test recall** checks whatever does recall now.
+- **Better recall with instruction-trained embedding models:** EmbeddingGemma, Qwen3 Embedding,
+  nomic-embed-text, mxbai and Arctic now get the search instructions they were trained with. Their
+  stored vectors are re-made once in the background.
+
+## v0.1.1 (2026-10-07)
+
+- **Form help:** plain-language helper text under fields whose effect is not obvious, and "?" tips
+  next to technical ones (model sampling, MCP services, image backends). Tips open on hover, keyboard
+  focus or tap, close with Escape, and are read out with their field by screen readers.
+- **Accessibility:** a test now fails the build if an input, select, textarea or icon-only button has
+  no label.
+
+## v0.1.0 (2026-10-06), early beta
+
+The first public release of Prospero's Companion: a companion with a simulated life of their own,
+running on your own computer with the models you choose.
+
+- **Conversation:** streaming replies, five chat styles (Feed, Bubbles, Community, Retro IM, Visual
+  novel), search, retry and alternatives, timelines that branch from any message, pasted-link reading,
+  web search on request, and staying in character (with `OOC:` for plain answers).
+- **A simulated life:** weekly routine, hidden week-ahead plans, plans from chat that happen, weather,
+  holidays, birthdays, money and budgets, home and belongings, a body that carries over, storylines
+  with a drama slider, and days that go off plan. Built from data and templates; the model only
+  phrases it.
+- **People:** a family, friends, coworkers and friends of friends, ordinary townsfolk met around town,
+  switching the main character to someone they've met, and a private social Feed.
+- **Texting first:** check-ins, follow-ups and unprompted photos within daily limits and quiet hours;
+  availability is never shown.
+- **Memory:** opt-in automatic capture, a Memories page showing what the next reply uses, approvals for
+  sensitive facts, conflicts that ask, closeness stages, and the people in your life.
+- **Pictures:** selfies, photos, views and memes through Codex, ComfyUI or hosted APIs, with on-PC
+  content routing that fails closed. Onboarding profile pictures.
+- **Cities:** built-in real, public-domain and original cities, your own cities, private city packs,
+  and cities that change over time.
+- **Real-world context:** weather, a calendar of observances and seasons, and optional Local Pulse and
+  Culture Pulse lookups.
+- **Characters:** guided creation, a full editor, opt-in emotional traits, realistic names, import from
+  Prospero's Study, Start over and Delete.
+- **Setup:** a model per job, tabbed Settings, phone access over Tailscale with Web Push, backups and
+  restore, safe upgrades, Debug time, Windows scripts and installer, Mac scripts.

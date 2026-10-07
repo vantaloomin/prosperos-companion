@@ -14,13 +14,16 @@ from datetime import date, datetime, timedelta
 
 from companion.clock import stamp, zone
 from companion.database import decode, many
-from companion.life import network
-from companion.world import generators, townsfolk
+from companion.life import money, network
+from companion.world import generators, newcomers, townsfolk
 
 ACTIVE = True
 CHANCE = 0.15
 FAMILIAR_CHANCE = 0.35
 KINDS = {'leisure', 'errand', 'social'}
+# On the way out to a morning shift or class, the companion may meet neighbors on their street.
+COMMUTE_KINDS = {'work', 'study'}
+MORNING = ('05:00', '11:00')
 STEP = timedelta(minutes=45)
 CONTEXT_LIMIT = 6
 # How many meetings before the companion knows their goal, then their flaw and desire.
@@ -40,28 +43,58 @@ def moments(view: dict) -> list[datetime]:
     return result
 
 
-def eligible(companion: dict | None, entry: dict | None, block: dict) -> bool:
-    return bool(ACTIVE and companion and entry and isinstance(entry.get('place'), dict) and entry['place'].get('id')
-                and block['kind'] in KINDS and not entry.get('ran_into') and not entry.get('gathering')
-                and not entry.get('townsfolk'))
+def setting(connection, companion: dict | None, entry: dict | None, view: dict, block: dict):
+    """Where a meeting could happen in this slot, as (place, local moments, on the way out), or None: the
+    entry's place on a leisure, errand or social outing, or the companion's own street on the way to a
+    morning shift or class (neighbors at the stop)."""
+    if not ACTIVE or not companion or not entry or entry.get('ran_into') or entry.get('gathering') \
+            or entry.get('townsfolk'):
+        return None
+    place = entry.get('place')
+    if block['kind'] in KINDS and isinstance(place, dict) and place.get('id'):
+        return place, moments(view), False
+    if block['kind'] in COMMUTE_KINDS and MORNING[0] <= block['start'] < MORNING[1]:
+        data = network.city(connection, companion)
+        hood = home_hood(data, companion['version']['definition'])
+        if hood:
+            start = moments(view)[0]
+            return townsfolk.street(data, hood), [start - timedelta(minutes=25), start - timedelta(minutes=10)], True
+    return None
+
+
+def home_hood(data: dict, definition: dict) -> str | None:
+    """The companion's neighborhood id: the one their budget puts them in (companion/life/money.py), else one
+    named in their location."""
+    found = money.profile(definition)
+    names = [found.neighborhood] if found and found.city['id'] == data['id'] else []
+    text = ' '.join(definition.get(key) or '' for key in ('near', 'location')).casefold()
+    for hood in data['neighborhoods']:
+        if hood['name'] in names or (text and hood['name'].casefold() in text):
+            return hood['id']
+    return None
 
 
 def meet(connection, companion: dict | None, entry: dict | None, view: dict, block: dict, seed: str) -> dict | None:
     """Maybe add a townsperson met at this entry's place; returns the entry, changed or not."""
-    if not eligible(companion, entry, block):
+    if not ACTIVE or not companion or not entry:
         return entry
     timeline_id = companion['active_timeline_id']
-    history = counts(connection, timeline_id, None, before=view['starts_at'])
+    data = network.city(connection, companion)
+    cast = town_cast(connection, companion, data)
+    history = history_for(connection, companion, cast, None, before=view['starts_at'])
     lucky = roll(seed, 'stranger') < CHANCE
     if (not lucky and not history) or many(
             connection, 'SELECT 1 FROM townsfolk_encounters WHERE timeline_id=? AND local_date=? AND slot_key!=?',
             (timeline_id, view['local_date'], view['key'])):
         return entry
-    data = network.city(connection, companion)
-    found = present(data, entry['place']['id'], view, history)
+    found = setting(connection, companion, entry, view, block)
     if not found:
         return entry
-    moment, here = found
+    place, times_of_day, on_the_way = found
+    seen = present(data, place['id'], times_of_day, history, cast)
+    if not seen:
+        return entry
+    moment, here = seen
     familiar = sorted(key for key in here if key in history)
     strangers = sorted(key for key in here if key not in history)
     if familiar and roll(seed, 'familiar') < FAMILIAR_CHANCE:
@@ -70,26 +103,34 @@ def meet(connection, companion: dict | None, entry: dict | None, view: dict, blo
         key = strangers[int(roll(seed, 'stranger-who') * len(strangers))]
     else:
         return entry
-    sheet, times = here[key], len(history.get(key, ()))
-    told = line(sheet, data, times, entry['place'], moment.date())
+    sheet, times = resolve(data, key, cast), len(history.get(key, ()))
+    home = home_hood(data, companion['version']['definition'])
+    last = date.fromisoformat(history[key][-1]['local_date']) if times else None
+    told = line(sheet, data, times, place, moment.date(), home, here[key].get('doing', ''), last)
+    told = f'On the way out that morning, {told[:1].lower()}{told[1:]}' if on_the_way else told
     connection.execute('INSERT OR REPLACE INTO townsfolk_encounters (timeline_id, key, slot_key, place, local_date, '
                        'met_at) VALUES (?, ?, ?, ?, ?, ?)',
-                       (timeline_id, key, view['key'], entry['place'].get('name', ''), view['local_date'],
-                        view['ends_at']))
+                       (timeline_id, key, view['key'], place.get('name', ''), view['local_date'], view['ends_at']))
     return {**entry, 'summary': f"{entry['summary']} {told}", 'townsfolk': {'key': key, 'times': times + 1}}
 
 
-def present(data: dict, place_id: str, view: dict, history: dict) -> tuple[datetime, dict] | None:
-    """The first moment in the slot when someone is at the place: the people seeded there whose rules put them
-    there, and anyone already met whose rules bring them by (a regular elsewhere out for a run, say)."""
-    seeded = townsfolk.at_place(data, place_id)
-    met = [sheet for key in history if (sheet := townsfolk.find(data, key))]
-    for moment in moments(view):
-        here = {sheet['key']: sheet for sheet in seeded if townsfolk.whereabouts(sheet, data, moment)['at_place']}
-        for sheet in met:
-            spot = townsfolk.whereabouts(sheet, data, moment)['place']
-            if spot and spot['id'] == place_id:
-                here[sheet['key']] = sheet
+def present(data: dict, place_id: str, times_of_day: list[datetime], history: dict,
+            cast: dict | None = None) -> tuple[datetime, dict] | None:
+    """The first of these moments when someone is at the place, with what each is doing: the people seeded
+    there, residents whose rules bring them there, anyone already met whose rules bring them by, and other
+    companions living in the town by rules. Never the companion themself."""
+    cast = cast or NO_CAST
+    seeded = [] if place_id.startswith('~') else townsfolk.at_place(data, place_id)
+    locals_ = townsfolk.reaching(data, place_id)
+    met = [sheet for key in history if (sheet := resolve(data, key, cast))]
+    people = [sheet for sheet in [*seeded, *locals_, *met, *cast['sheets'].values()]
+              if sheet['key'] not in cast['own'] and sheet['key'] not in cast['aliases']]
+    for moment in times_of_day:
+        here = {}
+        for sheet in people:
+            found = townsfolk.whereabouts(sheet, data, moment)
+            if found['place'] and found['place']['id'] == place_id:
+                here[sheet['key']] = {'doing': found['doing']}
         if here:
             return moment, here
     return None
@@ -99,27 +140,36 @@ def roll(seed: str, label: str) -> float:
     return generators.unit(seed, 'townsfolk', label)
 
 
-def who(sheet: dict, place: dict) -> str:
-    """'the barista there' at their own place, else 'the barista from Daily Grind'."""
+def who(sheet: dict, place: dict, data: dict, home: str | None, doing: str = '') -> str:
+    """'the barista there', 'a regular at Daily Grind', 'a neighbor waiting for the bus', 'a local from Canton'."""
+    if sheet['kind'] == 'resident':
+        neighbor = 'a neighbor' if sheet['home'] == home else \
+            f"a local from {townsfolk.neighborhood_name(data, sheet['home'])}"
+        return f'{neighbor} {doing}' if doing.startswith('waiting for') else neighbor
     if sheet['place']['id'] == place.get('id'):
         return "a regular there" if not sheet['staff'] else f"the {sheet['role']} there"
     return f"a regular at {sheet['place']['name']}" if not sheet['staff'] else \
         f"the {sheet['role']} from {sheet['place']['name']}"
 
 
-def line(sheet: dict, data: dict, times: int, place: dict, day: date) -> str:
+def line(sheet: dict, data: dict, times: int, place: dict, day: date, home: str | None = None,
+         doing: str = '', last: date | None = None) -> str:
     """What the companion's diary says about this meeting, more as they get to know them."""
+    said = who(sheet, place, data, home, doing)
     if times == 0:
-        return f"Got talking with {sheet['full']}, {who(sheet, place)}, who {townsfolk.first_impression(sheet)}."
+        return f"Got talking with {sheet['full']}, {said}, who {townsfolk.first_impression(sheet)}."
     state = townsfolk.story(sheet, data, day)
     if times + 1 == KNOWS_GOAL:
         lately = f" {state['line']}." if state['line'] else ''
-        return f"Saw {sheet['name']} ({who(sheet, place)}) again; turns out {sheet['name']} wants to " \
+        return f"Saw {sheet['name']} ({said}) again; turns out {sheet['name']} wants to " \
                f"{state['goal']['text']}.{lately}"
-    if state['beat'] == 'achieved':
+    fresh = last is None or townsfolk.week_of(last) != townsfolk.week_of(day)
+    if state['beat'] == 'achieved' and fresh:
         return f"Ran into {sheet['name']}, who had big news: {lower(state['line'])}."
+    if not fresh:
+        return f"Caught up with {sheet['name']} ({said}) again."
     news = f" {state['line']}." if state['line'] else f" {sheet['name']} is still trying to {state['goal']['text']}."
-    return f"Caught up with {sheet['name']} ({who(sheet, place)}).{news}"
+    return f"Caught up with {sheet['name']} ({said}).{news}"
 
 
 def lower(text: str) -> str:
@@ -149,9 +199,10 @@ def counts(connection, timeline_id: str, now, before: str | None = None) -> dict
 def known(connection, companion: dict, now) -> list[dict]:
     """Townsfolk the companion has met, most recently seen first, with only what they have learned."""
     data = network.city(connection, companion)
+    cast = town_cast(connection, companion, data)
     result = []
-    for key, meetings in counts(connection, companion['active_timeline_id'], now).items():
-        sheet = townsfolk.find(data, key)
+    for key, meetings in history_for(connection, companion, cast, now).items():
+        sheet = resolve(data, key, cast)
         if sheet:
             result.append(revealed(sheet, data, meetings, now, companion))
     return sorted(result, key=lambda person: person['last_met'], reverse=True)
@@ -160,26 +211,33 @@ def known(connection, companion: dict, now) -> list[dict]:
 def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict) -> dict:
     times, last = len(meetings), meetings[-1]
     person = {'key': sheet['key'], 'name': sheet['name'], 'full': sheet['full'], 'pronouns': sheet['pronouns'],
-              'age': sheet['age'], 'role': sheet['role'], 'staff': sheet['staff'], 'place': sheet['place'],
-              'neighborhood': townsfolk.neighborhood_name(data, sheet['place']['neighborhood']),
+              'age': sheet['age'], 'role': sheet['role'], 'kind': sheet['kind'], 'staff': sheet['staff'],
+              'place': sheet['place'],
+              'neighborhood': townsfolk.neighborhood_name(data, sheet['home'] if sheet['kind'] == 'resident'
+                                                          else sheet['place']['neighborhood']),
               'temperament': sheet['temperament'], 'quirk': sheet['quirk'], 'times': times,
               'first_met': meetings[0]['local_date'], 'first_place': meetings[0]['place'],
               'last_met': last['local_date'], 'last_place': last['place'],
-              'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None}
+              'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None,
+              'cast': sheet.get('cast')}
     if times >= KNOWS_GOAL:
         state = townsfolk.story(sheet, data, date.fromisoformat(last['local_date']))
         person |= {'goal': state['goal']['text'], 'lately': state['line'] or None, 'reached': state['reached'],
                    'routine': townsfolk.routine_text(sheet)}
     if times >= KNOWS_HEART:
-        person |= {'flaw': townsfolk.FLAWS[sheet['flaw']][0], 'desire': townsfolk.DESIRES[sheet['desire']]}
+        person |= {'flaw': sheet.get('flaw_text') or townsfolk.FLAWS[sheet['flaw']][0],
+                   'desire': townsfolk.DESIRES[sheet['desire']]}
     return person
 
 
 def text(person: dict) -> str:
     when = date.fromisoformat(person['last_met']).strftime('%d %B').lstrip('0')
-    where = f"{person['role']} at {person['place']['name']}" if person['staff'] else \
-        f"a regular at {person['place']['name']}"
-    hood = f" ({person['neighborhood']})" if person['neighborhood'] else ''
+    if person['kind'] == 'resident':
+        where, hood = f"{person['role']}, lives in {person['neighborhood']}", ''
+    else:
+        where = f"{person['role']} at {person['place']['name']}" if person['staff'] else \
+            f"a regular at {person['place']['name']}"
+        hood = f" ({person['neighborhood']})" if person['neighborhood'] else ''
     times = 'once' if person['times'] == 1 else 'twice' if person['times'] == 2 else f"{person['times']} times"
     parts = [f"- {person['full']}, about {round(person['age'], -1) if person['age'] >= 25 else person['age']}, "
              f"{where}{hood}: {person['temperament']}, {person['quirk']}. You've crossed paths {times}, "
@@ -189,6 +247,8 @@ def text(person: dict) -> str:
         parts.append(f"They are trying to {person['goal']}.{lately}")
     if person['flaw']:
         parts.append(f"You've noticed they're {person['flaw']}; they seem to want {person['desire']}.")
+    if person.get('cast'):
+        parts.append('They know the user well.')
     return ' '.join(parts)
 
 
@@ -201,7 +261,7 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
 def whereabouts_now(connection, companion: dict, key: str, now) -> dict | None:
     """Where a townsperson the companion has met probably is right now, by their rules."""
     data = network.city(connection, companion)
-    sheet = townsfolk.find(data, key)
+    sheet = resolve(data, key, town_cast(connection, companion, data))
     if not sheet:
         return None
     local = now.astimezone(zone(companion['version']['timezone'])).replace(tzinfo=None)
@@ -217,3 +277,79 @@ def copy(connection, parent_id: str, new_id: str, cutoff: str):
                            'met_at) VALUES (?, ?, ?, ?, ?, ?)',
                            (new_id, row['key'], row['slot_key'], row['place'], row['local_date'], row['met_at']))
 
+
+
+# Other companions in the town ------------------------------------------------------------------------
+#
+# When the user switches the main character (companion/cast.py), the companion who steps back keeps
+# living in the same city by the same rules as the townsfolk, under the key `cast:<companion id>`: a
+# townsperson who had become a companion goes back to their old sheet under their current name, and an
+# original companion gets a resident's sheet in their own neighborhood. Meetings are shared both ways:
+# what one companion's diary says about meeting the other counts for the other too.
+
+NO_CAST = {'sheets': {}, 'aliases': {}, 'own': set(), 'others': []}
+
+
+def town_cast(connection, companion: dict, data: dict) -> dict:
+    """The other companions as the town sees them: their rule sheets by key, the townsfolk keys that now
+    mean them, and this companion's own keys (never met by themself)."""
+    others = many(connection, 'SELECT c.id, c.townsfolk_key, c.active_timeline_id, c.stepped_back_at, v.definition '
+                  'FROM companions c JOIN character_versions v ON v.id=c.active_version_id WHERE c.id!=?',
+                  (companion['id'],))
+    own = {f"cast:{companion['id']}", *([companion['townsfolk_key']] if companion.get('townsfolk_key') else [])}
+    if not others:
+        return {**NO_CAST, 'own': own}
+    sheets, aliases = {}, {}
+    for row in others:
+        definition = decode(row['definition'])
+        if newcomers.city_for(connection, definition)['id'] != data['id']:
+            continue
+        sheet = stand_in(data, row['id'], row['townsfolk_key'], definition)
+        if sheet:
+            sheets[sheet['key']] = sheet
+            if row['townsfolk_key']:
+                aliases[row['townsfolk_key']] = sheet['key']
+    return {'sheets': sheets, 'aliases': aliases, 'own': own, 'others': others}
+
+
+def stand_in(data: dict, companion_id: str, townsfolk_key: str | None, definition: dict) -> dict | None:
+    """A companion who is not the main character, as a townsperson: who they were in town, or a resident of
+    their own neighborhood. The caller checks they live in this city."""
+    base = townsfolk.find(data, townsfolk_key) if townsfolk_key else None
+    extra = {}
+    if base is None:
+        if not data['neighborhoods']:
+            return None
+        hood = home_hood(data, definition) or data['neighborhoods'][0]['id']
+        base = townsfolk.resident(data, hood, 0, key=f'cast:{companion_id}')
+        found = money.profile(definition)
+        if found and found.career:
+            extra['role'] = extra['occupation'] = found.career['name'].lower()
+        if definition.get('flaws'):
+            extra['flaw_text'] = definition['flaws'][0].rstrip('.')
+    name = definition['name'].strip()
+    return {**base, **extra, 'key': f'cast:{companion_id}', 'name': name.split()[0], 'full': name,
+            'cast': companion_id}
+
+
+def resolve(data: dict, key: str, cast: dict) -> dict | None:
+    """The person a key names: another companion (under their own key or the townsfolk key they came from),
+    else a townsperson."""
+    key = cast['aliases'].get(key, key)
+    return cast['sheets'].get(key) or (None if key.startswith('cast:') else townsfolk.find(data, key))
+
+
+def history_for(connection, companion: dict, cast: dict, now, before: str | None = None) -> dict[str, list[dict]]:
+    """Each person's meetings with this companion: their own diary's, under the keys the town uses now, plus
+    every other companion's meetings with them while that companion was the main character."""
+    merged: dict[str, list[dict]] = {}
+    for key, meetings in counts(connection, companion['active_timeline_id'], now, before).items():
+        if key not in cast['own']:
+            merged.setdefault(cast['aliases'].get(key, key), []).extend(meetings)
+    for row in cast['others']:
+        theirs = counts(connection, row['active_timeline_id'], now, before)
+        shared = [meeting for key, meetings in theirs.items() if key in cast['own'] for meeting in meetings
+                  if not row['stepped_back_at'] or meeting['met_at'] <= row['stepped_back_at']]
+        if shared and f"cast:{row['id']}" in cast['sheets']:
+            merged.setdefault(f"cast:{row['id']}", []).extend(shared)
+    return {key: sorted(meetings, key=lambda meeting: meeting['met_at']) for key, meetings in merged.items()}

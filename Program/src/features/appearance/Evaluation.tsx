@@ -46,14 +46,14 @@ function StartEvaluation() {
   return (
     <form className="form-stack lora-panel" onSubmit={submit}>
       <div className="form-grid">
-        <Field label="Adapter">{(id) => (
-          <select id={id} value={chosen} onChange={(event) => setAdapterId(event.target.value)}>
+        <Field label="Adapter">{(id, hint) => (
+          <select id={id} aria-describedby={hint} value={chosen} onChange={(event) => setAdapterId(event.target.value)}>
             {available.map((adapter) => <option key={adapter.id} value={adapter.id}>{adapter.name}</option>)}
           </select>
         )}</Field>
         <TextInput label="Strength" type="number" value={strength} onChange={setStrength} hint="0 to 2; 1 is the trained strength." />
       </div>
-      <Toggle label="Also draw each prompt from the text description" checked={baseline} onChange={setBaseline} />
+      <Toggle label="Also draw each prompt from the text description" checked={baseline} onChange={setBaseline} hint="Pictures without the adapter, side by side, to show what it adds." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       <div className="form-actions"><button type="submit" className="button primary">Render the evaluation set</button></div>
     </form>

@@ -32,7 +32,7 @@ export function MoneyFields({ money, homeCity, onChange }: Props) {
           </select>
         )}
       </Field>
-      <Field label="Spending style">
+      <Field label="Spending style" hint="How they handle money between paydays. It shows up in what they can afford and talk about.">
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.style} onChange={(event) => set({ style: event.target.value as SpendingStyle })}>
             {STYLES.map((style) => <option key={style.value} value={style.value}>{style.label}</option>)}

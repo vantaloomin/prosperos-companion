@@ -462,3 +462,15 @@ def test_a_block_named_for_an_activity_reads_as_a_time_of_day():
     assert composer.span({'label': 'Stage performer', 'kind': 'work', 'start': '16:00'}) == 'shift'
     assert composer.span({'label': 'Free time after work', 'kind': 'leisure'}) == 'free time after work'
     assert composer.span({'label': 'Day off', 'kind': 'leisure'}) == 'day off'
+
+
+def test_background_ticks_catch_blocks_that_were_still_going(app, client, life, clock):
+    """The cursor moves every hour while most blocks last longer; a block in progress is not lost."""
+    client.put('/api/settings', json={'background_activity': True})
+    set_life(client, background_daily_events=8, automatic_events=True)
+    asyncio.run(app.state.life.reconcile('background'))
+    for _hour in range(24):
+        clock.advance(timedelta(hours=1))
+        asyncio.run(app.state.life.reconcile('background'))
+    keys = [event['idempotency_key'] for event in all_events(client)]
+    assert len(keys) >= 3 and len(keys) == len(set(keys))

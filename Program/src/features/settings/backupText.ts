@@ -7,7 +7,7 @@ export function backupSize(bytes: number): string {
 }
 
 const KINDS: Record<BackupEntry['kind'], string> = {
-  backup: 'Backup', 'pre-upgrade': 'Before an upgrade', 'before-reset': 'Before starting over', 'before-delete': 'Before deleting the companion',
+  backup: 'Backup', 'pre-upgrade': 'Before an upgrade', 'before-reset': 'Before starting over', 'before-delete': 'Before deleting the companion', 'before-debug': 'Before debug time',
 }
 
 /** One line describing a backup in the list; names the ones the app made on its own. */

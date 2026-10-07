@@ -44,12 +44,10 @@ running), runs `npm run dev` in its own, and stops the backend it started when V
 Dev mode uses the real workspace unless `COMPANION_DATA_DIR` points elsewhere. CI runs
 `scripts/windows/helpers-test.ps1` after the installer to exercise each helper through its `.bat`.
 
-Until October 2026 the scripts and the code sat together at the top of the checkout. An `update.bat`
-from then pulls and runs the top-level `install.ps1`, which hands over to `scripts/windows/install.ps1`.
-That install tidies what the old layout left at the top (`.venv`, `node_modules`, `dist`, folders kept
-only by `__pycache__`), moves a top-level `private-cities/` into Program and repoints desktop
-shortcuts at `Windows\launch.bat`. `scripts/windows/layout-move-test.ps1` checks that update in CI.
-The top-level `install.ps1` can go once no checkout from before the move is left to update.
+Until October 2026 the scripts and the code sat together at the top of the checkout. On its first run
+in the new layout, `scripts/windows/install.ps1` tidies what the old layout left at the top (`.venv`,
+`node_modules`, `dist`, folders kept only by `__pycache__`), moves a top-level `private-cities/` into
+Program and repoints desktop shortcuts at `Windows\launch.bat`.
 
 On Linux, follow the commands above and below, then run `.venv/bin/python -m companion.launch`.
 
@@ -119,6 +117,18 @@ never gains the Companion's identity marker.
 
 The bundle and setup are not code signed yet, so Windows SmartScreen may warn on first launch. Signing is an
 open release decision.
+
+### Publishing a release
+
+1. Set the same version in `package.json`, `pyproject.toml` and `companion/identity.py`, and write the
+   release notes in `docs/releases/v<version>.md` (plus an entry in the top-level `CHANGELOG.md`).
+2. Merge that to `main`, then run the `Release` workflow from the Actions tab on `main` (pre-release
+   is ticked by default).
+
+`release.yml` checks the three version numbers agree and the notes exist, runs the whole `Package`
+workflow on that commit, and only when every job passes tags `v<version>` on it and publishes the
+setup, the portable zip and `SHA256SUMS.txt` as a GitHub release. It refuses a version that is
+already released.
 
 ## Interface
 

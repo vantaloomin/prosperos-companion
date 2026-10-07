@@ -43,7 +43,8 @@ def life_settings(connection) -> dict:
 
 
 def settings_view(row: dict) -> dict:
-    return {**row, **{flag: bool(row[flag]) for flag in FLAGS}}
+    view = {key: value for key, value in row.items() if key != 'texts_first_on_by_default'}
+    return {**view, **{flag: bool(row[flag]) for flag in FLAGS}}
 
 
 def read_settings(database) -> dict:
@@ -82,13 +83,26 @@ def cursor(connection, timeline_id) -> dict:
             'updated_at': None, 'new': True}
 
 
-def save_cursor(connection, timeline_id, through, timestamp):
+def save_cursor(connection, timeline_id, through, timestamp, open_slot=None):
     connection.execute(
-        'INSERT INTO life_cursors (timeline_id, simulated_through, last_reconciled_at, updated_at) '
-        'VALUES (?, ?, ?, ?) ON CONFLICT(timeline_id) DO UPDATE SET '
+        'INSERT INTO life_cursors (timeline_id, simulated_through, last_reconciled_at, updated_at, open_slot) '
+        'VALUES (?, ?, ?, ?, ?) ON CONFLICT(timeline_id) DO UPDATE SET '
         'simulated_through=MAX(simulated_through, excluded.simulated_through), '
-        'last_reconciled_at=excluded.last_reconciled_at, updated_at=excluded.updated_at',
-        (timeline_id, through, timestamp, timestamp))
+        'last_reconciled_at=excluded.last_reconciled_at, updated_at=excluded.updated_at, open_slot=excluded.open_slot',
+        (timeline_id, through, timestamp, timestamp, open_slot))
+
+
+def slot_mark(slot) -> str:
+    """Names one slot exactly: a timezone change can give another slot the same key at another time."""
+    return f'{slot.key}|{stamp(slot.starts_at)}'
+
+
+def in_progress(companion, now) -> str | None:
+    version = companion['version']
+    schedule, _default = routine.blocks(version['definition'])
+    going = [slot for slot in routine.slots(schedule, version['timezone'], now, now + timedelta(microseconds=1))
+             if slot.block.kind not in routine.RESTING and slot.starts_at < now < slot.ends_at]
+    return slot_mark(going[-1]) if going else None
 
 
 def touch_cursor(connection, timeline_id, timestamp):
@@ -125,14 +139,18 @@ def background_used(connection, timeline_id, now) -> int:
                "AND json_extract(inputs, '$.mode')='background'", (timeline_id, since))['n']
 
 
-def candidates(connection, companion, through, now, lookback_hours) -> list[routine.Slot]:
-    """Completed, simulatable slots that start after the cursor and inside the lookback."""
+def candidates(connection, companion, through, now, lookback_hours, open_slot=None) -> list[routine.Slot]:
+    """Completed, simulatable slots that start after the cursor and inside the lookback, plus the slot that
+    was still going when the cursor last moved (`open_slot`), so a block is not lost for being in progress."""
     version = companion['version']
     schedule, _default = routine.blocks(version['definition'])
-    start = max(through, now - timedelta(hours=lookback_hours))
+    earliest = now - timedelta(hours=lookback_hours)
+    start = max(through, earliest)
     result = []
-    for slot in routine.slots(schedule, version['timezone'], start, now):
-        if slot.block.kind in routine.RESTING or slot.starts_at < start or slot.ends_at > now:
+    for slot in routine.slots(schedule, version['timezone'], earliest, now):
+        if slot.block.kind in routine.RESTING or slot.ends_at > now or slot.starts_at < earliest:
+            continue
+        if slot.starts_at < start and not (slot_mark(slot) == open_slot and slot.ends_at > through):
             continue
         if overlapping_pause(connection, stamp(slot.starts_at), stamp(slot.ends_at)):
             continue
@@ -267,10 +285,11 @@ def plan_run(connection, owner, mode, now, companion, workspace, life, position)
         limit = life['catch_up_max_events']
     through = parse(position['simulated_through'])
     plan = choose(connection, timeline_id, candidates(connection, companion, through, now,
-                                                      life['catch_up_lookback_hours']), limit, run_key)
+                                                      life['catch_up_lookback_hours'], position.get('open_slot')),
+                  limit, run_key)
     run_id = insert_run(connection, owner, companion, workspace, mode, run_key, position['simulated_through'],
                         timestamp, plan, now)
-    save_cursor(connection, timeline_id, timestamp, timestamp)
+    save_cursor(connection, timeline_id, timestamp, timestamp, in_progress(companion, now))
     return run_id
 
 
@@ -632,14 +651,18 @@ class LifeEngine:
         monotonic timer; background batches only start when the user enabled them (T4)."""
         await self.quietly('return')
         while True:
-            await asyncio.sleep(tick_seconds)
+            # A fast debug clock (companion/debug_time.py) ticks more often in real time to keep up.
+            await asyncio.sleep(self.database.clock.wait(tick_seconds))
             await self.quietly('background')
             with self.database.connect() as connection:
                 background = settings(connection)['background_activity']
             if background:
-                await self.quietly_observe()
+                if not self.database.clock.shifted:  # Real weather and events would not match a spoofed day.
+                    await self.quietly_observe()
                 await self.quietly_prepare()
-                await self.quietly_text()
+            # First messages have their own setting (texts_first), so the companion can text while the
+            # app is closed even when background activity is off; the open app also asks each minute.
+            await self.quietly_text()
 
     async def quietly_observe(self):
         """Real weather and local events for the companion's city, when the user allowed lookups for their

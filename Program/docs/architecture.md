@@ -71,6 +71,25 @@ newest first, with `more` set when there may be others. Matching ignores case us
 `casefold`, so it works beyond ASCII. Deleted (redacted) messages never match. The interface
 loads older pages until the match is on screen, then scrolls to it and marks it.
 
+### Pictures you send
+
+The interface shrinks each picture to at most 1568 px and re-encodes it as JPEG before upload, which
+drops its location and camera data; `POST /api/pictures` keeps it in the workspace's `pictures/`
+folder (PNG, JPEG or WebP, up to 10 MB) until a message takes it (`picture_ids`, up to four), and
+uploads never sent are removed after a day. Pictures the user sends are not classified: the NSFW
+check is for pictures the app generates (Images, below), and these go to whatever model the user
+chose.
+
+Before the reply, `pictures.Seer` asks the Seeing pictures profile (the conversation profile unless
+set) to describe each new picture, once, at conversation priority; retries and alternatives reuse the
+description. The description joins the message's text wherever the conversation is read: the reply's
+recent conversation and recall (`context.transcript`), the query embedding, and stored message
+vectors. A profile that cannot see (Kobold, Codex) or a service that refuses the picture leaves it
+`unseen` with the reason: the companion is told it would not load and gives an in-character reason,
+as with links, and the interface shows the real reason under the picture. Deleting the message
+deletes its pictures (each file once no forked copy uses it); Start over and Delete character remove
+them; backups carry them.
+
 ## Timelines (C4)
 
 `companion/timelines.py` handles historical edits. Editing one of the user's earlier messages
@@ -125,14 +144,37 @@ timeline that the current conversation does not use (`in_timeline: false`).
 
 ### Semantic recall
 
-Nothing is downloaded: embeddings come from the `/embeddings` endpoint of the profile doing
-semantic recall in Settings > Models ([Models](models.md)), with its optional `embedding_model`. The message being answered is embedded at conversation priority with a
+No model is downloaded for the user: embeddings come from the `/embeddings` endpoint of the profile
+doing semantic recall in Settings > Models ([Models](models.md)), with its optional `embedding_model`,
+or from built-in recall (below). Models known to want retrieval instructions (EmbeddingGemma, Qwen3
+Embedding, nomic-embed-text, mxbai, Arctic) get them on the query and on stored texts
+(`providers/embeddings.py`), and their vectors are kept under `<model>#prompted-1`, so vectors made
+before the instructions are re-made once. The message being answered is embedded at conversation priority with a
 two-second limit; any failure means keyword recall only, and the reply goes ahead. After each turn
 `MemoryWorker` embeds memories and messages that lack a vector, in batches at maintenance priority.
 `memory_vectors` keys each vector by owner, model and the digest of the exact text embedded, so an
 edited text never matches an old vector. Deleting a memory, correcting it or redacting a message
 deletes its vectors; excluded memories and their source messages never enter the pool, so their
 vectors are never ranked. The receipt records whether semantic recall took part.
+
+### Built-in recall
+
+`providers/builtin_recall.py` runs llama.cpp's `llama-server` in embedding mode for users without an
+embeddings service. The user downloads the model file (GGUF) and accepts its licence; Settings
+suggests EmbeddingGemma 2 and Qwen3 Embedding 0.6B and lists `*embed*.gguf` files found in the
+workspace's `embeddings/models/` folder and LM Studio's. llama.cpp itself (pinned build `b11457`,
+checked against its SHA-256) downloads on request into `embeddings/llama.cpp/`, which backups leave
+out. While on, `config_for('recall')` returns the built-in setup instead of a profile; its own
+resource group keeps recall from queueing behind a local chat model.
+
+The server is a separate process, like every model the Companion uses, so life and chat still share
+one server process. It runs CPU only (`-ngl 0`) with at most four threads, a 2,048-token context and
+texts cut to 6,000 characters, on a free loopback port. It starts with the app (or on the first
+embedding request) and stops with it. `embedding_guard.py` sits between the two: it starts the server
+and stops it when its stdin pipe closes, which also happens when the Companion is killed. A server
+that stops while loading is reported in Settings with the end of `embeddings/llama-server.log`, and is
+retried after 30 seconds. On Linux, or to test another build, `COMPANION_LLAMA_SERVER` names a
+llama-server to use; `COMPANION_EMBEDDING_MODELS` adds folders to search for model files.
 
 Eligibility is applied before ranking: only active, non-tentative, in-scope, currently applicable
 memories qualify, and source messages of excluded memories are kept out of raw recall too. A companion reply to an excluded

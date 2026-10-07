@@ -12,6 +12,16 @@ const samplerFields: [Sampler, string, number, number, number][] = [
   ['min_p', 'Min-p', 0, 1, .01], ['frequency_penalty', 'Frequency penalty', -2, 2, .1],
   ['presence_penalty', 'Presence penalty', -2, 2, .1], ['repetition_penalty', 'Repetition penalty', .01, 3, .05], ['seed', 'Seed', 0, 2147483647, 1],
 ]
+const samplerTips: Record<Sampler, string> = {
+  temperature: 'Higher gives more varied, surprising wording; lower gives steadier, more predictable replies.',
+  top_p: 'Only words within this share of likelihood are considered. Lower is more focused.',
+  top_k: 'Only this many of the likeliest next words are considered. 0 turns it off.',
+  min_p: 'Drops words much less likely than the likeliest one. Small values like 0.05 trim nonsense.',
+  frequency_penalty: 'Above 0 discourages repeating the same words; below 0 encourages it.',
+  presence_penalty: 'Above 0 nudges toward words and topics not used yet.',
+  repetition_penalty: 'Above 1 discourages repeating words and phrases. 1 turns it off.',
+  seed: 'The same seed with the same settings can repeat a reply. Most people leave it blank.',
+}
 
 function samplingFields(config: ProfileConfig) {
   const { provider } = config
@@ -27,10 +37,10 @@ export function GenerationSettings(props: Props) {
   return <div className="form-stack">
     <BudgetControls {...props} />
     <ThinkingControls {...props} />
-    {config.provider === 'openai' && <Choice label="Response verbosity" value={config.response_verbosity} options={['low', 'medium', 'high']} onChange={value => patch({ response_verbosity: value as ProfileConfig['response_verbosity'] })} />}
+    {config.provider === 'openai' && <Choice label="Response verbosity" value={config.response_verbosity} options={['low', 'medium', 'high']} onChange={value => patch({ response_verbosity: value as ProfileConfig['response_verbosity'] })} hint="How much the model tends to say. The longest reply still caps it." />}
     <SamplingControls {...props} />
     <NumberInput label="Shared inference slot (optional)" type="text" value={config.resource_group ?? ''} onChange={value => patch({ resource_group: value })} hint="Profiles with the same name take turns on one slot. Leave blank and all local profiles share one; use different names only for separate hardware." />
-    <NumberInput label="Time limit (seconds)" value={config.timeout_seconds} min={10} max={1800} onChange={value => patch({ timeout_seconds: Number(value) })} />
+    <NumberInput label="Time limit (seconds)" value={config.timeout_seconds} min={10} max={1800} onChange={value => patch({ timeout_seconds: Number(value) })} hint="How long to wait for a reply before giving up. Slow local models may need more." />
   </div>
 }
 
@@ -98,12 +108,12 @@ function SamplingControls({ config, patch }: Props) {
   if (!fields.length) return null
   const supported = config.reported_capabilities?.supported_parameters
   return <details className="advanced-settings"><summary>Sampling</summary><div className="form-stack"><p className="subtle">Blank uses the model’s default. Some thinking models reject sampling settings.</p>
-    <div className="form-grid">{fields.map(([key, label, min, max, step]) => <NumberInput key={key} label={label} value={config[key] ?? ''} min={min} max={key === 'temperature' && config.provider === 'anthropic' ? 1 : max} step={step} placeholder="Model default" onChange={value => patch({ [key]: value === '' ? null : Number(value) })} hint={supported && !supported.includes(key) ? 'Not reported as supported by this model. Leave blank.' : undefined} />)}</div>
+    <div className="form-grid">{fields.map(([key, label, min, max, step]) => <NumberInput key={key} label={label} value={config[key] ?? ''} min={min} max={key === 'temperature' && config.provider === 'anthropic' ? 1 : max} step={step} placeholder="Model default" onChange={value => patch({ [key]: value === '' ? null : Number(value) })} tip={samplerTips[key]} hint={supported && !supported.includes(key) ? 'Not reported as supported by this model. Leave blank.' : undefined} />)}</div>
     <div className="form-actions"><button type="button" className="button" onClick={() => patch(Object.fromEntries(samplerFields.map(([key]) => [key, null])))}>Clear sampling settings</button></div></div></details>
 }
 
-function NumberInput({ label, value, onChange, hint, min, max, step, placeholder, type = 'number' }: { label: string; value: number | string; onChange: (value: string) => void; hint?: string; min?: number; max?: number; step?: number; placeholder?: string; type?: string }) {
-  return <Field label={label} hint={hint}>{(id, describedBy) => <input id={id} type={type} value={value} min={min} max={max} step={step} placeholder={placeholder} aria-describedby={describedBy} onChange={event => onChange(event.target.value)} />}</Field>
+function NumberInput({ label, value, onChange, hint, tip, min, max, step, placeholder, type = 'number' }: { label: string; value: number | string; onChange: (value: string) => void; hint?: string; tip?: string; min?: number; max?: number; step?: number; placeholder?: string; type?: string }) {
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} min={min} max={max} step={step} placeholder={placeholder} aria-describedby={describedBy} onChange={event => onChange(event.target.value)} />}</Field>
 }
 
 function Choice({ label, value, options, onChange, hint, noDefault }: { label: string; value?: string | null; options: string[]; onChange: (value: string | null) => void; hint?: string; noDefault?: boolean }) {

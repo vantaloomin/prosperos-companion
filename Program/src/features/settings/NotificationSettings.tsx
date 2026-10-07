@@ -57,9 +57,9 @@ export function NotificationSettings() {
           hint="Turning this off also cancels any that are waiting, on paired phones too." />
         {note && !data.enabled && <Notice tone="info">{note}</Notice>}
       </>}
-      <Field label="What notifications show">
-        {(id) => (
-          <select id={id} value={data.preview} onChange={(event) => void save({ preview: event.target.value as NotificationPreview })}>
+      <Field label="What notifications show" hint="Choose Nothing personal if other people can see your screen or lock screen.">
+        {(id, hint) => (
+          <select id={id} aria-describedby={hint} value={data.preview} onChange={(event) => void save({ preview: event.target.value as NotificationPreview })}>
             {PREVIEWS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         )}
@@ -82,7 +82,7 @@ function Limits({ data, save }: { data: Values; save: (change: Partial<Values>, 
       <div className="form-grid">
         <TextInput label="Quiet hours start" type="time" value={draft.quiet_start ?? data.quiet_start} hint="Nothing is shown in quiet hours. Use the same start and end for none."
           onChange={(value) => setDraft((current) => ({ ...current, quiet_start: value }))} />
-        <TextInput label="Quiet hours end" type="time" value={draft.quiet_end ?? data.quiet_end}
+        <TextInput label="Quiet hours end" type="time" value={draft.quiet_end ?? data.quiet_end} hint="In your timezone. Quiet hours can run past midnight."
           onChange={(value) => setDraft((current) => ({ ...current, quiet_end: value }))} />
         <TextInput label="Most notifications a day" type="number" value={draft.daily_cap ?? String(data.daily_cap)} hint="1 to 6."
           onChange={(value) => setDraft((current) => ({ ...current, daily_cap: value }))} />

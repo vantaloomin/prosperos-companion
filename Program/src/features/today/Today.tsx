@@ -100,7 +100,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <Routine data={data} name={name} go={go} />
       <MoneyPanel name={name} go={() => go('character')} />
       <Circle name={name} />
-      <Townsfolk name={name} />
+      <Townsfolk name={name} go={go} />
     </section>
   )
 }

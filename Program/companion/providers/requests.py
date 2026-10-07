@@ -25,6 +25,27 @@ def headers_for(config: dict, key: str | None) -> dict:
     return headers
 
 
+def data_url(part: dict) -> str:
+    return f"data:{part['media_type']};base64,{part['data']}"
+
+
+# A message's content is text, or a list of text and image parts (companion/pictures.py) in each API's form.
+PARTS = {
+    'openai': lambda part: {'type': 'input_text', 'text': part['text']} if part['type'] == 'text'
+    else {'type': 'input_image', 'image_url': data_url(part)},
+    'anthropic': lambda part: {'type': 'text', 'text': part['text']} if part['type'] == 'text'
+    else {'type': 'image', 'source': {'type': 'base64', 'media_type': part['media_type'], 'data': part['data']}},
+    'chat': lambda part: {'type': 'text', 'text': part['text']} if part['type'] == 'text'
+    else {'type': 'image_url', 'image_url': {'url': data_url(part)}},
+    'google': lambda part: {'text': part['text']} if part['type'] == 'text'
+    else {'inline_data': {'mime_type': part['media_type'], 'data': part['data']}},
+}
+
+
+def content_for(api: str, content):
+    return content if isinstance(content, str) else [PARTS[api](part) for part in content]
+
+
 def sampling(config: dict) -> dict:
     return {key: config[key] for key in SAMPLING[config['provider']] if config.get(key) is not None}
 
@@ -33,7 +54,8 @@ def alternating(messages: list[dict]) -> list[dict]:
     """Merge consecutive turns by the same speaker and open with the user's turn."""
     result = []
     for message in messages:
-        if result and result[-1]['role'] == message['role']:
+        if result and result[-1]['role'] == message['role'] and isinstance(message['content'], str) \
+                and isinstance(result[-1]['content'], str):
             result[-1] = {'role': message['role'], 'content': result[-1]['content'] + '\n\n' + message['content']}
         else:
             result.append({'role': message['role'], 'content': message['content']})
@@ -50,7 +72,8 @@ def transcript(system: str, messages: list[dict]) -> str:
 
 def openai_request(config: dict, system: str, messages: list[dict]) -> tuple[str, dict]:
     body = {'model': config['model'], 'instructions': system,
-            'input': [{'role': message['role'], 'content': message['content']} for message in messages],
+            'input': [{'role': message['role'], 'content': content_for('openai', message['content'])}
+                      for message in messages],
             'max_output_tokens': config['max_output_tokens'], 'store': False, 'stream': True, **sampling(config)}
     if config.get('reasoning_effort'):
         body['reasoning'] = {'effort': config['reasoning_effort']}
@@ -60,7 +83,8 @@ def openai_request(config: dict, system: str, messages: list[dict]) -> tuple[str
 
 
 def anthropic_request(config: dict, system: str, messages: list[dict]) -> tuple[str, dict]:
-    body = {'model': config['model'], 'system': system, 'messages': alternating(messages),
+    turns = [{**turn, 'content': content_for('anthropic', turn['content'])} for turn in alternating(messages)]
+    body = {'model': config['model'], 'system': system, 'messages': turns,
             'max_tokens': config['max_output_tokens'], 'stream': True, **sampling(config)}
     mode = config.get('thinking_mode')
     if mode:
@@ -73,7 +97,8 @@ def anthropic_request(config: dict, system: str, messages: list[dict]) -> tuple[
 
 
 def chat_request(config: dict, system: str, messages: list[dict]) -> tuple[str, dict]:
-    body = {'model': config['model'], 'messages': [{'role': 'system', 'content': system}, *messages],
+    turns = [{**message, 'content': content_for('chat', message['content'])} for message in messages]
+    body = {'model': config['model'], 'messages': [{'role': 'system', 'content': system}, *turns],
             config.get('output_token_parameter', 'max_tokens'): config['max_output_tokens'],
             'stream': True, **sampling(config)}
     if config['provider'] == 'openrouter':
@@ -108,8 +133,9 @@ def google_request(config: dict, system: str, messages: list[dict]) -> tuple[str
                                      else config['thinking_budget_tokens']}
     elif config.get('reasoning_effort'):
         options['thinkingConfig'] = {'thinkingLevel': config['reasoning_effort']}
-    contents = [{'role': 'user' if message['role'] == 'user' else 'model', 'parts': [{'text': message['content']}]}
-                for message in alternating(messages)]
+    contents = [{'role': 'user' if message['role'] == 'user' else 'model',
+                 'parts': [{'text': message['content']}] if isinstance(message['content'], str)
+                 else content_for('google', message['content'])} for message in alternating(messages)]
     return f'/models/{model}:streamGenerateContent?alt=sse', {
         'systemInstruction': {'parts': [{'text': system}]}, 'contents': contents, 'generationConfig': options}
 

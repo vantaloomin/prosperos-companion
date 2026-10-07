@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { applyFinished, defaultAttempt, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey } from '../../src/features/conversation/turns.ts'
-import { editDraft, newDraft, readDraft, writeDraft } from '../../src/features/conversation/draft.ts'
+import { editDraft, newDraft, pictureDraft, readDraft, writeDraft } from '../../src/features/conversation/draft.ts'
+import { canSend, fitWithin, pictureNote } from '../../src/features/conversation/pictureState.ts'
 import type { Message } from '../../src/types.ts'
 
 function message(id: string, seq: number, extra: Partial<Message> = {}): Message {
@@ -84,4 +85,24 @@ test('regrouping keeps unchanged turns identical so they skip re-rendering', () 
   assert.equal(after[0], before[0])
   assert.notEqual(after[1], before[1])
   assert.equal(after[1].attempts[0].status, 'complete')
+})
+
+test('a picture changes the draft into a new message, and text edits keep the pictures', () => {
+  let count = 0
+  const makeId = () => `id-${++count}`
+  const draft = newDraft('Look', makeId)
+  const withPicture = pictureDraft(draft, [{ id: 'p1', width: 4, height: 3 }], makeId)
+  assert.notEqual(withPicture.clientId, draft.clientId)
+  assert.deepEqual(editDraft(withPicture, 'Look at him', makeId).pictures, [{ id: 'p1', width: 4, height: 3 }])
+})
+
+test('sent pictures are shrunk to fit, can be sent alone, and say why the companion could not see one', () => {
+  assert.deepEqual(fitWithin(4000, 3000), { width: 1568, height: 1176 })
+  assert.deepEqual(fitWithin(800, 600), { width: 800, height: 600 })
+  assert.equal(canSend('', 1, false), true)
+  assert.equal(canSend(' ', 0, false), false)
+  assert.equal(canSend('Hi', 0, true), false)
+  assert.equal(pictureNote({ id: 'p', width: 1, height: 1, status: 'unseen', reason: 'Kobold cannot look at pictures.' }, 'Mira'),
+    "Mira couldn't see this picture: Kobold cannot look at pictures.")
+  assert.equal(pictureNote({ id: 'p', width: 1, height: 1, status: 'seen', reason: null }, 'Mira'), null)
 })

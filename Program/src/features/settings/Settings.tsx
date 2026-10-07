@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import { Search } from 'lucide-react'
 import type { Companion } from '../../types'
 import { Backups } from './Backups'
+import { DebugSettings } from './DebugSettings'
 import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
@@ -11,6 +12,7 @@ import { PhoneSettings } from './PhoneSettings'
 import { PromptSettings } from './PromptSettings'
 import { BackgroundSettings, MemorySettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
 import { Cities } from '../world/Cities'
+import { BuiltinRecall } from './models/BuiltinRecall'
 import { ModelSettings } from './models/ModelSettings'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { availableTabs, pickTab, searchSettings, type SettingsMatch, type SettingsTab } from './sections'
@@ -64,9 +66,11 @@ function useLanding() {
 
 function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion | null }) {
   const name = companion?.version.name ?? ''
+  // Built-in recall reads and runs files on the PC, so a phone does not show it (companion/phone/access.py).
+  const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><PauseSettings /><BackgroundSettings /></>,
-    models: <><ModelSettings /><PromptSettings /></>,
+    models: <><ModelSettings />{!remote && <BuiltinRecall />}<PromptSettings /></>,
     life: <><LifeSettings name={name} /><Cities /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,
@@ -74,6 +78,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     notifications: <NotificationSettings />,
     phone: <PhoneSettings />,
     data: <Backups />,
+    debug: <DebugSettings name={name} />,
   }
   return content[tab]
 }

@@ -2,15 +2,17 @@
 import json
 
 from fastapi import APIRouter, BackgroundTasks, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from companion import (
     backup,
+    cast,
     characters,
     conversation,
     drafting,
     events,
     notifications,
+    pictures,
     restore,
     self_facts,
     start_over,
@@ -21,6 +23,9 @@ from companion import (
 from companion.identity import APP_ID, VERSION
 from companion.memory import consolidation, formation, records
 from companion.models import (
+    CastDraftRequest,
+    CastFocus,
+    CastSwitch,
     CharacterDefinition,
     CharacterDraftRequest,
     CharacterRevision,
@@ -55,12 +60,17 @@ def health():
 
 @router.get('/settings')
 def read_settings(request: Request):
-    return workspace.read(db(request))
+    return workspace.read(db(request)) | features(request)
 
 
 @router.put('/settings')
 def update_settings(request: Request, body: SettingsUpdate):
-    return workspace.update(db(request), body)
+    return workspace.update(db(request), body) | features(request)
+
+
+def features(request: Request) -> dict:
+    """Switches the interface reads with the settings; they are set on the PC, not saved here."""
+    return {'lora_maker': request.app.state.lora_maker}
 
 
 @router.post('/pause')
@@ -106,6 +116,36 @@ async def draft_companion(request: Request, body: CharacterDraftRequest):
 @router.post('/companion/draft/field')
 async def draft_field(request: Request, body: FieldDraftRequest):
     return await drafting.redo_field(request.app.state, body)
+
+
+@router.get('/companion/cast')
+def companion_cast(request: Request):
+    """Every companion in the workspace: the main character and those who stepped back."""
+    return {'members': cast.members(db(request))}
+
+
+@router.get('/companion/cast/draft')
+def cast_draft(request: Request, key: str):
+    """A profile for a townsperson the main character has met, from their sheet; nothing is saved."""
+    return cast.draft(db(request), key)
+
+
+@router.post('/companion/cast/draft')
+async def cast_fleshed(request: Request, body: CastDraftRequest):
+    """The same profile written out by the text model; nothing is saved."""
+    return await cast.fleshed(request.app.state, body.key)
+
+
+@router.post('/companion/cast/switch')
+def cast_switch(request: Request, body: CastSwitch):
+    """The townsperson becomes the main character; the current one steps back with their history."""
+    return cast.switch(db(request), body.key, body.definition)
+
+
+@router.post('/companion/cast/focus')
+def cast_focus(request: Request, body: CastFocus):
+    """Switch back to a companion who stepped back."""
+    return cast.focus_on(db(request), body.companion_id)
 
 
 @router.get('/prompts')
@@ -194,6 +234,19 @@ def search_conversation(request: Request, q: str = ''):
 @router.post('/conversation/messages')
 async def send_message(request: Request, body: MessageCreate, wait: bool = True):
     return await request.app.state.conversation.send(body, wait)
+
+
+@router.post('/pictures', status_code=201)
+async def upload_picture(request: Request):
+    """The body is the picture, already shrunk by the interface (companion/pictures.py)."""
+    data = await request.body()
+    return pictures.save(db(request), data)
+
+
+@router.get('/pictures/{picture_id}')
+def read_picture(request: Request, picture_id: str):
+    path, media_type = pictures.path_of(db(request), picture_id)
+    return FileResponse(path, media_type=media_type, headers={'Cache-Control': 'private, max-age=31536000, immutable'})
 
 
 @router.post('/conversation/messages/{message_id}/alternatives')

@@ -8,6 +8,28 @@ pictures, review them, train with AI Toolkit, evaluate, then deliberately adopt 
 adapter trained elsewhere can be imported instead, and a character can always stay on its text
 description. The code is in `companion/lora/`; files live in `lora/` beside the workspace database.
 
+## Hidden by default
+
+The LoRA maker is switched off in the build people get from git while it is unverified on real
+hardware. With it off, the Character page has no "Look and LoRA" button, Settings and the other
+pages don't mention LoRA training, and the server does not serve the maker's routes
+(`maker_router` in `companion/lora/routes.py`), so no training, evaluation or candidate-picture
+job can start. Profile pictures still work (they use `router`: portraits, kept pictures and
+reference files), and an adapter adopted earlier still applies to ComfyUI images. Nothing in the
+workspace is removed.
+
+To turn it on, set the environment variable `COMPANION_LORA_MAKER=1` (also `true`, `yes` or `on`)
+before the server starts, then start the Companion again:
+
+- Windows: run `setx COMPANION_LORA_MAKER 1` once in a Command Prompt, then close and reopen
+  `Windows\launch.bat` (a new window picks up the variable). `setx COMPANION_LORA_MAKER 0` turns
+  it off again.
+- macOS or Linux: add `export COMPANION_LORA_MAKER=1` to your shell profile (for example
+  `~/.zprofile`), then start the Companion from a new Terminal window.
+
+`GET /api/settings` reports the switch as `lora_maker`, and the interface follows it.
+`create_app(lora_maker=True)` turns it on in tests.
+
 ## Prepare and review
 
 - The user adds each picture; the app never reads folders on its own. Only PNG and JPEG are
