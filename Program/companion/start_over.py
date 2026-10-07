@@ -103,7 +103,11 @@ def preview(database) -> dict:
         others = others_of(connection, companion['id'])
         return {
             'name': companion['version']['name'],
-            'messages': count(f"SELECT COUNT(*) FROM messages WHERE role='user' AND redacted_at IS NULL AND {mine}"),
+            # Both sides of the chat, each message once even when a fork copied it.
+            'messages': count(
+                'SELECT COUNT(DISTINCT COALESCE(origin_id, id)) FROM messages '
+                f"WHERE redacted_at IS NULL AND status NOT IN ('failed', 'streaming') AND {mine}"
+            ),
             'memories': count(f"SELECT COUNT(*) FROM memories WHERE status='active' AND {mine}"),
             'timelines': count('SELECT COUNT(*) FROM timelines WHERE companion_id=:companion'),
             'images': count(f"SELECT COUNT(*) FROM image_jobs WHERE status='completed' AND {mine}"),

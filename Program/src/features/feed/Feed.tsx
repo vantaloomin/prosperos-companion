@@ -26,7 +26,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
   })
   const name = companion.version.name
   const posts = joinPages(feed.data?.pages ?? [])
-  const unread = feed.data?.pages[0]?.unread ?? 0
+  const unread = useArrivalCount(feed.data?.pages[0]?.unread)
 
   const batcher = useMemo(() => new ReadBatcher((ids) => {
     void api('/feed/read', { post_ids: ids }).then(() => Promise.all([client.invalidateQueries({ queryKey: ['today'] }), client.invalidateQueries({ queryKey: ['feed'] })])).catch(() => undefined)
@@ -97,10 +97,18 @@ function SourcePicker({ source, name, onChange }: { source: FeedSource; name: st
   )
 }
 
-const unreadText = (unread: number) => unread ? `. ${unread} unread` : ''
+const unreadText = (count: number) => count ? `. ${count} new` : ''
 
 function FeedStatus({ pending, error, empty, name }: { pending: boolean; error: Error | null; empty: boolean; name: string }) {
   if (pending) return <Loading label="Loading the feed" />
   if (error) return <Notice tone="error">{error.message}</Notice>
   return empty ? <p className="subtle">No posts yet. When something happens in {name}'s life or their friends', it shows up here.</p> : null
+}
+
+/** Posts on screen are marked read as soon as they are seen, so the header keeps the count the
+ * reader arrived with, the number Today's "new in Feed" button showed, unless more come in. */
+function useArrivalCount(unread: number | undefined): number {
+  const [arrived, setArrived] = useState<number | null>(null)
+  if (arrived === null && unread !== undefined) setArrived(unread)
+  return Math.max(arrived ?? 0, unread ?? 0)
 }

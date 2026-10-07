@@ -82,6 +82,12 @@ PREDICATES = (
         r'\w+(?: \w+)?)', re.IGNORECASE)),
 )
 
+# The reason given for a move, when it is work: "moved to Denver for a nursing job".
+MOVED_FOR_WORK = re.compile(
+    rf'\b(?:for|to take|to start) (?:a|an|her|his|their) (?:new )?((?:(?!(?:job|new)\b)[\w-]+ ){{1,3}}?job)\b'
+    rf'|\bto work (?:as an? ([\w -]+?)|at (?:the )?{PLACE})(?=$|[,.;!?]| (?:and|but|because|since|so)\b)',
+    re.IGNORECASE)
+
 
 @dataclass(frozen=True)
 class Reference:
@@ -212,6 +218,9 @@ def scan(sentence: str, known: dict, previous: Reference | None, exclude=()) -> 
         if result := predicate(rest):
             topic, value, changed = result
             found.append(Found(reference, topic, value, changed))
+            if changed and (work := MOVED_FOR_WORK.search(rest)):
+                if job := clean(next(group for group in work.groups() if group)):
+                    found.append(Found(reference, 'work', job, True))
             break
     people = {item.reference for item in found} | {reference for _rest, reference in candidates}
     return found, next(iter(people)) if len(people) == 1 else None

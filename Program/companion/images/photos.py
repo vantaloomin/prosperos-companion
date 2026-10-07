@@ -135,6 +135,9 @@ class ChatPhotos:
         return 'selfie' if rng.random() < UNASKED_SELFIE_SHARE else 'moment'
 
     def send(self, kind, attempt_id, unasked=False) -> dict | None:
+        # Without the agenda, the moment would be composed without the circle's plans (a birthday
+        # outing) and the event the run later writes for this slot could tell a different story.
+        self.life.extend_agenda('return')
         now = self.database.clock.now()
         with self.database.connect() as connection:
             if not jobs.image_settings(connection)['chat_photos'] or settings(connection)['paused_at']:
@@ -182,6 +185,8 @@ class ChatPhotos:
             companion = current(connection)
             if not UNASKED or self.openers is None or companion is None or not may_share(connection, companion, now):
                 return None
+        self.life.extend_agenda('background')
+        with self.database.connect() as connection:
             moment = self.moment(connection, companion, now)
         if not moment or moment['kind'] not in SHARE_KINDS or self.in_chat(moment['event_key']) or \
                 random.Random(moment['event_key']).random() >= SHARE_CHANCE:

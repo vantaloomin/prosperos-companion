@@ -13,7 +13,7 @@ import { Recommendations } from './Recommendations'
 import { Storylines } from './Storylines'
 import { Townsfolk } from './Townsfolk'
 import { occasionText } from './storyText'
-import { bodyText, moodText, pauseToFill } from './todayText'
+import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
 
 const TODAY_KEY = ['today']
 
@@ -87,7 +87,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           ))}
         </Section>
       )}
-      <Section id="changes" title={data.last_seen_at ? 'Since you were last here' : 'Recently'} empty={`Nothing new in ${name}'s life yet. Quiet stretches are normal.`}>
+      <Section id="changes" title={data.last_seen_at ? 'Since you were last here' : 'Recently'} empty={changesEmpty(name, data.review.length)}>
         {data.changes.map((event) => (
           <EventItem key={event.id} event={event}>
             {event.status === 'committed' && <CorrectEvent event={event} onSave={(correction) => correct(event, correction)} />}

@@ -15,6 +15,13 @@ export function pauseToFill(pauses: PauseRecord[]): PauseRecord | null {
   return pauses.find((pause) => pause.ended_at && !pause.catch_up_requested_at) ?? null
 }
 
+/** "Since you were last here" with nothing kept yet: points at what is waiting, if anything is. */
+export function changesEmpty(name: string, waiting: number): string {
+  if (!waiting) return `Nothing new in ${name}'s life yet. Quiet stretches are normal.`
+  const things = waiting === 1 ? '1 thing is' : `${waiting} things are`
+  return `${things} waiting for you above. What you keep shows up here.`
+}
+
 export function eventWhen(startsAt: string, now = appDate()): string {
   const date = new Date(startsAt)
   const sameDay = date.toDateString() === now.toDateString()

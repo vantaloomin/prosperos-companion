@@ -22,6 +22,18 @@ def test_people_and_facts_about_them_are_found_by_rules():
     assert found('I have a dog called Rex. He is 5.') == [('Dog', 'Rex'), ('Rex: Age', '5')]
 
 
+
+def test_a_move_for_work_also_records_the_work():
+    assert found('My brother Theo just moved to Denver for a nursing job.') == [
+        ('Brother', 'Theo'), ('Theo: Home city', 'Denver'), ('Theo: Work', 'nursing job')]
+    assert found('Theo moved to Denver to work as a nurse.', {'Theo': 'brother'})[-1] == ('Theo: Work', 'nurse')
+    assert found('Theo moved to Denver to work at the Royal Hospital.', {'Theo': 'brother'})[-1] == (
+        'Theo: Work', 'Royal Hospital')
+    # No job is named here, so only the move is kept.
+    assert found('Theo moved to Denver for work.', {'Theo': 'brother'}) == [('Theo: Home city', 'Denver')]
+    assert found('Jo moved to York for a new job.', {'Jo': 'sister'}) == [('Jo: Home city', 'York')]
+
+
 def test_vague_or_unreal_mentions_are_not_people():
     for text in ('My friend loves cake.', 'My boss is an idiot.', 'Does my sister Jo live in Leeds?',
                  'Hypothetically, my sister Jo lives on the moon.', 'My friend said "Jo lives in Rome".',

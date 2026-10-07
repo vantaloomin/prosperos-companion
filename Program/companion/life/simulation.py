@@ -374,6 +374,14 @@ class LifeEngine:
                 await self.execute(decision['run_id'])
             return await asyncio.to_thread(self.outcome, decision)
 
+    def extend_agenda(self, mode) -> None:
+        """Precompute the agenda now, so a slot composed outside a run (a chat photo of the current
+        moment) is composed the way the run will later write it."""
+        with self.database.connect(write=True) as connection:
+            companion = current(connection)
+            if companion and may_extend(settings(connection), mode):
+                agenda.extend(connection, companion, self.world, self.now())
+
     def decide(self, mode) -> dict:
         with self.database.connect(write=True) as connection:
             companion = current(connection)

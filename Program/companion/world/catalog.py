@@ -23,9 +23,17 @@ def careers() -> dict[str, dict]:
     return {career.id: career.model_dump() for career in catalogue.careers}
 
 
-def careers_for(data: dict) -> dict[str, dict]:
-    """Careers a city offers: the shared ones for its era, then its own (which win on a shared id)."""
-    shared = {key: value for key, value in careers().items() if data['era'] in value['eras']}
+def careers_for(data: dict, *, needs_met: bool = True) -> dict[str, dict]:
+    """Careers a city offers: the shared ones for its era, then its own (which win on a shared id).
+    A shared career that `needs` a kind of place (a beach) is left out where the city has none and
+    no employer for it, unless `needs_met` is False."""
+    if not needs_met:
+        return {key: value for key, value in careers().items() if data['era'] in value['eras']} | \
+            {career['id']: career for career in data['careers']}
+    kinds = {place['kind'] for place in data.get('places', [])}
+    hired = {career for employer in data.get('employers', []) for career in employer['careers']}
+    shared = {key: value for key, value in careers().items() if data['era'] in value['eras']
+              and (not value['needs'] or kinds & set(value['needs']) or key in hired)}
     return shared | {career['id']: career for career in data['careers']}
 
 

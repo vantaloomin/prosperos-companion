@@ -507,3 +507,11 @@ def test_everyday_places_keep_near_home():
     # Museums and the like stay city-wide, and an unknown place changes nothing.
     assert world.places('baltimore', ['museum'], near='fells-point') == world.places('baltimore', ['museum'])
     assert world.places('baltimore', ['cafe'], near='Atlantis') == world.places('baltimore', ['cafe'])
+
+
+def test_surf_instructors_work_only_where_there_is_surf():
+    assert 'surf-instructor' not in catalog.careers_for(catalog.city('baltimore'))
+    assert 'surf-instructor' in catalog.careers_for(catalog.city('baltimore'), needs_met=False)
+    assert 'surf-instructor' in catalog.careers_for(catalog.city('san-diego'))
+    # Lifeguards also work at pools, so every city keeps them.
+    assert 'lifeguard' in catalog.careers_for(catalog.city('baltimore'))

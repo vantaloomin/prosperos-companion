@@ -226,9 +226,14 @@ def _build(data: dict, place_id: str, index: int) -> dict:
 def _occupation(data: dict, key: str, age: int) -> str:
     if age >= generators.RETIRED_AT:
         return 'retired'
-    careers = catalog.careers_for(data)
-    options = sorted(career['name'] for career in careers.values())
-    return generators.pick(key, 'career', options).lower() if options else ''
+    # Picked from every career of the era first, so leaving one out of a city (a surf instructor in
+    # Baltimore) moves only the residents who had it, not everyone after it in the list.
+    offered = {career['name'] for career in catalog.careers_for(data).values()}
+    options = sorted(career['name'] for career in catalog.careers_for(data, needs_met=False).values())
+    chosen = generators.pick(key, 'career', options)
+    if chosen not in offered:
+        chosen = generators.pick(key, 'career-here', sorted(offered))
+    return chosen.lower() if chosen else ''
 
 
 def goal(sheet: dict, data_or_modern, number: int) -> dict:
