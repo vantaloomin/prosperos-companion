@@ -259,7 +259,7 @@ changes made.
 | `Windows/install.bat`, `scripts/windows/install.ps1`, `Windows/launch.bat`, `scripts/windows/launch.ps1` | `install.bat`, `install.ps1`, `launch.bat`, `start.ps1` | Companion name, checks and launcher |
 | `companion/life/chance.py` | `server/mechanics/randomness.py` (`Draws`), `server/mechanics/table_engine.py` (`face`, `resolve`) | `Draws` unchanged; tables are plain dicts with no versions, disabled tables or excluded rows |
 | `companion/imports/cards.py` | `server/library_formats/png_cards.py` (`chunks`, `embedded_card`), `server/library_formats/cards.py` (`card_data`) | Errors are `DomainError`s; no duplicate-payload or trailing-data refusal; the card becomes plain text for the paste box, not Library files |
-| `src/features/character/CharacterHelper.tsx`, its CSS in `src/styles.css` | `src/features/collaborator/` (Collaborator dock, composer, edit proposals), `src/styles/collaborator.css` | Rewritten for the character form: a docked panel with field proposals (Apply, Dismiss, Undo); no saved threads, pinned sources, pop-out window or profile override |
+| `src/features/sidecar/`, its CSS in `src/styles.css` | `src/features/collaborator/` (Collaborator dock, composer, edit proposals), `src/styles/collaborator.css` | Rewritten for Companion: a docked panel that proposes edits to the character, replies and memories (Apply, Dismiss, Undo); no saved threads, pinned sources, pop-out window or profile override |
 | `src/components/TextComparison.tsx` | `src/features/textEdits/EditPresentation.tsx` (`TextComparison`) | Unchanged |
 | `tests/test_study_import.py` (`STUDY_SCHEMA`) | `server/schema.sql` | Library, story, Sidebar, profile and backup tables only, as a test fixture |
 

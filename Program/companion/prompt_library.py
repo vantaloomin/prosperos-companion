@@ -47,7 +47,7 @@ class Prompt:
     placeholders: dict[str, str] = field(default_factory=dict)
 
 
-CHAT, DRAFTING = 'Chat and life', 'Character drafting'
+CHAT, DRAFTING, SIDECAR = 'Chat and life', 'Character drafting', 'Sidecar'
 PROMPTS = {prompt.name: prompt for prompt in (
     Prompt('chat-character', CHAT, 'Who the companion is',
            'Opens every chat reply and first text, before the character sheet, memories and the day. '
@@ -95,14 +95,16 @@ PROMPTS = {prompt.name: prompt for prompt in (
            {'rules': 'the believable-character prompt', 'pasted': 'the character you pasted', 'city': 'the home city',
             'careers': 'occupations to choose from', 'names': 'common names there',
             'emotional': 'whether emotional edges are allowed'}),
-    Prompt('character-helper.md', DRAFTING, 'The character helper',
-           'The conversation beside the character form. Its reply proposes field changes you apply or dismiss.',
-           drafting_file('character-helper.md'),
-           {'rules': 'the believable-character prompt', 'character': 'the character as it stands',
-            'city': 'the home city', 'emotional': 'the emotional-edges rule',
-            'fields': 'the fields it may change and what each is for'}),
     Prompt('character-repair.md', DRAFTING, 'Retrying an unusable reply', 'Sent once when a reply could not be used.',
            drafting_file('character-repair.md'), {'problem': 'what was wrong with the reply'}),
+    Prompt('sidecar.md', SIDECAR, 'The sidecar',
+           'The chat beside the app that reads the character, the conversation and the memories and proposes '
+           'changes you apply or dismiss. Only you see it; the companion never does.',
+           drafting_file('sidecar.md'),
+           {'name': "the companion's name", 'view': 'where you are in the app', 'character': 'the character',
+            'city': 'the home city', 'conversation': 'the recent conversation', 'memories': 'the memories',
+            'rules': 'the believable-character prompt', 'emotional': 'the emotional-edges rule',
+            'fields': 'the character fields it may change'}),
 )}
 
 

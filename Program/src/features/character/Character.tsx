@@ -9,8 +9,7 @@ import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, gu
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
 import { FieldHelp } from './FieldHelp'
 import { splitReply } from './helper'
-import { HelperDock, HelperToggle } from './CharacterHelper'
-import { useHelperDock } from './useHelperDock'
+import { useFormBridge } from '../sidecar/useFormBridge'
 import { TextingFields } from './TextingFields'
 import { Home } from './Home'
 import { Wardrobe } from './Wardrobe'
@@ -63,7 +62,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
   const chrome = formChrome(companion, start, create, go, onRestart)
   const cleaned = () => cleanDefinition(definition, texts.interests, texts.themes, texts)
   // Rewriting one field with the text model, when one is connected.
-  const dock = useHelperDock(!!connection.data, !companion)
+  useFormBridge(form, setForm, cleaned)
   const help = (field: DraftField, label: string): ReactNode => connection.data
     ? <FieldHelp field={field} label={label} definition={cleaned} current={fieldValue(form, field)} apply={(value) => setForm((current) => withField(current, field, value))} />
     : null
@@ -89,8 +88,6 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
     <section className="page">
       {chrome.heading}
       {chrome.notice && <div className="start-notice">{chrome.notice}</div>}
-      <HelperToggle dock={dock} />
-      <div className={dock.layout}>
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
           <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} hint="What they go by. Their family shares the last name." />
@@ -135,8 +132,6 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
           <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{chrome.label}</button>
         </div>
       </form>
-      <HelperDock dock={dock} conversation={companion?.id} form={form} setForm={setForm} definition={cleaned} />
-      </div>
       {companion && <>
         <Home name={companion.version.name} />
         <Wardrobe name={companion.version.name} />

@@ -12,11 +12,13 @@ from companion import (
     conversation,
     drafting,
     events,
+    message_edits,
     notifications,
     pictures,
     prompt_library,
     restore,
     self_facts,
+    sidecar,
     start_over,
     text_models,
     timelines,
@@ -38,15 +40,16 @@ from companion.models import (
     EventCorrection,
     EventProposal,
     FieldDraftRequest,
-    HelperRequest,
     MemoryCorrection,
     MemoryCreate,
     MemoryDelete,
     MessageCreate,
+    MessageEdit,
     NotificationCheck,
     NotificationSettingsUpdate,
     PromptUpdate,
     SettingsUpdate,
+    SidecarRequest,
     StartOverConfirm,
     TimelineFork,
     TimelineUpdate,
@@ -137,10 +140,16 @@ def read_character_card(body: CharacterCardFile):
     return cards.read_card(body.filename, body.data)
 
 
-@router.post('/companion/helper')
-async def character_helper_message(request: Request, body: HelperRequest):
-    """One message to the character helper: a reply and proposed field changes, none of them saved."""
-    return await character_helper.chat(request.app.state, body)
+@router.post('/sidecar')
+async def sidecar_message(request: Request, body: SidecarRequest):
+    """One message to the sidecar: a reply and proposed changes. Nothing is stored or applied."""
+    return await sidecar.chat(request.app.state, body)
+
+
+@router.post('/conversation/messages/{message_id}/edit')
+def edit_message(request: Request, message_id: str, body: MessageEdit):
+    """New wording for one of the companion's replies, keeping the old wording for Undo."""
+    return message_edits.edit(db(request), message_id, body.text, body.expected_text)
 
 
 @router.get('/companion/cast')

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { emptyDefinition, listTexts } from '../../src/features/character/definition.ts'
 import type { FormState } from '../../src/features/character/drafting.ts'
-import { applied, fieldProposals, history, shownValue, splitForm, splitReply, undone, wantsSplit, type Turn } from '../../src/features/character/helper.ts'
+import { shownValue, splitForm, splitReply, wantsSplit } from '../../src/features/character/helper.ts'
+import { history, proposals, title, effect, type Turn } from '../../src/features/sidecar/proposals.ts'
 
 const form = (change = {}): FormState => {
   const definition = { ...emptyDefinition('UTC'), name: 'Dana', skills: ['IVs'], ...change }
@@ -18,21 +19,26 @@ test('a long paste on an empty form is split; anything else goes to the conversa
   assert.equal(wantsSplit(form({ identity: '34, a nurse' }).definition, long), false)
 })
 
-test('proposals skip fields the reply leaves as they are, and unknown fields', () => {
-  const proposals = fieldProposals(form(), { name: 'Dana', skills: ['IVs', 'Parking'], relationship: 'romance' } as never, id)
-  assert.deepEqual(proposals.map((item) => item.kind === 'field' && item.field), ['skills'])
+test('field proposals skip fields that already say exactly that, and read their value before', () => {
+  const found = proposals([{ kind: 'field', field: 'name', value: 'Dana' }, { kind: 'field', field: 'skills', value: ['IVs', 'Parking'] }], form(), null, id)
+  assert.equal(found.length, 1)
+  assert.equal(found[0].before, 'IVs')
+  assert.equal(title(found[0], 'Dana'), 'Skills')
+  assert.equal(effect(found[0], true), 'Changes the form; nothing is saved until you save it.')
+  assert.equal(effect(found[0], false), 'Saves a new character version.')
+  const saved = proposals([{ kind: 'field', field: 'voice', value: 'Short.' }], null, { ...emptyDefinition(), voice: 'Long.' }, id)
+  assert.equal(saved[0].before, 'Long.')
 })
 
-test('applying a change keeps what it replaced, and Undo puts it back', () => {
-  const [proposal] = fieldProposals(form(), { skills: ['IVs', 'Parking'], location: 'Baltimore' }, id)
-  const done = applied(form(), proposal)
-  assert.equal(done.state.texts.skills, 'IVs\nParking')
-  assert.equal(done.proposal.status, 'applied')
-  const back = undone(done.state, done.proposal)
-  assert.equal(back.state.texts.skills, 'IVs')
-  assert.equal(back.proposal.status, 'pending')
-  const where = applied(form(), fieldProposals(form(), { location: 'Baltimore' }, id)[0])
-  assert.equal(where.state.definition.location, 'Baltimore')
+test('reply and memory proposals keep what they replace', () => {
+  const [reply, memory, forget] = proposals([
+    { kind: 'reply', message_id: 'r1', before: 'I adore jazz.', text: 'Jazz, mostly.', created_at: 'not a date' },
+    { kind: 'memory', memory_id: 'k1', revision: 1, layer: 'user_fact', subject: 'job', before: 'Bakery', value: 'Florist' },
+    { kind: 'forget_memory', memory_id: 'k2', layer: 'user_fact', subject: 'pet', before: 'Has a cat' }], null, null, id)
+  assert.equal(reply.before, 'I adore jazz.')
+  assert.equal(title(reply, 'Mira'), "Mira's reply")
+  assert.equal(title(memory, 'Mira'), 'Memory: job')
+  assert.equal(effect(forget, false), 'Keeps it in Memories but stops using it.')
 })
 
 test('a split character fills the whole form but keeps the relationship the user chose', () => {
@@ -57,4 +63,18 @@ test('the conversation sent back is the latest turns, cut to length', () => {
   assert.equal(sent[0].content, 'ask 2')
   assert.equal(sent.filter((turn) => turn.role === 'assistant').length, 4)
   assert.equal(sent.at(-2)?.content.length, 4000)
+})
+
+test('connecting a model is the first step, and creating waits on it', async () => {
+  const { welcomeSteps } = await import('../../src/features/character/welcomeSteps.ts')
+  const [model, create] = welcomeSteps(null)
+  assert.equal(model.action, 'Set up a model')
+  assert.equal(model.primary, true)
+  assert.equal(create.primary, false)
+  assert.equal(create.action, 'Create without a model for now')
+  const connected = welcomeSteps({ model: 'gemma', provider_name: 'OpenRouter' } as never)
+  assert.equal(connected[0].done, true)
+  assert.equal(connected[1].action, 'Create your companion')
+  assert.equal(connected[1].primary, true)
+  assert.equal(welcomeSteps(undefined)[0].action, '')
 })

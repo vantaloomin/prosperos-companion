@@ -1,5 +1,4 @@
-"""The character helper: a pasted character split into fields, card files read as text, and a conversation
-whose replies propose field changes the user reviews."""
+"""A pasted character split into fields, and character card files read as text for the paste box."""
 import base64
 import json
 import struct
@@ -110,66 +109,3 @@ def test_unreadable_cards_say_why(client):
         response = client.post('/api/companion/draft/card', json={'filename': filename, 'data': data})
         assert response.status_code == 422 and response.json()['code'] == 'card_unreadable', filename
 
-
-FORM = {'name': 'Dana Whitfield', 'relationship': 'friendship', 'identity': '34, a nurse.', 'personality': 'Dry.',
-        'home_city': 'baltimore', 'skills': ['IVs']}
-
-
-def helper(client, message, **extra):
-    return client.post('/api/companion/helper', json={'definition': FORM, 'message': message, **extra})
-
-
-def test_the_helper_replies_and_proposes_changes_to_named_fields(client, provider):
-    connect(client)
-    provider.respond = replying(json.dumps({'reply': 'I made her older and gave her a sister.', 'changes': {
-        'identity': '41, a nurse with a younger sister, Beth.', 'skills': ['IVs', 'IVs', 'Parallel parking']}}))
-    history = [{'role': 'assistant', 'content': 'Hi.'}, {'role': 'user', 'content': 'She is a nurse.'},
-               {'role': 'assistant', 'content': 'Got it.'}]
-    response = helper(client, 'Make her 41 with a sister called Beth.', history=history)
-    assert response.status_code == 200, response.text
-    result = response.json()
-    assert result['reply'].startswith('I made her older')
-    assert result['changes'] == {'identity': '41, a nurse with a younger sister, Beth.', 'skills': ['IVs', 'Parallel parking']}
-    [request] = provider.requests
-    # The conversation opens with the user, and the form as it stands is in the instructions.
-    assert [message['role'] for message in request['messages']] == ['user', 'assistant', 'user']
-    assert request['messages'][-1]['content'] == 'Make her 41 with a sister called Beth.'
-    assert '"Dana Whitfield"' in request['system'] and 'Baltimore' in request['system'] and '{{' not in request['system']
-
-
-def test_the_helper_never_changes_the_users_own_picks(client, provider):
-    connect(client)
-    bad = json.dumps({'reply': 'Done.', 'changes': {'relationship': 'romance', 'voice': 'Short and dry.'}})
-    provider.respond = replying(bad, bad)
-    result = helper(client, 'Make it a romance.').json()
-    assert 'may not change' in provider.requests[1]['messages'][-1]['content']
-    assert result['changes'] == {'voice': 'Short and dry.'}
-
-
-def test_a_question_gets_an_answer_and_no_changes(client, provider):
-    connect(client)
-    provider.respond = replying('```json\n{"reply": "Her flaws are thin; add one that shows in chat.", "changes": {}}\n```')
-    assert helper(client, 'What is missing?').json() == {
-        'reply': 'Her flaws are thin; add one that shows in chat.', 'changes': {}, 'prompt_version': 'character-draft-3'}
-
-
-def test_an_unusable_change_is_retried_then_dropped(client, provider):
-    connect(client)
-    sleepless = [{'label': 'Shift', 'kind': 'work', 'days': [0], 'start': '07:00', 'end': '19:00'}]
-    bad = json.dumps({'reply': 'New week.', 'changes': {'schedule': sleepless, 'name': ''}})
-    provider.respond = replying(bad, bad)
-    result = helper(client, 'Give her day shifts.').json()
-    assert len(provider.requests) == 2
-    # On the retry a schedule with blocks is kept, and an empty name is dropped.
-    assert list(result['changes']) == ['schedule']
-
-
-def test_routine_prose_from_the_helper_agrees_with_the_week(client, provider):
-    connect(client)
-    week = [{'label': 'Asleep', 'kind': 'sleep', 'days': [0, 1, 2, 3, 4, 5, 6], 'start': '23:00', 'end': '07:00'},
-            {'label': 'Shift', 'kind': 'work', 'days': [0, 1, 2], 'start': '08:00', 'end': '16:00'}]
-    provider.respond = replying(json.dumps({'reply': 'Done.', 'changes': {
-        'routine': 'I work Saturdays at the hospital. Mornings start with coffee.'}}))
-    response = client.post('/api/companion/helper', json={'definition': {**FORM, 'schedule': week}, 'message': 'Routine?'})
-    routine = response.json()['changes']['routine']
-    assert 'Saturdays' not in routine and routine.startswith('Mornings start with coffee.') and 'Monday to Wednesday' in routine

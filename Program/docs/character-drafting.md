@@ -46,22 +46,14 @@ catalogue (by name or a distinctive alias), that becomes the home city, with its
 the user's own clock and the text's own words for where they live are kept. A character younger
 than 18 is refused. The reply goes through the same checks as a quick-start draft below.
 
-## The character helper
+## The sidecar
 
-The character form has a **Character helper** beside it, after the Collaborator sidecar in
-Prospero's Study. It is open by default while creating a companion and can be closed or reopened;
-the choice is remembered in this browser. On narrow screens it sits above the form.
-
-The user can paste more about the character or ask for changes in plain words ("make her older",
-"he has a sister", "less formal"), or ask a question. Each message goes to
-`POST /api/companion/helper` with the form as it stands and the last few turns. The reply says what
-changed and proposes new values for named fields only: name, where they live, who they are,
-personality, voice, skills, flaws, interests, background, appearance, routine, life themes and the
-weekly routine. Each proposal shows before and after with **Apply** and **Dismiss**, and an applied
-change has **Undo**; **Apply all** applies a reply's changes in order. The relationship, home city
-and emotional traits are never changed by the helper. A long paste on a still-empty form is split
-as above instead, and offered as one "Fill the form from your character" proposal. Nothing is
-saved until the user saves the form. The conversation lasts while the app is open.
+While the form is open, the app-wide **Sidecar** ([sidecar.md](sidecar.md)) edits the form itself:
+the user can paste more about the character or ask for changes in plain words ("make her older",
+"he has a sister", "less formal"), and each proposed field change goes into the form with
+**Apply**, **Dismiss** and **Undo**. Nothing is saved until the user saves the form. A long paste
+on a still-empty form is split as above instead, and offered as one "Fill the form from your
+character" proposal. The relationship, home city and emotional traits are never changed by it.
 
 ## Prompts
 
@@ -76,12 +68,11 @@ plain files, so they can be read and tuned without touching code:
 - `character-draft.md` asks for the whole character as one JSON object with the app's keys.
 - `character-field.md` and `character-fields.json` ask for one field.
 - `character-split.md` splits a pasted character into the fields.
-- `character-helper.md` is the character helper's conversation.
 - `character-repair.md` is the single retry.
 
 `PROMPT_VERSION` in `companion/drafting.py` names the shipped wording; each response reports it.
 
-With **Show advanced settings** on, Settings > **Advanced** lists the six `.md` prompts with the
+With **Show advanced settings** on, Settings > **Advanced** lists the five `.md` prompts with the
 app's other core prompts and lets the user reword them; see [prompts.md](prompts.md). The
 per-field guides in `character-fields.json` stay a shipped file.
 

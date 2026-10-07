@@ -549,6 +549,13 @@ and its names come from the world data; the reply is shaped and validated before
 form, and nothing is saved until the user creates the companion. See
 [Character drafting](character-drafting.md).
 
+## The sidecar
+
+`companion/sidecar.py` answers the Sidecar panel, an out-of-context chat that sees the character,
+recent messages and memories but is never added to them. It proposes changes the user applies
+through the app's own paths: the character form or a new version, `companion/message_edits.py`
+for a companion reply's wording, and the Memories corrections. See [The sidecar](sidecar.md).
+
 ## Import from Prospero's Study
 
 `companion/imports/` opens a Study database read-only, lists its characters, shows a review of

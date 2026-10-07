@@ -16,7 +16,8 @@ for comparison.
 | Suggesting memories | The memory model's fact suggestions | `RULES` in `companion/memory/suggest.py` |
 | Describing your pictures | The "Seeing pictures" model | `DESCRIBE` in `companion/pictures.py` |
 | The Story narrator | Every reply in the Story tab, before the scene ([story.md](story.md)) | `NARRATOR` in `companion/story.py` |
-| Character drafting (6) | The quick start, "Help me write", the paste box and the character helper | `companion/prompts/*.md` ([character-drafting.md](character-drafting.md)) |
+| Character drafting (5) | The quick start, "Help me write" and the paste box | `companion/prompts/character-*.md` ([character-drafting.md](character-drafting.md)) |
+| Sidecar | The sidecar's replies and proposed changes ([sidecar.md](sidecar.md)) | `companion/prompts/sidecar.md` |
 
 `companion/prompt_library.py` is the list. Defaults are read from the constants above when needed,
 so changing one in code is the new default at once. The constants are written for `str.format`;

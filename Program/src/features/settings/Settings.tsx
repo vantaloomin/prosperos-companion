@@ -18,6 +18,7 @@ import { Cities } from '../world/Cities'
 import { BuiltinRecall } from './models/BuiltinRecall'
 import { ModelSettings } from './models/ModelSettings'
 import { usePhoneStatus } from '../phone/phoneAccess'
+import { NextStep } from './NextStep'
 import { availableTabs, pickTab, searchSettings, type SettingsMatch, type SettingsTab } from './sections'
 
 interface Props {
@@ -25,9 +26,11 @@ interface Props {
   /** The tab named in the address (#settings/models); an unknown or unavailable one opens the first tab. */
   tab?: string
   onTab: (tab: SettingsTab) => void
+  /** Before there is a companion: where "create your companion" goes once a model is connected. */
+  onCreate?: () => void
 }
 
-export function Settings({ companion, tab, onTab }: Props) {
+export function Settings({ companion, tab, onTab, onCreate }: Props) {
   const onPhone = !!usePhoneStatus().data?.remote
   const [advanced, setAdvanced] = useAdvancedSettings()
   const current = pickTab(tab, !!companion, onPhone, advanced)
@@ -39,6 +42,7 @@ export function Settings({ companion, tab, onTab }: Props) {
   return (
     <section className="page settings">
       <header className="page-header"><h1>Settings</h1></header>
+      {!companion && onCreate && <NextStep onCreate={onCreate} />}
       {companion && <RestoredReview onDone={() => { onTab('memory'); landing('memory-heading') }} />}
       <SettingsSearch hasCompanion={!!companion} onPhone={onPhone} onPick={land} />
       <div className="settings-layout">

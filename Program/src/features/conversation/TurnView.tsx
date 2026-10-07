@@ -1,8 +1,9 @@
 import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useEffect, useState, type ReactNode } from 'react'
-import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, RotateCcw, Square } from 'lucide-react'
+import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, MessageSquareText, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
+import { sidecar } from '../sidecar/store'
 import { isHeld } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
@@ -127,6 +128,7 @@ function ReplyTools({ message, position, streaming, onPage, onStop }: Pick<Reply
         </span>
       )}
       {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
+      {message.status === 'complete' && !message.redacted && <button type="button" className="text-button reply-sidecar" aria-label="Ask the sidecar about this reply" title="Ask the sidecar about this reply" onClick={() => sidecar.ask(message)}><MessageSquareText aria-hidden="true" /></button>}
     </span>
   )
 }
