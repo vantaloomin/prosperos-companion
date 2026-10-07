@@ -1033,3 +1033,20 @@ export interface DebugTime {
   jumping: { to: string; done: number } | null
   kept?: boolean
 }
+
+/** Story mode (companion/story.py): the user's own story with a narrator, apart from the companion. */
+export interface StoryPlace { id: string; name: string; kind: string; neighborhood: string; summary?: string }
+export interface StoryScene {
+  city: { id: string; name: string; era: string }
+  place: StoryPlace
+  local_time: string
+  weather: string
+  places: StoryPlace[]
+  /** Who is around, as the user would see them ("the barista there"); never names they have not been given. */
+  around: string[]
+}
+export interface StoryMessage {
+  id: string; seq: number; role: 'user' | 'narrator' | 'scene'; text: string; reply_to: string | null
+  status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
+}
+export interface Story { scene: StoryScene; messages: StoryMessage[]; ready: boolean }

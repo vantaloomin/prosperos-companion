@@ -87,6 +87,24 @@ textarea { resize: vertical; line-height: 1.6; }
 .composer { display: flex; align-items: flex-end; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; padding: 12px 32px 22px; }
 .composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; }
 
+/* Story mode (src/features/story): one reading column of narration, the user's lines set apart. */
+.story { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.story-header { max-width: 760px; width: 100%; margin: 0 auto; padding: 18px 32px 12px; display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid var(--border); }
+.story-header h1 { font-size: 1.3rem; }
+.story-scene { display: flex; flex-direction: column; gap: 4px; }
+.story-scene svg { width: 16px; height: 16px; vertical-align: -3px; color: var(--accent); }
+.story-scene .button { align-self: flex-start; margin-top: 6px; }
+.story-go { flex-wrap: wrap; align-items: flex-end; margin-top: 6px; }
+.story-go label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8125rem; color: var(--muted); }
+.story-log { flex: 1; overflow-y: auto; max-width: 760px; width: 100%; margin: 0 auto; padding: 20px 32px; }
+.story-narration { font-family: 'Literata', Georgia, serif; font-size: 1.0625rem; line-height: 1.75; margin-bottom: 20px; overflow-wrap: anywhere; }
+.story-narration p { white-space: pre-wrap; margin-bottom: 1em; }
+.story-user { margin: 0 0 20px auto; max-width: 85%; padding: 10px 14px; border-radius: 12px; background: var(--accent-tint); white-space: pre-wrap; overflow-wrap: anywhere; width: fit-content; }
+.story-move { margin-bottom: 20px; text-align: center; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
+.story-empty { text-align: center; margin-top: 24px; }
+.story-notice, .story-footer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
+.story-footer { padding-bottom: 16px; }
+
 @media (max-width: 720px) {
   .app-shell { flex-direction: column-reverse; }
   .app-nav { flex-direction: row; gap: 2px; width: 100%; flex: 0 0 auto; padding: 4px; border-right: 0; border-top: 1px solid var(--border); overflow-x: auto; }
@@ -98,6 +116,7 @@ textarea { resize: vertical; line-height: 1.6; }
   .reading-column { padding: 18px 16px 24px; }
   .composer { padding: 10px 12px 12px; }
   .conversation-notice { padding: 0 12px 8px; }
+  .story-header, .story-log, .story-notice, .story-footer { padding-left: 16px; padding-right: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 

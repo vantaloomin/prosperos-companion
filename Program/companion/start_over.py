@@ -7,7 +7,8 @@ typing the companion's name.
 Every table in the schema is in exactly one group below (tests/test_start_over.py checks this):
 
 - WORKSPACE stays through both: settings, model connections, image backends, lookup services,
-  cities and the user's changes to them, notification and phone setup. Deletion markers stay too, so a restore still honours them.
+  cities and the user's changes to them, notification and phone setup, and the user's own story (Story mode,
+  apart from every companion). Deletion markers stay too, so a restore still honours them.
 - CHARACTER is who the companion is: the companion, every version of the character, and their
   look (reference pictures, adapters, training and test pictures). Starting over keeps it;
   deleting removes it.
@@ -33,7 +34,8 @@ WORKSPACE = (
     'app_identity', 'workspace_settings', 'pauses', 'pause_catch_ups', 'connection', 'model_profiles',
     'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'image_settings',
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
-    'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'sqlite_sequence',
+    'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'story_scene', 'story_messages',
+    'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.
 CHARACTER = (

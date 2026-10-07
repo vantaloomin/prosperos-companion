@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { BookHeart, CalendarDays, Settings as SettingsIcon, UserRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
 import { useCompanion, useFollowPcTimezone, useWorkspaceSettings, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
@@ -20,11 +20,13 @@ const Portraits = lazy(() => import('./features/appearance/Portraits').then((m) 
 const Memories = lazy(() => import('./features/memories/Memories').then((m) => ({ default: m.Memories })))
 const Settings = lazy(() => import('./features/settings/Settings').then((m) => ({ default: m.Settings })))
 const Today = lazy(() => import('./features/today/Today').then((m) => ({ default: m.Today })))
+const Story = lazy(() => import('./features/story/Story').then((m) => ({ default: m.Story })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
 // The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
 const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
   { id: 'conversation', label: 'Profile', icon: UserRound },
+  { id: 'story', label: 'Story', icon: BookOpen },
   { id: 'today', label: 'Today', icon: CalendarDays },
   { id: 'memories', label: 'Memories', icon: BookHeart },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
@@ -91,12 +93,21 @@ interface CurrentViewProps { view: View; companion: Companion | null; go: (view:
 
 function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
   const loraMaker = useWorkspaceSettings().data?.lora_maker
-  if (view === 'settings' || view.startsWith('settings/')) return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
+  // Settings and the story belong to the workspace, so they open with or without a companion.
+  if (inWorkspace(view)) return <WorkspaceView view={view} companion={companion} go={go} openTab={openTab} />
   // With the LoRA creator switched off (the default), an old #appearance link opens the Character page.
   const shown = view === 'appearance' && !loraMaker ? 'character' : view
   if (!companion) return shown === 'character' ? <Character companion={null} go={go} /> : <Welcome go={go} />
   const page = shown === 'character' ? <Character companion={companion} go={go} /> : <CompanionView view={shown} companion={companion} go={go} />
   return profileTab(shown) ? <Profile companion={companion} view={shown} go={go}>{page}</Profile> : page
+}
+
+function inWorkspace(view: View) {
+  return view === 'settings' || view.startsWith('settings/') || view === 'story'
+}
+
+function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
+  return view === 'story' ? <Story go={go} /> : <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
 }
 
 function CompanionView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {
