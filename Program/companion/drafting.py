@@ -43,6 +43,10 @@ FIELD_EDGES = 'Do not add jealousy, guilt over absence, possessiveness or needin
 class Unusable(Exception):
     """The model's reply could not become a definition; the message says why, for the one retry."""
 
+    def __init__(self, problem: str, reply: str = ''):
+        super().__init__(problem)
+        self.reply = reply
+
 
 # The prompts a user may reword in Settings; the field guides stay a shipped file.
 EDITABLE = {
@@ -237,7 +241,8 @@ async def complete(state, config: dict, system: str, messages: list[dict], token
             if chunk.finish_reason == 'content_filter':
                 raise DomainError("The provider's content filter stopped the draft.", 502, 'provider')
             if chunk.finish_reason == 'length':
-                raise Unusable('it stopped at the output token limit before the JSON was complete. Write less.')
+                raise Unusable('it stopped at the output token limit before the JSON was complete. Write less.',
+                               ''.join(text))
     return ''.join(text)
 
 
@@ -262,15 +267,17 @@ async def ask(state, config, system: str, tokens: int, shape):
     `shape(raw, final)` is strict on the first reply; on the retry it makes do where it can.
     """
     messages = [{'role': 'user', 'content': 'Write the JSON now.'}]
-    reply = await complete(state, config, system, messages, tokens)
+    reply = ''
     try:
+        reply = await complete(state, config, system, messages, tokens)
         return shape(parse_object(reply), False)
     except Unusable as problem:
-        retry = [*messages, {'role': 'assistant', 'content': reply[:6000]},
+        # A reply cut off at the output limit arrives with the problem rather than as a return value.
+        reply = reply or problem.reply
+        retry = [*messages, *([{'role': 'assistant', 'content': reply[:6000]}] if reply.strip() else []),
                  {'role': 'user', 'content': fill(template('character-repair.md', state.database), problem=str(problem))}]
-        reply = await complete(state, config, system, retry, tokens)
     try:
-        return shape(parse_object(reply), True)
+        return shape(parse_object(await complete(state, config, system, retry, tokens)), True)
     except Unusable as problem:
         raise DomainError(f"The model's draft could not be used: {problem} Try again, or fill in the form yourself.",
                           502, 'draft_unusable') from problem
@@ -394,8 +401,24 @@ async def draft(state, body) -> dict:
 
 # --- One field --------------------------------------------------------------------------------
 
+def unwrapped(field: str, value):
+    """The field itself when a model nested JSON in "value": the whole character, or `"voice": "..."`."""
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if text.startswith(f'"{field}"'):
+        text = '{' + text.rstrip(',') + '}'
+    if not text.startswith('{'):
+        return value
+    try:
+        inner = json.loads(text)
+    except json.JSONDecodeError:
+        return value
+    return inner.get(field, inner.get('value', value)) if isinstance(inner, dict) else value
+
+
 def field_value(field: str, raw: dict, final: bool):
-    value = raw.get('value')
+    value = unwrapped(field, raw.get('value'))
     if field == 'schedule':
         found = schedule_value(value)
         if not found:

@@ -6,19 +6,23 @@ that drops the named place or breaks the format is discarded in favour of the te
 It never sees the user's memories: a life event is the companion's own fiction.
 """
 import json
+import re
 
 from companion.memory.context import character_text
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import LIFE_SYNTHESIS, BackgroundInterrupted
 
-PROMPT_VERSION = 'life-phrase-1'
+PROMPT_VERSION = 'life-phrase-2'
 RULES = (
     "Rephrase one ordinary moment from {name}'s fictional life, described as facts in the user message. Reply "
     'with JSON only: {{"summary": "...", "post": "..."}}. "summary" is one or two plain past-tense sentences in '
     'the third person. "post" is a short private caption in {name}\'s own voice, as for a personal photo feed. '
     'Keep exactly the given facts: do not add or change places, people, prices, times or events, and keep any '
-    'place name exactly as written. Never include the user or anything the user did.'
+    'place name exactly as written. The time is only context: never write clock times. Never include the user or '
+    'anything the user did.'
 )
+# A clock time ("17:30-19:30 on the medians") is the routine block's, never something a person would write.
+CLOCK = re.compile(r'\b\d{1,2}:\d{2}\b')
 LIMITS = {'summary': 400, 'post': 300}
 UNUSABLE = 'The model reply was not usable wording, so the template wording was kept.'
 
@@ -52,7 +56,7 @@ def parse_reply(text: str, composed) -> dict:
     result = {}
     for field, limit in LIMITS.items():
         value = data.get(field)
-        if not isinstance(value, str) or not value.strip() or len(value.strip()) > limit:
+        if not isinstance(value, str) or not value.strip() or len(value.strip()) > limit or CLOCK.search(value):
             raise SynthesisInvalid(UNUSABLE)
         result[field] = value.strip()
     if composed['place'] and composed['place']['name'] not in result['summary']:

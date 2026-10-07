@@ -6,13 +6,14 @@ import asyncio
 import time
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
 from conftest import life_reply, reconcile, set_life
 from fastapi.testclient import TestClient
 
 from companion import characters
 from companion.clock import parse
 from companion.identity import CLIENT_HEADER
-from companion.life import composer, routine
+from companion.life import composer, routine, synthesis
 from companion.life.world import Place, StaticWorld
 from companion.main import create_app
 from companion.models import CharacterRevision
@@ -254,6 +255,14 @@ def test_a_model_problem_keeps_the_template_wording(client, life, clock, provide
     event = all_events(client)[0]
     assert event['inputs']['wording'] == 'template' and 'phrasing_error' in event['inputs']
     assert event['summary'] == event['inputs']['template']['summary']
+
+
+def test_phrasing_that_copies_the_block_times_is_not_used():
+    composed = {'place': {'name': 'Federal Hill Park'}}
+    good = '{"summary": "He walked at Federal Hill Park.", "post": "needed that air."}'
+    assert synthesis.parse_reply(good, composed)['post'] == 'needed that air.'
+    with pytest.raises(synthesis.SynthesisInvalid):
+        synthesis.parse_reply(good.replace('needed that air.', 'needed that air. 17:30-19:30 at the park.'), composed)
 
 
 def test_model_phrasing_can_be_turned_off(client, life, clock, provider):

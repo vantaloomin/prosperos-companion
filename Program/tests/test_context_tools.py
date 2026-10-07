@@ -382,6 +382,10 @@ def test_triggers():
                                                               'topic': None}
     assert lookups.triggers('Any news on the election results today?')[0]['topic'] == 'the election results today'
     assert lookups.triggers('anything in the news')[0]['topic'] is None
+    games = {'category': 'local_events', 'purpose': 'conversation', 'topic': None}
+    assert lookups.triggers('Are the Orioles or Ravens playing this week?') == [games]
+    assert lookups.triggers('did you catch the game last night?') == [games]
+    assert lookups.triggers('I played chess with my dad') == []
 
 
 def test_stale_and_disagreeing_results_are_labelled(clock):

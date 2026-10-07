@@ -62,6 +62,8 @@ PLAN_NOUNS = ('interview', 'appointment', 'exam', 'meeting', 'date', 'flight', '
 PLAN_NOUN = '(' + '|'.join(sorted(PLAN_NOUNS, key=len, reverse=True)) + ')'
 TEMPORARY = r'(tired|exhausted|sick|ill|unwell|busy|stressed|swamped|overwhelmed|travel(?:l)?ing|away|' \
             r'on holiday|on vacation|off work|working late|in a rush|sleepy|hungover|sad|down|happy|excited|nervous)'
+# "I work nights as a nurse": when they work, between "work" and the job.
+SHIFTS = r'(?:nights|days|evenings|mornings|weekends|shifts|part[- ]time|full[- ]time|from home|remotely)'
 RELATIONS = r'(sister|brother|mum|mom|mother|dad|father|partner|wife|husband|girlfriend|boyfriend|son|' \
             r'daughter|best friend|roommate|flatmate|boss|cat|dog|rabbit|parrot|hamster)'
 
@@ -213,7 +215,7 @@ def work_rule(statement):
             yield Candidate('user_fact', 'Work', value, 'new_job', text,
                             applies_from=min(start or statement.stated, statement.stated), dates_uncertain=uncertain)
         return
-    if match := re.search(rf"\bi work (?:as an? {THING}|at {PLACE}|for {PLACE})", text, re.IGNORECASE):
+    if match := re.search(rf"\bi work (?:{SHIFTS} )?(?:as an? {THING}|at {PLACE}|for {PLACE})", text, re.IGNORECASE):
         value = thing(match.group(1)) if match.group(1) else place(match.group(2) or match.group(3))
         if value:
             yield Candidate('user_fact', 'Work', value, 'work', text)

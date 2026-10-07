@@ -46,7 +46,9 @@ chunks through the scheduler), versioned profiles and exact retries, and usage a
 | Semantic recall | Embeddings, from the profile's `embedding_model` (OpenAI, local or compatible profiles only), or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). |
 
 There is no automatic fallback to another profile when a request fails; like the Study, a failed
-request reports its error, and OpenRouter requests forbid OpenRouter's own provider fallbacks.
+request reports its error, and OpenRouter requests forbid OpenRouter's own provider fallbacks. The one
+exception is a rate limit (HTTP 429) before any text arrives: hosted models answer it for a few
+seconds at busy times, so the same request is sent once more after its `Retry-After` wait (1 to 5 seconds).
 Image prompts are assembled without a model, and image backends (and their NSFW routing) have
 their own settings under Images.
 
