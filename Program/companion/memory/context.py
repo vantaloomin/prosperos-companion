@@ -557,6 +557,15 @@ def offer_home(packet, connection, timeline_id, today: str):
         packet.offer('home', identity, text)
 
 
+def offer_own(packet, connection, timeline_id, version, now):
+    """What the companion has said about themselves, and the plans they have made in chat."""
+    for identity, text in self_facts.context_lines(connection, timeline_id):
+        packet.offer('self_facts', identity, text)
+    for identity, text in own_plans.context_lines(connection, timeline_id,
+                                                  now.astimezone(zone(version['timezone'])).date().isoformat()):
+        packet.offer('own_plans', identity, text)
+
+
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
           semantic: dict | None = None, outside: list[dict] | None = None, photo: dict | None = None) -> dict:
     """Assemble the next reply's inputs from the active timeline's saved state.
@@ -584,11 +593,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('character', 'wording', wording)
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
-    for identity, text in self_facts.context_lines(connection, timeline_id):
-        packet.offer('self_facts', identity, text)
-    for identity, text in own_plans.context_lines(connection, timeline_id,
-                                                  now.astimezone(zone(version['timezone'])).date().isoformat()):
-        packet.offer('own_plans', identity, text)
+    offer_own(packet, connection, timeline_id, version, now)
     closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
