@@ -1094,6 +1094,8 @@ export interface DatingMatch extends DatingCard {
   companion_id: string | null
   places: DatingPlace[]
 }
+/** A townsperson's one portrait (companion/dating_photos.py). */
+export interface DatingPhoto { status: 'none' | 'queued' | 'running' | 'completed' | 'failed'; error?: string | null; url?: string | null }
 export interface DatingWords { title: string; noun: string; like: string; pass: string; matched: string; empty: string; tagline: string; get: string; getting: string }
 export interface Dating {
   surface: 'app' | 'column' | 'matchmaker'
@@ -1102,6 +1104,8 @@ export interface Dating {
   profile: DatingProfile | null
   /** Whether Story mode is on, so a match can be met there. */
   story: boolean
+  /** Whether an image backend is set up, so "Show photo" can make one. */
+  photos: boolean
   deck: DatingCard[]
   remaining: number
   matches: DatingMatch[]
