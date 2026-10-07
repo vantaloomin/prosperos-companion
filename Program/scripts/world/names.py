@@ -280,6 +280,9 @@ VICTORIAN = {
 }
 
 MEDIEVAL = {
+    # source: feminine additions from "Feminine Given Names in A Dictionary of English Surnames", names attested before
+    #   1250 (s-gabriel.org/names/talan/reaney/index_early1,2,5), and "Women's Given Names from Early 13th Century
+    #   England" (s-gabriel.org/names/talan/eng13/eng13f.html); masculine and family names from general knowledge (estimate).
     'norman': group(
         'Alice Isabel Matilda Joan Margery Agnes Emma Juliana Petronilla Avice Cecily Rohese Sybil Beatrice '
         'Eleanor Mabel Margaret Hawise Amice Constance Adeliza Ela Lucy Eva Basilia Maud Gundreda Aline '
@@ -287,7 +290,8 @@ MEDIEVAL = {
         'Felicia Ida Laura Letitia Muriel Olive Philippa Rose Sabina Theophania Adelina Annora Ascelina Clarice '
         'Emeline Ermentrude Eustacia Gunnora Hersent Juetta Katherine Lescelina Millicent Mirabel Sarra '
         'Scholastica Tiffany Ismay Yolande Blanche Christina Rosamund Joanna Lauretta Isabella Albreda Galiena '
-        'Elizabeth Annabel Osanna Lucia',
+        'Elizabeth Annabel Osanna Lucia Pavia Regina Richolda Sidony Clara Adelaide Anastasia Barbara Douce '
+        'Hodierna Odelina Orabel Pleasance Camilla Engelise Richild',
         'William Robert Richard Ralph Hugh Walter Geoffrey Roger Gilbert Henry Simon Thomas Nicholas Baldwin '
         'Reginald Guy Hamo Ranulf Eustace Fulk Alan Bertram Payn Roland Stephen Peter Philip Humphrey Miles '
         'Waleran Osbert Aubrey Amaury Anselm Arnulf Bartholomew Bernard Brian Drogo Ingram Everard Gerard '
@@ -306,6 +310,9 @@ MEDIEVAL = {
         "Cantilupe Chaworth Corbet Crevecoeur Damory Engaine Fitzwalter Fitzwarin Fitzhugh Fitzwilliam "
         "Fitzherbert Fitzgerald Fitzosbern Furnival Glanville Gresley Hastings Hussey le_Strange Longchamp "
         "Marmion Mauduit Morville Pantulf Poyntz Raleigh Seymour Turberville Valoines Vipont d'Aubigny"),
+    # source: feminine additions from "Women's Given Names from Early 13th Century England" (s-gabriel.org/names/talan/
+    #   eng13/eng13f.html) and "Yorkshire Feminine Names from 1379" (s-gabriel.org/names/talan/yorkshire/yorkf.html);
+    #   the rest from general knowledge (estimate).
     'english': group(
         'Agnes Alice Maud Edith Joan Emma Margery Christina Godiva Elfrida Wymarc Ellen Annot Tibb Mariot '
         'Isabel Cecily Juliana Matilda Margaret Katherine Lettice Amice Avice Sibyl Mabel Hawise Denise Felicia '
@@ -331,6 +338,10 @@ MEDIEVAL = {
         'Hooper Kemp Knight Lambert Lane Lister Marshall Mercer Mills Naylor Page Parker Payne Plowman Potter '
         'Reed Roper Rowe Sadler Salter Sawyer Saunders Sexton Shearer Slater Spicer Stone Swift Thacker Tiler '
         'Tucker Wainwright Warner Weaver Wheeler White Wood Woodward Young Abbot Atwater Fairfax'),
+    # source: given names from "13th Century Welsh Names" (s-gabriel.org/names/tangwystyl/welsh13/), "Given Names from
+    #   the Ystrad Marchell Charters 1176-1283" (s-gabriel.org/names/constanza/ystradmarchell-given.html) and "Women's
+    #   Names in the First Half of 16th Century Wales" (s-gabriel.org/names/tangwystyl/welshWomen16/given.html);
+    #   patronymic family names built from those given names (estimate).
     'welsh': group(
         'Gwen Angharad Nest Gwenllian Morfudd Eluned Tangwystl Lleucu Efa Generys Gwladus Dyddgu Mallt Margred '
         'Annes Gwerful Myfanwy Gwenhwyfar Elen Senena Ales Hunydd Gwenfrewi Mabli Iwerydd Cristin Euron Jonet '
@@ -486,17 +497,22 @@ FRONTIER = {
         'Kraft Schumann Haas Seidel Heinrich Brandt Kuhn Busch Pohl Horn Arnold Sauer Engel Kaiser Ziegler Graf '
         'Dietrich Herrmann Huber Mayer Schreiber Peters Jaeger Gross Ernst Hess Otto Pfeiffer Ritter Stein '
         'Schaefer Sommer Stahl Thiel Ulrich Voigt Walter Wendt Eckert Gerber Hauser Koenig Metzger Nagel'),
+    # source: family additions from Cantonese romanisations in Wikipedia "List of common Chinese surnames"; given-name
+    #   additions partly from US National Archives, Prologue 2016 "Broken Blossoms" (archives.gov/publications/prologue/
+    #   2016/spring/blossoms.pdf), Nevada Historical Society Quarterly 1975 (epubs.nsla.nv.gov 210777-1975-2Summer)
+    #   and Mai Wah Society "Names and Faces" (maiwah.org/?p=202); the rest from general knowledge (estimate).
     'chinese': group(
         'Ah_Ying Mei_Lan Gum_Moy Sing_Toy Lai_Ho Ah_Toy Ah_Moy Ah_Kum Ah_Lan Ah_Yuk Ah_Hoy Ah_Choy Ah_Sue Ah_Ho '
         'Ah_Yoke Ah_Fah Ah_Ngan Ah_Kew Ah_Chun Ah_Lin Gum_Ying Kum_Ho Yut_Ho Yee_Toy Sing_Moy Lin_Moy Kum_Fong '
         'Lai_Ying Fung_Moy Choy_Lin Moy_Ying Yuen_Kum Sue_Kum Ah_Kim Ah_Mui Ah_Oy Ah_Wan Ah_Yee Ah_Ling Ah_Kwai '
         'Ah_Fung Ah_Gum Mei_Ying Kum_Lin Sue_Ying Yuk_Ying Ah_Lai Ah_Mei Ah_Ngoon Ah_Sum Kum_Ying Lin_Ho '
-        'Yee_Moy',
+        'Yee_Moy Gwai_Ying Lon_Ying Gim_Gook Gwai_Ha Gow_Sheung Dai_Muey Yow Choy_Ying Sek_Mo Sheung Ling_Fong',
         'Ah_Sam Wing Chung Fook Quong Hop_Kee Sing Ah_Sing Ah_Lee Ah_Kee Ah_Wing Ah_Fong Ah_Chung Ah_Hing '
         'Ah_Quong Ah_Yen Ah_Fook Ah_Louie Ah_Chew Ah_Gow Ah_Hop Ah_Jim Ah_Tom Hong Hing Kee Lung Chew Yuen Bing '
         'Gong Tong Fat Quan Yick Ah_Wah Ah_Ming Ah_Soon Ah_Tong Ah_Chong Ah_Fat Ah_Gee Ah_Bow Ah_Lum Ah_Hong '
         'Ah_Yung Ah_Kim Ah_Wo Ah_Chee Ah_Ying Ah_Foo Wah Ming Chong Soon Foo Look Gee Lum Hop Sang Yee Kim Sun '
-        'Ying Hoy Gim Woo Kwong Sam Tung Lai Ah_Ngan Ah_Sang Ah_Look Ah_Tung',
+        'Ying Hoy Gim Woo Kwong Sam Tung Lai Ah_Ngan Ah_Sang Ah_Look Ah_Tung Chong_Po Quong_Hing Git Lem '
+        'Siu_Hon Ngee Mee Mow_Ling Quong_Kee Quie_Sang Jon Wai Fay Pock Wah_Long',
         '',
         'Lee Wong Chan Chin Yee Ng Fong Louie Moy Lum Fung Quan Leong Gin Tom Jue Dea Toy Hom Woo Eng Yuen Hong '
         'Lau Mah Poon Chew Dong Joe Gee Kwong Jung Tsui Suen Ko Cheng Tse Sung Hon Cho Tsang Siu Tin Tung Choi '
@@ -508,203 +524,465 @@ FRONTIER = {
 STORYBOOK = {
     'plain': group(
         'Hester Marigold Tansy Prudence Wilhelmina Bettony Dulcie Maud Bess Ottilie Hazel Posy Clemency Ada '
-        'Bryony Winnie Lettice Nell Tibby Gwendolyn',
+        'Bryony Winnie Lettice Nell Tibby Gwendolyn Agnes Alice Annie Beatrice Betsy Clara Constance Cicely '
+        'Daisy Dora Dorothy Edith Elsie Emily Esther Ethel Eliza Fanny Flora Florence Gertie Grace Hannah '
+        'Harriet Henrietta Hilda Honor Ivy Jane Jemima Kate Kitty Lavinia Lily Lizzie Lottie Lucy Mabel Martha '
+        'Mary Matilda May Meg Mercy Mildred Millie Minnie Molly Nancy Nettie Olive Patience Peggy Phoebe Polly '
+        'Primrose Rose Rosie Ruth Sally Sarah Susan Tabitha Temperance Violet Winifred Bella Bertha Effie Edna '
+        'Emma Joan Lettie Marjorie Maisie Mattie Nora Pansy Pearl Poppy',
         'Tobin Bram Hob Wendel Barnaby Ambrose Jory Ned Ferris Osgood Pip Cuthbert Dunstan Rollo Jasper Ezekiel '
-        'Lem Horace Bartholomew Wilbur',
+        'Lem Horace Bartholomew Wilbur Abel Albert Alfred Amos Arthur Barney Basil Ben Bertie Cecil Clement '
+        'Edmund Edgar Edwin Eli Ernest Fred Frederick George Gilbert Giles Harry Herbert Hugh Isaac Jack Jacob '
+        'Jethro Joe Jonah Josiah Joseph Lewis Luke Matthew Nat Noah Oliver Oswald Percy Peter Reuben Roger '
+        'Rufus Sam Seth Silas Simon Stanley Thomas Tom Walter Wat Will Wilfred Bertram Godfrey Humphrey Toby '
+        'Archie Alfie Ezra Enoch Obadiah Septimus Benedict Christopher Daniel Felix Gabriel Henry James John '
+        'Martin Nicholas Owen Ralph Robert Rowland Stephen',
         'Robin Kit Jem Frankie',
         'Thistlewood Puddifoot Hobbs Mossley Applegarth Wickham Fennimore Crumb Featherstone Tillbrook Underhay '
-        'Oakshott Fairweather Cotton Tanner Pickering Dimmock Hobday Gammage Ottley Brewster Cobb Pennington Ashby '
-        'Goodbody Littlejohn Shepherd Weaver Hatcher Merriman'),
+        'Oakshott Fairweather Cotton Tanner Pickering Dimmock Hobday Gammage Ottley Brewster Cobb Pennington '
+        'Ashby Goodbody Littlejohn Shepherd Weaver Hatcher Merriman Appleby Ashworth Baxter Bellamy Birch '
+        'Blackmore Bramley Brook Bunting Butterfield Chandler Cherry Cobbold Cotterill Cowley Crabtree Dale '
+        'Dewhurst Drinkwater Dunn Fairclough Farley Fenwick Fletcher Foxley Gardner Garland Goodall Goodwin '
+        'Hardcastle Hartley Hawthorn Hayward Heron Hickling Hollins Honeyman Hopkins Kettle Lamb Larkin Lovell '
+        'Lowe Meadows Merryweather Middleton Miller Nettleton Norbury Oakley Orchard Partridge Peabody Plumb '
+        'Pocock Popplewell Puddephat Rook Rowntree Sadler Sawyer Shipley Sparrow Starling Stubbs Swallow '
+        'Thackeray Thatcher Tinker Tomkins'),
 }
 
 EDO_JAPAN = {
+    # source: general knowledge (estimate: yes)
     'townsfolk': group(
         'Ume Kiku Matsu Take Haru Tsuru Kame Sen Toku Fuku Kin Gin Tome Sato Yoshi Tami Ito Masa Tsune Nobu '
-        'Hisa Kiyo Shige Fusa Mitsu Toyo Naka Rin Sayo Chiyo Yasu Mine Kane',
+        'Hisa Kiyo Shige Fusa Mitsu Toyo Naka Rin Sayo Chiyo Yasu Mine Kane Tama Taka Teru Tsuya Hana Hatsu Iku '
+        'Koto Kuni Michi Miyo Moto Nami Nao Natsu Nui Ritsu Sada Sue Suga Sumi Tatsu Tora Yae Yone Waka Fumi '
+        'Kayo Shina Tetsu Aki Iso Ei Fuyu Fude Hide Ichi Ine Iwa Kaku Kana Kiwa Koma Kura Kuma Kume Riyo Sawa '
+        'Shika Shizu Some Sono Suzu Tae Tane Toki Tomi Tomo Toshi Tsugi Tsuta Uta Yuki Iyo Kazu Rui Shino',
         'Kichibei Jinbei Rokubei Chobei Kyubei Sobei Zenbei Mohei Kihei Gohei Jiroemon Tasuke Yasubei Kahei '
         'Kichizo Shinsuke Tokubei Ihei Seijiro Manzo Shinzo Tomekichi Kichiemon Gosuke Denbei Sakichi Genshichi '
-        'Heisuke Yohei Chojiro Ichibei Kyuzo Hachibei Seibei',
+        'Heisuke Yohei Chojiro Ichibei Kyuzo Hachibei Seibei Rihei Sahei Tahei Hanbei Kanbei Shirobei Magobei '
+        'Shinbei Gihei Jubei Chuemon Genemon Jinemon Mataemon Rokuemon Sakuemon Saburoemon Kyusuke Kinsuke '
+        'Mansuke Yasuke Chosuke Gensuke Kosuke Densuke Rokusuke Kichisuke Sasuke Sosuke Jusuke Kisuke Yosuke '
+        'Zensuke Chokichi Fukukichi Matsukichi Tokichi Seikichi Shinkichi Sankichi Genkichi Kumakichi Kinzo '
+        'Rokuzo Sanzo Bunzo Seizo Ginzo Kinjiro Shinjiro Tokujiro Yojiro Kojiro Sojiro Matajiro Kihachi '
+        'Hanshichi Shinshichi Tokugoro Kingoro Shingoro Hikogoro Yagoro Yashichi Kyuhachi Tarobei',
         '',
         'Echigoya Mitsui Omiya Iseya Daikokuya Kinokuniya Masuya Yamatoya Kagiya Tsutaya Shirokiya Daimaruya '
         'Matsuzakaya Konoike Izumiya Fujiya Edoya Kazusaya Owariya Mikawaya Tokiwaya Ebisuya Kikuya Sakaiya '
-        'Naraya Tamaya Yorozuya Echizenya Surugaya Tachibanaya Yamazakiya Nagasakiya'),
+        'Naraya Tamaya Yorozuya Echizenya Surugaya Tachibanaya Yamazakiya Nagasakiya Sumiya Kameya Tsuruya '
+        'Toraya Fushimiya Hiranoya Tennojiya Shimaya Settsuya Harimaya Bizenya Bitchuya Bingoya Iyoya Tosaya '
+        'Sanukiya Awaya Dewaya Sagamiya Musashiya Hitachiya Shinanoya Minoya Tajimaya Tangoya Inabaya Izumoya '
+        'Iwamiya Nagatoya Chikuzenya Higoya Satsumaya Kyoya Osakaya Kashimaya Yodoya Matsuya Takeya Daimonjiya '
+        'Ebiya Tawaraya Sumitomo Hishiya Maruya Yamashiroya Kawachiya Tsunokuniya Hyogoya Akashiya Wakasaya '
+        'Kagaya Notoya Ecchuya Sadoya Kashiwaya Kiriya Komeya Sakuraya Shimadaya Kogaya Aburaya Sakeya Wataya '
+        'Ogiya Fukushimaya Sumiyoshiya Nishimuraya'),
+    # source: general knowledge (estimate: yes)
     'samurai': group(
         'Tsuru Kayo Ei Kiku Nui Sachi Iyo Teru Fusa Masa Toshi Yuki Sano Hide Sumi Michi Ritsu Sono Waka Tama '
-        'Chika Nao Yoshi Shizu Mine Iso Tomo Sen Kazu Fumi Matsu Taka',
+        'Chika Nao Yoshi Shizu Mine Iso Tomo Sen Kazu Fumi Matsu Taka Ume Take Haru Kame Toku Fuku Kin Gin Tome '
+        'Sato Tami Ito Tsune Nobu Hisa Kiyo Shige Mitsu Toyo Naka Rin Sayo Chiyo Yasu Kane Tsuya Hana Hatsu Iku '
+        'Koto Kuni Miyo Moto Nami Natsu Sada Sue Suga Tatsu Tora Yae Yone Shina Tetsu Aki Fuyu Fude Ichi Ine '
+        'Iwa Kaku Kana Kiwa Koma Kura Kuma Kume Riyo Sawa Shika Some Suzu Tae Tane Toki Tomi Tsugi Tsuta',
         'Kurando Hayato Gunji Denzaemon Kyuzaemon Kazuma Heima Hyogo Tatewaki Gonnosuke Sakon Ukon Jubei Kanbei '
         'Matabei Hikoemon Shozaemon Tadataka Masanobu Yoshinobu Tadashige Shigemasa Kiyomasa Masayuki Yoshitaka '
-        'Naoyuki Tomonori Sadanobu Tadakuni Gennai Sanai Heihachiro Kuranosuke Chuzaemon',
+        'Naoyuki Tomonori Sadanobu Tadakuni Gennai Sanai Heihachiro Kuranosuke Chuzaemon Gonzaemon Heizaemon '
+        'Kinzaemon Matazaemon Tarozaemon Hikozaemon Rokuzaemon Kinnosuke Shinnosuke Rinnosuke Ginnosuke '
+        'Toranosuke Tatsunosuke Ichinosuke Tonomo Kamon Shume Uneme Mondo Kazue Tanomo Chikara Ukyo Sakyo Hyoe '
+        'Danjo Kunai Shikibu Gyobu Jibu Hyobu Kenmotsu Shuri Daizen Takuma Gunpei Hanzo Hanbei Kansuke Saizo '
+        'Heikuro Jinnai Tadaaki Masanori Nobuyuki Tadatsugu Kagekatsu Tadanori Masatsugu Kiyoshige Shigenobu '
+        'Yasumasa Tadayoshi Naomasa Naotaka Tadamasa Tadakatsu Takamori Toshimichi Toshizo Isami Shinpachi '
+        'Ryoma Shinsaku Kogoro Shintaro',
         '',
         'Matsudaira Honda Sakai Okubo Ishikawa Sakakibara Naito Abe Mizuno Ogasawara Hosokawa Kuroda Asano '
         'Nabeshima Shimazu Mori Yamauchi Todo Hachisuka Uesugi Satake Tsugaru Hotta Inaba Doi Toda Ando Itakura '
-        'Okudaira Oishi Saigo Yoshida Katsu Watanabe'),
+        'Okudaira Oishi Saigo Yoshida Katsu Watanabe Ii Date Maeda Ikeda Kato Sakuma Aoyama Nagai Yagyu Toki '
+        'Inoue Tsuchiya Kuze Wakizaka Akimoto Makino Nagao Hori Niwa Tsutsui Tanuma Matsumae Nambu Sanada '
+        'Mizoguchi Kyogoku Ikoma Hayashi Ota Kondo Hijikata Okita Sakamoto Katsura Takasugi Kido Itagaki Goto '
+        'Saito Yamaguchi Suzuki Takahashi Kobayashi Nakamura Yamamoto Ito Shimada Fujita Hirata Sato Murata Ono '
+        'Ogyu Arai Nagasawa Matsuura Arima Omura Tachibana Yanagisawa Manabe Torii Honjo Okochi Mogami Hoshina'),
+    # source: general knowledge (estimate: yes)
     'farming': group(
         'Ume Take Matsu Tora Kuma Iku Tatsu Sute Natsu Aki Kayo Shina Tome Kame Haru Yae Fuji Nami Sada Toki '
-        'Kuni Mitsu Iwa Tsuta Hana Tsuya Miyo Sue Hatsu Kiyo Ine Riku',
+        'Kuni Mitsu Iwa Tsuta Hana Tsuya Miyo Sue Hatsu Kiyo Ine Riku Kiku Tsuru Sen Toku Fuku Kin Gin Sato '
+        'Yoshi Tami Ito Masa Tsune Nobu Hisa Shige Fusa Toyo Naka Rin Sayo Chiyo Yasu Mine Kane Tama Taka Teru '
+        'Koto Michi Moto Nao Nui Ritsu Suga Sumi Yone Waka Fumi Tetsu Iso Ei Fuyu Fude Hide Ichi Kaku Kana Kiwa '
+        'Koma Kura Kume Riyo Sawa Shika Shizu Some Sono Suzu Tae Tane Tomi Tomo Toshi Tsugi Uta Yuki Iyo',
         'Gonbei Sakubei Tasaku Mosuke Yosaku Kyusaku Jinsaku Hachiro Genzo Magoemon Gorobei Matazo Jinzaemon '
         'Kichiji Tomezo Kumazo Torakichi Sankichi Yoshizo Kanzo Heizo Isaku Sakuzo Tokuzo Matsuzo Kamekichi '
-        'Ushimatsu Uemon Yazaemon Gonzo Denzo Shichibei',
+        'Ushimatsu Uemon Yazaemon Gonzo Denzo Shichibei Gonsaku Heisaku Kisaku Sosaku Yasaku Rihei Tahei Sahei '
+        'Gohei Mohei Ihei Jihei Kihei Sakuemon Magobei Magoshichi Matazaemon Mataemon Jinbei Hachibei Tokubei '
+        'Gonroku Gonshichi Kumakichi Kamezo Tokichi Taro Jiro Saburo Shiro Goro Rokuro Shichiro Juro Tarobei '
+        'Jirobei Shirobei Rokubei Hanbei Kyuhei Yahei Yasuke Yaichi Kuemon Gosaku Sanzo Rokuzo Ginzo Kinzo '
+        'Seizo Tosaku Mosaku Tomekichi Matsukichi Genkichi Kyuzo Chosuke Kisuke Gensuke Mansuke Jusuke Shinsuke '
+        'Tasuke Densuke Heikichi Gorosaku Tarosaku',
         '',
         'Kamimura Shimomura Nakamura Kitamura Nishimura Tanaka Yamashita Ishida Hara Ota Ikeda Hayashi '
         'Kawaguchi Hirano Inoue Matsumoto Takeuchi Sakamoto Ogawa Fujita Kawai Ono Uchida Murakami Noguchi '
-        'Sugiyama Tsuchiya Yokoyama Okada Iwasaki'),
+        'Sugiyama Tsuchiya Yokoyama Okada Iwasaki Suzuki Takahashi Sato Ito Watanabe Kobayashi Kato Yoshida '
+        'Yamada Sasaki Yamaguchi Shimizu Yamazaki Ishikawa Saito Maeda Fujii Kondo Endo Aoki Sakai Fukuda Miura '
+        'Fujiwara Okamoto Matsuda Nakajima Nakano Harada Tamura Takeda Kaneko Wada Nakayama Ishii Ueda Morita '
+        'Shibata Kudo Yokota Miyazaki Miyamoto Takagi Ando Taniguchi Maruyama Imai Takada Fujimoto Ueno '
+        'Sugimoto Masuda Hirata Otsuka Chiba Kubo Matsui Iwata Sakurai Kinoshita Matsuo Nomura Kikuchi Sano '
+        'Onishi Sugawara Ichikawa Kojima Mizuno Furukawa'),
 }
 
 QING_CHINA = {
+    # source: general knowledge (estimate: yes)
     'han': group(
         'Guiying Xiulan Yulan Shuzhen Guizhen Yuzhen Xiuzhen Fengying Cuiying Jinlan Yulian Guilan Suzhen '
         'Lanying Qiaoyun Cuilan Aizhen Shuying Huilan Baozhu Jinfeng Caifeng Yufeng Meilan Lianying Xiuying '
-        'Hehua Qiuxiang Chunmei Shuyun Jinying Guifang Yinzhu Xiaomei',
+        'Hehua Qiuxiang Chunmei Shuyun Jinying Guifang Yinzhu Xiaomei Yuying Fenglan Xiulian Guilian Jinlian '
+        'Cuilian Guixiang Suying Yueying Huiying Fengzhen Jinzhen Lizhen Meizhen Guizhi Lanzhi Guihua Juhua '
+        'Lanhua Taohua Lihua Xinghua Jinhua Chunhua Qiuhua Cuihua Chunxiang Lanfang Yufang Shufang Cuifang '
+        'Xiufang Jinfang Suqin Yuqin Shuqin Guiqin Xiuqin Fengqin Yuyun Cuiyun Xiuyun Caiyun Jinyun Lanzhen '
+        'Shufen Guifen Yufen Huifang Shulan Yuhua Huizhen Qiulan Chunlan Guirong Yurong Shurong Xiurong Fengzhi '
+        'Yuzhi Xiuzhi Cuizhen Meiying Jinxiu Yuxiu Shuxiu',
         'Dehai Fugui Changgeng Yongfu Shunfa Rongbao Tianci Jinbao Qingyun Dexing Fuquan Yongqing Jinsheng '
         'Baoshan Changshun Laifu Wanfu Shoushan Zhaolin Hongen Tingyu Jishan Mingde Zhenbang Shoulin Guozhen '
-        'Hanzhang Liansheng Fuhai Zengxiang Wenbin Guoliang',
+        'Hanzhang Liansheng Fuhai Zengxiang Wenbin Guoliang Fuxing Fusheng Fulin Fucheng Fuchang Fushou Changfa '
+        'Changfu Changlin Changxing Yongfa Yongsheng Yongchang Yongxiang Dexiang Desheng Decai Deyuan Defu '
+        'Deshan Baolin Baoyuan Jinlong Jinyuan Ronghua Rongchang Shunxing Tianxiang Tianfu Wanshan Wanxing '
+        'Zhaoxiang Hongzhang Guofan Guoquan Zongtang Zhidong Shikai Bingzhang Yousheng Wenzheng Shichang Mengqi '
+        'Zhiyuan Jinrong Guangxu Guanglin Xuehai Wenlong Wenhua Shouqing Shoutian Rongxiang Laishun Laibao '
+        'Zhenfa Zhenguo Hanqing Yaoting Zhaoting Shaoting',
         '',
         'Wang Li Zhang Liu Chen Yang Zhao Huang Zhou Wu Xu Sun Hu Zhu Gao Lin He Guo Ma Luo Liang Song Zheng '
-        'Xie Han Tang Feng Yu Dong Xiao Cao Cheng'),
+        'Xie Han Tang Feng Yu Dong Xiao Cao Cheng Zeng Peng Lu Su Pan Du Ye Wei Jiang Cai Jia Ding Ren Shen Yao '
+        'Fu Zhong Yuan Deng Tan Liao Fan Jin Shi Qian Kong Bai Cui Kang Mao Qiu Qin Gu Hou Shao Meng Long Wan '
+        'Duan Lei Yin Yi Chang Qiao Lai Gong Wen Pang Yan Hao Niu Tao Xiang Zou Xiong Hong Fang Ji Ou Mo Ling '
+        'Rong Kuang Tu Zhuang Shu Bao Le'),
+    # source: Wikipedia "Manchu clans", "Viceroy of Zhili", "Viceroy of Liangjiang", "Viceroy of Huguang", "Wenxiu"; feminine list general knowledge (estimate: yes)
     'manchu': group(
         'Shuxian Yurong Wanrong Huifen Shuhua Yuxiu Jingfang Shufang Ruiyun Guixiang Rongfen Defang Jingyi '
         'Yuqing Shulan Rongzhen Yinghua Fengxian Lanxiang Xiuyun Cuifeng Guiqin Shuqin Yuqin Jingzhen Daniu '
-        'Erniu Sanniu Siniu Xiaoniu Fuxiang Ruifen',
+        'Erniu Sanniu Siniu Xiaoniu Fuxiang Ruifen Wenxiu Shufen Guifen Yufen Huifang Shuyi Yuhua Jinghua '
+        'Ruiqing Rongqing Jingrong Huiqing Shurong Daya Erya Sanya Xiaoya Guiying Yulan Shuzhen Xiuying Yurui '
+        'Ruixiu Shuqing Fengying Lanying Cuiying Jinfeng Yuying Huizhen Guizhen Shuying Shuyun Defen',
         'Ronglu Wenxiang Baojun Gangyi Duanfang Ruilin Linggui Chongqi Chonghou Shengyu Yulu Kuijun Jingshan '
         'Yinchang Tieliang Xiliang Lianyuan Chongli Guangshou Yuqian Qishan Ruichang Jinliang Enming Duolonga '
-        'Mingliang Shengbao Delenggetai Huaitapu Zhirui Wenqing Mukedengbu',
+        'Mingliang Shengbao Delenggetai Huaitapu Zhirui Wenqing Mukedengbu Nasutu Omida Mujangga Nergingge '
+        'Wenyu Tingyong Natong Maleji Asihi Fulata Shaomubu Gali Heshou Changnai Cabina Qingfu Depei Sazai '
+        'Shulin Fusong Changlin Fugang Suringga Funing Tiebao Alinbao Lebao Bailing Ilibu Linqing Bichang '
+        'Xianghou Yiliang Kuiyu Ehai Elunte Fumin Maizhu Bandi Arsai Sailenge Xinzhu Yongxing Kaitai Suchang '
+        'Aibida Haiming Fulehun Wenshou Sanbao Tuside Shuchang Tecengge Changqing Jingan Quanbao Qingbao Songfu '
+        'Taiyong Ruicheng Heshen Agui Fukangan Zhaohui Fuheng Nayancheng Ortai Yinjishan',
         '',
         'Aisin_Gioro Gioro Gualgiya Niohuru Tunggiya Heseri Fuca Yehe_Nara Ula_Nara Hada_Nara Hoifa_Nara Nara '
         'Magiya Irgen_Gioro Sirin_Gioro Donggo Janggiya Uya Sakda Bayara Tatara Socoro Ligiya Hitara Sumuru '
-        'Ujala Gorolo Wanggiya Guan Tong Fu'),
+        'Ujala Gorolo Wanggiya Guan Tong Fu Ayan_Gioro Aha_Gioro Susu_Gioro Arute Barin Biru Emoto Gogiya '
+        'Sitara Tuseri Weigiya Yanje Erdet Joogiya Wanyan Namdulu Nimaca Yanggiya Lang Jin Zhao Ma Bai Tang Su '
+        'Zhang Wang Na Suo Tie Gao Liu Xu Zhou Wu Li Chen'),
+    # source: general knowledge (estimate: yes)
     'hakka': group(
         'Xiumei Jiaomei Lanmei Yumei Fengmei Jinmei Chunmei Qiumei Dongmei Guimei Ermei Sanmei Simei Taomei '
         'Lianmei Xuanjiao Lianying Yingniang Jinniang Yuniang Fengniang Xiuniang Lanniang Cuiniang Meiniang '
-        'Yuzhen Shuying Jiaoying Guiying Ahfeng Siying Jinhua',
+        'Yuzhen Shuying Jiaoying Guiying Ahfeng Siying Jinhua Ahmei Ahlan Ahjiao Ahying Ahxiu Ahyun Ahzhen '
+        'Ahhua Ahgui Ahju Yingmei Hongmei Zhenmei Huamei Xiangmei Yunmei Cuimei Yuanmei Fengjiao Jinjiao '
+        'Lanjiao Meijiao Xiujiao Siniang Wuniang Liuniang Qiniang Baniang Erniang Sanniang Yuying Fenglan '
+        'Xiulian Guilian Jinlian Cuilian Guixiang Suying Yueying Huiying Fengzhen Jinzhen Lizhen Meizhen Guizhi '
+        'Lanzhi Guihua Juhua Lanhua Taohua Lihua Xinghua Chunhua Qiuhua Cuihua Chunxiang Lanfang Yufang Shufang '
+        'Cuifang Xiufang Jinfang Suqin Yuqin Shuqin Guiqin Xiuqin Fengqin',
         'Xiuquan Rengan Yunshan Xiuqing Chaogui Dakai Rengda Renfa Fengxiang Jinfa Renlong Tianfu Guangyao '
         'Wenhai Yongfa Zhongliang Dingguo Rongguang Sihai Mingqing Huanzhang Jiaxiang Fuchang Delin Shaoxiang '
-        'Zhaohe Ahfu Agui Ashun Asheng Along Ahai',
+        'Zhaohe Ahfu Agui Ashun Asheng Along Ahai Changhui Xiucheng Yucheng Wenguang Fangbo Bishi Yalai Zunxian '
+        'Richang Fengjia Yongfu Ahfa Ahcai Ahxing Ahde Ahlin Ahquan Ahwang Ahsan Ahsi Ahyou Ahlong Ahtian '
+        'Jinlong Fuxing Fusheng Fulin Changfa Yongsheng Yongchang Dexiang Desheng Decai Defu Rongchang '
+        'Tianxiang Wanshan Zhaoxiang Guofu Guangxiang Renhe Renshou Wenfa Wenxing Jiaxing Shoushan Xingfa '
+        'Shunfa Rongbao Jinsheng Baoshan Changshun Laifu Wanfu Mingde Fuquan Yongqing Dexing Qingyun Tianci '
+        'Jinbao',
         '',
         'Chen Li Huang Zhang Liu Lin Zeng Wu Luo Xie Ye Zhong Peng Qiu Liao Yang He Xu Jiang Lai Fan Hong Wen '
-        'Tang Gu Wei Hou Yu Zhuo Tu Feng'),
+        'Tang Gu Wei Hou Yu Zhuo Tu Feng Deng Su Zhuang Xiao Cai Guo Zhou Ma Gao Fu Ou Fang Cheng Pan Kang Yan '
+        'Hu Shi Zou Mo Ling Rong Yi Kuang Pang Gong Zhao Sun Zhu Song Lu Dong Yuan Cao Wang Rao Gan Ke Lan Ning '
+        'Zhan Yin Kong Mai Lei Jian Tian Ren Shen Zheng Jin Mei Wan Xiong Yao Leng Ding Mao'),
 }
 
 OTTOMAN = {
+    # source: general knowledge (estimate: yes)
     'turkish': group(
         'Ayse Fatma Emine Hatice Zeynep Hafize Saliha Nefise Rukiye Hayriye Nazife Sadiye Saide Hamide Habibe '
         'Esma Sakine Meryem Zehra Naile Halime Fitnat Gulsum Nazli Mihri Pakize Nadide Cemile Feride Behiye '
-        'Refika Atiye Safiye Huriye',
+        'Refika Atiye Safiye Huriye Adile Aliye Asiye Azize Bedriye Belkis Dilber Durdane Emetullah Fahriye '
+        'Fehime Gulizar Gulnihal Gulfem Gulbahar Hacer Halide Hanife Hasibe Hurrem Ikbal Kerime Latife Leman '
+        'Leyla Makbule Mahmure Melek Melike Mevhibe Munire Muzeyyen Nakiye Nebahat Necmiye Nesibe Nezihe Nigar '
+        'Nimet Rabia Rahime Rasime Remziye Saadet Sabiha Samiye Selma Semiha Sukriye Sureyya Tevhide Ulviye '
+        'Vasfiye Vecihe Zekiye Zubeyde Zuleyha Fikriye Lutfiye Mihrimah Kamile Nuriye Hamdiye Muazzez Saniye '
+        'Seniha',
         'Mehmed Ahmed Ali Mustafa Hasan Huseyin Ibrahim Ismail Osman Suleyman Halil Yusuf Abdullah Hakki Hilmi '
         'Rifat Sadik Tevfik Kamil Emin Salih Riza Nuri Halim Fehmi Edhem Ragip Necib Sevket Fuad Zeki Arif Omer '
-        'Bekir',
+        'Bekir Abdurrahman Adil Akif Asim Aziz Bahri Bedri Cemal Cevdet Celal Cafer Davud Enver Fahri Faik '
+        'Fazil Ferid Fikri Galib Hafiz Hamdi Hamid Hayri Hikmet Hulusi Husnu Ihsan Ilyas Izzet Kadir Kazim '
+        'Kemal Lutfi Mahmud Mahir Mazhar Murad Musa Muhiddin Nazim Nazif Necati Nusret Rauf Recep Resid Rustem '
+        'Sabri Said Selim Sami Seyfi Sukru Talat Tahir Yakub Yahya Yunus Zekeriya Ziya Ramazan Hamza Haydar '
+        'Idris Ismet Nafiz',
         '',
         'Ahmedoglu Kasapzade Hoca Hacioglu Mehmedoglu Hasanoglu Osmanoglu Alioglu Mustafaoglu Ibrahimoglu '
         'Kalaycioglu Demircioglu Karaosmanoglu Cerrahzade Imamzade Hafizzade Kadizade Mollazade Bakkal Berber '
-        'Terzi Kunduraci Haci Arnavut Topal Deli Kara Uzun Sarioglu Bostanci Hamal Kaptan'),
+        'Terzi Kunduraci Haci Arnavut Topal Deli Kara Uzun Sarioglu Bostanci Hamal Kaptan Abdullahoglu '
+        'Yusufoglu Ismailoglu Suleymanoglu Haliloglu Huseyinoglu Omeroglu Bekiroglu Mahmudoglu Velioglu '
+        'Kocaoglu Karaoglu Bayraktar Kasap Kalayci Demirci Attar Sarraf Kuyumcu Aktar Debbag Sarac Nalbant '
+        'Semerci Ekmekci Kahveci Helvaci Sekerci Tutuncu Bicakci Kazanci Boyaci Hallac Mumcu Sabuncu Kantarci '
+        'Camci Ciftci Coban Gemici Hamamci Simitci Bosnali Laz Cerkez Tatar Halepli Selanikli Konyali Kayserili '
+        'Trabzonlu Erzurumlu Sivasli Bursali Edirneli Izmirli Bagdatli Kirimli Misirli Kel Sari Kizil Kucuk '
+        'Koca Hafiz Molla Seyyid Dervis'),
+    # source: general knowledge (estimate: yes)
     'greek': group(
         'Maria Eleni Aikaterini Sofia Anna Despina Kalliopi Evanthia Theodora Vasiliki Eirini Zoe Chrysoula '
         'Angeliki Alexandra Smaragda Efrosyni Paraskevi Kyriaki Marigo Evdokia Anastasia Ioanna Georgia '
-        'Polyxeni Fotini Stamatia Argyro Penelope Euterpe Chrysanthi',
+        'Polyxeni Fotini Stamatia Argyro Penelope Euterpe Chrysanthi Evangelia Eleftheria Panagiota Dimitra '
+        'Konstantina Stavroula Chrysi Asimina Athina Eftychia Sotiria Triantafyllia Marina Pelagia Christina '
+        'Antonia Varvara Evgenia Kassiani Glykeria Magdalini Areti Thekla Ourania Kalliroi Afroditi Domna '
+        'Theofano Efthymia Melpomeni Lambrini Archontoula Loukia Kleopatra Olga Aspasia Kalypso Myrsini '
+        'Charikleia Andromachi Antigoni Ifigeneia Theoni Agathi Evdoxia Rodanthi Anthi Smaro Katina Frosso '
+        'Stamatoula Kalomoira Marigoula Sevasti Olympia Afentoula Paschalina Garyfallia Krystallo Zafeira Dafni '
+        'Anneta Fani Erasmia Eugenia Ermioni',
         'Georgios Ioannis Konstantinos Dimitrios Nikolaos Vasileios Panagiotis Christos Athanasios Antonios '
         'Stylianos Michail Alexandros Emmanouil Theodoros Stavros Pavlos Petros Spyridon Evangelos Charalambos '
-        'Apostolos Leonidas Grigorios Andreas Stefanos Kyriakos Anastasios Prodromos Ilias Aristeidis Zacharias',
+        'Apostolos Leonidas Grigorios Andreas Stefanos Kyriakos Anastasios Prodromos Ilias Aristeidis Zacharias '
+        'Sotirios Lambros Fotios Eleftherios Thrasyvoulos Miltiadis Themistoklis Periklis Sokratis Xenofon '
+        'Epameinondas Achilleas Odysseas Kosmas Damianos Lazaros Matthaios Markos Loukas Filippos Thomas '
+        'Iakovos Gerasimos Dionysios Anagnostis Stamatios Efstathios Efstratios Ignatios Kyrillos Polychronis '
+        'Chrysostomos Neofytos Sofoklis Diamantis Christoforos Savvas Panteleimon Timotheos Iraklis Nikitas '
+        'Argyris Zisis Sarantis Triantafyllos Vlasios Anestis Ioakeim Kallinikos Manolis Pantelis Konstantis '
+        'Yannis Christodoulos Theofilos Paraskevas Tryfon Rigas Kanellos Mavroudis Kleanthis Stergios '
+        'Agathangelos Evangelinos Germanos Meletios Anthimos Dorotheos',
         '',
         'Papadopoulos Karatzas Mavrokordatos Zografos Vlastos Zarifis Georgiadis Ioannidis Konstantinidis '
         'Nikolaidis Dimitriadis Hatziioannou Oikonomou Theodoridis Christodoulou Sideridis Pappas Vafiadis '
         'Eugenidis Stavridis Kalfas Antoniadis Pavlidis Michailidis Hatzopoulos Vasileiou Raftopoulos Mavros '
-        'Siniossoglou Baltazzi Skouloudis'),
+        'Siniossoglou Baltazzi Skouloudis Ypsilantis Mavrogenis Soutsos Karatheodori Mourouzis Kallimachis '
+        'Rallis Negrepontis Zervos Argyropoulos Mavromichalis Kolokotronis Botsaris Kanaris Miaoulis '
+        'Koundouriotis Tombazis Zaimis Deligiannis Syngros Rodokanakis Agelastos Papadakis Papageorgiou '
+        'Papanikolaou Papadimitriou Georgiou Nikolaou Dimitriou Konstantinou Ioannou Athanasiou Antoniou Petrou '
+        'Panagiotou Alexiou Kyriakidis Kalogeropoulos Lambrou Makris Kontos Karagiannis Karamanlis Hatzidakis '
+        'Hatzigeorgiou Hatzichristou Theodorou Stamatiou Vlachos Andreadis Anagnostou Mavrommatis Kostopoulos '
+        'Sarantidis Prodromou Spanos Galanis Lekkas Kalogeras Papazoglou Tsakiroglou Kehagioglou Kazazoglou '
+        'Hatziantoniou Paspatis Psychas Skaramangas Christakis Manolakis'),
+    # source: Houshamadyan, "The Armenians of Hazari" genealogy; rest general knowledge (estimate: yes)
     'armenian': group(
         'Mariam Anna Takuhi Zabel Srpuhi Hripsime Arshaluys Nvart Siranush Haiganush Satenik Lusin Gayane '
         'Anahid Hermine Elmas Mari Aznive Vartanush Shushan Zaruhi Araksi Hranush Nazeli Makruhi Yeranuhi '
-        'Varsenik Ovsanna Sirarpi Agavni Diruhi Marta',
+        'Varsenik Ovsanna Sirarpi Agavni Diruhi Marta Akabi Arpenig Lousia Nartouhi Nazlou Yeghsa Vergin '
+        'Santoukht Shoghagat Satenig Anoush Astghik Azadouhi Berjouhi Eghisapet Iskouhi Kohar Noyemi Parantsem '
+        'Seta Sona Zepure Zvart Arousyak Hasmik Sirvart Vartuhi Armenouhi Yepraksi Mayranush Almast Altun '
+        'Gulizar Khatun Shamiram Nunufar Arpine Hripsik Lusaber Margarit Nazik Perouz Rebeka Takouhi Yeghisabet '
+        'Zarouhi Heghine Knar Ashkhen',
         'Hagop Garabed Krikor Boghos Bedros Hovhannes Mardiros Ohannes Sarkis Kevork Haroutioun Mihran Nishan '
         'Avedis Arshag Dikran Vahan Levon Aram Nerses Mesrob Zareh Setrak Simon Kaloust Vartan Khachadur Diran '
-        'Hrant Onnik Minas Hovsep',
+        'Hrant Onnik Minas Hovsep Aghajan Aleksan Beglar Ghougas Giragos Karekin Khosrov Moushegh Nigoghos '
+        'Pilibos Shmavon Soghomon Antranig Haigaz Herant Mateos Setrag Yessai Vram Apkar Arakel Artin Ashod '
+        'Avak Baghdasar Barkev Garbis Gaspar Ghazar Hampartsoum Haig Hamazasp Hovnan Kerop Khoren Manoog Markar '
+        'Megerditch Melkon Movses Nazaret Nubar Parsegh Rupen Sahag Sempad Serop Stepan Tavit Toros Vahram '
+        'Varoujan Vartkes Yervant Yeghia Zaven Zohrab Arpiar Torkom Asadour Antranik Ardashes Tateos Murad '
+        'Mardig Hovakim Mikayel Abraham',
         '',
         'Gulbenkian Dadian Balyan Duzian Bezjian Kazazian Hagopian Garabedian Krikorian Boghosian Bedrosian '
         'Ohanian Sarkisian Kevorkian Haroutiounian Mardirosian Nishanian Avedisian Tashjian Kouyoumjian '
         'Demirjian Yazejian Terzian Bakalian Kalfayan Papazian Topalian Hovsepian Abajian Simonian Odian '
-        'Kalebjian'),
+        'Kalebjian Ajemian Amirkhanian Bekerian Gosdanian Hovnanian Marashlian Nersesian Depoian Altiparmakian '
+        'Der_Mateosian Der_Pilibosian Soghigian Yarumian Kalousdian Parounagian Abrahamian Arakelian Artinian '
+        'Avakian Baghdasarian Berberian Chakmakjian Esayan Gasparian Ghazarian Hampartsoumian Kalustian '
+        'Kassabian Kazanjian Khachadourian Manoogian Markarian Megerdichian Melkonian Minassian Movsesian '
+        'Nazarian Nubarian Panossian Parsekian Sahagian Sarafian Semerjian Shahinian Stepanian Tavitian '
+        'Torosian Vahramian Vartanian Yeghiayan Zakarian Zohrabian Chilingirian Ekmekjian Missakian Pashayan '
+        'Tokatlian Utujian Hekimian Boyajian Kurkjian Tutunjian Mouradian Mekhitarian Antreassian Aslanian '
+        'Dadrian Noradounghian'),
+    # source: issendai.com "Jewish Women's Names in 16th-/17th-Century Istanbul" (Haskoy gravestones); RFP Europe "Sephardic Onomastics"; rest general knowledge (estimate: yes)
     'sephardic': group(
         'Rahel Reina Sol Luna Estrea Bulisa Djoya Vida Allegra Sara Ester Rivka Lea Miryam Klara Rosa Buena '
         'Fortuna Oro Perla Sultana Benvenida Gracia Mazal Palomba Rebeka Djamila Flor Signora Merkada Simha '
-        'Dudu',
+        'Dudu Malka Nehama Esperansa Kadun Margalit Kalo Reni Bohora Yilda Elmas Fidan Simi Hanna Bella Blanka '
+        'Dona Zimbul Zafira Tamar Yohevet Dvora Sarina Behora Djentil Preciada Kamila Mazaltov Bienvenida Rena '
+        'Ana Viktoria Esterina Rahelika Grasia',
         'Avram Isak Yakov Moshe Yosef Shemuel Shabetay Haim Bohor Nissim Eliau Yehuda Menahem Salomon Mordehai '
         'Rafael Daniel Aron David Bension Mair Yom_Tov Zaharia Jako Leon Vitali Gavriel Pinhas Hezkia Albert '
-        'Ezra Marko',
+        'Ezra Marko Meshullam Beto Buko Eliezer Mercado Nahum Ovadia Shaul Shimon Shalom Sadik Binyamin Hananel '
+        'Matatia Menashe Asher Efraim Yisrael Natan Rahamim Senior Tuvia Yehezkel Elisha Yona Elazar Nehemia '
+        'Vidal Avner Hayim Bensiyon Yeshaya Gedalia Sabetay Yitzhak Abraham Mose Isaac Salamon Haskel Behor '
+        'Yuda',
         '',
         'Behar Levi Kohen Alhadeff Abravanel Benveniste Camondo Carasso Franco Gabay Hasson Halfon Eskenazi '
         'Farhi Mizrahi Navarro Toledano Saporta Amado Algranti Baruh Bensussan Kamhi Pardo Policar Russo '
-        'Taragan Uziel Varon Danon Ventura Arditi Mitrani Mallah'),
+        'Taragan Uziel Varon Danon Ventura Arditi Mitrani Mallah Zakuto Bessudo Taranto Faraggi Maestro Atias '
+        'Prezenti Alegri Stroumtsa Bichacho Aguadish Melamed Mevorakh Abulafia Adato Albukrek Algazi Almosnino '
+        'Amar Angel Arie Benardete Benbassat Benezra Benmayor Benrubi Benusiglio Bourla Calderon Capon Covo '
+        'Crispin Elnecave Errera Esformes Florentin Gattegno Hananel Hazan Israel Karmona Kastoryano Matalon '
+        'Menashe Molho Nahmias Nahum Pinto Perahia Recanati Romano Salem Saltiel Sasson Sciaky Semo Sidi '
+        'Soriano Strumza Tiano Yacoel Abastado Amiel Cuenca Galante Habib'),
 }
 
 ANCIENT_ROME = {
+    # source: general knowledge (estimate: yes)
     'roman': group(
         'Julia Cornelia Claudia Antonia Valeria Caecilia Flavia Domitia Sulpicia Pompeia Fabia Aemilia Junia '
         'Livia Octavia Calpurnia Licinia Plotina Annia Vibia Statilia Servilia Marcia Tullia Porcia Agrippina '
-        'Faustina Sabina Plautia Ulpia Paulina Pomponia Sempronia Terentia Lucilla',
+        'Faustina Sabina Plautia Ulpia Paulina Pomponia Sempronia Terentia Lucilla Aelia Antistia Atilia '
+        'Caesonia Cassia Clodia Cominia Didia Fulvia Furia Gellia Helvia Herennia Hortensia Laelia Lollia '
+        'Lucretia Manlia Minicia Mucia Munatia Naevia Nonia Oppia Papiria Petronia Pinaria Plancia Popillia '
+        'Postumia Quinctia Rubellia Rutilia Salvia Scribonia Seia Sentia Sergia Sextia Silia Sosia Titia '
+        'Trebonia Vipsania Vettia Vitellia Volumnia Atia Arria Aquilia Curtia Egnatia Fadia Gavia Hostilia '
+        'Mamilia Mummia Ummidia Veturia Volusia Matidia Drusilla Priscilla Marcella Prisca',
         'Gaius Lucius Marcus Publius Quintus Titus Tiberius Gnaeus Aulus Sextus Decimus Servius Spurius Manius '
         'Appius Numerius Mamercus Vibius Rufus Secundus Maximus Severus Priscus Gallus Celer Crispus Sabinus '
-        'Fuscus Paullus Proculus Clemens Firmus',
+        'Fuscus Paullus Proculus Clemens Firmus Albinus Balbus Bassus Blaesus Brutus Calvus Capito Catulus '
+        'Celsus Cotta Crassus Drusus Flaccus Florus Fronto Geminus Glabrio Justus Lentulus Lepidus Longinus '
+        'Longus Lupus Macer Marcellus Metellus Naso Nepos Niger Paetus Pius Pollio Pulcher Regulus Rufinus '
+        'Rusticus Saturninus Scaevola Scaurus Seneca Silanus Silvanus Strabo Taurus Torquatus Varro Varus Verus '
+        'Agricola Aquila Atticus Avitus Bibulus Caepio Camillus Cicero Cinna Cato Scipio Dolabella Labeo '
+        'Lucullus Messala Nerva Piso Plancus Tubero Vindex',
         '',
         'Julius Cornelius Claudius Valerius Caecilius Flavius Domitius Sulpicius Pompeius Fabius Aemilius '
         'Junius Livius Octavius Calpurnius Licinius Annius Vibius Statilius Servilius Marcius Tullius Porcius '
-        'Plautius Ulpius Antonius Sempronius Cassius Fulvius Terentius Petronius Pomponius'),
+        'Plautius Ulpius Antonius Sempronius Cassius Fulvius Terentius Petronius Pomponius Acilius Aelius '
+        'Atilius Antistius Arrius Caesius Calidius Caninius Clodius Coelius Cominius Curtius Didius Egnatius '
+        'Fannius Furius Gabinius Gavius Gellius Helvius Herennius Hirtius Hortensius Hostilius Laelius Lollius '
+        'Lucretius Manlius Memmius Minucius Mucius Munatius Naevius Nonius Numisius Oppius Papirius Pedanius '
+        'Pinarius Plancius Plotius Popillius Postumius Quinctilius Quinctius Rabirius Rubellius Rutilius '
+        'Salvius Scribonius Seius Sentius Sergius Sextius Silius Sosius Titius Trebonius Varius Vergilius '
+        'Verginius Vettius Vipsanius Vitellius Volumnius Vinicius Atius Aquilius'),
+    # source: Arctos (journal.fi) study of female tria nomina; rest general knowledge (estimate: yes)
     'greek': group(
         'Chloe Tyche Helpis Phoebe Daphne Irene Eutychia Agathe Chrysis Eutyche Nymphe Syntyche Tryphaena '
         'Tryphosa Euhodia Lydia Persis Doris Zosime Callityche Erotis Thais Philumena Glycera Nice Moschis '
-        'Charis Hermione Antiochis Stephanis Euphrosyne Hedone',
+        'Charis Hermione Antiochis Stephanis Euphrosyne Hedone Nicephoris Glycenna Acte Apphia Aphrodisia '
+        'Artemisia Athenais Berenice Callisto Chreste Dorcas Eunice Euphemia Galene Iris Isias Lais Melissa '
+        'Myrtale Nais Olympias Pamphila Phila Philematium Phyllis Psyche Sophia Stratonice Syra Thalia Theodote '
+        'Thallusa Zoe Eutychis Philete Glyce Selene Ammia Arescusa Euplia Stephane Rhodine Charite Chrysogone '
+        'Epigone Pieris Calliope Musa Chloris Daphnis Cytheris Thymele Eucharis Prote Elpis Heuresis Nike '
+        'Hilaritas',
         'Hermes Eros Philemon Onesimus Epaphroditus Narcissus Pallas Diogenes Eutychus Trophimus Hermas '
         'Philetus Alexander Dionysius Apollonius Zosimus Antiochus Heraclides Aristobulus Chrysippus Callistus '
         'Epictetus Philologus Isidorus Sosthenes Stephanus Theophilus Tychicus Agathocles Demetrius Menander '
-        'Herodion Asclepiades',
+        'Herodion Asclepiades Anicetus Antigonus Apollodorus Ariston Artemidorus Athenodorus Attalus '
+        'Callimachus Chrysogonus Diodorus Diophantus Dorotheus Epagathus Epaphras Eumenes Euodus Euphrates '
+        'Eutyches Glaucus Hermogenes Hilarus Iason Menophilus Myron Nicanor Nicephorus Nicias Nicomedes Olympus '
+        'Onesiphorus Pamphilus Parthenius Phileros Philippus Philocalus Phoebus Symphorus Syntrophus Thallus '
+        'Theodorus Thrasyllus Timotheus Tryphon Zethus Zoilus Euphemus Hyacinthus Lysimachus Agathopus '
+        'Antipater Aristides Callinicus Diadumenus Eutactus Helius Hesychus Lycus Nereus Nicostratus '
+        'Philargyrus Philocrates Pothinus Sosibius Telesphorus Zenon Zoticus Abascantus',
         '',
         'Julius Claudius Flavius Ulpius Cocceius Domitius Antonius Valerius Cornelius Aemilius Caecilius '
         'Licinius Pompeius Sempronius Terentius Statilius Vettius Lollius Mussius Naevius Publicius Sallustius '
-        'Marcius Annaeus Seius Herennius Plotius Tullius Volusius Calpurnius'),
+        'Marcius Annaeus Seius Herennius Plotius Tullius Volusius Calpurnius Acilius Aelius Atilius Antistius '
+        'Arrius Caesius Calidius Caninius Clodius Coelius Cominius Curtius Didius Egnatius Fannius Furius '
+        'Gabinius Gavius Gellius Helvius Hirtius Hortensius Hostilius Laelius Lucretius Manlius Memmius '
+        'Minucius Mucius Munatius Nonius Numisius Oppius Papirius Pedanius Pinarius Plancius Popillius '
+        'Postumius Quinctilius Quinctius Rabirius Rubellius Rutilius Salvius Scribonius Sentius Sergius Sextius '
+        'Silius Sosius Titius Trebonius Varius Vergilius Verginius Vipsanius Vitellius Volumnius Vinicius Atius '
+        'Aquilius Considius Mummius Ovidius Ummidius Veturius Caesonius Fadius Asinius'),
+    # source: general knowledge (estimate: yes)
     'provincial': group(
         'Prima Secunda Tertia Quarta Maxima Severa Saturnina Januaria Fortunata Victorina Honorata Donata '
         'Felicula Rogata Urbica Verecunda Regina Namgedde Successa Ingenua Materna Candida Optata Quieta '
-        'Restituta Crescentia Rustica Lepidina Victoria Primitiva Felicitas Perpetua',
+        'Restituta Crescentia Rustica Lepidina Victoria Primitiva Felicitas Perpetua Concessa Donatilla Emerita '
+        'Fausta Feliciana Felicissima Gaudiosa Hilaria Justina Primula Procula Quintina Romana Rufina Rogatiana '
+        'Sabina Secundina Silvana Tertulla Urbana Valentina Dativa Pia Bona Sperata Marcia Julia Aemilia '
+        'Claudia Flavia Valeria Cornelia Caecilia Antonia Sulpicia Paulina Maximilla Vitalis Benenata Exorata '
+        'Fidelis Placida Quintilla Saturnilla Victorica Crescentilla Vibia Sophonisba',
         'Saturninus Rogatus Donatus Fortunatus Felix Victor Januarius Honoratus Vitalis Secundus Tertius Primus '
         'Crescens Faustus Ingenuus Datus Optatus Successus Verecundus Senecio Cintusmus Bellicus Catavignus '
-        'Vepogenus Brigomaglos Tasciovanus Hanno Himilco Mago Namphamo Restitutus Rusticus',
+        'Vepogenus Brigomaglos Tasciovanus Hanno Himilco Mago Namphamo Restitutus Rusticus Bassus Candidus '
+        'Celer Clemens Concessus Crescentianus Datianus Emeritus Exuperatus Faustinus Felicianus Festus '
+        'Florentius Fronto Gaudentius Hilarus Justus Liberalis Lucianus Marcellinus Martialis Maternus '
+        'Maximianus Modestus Paternus Peregrinus Pudens Quietus Quintianus Romanus Rufinus Sabinus Saturus '
+        'Secundinus Servandus Severianus Silvanus Speratus Tertullus Urbanus Ursus Valens Verus Victorinus '
+        'Dannicus Sita Veldedeius Litugenus Tancinus Viducus Cintugnatus Atrectus Bostar Gisco Adherbal '
+        'Bomilcar Hasdrubal Hamilcar Iddibal Rufus Severus Maximus Priscus Gallus Marcus Gaius Lucius Titus',
         '',
         'Julius Claudius Flavius Ulpius Cocceius Pompeius Valerius Antonius Cornelius Caecilius Fabius Junius '
         'Licinius Aemilius Sempronius Maternius Secundinius Victorius Primius Justinius Sentius Sulpicius '
-        'Marius Vibius Gargilius Sittius Egnatius Helvius Atilius Arruntius'),
+        'Marius Vibius Gargilius Sittius Egnatius Helvius Atilius Arruntius Aelius Septimius Caelius Cassius '
+        'Domitius Gavius Marcius Memmius Minucius Octavius Petronius Pomponius Postumius Sallustius Seius '
+        'Sergius Servilius Sextius Terentius Titius Vettius Volusius Calpurnius Mustius Nonius Plautius '
+        'Aufidius Avidius Aquilius Fadius Granius Hortensius Lollius Manilius Novius Numisius Papirius Satrius '
+        'Statilius Tullius Varius Cosinius Lucretius Furius Herennius Livius Fulvius Annius Arrius Caesius '
+        'Fabricius Gellius Iulius Naevius Oppius Quintius Rutilius Silius Vitellius Volumnius Cominius Curtius '
+        'Didius Manlius Pinarius Popillius Sosius'),
 }
 
 MUGHAL_INDIA = {
+    # source: general knowledge (estimate: yes)
     'muslim': group(
         'Fatima Zainab Ayesha Khadija Maryam Amina Halima Sakina Rabia Zubaida Hamida Salima Rahima Karima '
         'Jamila Hasina Gulnar Shirin Zahra Habiba Latifa Najma Sultana Bilqis Ruqaiya Mahbuba Asma Saliha '
-        'Dilaram Mehrunnisa Gulbadan Sharifa',
+        'Dilaram Mehrunnisa Gulbadan Sharifa Gulrukh Jahanara Roshanara Zebunnisa Arjumand Aliya Anjuman Azra '
+        'Bano Dilshad Farhat Farzana Firdaus Gulshan Gulzar Hafiza Husna Iffat Ishrat Kaniz Khurshid Kulsum '
+        'Laila Mahmuda Mahjabin Mehr Mumtaz Munira Nargis Nasreen Naseem Nigar Noor Parveen Qamar Rahila Raziya '
+        'Rehana Roshan Safiya Saira Sajida Salma Shahida Shamsa Sughra Tahira Taj Wahida Yasmin Zeenat Zuleikha '
+        'Badrunnisa Gauhar Ladli Maham Gulchehra Dildar Khanzada Bakhtunnisa Qudsia Atiya Aqiqa Bibi Hajra Hura '
+        'Jannat Khatun',
         'Muhammad Ahmad Ali Hasan Husain Abdullah Abdul_Karim Abdul_Rahim Ismail Ibrahim Yusuf Daud Sulaiman '
         'Qasim Jafar Mahmud Farid Nur_Muhammad Sher Khizr Mansur Rahmat Hafiz Karim Latif Salim Murad Bahadur '
-        'Fazl Inayat Rustam Hamid Nasir',
+        'Fazl Inayat Rustam Hamid Nasir Abdul_Qadir Abdul_Aziz Abdul_Hamid Abdul_Latif Abdul_Majid Abdul_Wahid '
+        'Abul_Fazl Abul_Hasan Alam Amir Anwar Asad Ashraf Aslam Azam Aziz Baqir Burhan Dilawar Faiz Fateh '
+        'Ghulam Ghulam_Muhammad Habib Haidar Hakim Hamza Hashim Iftikhar Ikram Iqbal Jalal Jamal Jamil Kamal '
+        'Kamran Khalil Mahdi Masud Mubarak Muhsin Munawwar Murtaza Mustafa Muzaffar Nadir Najib Nasrullah Nizam '
+        'Qadir Qutb Rafi Rashid Raza Sadiq Saif Sadullah Shafi Shahbaz Shams Shuja Sikandar Tahir Umar Usman '
+        'Wali Yaqub',
         '',
         'Khan Shaikh Sayyid Mirza Beg Ansari Siddiqui Qureshi Lodi Barlas Chughtai Bukhari Naqvi Rizvi Hashmi '
         'Farooqi Usmani Gilani Qadiri Chishti Badakhshi Husaini Bilgrami Tirmizi Kirmani Shirazi Isfahani '
-        'Mashhadi Kashmiri Abbasi Yusufzai'),
+        'Mashhadi Kashmiri Abbasi Yusufzai Kazmi Jafri Zaidi Abidi Niazi Afridi Durrani Bangash Kakar Tareen '
+        'Ghori Suri Sherwani Lohani Khattak Qidwai Hamadani Samarqandi Tabrizi Khurasani Herati Kabuli Lahori '
+        'Dehlavi Badauni Sarhindi Jaunpuri Multani Sindhi Qazi Mufti Munshi Sabri Nizami Suhrawardi Naqshbandi '
+        'Taqvi Baloch Uzbek Turkman Arghun Tarkhan Kokaltash Mewati Rohilla Jalali Haqqani Firdausi Hakim '
+        'Kamboh Rangrez Mughal Pathan Afghan Shah Habshi Barha'),
+    # source: general knowledge (estimate: yes)
     'hindu': group(
         'Sita Radha Lakshmi Parvati Ganga Yamuna Kamala Savitri Durga Gauri Saraswati Tulsi Rukmini Champa '
         'Chameli Malati Kausalya Anandi Bhagwati Devaki Godavari Janki Kesar Kunti Padma Sundari Uma Lilavati '
-        'Mohini Hira Phulmati Annapurna',
+        'Mohini Hira Phulmati Annapurna Ahalya Amba Ambika Anasuya Bhagirathi Chandra Chandravati Damayanti '
+        'Gita Gomti Indu Jaya Kalyani Kanta Kasturi Kaveri Kishori Kumudini Lalita Madhavi Mainavati Manorama '
+        'Mira Mukta Nandini Narmada Nirmala Pushpa Rajeshwari Rama Rambha Rani Rupmati Sarala Shanta Sharda '
+        'Shobha Subhadra Sujata Sulochana Sumitra Sushila Tara Triveni Vimala Vrinda Yashoda Kalawati Bhanumati '
+        'Sumati Shakuntala Chandrakala Rajmati Anjana Ratna Basanti Bela Jamuna Mangala Moti Panna Prabha Rupa '
+        'Sona Gangabai Dhanvanti Hemlata',
         'Ram Krishna Gopal Govind Hari Mohan Shyam Balram Kishan Narayan Raghunath Tukaram Keshav Madhav '
         'Ram_Das Mathura_Das Jagannath Gangadhar Damodar Shankar Mahadev Ganesh Lalchand Sundar Dayaram Gokul '
-        'Banarasi Bhagwan_Das Hiranand Sitaram Virji Shantidas',
+        'Banarasi Bhagwan_Das Hiranand Sitaram Virji Shantidas Anand Balkrishna Banwari Bihari Brij Dinanath '
+        'Dwarka_Das Ganga_Ram Ganpat Ghanshyam Girdhar Gopinath Gulab Hira_Lal Ishwar Jagdish Jairam Kalyan '
+        'Kanhaiya Kashinath Lakshman Madan Mahesh Manohar Mukund Nandlal Narsingh Parmanand Prabhu Purushottam '
+        'Radhakrishna Raghav Ramchandra Ram_Prasad Ramnath Ratan Raghubir Shiv Shivram Shridhar Sukhdev '
+        'Tara_Chand Tulsidas Vishnu Vishwanath Vithal Yashwant Chaturbhuj Daulat_Ram Devidas Jivan Kalicharan '
+        'Kishore Lakshmidas Madho Mangal Motilal Narottam Premchand Tikaram Todar Bhimji Devji Lalji Premji '
+        'Ramji Harkishan Birbal',
         '',
         'Mishra Tiwari Pandey Dubey Shukla Chaturvedi Trivedi Joshi Bhatt Dikshit Upadhyay Agarwal Khatri Mehta '
         'Shah Seth Verma Saxena Mathur Srivastava Nagar Desai Patil Deshmukh Kulkarni Pandit Chaudhuri Mazumdar '
-        'Basu Ghosh Mitra Datta Sen Vora Jhaveri'),
+        'Basu Ghosh Mitra Datta Sen Vora Jhaveri Sharma Dwivedi Vajpeyi Awasthi Agnihotri Tripathi Pathak '
+        'Shastri Sinha Kapoor Malhotra Nigam Bhatnagar Kulshreshtha Gupta Goel Garg Mittal Bansal Maheshwari '
+        'Chatterjee Banerjee Mukherjee Bhattacharya Chakraborty Ganguly Das Roy Guha Sarkar Bhonsle Jadhav '
+        'Pawar Shinde Gaikwad Holkar Gokhale Apte Bhide Phadke Ranade Deshpande Parikh Modi Gandhi Dave Vyas '
+        'Pandya Raval Thakkar Patel Iyer Iyengar Rao Reddy Naidu Pillai Nair Menon Chettiar Mudaliar Kaul Raina '
+        'Dhar Zutshi'),
+    # source: Wikipedia "Rathore dynasty" (branches, rulers), "List of Rajput clans"; rest general knowledge (estimate: yes)
     'rajput': group(
         'Padmavati Karnavati Jaivanta Mira Hansa Tara Sajjan_Kanwar Chand_Kanwar Ratan_Kanwar Gulab_Kanwar '
         'Sugan_Kanwar Kishan_Kanwar Indra_Kanwar Roop_Kanwar Anand_Kanwar Bhanwar_Kanwar Champa_Kanwar '
         'Phool_Kanwar Kesar_Kanwar Suraj_Kanwar Dhan_Kanwar Man_Bai Hira_Bai Lakshmi_Bai Rupa_Bai Sona_Bai '
-        'Ajab_Kanwar Jas_Kanwar Ganga_Bai Padma_Kanwar Shyam_Kanwar Umade',
+        'Ajab_Kanwar Jas_Kanwar Ganga_Bai Padma_Kanwar Shyam_Kanwar Umade Gyan_Kanwar Prem_Kanwar Sukh_Kanwar '
+        'Mohan_Kanwar Jatan_Kanwar Sardar_Kanwar Raj_Kanwar Moti_Kanwar Sohan_Kanwar Lal_Kanwar Chandra_Kanwar '
+        'Mehtab_Kanwar Badan_Kanwar Tej_Kanwar Sundar_Kanwar Amar_Kanwar Tara_Bai Rama_Bai Gauri_Bai Kamla_Bai '
+        'Champa_Bai Ratan_Bai Jamna_Bai Kesar_Bai Gulab_Bai Mohan_Bai Sundar_Bai Radha_Bai Sita_Bai Kishori_Bai '
+        'Phool_Bai Dhan_Bai Chand_Bai Durgavati Panna Krishna_Kumari Karmavati Rupmati Jaswant_Kanwar '
+        'Gordhan_Kanwar Vijay_Kanwar Saubhagya_Kanwar Nathi_Bai Dhapu_Bai Jaswant_Bai Kanku_Bai Mehtab_Bai '
+        'Pan_Kanwar Achal_Kanwar Jawahar_Kanwar Bhoor_Kanwar Rajkumari Ajab_De Laxmi_Kanwar Shiv_Kanwar '
+        'Indu_Kanwar Lalita_Kanwar Kishori_Kanwar Dal_Kanwar Abhay_Kanwar',
         'Pratap Amar Karan Jagat Man Jaswant Gaj Ajit Bhim Ratan Sur Jai Bishan Chandrasen Maldeo Jaimal Patta '
         'Raghunath Kesri Hammir Anand Prithviraj Kalyan Kumbha Sangram Sujan Indra Bhupat Udai Mukund Durgadas '
-        'Bhagwant',
+        'Bhagwant Satal Biram Ganga Chunda Ranmal Suja Raipal Salkha Kanhadev Bakht Umaid Hanwant Abhay '
+        'Bakhtawar Bharmal Bhoj Dalpat Daulat Dungar Fateh Gopal Jagmal Jodha Jujhar Kanha Kishor Lunkaran '
+        'Madho Mokal Raimal Shakti Surajmal Takhat Tej Vijay Zorawar Ummed Bakhat Ram Kirat Bika Jaitsi Rai '
+        'Anup Padam Surat Sawant Sabal Zalim Hari Ishwari Bhawani Bijay Chandrabhan Dhiraj Govardhan Hamir_Dev '
+        'Jagannath Jawahar Kalyanmal Kishan Lakshman Mahendra Nahar Narpat Pratap_Mal Rupsi Sardul',
         '',
         'Singh Rathore Sisodia Kachhwaha Chauhan Hada Bhati Parmar Solanki Tomar Jhala Gaur Chandel Bundela '
         'Baghela Guhilot Shekhawat Champawat Jadeja Deora Sengar Bais Raghuvanshi Bhadoria Gaharwar Katoch '
-        'Pundir Bargujar Khichi Songara Kumpawat Jodha'),
+        'Pundir Bargujar Khichi Songara Kumpawat Jodha Jaitmalot Kandhalot Karamsot Mahecha Rupawat Barsinghot '
+        'Raikwar Jaitawat Bika Chudawat Ranawat Shaktawat Mertiya Karnot Bidawat Udawat Dahiya Parihar '
+        'Chandrawat Naruka Rajawat Nathawat Bikawat Sodha Gohil Chudasama Jadon Dikshit Gautam Kaushik Bisen '
+        'Sombanshi Suryavanshi Jamwal Pathania Jaswal Guleria Chib Rana Thakur Banaphar Kalhans Nikumbh '
+        'Sikarwar Dhandhal Kachhawa Bhatti Panwar Pratihar Rathod Sisodiya Chandela Tanwar Yaduvanshi Kalyanot '
+        'Kotwal Mandawat Akhawat Shivrajot'),
 }
 
 STORYBOOK = {
