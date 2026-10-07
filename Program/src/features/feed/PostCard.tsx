@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { REACTIONS } from './feedState'
 import { PostImage } from './PostImage'
 import { Audience, SocialBody } from './SocialPost'
+import { usePortrait } from '../conversation/portrait'
 
 export interface PostActions {
   react: (post: FeedPost, reaction: Reaction) => void
@@ -74,10 +75,18 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
 function PostHeader({ post }: { post: FeedPost }) {
   return (
     <header className="post-header">
-      <span id={`post-${post.id}`} className="speaker">{post.author.name}{post.author.role && <span className="post-role"> · {post.author.role}</span>}{!post.read && <span className="unread-dot" aria-label="unread" />}</span>
+      <PostAvatar post={post} />
+      <span id={`post-${post.id}`} className="speaker">{post.author.name}{post.author.role && <span className="post-role"> · {post.author.role}</span>}{!post.read && <span className="unread-dot" role="img" aria-label="unread" />}</span>
       <time dateTime={post.occurs_at}>{when(post.occurs_at)}</time>
     </header>
   )
+}
+
+/** The poster's picture: the companion's profile picture on their own posts, everyone else's initial. */
+function PostAvatar({ post }: { post: FeedPost }) {
+  const portrait = usePortrait()
+  if (post.author.kind === 'companion' && portrait) return <img className="post-avatar" src={portrait} alt="" aria-hidden="true" />
+  return <span className="post-avatar" aria-hidden="true">{post.author.name.slice(0, 1).toUpperCase()}</span>
 }
 
 function DiscussForm({ post, name, discuss, onDone }: { post: FeedPost; name: string; discuss: PostActions['discuss']; onDone: () => void }) {

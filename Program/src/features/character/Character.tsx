@@ -180,8 +180,8 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
   return (<>
     <header className="page-header">
       <div>
-        <h1>{companion ? companion.version.name : 'Create your companion'}</h1>
-        <p className="subtle">{companion ? `Version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Only a name is required, and you can change everything later.'}</p>
+        {companion ? <h2>Character</h2> : <h1>Create your companion</h1>}
+        <p className="subtle">{companion ? `${companion.version.name}, version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Only a name is required, and you can change everything later.'}</p>
       </div>
       {companion && <div className="form-actions">
         <button type="button" className="button" onClick={() => go('portraits')}>Profile pictures</button>

@@ -1,24 +1,16 @@
-import { appDate } from '../../appTime.ts'
-import { useEffect, useState, type RefObject } from 'react'
+import type { RefObject } from 'react'
 import { GitBranch, Search } from 'lucide-react'
 import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
 import { useChatStyle } from './useChatStyle'
 import { usePortrait } from './portrait'
-
-function localTime(timezone: string, now: Date) {
-  try {
-    return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', weekday: 'short', timeZone: timezone }).format(now)
-  } catch { return null }
-}
+import { useLocalTime } from './clock'
 
 type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void }
 
 export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, browsing, timelinesButton, onTimelines }: Props) {
   const { name, timezone, location } = { ...companion.version.definition, name: companion.version.name }
-  const [now, setNow] = useState(() => appDate())
-  useEffect(() => { const timer = window.setInterval(() => setNow(appDate()), 30_000); return () => window.clearInterval(timer) }, [])
-  const time = localTime(timezone, now)
+  const time = useLocalTime(timezone)
   const portrait = usePortrait()
   return (
     <header className="conversation-header">

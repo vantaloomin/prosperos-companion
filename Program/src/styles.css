@@ -228,6 +228,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .post { padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
 .post.hidden-post { opacity: .7; border-style: dashed; }
 .post-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.post-header .speaker { flex: 1; min-width: 0; }
+.post-avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--accent-tint); color: var(--accent); font-weight: 600; font-size: 0.9375rem; flex-shrink: 0; }
 .post-header time { font-size: 0.75rem; color: var(--faint); }
 .unread-dot { display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
 .post-intro, .post-caption { font-family: 'Literata', Georgia, serif; font-size: 1.0625rem; line-height: 1.7; }
@@ -707,3 +709,124 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .prompt-default { margin-top: 12px; font-size: 0.8125rem; }
 .prompt-default > summary { cursor: pointer; color: var(--muted); }
 .prompt-default pre { margin: 8px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; border: 1px solid var(--border); border-radius: 7px; background: var(--raised); font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; line-height: 1.5; }
+
+/* The companion's profile (src/features/profile): their card, then Messages, Posts and Character as tabs.
+   It takes the chat style's look; the Character tab's form keeps the app's own look, since it sits outside their world. */
+.profile { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.profile > .conversation, .profile > .page { flex: 1; min-height: 0; }
+.profile-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.profile-scroll > .page { overflow: visible; padding-top: 22px; }
+.profile-card { padding-bottom: 4px; }
+.profile-titlebar { display: none; }
+.profile-cover { height: 120px; border-bottom: 1px solid var(--border); background: linear-gradient(120deg, var(--accent-tint), #4a3d28 55%, var(--raised)); }
+.profile-who { display: flex; align-items: flex-end; gap: 16px; margin: -44px 40px 0; }
+.profile-avatar { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 4px solid var(--canvas); background: var(--accent-tint); color: var(--accent); font-family: 'Literata', Georgia, serif; font-size: 2.5rem; flex-shrink: 0; }
+.profile-name { min-width: 0; padding-bottom: 6px; }
+.profile-name h1 { font-size: 1.6rem; overflow-wrap: anywhere; }
+.profile-handle { color: var(--faint); font-size: 0.8125rem; }
+.profile-bio { max-width: 680px; margin: 14px 40px 0; font-size: 0.9375rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.profile-facts, .profile-interests { list-style: none; display: flex; flex-wrap: wrap; margin: 12px 40px 0; padding: 0; }
+.profile-facts { gap: 6px 18px; color: var(--muted); font-size: 0.8125rem; }
+.profile-facts li { display: inline-flex; align-items: center; gap: 6px; }
+.profile-interests { gap: 6px; }
+.profile-interests li { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.75rem; }
+.profile-tabs { flex: none; display: flex; gap: 4px; padding: 0 32px; border-bottom: 1px solid var(--border); background: var(--canvas); }
+.with-card .profile-tabs { position: sticky; top: 0; z-index: 2; margin-top: 16px; padding: 0 40px; }
+.profile-tabs button { padding: 12px 14px 10px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 0.875rem; font-weight: 500; }
+.profile-tabs button:hover { color: var(--text); }
+.profile-tabs button[aria-current='page'] { color: var(--text); border-bottom-color: var(--accent); }
+.profile-tabs :focus-visible { outline-offset: -3px; }
+
+/* Bubbles: a phone contact card, centered, with pill tabs. */
+.profile-bubbles .profile-cover { height: 84px; border: 0; background: linear-gradient(180deg, var(--raised), var(--canvas)); }
+.profile-bubbles .profile-who { flex-direction: column; align-items: center; gap: 8px; margin-top: -56px; text-align: center; }
+.profile-bubbles .profile-avatar { width: 112px; height: 112px; }
+.profile-bubbles .profile-name { padding: 0; }
+.profile-bubbles .profile-name h1 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-weight: 500; }
+.profile-bubbles .profile-bio { margin: 10px auto 0; padding: 0 24px; text-align: center; }
+.profile-bubbles :is(.profile-facts, .profile-interests) { justify-content: center; margin-inline: 24px; }
+.profile-bubbles .profile-tabs { justify-content: center; padding: 8px 16px; border: 0; }
+.profile-bubbles .profile-tabs button { padding: 7px 16px; border: 0; border-radius: 999px; }
+.profile-bubbles .profile-tabs button[aria-current='page'] { background: var(--accent); color: var(--on-accent); }
+.profile-bubbles .post { border: 0; border-radius: 22px; background: var(--raised); }
+.profile-bubbles :is(.post-intro, .post-caption) { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.9375rem; line-height: 1.6; }
+
+/* Community: a chat-server profile card with a banner, and the feed as a flat channel. */
+.profile-community .profile-card { max-width: 720px; margin: 18px 40px 0; padding-bottom: 16px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.profile-community .profile-cover { height: 96px; border: 0; background: linear-gradient(90deg, #8a6f42, var(--accent)); }
+.profile-community .profile-who { margin: -40px 16px 0; }
+.profile-community .profile-avatar { width: 88px; height: 88px; border: 6px solid var(--surface); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-weight: 600; font-size: 2rem; }
+.profile-community .profile-name h1 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 1.3rem; font-weight: 600; }
+.profile-community :is(.profile-bio, .profile-facts, .profile-interests) { margin-inline: 16px; }
+.profile-community .profile-bio { padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.875rem; }
+.profile-community .profile-interests li { border-radius: 4px; background: var(--raised); border-color: transparent; color: var(--text); }
+.profile-community .profile-tabs button { font-weight: 600; }
+.profile-community .post-list { gap: 0; max-width: 760px; }
+.profile-community .post { padding: 14px 6px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: none; }
+.profile-community .post:hover, .profile-community .post:focus-within { background: var(--surface); }
+.profile-community .post-avatar { width: 40px; height: 40px; }
+.profile-community .post-header .speaker { color: var(--text); font-weight: 600; font-size: 0.9375rem; }
+.profile-community :is(.post-intro, .post-caption) { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.9375rem; line-height: 1.6; }
+
+/* Retro IM: a buddy info window and tabbed dialog, light or dark like the chat window. */
+.profile-retro :is(.profile-card, .profile-tabs, .feed) { --canvas: #ffffff; --surface: #d4d0c8; --raised: #c4c0b8; --border: #808080; --text: #000000; --muted: #3a3a3a; --faint: #555555;
+  --accent: #0a246a; --accent-hover: #17378f; --accent-tint: #dfe5f3; --on-accent: #ffffff; --danger: #9c0000; --danger-tint: #f7dddd;
+  color-scheme: light; color: var(--text); font-family: Tahoma, Verdana, 'IBM Plex Sans', sans-serif; }
+.profile-retro :is(.profile-card, .profile-tabs, .feed) :focus-visible { outline-color: var(--accent); }
+.profile-retro .feed .dialog { --canvas: #191816; --surface: #201f1c; --raised: #292722; --border: #37342e; --text: #ede5d6; --muted: #b0a99b; --faint: #968e80;
+  --accent: #c5a46d; --accent-hover: #d7b984; --accent-tint: #302a20; --on-accent: #211c14; --danger: #e9b8aa; --danger-tint: #98655822; color-scheme: dark; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+.profile-retro .profile-card { margin: 10px 10px 0; padding-bottom: 10px; border: 2px outset #e8e6e1; background: var(--surface); }
+.profile-retro .profile-titlebar { display: block; padding: 4px 8px; background: linear-gradient(90deg, #0a246a, #24508f); color: #ffffff; font-size: 0.8125rem; font-weight: 700; }
+.profile-retro .profile-cover { display: none; }
+.profile-retro .profile-who { align-items: flex-start; gap: 10px; margin: 10px 10px 0; }
+.profile-retro .profile-avatar { width: 72px; height: 72px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); color: var(--accent); font-family: inherit; font-size: 2rem; }
+.profile-retro .profile-name h1 { font-family: inherit; font-size: 1rem; font-weight: 700; }
+.profile-retro .profile-handle { color: var(--muted); }
+.profile-retro .profile-bio { max-width: none; margin: 10px 10px 0; padding: 6px 8px; border: 2px inset #e8e6e1; background: var(--canvas); font-size: 0.8125rem; -webkit-line-clamp: 4; }
+.profile-retro :is(.profile-facts, .profile-interests) { margin: 8px 10px 0; }
+.profile-retro .profile-facts { color: var(--text); font-size: 0.75rem; }
+.profile-retro .profile-interests li { border-radius: 0; border-color: var(--border); background: var(--canvas); color: var(--text); }
+.profile-retro .profile-tabs { gap: 2px; margin: 6px 10px 0; padding: 4px 4px 0; border: 0; border-bottom: 2px solid #ffffff; background: var(--surface); }
+.profile-retro .profile-tabs button { padding: 4px 12px; border: 2px outset #f2f1ee; border-bottom: 0; border-radius: 3px 3px 0 0; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; }
+.profile-retro .profile-tabs button[aria-current='page'] { position: relative; top: 2px; padding-bottom: 6px; background: var(--surface); font-weight: 700; }
+.profile-retro > .conversation.chat-retro { margin-top: 0; border-top: 0; }
+.profile-retro .feed { margin: 0 10px 10px; padding: 14px 16px; border: 2px outset #e8e6e1; border-top: 0; background: var(--surface); }
+.profile-retro .feed h2 { font-family: inherit; font-size: 1rem; font-weight: 700; }
+.profile-retro .post { gap: 8px; padding: 10px 12px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); }
+.profile-retro .post-avatar { width: 32px; height: 32px; border-radius: 0; border: 1px solid var(--border); }
+.profile-retro .post-header .speaker { color: #0000b8; font-weight: 700; font-size: 0.8125rem; }
+.profile-retro :is(.post-intro, .post-caption) { font-family: inherit; font-size: 0.875rem; line-height: 1.5; }
+.profile-retro .post-image > img { border-radius: 0; }
+.profile-retro .feed :is(.button, .vibe-pick) { border-radius: 0; border: 2px outset #f2f1ee; background: var(--surface); color: var(--text); }
+.profile-retro .feed .vibe-pick[aria-pressed='true'] { border-style: inset; background: var(--accent-tint); color: var(--accent); }
+.profile-retro .feed :is(textarea, input, select) { border-radius: 0; border: 2px inset #e8e6e1; }
+.profile-retro.retro-dark :is(.profile-card, .profile-tabs, .feed) { --canvas: #101114; --surface: #2b2b2e; --raised: #3a3a3e; --border: #5a5a60; --text: #e8e8ea; --muted: #b8b8be; --faint: #8e8e96;
+  --accent: #8fb0ff; --accent-hover: #a9c2ff; --accent-tint: #1f2a44; --on-accent: #0b1430; --danger: #ff9b9b; --danger-tint: #4a1f1f; color-scheme: dark; }
+.profile-retro.retro-dark :is(.profile-card, .feed) { border-color: #4a4a50; }
+.profile-retro.retro-dark .profile-titlebar { background: linear-gradient(90deg, #0b1636, #1b2f5c); }
+.profile-retro.retro-dark :is(.profile-avatar, .profile-bio, .post, .feed textarea, .feed input, .feed select) { border-color: #4a4a50; }
+.profile-retro.retro-dark .profile-tabs { border-bottom-color: #5a5a60; }
+.profile-retro.retro-dark :is(.profile-tabs button, .feed .button, .feed .vibe-pick) { border-color: #5a5a60; }
+.profile-retro.retro-dark .post-header .speaker { color: #8fb0ff; }
+
+/* Visual novel: a character sheet, their portrait on a small stage and their name on a plate. */
+.profile-novel .profile-cover { height: 150px; border: 0; background: radial-gradient(ellipse at 50% 110%, #43392a 0%, #27231d 48%, var(--canvas) 100%); }
+.profile-novel .profile-who { margin-top: -118px; }
+.profile-novel .profile-avatar { width: 124px; height: 156px; border: 0; border-radius: 14px 14px 0 0; background: linear-gradient(to bottom, var(--accent-tint), #24211c); object-position: top; font-size: 3.5rem; mask-image: linear-gradient(to bottom, #000 78%, transparent); }
+.profile-novel .profile-name h1 { display: inline-block; padding: 2px 14px; border-radius: 6px; background: var(--accent); color: var(--on-accent); font-size: 1.25rem; font-weight: 600; }
+.profile-novel .profile-handle { margin-top: 4px; }
+.profile-novel .profile-bio { padding: 12px 18px; border: 1px solid #6b5a3c; border-radius: 10px; background: var(--surface); font-family: 'Literata', Georgia, serif; }
+.profile-novel .profile-tabs button[aria-current='page'] { border-radius: 6px 6px 0 0; background: var(--accent); color: var(--on-accent); }
+.profile-novel .post { border-color: #6b5a3c; border-radius: 10px; }
+.profile-novel .post-header .speaker { flex: none; padding: 2px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--raised); color: var(--text); font-weight: 600; }
+.profile-novel .post-header time { margin-left: auto; }
+
+@media (max-width: 720px) {
+  .profile-cover { height: 96px; }
+  .profile-who, .profile-bio, .profile-facts, .profile-interests { margin-inline: 16px; }
+  .profile-tabs, .with-card .profile-tabs { padding: 0 8px; }
+  .profile-community .profile-card { margin: 12px 12px 0; }
+  .profile-retro .profile-card, .profile-retro .profile-tabs { margin-inline: 4px; }
+  .profile-retro .feed { margin: 0 4px 4px; padding: 12px; }
+  .profile-retro .profile-tabs { padding: 4px 4px 0; }
+}

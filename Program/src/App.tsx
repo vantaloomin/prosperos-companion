@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { BookHeart, CalendarDays, MessageCircle, Newspaper, Settings as SettingsIcon, UserRound } from 'lucide-react'
+import { BookHeart, CalendarDays, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
 import { useCompanion, useFollowPcTimezone, useWorkspaceSettings, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
@@ -9,6 +9,8 @@ import { useNotifications } from './features/notifications/useNotifications'
 import { useTexts } from './features/conversation/useTexts'
 import { Loading, Notice } from './components/Feedback'
 import { DebugBanner } from './features/settings/DebugBanner'
+import { Profile } from './features/profile/Profile'
+import { profileTab } from './features/profile/profileText'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
@@ -20,22 +22,21 @@ const Settings = lazy(() => import('./features/settings/Settings').then((m) => (
 const Today = lazy(() => import('./features/today/Today').then((m) => ({ default: m.Today })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
-const VIEWS: { id: View; label: string; icon: typeof MessageCircle }[] = [
-  { id: 'conversation', label: 'Chat', icon: MessageCircle },
+// The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
+const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
+  { id: 'conversation', label: 'Profile', icon: UserRound },
   { id: 'today', label: 'Today', icon: CalendarDays },
-  { id: 'feed', label: 'Feed', icon: Newspaper },
   { id: 'memories', label: 'Memories', icon: BookHeart },
-  { id: 'character', label: 'Character', icon: UserRound },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || id === 'appearance' || id === 'portraits' || id.startsWith('settings/') || id.startsWith('cast/') ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') ? id as View : 'conversation'
 }
 
 function isCurrent(id: View, view: View) {
-  return view === id || (id === 'character' && (view === 'appearance' || view === 'portraits' || view.startsWith('cast/'))) || (id === 'settings' && view.startsWith('settings/'))
+  return view === id || (id === 'conversation' && profileTab(view) !== null) || (id === 'settings' && view.startsWith('settings/'))
 }
 
 export default function App() {
@@ -92,9 +93,10 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
   const loraMaker = useWorkspaceSettings().data?.lora_maker
   if (view === 'settings' || view.startsWith('settings/')) return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
   // With the LoRA creator switched off (the default), an old #appearance link opens the Character page.
-  if (view === 'character' || (view === 'appearance' && !loraMaker)) return <Character companion={companion} go={go} />
-  if (!companion) return <Welcome go={go} />
-  return <CompanionView view={view} companion={companion} go={go} />
+  const shown = view === 'appearance' && !loraMaker ? 'character' : view
+  if (!companion) return shown === 'character' ? <Character companion={null} go={go} /> : <Welcome go={go} />
+  const page = shown === 'character' ? <Character companion={companion} go={go} /> : <CompanionView view={shown} companion={companion} go={go} />
+  return profileTab(shown) ? <Profile companion={companion} view={shown} go={go}>{page}</Profile> : page
 }
 
 function CompanionView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {

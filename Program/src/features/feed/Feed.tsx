@@ -71,7 +71,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
     <section className="page feed">
       <header className="page-header">
         <div>
-          <h1>Feed</h1>
+          <h2>Posts</h2>
           <p className="subtle">{name}'s posts, and what their friends are up to{unreadText(unread)}. Only you see them.</p>
         </div>
         <button type="button" className="button" onClick={() => void exportFeed()}><Download aria-hidden="true" />Export</button>
