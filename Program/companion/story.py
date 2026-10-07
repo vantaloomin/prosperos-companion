@@ -135,7 +135,7 @@ def person_line(person: dict, place: dict, data: dict) -> str:
 def scene_text(view: dict) -> str:
     data, place = view['data'], view['place']
     moment = datetime.fromisoformat(view['local_time'])
-    when = moment.strftime('%A %-d %B') + (f", {moment.year}" if data.get('era', 'modern') == 'modern' else '')
+    when = f"{moment:%A} {moment.day} {moment:%B}" + (f", {moment.year}" if data.get('era', 'modern') == 'modern' else '')
     lines = [f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {data['name']}. {place['summary']}",
              f"City: {data['summary']}" + ('' if townsfolk.modern(data) else f" The era is {data['era']}."),
              f"Local time: {when}, {moment.strftime('%H:%M')} ({townsfolk.part_of_day(moment.hour * 60 + moment.minute)})."]
