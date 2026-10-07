@@ -3,12 +3,18 @@
 The app only talks to a ComfyUI server the user configured. It never starts, stops or restarts
 one, and cancelling removes or interrupts only the prompt this app queued.
 
-The built-in workflow targets Krea 2 Turbo as described by community setup guides (UNETLoader
-with `krea2_turbo_fp8_scaled.safetensors`, CLIPLoader of type `krea2` with the Qwen3-VL 4B
-encoder, the Qwen image VAE, 8 steps at CFG 1 with euler/simple). It is unverified: the check
-reports any node or model file the server does not have. A custom workflow in ComfyUI's API
-format can replace it, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
-`{{height}}` where the request's values belong.
+The built-in workflow targets Krea 2 Turbo with the files ComfyUI's own Krea 2 template uses
+(UNETLoader with `krea2_turbo_fp8_scaled.safetensors`, CLIPLoader of type `krea2` with
+`qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, 8 steps at CFG 1 with
+euler/simple). It ran on an RTX 5090 with ComfyUI 0.39.0, with other files chosen for the three
+loaders. The check reports any node or model file the server does not have. A custom workflow in
+ComfyUI's API format can replace it, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}`
+and `{{height}}` where the request's values belong.
+
+With the built-in workflow the user can pick other files from their server for its three loaders
+(`unet_name`, `clip_name` with its `type`, and `vae_name` in the backend's config); `files` asks the
+server which ones it has. Names are kept exactly as the server lists them, subfolder and all
+(`Krea 2\\model.safetensors` on Windows). A custom workflow is used exactly as given.
 
 Onboarding portraits follow an earlier picture. A ComfyUI server makes those only with a second
 custom workflow that also has `{{reference_image}}` (a LoadImage node's image); the app uploads
@@ -25,11 +31,14 @@ from companion.errors import DomainError
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
 
 TEMPLATE = Path(__file__).parent.parent / 'workflows' / 'krea2-turbo.json'
-TEMPLATE_NAME = 'krea2-turbo (unverified)'
+TEMPLATE_NAME = 'krea2-turbo'
 NUMERIC = {'{{seed}}', '{{width}}', '{{height}}'}
 MODEL_KEYS = ('unet_name', 'ckpt_name')
 LORA_NODE = 'prospero-lora'
 REFERENCE = '{{reference_image}}'
+# The built-in workflow's loader inputs the user can choose files for: config key -> (node, input).
+FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
+               'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
 
 
 def parse_workflow(text: str, reference=False) -> dict:
@@ -55,7 +64,42 @@ def workflow_for(config, reference=False) -> tuple[dict, str]:
         return parse_workflow(config['reference_workflow'], reference=True), 'custom reference'
     if config.get('workflow'):
         return parse_workflow(config['workflow']), 'custom'
-    return json.loads(TEMPLATE.read_text(encoding='utf-8')), TEMPLATE_NAME
+    return built_in(config), TEMPLATE_NAME
+
+
+def built_in(config) -> dict:
+    """The built-in workflow with the user's chosen loader files in place of its defaults."""
+    workflow = json.loads(TEMPLATE.read_text(encoding='utf-8'))
+    for key, (class_type, name) in FILE_INPUTS.items():
+        if config.get(key):
+            for node in workflow.values():
+                if node['class_type'] == class_type:
+                    node['inputs'][name] = config[key]
+    return workflow
+
+
+def default_files() -> dict:
+    workflow = built_in({})
+    return {key: next(node['inputs'][name] for node in workflow.values() if node['class_type'] == class_type)
+            for key, (class_type, name) in FILE_INPUTS.items()}
+
+
+def options_of(spec) -> list | None:
+    """The choices of a combo input in /object_info: `[[...], {...}]`, or `["COMBO", {"options": [...]}]`
+    in newer ComfyUI versions. None for any other kind of input."""
+    if not isinstance(spec, list) or not spec:
+        return None
+    if isinstance(spec[0], list):
+        return spec[0]
+    if spec[0] == 'COMBO' and len(spec) > 1 and isinstance(spec[1], dict) and isinstance(spec[1].get('options'), list):
+        return spec[1]['options']
+    return None
+
+
+def input_options(info, class_type, name) -> list[str]:
+    inputs = (info.get(class_type) or {}).get('input') or {}
+    spec = {**(inputs.get('optional') or {}), **(inputs.get('required') or {})}.get(name)
+    return [option for option in options_of(spec) or [] if isinstance(option, str)]
 
 
 def fill(value, values: dict):
@@ -216,8 +260,8 @@ class ComfyAdapter:
         spec = info.get('LoraLoaderModelOnly')
         if spec is None:
             return ['Missing node: LoraLoaderModelOnly, which applies the adopted LoRA.']
-        options = (spec.get('input', {}).get('required') or {}).get('lora_name', [None])[0]
-        if isinstance(options, list) and lora_name not in options:
+        options = options_of((spec.get('input', {}).get('required') or {}).get('lora_name'))
+        if options is not None and lora_name not in options:
             return [f'The adopted LoRA {lora_name} is not in ComfyUI\'s loras folder.']
         return []
 
@@ -231,9 +275,9 @@ class ComfyAdapter:
                 continue
             required = {**(spec.get('input', {}).get('required') or {}), **(spec.get('input', {}).get('optional') or {})}
             for key_name, value in node.get('inputs', {}).items():
-                options = required.get(key_name, [None])[0]
+                options = options_of(required.get(key_name))
                 # A placeholder such as {{reference_image}} is filled in per request.
-                if isinstance(value, str) and '{{' not in value and isinstance(options, list) and value not in options:
+                if isinstance(value, str) and '{{' not in value and options is not None and value not in options:
                     missing.append(f'Missing file or option for {node["class_type"]}.{key_name}: {value}.')
         return missing
 
@@ -257,3 +301,19 @@ class ComfyAdapter:
         if missing:
             return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing)
         return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses.')
+
+    async def files(self, config) -> dict:
+        """The files the server offers the built-in workflow's loaders, asked of the configured
+        address with the same client as the check. Nothing is queued or downloaded."""
+        found = {}
+        async with self.client(config['base_url']) as client:
+            for class_type in dict.fromkeys(class_type for class_type, _ in FILE_INPUTS.values()):
+                response = await self.call(client, 'GET', f'/object_info/{class_type}')
+                try:
+                    found[class_type] = response.json() if response.is_success else {}
+                except ValueError as error:
+                    raise AdapterError('failed', 'ComfyUI returned an unreadable node list.') from error
+                if not isinstance(found[class_type], dict):
+                    raise AdapterError('failed', 'ComfyUI returned an unreadable node list.')
+        return {key: input_options(found[class_type], class_type, name)
+                for key, (class_type, name) in FILE_INPUTS.items()}

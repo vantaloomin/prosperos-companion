@@ -8,6 +8,7 @@ from companion.models import Input
 Kind = Literal['comfyui', 'codex', 'hosted']
 Provider = Literal['comfyui', 'codex', 'openrouter', 'google', 'openai', 'other']
 Aspect = Literal['square', 'landscape', 'portrait']
+FILE_NAME = r'^[^\x00-\x1f\x7f]*$'
 
 
 class BackendFields(Input):
@@ -19,6 +20,11 @@ class BackendFields(Input):
     workflow: str | None = Field(default=None, max_length=200000)
     # A second ComfyUI workflow for pictures that follow an earlier one, with {{reference_image}} too.
     reference_workflow: str | None = Field(default=None, max_length=200000)
+    # Files from the ComfyUI server for the built-in workflow's loaders; empty means its default.
+    unet_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
+    clip_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
+    clip_type: str | None = Field(default=None, max_length=60, pattern=FILE_NAME)
+    vae_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
     cli_path: str | None = Field(default=None, max_length=1000)
     api_style: Literal['images', 'chat'] | None = None
     api_key: str | None = Field(default=None, max_length=4000)

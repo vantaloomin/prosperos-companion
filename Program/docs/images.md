@@ -18,13 +18,31 @@ backend is off until the user sets it up, and text never waits for an image. The
   machine they control. A remote address otherwise counts as hosted (F6). The app only connects to
   the server the user entered; it never starts, stops or restarts one. Cancelling removes the
   app's own prompt from the queue, or interrupts it only when it is the prompt running.
-- **The built-in workflow** (`workflows/krea2-turbo.json`) targets Krea 2 Turbo as community setup
-  guides describe it: `UNETLoader` with `krea2_turbo_fp8_scaled.safetensors`, `CLIPLoader` of type
-  `krea2` with `qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, 8 steps at CFG 1
-  with euler and simple. It is **unverified**. The check button asks the server for its node list
-  and reports every missing node or model file; nothing is installed or downloaded. A custom
-  workflow in ComfyUI's API format replaces it, with `{{prompt}}`, `{{negative}}`, `{{seed}}`,
-  `{{width}}` and `{{height}}` where the request's values belong.
+- **The built-in workflow** (`workflows/krea2-turbo.json`) targets Krea 2 Turbo with the files
+  ComfyUI's own Krea 2 template uses: `UNETLoader` with `krea2_turbo_fp8_scaled.safetensors`,
+  `CLIPLoader` of type `krea2` with `qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`,
+  8 steps at CFG 1 with euler and simple. It ran unchanged on an RTX 5090 with ComfyUI 0.39.0 (about
+  2.7 seconds an image once loaded), with a Krea 2 fine-tune in NVFP4 and a Qwen3-VL 4B NVFP4 text
+  encoder chosen for its loaders; the default files themselves have not been run.
+- **Model files.** Under the backend, **Model files for the built-in workflow** asks the server
+  (`/object_info/UNETLoader`, `/object_info/CLIPLoader`, `/object_info/VAELoader`, at the address
+  entered only) which files it has and offers them in dropdowns: Model, Text encoder, Text encoder
+  type and VAE, with the current choice selected and a **Refresh list** button. The choices are
+  stored in the backend's config (`unet_name`, `clip_name`, `clip_type`, `vae_name`); an empty one
+  means the default file. Names are kept exactly as the server lists them, subfolder and all (a
+  Windows server lists `Krea 2\model.safetensors`). When the server cannot be reached the names can
+  be typed. A custom workflow is used as given and ignores these choices.
+- **Where to get models.** Beside the dropdowns is a short list of download pages from
+  `companion/images/model_links.json`. Each entry links to the official model page, never straight
+  to a file, with its licence: the Krea 2 Turbo files repackaged for ComfyUI by Comfy-Org (Krea 2
+  Community License, not gated), Krea's own Krea 2 Turbo page (gated: accept the licence on Hugging
+  Face first), and Comfy-Org's Qwen3-VL text encoder and Qwen Image VAE pages (Apache 2.0; the same
+  files as in the Krea 2 repackage). Community fine-tunes are not listed; any file on the server can
+  still be chosen.
+- **Check** asks the server for its node list and reports every missing node or model file, using
+  the chosen file names; nothing is installed or downloaded. A custom workflow in ComfyUI's API
+  format replaces the built-in one, with `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
+  `{{height}}` where the request's values belong.
 - **Codex** uses Codex's own `image_generation` feature (stable and on by default in codex-cli
   0.160.1). Each image is one turn of `codex exec --json --skip-git-repo-check --ephemeral
   --ignore-user-config --ignore-rules --sandbox read-only --cd <empty scratch folder> -`, with a
@@ -190,12 +208,14 @@ All writes need the `x-companion-client: workspace` header.
 | Method and path | Purpose |
 | --- | --- |
 | `GET`, `PUT /api/images/settings` | `automatic_images`, `chat_photos`, `daily_limit` (0 to 24), `queue_limit` (1 to 20), `fallback`, `aspect` (`square`, `landscape`, `portrait`), `style` |
-| `GET /api/images/backends` | Backends in order, with `local`, `accepts_nsfw`, `disclosure`, `blocked_reason`, `has_key`; never a key |
-| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, reference_workflow?, cli_path?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
+| `GET /api/images/backends` | Backends in order, with `local`, `accepts_nsfw`, `disclosure`, `blocked_reason`, `has_key`, `model_files` (ComfyUI); never a key |
+| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, reference_workflow?, unet_name?, clip_name?, clip_type?, vae_name?, cli_path?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
 | `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address needs the disclosure again |
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
 | `POST /api/images/backends/{id}/check` | `{ok, summary, details}`; spends no generation quota |
+| `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, options}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) |
+| `GET /api/images/model-links` | `{links: [{name, role, file, url, licence}]}`: download pages for the built-in workflow's files |
 | `POST /api/images/backends/{id}/unblock` | The user signed in to Codex again |
 | `POST /api/images/preview` | `{post_id, marked_nsfw?}`: the prompt, classification and route, without queuing |
 | `POST /api/images/jobs` | `{post_id, backend_id?, marked_nsfw?}`: queue a manual image |

@@ -20,6 +20,8 @@ HOSTED_DEFAULTS = {
 }
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
 CONFIG_KEYS = ('base_url', 'model', 'workflow', 'reference_workflow', 'cli_path', 'api_style')
+# ComfyUI only: the files chosen for the built-in workflow's loaders (see adapters/comfyui.py).
+FILE_KEYS = ('unet_name', 'clip_name', 'clip_type', 'vae_name')
 
 
 def credential_ref(backend_id: str) -> str:
@@ -77,6 +79,7 @@ def view(backend: dict) -> dict:
             'base_url': config.get('base_url', ''), 'model': config.get('model', ''),
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
             'custom_workflow': bool(config.get('workflow')),
+            'model_files': {key: config.get(key, '') for key in FILE_KEYS} if backend['kind'] == 'comfyui' else None,
             'reference_workflow': bool(config.get('reference_workflow')), 'takes_reference': takes_reference(backend),
             'has_key': backend['credential_ref'] is not None,
             'controlled_machine': bool(backend['controlled_machine']), 'concurrency': backend['concurrency'],
@@ -131,6 +134,12 @@ def merged_config(kind, provider, previous: dict, body) -> dict:
         value = getattr(body, key)
         if value is not None:
             config[key] = value.rstrip('/') if key == 'base_url' else value
+    for key in FILE_KEYS:
+        value = getattr(body, key)
+        if value is not None:
+            config[key] = value.strip()
+        if kind != 'comfyui' or not config.get(key):
+            config.pop(key, None)
     if kind != 'hosted':
         config.pop('api_style', None)
     return config
