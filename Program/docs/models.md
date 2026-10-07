@@ -27,7 +27,10 @@ contacts the service.
 the context size and longest reply from what the service reports; unreported limits stay manual,
 and nothing is guessed. Generation settings offer only the controls each adapter supports:
 sampling, reasoning effort, thinking mode and budget, chat-template thinking and the output-limit
-parameter, as in the Study. A saved key stays with its provider and address: changing either drops
+parameter, as in the Study. For Codex / ChatGPT, Test connection checks `codex login status`
+and then asks `codex app-server` for `model/list`, the models the signed-in ChatGPT plan can use, with
+the reasoning efforts each one reports. A CLI too old for `model/list` (or a failed call) gets a short
+fallback list of common Codex models instead, and the note under the button says which you are seeing. A saved key stays with its provider and address: changing either drops
 it from the vault rather than sending it somewhere new.
 
 Not copied from the Study: the LM Studio native protocol and its verified background interruption
