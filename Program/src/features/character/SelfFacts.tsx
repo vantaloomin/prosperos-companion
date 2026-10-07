@@ -30,7 +30,7 @@ export function SelfFacts({ name }: { name: string }) {
           {list.map((fact) => (
             <li key={fact.id}>
               <strong>{selfFactText(fact)}</strong>{fact.status === 'kept' && <span className="badge">kept</span>}
-              {fact.status === 'conflict' && <span className="badge">contradicts something they said earlier</span>}
+              {fact.status === 'conflict' && <span className="badge">{fact.circle_person ? `their circle has ${fact.circle_person}` : 'contradicts something they said earlier'}</span>}
               <br /><small className="subtle">"{fact.statement}"</small>
               <span className="form-actions">
                 {fact.status !== 'kept' && <button type="button" className="text-button" onClick={() => void decide(fact, true)}><Check aria-hidden="true" />{fact.status === 'conflict' ? 'Keep this one' : 'Keep'}</button>}

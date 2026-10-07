@@ -4,6 +4,7 @@ import json
 
 from conftest import send
 
+from companion.memory import context, corrected
 from companion.providers.chat import Chunk
 
 GARDENING = {'layer': 'user_fact', 'subject': "Mom's interests", 'value': 'she loves gardening'}
@@ -177,3 +178,58 @@ def test_a_model_fact_that_only_mentions_a_memory_is_saved_as_a_new_fact(client,
     assert suggestions(client) == []
     assert sorted(item['value'] for item in memories(client)) == ['she loves gardening',
                                                                   'tomatoes in the garden this summer']
+
+
+def test_a_home_said_to_be_untrue_is_dropped_not_kept_as_a_past(client, provider, connected, monkeypatch):
+    """"No, I don't live in Chicago" means it never was; ending it would invent a past in Chicago."""
+    monkeypatch.setattr(context, 'RECENT_MESSAGES', 2)
+    enable(client)
+    send(client, 'I live in Chicago', 'client-0001')
+    run(client)
+    [home] = memories(client)
+    send(client, "No, I don't live in Chicago", 'client-0002')
+    run(client)
+    [suggestion] = suggestions(client)
+    assert (suggestion['corrects'], suggestion['ends'], suggestion['retracts']) == (home['id'], False, True)
+    assert accept(client, suggestion)['outcome'] == 'retracted'
+    assert memories(client) == []
+    assert [(item['value'], item['status']) for item in memories(client, history=True)] == [('Chicago', 'superseded')]
+    send(client, 'Any good pizza in Chicago?', 'client-0003')
+    system = provider.requests[-1]['system']
+    assert f"I live in Chicago [the user later said this was wrong: {home['subject']}: Chicago]" in system
+    assert 'no longer current' not in system
+
+
+def test_recalled_words_of_a_corrected_memory_carry_the_correction(client, app, provider, connected, monkeypatch):
+    """The original message, the reply to it and a later reply repeating it can still be recalled; each says what
+    the user changed it to, so the old value isn't taken as current."""
+    monkeypatch.setattr(context, 'RECENT_MESSAGES', 2)
+    provider.replies += [[Chunk('Does she grow tomatoes?'), Chunk('', 'stop')],
+                         [Chunk('Nice.'), Chunk('', 'stop')],
+                         [Chunk('I bet her garden looks amazing this time of year'), Chunk('', 'stop')]]
+    told = send(client, 'My mom loves gardening', 'client-0001')['message']
+    remember(client, **GARDENING, source_message_ids=[told['id']])
+    send(client, 'Work was long today', 'client-0002')
+    send(client, 'The bus was late again', 'client-0003')
+    enable(client)
+    send(client, 'my mom is definitely not a gardener', 'client-0004')
+    run(client)
+    [suggestion] = suggestions(client)
+    accept(client, suggestion)
+    send(client, 'Did I ever tell you about gardening?', 'client-0005')
+    note = "the user later changed this; it now reads: Mom's interests: not a gardener"
+    assert f'My mom loves gardening [{note}]' in provider.requests[-1]['system']
+    with app.state.database.connect() as connection:
+        companion = connection.execute('SELECT * FROM companions').fetchone()
+        messages = [dict(row) for row in connection.execute('SELECT * FROM messages ORDER BY seq')]
+        marked = corrected.notes(connection, dict(companion), companion['active_timeline_id'], messages)
+    texts = {message['text']: marked.get(message['id']) for message in messages}
+    assert {text for text, found in texts.items() if found} == {
+        'My mom loves gardening', 'Does she grow tomatoes?', 'I bet her garden looks amazing this time of year'}
+    assert set(marked.values()) == {note}
+
+
+def test_a_day_summary_quoting_a_corrected_message_carries_the_correction():
+    marked = {'m1': 'the user later changed this'}
+    summaries = [{'id': 's1', 'source_message_ids': ['m0', 'm1']}, {'id': 's2', 'source_message_ids': ['m2']}]
+    assert corrected.summary_notes(summaries, marked) == {'s1': 'the user later changed this'}

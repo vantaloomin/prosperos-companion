@@ -183,7 +183,8 @@ def store(connection, companion, message, found, corrected, timestamp) -> int:
         return 0
     if target := correction(connection, companion, found, corrected, timestamp):
         fields = corrections.fields_for(target, found.value, current, found.excerpt,
-                                        ending=corrections.ends(target, found.value, current['text']))
+                                        ending=corrections.ends(target, found.value, current['text']),
+                                        retracting=corrections.retracts(target, found.value, current['text']))
         added = corrections.record(connection, companion, current, fields, 'model', PROMPT_VERSION, timestamp)
         if added:
             formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail=corrections.RULE)

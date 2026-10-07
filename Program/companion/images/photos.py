@@ -270,7 +270,8 @@ class ChatPhotos:
                 'label': shown['block']['label'], 'kind': shown['block']['kind'], 'until': until,
                 'rain': bool((composed.get('weather') or {}).get('rain')), 'timeline_id': timeline_id,
                 'ends_at': shown['ends_at'], 'activity': composed.get('activity'), 'block_kind': shown['block']['kind'],
-                'local_date': slot.local_date.isoformat(), 'weather': composed.get('weather') or shown['block'].get('weather')}
+                'local_date': slot.local_date.isoformat(), 'weather': composed.get('weather') or shown['block'].get('weather'),
+                'hour': now.astimezone(zone(version['timezone'])).hour, 'with': composed.get('with')}
 
     def post_for(self, timeline_id, key, occurs_at) -> dict:
         """The post a picture is made on, made once: for a moment, the one its event will join."""

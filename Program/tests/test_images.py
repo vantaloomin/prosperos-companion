@@ -925,3 +925,61 @@ def test_codex_timeout_stops_the_process(fake_codex, monkeypatch):
         with pytest.raises(asyncio.CancelledError):
             await task
     asyncio.run(scenario())
+
+
+def test_a_moment_with_its_own_outfit_leaves_the_usual_clothes_out():
+    """A Krea picture showed one black flat and one white sneaker: the appearance's usual work shoes and
+    the moment's outfit were both in the prompt."""
+    from companion.images import prompts
+    appearance = ('Shoulder-length honey-blonde hair with dark roots, freckles, and wire glasses. Usually wears '
+                  'black flats and a blazer to work, with a silver ring.')
+    kept = prompts.without_clothes(appearance)
+    assert 'flats' not in kept and 'blazer' not in kept
+    assert 'honey-blonde hair' in kept and 'freckles' in kept and 'glasses' in kept and 'silver ring' in kept
+    event = {'summary': 'Studied at the library', 'place': '', 'caption': '', 'mood': ''}
+    dressed = prompts.compose('Kim', appearance, [event], 'Candid phone photo, natural light.',
+                              'Wearing white sneakers and a green sweater.', dressed=True)
+    assert 'flats' not in dressed and 'white sneakers' in dressed and '..' not in dressed
+    plain = prompts.compose('Kim', appearance, [event], 'Candid phone photo, natural light.')
+    assert 'black flats' in plain and '..' not in plain
+
+
+def test_the_prompt_is_one_krea_style_paragraph_of_what_a_camera_can_see():
+    """Krea 2's guide (docs/prompting.md): medium first, the subject with what can be seen of them and what
+    they do, then the light and the camera. A name, backstory, caption or bare mood word gives it nothing to draw."""
+    from companion.images import prompts
+    appearance = ("Kimberly is a 32-year-old woman with long auburn hair, thin eyebrows she overplucked in college, "
+                  "and freckles. She has a faint scar on her chin from a derby fall. She looks like someone who never "
+                  "sleeps enough. Kimberly's smile is lopsided.")
+    event = {'summary': 'Kimberly studied at the library.', 'place': 'Enoch Pratt Library',
+             'caption': 'I am literally so locked in right now', 'mood': 'focused', 'hour': 16,
+             'weather': {'rain': True, 'high_f': 60}}
+    prompt = prompts.compose('Kimberly Smith', appearance, [event], 'Candid, natural-light photograph',
+                             'Wearing a grey hoodie.', dressed=True)
+    assert prompt.startswith('Candid, natural-light photograph of a fictional everyday moment.')
+    assert 'Kimberly' not in prompt and 'locked in' not in prompt and 'Mood:' not in prompt
+    assert 'in college' not in prompt and 'derby' not in prompt and 'looks like someone' not in prompt
+    assert 'faint scar on her chin' in prompt and 'Her smile is lopsided' in prompt
+    assert 'She is wearing a grey hoodie.' in prompt and 'She studied at the library at Enoch Pratt Library.' in prompt
+    assert 'focused, concentrating expression' in prompt and 'late-afternoon light' in prompt and 'rainy' in prompt
+    assert prompt.endswith('shallow depth of field.') and '..' not in prompt
+    painted = prompts.compose('Kimberly Smith', appearance, [event], 'Watercolour sketch')
+    assert 'phone camera' not in painted
+    assert prompts.pronoun('') == 'they' and prompts.pronoun('He has a beard.') == 'he'
+
+
+def test_the_action_is_the_activitys_present_tense_picture_line():
+    """A past-tense summary ("studied at the library") drew a selfie in the stacks; each activity has a
+    fixed line of what it looks like now. A corrected event keeps its own words."""
+    from companion.images import prompts
+    from companion.life import composer
+    event = {'summary': 'Kim studied at the library.', 'place': 'Enoch Pratt Library', 'caption': '', 'mood': '',
+             'activity': 'library', 'with': None}
+    prompt = prompts.compose('Kim', 'A woman with short hair.', [event], 'Candid photograph')
+    assert 'She is studying at a library table' in prompt and 'at Enoch Pratt Library.' in prompt
+    assert 'studied' not in prompt
+    dinner = prompts.compose('Kim', '', [{**event, 'activity': 'dinner', 'with': {'name': 'Tasha'}}], 'Candid photograph')
+    assert 'They are sitting at a restaurant table' in dinner and ', with a friend.' in dinner and 'Tasha' not in dinner
+    corrected = prompts.compose('Kim', '', [{**event, 'summary': 'Kim walked the dog instead.', 'revision': 2}], 'Photo')
+    assert 'walked the dog' in corrected
+    assert set(prompts.PICTURES) >= {item.key for group in composer.CATALOG.values() for item in group}

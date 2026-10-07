@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 from companion import texting
 from companion.characters import require_current
-from companion.database import identifier, many, one
+from companion.database import identifier, many, one, optional
 from companion.errors import require
 from companion.memory.extraction import CLAUSE_END, HYPOTHETICAL, NOT_THINGS, QUESTION_START, QUOTED, SENTENCE
 from companion.memory.people_rules import NOT_NAMES, RELATIONS
@@ -261,6 +261,32 @@ def contradiction(fact: Fact, current: list[dict]) -> dict | None:
     return None
 
 
+# The circle's roles for a relative: "parent" and "sibling" when it was built without city data or pronouns.
+FAMILY = {'mom': ('mom', 'parent'), 'mother': ('mom', 'parent'), 'dad': ('dad', 'parent'),
+          'father': ('dad', 'parent'), 'sister': ('sister', 'sibling'), 'brother': ('brother', 'sibling')}
+CIRCLE = 'circle:'
+
+
+def first_name(name: str) -> str:
+    return (name.split() or [''])[0].casefold()
+
+
+def family_clash(connection, timeline_id, fact: Fact, definition: dict) -> dict | None:
+    """The circle's mom, dad, sister or brother when a stated name matches none of the circle's people in that role.
+    The circle is what the companion's feed, diary and storylines are built from, so a new name for their mom
+    from one reply would otherwise sit beside Cathy in every later context. A name the definition gives is fine."""
+    if fact.category != 'person' or not (roles := FAMILY.get(fact.subject.split()[-1])):
+        return None
+    family = many(connection, "SELECT id, name FROM circle_people WHERE timeline_id=? AND role IN (?, ?) "
+                  "AND status='active' ORDER BY ordinal", (timeline_id, *roles))
+    if not family or first_name(fact.value) in {first_name(row['name']) for row in family}:
+        return None
+    written = ' '.join(str(value) for value in definition.values() if isinstance(value, str))
+    if re.search(rf"\b{re.escape(fact.value)}\b", written, re.IGNORECASE):
+        return None
+    return family[0]
+
+
 def note(connection, message: dict, timestamp: str) -> list[dict]:
     """Record what one completed companion message says about the character. Idempotent per message."""
     if message['role'] != 'companion' or message['status'] != 'complete':
@@ -273,6 +299,9 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
         if fact.key in known and known[fact.key]['value'].lower() == fact.value.lower():
             continue
         clash = contradiction(fact, current)
+        if clash is None and (relative := family_clash(connection, message['timeline_id'], fact,
+                                                       companion['version']['definition'])):
+            clash = {'id': f"{CIRCLE}{relative['id']}"}
         status = 'conflict' if clash else 'noted'
         row_id = identifier()
         inserted = connection.execute(
@@ -287,9 +316,15 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
     return added
 
 
-def view(row: dict) -> dict:
-    return {key: row[key] for key in ('id', 'message_id', 'category', 'subject', 'value', 'statement', 'status',
-                                      'conflicts_with', 'created_at', 'decided_at')} | {'label': LABELS[row['category']]}
+def view(row: dict, connection=None) -> dict:
+    result = {key: row[key] for key in ('id', 'message_id', 'category', 'subject', 'value', 'statement', 'status',
+                                        'conflicts_with', 'created_at', 'decided_at')} | {'label': LABELS[row['category']]}
+    if connection is not None and row['status'] == 'conflict' and (row['conflicts_with'] or '').startswith(CIRCLE):
+        person = optional(connection, 'SELECT name, role FROM circle_people WHERE id=?',
+                          (row['conflicts_with'].removeprefix(CIRCLE),))
+        if person:
+            result['circle_person'] = f"{person['role']} {person['name']}"
+    return result
 
 
 def listing(database) -> dict:
@@ -301,7 +336,7 @@ def listing(database) -> dict:
                          "WHERE self_facts.status='conflict' AND messages.timeline_id=? AND messages.active=1",
                          (timeline_id,))
         rows = [row for row in in_force(connection, timeline_id) if row['id'] in active] + conflicts
-        return {'facts': [view(row) for row in sorted(rows, key=lambda row: row['created_at'])]}
+        return {'facts': [view(row, connection) for row in sorted(rows, key=lambda row: row['created_at'])]}
 
 
 def decide(database, fact_id: str, keep: bool) -> dict:
