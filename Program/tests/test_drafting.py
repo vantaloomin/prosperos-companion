@@ -168,6 +168,8 @@ def test_every_template_placeholder_is_filled():
     filled = {'character-draft.md': {'rules', 'picks', 'city', 'careers', 'names', 'emotional'},
               'character-field.md': {'rules', 'character', 'city', 'emotional', 'field', 'field_guide', 'request',
                                      'field_shape'},
+              'character-split.md': {'rules', 'pasted', 'city', 'careers', 'names', 'emotional'},
+              'character-helper.md': {'rules', 'character', 'city', 'emotional', 'fields'},
               'character-repair.md': {'problem'}}
     for name, keys in filled.items():
         assert set(re.findall(r'\{\{(\w+)\}\}', drafting.template(name))) == keys, name
@@ -178,7 +180,8 @@ def test_every_template_placeholder_is_filled():
 def test_prompts_can_be_reworded_in_settings_and_reset(client, provider):
     listed = client.get('/api/prompts').json()
     assert [item['name'] for item in listed if item['group'] == 'Character drafting'] == [
-        'character-rules.md', 'character-draft.md', 'character-field.md', 'character-repair.md']
+        'character-rules.md', 'character-draft.md', 'character-field.md', 'character-split.md', 'character-helper.md',
+        'character-repair.md']
     rules = next(item for item in listed if item['name'] == 'character-rules.md')
     assert not rules['customized'] and rules['text'] == rules['default'] and rules['placeholders'] == []
     saved = client.put('/api/prompts/character-rules.md', json={'text': 'Make them a retired sailor.'}).json()

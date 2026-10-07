@@ -3,13 +3,15 @@
 These are the instructions the Companion sends to the configured text model when it helps
 create a character (see [docs/character-drafting.md](../../docs/character-drafting.md)).
 They are plain text so they can be read and tuned without touching code. Users can also
-reword the four `.md` prompts in Settings > Advanced (docs/prompts.md); their wording is stored in the workspace and wins
+reword the six `.md` prompts in Settings > Advanced (docs/prompts.md); their wording is stored in the workspace and wins
 over these files until they reset it.
 
 - `character-rules.md`: what a believable character looks like. Shared by every request.
 - `character-draft.md`: the quick start, which drafts a whole character as JSON.
 - `character-field.md`: rewrites one field of a character being edited, with each field's
   guide and JSON shape in `character-fields.json`.
+- `character-split.md`: splits a whole character the user pasted (or read from a card) into the fields.
+- `character-helper.md`: the character helper beside the form, whose replies propose field changes.
 - `character-repair.md`: the single retry when a draft came back unusable.
 
 `{{placeholder}}` marks are filled in by `companion/drafting.py`. Every placeholder a template

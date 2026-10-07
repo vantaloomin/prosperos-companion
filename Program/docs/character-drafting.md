@@ -27,6 +27,42 @@ change ("less polite", "she has a sister"), and `POST /api/companion/draft/field
 value written to fit the rest of the character as it stands in the form. **Put back what was
 there** restores the previous text. This works when creating and when editing a companion.
 
+## Pasting a character you already have
+
+Under the quick start, **Already have a character?** takes a whole character at once: notes, a
+bio, a scene, or a character card. **Open a character card** reads a SillyTavern-style card (JSON,
+or a PNG with the card embedded; V1, V2 and V3) or a `.txt`/`.md` file into the box, so the user
+sees exactly what will be sent before anything is. The card reader (`companion/imports/cards.py`,
+copied from Prospero's Study) keeps the name, description, personality, scenario, greeting, example
+messages, creator's notes and enabled lorebook entries, spells out `{{char}}` and `{{user}}`, and
+leaves out the card's own system prompts. Nothing is saved, no asset is fetched and no macro runs.
+
+**Split into fields** sends the text and the relationship pick to `POST /api/companion/draft/split`.
+One model call (the Character drafting job) moves each part of the text into the field it belongs
+in, keeping the user's facts, names and wording. Their character wins over the drafting guidance: a
+vampire stays a vampire. Fields the text says nothing about are filled in and listed, and the form
+opens with a notice naming them so the user knows what to check. If the text names a city in the
+catalogue (by name or a distinctive alias), that becomes the home city, with its timezone; otherwise
+the user's own clock and the text's own words for where they live are kept. A character younger
+than 18 is refused. The reply goes through the same checks as a quick-start draft below.
+
+## The character helper
+
+The character form has a **Character helper** beside it, after the Collaborator sidecar in
+Prospero's Study. It is open by default while creating a companion and can be closed or reopened;
+the choice is remembered in this browser. On narrow screens it sits above the form.
+
+The user can paste more about the character or ask for changes in plain words ("make her older",
+"he has a sister", "less formal"), or ask a question. Each message goes to
+`POST /api/companion/helper` with the form as it stands and the last few turns. The reply says what
+changed and proposes new values for named fields only: name, where they live, who they are,
+personality, voice, skills, flaws, interests, background, appearance, routine, life themes and the
+weekly routine. Each proposal shows before and after with **Apply** and **Dismiss**, and an applied
+change has **Undo**; **Apply all** applies a reply's changes in order. The relationship, home city
+and emotional traits are never changed by the helper. A long paste on a still-empty form is split
+as above instead, and offered as one "Fill the form from your character" proposal. Nothing is
+saved until the user saves the form. The conversation lasts while the app is open.
+
 ## Prompts
 
 The instructions sent to the model live in [`companion/prompts/`](../companion/prompts/) as
@@ -39,11 +75,13 @@ plain files, so they can be read and tuned without touching code:
   stock words, tropes and overused names to avoid.
 - `character-draft.md` asks for the whole character as one JSON object with the app's keys.
 - `character-field.md` and `character-fields.json` ask for one field.
+- `character-split.md` splits a pasted character into the fields.
+- `character-helper.md` is the character helper's conversation.
 - `character-repair.md` is the single retry.
 
 `PROMPT_VERSION` in `companion/drafting.py` names the shipped wording; each response reports it.
 
-With **Show advanced settings** on, Settings > **Advanced** lists the four `.md` prompts with the
+With **Show advanced settings** on, Settings > **Advanced** lists the six `.md` prompts with the
 app's other core prompts and lets the user reword them; see [prompts.md](prompts.md). The
 per-field guides in `character-fields.json` stay a shipped file.
 

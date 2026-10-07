@@ -114,6 +114,32 @@ class FieldDraftRequest(Input):
     request: str = Field(default='', max_length=500)
 
 
+class CharacterSplitRequest(Input):
+    """A whole character the user already has, pasted in, to be split into the form's fields."""
+    text: str = Field(min_length=1, max_length=40000)
+    relationship: Relationship = 'friendship'
+    timezone: str = Field(default='UTC', max_length=64)
+    emotional_edges: bool = False
+
+
+class CharacterCardFile(Input):
+    """A character card file (JSON or PNG) read into plain text for the paste box; nothing is saved."""
+    filename: str = Field(min_length=1, max_length=260)
+    data: str = Field(min_length=1, max_length=14_000_000)
+
+
+class HelperTurn(Input):
+    role: Literal['user', 'assistant']
+    content: str = Field(min_length=1, max_length=40000)
+
+
+class HelperRequest(Input):
+    """One message to the character helper beside the form, with the form as it stands."""
+    definition: dict
+    message: str = Field(min_length=1, max_length=40000)
+    history: list[HelperTurn] = Field(default_factory=list, max_length=12)
+
+
 class PromptUpdate(Input):
     text: str = Field(min_length=1, max_length=20000)
 

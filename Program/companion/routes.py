@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from companion import (
     backup,
     cast,
+    character_helper,
     characters,
     conversation,
     drafting,
@@ -22,18 +23,22 @@ from companion import (
     workspace,
 )
 from companion.identity import APP_ID, VERSION
+from companion.imports import cards
 from companion.memory import consolidation, formation, records
 from companion.models import (
     CastDraftRequest,
     CastFocus,
     CastSwitch,
+    CharacterCardFile,
     CharacterDefinition,
     CharacterDraftRequest,
     CharacterRevision,
+    CharacterSplitRequest,
     ConnectionUpdate,
     EventCorrection,
     EventProposal,
     FieldDraftRequest,
+    HelperRequest,
     MemoryCorrection,
     MemoryCreate,
     MemoryDelete,
@@ -118,6 +123,24 @@ async def draft_companion(request: Request, body: CharacterDraftRequest):
 @router.post('/companion/draft/field')
 async def draft_field(request: Request, body: FieldDraftRequest):
     return await drafting.redo_field(request.app.state, body)
+
+
+@router.post('/companion/draft/split')
+async def split_character(request: Request, body: CharacterSplitRequest):
+    """A whole pasted character split into the form's fields for review; nothing is saved."""
+    return await character_helper.split(request.app.state, body)
+
+
+@router.post('/companion/draft/card')
+def read_character_card(body: CharacterCardFile):
+    """A character card file's text, for the paste box to show before anything is sent to a model."""
+    return cards.read_card(body.filename, body.data)
+
+
+@router.post('/companion/helper')
+async def character_helper_message(request: Request, body: HelperRequest):
+    """One message to the character helper: a reply and proposed field changes, none of them saved."""
+    return await character_helper.chat(request.app.state, body)
 
 
 @router.get('/companion/cast')

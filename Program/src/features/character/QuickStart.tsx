@@ -7,12 +7,14 @@ import type { CharacterDefinition, CitySummary, Connection, Relationship } from 
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { RELATIONSHIPS, guessTimezone } from './definition'
+import { PasteCharacter } from './PasteCharacter'
+import type { SplitResult } from './helper'
 import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
 
-interface Props { onDraft: (definition: CharacterDefinition) => void; onManual: () => void; go: (view: View) => void }
+interface Props { onDraft: (definition: CharacterDefinition) => void; onSplit: (result: SplitResult) => void; onManual: () => void; go: (view: View) => void }
 
 /** A line or two and a few picks; the configured model drafts the rest for the form to review. */
-export function QuickStart({ onDraft, onManual, go }: Props) {
+export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   const [request, setRequest] = useState<DraftRequest>(() => emptyRequest(guessTimezone()))
   const [busy, setBusy] = useState(false)
@@ -31,7 +33,7 @@ export function QuickStart({ onDraft, onManual, go }: Props) {
     } finally { setBusy(false) }
   }
 
-  return (
+  return (<>
     <section className="quick-start" aria-labelledby="quick-start-title">
       <h2 id="quick-start-title"><Sparkles aria-hidden="true" />Start with an idea</h2>
       <p className="subtle">Describe them in a line or two and your text model drafts the rest: their job, week, skills, flaws and how they talk. Everything is optional, and you review the whole draft before anything is saved.</p>
@@ -53,7 +55,8 @@ export function QuickStart({ onDraft, onManual, go }: Props) {
         </div>
       </form>
     </section>
-  )
+    <PasteCharacter connected={connected} onSplit={onSplit} />
+  </>)
 }
 
 function Picks({ request, set }: { request: DraftRequest; set: (change: Partial<DraftRequest>) => void }) {

@@ -478,6 +478,48 @@ textarea { resize: vertical; line-height: 1.6; }
 .field-help.open input { flex: 1; min-width: 200px; }
 .field-help-error { flex-basis: 100%; margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .start-notice { max-width: 760px; margin-bottom: 20px; }
+.paste-character { margin-top: 20px; }
+.paste-character .text-button { align-self: flex-start; margin-top: -10px; }
+.paste-character .text-button svg, .helper-send .text-button svg { width: 15px; height: 15px; }
+/* The character helper: a sidecar after the Study's Collaborator dock (src/styles/collaborator.css at bbcbde4). */
+.helper-toggle { margin-bottom: 20px; }
+.helper-toggle svg { width: 16px; height: 16px; color: var(--accent); }
+.character-layout.with-helper { display: grid; grid-template-columns: minmax(0, 760px) minmax(300px, 380px); gap: 28px; align-items: start; }
+.character-helper { position: sticky; top: 0; display: flex; flex-direction: column; max-height: calc(100dvh - 80px); border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.character-helper > header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.character-helper h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; }
+.character-helper h2 svg { width: 17px; height: 17px; color: var(--accent); }
+.character-helper .icon-button svg { width: 18px; height: 18px; }
+.helper-transcript { flex: 1; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; padding: 16px; display: flex; flex-direction: column; gap: 22px; }
+.helper-welcome p { margin: 0 0 10px; font-size: 0.875rem; line-height: 1.65; }
+.helper-turn { display: flex; flex-direction: column; gap: 10px; overflow-wrap: anywhere; }
+.helper-turn > .button { align-self: flex-start; }
+.helper-message { align-self: flex-end; max-width: 92%; background: var(--accent-tint); border-radius: 9px 9px 2px 9px; padding: 10px 12px; font-size: 0.8125rem; line-height: 1.6; white-space: pre-wrap; }
+.helper-reply { margin: 0; font-size: 0.875rem; line-height: 1.65; white-space: pre-wrap; }
+.helper-proposal { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--canvas); font-size: 0.875rem; }
+.helper-proposal .eyebrow { margin: 0; }
+.helper-proposal .subtle { margin: 0; font-size: 0.8125rem; }
+.helper-proposal.dismissed { opacity: .65; }
+.helper-proposal.applied { border-color: var(--accent); }
+.helper-proposal summary { cursor: pointer; color: var(--muted); font-size: 0.8125rem; padding: 4px 0; }
+.helper-proposal .text-edit-comparison { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 6px; }
+.helper-actions { display: flex; align-items: center; gap: 12px; }
+.helper-actions .button { min-height: 34px; padding: 6px 13px; }
+.helper-actions .text-button svg { width: 14px; height: 14px; }
+.helper-composer { border-top: 1px solid var(--border); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.helper-composer textarea { width: 100%; min-height: 76px; max-height: 200px; font-size: 0.875rem; resize: vertical; }
+.helper-send { display: flex; align-items: center; justify-content: space-between; }
+.helper-send .send-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
+.helper-send .send-button:disabled { opacity: .45; }
+.helper-send .send-button svg { width: 18px; height: 18px; }
+.text-edit-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+.text-edit-comparison section { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.text-edit-comparison h4 { color: var(--muted); font-size: .75rem; margin: 0 0 8px; }
+.text-edit-comparison pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: .8125rem; line-height: 1.6; max-height: 240px; overflow-y: auto; }
+@media (max-width: 1180px) {
+  .character-layout.with-helper { grid-template-columns: minmax(0, 1fr); }
+  .character-helper { position: static; order: -1; max-height: 70dvh; max-width: 760px; }
+}
 .prompt-editor { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; }
 .prompt-editor > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9375rem; }
 .prompt-editor[open] > summary { margin-bottom: 14px; }

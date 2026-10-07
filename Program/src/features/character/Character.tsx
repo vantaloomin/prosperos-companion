@@ -8,6 +8,9 @@ import { Field, TextArea, TextInput } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, timezones } from './definition'
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
 import { FieldHelp } from './FieldHelp'
+import { splitReply } from './helper'
+import { HelperDock, HelperToggle } from './CharacterHelper'
+import { useHelperDock } from './useHelperDock'
 import { TextingFields } from './TextingFields'
 import { Home } from './Home'
 import { Wardrobe } from './Wardrobe'
@@ -21,18 +24,18 @@ import { StartOver } from './StartOver'
 import { Cast } from './Cast'
 import { TownSeed } from './TownSeed'
 
-export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number }
+export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
 
 export function Character({ companion, go }: { companion: Companion | null; go: (view: View) => void }) {
   const [saved, setSaved] = useState<number | null>(null)
   // A new companion starts with the quick start; the form then reviews the draft or starts empty.
   const [start, setStart] = useState<Start | null>(null)
-  const begin = (definition: CharacterDefinition, drafted: boolean) => setStart((current) => ({ definition, drafted, attempt: (current?.attempt ?? 0) + 1 }))
+  const begin = (definition: CharacterDefinition, drafted: boolean, split?: Start['split']) => setStart((current) => ({ definition, drafted, split, attempt: (current?.attempt ?? 0) + 1 }))
   if (!companion && !start) {
     return (
       <section className="page">
         <CharacterHeading companion={null} go={go} />
-        <QuickStart onDraft={(definition) => begin(definition, true)} onManual={() => begin(emptyDefinition(guessTimezone()), false)} go={go} />
+        <QuickStart onDraft={(definition) => begin(definition, true)} onSplit={(result) => begin(result.definition, true, { filledIn: result.filled_in, homeCity: result.home_city })} onManual={() => begin(emptyDefinition(guessTimezone()), false)} go={go} />
       </section>
     )
   }
@@ -60,6 +63,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
   const chrome = formChrome(companion, start, create, go, onRestart)
   const cleaned = () => cleanDefinition(definition, texts.interests, texts.themes, texts)
   // Rewriting one field with the text model, when one is connected.
+  const dock = useHelperDock(!!connection.data, !companion)
   const help = (field: DraftField, label: string): ReactNode => connection.data
     ? <FieldHelp field={field} label={label} definition={cleaned} current={fieldValue(form, field)} apply={(value) => setForm((current) => withField(current, field, value))} />
     : null
@@ -85,6 +89,8 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
     <section className="page">
       {chrome.heading}
       {chrome.notice && <div className="start-notice">{chrome.notice}</div>}
+      <HelperToggle dock={dock} />
+      <div className={dock.layout}>
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
           <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} hint="What they go by. Their family shares the last name." />
@@ -129,6 +135,8 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
           <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{chrome.label}</button>
         </div>
       </form>
+      <HelperDock dock={dock} conversation={companion?.id} form={form} setForm={setForm} definition={cleaned} />
+      </div>
       {companion && <>
         <Home name={companion.version.name} />
         <Wardrobe name={companion.version.name} />
@@ -147,7 +155,7 @@ function formChrome(companion: Companion | null, start: Start | null, create: Fo
   if (create) return { heading: create.heading, notice: create.notice, label: create.label }
   return {
     heading: <CharacterHeading companion={companion} go={go} />,
-    notice: companion ? null : <StartNotice drafted={!!start?.drafted} onRestart={onRestart} />,
+    notice: companion ? null : <StartNotice start={start} onRestart={onRestart} />,
     label: companion ? 'Save new version' : 'Create companion',
   }
 }
@@ -170,8 +178,11 @@ function savedNow(saved: number | null, companion: Companion | null): number | n
   return saved !== null && saved === companion?.version.number ? saved : null
 }
 
-function StartNotice({ drafted, onRestart }: { drafted: boolean; onRestart: () => void }) {
-  if (drafted) {
+function StartNotice({ start, onRestart }: { start: Start | null; onRestart: () => void }) {
+  if (start?.split) {
+    return <Notice action={<button type="button" className="text-button" onClick={onRestart}>Start over</button>}>{splitReply({ definition: start.definition, filled_in: start.split.filledIn, home_city: start.split.homeCity })} Change anything you like; nothing is saved until you create the companion.</Notice>
+  }
+  if (start?.drafted) {
     return <Notice action={<button type="button" className="text-button" onClick={onRestart}>Start over</button>}>This is a draft from your text model. Read it through and change anything you like; nothing is saved until you create the companion.</Notice>
   }
   return <p className="subtle"><button type="button" className="text-button inline" onClick={onRestart}>Back to the quick start</button></p>
