@@ -38,6 +38,8 @@ JOBS = [
     {'key': 'vision', 'name': 'Seeing pictures', 'detail': 'Describes pictures you send, once, so the companion '
      'sees them. Needs a model that can look at images, such as GPT-4o, Claude, Gemini, or a vision model in LM '
      'Studio or Ollama.'},
+    {'key': 'story', 'name': 'Story narrator', 'detail': 'Tells your story in the Story tab, apart from the '
+     'companion.'},
     {'key': 'recall', 'name': 'Semantic recall', 'detail': "Embeddings that find related memories. Uses the profile's "
      'embedding model; without one, recall matches keywords only.'},
 ]

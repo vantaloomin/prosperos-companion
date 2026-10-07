@@ -1246,3 +1246,26 @@ CREATE TABLE IF NOT EXISTS companion_plans (
   UNIQUE (message_id, local_date)
 );
 CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id);
+
+-- Story mode (companion/story.py): the user's own free-form story with a narrator, apart from every
+-- companion. One scene (where the user is) and its history; no companion prompt ever reads them.
+CREATE TABLE IF NOT EXISTS story_scene (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS story_messages (
+  id TEXT PRIMARY KEY,
+  seq INTEGER NOT NULL UNIQUE,
+  role TEXT NOT NULL CHECK (role IN ('user', 'narrator', 'scene')),
+  text TEXT NOT NULL,
+  client_id TEXT UNIQUE,
+  reply_to TEXT,
+  status TEXT NOT NULL DEFAULT 'complete' CHECK (status IN ('complete', 'failed')),
+  error TEXT,
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
