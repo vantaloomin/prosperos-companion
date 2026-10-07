@@ -66,6 +66,17 @@ def test_other_questions_do_not(text):
     assert not asks_for_photo(text)
 
 
+def test_the_pictured_moment_is_the_one_the_agenda_holds(client, life, app):
+    """A photo composes the slot from the agenda, so the event written later (a birthday outing
+    with a friend, say) is the same moment the picture shows."""
+    local_comfy(client)
+    photo = ask(client)['photo']
+    with app.state.database.connect() as connection:
+        rows = connection.execute("SELECT entry FROM life_agenda WHERE subject='companion' AND entry IS NOT NULL "
+                                  'AND starts_at<=? AND ends_at>?', (app.state.database.now(),) * 2).fetchall()
+    assert rows and photo['summary']
+
+
 def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, clock, provider, adapters, monkeypatch):
     # A cold seeded by the companion's random id would turn the pictured moment into a sick day.
     monkeypatch.setattr('companion.life.body.COLD_CHANCE', {'winter': 0, 'other': 0})

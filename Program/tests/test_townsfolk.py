@@ -194,3 +194,9 @@ def test_replies_build_their_context_with_townsfolk_on(client, clock, chatty):
     preview = client.get('/api/context/preview')
     assert preview.status_code == 200, preview.text
     assert 'townsfolk' in preview.text, preview.json().keys()
+
+
+def test_no_baltimore_resident_teaches_surfing():
+    data = catalog.city('baltimore')
+    jobs = {townsfolk._occupation(data, f'resident-{n}', 30) for n in range(2000)}
+    assert 'surf instructor' not in jobs and len(jobs) > 20

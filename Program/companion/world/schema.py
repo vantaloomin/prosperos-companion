@@ -173,6 +173,8 @@ class Career(Record):
     themes: list[str] = Field(min_length=1, max_length=8)
     # Settings this career belongs to; a city offers the shared careers of its era plus its own.
     eras: list[Era] = Field(default_factory=lambda: ['modern'], min_length=1)
+    # Place kinds the work needs; a city with none of them and no employer for it doesn't offer it.
+    needs: list[Id] = Field(default_factory=list, max_length=4)
 
 
 class Currency(Record):

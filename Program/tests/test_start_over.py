@@ -73,6 +73,13 @@ def test_the_confirmation_needs_the_companions_name(client, connected):
     assert not (client.app.state.database.path.parent / 'backups').exists()
 
 
+def test_the_count_includes_her_replies(client, connected):
+    send(client, 'Morning!', 'client-0001')
+    roles = [message['role'] for message in ok(client.get('/api/conversation'))['messages']]
+    assert roles.count('companion') >= 1
+    assert ok(client.get('/api/companion/start-over'))['messages'] == len(roles)
+
+
 def test_starting_over_keeps_the_character_and_clears_their_history(client, app, life, clock):
     _job, reference = lived(client, clock)
     before = ok(client.get('/api/companion'))['companion']

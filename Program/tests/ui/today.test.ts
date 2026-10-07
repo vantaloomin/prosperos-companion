@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { bodyText, moodText, pauseToFill, recommendationText } from '../../src/features/today/todayText.ts'
+import { bodyText, changesEmpty, moodText, pauseToFill, recommendationText } from '../../src/features/today/todayText.ts'
 
 test('the mood names its cause and the traits behind it', () => {
   const text = moodText({ id: 'm', kind: 'absence', intensity: 'moderate', away_hours: 72, traits: ['guilt over absence'], expires_at: '' }, 'Mira')
@@ -40,4 +40,10 @@ test('occasions read as a friend would say them', async () => {
   assert.equal(occasionText({ ...base, kind: 'user_birthday', days: 2 }, 'Mira'), 'Your birthday is in 2 days.')
   assert.equal(occasionText({ ...base, kind: 'own_birthday', days: 0 }, 'Mira'), "It is Mira's birthday today.")
   assert.equal(occasionText({ ...base, kind: 'anniversary', days: 0, span: 'three months' }, 'Mira'), "It's been three months since you two started talking.")
+})
+
+test('an empty "since you were last here" points at what is waiting', () => {
+  assert.equal(changesEmpty('Mira', 0), "Nothing new in Mira's life yet. Quiet stretches are normal.")
+  assert.equal(changesEmpty('Mira', 1), '1 thing is waiting for you above. What you keep shows up here.')
+  assert.equal(changesEmpty('Mira', 3), '3 things are waiting for you above. What you keep shows up here.')
 })
