@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Pencil, PlugZap, Trash2 } from 'lucide-react'
+import { Check, Copy, Pencil, PlugZap, Trash2 } from 'lucide-react'
 import { api } from '../../../api'
 import { Notice } from '../../../components/Feedback'
 import { useReturnFocus } from '../../../components/returnFocus'
@@ -106,6 +106,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
   const [check, setCheck] = useState<{ count: number; note?: string } | null>(null)
   const run = async (work: () => Promise<void>) => { setBusy(true); try { await work() } catch (error) { setResult({ tone: 'error', text: failure(error, 'That did not work.') }) } finally { setBusy(false) } }
   const verify = () => run(async () => { setCheck(null); const found = await api<{ models: string[]; note?: string }>(`/models/profiles/${profile.id}/check`, {}); setCheck({ count: found.models.length, note: found.note }) })
+  const copy = () => run(async () => { const made = await api<ModelProfile>(`/models/profiles/${profile.id}/duplicate`, {}); onChanged(); setResult({ tone: 'info', text: `${made.name} added. Edit it to change what differs.` }) })
   const remove = () => {
     if (!window.confirm(`Delete ${profile.name}? Its saved key is removed from your keychain${jobs.length ? ', and its jobs go back to the conversation profile' : ''}.`)) return
     void run(async () => { onChanged(await api<ModelsOverview>(`/models/profiles/${profile.id}`, undefined, 'DELETE')); setResult({ tone: 'info', text: `${profile.name} deleted.` }) })
@@ -120,6 +121,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
     <div className="form-actions">
       <button type="button" className="button" onClick={() => void verify()} disabled={busy}><PlugZap size={15} aria-hidden="true" />{busy ? 'Checking…' : 'Check connection'}</button>
       <button type="button" className="button" onClick={onEdit} aria-label={`Edit ${profile.name}`}><Pencil size={15} aria-hidden="true" />Edit</button>
+      <button type="button" className="button" onClick={() => void copy()} disabled={busy} aria-label={`Duplicate ${profile.name}`}><Copy size={15} aria-hidden="true" />Duplicate</button>
       <button type="button" className="button" onClick={remove} disabled={busy} aria-label={`Delete ${profile.name}`}><Trash2 size={15} aria-hidden="true" />Delete</button>
     </div>
   </li>

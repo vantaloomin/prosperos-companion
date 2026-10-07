@@ -162,6 +162,8 @@ def update(database, vault, profile_id: str, body: ProfileUpdate) -> dict:
         current = profile_row(connection, profile_id)
     require(current['revision'] == body.expected_revision, 'This profile changed. Reopen it and try again.', 409)
     kept = current['credential_ref'] if same_connection(decode(current['config']), config) else None
+    if kept and body.api_key and shared(database, kept, profile_id):
+        kept = None  # A new key for this profile never replaces the one a copy shares.
     reference = store_key(vault, body, kept)
     with database.connect(write=True) as connection:
         row = profile_row(connection, profile_id)
@@ -195,6 +197,27 @@ def delete(database, vault, profile_id: str) -> dict:
     if row['credential_ref']:
         release(database, vault, row['credential_ref'])
     return result
+
+
+def duplicate(database, profile_id: str) -> dict:
+    """A copy of a profile, named "… copy", sharing its saved key. Jobs stay with the original."""
+    with database.connect(write=True) as connection:
+        row = profile_row(connection, profile_id)
+        names = {item['name'] for item in many(connection, 'SELECT name FROM model_profiles')}
+        name, number = f"{row['name']} copy"[:120], 2
+        while name in names:
+            name, number = f"{row['name']} copy {number}"[:120], number + 1
+        copy_id, timestamp = identifier(), database.now()
+        connection.execute('INSERT INTO model_profiles (id, name, config, credential_ref, revision, created_at, '
+                           'updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
+                           (copy_id, name, row['config'], row['credential_ref'], timestamp, timestamp))
+        return profile_view(profile_row(connection, copy_id))
+
+
+def shared(database, reference: str, profile_id: str) -> bool:
+    with database.connect() as connection:
+        return optional(connection, 'SELECT 1 FROM model_profiles WHERE credential_ref=? AND id<>? LIMIT 1',
+                        (reference, profile_id)) is not None
 
 
 def release(database, vault, reference: str):
@@ -361,5 +384,5 @@ def quick_save(database, vault, body) -> dict:
         return connection_summary(connection)
 
 
-__all__ = ['CHAT', 'DEFAULT_URLS', 'JOBS', 'adopt_legacy', 'split_recall', 'config_for', 'connection_summary', 'create', 'delete',
+__all__ = ['CHAT', 'DEFAULT_URLS', 'JOBS', 'adopt_legacy', 'split_recall', 'config_for', 'connection_summary', 'create', 'delete', 'duplicate',
            'key_for', 'overview', 'probe_key', 'quick_save', 'set_route', 'update']

@@ -301,3 +301,21 @@ def test_testing_a_form_lists_models_with_their_reported_limits(tmp_path, clock)
         client.post('/api/models/discover', json={'config': {'provider': 'openrouter'}, 'profile_id': profile['id']})
         assert seen['auth'] == 'Bearer saved'
         assert client.post(f"/api/models/profiles/{profile['id']}/check").status_code == 200
+
+
+def test_duplicating_a_profile_copies_its_settings_and_key_but_not_its_jobs(client, app):
+    local = add(client, LOCAL)
+    claude = add(client, {**ANTHROPIC, 'temperature': 0.4}, name='Claude', api_key='sk-ant')
+    client.put('/api/models/routes', json={'job': 'drafting', 'profile_id': claude['id']})
+    copy = client.post(f"/api/models/profiles/{claude['id']}/duplicate")
+    assert copy.status_code == 201
+    copy = copy.json()
+    assert copy['name'] == 'Claude copy' and copy['config'] == claude['config'] and copy['has_saved_key']
+    assert client.post(f"/api/models/profiles/{claude['id']}/duplicate").json()['name'] == 'Claude copy 2'
+    assert client.get('/api/models').json()['routes'] == {'chat': local['id'], 'drafting': claude['id']}
+    # A new key on the copy leaves the original's alone; deleting one keeps the other's key.
+    client.put(f"/api/models/profiles/{copy['id']}", json={'name': 'Claude copy', 'config': copy['config'],
+                                                          'api_key': 'sk-other', 'expected_revision': 1})
+    client.delete(f"/api/models/profiles/{copy['id']}")
+    with app.state.database.connect() as connection:
+        assert text_models.key_for(app.state.vault, text_models.config_for(connection, 'drafting')) == 'sk-ant'

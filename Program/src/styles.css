@@ -592,6 +592,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .model-profiles { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; max-width: 760px; }
 .model-profile { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .model-profile h3 { margin: 2px 0 4px; }
+.model-profile .form-actions { flex-wrap: wrap; }
 .model-jobs { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: 0.8125rem; margin-top: 6px; }
 .model-profile-editor { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .provider-picker { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
