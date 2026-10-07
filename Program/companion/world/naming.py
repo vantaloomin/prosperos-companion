@@ -15,8 +15,6 @@ from companion.world.schema import GivenNames
 
 # Where no city is known, names come from the modern bank as an American city would mix them.
 DEFAULT_CITY = {'id': '', 'era': 'modern', 'country': 'United States', 'names': None}
-# Eras whose people were born in years the lists cover (later years use the latest cohort).
-COHORT_ERAS = ('modern', 'future', 'other')
 # How far either side of the target birth year a name may come from, so peers don't all share one year's list.
 SPREAD = 3
 WORD = re.compile(r"[A-Z][A-Za-z'’-]+")
@@ -28,8 +26,13 @@ def data() -> dict:
     return GivenNames.model_validate_json(text).model_dump()
 
 
-def present_year() -> int:
-    return data()['present_year']
+def present_year(city: dict | None = None) -> int | None:
+    """The year ages count back from: the city's own, else its era's. None for an era without birth-year lists
+    (medieval, fantasy), where names come from the bank's own lists."""
+    if city is None:
+        return data()['present_year']
+    own = (city.get('names') or {}).get('year')
+    return own or data()['era_years'].get(city.get('era', 'modern'))
 
 
 def culture(key: str) -> dict:
@@ -42,8 +45,9 @@ def local_culture(country: str | None) -> str:
 
 
 def links(group: dict, city: dict) -> dict[str, float]:
-    """The cultures a name group draws given names from in this city, with weights. Empty outside modern eras."""
-    if city.get('era', 'modern') not in COHORT_ERAS:
+    """The cultures a name group draws given names from in this city, with weights. Empty for eras without
+    birth-year lists."""
+    if present_year(city) is None:
         return {}
     local, known = local_culture(city.get('country')), data()['cultures']
     weights: dict[str, float] = {}
@@ -74,17 +78,54 @@ def invented() -> frozenset[str]:
     return frozenset(word.casefold() for word in [*names['given'], *names['family']])
 
 
+# Shapes language models reach for when they coin a name: fantasy beginnings (Kael-, Vael-, Lyr-, Zeph-) and
+# endings (-yra, -ithra), and evocative compounds for family names (Ravencrest, Duskwhisper, Stormvale).
+COINED_GIVEN = re.compile(r'^(kael|vael|vaer|cael|lyr(a|ae|e)|zeph|nyx|vex|seraph|sylv[aei]r|elys|elar|eryn|vey|xyl|'
+                          r'thal[aeiou]r|aeri|aeryn|ael)|(yra|yrin|ithra|ara?th|ys{2})$', re.I)
+COINED_FAMILY = re.compile(r'^(raven|shadow|storm|night|moon|star|dusk|dawn|silver|frost|ember|thorn|wolf|black|'
+                           r'iron|ash|winter|bright|grim|hollow|mist|sun)(wood|crest|vale|fall|mere|bane|wind|whisper|'
+                           r'shade|heart|blade|song|fire|forge|thorne?|weaver|hollow|ridge|veil|born|walker|helm|'
+                           r'shadow|mantle|ward|haven)$', re.I)
+# Ordinary words that can start a sentence and happen to fit a shape above.
+NOT_NAMES = re.compile(r'(ed|ing|ly|less|ness|ful)$', re.I)
+
+
+@cache
+def known() -> frozenset[str]:
+    """Every word of every name in the shipped lists: real names, however unusual, are never flagged."""
+    words = set()
+    for item in data()['cultures'].values():
+        for cohort in item['cohorts']:
+            words.update(word for name in [*cohort['feminine'], *cohort['masculine']] for word in name.split())
+        words.update(word for name in item['surnames'] for word in name.split())
+    for bank in catalog.names()['banks'].values():
+        for group in bank.values():
+            for key in ('feminine', 'masculine', 'neutral', 'family'):
+                words.update(word for name in group[key] for word in name.split())
+    return frozenset(word.casefold() for word in words)
+
+
+def coined(word: str) -> bool:
+    """Whether a capitalised word reads as invented: on the list, or shaped like a model-made name and found in
+    none of the real name lists."""
+    folded = word.casefold()
+    if folded in invented():
+        return True
+    if folded in known() or NOT_NAMES.search(word):
+        return False
+    return bool(COINED_GIVEN.search(word) or COINED_FAMILY.search(word))
+
+
 def is_invented(name: str) -> bool:
-    """Whether any word of a name reads as invented (Elara, Voss, Vex)."""
-    return any(word.casefold() in invented() for word in WORD.findall(name or ''))
+    """Whether any word of a name reads as invented (Elara, Voss, Vex, Vaeryn Duskmere)."""
+    return any(coined(word) for word in WORD.findall(name or ''))
 
 
 def invented_in(text: str, allowed: str = '') -> list[str]:
     """Capitalised words in a model's text that read as invented names, except ones in `allowed` (what the
     user typed and the world data), in order of first use."""
     permitted = {word.casefold() for word in WORD.findall(allowed or '')}
-    found = [word for word in WORD.findall(text or '')
-             if word.casefold() in invented() and word.casefold() not in permitted]
+    found = [word for word in WORD.findall(text or '') if word.casefold() not in permitted and coined(word)]
     return list(dict.fromkeys(found))
 
 

@@ -1,4 +1,4 @@
-"""Rewrite name_sources/us.txt: the US Social Security top 100 given names for each birth year 1920–2008.
+"""Rewrite name_sources/us.txt: the US Social Security top 100 given names for each birth year 1880–2008.
 
 Reads the SSA's national baby-name tables (public domain) as mirrored in Hadley Wickham's data-baby-names
 repository, which holds each year's top 1000 names by sex up to 2008. The official download
@@ -13,7 +13,7 @@ from pathlib import Path
 
 URL = 'https://raw.githubusercontent.com/hadley/data-baby-names/master/baby-names.csv'
 OUT = Path(__file__).resolve().parent / 'name_sources' / 'us.txt'
-FIRST, LAST, TOP = 1920, 2008, 100
+FIRST, LAST, TOP = 1880, 2008, 100
 
 HEADER = """# id: us
 # name: United States

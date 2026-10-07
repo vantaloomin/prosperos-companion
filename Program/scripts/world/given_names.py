@@ -15,6 +15,10 @@ SOURCES = HERE / 'name_sources'
 OUT = HERE.parents[1] / 'companion' / 'world' / 'data' / 'given_names.json'
 RETRIEVED = '2026-10-05'
 PRESENT_YEAR = 2026
+# The year each era's present day is set in; a city may set its own `names.year`. Eras missing here
+# (medieval, fantasy) have no birth-year lists and use their banks' own names.
+ERA_YEARS = {'modern': PRESENT_YEAR, 'other': PRESENT_YEAR, 'future': 2077, 'victorian': 1895, 'steampunk': 1890,
+             'frontier': 1885}
 LINE = re.compile(r'^(\d{4})(s|-(\d{4}))?\s+([FM]):\s*(.*)$')
 
 # Where a city's country has its own culture here, its residents' `local` names come from it; elsewhere
@@ -22,7 +26,7 @@ LINE = re.compile(r'^(\d{4})(s|-(\d{4}))?\s+([FM]):\s*(.*)$')
 COUNTRIES = {
     'united states': 'us', 'united states of america': 'us', 'usa': 'us', 'us': 'us', 'canada': 'us',
     'united kingdom': 'england-wales', 'uk': 'england-wales', 'great britain': 'england-wales',
-    'england': 'england-wales', 'wales': 'england-wales', 'scotland': 'england-wales',
+    'england': 'england-wales', 'wales': 'england-wales', 'scotland': 'scotland',
     'australia': 'england-wales', 'new zealand': 'england-wales',
     'ireland': 'ireland', 'italy': 'italy', 'mexico': 'mexico', 'spain': 'spain', 'germany': 'germany',
     'austria': 'germany', 'france': 'france', 'belgium': 'france', 'poland': 'poland', 'russia': 'russia',
@@ -91,7 +95,7 @@ def build() -> dict:
             known['cohorts'] = sorted(known['cohorts'] + culture['cohorts'], key=lambda item: item['start'])
         else:
             cultures[key] = culture
-    return {'schema_version': 1, 'present_year': PRESENT_YEAR, 'cultures': cultures,
+    return {'schema_version': 1, 'present_year': PRESENT_YEAR, 'era_years': ERA_YEARS, 'cultures': cultures,
             'countries': {country: key for country, key in COUNTRIES.items() if key in cultures},
             'invented': invented()}
 
