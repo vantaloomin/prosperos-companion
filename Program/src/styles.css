@@ -1,7 +1,9 @@
 /* Palette, type scale and focus treatment follow prosperos-study src/styles.css at bbcbde4. */
 :root { font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #ede5d6; background: #191816; color-scheme: dark; font-synthesis: none; -webkit-font-smoothing: antialiased;
   --canvas: #191816; --surface: #201f1c; --raised: #292722; --border: #37342e; --text: #ede5d6; --muted: #b0a99b; --faint: #968e80;
-  --accent: #c5a46d; --accent-hover: #d7b984; --accent-tint: #302a20; --on-accent: #211c14; --danger: #e9b8aa; --danger-tint: #98655822; }
+  --accent: #c5a46d; --accent-hover: #d7b984; --accent-tint: #302a20; --on-accent: #211c14; --danger: #e9b8aa; --danger-tint: #98655822;
+  /* The least space between blocks stacked down a page, so panels never sit flush. */
+  --stack-gap: 16px; }
 * { box-sizing: border-box; }
 body { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -52,6 +54,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .notice-error { color: var(--danger); border-color: #98655866; background: var(--danger-tint); }
 
 .page { flex: 1; overflow-y: auto; padding: 32px 40px 48px; }
+/* Each block after the first starts at least --stack-gap below the one above. Margins collapse, so a block's own larger margin still wins; set only margin-bottom on page-level blocks so this top margin stays. Settings sections already part with a rule and padding. */
+.page > :where(* + *:not(.settings-section)) { margin-top: var(--stack-gap); }
 .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .placeholder-text { max-width: 560px; font-size: 0.9375rem; }
 .welcome { margin: auto; max-width: 520px; padding: 40px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 18px; }
@@ -119,6 +123,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .story-note { font-family: 'Literata', Georgia, serif; font-size: 0.875rem; color: var(--muted); font-style: italic; }
 .story-empty { text-align: center; margin-top: 24px; }
 .story-notice, .story-footer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
+.story-notice { padding-top: 12px; }
 .story-footer { padding-bottom: 16px; }
 /* The dating app (src/features/dating): one card at a time; older eras show a newspaper notice. */
 .dating-setup { max-width: 520px; }
@@ -349,7 +354,7 @@ textarea { resize: vertical; line-height: 1.6; }
 }
 
 /* What the next reply uses */
-.context-receipt { margin: 0 0 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.context-receipt { margin-bottom: 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .context-receipt > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
 .receipt-body { padding: 0 16px 16px; display: grid; gap: 12px; }
 .receipt-meter { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; }
