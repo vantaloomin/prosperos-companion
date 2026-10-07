@@ -9,6 +9,7 @@ export function ChatStyleSettings() {
   const chat = useChatStyle()
   const [error, setError] = useState<string | null>(null)
   const name = useId()
+  const retro = chat.style === 'retro'
   const save = async (change: Parameters<typeof chat.save>[0]) => setError(await chat.save(change))
   return (
     <section className="settings-section form-stack" aria-labelledby="appearance-heading">
@@ -26,10 +27,16 @@ export function ChatStyleSettings() {
           </label>
         ))}
       </fieldset>
-      <Toggle label="Retro IM sounds" checked={chat.soundsSetting} onChange={(checked) => void save({ chat_sounds: checked })}
-        hint="A chime for each new reply. Only in the Retro IM style." />
-      <Toggle label="Retro IM dark mode" checked={chat.retroDarkSetting} onChange={(checked) => void save({ chat_retro_dark: checked })}
-        hint="A dark version of the messenger window. Only in the Retro IM style." />
+      {/* Both panels share one grid cell, so the area keeps the taller one's height and the page never jumps when the style changes. */}
+      <div className="chat-style-extras">
+        <div className="chat-style-extras-panel" hidden={!retro} inert={!retro}>
+          <Toggle label="Retro IM sounds" checked={chat.soundsSetting} onChange={(checked) => void save({ chat_sounds: checked })}
+            hint="A chime for each new reply." />
+          <Toggle label="Retro IM dark mode" checked={chat.retroDarkSetting} onChange={(checked) => void save({ chat_retro_dark: checked })}
+            hint="A dark version of the messenger window." />
+        </div>
+        <p className="chat-style-extras-panel subtle" hidden={retro}>No extra options for this style.</p>
+      </div>
     </section>
   )
 }
