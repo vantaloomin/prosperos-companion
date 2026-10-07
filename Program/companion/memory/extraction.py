@@ -64,6 +64,7 @@ TEMPORARY = r'(tired|exhausted|sick|ill|unwell|busy|stressed|swamped|overwhelmed
             r'on holiday|on vacation|off work|working late|in a rush|sleepy|hungover|sad|down|happy|excited|nervous)'
 # "I work nights as a nurse": when they work, between "work" and the job.
 SHIFTS = r'(?:nights|days|evenings|mornings|weekends|shifts|part[- ]time|full[- ]time|from home|remotely)'
+PRONOUN_CLAUSE = re.compile(r',?\s+and\s+(?=(?:he|she|they)\b)', re.IGNORECASE)
 RELATIONS = r'(sister|brother|mum|mom|mother|dad|father|partner|wife|husband|girlfriend|boyfriend|son|' \
             r'daughter|best friend|roommate|flatmate|boss|cat|dog|rabbit|parrot|hamster)'
 
@@ -341,8 +342,12 @@ def extract(text: str, stated: datetime, timezone: str, people: dict | None = No
     found, seen, previous = [], set(), None
     for sentence in sentences(text):
         statement = Statement(sentence, stated, timezone)
-        about_people, previous = people_rules.scan(sentence, people or {}, previous,
-                                                   tuple(name.casefold() for name in exclude))
+        about_people = []
+        # "My cat is Biscuit and she hates the vacuum": the clause after "and she" is about the same one.
+        for clause in PRONOUN_CLAUSE.split(sentence):
+            found_here, previous = people_rules.scan(clause, people or {}, previous,
+                                                     tuple(name.casefold() for name in exclude))
+            about_people += found_here
         candidates = [candidate for rule in RULES for candidate in rule(statement)]
         candidates += [person_candidate(item, sentence) for item in about_people]
         for candidate in candidates:
