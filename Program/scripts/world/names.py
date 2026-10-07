@@ -38,87 +38,174 @@ CULTURES = {
 
 
 MODERN = {
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically): most common surnames in rank order, skipping majority-Hispanic, majority-Asian and majority-Black names
     'anglo': group(
-        'Emily Sarah Jessica Megan Lauren Hannah Abigail Rachel Katherine Molly Claire Allison Heather Amanda Erin '
-        'Caroline Madison Paige Natalie Brooke',
+        'Emily Sarah Jessica Megan Lauren Hannah Abigail Rachel Katherine Molly Claire Allison Heather Amanda '
+        'Erin Caroline Madison Paige Natalie Brooke',
         'Michael Matthew Ryan Andrew Tyler Kyle Brian Justin Jacob Benjamin Nathan Zachary Travis Cody Luke '
         'Daniel Adam Scott Colin Garrett',
         'Jordan Taylor Morgan Casey Riley Avery Quinn Parker',
-        'Smith Johnson Miller Davis Wilson Anderson Taylor Thomas Moore Martin Thompson White Clark Lewis Walker '
-        'Hall Allen Young King Wright Hill Green Baker Adams Nelson Carter Mitchell Roberts Turner Phillips Campbell '
-        'Parker Evans Edwards Collins Stewart Morris Rogers Cook Bennett'),
+        'Smith Johnson Miller Davis Wilson Anderson Taylor Thomas Moore Martin Thompson White Clark Lewis '
+        'Walker Hall Allen Young King Wright Hill Green Baker Adams Nelson Carter Mitchell Roberts Turner '
+        'Phillips Campbell Parker Evans Edwards Collins Stewart Morris Rogers Cook Bennett Williams Brown Jones '
+        'Jackson Harris Robinson Scott Morgan Murphy Peterson Cooper Reed Bailey Bell Kelly Howard Ward Cox '
+        'Richardson Wood Watson Brooks Gray James Hughes Price Myers Long Foster Sanders Ross Powell Sullivan '
+        'Russell Jenkins Perry Butler Barnes Fisher Henderson Coleman Simmons Patterson Jordan Reynolds '
+        'Hamilton Graham Alexander Wallace Griffin West Cole Hayes Gibson Bryant Ellis Stevens Murray Ford '
+        'Marshall Owens McDonald Harrison Kennedy Wells Woods Olson Webb Tucker Freeman Burns Henry Snyder '
+        'Simpson Crawford Porter Mason Shaw Gordon Wagner Hunter Hicks Dixon Hunt Palmer Robertson Black Holmes '
+        'Stone Meyer Boyd Mills Warren Fox Rose Rice Schmidt Ferguson Nichols Ryan Weaver Daniels Stephens '
+        'Gardner Payne Kelley Dunn Pierce Arnold Spencer Peters Hawkins Grant Hansen Hoffman Hart Elliott '
+        'Cunningham Knight Bradley Carroll Hudson Duncan Armstrong Berry Andrews Johnston Ray Lane Riley '
+        'Carpenter Perkins Richards Willis Matthews Chapman Lawrence Watkins Wheeler Larson Carlson Harper '
+        'George Greene Burke Morrison Jacobs Lawson Franklin Lynch Bishop Carr Austin Gilbert Jensen Williamson '
+        'Montgomery Harvey Oliver Howell'),
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically) for the common shared surnames and the majority-Black ones (Washington, Jefferson, Gaines, Mack, Singleton, Banks, Mosley); the rest general knowledge (estimate)
     'black-american': group(
-        'Aaliyah Jasmine Brianna Destiny Imani Kiara Tiana Ebony Monique Danielle Alexis Nia Janelle Keisha Simone '
-        'Tamika Aisha Jada Kayla Shanice',
-        'Marcus Darnell Jamal Terrence Andre Malik DeShawn Tyrone Isaiah Jalen Darius Cedric Elijah Xavier Corey '
-        'Reginald Lamar Devin Jerome Maurice',
+        'Aaliyah Jasmine Brianna Destiny Imani Kiara Tiana Ebony Monique Danielle Alexis Nia Janelle Keisha '
+        'Simone Tamika Aisha Jada Kayla Shanice',
+        'Marcus Darnell Jamal Terrence Andre Malik DeShawn Tyrone Isaiah Jalen Darius Cedric Elijah Xavier '
+        'Corey Reginald Lamar Devin Jerome Maurice',
         'Jordan Cameron Peyton Sydney Kendall',
         'Washington Jefferson Jackson Robinson Harris Coleman Brooks Bryant Freeman Banks Gaines Dawson Mosley '
-        'Carter Simmons Henderson Gibson Holloway Ellis Hayes Booker Pryor Battle Moton Tolliver'),
+        'Carter Simmons Henderson Gibson Holloway Ellis Hayes Booker Pryor Battle Moton Tolliver Williams '
+        'Johnson Smith Jones Brown Davis Thomas Taylor Wilson Moore White Lewis Walker Thompson Jenkins Allen '
+        'Wright Scott Green Young King Hill Butler Mitchell Hall Anderson Martin Wallace Bell Joseph Turner '
+        'Edwards Grant Perry Howard Hunter Ford Barnes Hawkins Jordan Owens Woods Watkins Franklin Sims Glover '
+        'Dixon Mack Singleton Ware Dorsey Rivers Hairston Merriweather Calhoun McNeil Gaskins Ingram Hampton '
+        'Tate Wiggins Flowers Houston Pittman Graves Hines Roberson Bethea Ruffin Alston Whitfield Mayfield '
+        'Bynum Dukes Mobley'),
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically): surnames over 85% Hispanic, in rank order
     'hispanic': group(
-        'Maria Sofia Valentina Camila Daniela Gabriela Isabella Lucia Mariana Ximena Paola Adriana Veronica Yesenia '
-        'Alejandra Catalina Elena Rosa Natalia Andrea',
-        'Jose Luis Carlos Juan Miguel Alejandro Diego Javier Mateo Santiago Rafael Eduardo Andres Fernando Ricardo '
-        'Hector Emilio Julio Ivan Raul',
+        'Maria Sofia Valentina Camila Daniela Gabriela Isabella Lucia Mariana Ximena Paola Adriana Veronica '
+        'Yesenia Alejandra Catalina Elena Rosa Natalia Andrea',
+        'Jose Luis Carlos Juan Miguel Alejandro Diego Javier Mateo Santiago Rafael Eduardo Andres Fernando '
+        'Ricardo Hector Emilio Julio Ivan Raul',
         'Guadalupe Cruz Ariel Alexis',
-        'Garcia Rodriguez Martinez Hernandez Lopez Gonzalez Perez Sanchez Ramirez Torres Flores Rivera Gomez Diaz '
-        'Morales Reyes Cruz Ortiz Gutierrez Chavez Ramos Mendoza Ruiz Alvarez Castillo Jimenez Vargas Romero '
-        'Herrera Medina Aguilar Vega Castro Delgado Navarro Fuentes Cabrera Espinoza Salazar Ibarra'),
+        'Garcia Rodriguez Martinez Hernandez Lopez Gonzalez Perez Sanchez Ramirez Torres Flores Rivera Gomez '
+        'Diaz Morales Reyes Cruz Ortiz Gutierrez Chavez Ramos Mendoza Ruiz Alvarez Castillo Jimenez Vargas '
+        'Romero Herrera Medina Aguilar Vega Castro Delgado Navarro Fuentes Cabrera Espinoza Salazar Ibarra '
+        'Gonzales Soto Rios Vasquez Sandoval Guerrero Moreno Silva Pena Valdez Mendez Guzman Munoz Garza '
+        'Contreras Maldonado Estrada Alvarado Nunez Santiago Dominguez Marquez Padilla Rojas Figueroa Acosta '
+        'Luna Molina Campos Avila Juarez Duran Miranda Carrillo Mejia Ayala Leon Robles Salinas Solis Lara '
+        'Trujillo Aguirre Pacheco Cervantes Ochoa Velasquez Montoya Cardenas Colon Serrano Calderon Gallegos '
+        'Guerra Rosales Castaneda Trevino Villarreal Suarez Macias'),
+    # source: name_sources/haiti.txt and jamaica.txt surname rankings (surnam.es), plus Indo-Caribbean surnames from general knowledge (estimate)
     'caribbean': group(
         'Marjorie Nadege Shanelle Kerry-Ann Fabienne Roseline Tamara Natasha Chantal Sabrina Mirlande Shauna',
         'Jean Pierre Ricardo Fritz Damian Oneil Kemar Junior Wesley Dwayne Patrice Andre',
         'Rene Dominique Claude',
         'Joseph Pierre Jean-Baptiste Charles Louis Etienne Desir Baptiste Campbell Brown Williams Thompson Reid '
-        'Francis Clarke Gordon Morgan Henry Barrett Grant'),
+        'Francis Clarke Gordon Morgan Henry Barrett Grant Jean Paul Michel Noel Philippe Augustin Alexis '
+        'Toussaint Celestin Moise Laguerre Dorvil Cadet Fils-Aime Petit-Frere Saint-Louis Jean-Louis Pierre- '
+        'Louis Lafortune Exantus Antoine Jules Destin Delva Germain Remy Bien-Aime Thermidor Hyppolite Mathurin '
+        'Smith Johnson Edwards Bailey Robinson Lewis Scott Walker Wright Green Allen Hall Stewart Bennett '
+        'Spence McKenzie Gayle Samuels Malcolm Powell Daley Hylton Mullings Rowe Hinds Blake Ricketts Beckford '
+        'Lindo Facey Chambers Stephenson Sinclair Forbes Lawrence Simpson Dixon Wilson Richards Graham Hamilton '
+        'James Murray Palmer Watson Wallace Persaud Ramdass Rampersad Mohammed'),
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically) for the majority-Asian names (Nguyen, Kim, Chen, Wong, Chang, Yang, Lam ...); the rest from name_sources china/korea/vietnam/japan/philippines rankings and general knowledge (estimate)
     'east-asian': group(
-        'Grace Michelle Christine Jennifer Linda Amy Vivian Joyce Angela Mei Ji-woo Seo-yeon Yuki Hana Thao Linh '
-        'Maricel Kristine Jasmine Lily',
+        'Grace Michelle Christine Jennifer Linda Amy Vivian Joyce Angela Mei Ji-woo Seo-yeon Yuki Hana Thao '
+        'Linh Maricel Kristine Jasmine Lily',
         'Kevin Eric David Brian Steven Andrew Jason Daniel Ken Hiro Min-jun Ji-ho Wei Jun Minh Tuan Paolo '
         'Marlon Ryan Jonathan',
         'Kai Sam Jin',
         'Lee Kim Park Choi Chen Wang Li Zhang Liu Huang Wu Lin Nguyen Tran Le Pham Hoang Tanaka Suzuki Nakamura '
-        'Yamamoto Santos Reyes Cruz Bautista Dela_Cruz Garcia Mendoza Villanueva'),
+        'Yamamoto Santos Reyes Cruz Bautista Dela_Cruz Garcia Mendoza Villanueva Wong Chang Yang Chan Lam Ho '
+        'Zhou Xu Sun Ma Zhu Hu Guo He Lu Luo Gao Liang Zheng Tang Song Han Yu Cheng Cheung Chow Leung Tsai '
+        'Huynh Vu Phan Truong Dang Bui Do Ngo Duong Ly Jung Kang Cho Yoon Jang Lim Shin Kwon Hwang Ahn Oh Seo '
+        'Watanabe Ito Kobayashi Sato Takahashi Yoshida Yamada Sasaki Matsumoto Inoue Kimura Hayashi Ramos '
+        'Flores Aquino Castillo Dizon Domingo Gonzales Manalo Ocampo'),
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically) for Patel, Singh, Khan; the rest general knowledge of common Indian, Pakistani and Bangladeshi American surnames (estimate)
     'south-asian': group(
         'Priya Ananya Divya Neha Pooja Kavya Riya Shreya Aisha Fatima Meera Sana Anjali Nisha',
         'Arjun Rahul Vikram Rohan Sanjay Aditya Karthik Imran Omar Amit Nikhil Ravi Suresh Harpreet',
         'Kiran Sasha Arya',
-        'Patel Shah Singh Kumar Sharma Gupta Reddy Rao Iyer Desai Mehta Joshi Chowdhury Khan Ahmed Malik Hussain '
-        'Bhatt Menon Nair Kapoor Agarwal Gill Sandhu'),
+        'Patel Shah Singh Kumar Sharma Gupta Reddy Rao Iyer Desai Mehta Joshi Chowdhury Khan Ahmed Malik '
+        'Hussain Bhatt Menon Nair Kapoor Agarwal Gill Sandhu Kaur Jain Mishra Verma Chopra Bose Das Banerjee '
+        'Chatterjee Mukherjee Ghosh Sen Pillai Krishnan Subramanian Srinivasan Narayanan Naidu Chaudhary Thakur '
+        'Yadav Pandey Tiwari Srivastava Sinha Bhatia Arora Malhotra Khanna Sethi Grewal Dhillon Sidhu Bains '
+        'Brar Parikh Modi Trivedi Pandya Vyas Amin Chauhan Patil Kulkarni Gandhi Bansal Garg Goel Mittal '
+        'Siddiqui Qureshi Sheikh Rahman Hossain Islam Akhtar Butt Chaudhry Mirza Iqbal Rana Dutta Ali Bhakta '
+        'Thakkar Raman Kohli Saini Varghese Thomas Mathew Dhaliwal Saxena Pandit Prasad Hegde'),
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically) (Cohen, Schwartz, Klein, Weiss) and name_sources/jewish-diaspora.txt; ordering general knowledge (estimate)
     'jewish': group(
         'Rebecca Rachel Leah Miriam Hannah Shira Talia Naomi Ruth Ilana Dina Esther Abby Maya',
         'David Daniel Joshua Aaron Benjamin Noah Eli Ari Jonah Samuel Ethan Max Josh Adam',
         'Avi Shai',
         'Cohen Levy Goldberg Friedman Katz Schwartz Rosen Shapiro Klein Weiss Kaplan Stern Rosenberg Feldman '
-        'Bernstein Horowitz Siegel Greenberg Adler Berman'),
+        'Bernstein Horowitz Siegel Greenberg Adler Berman Levine Levin Goldstein Rosenthal Weinstein Gold Rubin '
+        'Kaufman Silverman Hoffman Lieberman Marcus Diamond Abrams Segal Edelman Fine Frankel Glick Gross '
+        'Hirsch Jacobs Kessler Lerner Mandel Perlman Reich Resnick Roth Sandler Schiff Singer Solomon Steinberg '
+        'Strauss Wasserman Weinberg Weiner Wolf Zuckerman Zimmerman Abramson Applebaum Baum Blum Brenner '
+        'Eisenberg Epstein Fink Freedman Ginsberg Goldman Goodman Grossman Halpern Heller Kahn Kramer Landau '
+        'Margolis Rabinowitz Rosenblum Rubenstein Schulman Silver Sternberg Wexler Berkowitz Feinberg Moskowitz '
+        'Lipman Teitelbaum Gottlieb Pollack Sachs Levinson Spector Fishman Jaffe Gelman'),
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically) (Russo) and common Italian-American surnames from general knowledge (estimate)
     'italian': group(
         'Gina Theresa Angela Maria Francesca Nicole Christina Lisa Donna Gianna Marisa Teresa',
         'Anthony Vincent Joseph Dominic Salvatore Nicholas Frank Michael Carmine Paul Louis Joey',
         'Toni',
-        'Russo Esposito Romano Ricci Marino Greco Bruno Gallo Conti DeLuca Costa Rizzo Lombardi Moretti Barbieri '
-        'Fontana Caruso Ferrara Santoro Mancini'),
+        "Russo Esposito Romano Ricci Marino Greco Bruno Gallo Conti DeLuca Costa Rizzo Lombardi Moretti "
+        "Barbieri Fontana Caruso Ferrara Santoro Mancini Rossi Ferrari Colombo Martini Leone Longo Gentile "
+        "Martinelli Vitale Lombardo Coppola DeSantis D'Angelo Marchetti Parisi Conte Ferraro Bianchi Marini "
+        "Grasso Messina DeAngelis Palumbo Rinaldi Testa Morelli Amato Mazza Napolitano Castellano Cirillo "
+        "D'Amico DeMarco Calabrese Falcone Ferrante Giordano Mancuso Marchese Natale Orlando Palermo Pagano "
+        "Pellegrino Romeo Sabatino Salerno Santangelo Sorrentino Tedesco Zito Battaglia Benedetto Bianco "
+        "Carbone Catalano Cavallo Colucci D'Alessandro DeRosa DiStefano Fiore Genovese Grillo Iacono Monaco "
+        "Pace Palmieri Puglisi Riccio Ruggiero Spinelli Vaccaro Valente Vella Sanfilippo Rotella Scala Cuomo "
+        "Gallucci"),
+    # source: US Census Bureau surname file (2000 Census, rank and race/Hispanic shares, via fivethirtyeight/data most-common-name/surnames.csv; the 2010 table ranks near-identically) (Murphy, Kelly, Sullivan, Ryan, Burke, Walsh, Lynch, Brennan, OBrien, OConnor, Quinn, Doyle ...) and general knowledge (estimate)
     'irish': group(
         'Kathleen Maureen Colleen Siobhan Bridget Erin Fiona Shannon Kelly Megan Nora Deirdre',
         'Patrick Sean Kevin Brendan Liam Connor Declan Brian Kieran Owen Ryan Dennis',
         'Shea Rory',
         "Murphy Kelly O'Brien Sullivan Walsh Byrne Ryan O'Connor McCarthy Doyle Gallagher Kennedy Lynch Quinn "
-        "Fitzgerald Brennan Donnelly Flanagan Kavanagh Callahan"),
+        "Fitzgerald Brennan Donnelly Flanagan Kavanagh Callahan Burke Kelley Murray Brady Burns Collins "
+        "Connolly Daly Dunn Dwyer Farrell Flynn Foley Hogan Kearney Keane Keegan Kenny McGrath McGuire "
+        "McLaughlin McMahon McNamara Moran Mulligan Nolan O'Neill O'Donnell O'Sullivan O'Malley O'Reilly O'Hara "
+        "O'Leary O'Rourke O'Shea O'Keefe Reilly Regan Sheehan Shea Sweeney Tierney Whelan Cullen Carroll Casey "
+        "Cassidy Clancy Conway Corcoran Costello Cronin Curran Delaney Dempsey Devlin Donovan Doherty Duffy "
+        "Egan Finnegan Fitzpatrick Hanley Healy Hennessy Higgins Hurley Keating Lennon Maguire Mahoney Malone "
+        "McCann McCormick McDermott McKenna Moriarty Mullen Noonan Power"),
+    # source: Polish, Russian, Ukrainian, Czech and South Slavic surnames common in the US, from name_sources poland/russia rankings and general knowledge (estimate)
     'slavic': group(
         'Katarzyna Anna Natalia Olga Irina Svetlana Ewa Magdalena Tatiana Yelena Agnieszka Daria',
         'Piotr Tomasz Pavel Dmitri Sergei Andrzej Marek Viktor Mikhail Stefan Bogdan Lukasz',
         'Sasha',
         'Kowalski Nowak Wisniewski Lewandowski Zielinski Kaminski Novak Petrov Ivanov Sokolov Volkov Popov '
-        'Kovalenko Shevchenko Horvat Kozlowski Mazur Bondarenko'),
+        'Kovalenko Shevchenko Horvat Kozlowski Mazur Bondarenko Wojcik Kowalczyk Wozniak Szymanski Dabrowski '
+        'Jankowski Wojciechowski Kwiatkowski Krawczyk Kaczmarek Piotrowski Grabowski Pawlowski Michalski Krol '
+        'Wieczorek Jablonski Wroblewski Majewski Olszewski Malinowski Jaworski Adamczyk Dudek Nowicki Pawlak '
+        'Gorski Witkowski Walczak Sikora Rutkowski Ostrowski Tomaszewski Zalewski Wrobel Sadowski Czarnecki '
+        'Sawicki Sokolowski Kubiak Smirnov Kuznetsov Vasiliev Pavlov Fedorov Mikhailov Orlov Makarov Andreev '
+        'Kovalev Morozov Lebedev Novikov Kozlov Egorov Romanov Zakharov Medvedev Antonov Karpov Melnyk '
+        'Tkachenko Kravchenko Boyko Kovalchuk Lysenko Marchenko Savchenko Petrenko Moroz Dvorak Novotny Svoboda '
+        'Cerny Prochazka Kucera Horak Jovanovic Petrovic Nikolic Markovic Kovacevic'),
+    # source: name_sources/arab.txt rankings, weighted to Lebanese, Syrian, Palestinian, Egyptian and Iraqi Americans (Dearborn names such as Bazzi, Beydoun, Makki); general knowledge (estimate)
     'arabic': group(
         'Layla Nour Mariam Yasmin Rania Huda Salma Dalia Amira Zeinab Lina Hala',
         'Ahmed Mohamed Omar Khalid Youssef Karim Tariq Samir Hassan Ali Bilal Nabil',
         'Noor Rayan',
-        'Haddad Khoury Nasser Saleh Hamdan Mansour Aziz Farah Rahman Abdullah Ibrahim Hassan Darwish Kassem Bakri'),
+        'Haddad Khoury Nasser Saleh Hamdan Mansour Aziz Farah Rahman Abdullah Ibrahim Hassan Darwish Kassem '
+        'Bakri Ali Ahmed Mohamed Hussein Saad Khalil Youssef Mahmoud Mustafa Ismail Abbas Said Salem Jaber Awad '
+        'Khalaf Habib Nassar Najjar Sabbagh Shaheen Saba Hanna Boutros Gerges Mikhail Assaf Karam Maalouf Daher '
+        'Ghanem Hakim Issa Jabbour Malouf Matar Nader Rizk Sleiman Tannous Touma Zogby Abboud Atallah Ayoub '
+        'Barakat Bitar Elias Fares Hijazi Khalifa Masri Odeh Rashid Sharif Suleiman Tamimi Taha Zaki Zayed Omar '
+        'Othman Hamad Hammoud Jamal Nasr Yassin Shaker Ghali Fawaz Hamza Bazzi Beydoun Makki Jaafar Fakih '
+        'Haidar Ajami Saliba Halabi Shami Salameh Hashem Kamal Ramadan'),
+    # source: name_sources/nigeria.txt and ghana.txt rankings plus common Senegalese, Guinean, Malian and Sierra Leonean surnames (general knowledge, estimate)
     'west-african': group(
         'Chiamaka Adaeze Ngozi Folake Amara Ifeoma Abena Ama Efua Yewande Kemi Zainab',
         'Chinedu Emeka Oluwaseun Tunde Kwame Kofi Kwabena Obinna Femi Ibrahima Moussa Segun',
         'Tobi Ayo',
         'Okafor Okonkwo Adeyemi Balogun Mensah Asante Owusu Boateng Diallo Traore Nwosu Eze Adebayo Ogunleye '
-        'Danso Ndiaye'),
+        'Danso Ndiaye Okoro Okeke Nwachukwu Obi Okoye Chukwu Igwe Anyanwu Nwankwo Udeh Ugwu Adeleke Adewale '
+        'Afolabi Akinola Ajayi Alabi Babatunde Bello Ogundipe Oladipo Olatunji Olawale Oyewole Akande Ige Ojo '
+        'Adekunle Adeniyi Adesina Abubakar Ibrahim Mohammed Musa Yusuf Etim Udo Effiong Bassey Ekpo Okon '
+        'Agyeman Appiah Amoah Ansah Acheampong Addo Adjei Antwi Boakye Darko Frimpong Gyamfi Kyei Nkrumah Obeng '
+        'Ofori Opoku Osei Quaye Sarpong Tetteh Yeboah Amponsah Annan Nyarko Agyei Badu Diop Fall Sow Camara '
+        'Toure Keita Coulibaly Kone Sylla Bah Conteh Kamara Sesay Koroma Bangura Njoku'),
 }
 
 for key, links in CULTURES.items():
