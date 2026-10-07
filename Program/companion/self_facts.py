@@ -17,7 +17,7 @@ stops applying when that reply is replaced by another version or deleted.
 import re
 from dataclasses import dataclass
 
-from companion import texting
+from companion import self_checks, texting
 from companion.characters import require_current
 from companion.database import identifier, many, one, optional
 from companion.errors import require
@@ -299,9 +299,14 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
         if fact.key in known and known[fact.key]['value'].lower() == fact.value.lower():
             continue
         clash = contradiction(fact, current)
-        if clash is None and (relative := family_clash(connection, message['timeline_id'], fact,
-                                                       companion['version']['definition'])):
+        definition = companion['version']['definition']
+        if clash is None and (relative := family_clash(connection, message['timeline_id'], fact, definition)):
             clash = {'id': f"{CIRCLE}{relative['id']}"}
+        # Something the user said was wrong, or the definition says otherwise (companion/self_checks.py).
+        if clash is None and (reason := self_checks.earlier_dispute(connection, message['timeline_id'], fact.key,
+                                                                    fact.value) or
+                              self_checks.definition_clash(fact, definition)):
+            clash = {'id': reason}
         status = 'conflict' if clash else 'noted'
         row_id = identifier()
         inserted = connection.execute(
@@ -324,6 +329,8 @@ def view(row: dict, connection=None) -> dict:
                           (row['conflicts_with'].removeprefix(CIRCLE),))
         if person:
             result['circle_person'] = f"{person['role']} {person['name']}"
+    elif connection is not None and row['status'] == 'conflict':
+        result |= self_checks.reason(connection, row['conflicts_with'])
     return result
 
 

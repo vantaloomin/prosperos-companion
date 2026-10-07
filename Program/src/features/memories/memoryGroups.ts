@@ -55,6 +55,7 @@ export function statusLabels(memory: Memory): string[] {
   const labels = FLAG_LABELS.filter(([applies]) => applies(memory)).map(([, label]) => label)
   if (memory.plan_status) labels.push(memory.plan_status[0].toUpperCase() + memory.plan_status.slice(1))
   if (memory.current === false && memory.status !== 'superseded' && !memory.plan_status) labels.push('No longer current')
+  if (memory.retracted) labels.push('You said this was wrong')
   if (memory.dates_uncertain) labels.push('Dates uncertain')
   if (memory.origin === 'automatic') labels.push('Saved automatically')
   if (memory.in_timeline === false) labels.push('Another timeline')
