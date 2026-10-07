@@ -90,7 +90,8 @@ asks a service. `routing.py` then decides where it may go:
 `companion/images/prompts.py` writes one descriptive paragraph in the shape Krea 2's guide asks for
 (github.com/krea-ai/krea-2, `docs/prompting.md`), with no model: the style line as the medium (or a
 chat photo's selfie or view framing), then the person as a camera would see them, what they wear in
-this moment, what they are doing and where, an expression for the event's mood, the light for the
+this moment, what they are doing (a fixed present-tense line per activity, `prompts.PICTURES`; a
+corrected event or one without an activity uses its summary) and where, an expression for the event's mood, the light for the
 local hour and weather, and camera details when the style is a plain photograph. The character's
 name is said as she, he or they (read from the appearance description; "they" when it never says),
 impressions ("looks like someone who...") are dropped and backstory is cut from a clause ("a scar

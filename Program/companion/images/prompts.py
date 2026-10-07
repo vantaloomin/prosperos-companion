@@ -25,9 +25,9 @@ def place_name(event) -> str:
 
 
 def when(event) -> dict:
-    """What the wardrobe needs to dress the moment: its activity, block kind, local date and weather."""
+    """What the wardrobe and the picture line need: its activity, block kind, local date, weather and company."""
     details = decode(event['details'])
-    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather')}
+    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with')}
 
 
 def scene(connection, post_id) -> list[dict]:
@@ -181,7 +181,7 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     style = (style or DEFAULT_STYLE).strip().rstrip('.')
     setting = re.sub(r'(^|\.\s+)Wearing\b', lambda m: f"{m.group(1)}{subject} {'are' if who == 'they' else 'is'} wearing",
                      setting)
-    action = unnamed(f"{event['summary'].strip().rstrip('.')}{where}.", name, who)
+    action = doing(event, subject, possessive, who) or unnamed(f"{event['summary'].strip().rstrip('.')}{where}.", name, who)
     expression = EXPRESSIONS.get((event.get('mood') or '').strip().lower()) or \
         (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
     opening = FRAMINGS[framing].format(subject=subject.lower(), possessive=possessive) if FRAMINGS[framing] else \
@@ -190,6 +190,54 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
              light(event.get('hour'), event.get('weather')), camera(style, framing)]
     return ' '.join(part for part in parts if part)
+
+
+# What each activity of the life sim (companion/life/composer.py and the circle's gatherings) looks
+# like in a picture, in the present tense, with {possessive} for her/his/their. The place, when the
+# event has one, follows as " at <place>"; company as ", with a friend".
+PICTURES = {
+    'steady-shift': 'at work, absorbed in the task in front of {possessive}',
+    'busy-shift': 'at work in the middle of a rush, moving quickly',
+    'lunch-out': 'on a lunch break, sitting at a small table with a plate of food',
+    'library': 'studying at a library table, notes and an open laptop spread out',
+    'study-cafe': 'studying at a café table with flashcards, a laptop and one cup of coffee',
+    'groceries': 'pushing a shopping cart down a grocery aisle, picking out food',
+    'chores': 'at home folding a pile of fresh laundry',
+    'browse': 'browsing shelves in a shop, holding one item up to look at it',
+    'dinner': 'sitting at a restaurant table over dinner, mid-conversation',
+    'drinks': 'standing at a bar with a drink in hand, laughing',
+    'show': 'in a crowd at a live show, stage lights in the background',
+    'walk': 'walking outdoors along a path, hands in {possessive} pockets',
+    'coffee': 'sitting at a café table with a coffee and an open book',
+    'museum': 'standing in a gallery, looking closely at an exhibit',
+    'market': 'browsing the stalls of a busy market',
+    'workout': 'mid-workout, slightly out of breath',
+    'home-cooking': 'cooking at the stove at home, stirring a pan, ingredients on the counter',
+    'reading': 'curled up at home reading a book under a blanket',
+    'nap': 'lying on a sofa at home under a blanket, just waking from a nap',
+    'slow': 'lounging on the sofa at home with a mug',
+    'sick-day': 'on the sofa at home with a cold, wrapped in a blanket, tea and tissues nearby',
+    'festival': 'outdoors in a festival crowd, stalls and banners around',
+    'birthday': 'at a table celebrating a birthday, a cake with candles in front of them',
+    'own-birthday': 'celebrating {possessive} own birthday at a table, a cake with candles in front of {possessive}',
+    'gathering': 'gathered around a table with family and friends',
+}
+CALLS = ('called', 'phone')
+
+
+def doing(event, subject, possessive, who) -> str:
+    """The picture line for the event's activity, or '' when there is none or the event was
+    corrected (a correction's own words win over what the activity usually looks like)."""
+    line = PICTURES.get(event.get('activity') or '')
+    if not line or (event.get('revision') or 1) > 1:
+        return ''
+    if event.get('activity') == 'birthday' and any(word in event['summary'].lower() for word in CALLS):
+        line, place = 'at home on the phone, smiling', ''
+    else:
+        place = f" at {event['place']}" if event.get('place') and ' at home' not in line else ''
+    company = ', with a friend' if event.get('with') and event['activity'] not in ('birthday', 'gathering') else ''
+    verb = 'are' if who == 'they' else 'is'
+    return f"{subject} {verb} {line.format(possessive=possessive)}{place}{company}."
 
 
 def local_hour(stamp_text, timezone) -> int | None:
@@ -211,7 +259,8 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     require(events, 'This post has no committed event to illustrate yet.', 409)
     definition = companion['version']['definition']
     first = {**events[0], 'hour': local_hour(events[0]['starts_at'], companion['version']['timezone']),
-             'weather': events[0]['moment'].get('weather')}
+             'weather': events[0]['moment'].get('weather'), 'activity': events[0]['moment'].get('activity'),
+             'with': events[0]['moment'].get('with')}
     return {'prompt_version': PROMPT_VERSION,
             'prompt': compose(definition['name'], definition.get('appearance', ''), [first], image_settings['style'],
                               *setting(connection, post['timeline_id'], events[0])),
@@ -257,7 +306,8 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     companion out of the picture, so it carries no likeness."""
     companion = require_current(connection)
     definition = companion['version']['definition']
-    scene_text = {key: moment.get(key) for key in ('summary', 'caption', 'mood', 'place', 'hour', 'weather')}
+    scene_text = {key: moment.get(key) for key in ('summary', 'caption', 'mood', 'place', 'hour', 'weather',
+                                                    'activity', 'with')}
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),

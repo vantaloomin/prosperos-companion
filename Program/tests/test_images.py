@@ -966,3 +966,20 @@ def test_the_prompt_is_one_krea_style_paragraph_of_what_a_camera_can_see():
     painted = prompts.compose('Kimberly Smith', appearance, [event], 'Watercolour sketch')
     assert 'phone camera' not in painted
     assert prompts.pronoun('') == 'they' and prompts.pronoun('He has a beard.') == 'he'
+
+
+def test_the_action_is_the_activitys_present_tense_picture_line():
+    """A past-tense summary ("studied at the library") drew a selfie in the stacks; each activity has a
+    fixed line of what it looks like now. A corrected event keeps its own words."""
+    from companion.images import prompts
+    from companion.life import composer
+    event = {'summary': 'Kim studied at the library.', 'place': 'Enoch Pratt Library', 'caption': '', 'mood': '',
+             'activity': 'library', 'with': None}
+    prompt = prompts.compose('Kim', 'A woman with short hair.', [event], 'Candid photograph')
+    assert 'She is studying at a library table' in prompt and 'at Enoch Pratt Library.' in prompt
+    assert 'studied' not in prompt
+    dinner = prompts.compose('Kim', '', [{**event, 'activity': 'dinner', 'with': {'name': 'Tasha'}}], 'Candid photograph')
+    assert 'They are sitting at a restaurant table' in dinner and ', with a friend.' in dinner and 'Tasha' not in dinner
+    corrected = prompts.compose('Kim', '', [{**event, 'summary': 'Kim walked the dog instead.', 'revision': 2}], 'Photo')
+    assert 'walked the dog' in corrected
+    assert set(prompts.PICTURES) >= {item.key for group in composer.CATALOG.values() for item in group}
