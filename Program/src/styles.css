@@ -247,9 +247,14 @@ textarea { resize: vertical; line-height: 1.6; }
 /* Touch screens keep a message's actions behind its ⋯ button (TurnView.tsx). */
 .message-tools { display: contents; }
 .message-more { display: none; }
+/* Opened, they float over the messages below instead of pushing them down. */
 @media (hover: none) {
+  .message-actions { position: relative; }
   .message-actions .message-more { display: inline-flex; justify-content: center; min-width: 36px; min-height: 28px; }
   .message-actions:not(.open) .message-tools { display: none; }
+  .message-actions.open .message-tools { position: absolute; z-index: 2; top: 100%; right: 0; display: flex; flex-direction: column; align-items: stretch;
+    min-width: max-content; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 18px #0006; }
+  .message-actions.open .message-tools .text-button { opacity: 1; justify-content: flex-start; min-height: 36px; padding: 6px 10px; font-size: 0.8125rem; }
 }
 
 .settings > .notice { max-width: 760px; margin-bottom: 16px; }
@@ -713,10 +718,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .message-companion.inactive .prose { color: var(--faint); }
 .chat-retro .prose p { margin-bottom: 0.4em; }
 .chat-retro .message time { display: none; }
-/* Your message tools fold away until the message is hovered or reached by keyboard, like the rest of the styles' tools. */
-.chat-retro .message-actions { max-height: 0; overflow: hidden; }
-.chat-retro .message:hover .message-actions, .chat-retro .message:focus-within .message-actions { max-height: 3em; overflow: visible; }
-@media (hover: none) { .chat-retro .message-actions { max-height: none; overflow: visible; } }
+/* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
+@media (hover: none) { .chat-retro .message-actions.open .message-tools { right: auto; left: 0; } }
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
 .chat-retro .turn-actions { margin: 0 0 8px; }
 .chat-retro .message.found { outline-offset: 2px; }
