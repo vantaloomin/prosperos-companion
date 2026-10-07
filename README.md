@@ -128,6 +128,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [Development](Program/docs/development.md)
 - [Backbone architecture](Program/docs/architecture.md)
 - [Life simulation API](Program/docs/life-api.md)
+- [How many companions to keep](Program/docs/scale.md)
 - [Product requirements (draft)](Program/docs/product-requirements.md)
 - [Acceptance status](Program/docs/acceptance-status.md)
 - [Changelog](CHANGELOG.md)
