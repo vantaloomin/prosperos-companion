@@ -182,3 +182,15 @@ def test_the_companion_runs_into_townsfolk_and_learns_more_each_time(client, clo
 def test_no_townsfolk_when_off(client):
     make(client, 'Warm and curious.')
     assert not any(row['entry'] and row['entry'].get('townsfolk') for row in build(client))
+
+
+def test_replies_build_their_context_with_townsfolk_on(client, clock, chatty):
+    make(client, 'Warm and curious.')
+    assert client.get('/api/context/preview').status_code == 200
+    build(client)
+    clock.instant = clock.now() + timedelta(days=7)
+    build(client)
+    assert client.get('/api/life/townsfolk').json()
+    preview = client.get('/api/context/preview')
+    assert preview.status_code == 200, preview.text
+    assert 'townsfolk' in preview.text, preview.json().keys()

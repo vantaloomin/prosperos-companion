@@ -5,6 +5,7 @@ never writes to the pipe; when it closes, because the Companion stopped the serv
 killed, the guard stops the server too, so a model is never left holding memory in the background.
 Only the standard library is used, so the script runs without the Companion on the import path.
 """
+import os
 import subprocess
 import sys
 import threading
@@ -38,4 +39,8 @@ def main(command: list[str]) -> int:
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    code = main(sys.argv[1:])
+    sys.stdout.flush()
+    # The watcher may still be blocked reading stdin; a normal exit then crashes the interpreter
+    # with a "Fatal Python error" that lands in the server's log, after the server's own reason.
+    os._exit(code)

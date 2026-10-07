@@ -29,13 +29,14 @@ type Run = (label: string, work: () => Promise<void>) => Promise<void>
 /** Settings > Models: an embedding model the Companion runs itself with llama.cpp (companion/providers/builtin_recall.py). */
 export function BuiltinRecall() {
   const client = useQueryClient()
-  const query = useQuery({ queryKey: KEY, queryFn: () => api<BuiltinRecallView>('/models/builtin-recall'), refetchInterval: (state) => state.state.data?.state === 'starting' ? 1500 : false })
+  const query = useQuery({ queryKey: KEY, queryFn: () => api<BuiltinRecallView>('/models/builtin-recall'), refetchInterval: (state) => state.state.data?.state === 'starting' ? 1500 : false, refetchOnWindowFocus: true })
   const [path, setPath] = useState<string | null>(null)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const data = query.data
   if (!data) return null
-  const chosen = path ?? data.model_path
+  // Until one is saved, the first model found on this PC is the choice, so the switch can turn on.
+  const chosen = path ?? (data.model_path || data.models[0]?.path || '')
   const run: Run = async (label, work) => {
     setBusy(label); setError('')
     try { await work() } catch (failed) { setError(failure(failed, 'That did not work.')) } finally { setBusy('') }
@@ -95,7 +96,7 @@ function RecallSwitch({ data, chosen, busy, run, onChange }: StepProps & { chose
   const cannotStart = !data.enabled && (!data.runtime.installed || !chosen)
   return <>
     <Toggle label="Use built-in recall" checked={data.enabled} disabled={!!busy || cannotStart} onChange={enabled => void save(enabled)}
-      hint={data.enabled ? STATES[data.state] : 'Needs llama.cpp and a model file.'} />
+      hint={data.enabled ? STATES[data.state] : cannotStart ? 'Needs llama.cpp and a model file.' : STATES.off} />
     {data.enabled && chosen !== data.model_path && <div className="form-actions"><button type="button" className="button" onClick={() => void save(true)} disabled={!!busy}>Use this model</button><small>Memories are re-read with the new model in the background.</small></div>}
     {data.state === 'failed' && data.message && <Notice tone="error">{data.message}</Notice>}
   </>

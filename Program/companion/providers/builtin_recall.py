@@ -142,10 +142,14 @@ def command(server: str, model: str, port: int) -> list[str]:
 
 
 def log_tail(path: Path, lines=6) -> str:
+    """Why the server stopped: llama.cpp's own reason when it gave one, else the end of its log."""
     try:
         text = path.read_text('utf-8', errors='replace').strip().splitlines()
     except OSError:
         return ''
+    reason = next((line for line in text if 'error loading model:' in line), None)
+    if reason:
+        return 'llama.cpp could not load the model: ' + reason.split('error loading model:', 1)[1].strip()[:500]
     return ' '.join(text[-lines:])[-600:]
 
 
@@ -268,6 +272,8 @@ class BuiltinRecall:
                 return self.task
         self.shutdown()
         self.launched = wanted
+        # Said now, not when the task first runs, so the answer to the request that turned it on says so.
+        self.state, self.message = 'starting', ''
         self.task = asyncio.get_running_loop().create_task(self.start(*wanted))
         self.task.add_done_callback(lambda task: task.cancelled() or task.exception())
         return self.task
