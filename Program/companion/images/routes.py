@@ -9,7 +9,7 @@ from companion.database import decode
 from companion.errors import DomainError
 from companion.images import backends, jobs, photos, storage
 from companion.images.adapters.base import AdapterError
-from companion.images.adapters.comfyui import FILE_INPUTS, default_files, krea_first
+from companion.images.adapters.comfyui import FILE_INPUTS, SAMPLER_LISTS, default_files, default_sampler, krea_first
 from companion.images.models import (
     BackendCreate,
     BackendFields,
@@ -97,8 +97,9 @@ async def backend_files(request: Request, backend_id: str):
     if backend['kind'] != 'comfyui':
         raise DomainError('Only a ComfyUI server lists its model files.', 422)
     config = decode(backend['config'])
-    keys = [*FILE_INPUTS, 'lora']
-    result = {'ok': True, 'error': None, 'defaults': default_files(), 'options': {key: [] for key in keys},
+    keys = [*FILE_INPUTS, 'lora', *SAMPLER_LISTS]
+    result = {'ok': True, 'error': None, 'defaults': default_files(), 'sampler_defaults': default_sampler(),
+              'options': {key: [] for key in keys},
               'krea': {key: [] for key in keys}, 'character_lora': character['comfy_name'] if character else None}
     try:
         found = await runner(request).adapters['comfyui'].files(config)

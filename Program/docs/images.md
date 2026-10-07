@@ -36,6 +36,12 @@ backend is off until the user sets it up, and text never waits for an image. The
   path matches `krea`, `kr2` or `kera` (so a `Krea 2\` folder counts), the Qwen3-VL 4B encoder and
   a Qwen VAE (`adapters/comfyui.KREA_FILES`). ComfyUI cannot say a file's model family, so this only
   sorts; the current choice always stays in the list, and the toggle shows everything.
+- **Sampling.** **Sampling** sets the built-in workflow's KSampler for a model that wants other
+  settings: Steps, CFG, Sampler and Scheduler, the last two from the server's own lists
+  (`/object_info/KSampler`). It starts on Krea 2 Turbo's (8 steps, CFG 1, euler, simple: the
+  workflow's own); a value equal to those is stored as unset, so **Use the defaults** clears them.
+  Saved per backend as `steps`, `cfg`, `sampler_name`, `scheduler`. A job's workflow name records
+  changed settings (`krea2-turbo (10 steps, CFG 1, euler/beta)`). A custom workflow keeps its own.
 - **Style LoRAs.** **Style LoRAs** offers up to three files from the server's loras folder
   (`/object_info/LoraLoaderModelOnly`), each with a strength (0.7 by default) and trigger words,
   stored as `style_loras` in the backend's config and used by any workflow. Each becomes a
@@ -240,7 +246,7 @@ All writes need the `x-companion-client: workspace` header.
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
 | `POST /api/images/backends/{id}/check` | `{ok, summary, details}`; spends no generation quota |
-| `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, options, krea, character_lora}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) and its LoRAs (`lora`, without the character's own), Krea 2's first and listed in `krea` |
+| `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, sampler_defaults, options, krea, character_lora}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, Krea 2's first and listed in `krea` |
 | `GET /api/images/model-links` | `{links: [{name, role, file, url, licence}]}`: download pages for the built-in workflow's files |
 | `POST /api/images/backends/{id}/unblock` | The user signed in to Codex again |
 | `POST /api/images/preview` | `{post_id, marked_nsfw?}`: the prompt, classification and route, without queuing |

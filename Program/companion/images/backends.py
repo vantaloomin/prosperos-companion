@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from companion.database import decode, encode, identifier, many, one
 from companion.errors import DomainError, require
 from companion.images import content
+from companion.images.adapters.comfyui import SAMPLER_INPUTS, default_sampler
 from companion.providers.urls import is_loopback, validate_compatible_url
 
 HOSTED_DEFAULTS = {
@@ -82,6 +83,7 @@ def view(backend: dict) -> dict:
             'custom_workflow': bool(config.get('workflow')),
             'model_files': {key: config.get(key, '') for key in FILE_KEYS} if backend['kind'] == 'comfyui' else None,
             'style_loras': config.get('style_loras', []) if backend['kind'] == 'comfyui' else None,
+            'sampler': {key: config.get(key) for key in SAMPLER_INPUTS} if backend['kind'] == 'comfyui' else None,
             'reference_workflow': bool(config.get('reference_workflow')), 'takes_reference': takes_reference(backend),
             'has_key': backend['credential_ref'] is not None,
             'controlled_machine': bool(backend['controlled_machine']), 'concurrency': backend['concurrency'],
@@ -142,14 +144,27 @@ def merged_config(kind, provider, previous: dict, body) -> dict:
             config[key] = value.strip()
         if kind != 'comfyui' or not config.get(key):
             config.pop(key, None)
+    comfy_settings(config, kind, body)
+    if kind != 'hosted':
+        config.pop('api_style', None)
+    return config
+
+
+def comfy_settings(config: dict, kind, body):
+    """The built-in workflow's sampler (a value equal to the workflow's own is stored as unset) and
+    the style LoRAs, for ComfyUI only."""
+    defaults = default_sampler()
+    for key in SAMPLER_INPUTS:
+        value = getattr(body, key)
+        if value is not None:
+            config[key] = value.strip() if isinstance(value, str) else value
+        if kind != 'comfyui' or config.get(key) in (None, '') or config.get(key) == defaults[key]:
+            config.pop(key, None)
     if body.style_loras is not None:
         config['style_loras'] = [{'name': lora.name.strip(), 'strength': lora.strength, 'trigger': lora.trigger.strip()}
                                  for lora in body.style_loras]
     if kind != 'comfyui' or not config.get('style_loras'):
         config.pop('style_loras', None)
-    if kind != 'hosted':
-        config.pop('api_style', None)
-    return config
 
 
 def require_safe_loras(backend: dict):

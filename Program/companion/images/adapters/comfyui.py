@@ -41,6 +41,10 @@ REFERENCE = '{{reference_image}}'
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
                'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
 LORA_INPUT = ('LoraLoaderModelOnly', 'lora_name')
+# The built-in workflow's KSampler settings the user can change for their model; unset means the
+# workflow's own (8 steps, CFG 1, euler, simple: Krea 2 Turbo's).
+SAMPLER_INPUTS = ('steps', 'cfg', 'sampler_name', 'scheduler')
+SAMPLER_LISTS = ('sampler_name', 'scheduler')
 # Which listed files are Krea 2's, matched on the whole path so a "Krea 2" folder counts. ComfyUI
 # cannot say a file's model family, so these only sort a list; nothing is hidden for not matching.
 KREA_FILES = {'unet_name': re.compile(r'krea|kr2|kera', re.IGNORECASE),
@@ -78,12 +82,18 @@ def workflow_for(config, reference=False) -> tuple[dict, str]:
 def built_in(config) -> dict:
     """The built-in workflow with the user's chosen loader files in place of its defaults."""
     workflow = json.loads(TEMPLATE.read_text(encoding='utf-8'))
-    for key, (class_type, name) in FILE_INPUTS.items():
-        if config.get(key):
-            for node in workflow.values():
-                if node['class_type'] == class_type:
-                    node['inputs'][name] = config[key]
+    chosen = [(class_type, name, config[key]) for key, (class_type, name) in FILE_INPUTS.items() if config.get(key)]
+    chosen += [('KSampler', key, config[key]) for key in SAMPLER_INPUTS if config.get(key) not in (None, '')]
+    for class_type, name, value in chosen:
+        for node in workflow.values():
+            if node['class_type'] == class_type:
+                node['inputs'][name] = value
     return workflow
+
+
+def default_sampler() -> dict:
+    sampler = next(node for node in built_in({}).values() if node['class_type'] == 'KSampler')
+    return {key: sampler['inputs'][key] for key in SAMPLER_INPUTS}
 
 
 def default_files() -> dict:
@@ -197,6 +207,10 @@ class ComfyAdapter:
 
     async def generate(self, request) -> ImageResult:
         workflow, name = workflow_for(request.config, reference=request.reference is not None)
+        if name == TEMPLATE_NAME and any(request.config.get(key) not in (None, '') for key in SAMPLER_INPUTS):
+            used = {**default_sampler(), **{key: request.config[key] for key in SAMPLER_INPUTS
+                                             if request.config.get(key) not in (None, '')}}
+            name = f"{name} ({used['steps']} steps, CFG {used['cfg']:g}, {used['sampler_name']}/{used['scheduler']})"
         styles = style_loras(request.config, request.lora)
         prompt = triggered(request.prompt, request.lora, styles)
         values = {'{{prompt}}': prompt, '{{negative}}': request.negative, '{{seed}}': request.seed,
@@ -352,7 +366,8 @@ class ComfyAdapter:
         address with the same client as the check. Nothing is queued or downloaded."""
         found = {}
         async with self.client(config['base_url']) as client:
-            for class_type in dict.fromkeys([*(class_type for class_type, _ in FILE_INPUTS.values()), LORA_INPUT[0]]):
+            for class_type in dict.fromkeys([*(class_type for class_type, _ in FILE_INPUTS.values()), LORA_INPUT[0],
+                                             'KSampler']):
                 response = await self.call(client, 'GET', f'/object_info/{class_type}')
                 try:
                     found[class_type] = response.json() if response.is_success else {}
@@ -360,5 +375,5 @@ class ComfyAdapter:
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.') from error
                 if not isinstance(found[class_type], dict):
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.')
-        return {key: input_options(found[class_type], class_type, name)
-                for key, (class_type, name) in {**FILE_INPUTS, 'lora': LORA_INPUT}.items()}
+        lists = {**FILE_INPUTS, 'lora': LORA_INPUT, **{key: ('KSampler', key) for key in SAMPLER_LISTS}}
+        return {key: input_options(found[class_type], class_type, name) for key, (class_type, name) in lists.items()}

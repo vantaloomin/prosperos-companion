@@ -1,4 +1,4 @@
-import type { BackendFiles, FileListKey, ModelFileKey, ModelFiles, ModelLink, StyleLora } from '../../types'
+import type { BackendFiles, FileListKey, ModelFileKey, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 
 export interface FileSlot { key: ModelFileKey; label: string; role: ModelLink['role'] | null; hint: string; tip?: string }
 
@@ -12,7 +12,7 @@ export const FILE_SLOTS: FileSlot[] = [
 
 export const MISSING = ' (not on this server)'
 export const NO_CHOICE: ModelFiles = { unet_name: '', clip_name: '', clip_type: '', vae_name: '' }
-const NO_FILES: BackendFiles['options'] = { unet_name: [], clip_name: [], clip_type: [], vae_name: [], lora: [] }
+const NO_FILES: BackendFiles['options'] = { unet_name: [], clip_name: [], clip_type: [], vae_name: [], lora: [], sampler_name: [], scheduler: [] }
 export const MAX_STYLE_LORAS = 3
 export const NEW_STYLE_LORA: StyleLora = { name: '', strength: 0.7, trigger: '' }
 
@@ -57,3 +57,14 @@ export const isChosen = (saved: ModelFiles) => FILE_SLOTS.some(({ key }) => save
 /** Download pages for the slots that have them, in slot order. */
 export const linksByRole = (links: ModelLink[]) =>
   FILE_SLOTS.filter(slot => slot.role).map(slot => ({ slot, links: links.filter(link => link.role === slot.role) })).filter(group => group.links.length > 0)
+
+/** Krea 2 Turbo's settings, the built-in workflow's own, shown until the server says otherwise. */
+export const TURBO: SamplerSettings = { steps: 8, cfg: 1, sampler_name: 'euler', scheduler: 'simple' }
+type Sampler = { steps: number; cfg: number; sampler_name: string; scheduler: string }
+
+/** What each sampler field shows: the draft, else the saved value, else the workflow's own. */
+export const shownSampler = (draft: Partial<SamplerSettings>, saved: SamplerSettings, defaults: SamplerSettings): Sampler =>
+  Object.fromEntries((Object.keys(TURBO) as (keyof SamplerSettings)[]).map(key =>
+    [key, draft[key] ?? saved[key] ?? defaults[key] ?? TURBO[key]])) as Sampler
+
+export const isTuned = (saved: SamplerSettings) => Object.values(saved).some(value => value !== null)

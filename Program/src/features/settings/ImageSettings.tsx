@@ -2,12 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
-import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, StyleLora } from '../../types'
+import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, PROVIDERS, disclosureFor } from '../feed/imageState'
-import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, fileChoices, filesBody, hasKrea, isChosen, linksByRole, serverFiles, shownFiles, stylesBody, type FileSlot } from './modelFiles'
+import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -170,8 +170,39 @@ function FileActions({ changed, chosen, busy, save, cancel, reset, refresh }: Fi
 function ComfyFiles({ backend, put }: { backend: ImageBackend; put: (body: object) => Promise<boolean> }) {
   return <>
     {backend.model_files && !backend.custom_workflow && <ModelFilePicker backend={backend} saved={backend.model_files} save={put} />}
+    {backend.sampler && !backend.custom_workflow && <SamplerPicker backend={backend} saved={backend.sampler} save={put} />}
     {backend.style_loras && <StyleLoraPicker backend={backend} saved={backend.style_loras} save={(rows) => put(stylesBody(rows))} />}
   </>
+}
+
+/** The built-in workflow's steps, CFG, sampler and scheduler, for a model that wants other settings
+ * than Krea 2 Turbo's. The sampler and scheduler lists come from the server's KSampler. A custom
+ * workflow keeps its own settings, so this is not shown for one. */
+function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved: SamplerSettings; save: (body: object) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState<Partial<SamplerSettings>>({})
+  const files = useBackendFiles(backend.id, open)
+  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, NO_CHOICE)
+  const defaults = files.data?.sampler_defaults ?? TURBO
+  const shown = shownSampler(draft, saved, defaults)
+  const store = async (body: object) => { if (await save(body)) setDraft({}) }
+  const slot = (label: string, hint: string): FileSlot => ({ key: 'unet_name', label, role: null, hint })
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="subtle">Sampling {isTuned(saved) ? '(your settings)' : '(Krea 2 Turbo defaults)'}</summary>
+      <div className="form-stack">
+        <p className="subtle">Starts on Krea 2 Turbo's settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
+        <div className="form-grid">
+          <TextInput label="Steps" type="number" value={String(shown.steps)} hint="1 to 100. Turbo models need few." onChange={(value) => setDraft({ ...draft, steps: Number(value) })} />
+          <TextInput label="CFG" type="number" value={String(shown.cfg)} hint="At 1 the negative prompt is ignored." onChange={(value) => setDraft({ ...draft, cfg: Number(value) })} />
+          <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} krea={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
+          <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} krea={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
+        </div>
+        <FileActions changed={Object.keys(draft).length > 0} chosen={isTuned(saved)} busy={files.isFetching}
+          save={() => void store(shown)} cancel={() => setDraft({})} reset={() => void store(defaults)} refresh={() => void files.refetch()} />
+      </div>
+    </details>
+  )
 }
 
 /** The server's file lists, asked once the panel is opened and shared by the file and LoRA pickers. */

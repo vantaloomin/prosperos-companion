@@ -32,6 +32,11 @@ class BackendFields(Input):
     clip_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
     clip_type: str | None = Field(default=None, max_length=60, pattern=FILE_NAME)
     vae_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
+    # The built-in workflow's sampler; a value equal to the workflow's own is stored as unset.
+    steps: int | None = Field(default=None, ge=1, le=100)
+    cfg: float | None = Field(default=None, ge=0, le=30)
+    sampler_name: str | None = Field(default=None, max_length=60, pattern=FILE_NAME)
+    scheduler: str | None = Field(default=None, max_length=60, pattern=FILE_NAME)
     # Style LoRAs for ComfyUI, in order; an empty list removes them.
     style_loras: list[StyleLora] | None = Field(default=None, max_length=3)
     cli_path: str | None = Field(default=None, max_length=1000)

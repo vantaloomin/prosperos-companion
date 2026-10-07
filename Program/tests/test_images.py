@@ -568,6 +568,8 @@ USER_FILES = {
     'VAELoader': {'input': {'required': {'vae_name': [[VAE, 'pixel_space']]}}},
     'LoraLoaderModelOnly': {'input': {'required': {'lora_name': [[PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors']],
                                                    'strength_model': ['FLOAT', {}]}}},
+    'KSampler': {'input': {'required': {'sampler_name': [['euler', 'res_multistep']], 'scheduler': [['simple', 'beta']],
+                                        'steps': ['INT', {}], 'cfg': ['FLOAT', {}]}}},
 }
 CHOSEN = {'unet_name': MODEL, 'clip_name': ENCODER, 'vae_name': VAE}
 
@@ -630,9 +632,10 @@ def test_comfyui_lists_the_servers_files_for_each_loader():
     files = asyncio.run(adapter.files({'base_url': 'http://127.0.0.1:8188'}))
     assert files == {'unet_name': [MODEL, 'krea2_turbo_fp8_scaled.safetensors'], 'clip_name': [ENCODER],
                      'clip_type': ['stable_diffusion', 'krea2'], 'vae_name': [VAE, 'pixel_space'],
-                     'lora': [PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors']}
+                     'lora': [PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors'],
+                     'sampler_name': ['euler', 'res_multistep'], 'scheduler': ['simple', 'beta']}
     assert server.info_calls == [f'http://127.0.0.1:8188/object_info/{name}'
-                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader', 'LoraLoaderModelOnly')]
+                                 for name in ('UNETLoader', 'CLIPLoader', 'VAELoader', 'LoraLoaderModelOnly', 'KSampler')]
 
 
 def test_comfyui_puts_chosen_files_in_the_built_in_workflow_only():
@@ -735,6 +738,30 @@ def test_backend_files_put_krea_2_files_first_and_style_loras_are_saved(comfy_cl
     assert ok(comfy_client.put(f"/api/images/backends/{backend['id']}", json={'style_loras': []}))['style_loras'] == []
     too_many = comfy_client.put(f"/api/images/backends/{backend['id']}", json={'style_loras': [style] * 4})
     assert too_many.status_code == 422
+
+
+def test_sampling_starts_on_krea_2_turbo_and_follows_the_users_choice(comfy_client):
+    """Steps, CFG, sampler and scheduler per backend for the built-in workflow; a value equal to the
+    workflow's own is stored as unset, and the job's workflow name records what it used."""
+    backend = local_comfy(comfy_client)
+    assert backend['sampler'] == {'steps': None, 'cfg': None, 'sampler_name': None, 'scheduler': None}
+    listed = ok(comfy_client.get(f"/api/images/backends/{backend['id']}/files"))
+    assert listed['sampler_defaults'] == {'steps': 8, 'cfg': 1.0, 'sampler_name': 'euler', 'scheduler': 'simple'}
+    assert listed['options']['sampler_name'] == ['euler', 'res_multistep'] and listed['options']['scheduler'] == ['simple', 'beta']
+    tuned = ok(comfy_client.put(f"/api/images/backends/{backend['id']}",
+                                json={'steps': 10, 'cfg': 1.0, 'sampler_name': 'res_multistep', 'scheduler': 'beta'}))
+    assert tuned['sampler'] == {'steps': 10, 'cfg': None, 'sampler_name': 'res_multistep', 'scheduler': 'beta'}
+    reset = ok(comfy_client.put(f"/api/images/backends/{backend['id']}",
+                                json={'steps': 8, 'cfg': 1.0, 'sampler_name': 'euler', 'scheduler': 'simple'}))
+    assert reset['sampler'] == {'steps': None, 'cfg': None, 'sampler_name': None, 'scheduler': None}
+    assert comfy_client.put(f"/api/images/backends/{backend['id']}", json={'steps': 0}).status_code == 422
+    server = ComfyStandIn()
+    adapter = ComfyAdapter(httpx.MockTransport(server), poll_seconds=0)
+    config = {'base_url': 'http://127.0.0.1:8188', 'steps': 10, 'scheduler': 'beta'}
+    result = asyncio.run(adapter.generate(request_for('comfyui', config)))
+    sampler = server.prompts[0]['7']['inputs']
+    assert (sampler['steps'], sampler['cfg'], sampler['sampler_name'], sampler['scheduler']) == (10, 1.0, 'euler', 'beta')
+    assert result.workflow == 'krea2-turbo (10 steps, CFG 1, euler/beta)'
 
 
 def test_a_style_lora_never_makes_a_server_less_strict(comfy_client):
