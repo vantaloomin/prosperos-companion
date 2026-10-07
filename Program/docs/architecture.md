@@ -71,6 +71,25 @@ newest first, with `more` set when there may be others. Matching ignores case us
 `casefold`, so it works beyond ASCII. Deleted (redacted) messages never match. The interface
 loads older pages until the match is on screen, then scrolls to it and marks it.
 
+### Pictures you send
+
+The interface shrinks each picture to at most 1568 px and re-encodes it as JPEG before upload, which
+drops its location and camera data; `POST /api/pictures` keeps it in the workspace's `pictures/`
+folder (PNG, JPEG or WebP, up to 10 MB) until a message takes it (`picture_ids`, up to four), and
+uploads never sent are removed after a day. Pictures the user sends are not classified: the NSFW
+check is for pictures the app generates (Images, below), and these go to whatever model the user
+chose.
+
+Before the reply, `pictures.Seer` asks the Seeing pictures profile (the conversation profile unless
+set) to describe each new picture, once, at conversation priority; retries and alternatives reuse the
+description. The description joins the message's text wherever the conversation is read: the reply's
+recent conversation and recall (`context.transcript`), the query embedding, and stored message
+vectors. A profile that cannot see (Kobold, Codex) or a service that refuses the picture leaves it
+`unseen` with the reason: the companion is told it would not load and gives an in-character reason,
+as with links, and the interface shows the real reason under the picture. Deleting the message
+deletes its pictures (each file once no forked copy uses it); Start over and Delete character remove
+them; backups carry them.
+
 ## Timelines (C4)
 
 `companion/timelines.py` handles historical edits. Editing one of the user's earlier messages

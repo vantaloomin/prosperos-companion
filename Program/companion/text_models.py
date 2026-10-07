@@ -35,6 +35,9 @@ JOBS = [
     {'key': 'memory', 'name': 'Memory suggestions', 'detail': 'Suggests memories from your messages in the '
      'background, when model suggestions are on.'},
     {'key': 'drafting', 'name': 'Character drafting', 'detail': 'Quick start and Help me write on the character page.'},
+    {'key': 'vision', 'name': 'Seeing pictures', 'detail': 'Describes pictures you send, once, so the companion '
+     'sees them. Needs a model that can look at images, such as GPT-4o, Claude, Gemini, or a vision model in LM '
+     'Studio or Ollama.'},
     {'key': 'recall', 'name': 'Semantic recall', 'detail': "Embeddings that find related memories. Uses the profile's "
      'embedding model; without one, recall matches keywords only.'},
 ]

@@ -171,8 +171,16 @@ class ConnectionUpdate(Input):
 
 
 class MessageCreate(Input):
-    text: str = Field(min_length=1, max_length=40000)
+    text: str = Field(default='', max_length=40000)
     client_id: str = Field(min_length=8, max_length=100)
+    # Pictures uploaded for this message (companion/pictures.py).
+    picture_ids: list[str] = Field(default_factory=list, max_length=4)
+
+    @model_validator(mode='after')
+    def something_to_send(self):
+        if not self.text.strip() and not self.picture_ids:
+            raise ValueError('Write a message or add a picture.')
+        return self
 
 
 class MemoryCreate(Input):
