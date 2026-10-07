@@ -184,8 +184,9 @@ def test_no_townsfolk_when_off(client):
     assert not any(row['entry'] and row['entry'].get('townsfolk') for row in build(client))
 
 
-def test_a_reply_after_meeting_townsfolk_still_builds_its_context(client, clock, chatty):
+def test_replies_build_their_context_with_townsfolk_on(client, clock, chatty):
     make(client, 'Warm and curious.')
+    assert client.get('/api/context/preview').status_code == 200
     build(client)
     clock.instant = clock.now() + timedelta(days=7)
     build(client)
