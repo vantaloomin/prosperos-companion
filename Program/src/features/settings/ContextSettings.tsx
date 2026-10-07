@@ -83,7 +83,7 @@ function SearchPresets({ data, refresh, setResult }: { data: Overview; refresh: 
 const BUILTINS = {
   weather: { label: 'the built-in weather server', next: 'Review and turn on its weather lookup below.' },
   pulse: { label: 'the built-in local pulse server', next: 'Turn on headlines or games below.' },
-  culture: { label: 'the built-in culture pulse server', next: "Turn on movies, shows, games and what's trending below." },
+  culture: { label: 'the built-in culture pulse server', next: "Turn on its switches below." },
 }
 
 /** A keyless server that ships with the app: added and checked in one step, still off until you approve it. */

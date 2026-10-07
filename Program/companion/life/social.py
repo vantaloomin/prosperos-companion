@@ -56,6 +56,11 @@ STATUS = {
     'monday': ('Monday again. Somehow.', 'New week, same coffee.'),
     'friday': ('Made it to Friday.', 'Friday feeling, finally.'),
     'interest': ("Can't stop thinking about {interest} lately.", 'Fell down a {interest} rabbit hole again.'),
+    # From the daily culture digest, about the top item of a list; none claims she has seen it.
+    'movies': ('Everyone keeps talking about {item}. Worth it?', 'Adding {item} to the watch list.'),
+    'tv': ('Is anyone watching {item}?',),
+    'music': ("Can't get {item} out of my head.",),
+    'books': ('{item} keeps popping up everywhere. Has anyone read it?',),
     'any': ('Small wins today.', "Some days are just quiet, and that's fine.", 'Good music, good mood.',
             'Note to self: drink more water.'),
 }
@@ -184,13 +189,33 @@ def day_facts(connection, timeline_id, local_date: str) -> dict:
     return facts
 
 
+def culture_picks(connection, now, definition) -> dict[str, str]:
+    """The top movie, show, song and book of today's culture digest, by section, when there is a fresh one."""
+    from companion.mcp.lookups import fresh_culture
+    digest = fresh_culture(connection, now, definition)
+    found = ((digest or {}).get('structured') or {}).get('found')
+    picks = {}
+    for section in ('movies', 'tv', 'music', 'books') if isinstance(found, dict) else ():
+        lists = found.get(section) if isinstance(found.get(section), dict) else {}
+        # Songs read better than albums ("Can't get Song A by Artist A out of my head").
+        items = next((value for title, value in lists.items() if isinstance(value, list) and value
+                      and (section != 'music' or 'songs' in title)), None)
+        name = re.sub(r'\s*\([^)]*\)$', '', str(items[0])).strip()[:80] if items else ''
+        if name:
+            picks[section] = name
+    return picks
+
+
 def day_posts(connection, companion, people, since, now) -> list[dict]:
     timeline_id, version = companion['active_timeline_id'], companion['version']
     timezone, definition = version['timezone'], version['definition']
     result = []
-    for day in local_dates(since, now, timezone):
+    days = local_dates(since, now, timezone)
+    for day in days:
         local_date, prefix = day.isoformat(), f'{timeline_id}:{day.isoformat()}'
         facts = day_facts(connection, timeline_id, local_date)
+        # Today's charts only for today: a day being caught up on never borrows them.
+        facts['culture'] = culture_picks(connection, now, definition) if day == days[-1] else {}
         if unit(prefix, 'status') < STATUS_CHANCE:
             text, tone = status_text(prefix, day, facts, definition)
             result.append(own('status', f'status:{prefix}', at(day, timezone, f'status:{prefix}', 8, 22),
@@ -218,6 +243,8 @@ def status_text(seed: str, day: date, facts: dict, definition: dict) -> tuple[st
         hot, cold = weather.get('high_f', 60) >= HOT_F, weather.get('high_f', 60) <= COLD_F
         choices += STATUS['rain' if weather.get('rain') else 'hot' if hot else 'cold' if cold else 'mild'] * 2
     choices += {0: STATUS['monday'], 4: STATUS['friday']}.get(day.weekday(), ())
+    for section, item in (facts.get('culture') or {}).items():
+        choices += [line.format(item=item) for line in STATUS[section]]
     interests = [text for text in definition.get('interests', ()) if text and len(text) <= 40]
     if interests:
         interest = pick(seed, 'interest', interests)

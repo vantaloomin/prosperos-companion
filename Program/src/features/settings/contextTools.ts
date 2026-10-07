@@ -29,7 +29,7 @@ export const SEARCH_PRESETS = [
 export function purposeLabel(category: ContextCategory, purpose: ContextPurpose, name: string): string {
   if (category === 'link') return 'When a link you paste cannot be read on this computer'
   if (category === 'web_search') return 'When you ask in chat to search or look something up'
-  if (category === 'culture') return 'When you ask in chat about movies, TV, games, music, books or what is trending'
+  if (category === 'culture') return purpose === 'ambient' ? `Once a day, so ${name} has a sense of what's out and trending` : 'When you ask in chat about movies, TV, games, music, books or what is trending'
   return purpose === 'conversation' ? 'When you ask about it in chat' : `For ${name}'s city, when it is a real place`
 }
 
@@ -47,6 +47,17 @@ export function weatherSwitches(saved?: ContextMapping): { mine: boolean; theirs
 /** When the weather lookup runs, from the two switches. */
 export function weatherRunIn(mine: boolean, theirs: boolean): ContextPurpose[] {
   return [...(mine ? ['conversation' as const] : []), ...(theirs ? ['companion_city' as const] : [])]
+}
+
+/** Which of the built-in culture switches are on: when you ask, and the daily sense of what's out. */
+export function cultureSwitches(saved?: ContextMapping): { asked: boolean; daily: boolean } {
+  const on = Boolean(saved?.enabled && saved.approved)
+  return { asked: on && saved!.run_in.includes('conversation'), daily: on && saved!.run_in.includes('ambient') }
+}
+
+/** When the culture lookup runs, from the two switches. */
+export function cultureRunIn(asked: boolean, daily: boolean): ContextPurpose[] {
+  return [...(asked ? ['conversation' as const] : []), ...(daily ? ['ambient' as const] : [])]
 }
 
 export interface MappingDraft { tool: string; arguments: Record<string, ToolArgument>; run_in: ContextPurpose[] }

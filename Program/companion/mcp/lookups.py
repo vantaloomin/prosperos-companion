@@ -24,6 +24,12 @@ from companion.mcp.services import CATEGORIES, active_mappings, destination, pla
 
 FRESH_FOR = {'weather': timedelta(hours=1), 'news': timedelta(hours=3), 'local_events': timedelta(hours=12),
              'link': timedelta(hours=6), 'web_search': timedelta(hours=1), 'culture': timedelta(hours=6)}
+# The once-a-day culture digest counts for a day; after a failed try it waits an hour before the next.
+FRESH_FOR_PURPOSE = {'ambient': timedelta(hours=24)}
+AMBIENT_RETRY = timedelta(hours=1)
+# How much of the digest goes into every reply's context, and how many items of each list.
+AMBIENT_ITEMS = 2
+AMBIENT_CHARS = 1400
 HOURLY_LIMIT = 20
 DAILY_LIMIT = 100
 FAILURE_PAUSE = timedelta(minutes=5)
@@ -145,8 +151,21 @@ def city_target(world, definition: dict) -> dict | None:
             'latitude': latitude, 'longitude': longitude, 'city': data['id']}
 
 
+def present_day(world, definition: dict) -> bool:
+    """Whether the companion lives now: a modern city, or one the world data does not know (written in by hand).
+    A companion in 1920s Chicago or a far future has no use for today's charts."""
+    city = definition.get('home_city') or definition.get('location') or ''
+    finder = getattr(world, 'find', None)
+    return modern(finder(city) if finder and city else None)
+
+
+def modern(data: dict | None) -> bool:
+    return not data or data.get('era', 'modern') == 'modern'
+
+
 def target(connection, purpose: str, world, now) -> dict | None:
-    """Where a lookup applies: the user's own location, or the companion's real city (None if it has none)."""
+    """Where a lookup applies: the user's own location, the companion's real city (None if it has none), or,
+    for the daily culture digest, nowhere at all (None when the companion does not live in the present day)."""
     if purpose == 'conversation':
         # Without a location only lookups that send none (such as general news) can run.
         place = place_settings(connection)
@@ -157,6 +176,12 @@ def target(connection, purpose: str, world, now) -> dict | None:
         return {'label': label, 'place': label or None, 'latitude': place['user_latitude'],
                 'longitude': place['user_longitude'], 'date': local.date().isoformat(), 'whose': 'user'}
     companion = current(connection)
+    if purpose == 'ambient':
+        if not companion or not present_day(world, companion['version']['definition']):
+            return None
+        local = now.astimezone(zone(companion['version']['timezone']))
+        return {'label': '', 'place': None, 'latitude': None, 'longitude': None, 'date': local.date().isoformat(),
+                'whose': None}
     found = city_target(world, companion['version']['definition']) if companion else None
     if found is None:
         return None
@@ -281,6 +306,18 @@ class Lookups:
                 return good
         return local
 
+    async def ambient(self, deadline: float = BACKGROUND_DEADLINE) -> list[dict]:
+        """The daily culture digest, when the user turned it on: asked at most once a day, and after a failed
+        or refused try, not again for an hour."""
+        with self.database.connect() as connection:
+            last = optional(connection, "SELECT status, requested_at, fresh_until FROM context_observations WHERE "
+                            "category='culture' AND purpose='ambient' ORDER BY requested_at DESC, rowid DESC LIMIT 1")
+        now = self.now()
+        if last and (last['status'] == 'ok' and parse(last['fresh_until']) > now
+                     or last['status'] != 'ok' and parse(last['requested_at']) > now - AMBIENT_RETRY):
+            return []
+        return await self.run('culture', 'ambient', None, deadline)
+
     def links_limited(self, connection) -> bool:
         count = one(connection, "SELECT COUNT(*) AS n FROM context_observations WHERE service_id IS NULL AND "
                     "category='link' AND status<>'refused' AND requested_at>?",
@@ -398,8 +435,8 @@ class Lookups:
         retrieval time and freshness and counts as no request."""
         now, observation_id = self.now(), identifier()
         retrieved = copied_from['retrieved_at'] if copied_from else stamp(now) if status == 'ok' else None
-        fresh = copied_from['fresh_until'] if copied_from else stamp(now + FRESH_FOR[category]) if status == 'ok' \
-            else None
+        fresh = copied_from['fresh_until'] if copied_from else \
+            stamp(now + FRESH_FOR_PURPOSE.get(purpose, FRESH_FOR[category])) if status == 'ok' else None
         with self.database.connect(write=True) as connection:
             connection.execute(
                 'INSERT INTO context_observations (id, service_id, service_name, category, purpose, tool, arguments, '
@@ -421,6 +458,41 @@ def fresh_city_events(connection, now) -> dict | None:
                    "purpose='companion_city' AND status='ok' AND fresh_until>? ORDER BY retrieved_at DESC, rowid DESC "
                    'LIMIT 1', (stamp(now),))
     return observation_view(row, now) if row else None
+
+
+def fresh_culture(connection, now, definition: dict) -> dict | None:
+    """Today's culture digest, while it is fresh: what's out and trending, for the companion to bring up. None
+    for a companion who does not live in the present day, even when one asked earlier still is."""
+    from companion.life.social import city_data
+    if not modern(city_data(connection, definition)):
+        return None
+    row = optional(connection, "SELECT * FROM context_observations WHERE category='culture' AND purpose='ambient' "
+                   "AND status='ok' AND fresh_until>? ORDER BY retrieved_at DESC, rowid DESC LIMIT 1", (stamp(now),))
+    return observation_view(row, now) if row else None
+
+
+def culture_lists(observation: dict) -> dict[str, list[str]]:
+    """The digest's lists by title ("Most-played songs on Apple Music in the US": [...]), from its structured part."""
+    found = (observation.get('structured') or {}).get('found')
+    if not isinstance(found, dict):
+        return {}
+    lists = {}
+    for section in found.values():
+        for title, items in (section.items() if isinstance(section, dict) else ()):
+            names = [clean(str(item), 160) for item in items if isinstance(item, str) and item.strip()] \
+                if isinstance(items, list) else []
+            if names:
+                lists[clean(str(title), 120)] = names
+    return lists
+
+
+def culture_text(observation: dict) -> str:
+    """A short form of the digest for every reply: the top few of each list, or the start of its text."""
+    lists = culture_lists(observation)
+    if not lists:
+        return clean(observation['content'], AMBIENT_CHARS)
+    text = '; '.join(f"{title}: {', '.join(items[:AMBIENT_ITEMS])}" for title, items in lists.items())
+    return clean(text, AMBIENT_CHARS)
 
 
 def listing(database, limit=100) -> dict:

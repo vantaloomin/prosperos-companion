@@ -30,10 +30,15 @@ CATEGORIES = {
     'web_search': {'label': 'Web search', 'keywords': ('search', 'web'), 'purposes': ('conversation',),
                    'when': 'When you ask in chat to search or look something up, with what you asked for'},
     # Internet-wide releases and trends; it sends only which of them were asked about, never a place.
+    # Also, once a day, a short digest of everything with nothing sent, so the companion has a sense of what's out.
     'culture': {'label': "Movies, shows, games and what's trending",
-                'keywords': ('culture', 'movie', 'entertainment', 'trending', 'release'), 'purposes': ('conversation',),
-                'when': 'When you ask in chat about movies, TV, games, music, books or what is trending, with which '
-                        'of those you asked about'},
+                'keywords': ('culture', 'movie', 'entertainment', 'trending', 'release'),
+                'purposes': ('conversation', 'ambient'),
+                'when_for': {'conversation': 'When you ask in chat about movies, TV, games, music, books or what is '
+                                             'trending, with which of those you asked about',
+                             'ambient': 'Once a day in the background, while background activity is on and the '
+                                        'companion lives in the present day, with no topic: it asks for a short '
+                                        'digest of everything'}},
 }
 # Hosted search services that work without a key (checked 2026-10-05; each one's own terms and limits apply).
 PRESETS = {
@@ -48,6 +53,7 @@ PURPOSES = {
     'conversation': 'When you ask about it in chat, for your location (or the topic you name)',
     'companion_city': "For the companion's city, when it is a real place: in chat when you ask about where "
                       'they are, and for their simulated day',
+    'ambient': 'Once a day in the background, so the companion has a general sense of what is out and trending',
 }
 SOURCES = {
     'place': 'Your city or region as you typed it (the companion\'s city for companion lookups)',
@@ -432,9 +438,10 @@ def disclosure(service: dict, mapping: dict, place: dict) -> dict:
     lines += [f"It sends {item['argument']}: {item['description'].lower()} (now: {item['example']})." for item in sends]
     if not sends:
         lines.append('It sends no arguments.')
-    when = CATEGORIES[mapping['category']].get('when')
-    lines += [f'It runs {text[0].lower()}{text[1:]}.' for text in
-              ([when] if when else [PURPOSES[purpose] for purpose in sorted(run_in)])]
+    category = CATEGORIES[mapping['category']]
+    when = [category['when']] if category.get('when') else \
+        [category.get('when_for', {}).get(purpose) or PURPOSES[purpose] for purpose in sorted(run_in)]
+    lines += [f'It runs {text[0].lower()}{text[1:]}.' for text in when]
     lines.append('It never sends ' + ', '.join(NEVER_SENT) + '. The service\'s own terms and retention apply.')
     return {'digest': digest, 'destination': basis['destination'], 'transport': service['transport'],
             'tool': mapping['tool'], 'category': mapping['category'], 'sends': sends, 'run_in': sorted(run_in),
