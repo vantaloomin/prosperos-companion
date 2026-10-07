@@ -14,7 +14,7 @@ dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
 include = ["companion*"]
 
 [tool.setuptools.package-data]
-companion = ["schema.sql", "prompts/*.md", "prompts/*.json", "images/workflows/*.json", "world/data/*.json", "world/data/cities/*.json", "almanac/data/*.json"]
+companion = ["schema.sql", "prompts/*.md", "prompts/*.json", "images/workflows/*.json", "images/model_links.json", "world/data/*.json", "world/data/cities/*.json", "almanac/data/*.json"]
 
 [tool.ruff]
 target-version = "py312"

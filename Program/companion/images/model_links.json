@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Krea 2 Turbo, packaged for ComfyUI (fp8)",
+    "role": "model",
+    "file": "krea2_turbo_fp8_scaled.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Krea-2/tree/main/diffusion_models",
+    "licence": "Krea 2 Community License: personal use is allowed; commercial use only below US$1M yearly revenue. Goes in models/diffusion_models. Not gated."
+  },
+  {
+    "name": "Krea 2 Turbo, packaged for ComfyUI (NVFP4, smaller)",
+    "role": "model",
+    "file": "krea2_turbo_nvfp4.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Krea-2/tree/main/diffusion_models",
+    "licence": "Krea 2 Community License, as above. The same folder also has bf16 and int8 files."
+  },
+  {
+    "name": "Krea 2 Turbo, Krea's own release",
+    "role": "model",
+    "file": null,
+    "url": "https://huggingface.co/krea/Krea-2-Turbo",
+    "licence": "Gated: sign in to Hugging Face and accept the Krea 2 Community License first. Diffusers format; ComfyUI uses the packaged files above."
+  },
+  {
+    "name": "Qwen3-VL 4B text encoder (fp8)",
+    "role": "clip",
+    "file": "qwen3vl_4b_fp8_scaled.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Qwen3-VL/tree/main/text_encoders",
+    "licence": "Apache 2.0. Goes in models/text_encoders. Load it with the krea2 type."
+  },
+  {
+    "name": "Qwen Image VAE",
+    "role": "vae",
+    "file": "qwen_image_vae.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/tree/main/split_files/vae",
+    "licence": "Apache 2.0. Goes in models/vae."
+  }
+]
