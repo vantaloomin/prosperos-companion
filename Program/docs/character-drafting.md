@@ -2,22 +2,35 @@
 
 [Back to the README](../../README.md)
 
-A long empty form is a poor first screen, so creating a companion starts with a short quick
-start and the user's own text model writes the first draft. The full form then opens with the
+A long empty form is a poor first screen, so the welcome screen asks for a text model first, then
+creating a companion starts with three picks and the user's own text model writes the first draft. The full form then opens with the
 draft filled in for review. Nothing is saved until the user creates the companion.
 
 ## Quick start
 
-The user writes an idea in a line or two (or nothing, to be surprised) and may pick a name, the
-relationship, a rough age, a home city from the world catalogue, a few vibe words, and whether
-the character may have emotional edges. **Draft my companion** sends this to
+The quick start shows three picks: a name (optional; left empty, the draft suggests one), a rough
+age, and **Where and when**, a home city from the world catalogue grouped by era (Today,
+Victorian, Steampunk, the frontier, Medieval, Fantasy; "Anywhere, today" for none). **More
+options**, folded by default, holds an idea in a line or two, the relationship (friendship unless
+picked otherwise), a few vibe words, and whether the character may have emotional edges.
+**Create my companion** sends this to
 `POST /api/companion/draft`; **Fill in the form myself** skips drafting entirely. Drafting uses the
 profile assigned to Character drafting in Settings > Models, or the conversation profile. Without
 one the quick start says so, links to Settings, and the form still works.
 
 The draft fills every part of the definition the app uses, including the weekly routine and the
 themes the life simulation draws on, so a drafted companion has a working life without
-hand-editing.
+hand-editing. On screens wider than 720px the sidecar opens beside the drafted form, for changes in
+plain words.
+
+## Life details
+
+The character form shows the person first: name, relationship, where they live, who they are,
+personality, voice, skills, flaws, interests, background and appearance. **Life details**, hidden by
+default behind **Show details**, hold the timezone, texting habits, routine in their words, home
+city, weekly routine, life themes, birthday, money, emotional traits and reaction to time apart,
+and, for a saved companion, their home, wardrobe and own facts. They are filled in either way; the
+choice to show them is remembered in this browser.
 
 ## Rewriting one field
 
@@ -29,7 +42,7 @@ there** restores the previous text. This works when creating and when editing a 
 
 ## Pasting a character you already have
 
-Under the quick start, **Already have a character?** takes a whole character at once: notes, a
+Under the quick start, **Or import a character you already have** (folded) takes a whole character at once: notes, a
 bio, a scene, or a character card. **Open a character card** reads a SillyTavern-style card (JSON,
 or a PNG with the card embedded; V1, V2 and V3) or a `.txt`/`.md` file into the box, so the user
 sees exactly what will be sent before anything is. The card reader (`companion/imports/cards.py`,

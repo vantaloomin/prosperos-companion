@@ -10,7 +10,7 @@ import type { SplitResult } from './helper'
 
 interface Props { connected: boolean; onSplit: (result: SplitResult) => void }
 
-/** A character the user already has, pasted or opened from a card, split into the form's fields by their text model. */
+/** Kept folded under the quick start: a character the user already has, pasted or opened from a card, split into the form's fields by their text model. */
 export function PasteCharacter({ connected, onSplit }: Props) {
   const [text, setText] = useState('')
   const [relationship, setRelationship] = useState<Relationship>('friendship')
@@ -29,8 +29,8 @@ export function PasteCharacter({ connected, onSplit }: Props) {
   }
 
   return (
-    <section className="quick-start paste-character" aria-labelledby="paste-character-title">
-      <h2 id="paste-character-title"><ClipboardPaste aria-hidden="true" />Already have a character?</h2>
+    <details className="quick-start paste-character">
+      <summary><h2><ClipboardPaste aria-hidden="true" />Or import a character you already have</h2></summary>
       <p className="subtle">Paste all of them at once: notes, a bio, a character card or a scene. Your text model sorts it into the fields and fills in only what your text leaves out. You review everything before it is saved.</p>
       <form className="form-stack" onSubmit={submit}>
         <TextArea label="Your character" value={text} onChange={setText} maxLength={40000} rows={6}
@@ -49,6 +49,6 @@ export function PasteCharacter({ connected, onSplit }: Props) {
           <button type="submit" className="button primary" disabled={!connected || busy || !text.trim()}>{busy ? 'Splitting…' : 'Split into fields'}</button>
         </div>
       </form>
-    </section>
+    </details>
   )
 }

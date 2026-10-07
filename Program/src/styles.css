@@ -166,6 +166,7 @@ textarea { resize: vertical; line-height: 1.6; }
 
 .form-stack { display: flex; flex-direction: column; gap: 20px; max-width: 760px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.form-grid.three { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .field { display: flex; flex-direction: column; gap: 7px; }
 .field > label, .traits legend { font-size: 0.875rem; font-weight: 500; color: #d6d0c4; }
 .field small, .toggle small { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
@@ -494,7 +495,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .city-packs summary { cursor: pointer; color: var(--muted); }
 .city-packs code { overflow-wrap: anywhere; }
 
-.study-import { max-width: 760px; margin-bottom: 28px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.study-import { max-width: 760px; margin: 20px 0 28px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .study-import > summary { cursor: pointer; font-size: 0.9375rem; }
 .study-import > .form-stack { margin-top: 14px; }
 .study-import-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
@@ -512,6 +513,12 @@ textarea { resize: vertical; line-height: 1.6; }
 .quick-start h2 svg { width: 18px; height: 18px; color: var(--accent); }
 .quick-start > .subtle { margin: 0 0 16px; }
 .quick-start > .notice { margin-bottom: 16px; }
+.paste-character > summary { cursor: pointer; list-style: none; }
+.paste-character > summary::-webkit-details-marker { display: none; }
+.paste-character > summary h2 { margin: 0; }
+.paste-character[open] > summary { margin-bottom: 6px; }
+.character-details-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.character-details-toggle p { margin: 0; }
 .vibes { display: flex; flex-direction: column; gap: 8px; }
 .vibe-picks { display: flex; flex-wrap: wrap; gap: 6px; }
 .vibe-pick { padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.8125rem; background: transparent; }

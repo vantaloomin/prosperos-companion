@@ -15,7 +15,7 @@ export function welcomeSteps(connection: Connection | null | undefined): Welcome
     },
     {
       id: 'character', label: '2. Create your companion', done: false, view: 'character', primary: connected,
-      detail: 'Start from a short idea, paste a character you already have, or fill in the form yourself.',
+      detail: 'Pick a name, an age and where and when they live, and your text model writes the rest. Or import a character you already have.',
       action: connected ? 'Create your companion' : connection === null ? 'Create without a model for now' : '',
     },
   ]
