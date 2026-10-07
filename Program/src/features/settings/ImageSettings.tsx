@@ -2,12 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
-import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink } from '../../types'
+import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, PROVIDERS, disclosureFor } from '../feed/imageState'
-import { FILE_SLOTS, NO_CHOICE, fileChoices, filesBody, isChosen, linksByRole, serverFiles, shownFiles, type FileSlot } from './modelFiles'
+import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -108,7 +108,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       <Toggle label="Enabled" checked={backend.enabled}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { enabled: value, accept_disclosure: value && pending ? true : undefined }, 'PUT'))}
         hint={pending ? 'Turning it on accepts what it receives, described above.' : undefined} />
-      {backend.model_files && !backend.custom_workflow && <ModelFilePicker backend={backend} saved={backend.model_files} save={(files) => act(() => api(`/images/backends/${backend.id}`, files, 'PUT'))} />}
+      <ComfyFiles backend={backend} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
       <div className="post-actions">
@@ -126,7 +126,8 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
 function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; saved: ModelFiles; save: (files: ModelFiles) => Promise<boolean> }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<Partial<ModelFiles>>({})
-  const files = useQuery({ queryKey: ['image-backend-files', backend.id], queryFn: () => api<BackendFiles>(`/images/backends/${backend.id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  const [kreaOnly, setKreaOnly] = useState(true)
+  const files = useBackendFiles(backend.id, open)
   const links = useQuery({ queryKey: ['image-model-links'], queryFn: () => api<{ links: ModelLink[] }>('/images/model-links'), enabled: open, staleTime: Infinity })
   const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, saved)
   const shown = shownFiles(draft, saved, server.defaults)
@@ -138,8 +139,10 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
         <p className="subtle">Pick the files your ComfyUI server has. The lists come from the server at this backend's address; nothing is downloaded or installed.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
+        {hasKrea(server.krea) && <Toggle label="Only Krea 2 files" checked={kreaOnly} onChange={setKreaOnly}
+          hint="Files whose name or folder says Krea 2 (or the Qwen encoder and VAE it uses). Turn off to see every file." />}
         {server.answered && <div className="form-grid">
-          {FILE_SLOTS.map((slot) => <FileField key={slot.key} slot={slot} options={server.options[slot.key]} value={shown[slot.key]} fallback={server.defaults[slot.key]} onChange={(value) => setDraft({ ...draft, [slot.key]: value })} />)}
+          {FILE_SLOTS.map((slot) => <FileField key={slot.key} slot={slot} options={server.options[slot.key]} krea={kreaOnly ? server.krea[slot.key] : []} value={shown[slot.key]} fallback={server.defaults[slot.key]} onChange={(value) => setDraft({ ...draft, [slot.key]: value })} />)}
         </div>}
         <FileActions changed={Object.keys(draft).length > 0} chosen={isChosen(saved)} busy={files.isFetching}
           save={() => void store(filesBody(shown, server.defaults))} cancel={() => setDraft({})} reset={() => void store(NO_CHOICE)} refresh={() => void files.refetch()} />
@@ -163,15 +166,100 @@ function FileActions({ changed, chosen, busy, save, cancel, reset, refresh }: Fi
   </div>
 }
 
-/** A dropdown of the server's files, or a text box when it listed none. */
-function FileField({ slot, options, value, fallback, onChange }: { slot: FileSlot; options: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
+/** A ComfyUI server's model files (built-in workflow only) and style LoRAs (any workflow). */
+function ComfyFiles({ backend, put }: { backend: ImageBackend; put: (body: object) => Promise<boolean> }) {
+  return <>
+    {backend.model_files && !backend.custom_workflow && <ModelFilePicker backend={backend} saved={backend.model_files} save={put} />}
+    {backend.sampler && !backend.custom_workflow && <SamplerPicker backend={backend} saved={backend.sampler} save={put} />}
+    {backend.style_loras && <StyleLoraPicker backend={backend} saved={backend.style_loras} save={(rows) => put(stylesBody(rows))} />}
+  </>
+}
+
+/** The built-in workflow's steps, CFG, sampler and scheduler, for a model that wants other settings
+ * than Krea 2 Turbo's. The sampler and scheduler lists come from the server's KSampler. A custom
+ * workflow keeps its own settings, so this is not shown for one. */
+function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved: SamplerSettings; save: (body: object) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState<Partial<SamplerSettings>>({})
+  const files = useBackendFiles(backend.id, open)
+  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, NO_CHOICE)
+  const defaults = files.data?.sampler_defaults ?? TURBO
+  const shown = shownSampler(draft, saved, defaults)
+  const store = async (body: object) => { if (await save(body)) setDraft({}) }
+  const slot = (label: string, hint: string): FileSlot => ({ key: 'unet_name', label, role: null, hint })
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="subtle">Sampling {isTuned(saved) ? '(your settings)' : '(Krea 2 Turbo defaults)'}</summary>
+      <div className="form-stack">
+        <p className="subtle">Starts on Krea 2 Turbo's settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
+        <div className="form-grid">
+          <TextInput label="Steps" type="number" value={String(shown.steps)} hint="1 to 100. Turbo models need few." onChange={(value) => setDraft({ ...draft, steps: Number(value) })} />
+          <TextInput label="CFG" type="number" value={String(shown.cfg)} hint="At 1 the negative prompt is ignored." onChange={(value) => setDraft({ ...draft, cfg: Number(value) })} />
+          <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} krea={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
+          <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} krea={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
+        </div>
+        <FileActions changed={Object.keys(draft).length > 0} chosen={isTuned(saved)} busy={files.isFetching}
+          save={() => void store(shown)} cancel={() => setDraft({})} reset={() => void store(defaults)} refresh={() => void files.refetch()} />
+      </div>
+    </details>
+  )
+}
+
+/** The server's file lists, asked once the panel is opened and shared by the file and LoRA pickers. */
+function useBackendFiles(id: string, open: boolean) {
+  return useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+}
+
+/** A dropdown of the server's files (only `krea` when given), or a text box when it listed none. */
+function FileField({ slot, options, krea, value, fallback, onChange }: { slot: FileSlot; options: string[]; krea: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
   const { label, hint, tip } = slot
   if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback} hint={hint} tip={tip} onChange={onChange} />
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => (
     <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
-      {fileChoices(options, value).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      {fileChoices(options, value, krea, krea.length > 0).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
   )}</Field>
+}
+
+/** Up to three LoRAs from the server's loras folder, applied after the character's own LoRA (which is
+ * never offered here), each with a strength and the trigger words it needs. Any workflow takes them. */
+function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; saved: StyleLora[]; save: (rows: StyleLora[]) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState<StyleLora[] | null>(null)
+  const files = useBackendFiles(backend.id, open)
+  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, NO_CHOICE)
+  const store = async (body: StyleLora[]) => { if (await save(body)) setDraft(null) }
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="subtle">Style LoRAs {saved.length ? `(${saved.length})` : '(none)'}</summary>
+      <div className="form-stack">
+        <p className="subtle">Extra LoRAs for the look of every picture from this server, such as a phone-photo or realism LoRA. They apply after the character's own LoRA, when one is adopted, in this order.</p>
+        {open && !server.answered && <p className="subtle">Asking ComfyUI for its LoRAs…</p>}
+        {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
+        {server.answered && <StyleLoraRows rows={draft ?? saved} options={server.options.lora} krea={server.krea.lora} setRows={setDraft} />}
+        {draft && <FileActions changed chosen={false} busy={files.isFetching} save={() => void store(draft)} cancel={() => setDraft(null)} reset={() => undefined} refresh={() => void files.refetch()} />}
+      </div>
+    </details>
+  )
+}
+
+const LORA_SLOT: FileSlot = { key: 'unet_name', label: 'LoRA', role: null, hint: 'From ComfyUI\'s models/loras folder.' }
+
+function StyleLoraRows({ rows, options, krea, setRows }: { rows: StyleLora[]; options: string[]; krea: string[]; setRows: (rows: StyleLora[]) => void }) {
+  const [kreaOnly, setKreaOnly] = useState(true)
+  const edit = (index: number, change: Partial<StyleLora>) => setRows(rows.map((row, at) => at === index ? { ...row, ...change } : row))
+  return <>
+    {krea.length > 0 && <Toggle label="Only Krea 2 LoRAs" checked={kreaOnly} onChange={setKreaOnly} hint="LoRAs whose name or folder says Krea 2. Turn off to see every LoRA." />}
+    {rows.map((row, index) => <div key={index} className="form-grid">
+      <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} krea={kreaOnly ? krea : []} value={row.name} fallback="" onChange={(name) => edit(index, { name })} />
+      <TextInput label="Strength" type="number" value={String(row.strength)} hint="0.6 to 0.8 suits most style LoRAs." onChange={(value) => edit(index, { strength: Number(value) })} />
+      <TextInput label="Trigger words" value={row.trigger} maxLength={200} hint="Put in front of the prompt when the LoRA needs them." onChange={(trigger) => edit(index, { trigger })} />
+      <button type="button" className="text-button" onClick={() => setRows(rows.filter((_, at) => at !== index))}><Trash2 aria-hidden="true" />Remove</button>
+    </div>)}
+    {rows.length < MAX_STYLE_LORAS && <div className="form-actions">
+      <button type="button" className="button" onClick={() => setRows([...rows, { ...NEW_STYLE_LORA, name: (kreaOnly && krea[0]) || options[0] || '' }])}>Add a LoRA</button>
+    </div>}
+  </>
 }
 
 /** Official pages for the built-in workflow's files. Pages only, never a direct download. */
