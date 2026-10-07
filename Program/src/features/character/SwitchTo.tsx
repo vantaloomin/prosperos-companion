@@ -11,7 +11,8 @@ import { refocus } from './refocus'
 
 interface Props { townKey: string; go: (view: View) => void }
 
-/** A townsperson the companion has met becomes the main character, from a profile the user reviews first. */
+/** A townsperson the companion has met, or a dating match, becomes the main character, from a profile the user
+ * reviews first. */
 export function SwitchTo({ townKey, go }: Props) {
   const client = useQueryClient()
   const draft = useQuery({ queryKey: ['cast-draft', townKey], queryFn: () => api<CastDraft>(`/companion/cast/draft?key=${encodeURIComponent(townKey)}`), staleTime: Infinity, retry: false })
@@ -20,11 +21,12 @@ export function SwitchTo({ townKey, go }: Props) {
   if (draft.isError) {
     return (
       <section className="page">
-        <Notice tone="error" action={<button type="button" className="text-button" onClick={() => go('today')}>Back to Today</button>}>{draft.error.message}</Notice>
+        <Notice tone="error" action={<button type="button" className="text-button" onClick={() => window.history.back()}>Go back</button>}>{draft.error.message}</Notice>
       </section>
     )
   }
-  const { person, stepping_back: old } = draft.data
+  const { person, stepping_back: old, matched } = draft.data
+  const name = givenName(person.full)
   const current = start ?? { definition: draft.data.definition, drafted: false, attempt: 0 }
   const save = async (definition: CharacterDefinition) => {
     const saved = await api<Companion>('/companion/cast/switch', { key: townKey, definition })
@@ -34,17 +36,17 @@ export function SwitchTo({ townKey, go }: Props) {
   return (
     <CharacterForm key={`switch-${current.attempt}`} companion={null} start={current} onRestart={() => setStart(null)} go={go} saved={null} onSaved={() => undefined}
       create={{
-        save, label: `Make ${givenName(person.full)} the main character`,
+        save, label: old ? `Make ${name} the main character` : `Start talking to ${name}`,
         heading: <header className="page-header"><div>
           <h1>{person.full}</h1>
-          <p className="subtle">{person.role.charAt(0).toUpperCase()}{person.role.slice(1)}, {person.neighborhood}. {old} has run into {givenName(person.full)} around town. Read their profile through and change anything you like before they take over.</p>
+          <p className="subtle">{person.role.charAt(0).toUpperCase()}{person.role.slice(1)}, {person.neighborhood}. {matched ? `You matched with ${name}.` : `${old} has run into ${name} around town.`} Read their profile through and change anything you like before {old ? 'they take over' : 'you start talking'}.</p>
         </div></header>,
-        notice: <Written old={old} name={givenName(person.full)} townKey={townKey} written={current.drafted} onWritten={(definition) => setStart({ definition, drafted: true, attempt: current.attempt + 1 })} onReset={() => setStart(null)} />,
+        notice: <Written old={old} name={name} townKey={townKey} written={current.drafted} onWritten={(definition) => setStart({ definition, drafted: true, attempt: current.attempt + 1 })} onReset={() => setStart(null)} />,
       }} />
   )
 }
 
-interface WrittenProps { old: string; name: string; townKey: string; written: boolean; onWritten: (definition: CharacterDefinition) => void; onReset: () => void }
+interface WrittenProps { old: string | null; name: string; townKey: string; written: boolean; onWritten: (definition: CharacterDefinition) => void; onReset: () => void }
 
 /** What switching means, and an offer to have the text model write the sheet out in full. */
 function Written({ old, name, townKey, written, onWritten, onReset }: WrittenProps) {
@@ -62,7 +64,7 @@ function Written({ old, name, townKey, written, onWritten, onReset }: WrittenPro
   }
   return (
     <div className="form-stack">
-      <Notice>{name} becomes the main character, and the text model plays them from now on. {old} steps back: everything you two shared stays, {old} goes on living around town by simple rules, and you can switch back from the Character page.</Notice>
+      <Notice>{name} becomes the main character, and the text model plays them from now on.{old ? ` ${old} steps back: everything you two shared stays, ${old} goes on living around town by simple rules, and you can switch back from the Character page.` : ''}</Notice>
       {written
         ? <p className="subtle">Written out by your text model. <button type="button" className="text-button inline" onClick={onReset}>Use the plain profile instead</button></p>
         : connection.data && <p className="subtle">This profile comes from what the town knows about {name}.{' '}

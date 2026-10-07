@@ -24,6 +24,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .app-nav { display: flex; flex-direction: column; gap: 6px; width: 84px; flex: 0 0 84px; padding: 20px 8px; border-right: 1px solid var(--border); background: var(--surface); }
 .app-nav button { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px; border-radius: 8px; color: var(--muted); font-size: 0.75rem; }
 .app-nav button svg { width: 1.4rem; height: 1.4rem; }
+.app-nav button { position: relative; }
+.app-nav button svg.nav-badge { position: absolute; top: 4px; right: 14px; width: 0.95rem; height: 0.95rem; padding: 2px; border-radius: 50%; background: var(--accent); color: var(--canvas); }
 .app-nav button:hover { background: var(--raised); color: var(--text); }
 .app-nav button[aria-current='page'] { color: var(--accent); background: var(--accent-tint); }
 .app-nav button:last-child { margin-top: auto; }
@@ -109,6 +111,34 @@ textarea { resize: vertical; line-height: 1.6; }
 .story-empty { text-align: center; margin-top: 24px; }
 .story-notice, .story-footer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .story-footer { padding-bottom: 16px; }
+/* The dating app (src/features/dating): one card at a time; older eras show a newspaper notice. */
+.dating-setup { max-width: 520px; }
+.dating-setup label { display: flex; flex-direction: column; gap: 4px; }
+.dating-setup fieldset { border: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.dating-setup label.checkbox { flex-direction: row; align-items: center; gap: 6px; }
+.dating-store { max-width: 420px; margin: 24px auto; padding: 32px 24px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.dating-logo { width: 72px; height: 72px; border-radius: 18px; display: grid; place-items: center; background: linear-gradient(135deg, #ff7a59, #e2457a); color: #fff; }
+.dating-logo svg { width: 36px; height: 36px; }
+.dating-column .dating-logo, .dating-matchmaker .dating-logo { background: var(--raised); color: var(--text); border-radius: 50%; }
+.dating-store .button svg { width: 16px; height: 16px; }
+.dating-store .small { font-size: 0.75rem; }
+.dating-progress { width: 100%; height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+.dating-progress span { display: block; height: 100%; width: 100%; background: var(--accent); animation: dating-install 1.6s ease-out; }
+@keyframes dating-install { from { width: 0; } to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .dating-progress span { animation: none; } }
+.dating-bar { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+.dating-bar label { display: flex; align-items: center; gap: 8px; }
+.dating-bar svg { width: 16px; height: 16px; color: var(--accent); }
+.dating-card { max-width: 520px; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; overflow-wrap: anywhere; }
+.dating-card h2 { font-size: 1.25rem; }
+.dating-column .dating-notice { font-family: 'Literata', Georgia, serif; line-height: 1.6; padding: 12px; border: 1px dashed var(--border); }
+.dating-actions .button svg { width: 16px; height: 16px; }
+.dating-empty { margin-bottom: 24px; }
+.dating-matches ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.dating-matches li { padding: 12px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.dating-date { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.dating-date label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8125rem; color: var(--muted); }
+.dating-date select { max-width: 100%; }
 
 @media (max-width: 720px) {
   .app-shell { flex-direction: column-reverse; }

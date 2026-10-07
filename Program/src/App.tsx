@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Settings as SettingsIcon, UserRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Download, Heart, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import type { Companion } from './types'
+import { useQuery } from '@tanstack/react-query'
+import { api } from './api'
 import { useCompanion, useFollowPcTimezone, useWorkspaceSettings, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
 import type { SettingsTab } from './features/settings/sections'
@@ -20,12 +22,14 @@ const Portraits = lazy(() => import('./features/appearance/Portraits').then((m) 
 const Memories = lazy(() => import('./features/memories/Memories').then((m) => ({ default: m.Memories })))
 const Settings = lazy(() => import('./features/settings/Settings').then((m) => ({ default: m.Settings })))
 const Today = lazy(() => import('./features/today/Today').then((m) => ({ default: m.Today })))
+const Dating = lazy(() => import('./features/dating/Dating').then((m) => ({ default: m.Dating })))
 const Story = lazy(() => import('./features/story/Story').then((m) => ({ default: m.Story })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
 // The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
 const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
   { id: 'conversation', label: 'Profile', icon: UserRound },
+  { id: 'dating', label: 'Matchlight', icon: Heart },
   { id: 'story', label: 'Story', icon: BookOpen },
   { id: 'today', label: 'Today', icon: CalendarDays },
   { id: 'memories', label: 'Memories', icon: BookHeart },
@@ -34,7 +38,7 @@ const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') ? id as View : 'conversation'
 }
 
 function isCurrent(id: View, view: View) {
@@ -59,13 +63,15 @@ export default function App() {
   useFocusOnViewChange(view)
   // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
   const storyOn = !!useWorkspaceSettings().data?.story_mode
+  // The dating app shows a download badge until the user has set it up (src/features/dating).
+  const datingInstalled = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean }>('/dating/status') }).data?.installed ?? true
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
       <nav className="app-nav" aria-label="Views">
         {VIEWS.filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
-            <Icon aria-hidden="true" /><span>{label}</span>
+            <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}<span>{label}</span>
           </button>
         ))}
       </nav>
@@ -95,7 +101,7 @@ interface CurrentViewProps { view: View; companion: Companion | null; go: (view:
 
 function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
   const loraMaker = useWorkspaceSettings().data?.lora_maker
-  // Settings and the story belong to the workspace, so they open with or without a companion.
+  // Settings, the dating app and the story belong to the workspace, so they open with or without a companion.
   if (inWorkspace(view)) return <WorkspaceView view={view} companion={companion} go={go} openTab={openTab} />
   // With the LoRA creator switched off (the default), an old #appearance link opens the Character page.
   const shown = view === 'appearance' && !loraMaker ? 'character' : view
@@ -105,10 +111,12 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
 }
 
 function inWorkspace(view: View) {
-  return view === 'settings' || view.startsWith('settings/') || view === 'story'
+  return view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
+  if (view === 'dating') return <Dating go={go} />
+  if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />
   const storyOn = useWorkspaceSettings().data?.story_mode
   if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
   return storyOn ? <Story go={go} />
