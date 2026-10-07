@@ -114,7 +114,19 @@ def occupation(data: dict, key: str, age: int) -> str:
 
 
 def city(connection, companion: dict) -> dict:
-    return newcomers.city_for(connection, companion['version']['definition'])
+    """The companion's city, carrying the family names strangers there never have (generators.name)."""
+    return newcomers.city_for(connection, companion['version']['definition']) | {'kin': kin(connection, companion)}
+
+
+def kin(connection, companion: dict) -> list[str]:
+    """The companion's family names and their relatives': only family shares them, unless a marriage explains it."""
+    definition = companion['version']['definition']
+    names = [newcomers.surname(definition.get('name', '')), circle.family_name(definition)]
+    for row in circle.people(connection, companion['active_timeline_id'], include_removed=True):
+        if circle.role_kind(row['role']) in FAMILY:
+            details = decode(row['details'])
+            names += [newcomers.surname(details.get('full_name') or ''), details.get('birth_family')]
+    return sorted({name for name in names if name})
 
 
 def find(connection, companion: dict, key: str) -> dict | None:

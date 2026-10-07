@@ -12,6 +12,9 @@ import re
 TYPO_SHARE = 0.12
 WORD = re.compile(r'\b[a-zA-Z]{5,}\b')
 LINK = re.compile(r'https?://\S+|\S+@\S+')
+# A voice that avoids capitals ("texts in lowercase", "rarely uses capital letters").
+LOWERCASE = re.compile(r'lower-?case|avoids? capital|no capital|without capital|never capitali|skips? capital'
+                       r'|(?:rarely|seldom|hardly ever|never) (?:uses? |bothers? with )?capital', re.IGNORECASE)
 
 
 def style(definition: dict) -> dict:

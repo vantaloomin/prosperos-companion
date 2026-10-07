@@ -127,7 +127,8 @@ weather, marked as fictional dates.
 Each circle member has a birthday (`birthday: "MM-DD"` in the circle API), seeded by their id. On
 that date one leisure or social block goes to them: the companion celebrates with a local friend
 who is free then (`activity: "birthday"`, at a restaurant or bar, `with` naming them), or calls a
-relative who lives out of town (no place). The chat context marks the person's birthday on the day.
+relative who lives out of town (no place). The chat context marks the person's birthday on the day, and
+lists it with the birthdays and anniversaries from a week ahead (see below).
 
 Events are composed from the routine, a fixed activity catalog and the world data, without a
 model. When a model is connected and `phrase_with_model` is on, it only rewrites the wording;
@@ -261,7 +262,8 @@ Everyone in the circle has their own people, and theirs have theirs, down to fou
 companion (`companion/life/network.py`). Nobody out there is stored or simulated: a person is a seeded
 path from a circle member (`circle:<timeline>:<n>/2/0`) rebuilt the same way on request, with an
 era-fitting name (`companion/world/naming.py`) and only relatives sharing a family name. A partner gets no
-partner of their own.
+partner of their own. Nobody unrelated to the companion carries the companion's family name or a relative's
+(the city's `kin`, see world-data.md); townsfolk and newcomers follow the same rule.
 
 ```http
 GET /api/life/network?key=<key>   # {person, people: [{key, full, relation, how, age, occupation, met}], deeper}
@@ -440,7 +442,7 @@ connected. Days are decided as the agenda extends, up to 14 days back after time
 
 ### Birthdays and anniversaries
 
-`companion/life/occasions.py` keeps three kinds of day, from the calendar and saved state only:
+`companion/life/occasions.py` keeps four kinds of day, from the calendar and saved state only:
 
 - The companion's birthday: the definition's `birthday` (`"MM-DD"`), or a date seeded by the
   companion's id when it is empty. On the day, their first free leisure or social slot from noon is a
@@ -449,13 +451,17 @@ connected. Days are decided as the agenda extends, up to 14 days back after time
   time the user says it plainly ("my birthday is March 3rd", "it's my birthday today"; questions and
   "if…" are skipped) and is never replaced by a later message; the user changes or clears it in
   Settings.
+- An active circle member's birthday (seeded by their id, in the companion's timezone): "Today is your mom
+  Cathy's birthday." It is the companion's news, so it carries no hint to wish anyone and never opens a
+  conversation.
 - How long they have talked, counted from the timeline's first message in the user's timezone: a
   month, 100 days, three months, six months, then every year. For a romance it reads as their
   anniversary.
 
 The chat context lists the day itself and birthdays within a week. Today's response has `occasions`
 (`[{key, kind, date, days, span, text, template}]`, `kind` one of `user_birthday`, `own_birthday`,
-`anniversary`). On the day, an occasion is the first reason the companion may message first.
+`circle_birthday`, `anniversary`; a `circle_birthday` adds `person` and `relation`). On the day, an occasion
+other than a circle birthday is the first reason the companion may message first.
 
 ## Limits and permissions
 

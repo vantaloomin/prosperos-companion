@@ -5,6 +5,7 @@ export function occasionText(item: Occasion, name: string): string {
   const when = item.days === 0 ? 'today' : item.days === 1 ? 'tomorrow' : `in ${item.days} days`
   if (item.kind === 'user_birthday') return item.days === 0 ? 'Happy birthday! It is your birthday today.' : `Your birthday is ${when}.`
   if (item.kind === 'own_birthday') return `It is ${name}'s birthday ${when}.`
+  if (item.kind === 'circle_birthday') return `It is ${name}'s ${item.relation} ${item.person}'s birthday ${when}.`
   return `It's been ${item.span} since you two started talking.`
 }
 

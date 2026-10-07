@@ -903,7 +903,7 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 
 export interface HomeItem {

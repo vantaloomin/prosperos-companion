@@ -39,6 +39,7 @@ test('occasions read as a friend would say them', async () => {
   const base = { key: 'k', date: '2026-10-07', span: '', text: '', template: null }
   assert.equal(occasionText({ ...base, kind: 'user_birthday', days: 2 }, 'Mira'), 'Your birthday is in 2 days.')
   assert.equal(occasionText({ ...base, kind: 'own_birthday', days: 0 }, 'Mira'), "It is Mira's birthday today.")
+  assert.equal(occasionText({ ...base, kind: 'circle_birthday', days: 1, person: 'Cathy', relation: 'mom' }, 'Mira'), "It is Mira's mom Cathy's birthday tomorrow.")
   assert.equal(occasionText({ ...base, kind: 'anniversary', days: 0, span: 'three months' }, 'Mira'), "It's been three months since you two started talking.")
 })
 

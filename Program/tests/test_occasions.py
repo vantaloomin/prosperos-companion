@@ -4,8 +4,9 @@ from datetime import date, timedelta
 import pytest
 from conftest import reconcile, send, set_life
 
+from companion.clock import zone
 from companion.database import decode
-from companion.life import body, composer, occasions
+from companion.life import body, circle, composer, occasions
 
 
 def test_a_birthday_is_heard_only_when_said_plainly():
@@ -82,3 +83,23 @@ def test_talking_milestones_reach_the_context(client, connected, clock, relation
     clock.advance(timedelta(days=100))
     system = client.get('/api/context/preview').json()['system']
     assert words in system and '100 days' in system
+
+
+def test_circle_birthdays_reach_the_context_but_open_no_conversation(client, connected, clock, monkeypatch):
+    people = client.get('/api/life/circle').json()
+    first, second = people[0], people[1]
+    today = clock.now().astimezone(zone('Europe/Lisbon')).date()
+    dates = {first['id']: today, second['id']: today + timedelta(days=3)}
+    monkeypatch.setattr(occasions, 'SEEDED', True)
+    monkeypatch.setattr(occasions, 'own_birthday', lambda _companion: None)
+    monkeypatch.setattr(circle, 'birthday', lambda person_id: dates.get(
+        person_id, today + timedelta(days=30)).strftime('%m-%d'))
+    system = client.get('/api/context/preview').json()['system']
+    assert f"- Today is your {first['role']} {first['name']}'s birthday." in system
+    later = (today + timedelta(days=3)).strftime('%A %d %B')
+    assert f"- In 3 days ({later}) is your {second['role']} {second['name']}'s birthday." in system
+    assert 'Wish them' not in system
+    found = [item for item in client.get('/api/today').json()['occasions'] if item['kind'] == 'circle_birthday']
+    assert [(item['person'], item['days']) for item in found] == [(first['name'], 0), (second['name'], 3)]
+    set_life(client, texts_first=True)
+    assert client.post('/api/life/texts/check').json()['state'] == 'nothing'

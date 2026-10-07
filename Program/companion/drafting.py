@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from companion import prompt_library
+from companion import prompt_library, texting
 from companion.database import identifier
 from companion.errors import DomainError
 from companion.models import CharacterDefinition, EmotionalTrait, RoutineBlock
@@ -301,6 +301,106 @@ def life(raw: dict, career: dict | None, seed: str, final: bool) -> dict:
     return {'schedule': blocks, 'life_themes': themes}
 
 
+DAY_NAMES = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+DAY_WORDS = {name.lower(): (index,) for index, name in enumerate(DAY_NAMES)} | {
+    'weekday': tuple(range(5)), 'weeknight': tuple(range(5)), 'weekend': (5, 6)}
+DAY = '(' + '|'.join(DAY_WORDS) + ')s?'
+DAY_SPAN = re.compile(rf"\b{DAY}(?:\s*(?:to|through|thru|-|–)\s*{DAY})?(?:'s)?\b", re.IGNORECASE)
+BUSY_KINDS = {'work', 'study'}
+BUSY_WORDS = re.compile(r'\b(?:work\w*|shifts?|office|job|class(?:es)?|lectures?)\b', re.IGNORECASE)
+OFF_WORDS = re.compile(r"\b(?:off|free|no|not|never|don'?t|doesn'?t|sleeps? in|lie-?ins?|rest\w*)\b", re.IGNORECASE)
+WORD = re.compile(r'[a-z]{3,}')
+FILLER = {'and', 'the', 'for', 'are', 'with', 'her', 'his', 'their', 'she', 'him', 'they', 'mine', 'every', 'usually',
+          'spend', 'spends', 'spent', 'always', 'most', 'some', 'its', 'that', 'this', 'then', 'when', 'all', 'day',
+          'days', 'morning', 'mornings', 'afternoon', 'afternoons', 'evening', 'evenings', 'night', 'nights', 'goes',
+          'going', 'out', 'what', 'from', 'into', 'over', 'about', 'like', 'just', 'get', 'gets', 'has', 'have', 'was'}
+
+
+def named_days(text: str) -> set[int]:
+    """The weekdays a phrase names: "Saturdays", "weekends", "Monday to Thursday"."""
+    days = set()
+    for match in DAY_SPAN.finditer(text):
+        first, last = DAY_WORDS[match[1].lower()], DAY_WORDS[(match[2] or match[1]).lower()]
+        if match[2] and len(first) == len(last) == 1:
+            days.update((first[0] + step) % 7 for step in range((last[0] - first[0]) % 7 + 1))
+        else:
+            days.update(first + last)
+    return days
+
+
+def stems(text: str) -> set[str]:
+    return {word[:5] for word in WORD.findall(DAY_SPAN.sub(' ', text.lower())) if word not in FILLER}
+
+
+def clause_agrees(clause: str, blocks: list[dict]) -> bool:
+    """Whether a clause's weekday claim fits the schedule: work on work days, time off on days off, and a
+    named activity ("Saturdays at the rink") on a day with a block that shares a word with it."""
+    days = named_days(clause)
+    if not days:
+        return True
+    busy = {day for item in blocks if item['kind'] in BUSY_KINDS for day in item['days']}
+    if OFF_WORDS.search(clause):
+        return not days & busy
+    if BUSY_WORDS.search(clause):
+        return days <= busy
+    words = stems(clause)
+    return all(any(day in item['days'] and words & stems(' '.join([item['label'], *item['themes']]))
+                   for item in blocks if item['kind'] != 'sleep') for day in days)
+
+
+def clauses(sentence: str) -> list[str]:
+    """A sentence's clauses; a list of days ("Wednesday, Friday and Sunday") stays with the clause it ends."""
+    result, waiting = [], ''
+    for part in re.split(r'[,;:]|\bbut\b', sentence):
+        if not stems(part):
+            if result:
+                result[-1] += f',{part}'
+            else:
+                waiting += f'{part},'
+        else:
+            result.append(waiting + part)
+            waiting = ''
+    return result or [waiting]
+
+
+def minutes(value: str) -> int:
+    hours, rest = value.split(':')
+    return int(hours) * 60 + int(rest)
+
+
+def days_text(days: list[int]) -> str:
+    if len(days) > 2 and days == list(range(days[0], days[-1] + 1)):
+        return f'{DAY_NAMES[days[0]]} to {DAY_NAMES[days[-1]]}'
+    names = [DAY_NAMES[day] for day in days]
+    return ' and '.join(names) if len(names) < 3 else f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+def schedule_text(blocks: list[dict]) -> str:
+    """The week the schedule sets: "Works 12-hour shifts Wednesday, Friday and Sunday, 07:00-19:30."."""
+    lines = []
+    for item in blocks:
+        when = f"{days_text(item['days'])}, {item['start']}-{item['end']}."
+        if item['kind'] in BUSY_KINDS:
+            hours = (minutes(item['end']) - minutes(item['start'])) % 1440 // 60
+            verb = 'Works' if item['kind'] == 'work' else 'Studies'
+            lines.append(f'{verb} {hours}-hour shifts {when}' if hours >= 10 else f'{verb} {when}')
+        elif item['kind'] not in {'sleep', 'rest'} and len(item['days']) < 5:
+            lines.append(f"{item['label']}: {when}")
+    return ' '.join(lines)
+
+
+def agreeing_routine(text: str, blocks: list[dict]) -> str:
+    """The routine prose without the sentences whose weekdays the schedule contradicts, with the schedule's own
+    week said in their place, so the chat context never names work days or standing plans the life lacks."""
+    if not text or not blocks:
+        return text
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    kept = [sentence for sentence in sentences if all(clause_agrees(clause, blocks) for clause in clauses(sentence))]
+    if len(kept) == len(sentences):
+        return text
+    return ' '.join([*kept, schedule_text(blocks)]).strip()
+
+
 class Draft:
     """Turns the quick start's model reply into a definition the app accepts."""
 
@@ -319,6 +419,9 @@ class Draft:
         career_id = raw.get('career') if raw.get('career') in self.offered else ''
         career = self.offered.get(career_id)
         definition |= life(raw, career, self.seed, final) | self.placed()
+        definition['routine'] = agreeing_routine(definition['routine'], definition['schedule'])[:TEXT_LIMITS['routine']]
+        if texting.LOWERCASE.search(definition['voice']):
+            definition['texting'] = {'lowercase': True}
         definition['money'] = {'career': career_id}
         if edges_allowed(self.body):
             definition['emotional_traits'] = traits_value(raw.get('emotional_traits'))

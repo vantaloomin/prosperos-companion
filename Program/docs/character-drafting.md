@@ -73,6 +73,13 @@ a Markdown fence or a sentence around the JSON is ignored. Then it is shaped:
 - The routine must have sleep covering all seven days. On the first reply a gap is sent back to
   the model; on the retry, the chosen career's own week (`generators.schedule`) replaces it.
   With no life themes, the career's themes are used.
+- The routine prose must agree with the schedule. A sentence that puts work on a day the schedule has
+  none ("weekdays are for 12-hour shifts"), time off on a work day, or an activity on a day with no block
+  sharing a word with it ("Saturdays at the rink") is dropped, and the schedule's own week is said in its
+  place ("Works 12-hour shifts Wednesday, Friday and Sunday, 07:00-19:30." and the shorter recurring blocks).
+  Prose that already agrees is left alone.
+- A voice that avoids capitals ("rarely uses capital letters", "texts in lowercase") turns on lowercase
+  texting (`texting.lowercase`), the same wording first messages read (`companion/texting.py`).
 - Emotional traits and a reaction to time apart are kept only when the user turned on emotional
   edges or their idea or vibe asks for one (jealous, possessive, guilt, missing you and similar
   words). Otherwise they are dropped whatever the model wrote, so a drafted companion is neutral

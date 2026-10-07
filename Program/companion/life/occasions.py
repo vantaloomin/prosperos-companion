@@ -8,6 +8,9 @@ Three kinds of day, all from saved state and the calendar, never from a model:
 - the user's birthday: the Life setting `user_birthday`, filled in the first time the user says it
   in their own words ("my birthday is March 3rd", "it's my birthday today") and editable or
   clearable in Settings. It is never guessed.
+- a circle member's birthday (companion/life/circle.py, seeded by their id): their mom, sister or friends.
+  It is the companion's news, not the user's, so it carries no hint to wish anyone and opens no conversation;
+  on the day the companion may celebrate with them (companion/life/composer.py).
 - how long the two have been talking: a month, three months, six months, a hundred days, then each
   year, counted from the timeline's first message. For a romance it is their anniversary.
 
@@ -20,6 +23,7 @@ from datetime import date, timedelta
 
 from companion.clock import parse, zone
 from companion.database import optional, settings
+from companion.life import circle
 from companion.world import generators
 
 SOON = 7
@@ -136,6 +140,11 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     ahead = days_until(own_today, mine) if mine else SOON + 1
     if ahead <= SOON:
         found.append(occasion('own_birthday', own_today + timedelta(days=ahead), ahead, 'your birthday', ''))
+    for person in circle.people(connection, companion['active_timeline_id']) if SEEDED else ():
+        ahead = days_until(own_today, circle.birthday(person['id']))
+        if ahead <= SOON:
+            found.append(occasion('circle_birthday', own_today + timedelta(days=ahead), ahead,
+                                  f"your {person['role']} {person['name']}'s birthday", '', person=person))
     first = first_talk(connection, companion['active_timeline_id'], user_tz)
     span = milestone(first, user_today) if first else None
     if span:
@@ -146,9 +155,13 @@ def occasions(connection, companion: dict, now) -> list[dict]:
     return found
 
 
-def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '') -> dict:
+def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', person: dict | None = None) -> dict:
     when = 'Today' if ahead == 0 else 'Tomorrow' if ahead == 1 else f"In {ahead} days ({day.strftime('%A %d %B')})"
     text = f"- {when} is {what}." if kind != 'anniversary' else f'- Today it has been {what}.'
-    return {'key': f'occasion:{kind}:{day.isoformat()}', 'kind': kind, 'date': day.isoformat(), 'days': ahead, 'span': span,
-            'text': f'{text} {hint}'.strip() if ahead == 0 else text,
-            'template': TEMPLATES[kind].format(span=span) if ahead == 0 else None}
+    whose = f"{person['id']}:" if person else ''
+    found = {'key': f'occasion:{kind}:{whose}{day.isoformat()}', 'kind': kind, 'date': day.isoformat(), 'days': ahead,
+             'span': span, 'text': f'{text} {hint}'.strip() if ahead == 0 else text,
+             'template': TEMPLATES[kind].format(span=span) if ahead == 0 and kind in TEMPLATES else None}
+    if person:
+        found |= {'person': person['name'], 'relation': person['role']}
+    return found

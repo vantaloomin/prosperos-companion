@@ -114,6 +114,12 @@ maps country names to cultures; the United States lists stand in elsewhere). A c
 `surnames` (India, Korea, Mexico…) supplies the family name too, so a Korean given name never meets a
 Japanese family name; a relative keeps the shared family name and draws from a culture that fits it. Polish and Russian
 women take the feminine form (Kowalska, Ivanova).
+Only family shares a family name. Someone drawn without one (`family` unset) never gets a name listed in
+`avoid` or in the city data's `kin`: only the family name is drawn again, from the same seed, so their given
+name and everyone else's name stay as they were. The life simulation's city (`companion/life/network.py`)
+sets `kin` to the companion's family names and their relatives', so townsfolk, residents, newcomers and
+friends of friends never share them; a circle's friends, coworkers and neighbors never share its `family`.
+The world API's own city views (`/api/world/cities/...`) have no companion and show the plain draw.
 The United States lists for 1920–2008 are the Social Security Administration's top 100 per year and sex
 (`scripts/world/fetch_us_names.py`); 2009 onwards and every other culture (Black American and Hispanic
 American trends, England and Wales, Ireland, Italy, Mexico, Spain, Germany, France, Poland, Russia,
