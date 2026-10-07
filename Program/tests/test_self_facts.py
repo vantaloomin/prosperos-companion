@@ -153,3 +153,22 @@ def test_a_reply_echoing_a_forgotten_message_takes_its_facts_with_it(client, con
     client.post(f"/api/memories/{sister['id']}/exclude")
     client.post(f"/api/memories/{dog['id']}/delete", json={'delete_sources': True})
     assert client.get('/api/self-facts').json()['facts'] == []
+
+
+def test_a_relative_named_unlike_the_circle_waits_as_a_conflict(client, app, connected, provider):
+    """One reply naming a mom the circle doesn't have would otherwise sit beside the circle's mom in every context."""
+    person = client.get('/api/life/circle').json()[0]
+    with app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE circle_people SET role='mom', name='Cathy' WHERE id=?", (person['id'],))
+    says(provider, 'My mom Linda would love this.')
+    send(client, 'Family?', 'client-self-11')
+    says(provider, 'My mom Cathy says hi.')
+    send(client, 'Hi to her too', 'client-self-12')
+    facts = {fact['value']: fact for fact in client.get('/api/self-facts').json()['facts']}
+    linda, cathy = facts['Linda'], facts['Cathy']
+    assert (linda['value'], linda['status'], linda['circle_person']) == ('Linda', 'conflict', 'mom Cathy')
+    assert (cathy['value'], cathy['status']) == ('Cathy', 'noted') and 'circle_person' not in cathy
+    system = client.get('/api/context/preview').json()['system']
+    assert 'named Linda' not in system and '- Your mom is named Cathy.' in system
+    facts = client.post(f"/api/self-facts/{linda['id']}/keep").json()['facts']
+    assert ('Linda', 'kept') in [(fact['value'], fact['status']) for fact in facts]

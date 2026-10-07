@@ -309,8 +309,17 @@ home", "I'm not sure about Chicago"), reported speech ("I told her my mom isn't 
 only mentions the subject proposes nothing, and only "don't live in" can end a home. The result waits as a
 `correction` suggestion naming the memory (`corrects`) and showing its value in `replaces`, even after Remember
 this. Keeping it rewords that memory as a new revision (the old value becomes history), or, when the value just
-stopped being true ("anymore", "no longer", or a home, job or other single-valued subject), ends it so it is
-recalled as no longer current. If the memory changed meanwhile, keeping it does nothing. A sentence with a
+stopped being true ("anymore", "no longer", "now"), ends it so it is recalled as no longer current. A home, job or
+other single value said to be untrue with no word that it changed ("No, I don't live in Chicago") was never true,
+so keeping that retracts it (superseded by nothing) instead of recalling a past in Chicago that never happened.
+If the memory changed meanwhile, keeping it does nothing.
+
+**Old words of a corrected memory.** A correction changes the memory, but the words it came from stay in the
+transcript, where raw recall can still find them: the user's original message, the companion's reply to it, a
+later reply of theirs that repeated the old value before the correction, and a day summary quoting one of those.
+`companion/memory/corrected.py` marks each of them when it is recalled, with what the user changed it to ("the
+user later changed this; it now reads: Mom's interests: not a gardener") or that they said it was wrong, so the
+model never meets the old value bare. It is worked out from saved state on every reply and stores nothing. A sentence with a
 correction counts as handled, so the model does not see it again.
 
 **Supersession.** Single-valued subjects (`preferred_name`, `home_city`, `work`, `birthday`,
@@ -367,7 +376,10 @@ quoted lines and *actions* are skipped. Each fact keeps the sentence it came fro
 message: it applies on any timeline that holds the message or a copy of it, and stops applying when
 the reply is replaced by another version or deleted. Facts in force go into the chat context as
 "What you have said about yourself before". A statement that contradicts one in force (likes
-against dislikes, a second favorite band, a second mom, a second team or workplace) waits as a `conflict` instead. In Character
+against dislikes, a second favorite band, a second mom, a second team or workplace) waits as a `conflict` instead,
+and so does a mom, dad, sister or brother named unlike anyone in that role in the companion's circle (the record
+their feed, diary and storylines use), unless the character definition gives that name; Character Studio shows
+who the circle has. In Character
 Studio the user keeps a fact (marked confirmed in the context), removes it, or keeps the conflicting
 one, which removes the earlier fact. Stated likes and dislikes also steer the composer: a disliked
 activity is left out and a liked one counts like an interest, and noting either rebuilds the

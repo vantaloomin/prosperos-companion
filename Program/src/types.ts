@@ -281,9 +281,11 @@ export interface Suggestion {
   reason: string | null
   /** For a conflict or a correction: the current values keeping this would replace. */
   replaces?: string[]
-  /** For a correction: the id of the memory it corrects, and whether keeping it ends that memory as history. */
+  /** For a correction: the id of the memory it corrects, whether keeping it ends that memory as history, and
+   * whether it drops a value that was never true. */
   corrects?: string
   ends?: boolean
+  retracts?: boolean
   created_at: string
 }
 
@@ -884,6 +886,8 @@ export interface SelfFact {
   statement: string
   status: 'noted' | 'kept' | 'conflict'
   conflicts_with: string | null
+  /** For a conflict with their circle: who the circle has in that role ("mom Cathy"). */
+  circle_person?: string
   created_at: string
   decided_at: string | null
 }

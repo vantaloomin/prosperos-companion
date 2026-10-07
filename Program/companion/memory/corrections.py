@@ -3,9 +3,10 @@
 "My mom is not a gardener" while "Mom's interests: she loves gardening" is current is not a new fact
 to file beside the old one: it says the old one is wrong. A correction never changes a memory on its
 own. It waits as a `correction` suggestion that names the memory it corrects, like a conflict does;
-keeping it supersedes that memory with the corrected words (the old value stays as history), or, when
-the value simply stopped being true ("I don't live in Chicago anymore", or any negation of a home,
-job or other single-valued subject), ends it so it is recalled as no longer current.
+keeping it supersedes that memory with the corrected words (the old value stays as history). When the
+value simply stopped being true ("I don't live in Chicago anymore") it ends, recalled as no longer
+current. A home, job or other single value said to be untrue with no word that it changed ("No, I don't
+live in Chicago") was never true, so keeping that retracts it rather than inventing a past.
 
 The rules are narrow on purpose. A sentence must open with who it is about (I, "my mom", "my sister
 Jo", or a name already known), then a negation ("is not", "isn't", "doesn't", "don't", "no longer",
@@ -17,7 +18,7 @@ import hashlib
 import re
 
 from companion.database import bump_memory_revision, encode, identifier, many, optional
-from companion.memory import extraction, people, people_rules, records
+from companion.memory import extraction, people, people_rules, records, vectors
 from companion.memory.retrieval import STOP
 
 RULE = 'correction'
@@ -189,16 +190,23 @@ def target(rows, negated_words: str, ignore: set[str], replacement=None) -> dict
 
 
 def ends(row, value: str, text: str, replacement=None) -> bool:
-    """A negation of a home, a job or something that stopped ("anymore") ends the fact instead of rewording it."""
-    return replacement is None and negated(value) and (
-        extraction.single_valued(row['subject_key']) or bool(extraction.CHANGE_MARKER.search(text)))
+    """A negation of something that stopped ("anymore", "no longer", "now") ends the fact as history."""
+    return replacement is None and negated(value) and bool(extraction.CHANGE_MARKER.search(text))
 
 
-def fields_for(row, value: str, message, excerpt: str, *, ending: bool) -> dict:
+def retracts(row, value: str, text: str, replacement=None) -> bool:
+    """A home, a job or another single value said to be untrue, with no word that it changed ("No, I don't live
+    in Chicago"), was never true: keeping it drops the fact instead of keeping a "used to" that never happened."""
+    return replacement is None and negated(value) and extraction.single_valued(row['subject_key']) and \
+        not extraction.CHANGE_MARKER.search(text)
+
+
+def fields_for(row, value: str, message, excerpt: str, *, ending: bool, retracting=False) -> dict:
     return {'layer': row['layer'], 'subject': row['subject'], 'subject_key': row['subject_key'], 'value': value,
             'boundary': bool(row['boundary']), 'sensitive': bool(row['sensitive'] or extraction.SENSITIVE.search(value)),
             'plan_status': None, 'stated_at': message['created_at'], 'applies_from': None, 'applies_until': None,
-            'dates_uncertain': False, 'target': None, 'excerpt': excerpt, 'corrects': row['id'], 'ends': ending}
+            'dates_uncertain': False, 'target': None, 'excerpt': excerpt, 'corrects': row['id'], 'ends': ending,
+            'retracts': retracting}
 
 
 def found(connection, companion, message, now) -> list[dict]:
@@ -213,13 +221,15 @@ def found(connection, companion, message, now) -> list[dict]:
             rows = [row for row in scope(connection, companion['id'], reference, now) if allowed(row, kind)]
             if row := target(rows, words, ignore, replacement):
                 proposals.append(fields_for(row, value, message, sentence,
-                                            ending=ends(row, value, sentence, replacement)))
+                                            ending=ends(row, value, sentence, replacement),
+                                            retracting=retracts(row, value, sentence, replacement)))
     return proposals
 
 
 def fingerprint(fields) -> str:
+    retracting = '|retracts' if fields.get('retracts') else ''
     return hashlib.sha256(f"correct|{fields['corrects']}|{fields['value'].casefold()}|{bool(fields['ends'])}"
-                          .encode()).hexdigest()
+                          f"{retracting}".encode()).hexdigest()
 
 
 def record(connection, companion, message, fields, source, rule, timestamp) -> int:
@@ -241,10 +251,16 @@ def current(connection, fields, now) -> dict | None:
 
 
 def apply(connection, fields, message_id, timestamp) -> tuple[dict | None, str]:
-    """Keeping a correction: the memory it names is reworded as a new revision, or ended as history."""
+    """Keeping a correction: the memory it names is reworded as a new revision, ended as history, or, when it was
+    never true, retracted (superseded by nothing, so it leaves context and its old words are marked as wrong)."""
     row = current(connection, fields, timestamp)
     if row is None:
         return None, 'correction_target_changed'
+    if fields.get('retracts'):
+        connection.execute("UPDATE memories SET status='superseded', updated_at=? WHERE id=?", (timestamp, row['id']))
+        vectors.forget(connection, 'memory', [row['id']])
+        bump_memory_revision(connection, timestamp)
+        return records.get(connection, row['id']), 'retracted'
     if fields.get('ends'):
         until = max(fields['stated_at'], row['applies_from'] or '')
         connection.execute('UPDATE memories SET applies_until=?, updated_at=? WHERE id=?', (until, timestamp, row['id']))

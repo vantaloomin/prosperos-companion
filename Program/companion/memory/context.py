@@ -34,7 +34,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, people, phrases, time_recall, vectors
+from companion.memory import closeness, corrected, people, phrases, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -398,19 +398,21 @@ def recently_surfaced(connection, timeline_id) -> set[str]:
     return {identity for identity, count in counts.items() if count >= RESURFACE_LIMIT}
 
 
-def recall_text(kind, owner, hit) -> str:
+def recall_text(kind, owner, hit, notes=None) -> str:
     if kind == 'memory':
         return memory_text(owner)
     if kind == 'storyline':
         return f"- Something that happened in your life, settled on {owner['day']}: {owner['text']}"
+    # Words of a memory the user corrected since carry the correction, so the old value isn't taken as current.
+    note = f" [{notes[owner['id']]}]" if notes and owner['id'] in notes else ''
     if kind == 'summary':
         return (f"- Your conversation on {owner['day']} (your own words, quoted; a reminder, not confirmation): "
-                f"{owner['text']}")
-    return f"- Earlier ({owner['created_at'][:10]}, {owner['role']}): {hit.chunk.text.strip()}"
+                f"{owner['text']}{note}")
+    return f"- Earlier ({owner['created_at'][:10]}, {owner['role']}): {hit.chunk.text.strip()}{note}"
 
 
 def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozenset(),
-             when=None, stories=()) -> list[tuple[str, str]]:
+             when=None, stories=(), notes=None) -> list[tuple[str, str]]:
     """Pinned memories first, then keyword, semantic and time recall fused over eligible memories, older turns,
     episode summaries and settled storylines past their pinned window. An anecdote that keeps resurfacing needs the user's own words to come back.
     `when` is (span, timezone) for a time the query names (companion/memory/time_recall.py)."""
@@ -427,7 +429,7 @@ def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozense
         if owner['id'] in seen or (owner['id'] in surfaced and not hit.matched):
             continue
         seen.add(owner['id'])
-        result.append((owner['id'], recall_text(kind, owner, hit)))
+        result.append((owner['id'], recall_text(kind, owner, hit, notes)))
     return result + linked(memories, seen, surfaced)
 
 
@@ -631,8 +633,10 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     surfaced = recently_surfaced(connection, timeline_id)
     timezone = settings(connection)['user_timezone']
     span = time_recall.query_span(query, now, timezone)
+    marked = corrected.notes(connection, companion, timeline_id, messages)
+    notes = marked | corrected.summary_notes(summaries, marked)
     for identity, text in recalled(groups['recallable'], older, query, ranking, summaries, surfaced,
-                                   (span, timezone) if span else None, stories):
+                                   (span, timezone) if span else None, stories, notes):
         packet.offer('recalled', identity, text)
     packet.semantic = bool(semantic)
     return render(packet, conversation)

@@ -61,15 +61,19 @@ export function statusLabels(memory: Memory): string[] {
   return labels
 }
 
+/** Why a correction is waiting: it drops a never-true value, ends one as history, or rewords one. */
+function correctionReason(replaces: string[], ends: boolean, retracts: boolean): string {
+  const earlier = replaces.length ? `“${replaces.join('”, “')}”` : 'what was remembered'
+  if (retracts) return `You said ${earlier} isn't right. Remember drops it, and earlier messages that said it are marked as wrong.`
+  return ends
+    ? `You said ${earlier} is no longer true. Remember keeps it only as history.`
+    : `This corrects ${earlier}. Remember replaces it, and the earlier value is kept as history.`
+}
+
 /** Why a suggestion is waiting, in words. */
-export function suggestionReason(reason: string | null, replaces: string[] = [], ends = false): string {
+export function suggestionReason(reason: string | null, replaces: string[] = [], ends = false, retracts = false): string {
   if (reason === 'sensitive') return 'Sensitive details are only kept when you say so.'
-  if (reason === 'correction') {
-    const earlier = replaces.length ? `“${replaces.join('”, “')}”` : 'what was remembered'
-    return ends
-      ? `You said ${earlier} is no longer true. Remember keeps it only as history.`
-      : `This corrects ${earlier}. Remember replaces it, and the earlier value is kept as history.`
-  }
+  if (reason === 'correction') return correctionReason(replaces, ends, retracts)
   if (reason === 'conflict') {
     const earlier = replaces.length ? ` from “${replaces.join('”, “')}”` : ''
     return `This is different${earlier}, and you didn't say it changed. Remember replaces the earlier value, which is kept as history.`
