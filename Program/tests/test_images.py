@@ -13,7 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from companion.identity import CLIENT_HEADER
-from companion.images import content
+from companion.images import content, prompts
 from companion.images.adapters.base import AdapterError, ImageRequest, ImageResult
 from companion.images.adapters.codex import CodexAdapter
 from companion.images.adapters.comfyui import ComfyAdapter
@@ -320,6 +320,48 @@ def test_retry_keeps_original_inputs_unless_current_settings(client, companion, 
     assert current['prompt'].startswith('Watercolour sketch')
     drain(client)
     assert adapters['comfyui'].requests[1].seed == adapters['comfyui'].requests[0].seed
+
+
+def test_each_backend_can_have_its_own_style(client, companion, clock, adapters):
+    """A backend's own style starts its prompts in place of the general one; a backend without one
+    uses the general style, also when a request falls back to it from one that has its own."""
+    hosted = add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k',
+                         style='Anime illustration, clean line art')
+    assert hosted['style'] == 'Anime illustration, clean line art'
+    local = local_comfy(client)
+    assert local['style'] == ''
+    ok(client.put('/api/images/settings', json={'fallback': True}))
+    adapters['hosted'].outcomes = [AdapterError('failed', 'busy')]
+    post = make_post(client, clock)
+    job = generate(client, post)
+    assert job['prompt'].startswith(prompts.DEFAULT_STYLE)
+    drain(client)
+    sent = adapters['hosted'].requests[0].prompt
+    assert sent.startswith('Anime illustration, clean line art of a fictional') and 'phone camera' not in sent
+    assert ok(client.get(f"/api/images/jobs/{job['id']}"))['prompt'] == sent
+    fallback = adapters['comfyui'].requests[0].prompt
+    assert fallback.startswith(f'{prompts.DEFAULT_STYLE} of') and fallback.endswith(prompts.CAMERAS['moment'])
+    assert fallback[len(prompts.DEFAULT_STYLE):-len(prompts.CAMERAS['moment'])].strip() == \
+        sent[len('Anime illustration, clean line art'):].strip()
+    cleared = ok(client.put(f"/api/images/backends/{hosted['id']}", json={'style': '  '}))
+    assert cleared['style'] == ''
+
+
+def test_a_meme_keeps_its_own_opening_whatever_the_backend_style():
+    meme = {'prompt': 'Reaction-meme style photo, simple and centered: a cat. A fictional scene.',
+            'style': None, 'framing': 'meme'}
+    assert prompts.restyle(meme, 'Watercolour sketch') == meme
+
+
+def test_a_backend_style_never_makes_a_server_less_strict(client):
+    hosted = add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k')
+    refused = client.put(f"/api/images/backends/{hosted['id']}", json={'style': 'Erotic nude photograph'})
+    assert refused.status_code == 422 and 'this computer' in refused.json()['detail']
+    created = client.post('/api/images/backends', json={'kind': 'codex', 'style': 'Erotic nude photograph',
+                                                        'accept_disclosure': True})
+    assert created.status_code == 422
+    local = local_comfy(client)
+    assert ok(client.put(f"/api/images/backends/{local['id']}", json={'style': 'Erotic nude photograph'}))['style']
 
 
 def test_a_corrected_event_makes_queued_work_stale(client, companion, clock, adapters):

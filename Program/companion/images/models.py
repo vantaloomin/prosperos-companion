@@ -39,6 +39,8 @@ class BackendFields(Input):
     scheduler: str | None = Field(default=None, max_length=60, pattern=FILE_NAME)
     # Style LoRAs for ComfyUI, in order; an empty list removes them.
     style_loras: list[StyleLora] | None = Field(default=None, max_length=3)
+    # Starts this backend's image prompts in place of the general style; empty uses the general one.
+    style: str | None = Field(default=None, max_length=500)
     cli_path: str | None = Field(default=None, max_length=1000)
     api_style: Literal['images', 'chat'] | None = None
     api_key: str | None = Field(default=None, max_length=4000)

@@ -128,6 +128,16 @@ impressions ("looks like someone who...") are dropped and backstory is cut from 
 from a derby fall" keeps the scar). The post's caption is not in the prompt: the feed shows it
 under the picture. Other backends get the same paragraph, which reads as a plain description.
 
+**Style per backend.** Each backend can have its own **Style** (stored as `style` in its config), since
+each model wants its own opening: a photo line for Krea 2, a tag-style line for an anime model, a
+plainer one for GPT Image. A request is built with the general style from Settings > Images; when
+it starts on a backend, `prompts.restyle` swaps the opening style line (and the camera details that
+follow from a plain photo style) for that backend's own, or back to the general one for a backend
+without one, so a retry or fallback elsewhere starts from the general style (`general_style` in
+the inputs). The job records the prompt as sent. Memes keep their own opening. Profile pictures
+use the chosen backend's style too. A backend's style is classified when saved: one that is not
+plainly safe is refused on any backend that does not accept NSFW requests, as style LoRAs are.
+
 ## Jobs (F3, F4)
 
 A job freezes its inputs: the prompt and negatives, the aspect, a seed, the events and their

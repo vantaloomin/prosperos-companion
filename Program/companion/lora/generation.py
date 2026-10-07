@@ -94,6 +94,8 @@ def plan(connection, body) -> list[dict]:
                                    'appearance': definition.get('appearance', ''), 'marked_nsfw': body.marked_nsfw})
         decision = route(classification, candidates, body.backend_id)
         target = decision.target
+        if target is not None and backends.style_for(target, style) != style:
+            prompt = compose(backends.style_for(target, style), body.base, shot.shot)
         planned.append({'label': shot.label, 'shot': shot.shot, 'aspect': shot.aspect, 'prompt': prompt,
                         'tier': classification.tier, 'reasons': classification.reasons,
                         'route_reason': decision.reason, 'refusal': decision.refusal,

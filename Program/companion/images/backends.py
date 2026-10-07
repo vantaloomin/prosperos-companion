@@ -92,7 +92,7 @@ def view(backend: dict) -> dict:
     config = decode(backend['config'])
     return {'id': backend['id'], 'kind': backend['kind'], 'provider': backend['provider'], 'label': backend['label'],
             'enabled': bool(backend['enabled']), 'position': backend['position'],
-            'base_url': config.get('base_url', ''), 'model': config.get('model', ''),
+            'base_url': config.get('base_url', ''), 'model': config.get('model', ''), 'style': config.get('style', ''),
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
             'custom_workflow': bool(config.get('workflow')),
             'model_files': {key: config.get(key, '') for key in FILE_KEYS} if backend['kind'] == 'comfyui' else None,
@@ -163,6 +163,10 @@ def merged_config(kind, provider, previous: dict, body) -> dict:
             config[key] = value.strip()
         if kind != 'comfyui' or not config.get(key):
             config.pop(key, None)
+    if body.style is not None:
+        config['style'] = body.style.strip()
+    if not config.get('style'):
+        config.pop('style', None)
     comfy_settings(config, kind, body)
     if kind != 'hosted':
         config.pop('api_style', None)
@@ -186,11 +190,22 @@ def comfy_settings(config: dict, kind, body):
         config.pop('style_loras', None)
 
 
+def style_for(backend: dict | None, general: str | None) -> str | None:
+    """The style that starts this backend's prompts: its own, or the general one when it has none."""
+    own = decode(backend['config']).get('style') if backend else None
+    return own or general
+
+
 def require_safe_loras(backend: dict):
-    """A style LoRA never makes a server less strict: one whose name or trigger words are not plainly
-    safe needs a server that accepts NSFW requests (F6), so it is refused anywhere else."""
+    """A style LoRA or a backend's own style never makes a server less strict: one whose words are not
+    plainly safe needs a server that accepts NSFW requests (F6), so it is refused anywhere else."""
     if accepts_nsfw(backend):
         return
+    style = decode(backend['config']).get('style')
+    if style:
+        found = content.classify({'prompt': style})
+        require(found.tier == content.SAFE, f"This style reads as {', '.join(found.reasons) or 'not safe'}; "
+                'it can only be used on a ComfyUI server on this computer or one you control.', 422)
     for lora in decode(backend['config']).get('style_loras') or []:
         found = content.classify({'prompt': f"{lora['name']}\n{lora['trigger']}"})
         require(found.tier == content.SAFE, f"The LoRA {lora['name']} reads as {', '.join(found.reasons) or 'not safe'}; "

@@ -133,6 +133,9 @@ class ImageRunner:
             backend = optional(connection, 'SELECT * FROM image_backends WHERE id=?', (job['backend_id'],))
             post = optional(connection, 'SELECT status FROM feed_posts WHERE id=?', (job['post_id'],))
             stale = prompts.stale(connection, inputs)
+        if backend is not None:
+            # The backend's own style replaces the general one now that the backend is known.
+            inputs = prompts.restyle(inputs, decode(backend['config']).get('style'))
         if job['status'] != 'queued':
             return None
         problem = self.problem(job, backend, post, stale, inputs)
@@ -146,9 +149,9 @@ class ImageRunner:
             if current['status'] != 'queued':
                 return None
             connection.execute("UPDATE image_jobs SET status='running', started_at=?, backend_kind=?, provider=?, "
-                               'model=?, identity_method=? WHERE id=?',
+                               'model=?, identity_method=?, inputs=? WHERE id=?',
                                (timestamp, backend['kind'], backend['provider'], adapter_config.get('model'),
-                                identity(backend, inputs), job_id))
+                                identity(backend, inputs), encode(inputs), job_id))
             from companion.life import feed
             feed.apply_image(connection, job['post_id'], job_id, 'running', timestamp)
         return job, backend, inputs
