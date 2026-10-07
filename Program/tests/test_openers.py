@@ -288,3 +288,11 @@ def test_check_ins_need_a_free_moment(client, companion, clock, monkeypatch):
         after = openers.free_moment(connection, companion_row, clock.now().replace(hour=16, minute=45))
         assert after[:2] == ('after', 'work')
         assert openers.free_moment(connection, companion_row, clock.now().replace(hour=18, minute=0)) is None
+
+
+def test_a_fixed_message_follows_a_lowercase_voice():
+    voice = {'voice': 'Short, clipped sentences; avoids capitalisation unless it is a proper noun.'}
+    assert openers.voiced("Finally done with work for today. How's your day been?", voice) == (
+        "finally done with work for today. how's your day been?")
+    assert openers.voiced('Okay, I finished Dune. I loved it.', voice) == 'okay, i finished Dune. i loved it.'
+    assert openers.voiced("How's your evening going?", {'voice': 'Warm and chatty.'}) == "How's your evening going?"
