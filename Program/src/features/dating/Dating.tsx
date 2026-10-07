@@ -8,6 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
+import { Photo } from './Photo'
 import { AboutYou, IntoWho, Setup, WhatYouWant } from './Setup'
 
 const DATING_KEY = ['dating']
@@ -121,6 +122,7 @@ function Deck({ data, onSwipe, onPassedAgain }: { data: DatingData; onSwipe: (ke
       {data.surface === 'column'
         ? <p className="dating-notice">{card.notice}</p>
         : <>
+          {data.photos && <Photo key={card.key} personKey={card.key} name={card.name} />}
           <h2>{cardHeading(card)}</h2>
           {card.job && <p>{card.job} · {card.neighborhood}</p>}
           <p className="subtle">{card.looks}</p>

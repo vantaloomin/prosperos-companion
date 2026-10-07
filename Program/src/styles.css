@@ -131,6 +131,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .dating-bar svg { width: 16px; height: 16px; color: var(--accent); }
 .dating-card { max-width: 520px; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; overflow-wrap: anywhere; }
 .dating-card h2 { font-size: 1.25rem; }
+.dating-photo { width: 100%; max-height: 420px; object-fit: cover; border-radius: 12px; }
+.dating-photo-ask .text-button svg { width: 16px; height: 16px; }
 .dating-column .dating-notice { font-family: 'Literata', Georgia, serif; line-height: 1.6; padding: 12px; border: 1px dashed var(--border); }
 .dating-actions .button svg { width: 16px; height: 16px; }
 .dating-empty { margin-bottom: 24px; }

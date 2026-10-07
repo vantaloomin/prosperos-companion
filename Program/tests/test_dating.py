@@ -182,3 +182,41 @@ def test_a_match_can_be_met_on_a_date_in_story_mode(client, clock, provider):
     ok(client.post('/api/dating/dates', json={'key': match['key'], 'place_id': place['id']}))
     ok(client.put('/api/story/scene', json={'city_id': 'new-york'}))
     assert ok(client.get('/api/dating'))['date'] is None
+
+
+def test_show_photo_makes_one_saved_portrait_from_their_looks(tmp_path, clock, provider):
+    import asyncio
+
+    from fastapi.testclient import TestClient
+    from test_images import FakeAdapter, local_comfy, png
+
+    from companion.identity import CLIENT_HEADER
+    from companion.main import create_app
+    from companion.providers.vault import MemoryVault
+
+    adapters = {'comfyui': FakeAdapter(), 'codex': FakeAdapter(), 'hosted': FakeAdapter()}
+    application = create_app(tmp_path / 'workspace' / 'companion.sqlite3', clock=clock, vault=MemoryVault(),
+                             provider=provider, life_tasks=False, image_adapters=adapters)
+    with TestClient(application, headers={CLIENT_HEADER: 'workspace'}) as client:
+        state = ok(client.put('/api/dating/profile', json=PROFILE))
+        assert state['photos'] is False
+        key = state['deck'][0]['key']
+        refused = client.post('/api/dating/photos', json={'key': key})
+        assert refused.status_code == 409 and refused.json()['code'] == 'no_backend'
+        assert ok(client.get(f'/api/dating/photos/{key}')) == {'status': 'none'}
+
+        local_comfy(client)
+        assert ok(client.get('/api/dating'))['photos'] is True
+        assert ok(client.post('/api/dating/photos', json={'key': key}))['status'] == 'queued'
+        assert client.post('/api/dating/photos', json={'key': 'town:baltimore:nowhere:0'}).status_code == 404
+        asyncio.run(client.app.state.dating_photos.drain())
+        made = ok(client.get(f'/api/dating/photos/{key}'))
+        assert made['status'] == 'completed' and client.get(made['url']).content == png()
+        request = adapters['comfyui'].requests[0]
+        card = state['deck'][0]
+        assert f"{card['age']} years old" in request.prompt and 'dating profile' in request.prompt
+        assert request.height > request.width
+        # Asking again shows the saved photo and makes no other.
+        assert ok(client.post('/api/dating/photos', json={'key': key}))['status'] == 'completed'
+        asyncio.run(client.app.state.dating_photos.drain())
+        assert len(adapters['comfyui'].requests) == 1

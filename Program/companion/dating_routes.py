@@ -2,9 +2,11 @@
 from typing import Literal
 
 from fastapi import APIRouter, Request
+from fastapi.responses import FileResponse
 from pydantic import Field
 
 from companion import dating
+from companion.images import storage
 from companion.models import Input
 
 router = APIRouter(prefix='/api/dating')
@@ -29,6 +31,10 @@ class DatingCity(Input):
 class Swipe(Input):
     key: str = Field(min_length=1, max_length=200)
     like: bool
+
+
+class PhotoRequest(Input):
+    key: str = Field(min_length=1, max_length=200)
 
 
 class DateRequest(Input):
@@ -84,3 +90,20 @@ def go_on_date(request: Request, body: DateRequest):
 @router.delete('/dates/current')
 def end_date(request: Request):
     return dating.end_date(request.app.state.database)
+
+
+@router.post('/photos')
+def request_photo(request: Request, body: PhotoRequest):
+    """Their photo: the saved one, or one made now (once) from their looks."""
+    return request.app.state.dating_photos.request(body.key)
+
+
+@router.get('/photos/{key}')
+def photo(request: Request, key: str):
+    return request.app.state.dating_photos.get(key)
+
+
+@router.get('/photos/{key}/file')
+def photo_file(request: Request, key: str):
+    path = request.app.state.dating_photos.file(key)
+    return FileResponse(path, media_type=storage.TYPES[path.suffix.lstrip('.')])

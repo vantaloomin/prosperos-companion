@@ -1321,3 +1321,19 @@ CREATE TABLE IF NOT EXISTS dating_dates (
   started_at TEXT NOT NULL,
   ended_at TEXT
 );
+
+-- Matchlight's "Show photo" (companion/dating_photos.py): one portrait per townsperson, made the first time the
+-- user asks and kept, so they look the same afterwards. The file is in the images folder.
+CREATE TABLE IF NOT EXISTS dating_photos (
+  person_key TEXT PRIMARY KEY,
+  town TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'failed')),
+  prompt TEXT NOT NULL,
+  negative TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  backend_id TEXT,
+  file TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL,
+  finished_at TEXT
+);

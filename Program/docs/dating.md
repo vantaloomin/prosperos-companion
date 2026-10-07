@@ -54,6 +54,20 @@ time and nothing is stored:
 - A companion never sees the app, who the user swiped on or who they matched with.
 - **Delete your profile** removes the profile, likes and matches; companions made from matches stay.
 
+## Show photo
+
+Nobody has a picture until the user asks. With an image backend set up, a card has **Show photo**, which makes
+one portrait of that person (`companion/dating_photos.py`) and keeps it (`dating_photos`), so they look the same
+afterwards and asking again makes nothing new. Pictures are never made in bulk.
+
+- The prompt is a fixed fill-in template from their seeded looks (age, build, hair, eyes, beard, detail, style
+  of dress, a setting from their usual spot), framed as a smartphone dating photo, a cabinet-card photograph
+  (personal column) or a painted miniature (matchmaker). No model rewrites it.
+- It is classified and routed like every other image (`images/content.py`, `images/routing.py`), so anything
+  classified NSFW could only go to a local backend and prohibited requests go nowhere.
+- It goes through the image runner's adapters, counts against each backend's limit, and waits while a chat
+  reply is written. A photo cut off when the app closed can be asked for again.
+
 ## Older eras
 
 The same deck has a period form: a **personal column** in the paper for Victorian, steampunk and frontier
@@ -82,4 +96,7 @@ shows them as "your date, Maya". Going somewhere else, starting a new story or *
 | `DELETE /api/dating/matches/{key}` | Unmatches. |
 | `POST /api/dating/dates` `{key, place_id}` | Meets a match in Story mode (409 with it off); returns the story. |
 | `DELETE /api/dating/dates/current` | Ends the date. |
+| `POST /api/dating/photos` `{key}` | Their photo: the saved one, or one queued now (409 with the refusal when no backend may make it). |
+| `GET /api/dating/photos/{key}` | `{status, error, url}`; `status` is `none`, `queued`, `running`, `completed` or `failed`. |
+| `GET /api/dating/photos/{key}/file` | The picture. |
 | `GET /api/companion/cast/draft?key=` and `POST /api/companion/cast/switch` | Also accept a match who is not a companion yet. |
