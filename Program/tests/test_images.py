@@ -925,3 +925,20 @@ def test_codex_timeout_stops_the_process(fake_codex, monkeypatch):
         with pytest.raises(asyncio.CancelledError):
             await task
     asyncio.run(scenario())
+
+
+def test_a_moment_with_its_own_outfit_leaves_the_usual_clothes_out():
+    """A Krea picture showed one black flat and one white sneaker: the appearance's usual work shoes and
+    the moment's outfit were both in the prompt."""
+    from companion.images import prompts
+    appearance = ('Shoulder-length honey-blonde hair with dark roots, freckles, and wire glasses. Usually wears '
+                  'black flats and a blazer to work, with a silver ring.')
+    kept = prompts.without_clothes(appearance)
+    assert 'flats' not in kept and 'blazer' not in kept
+    assert 'honey-blonde hair' in kept and 'freckles' in kept and 'glasses' in kept and 'silver ring' in kept
+    event = {'summary': 'Studied at the library', 'place': '', 'caption': '', 'mood': ''}
+    dressed = prompts.compose('Kim', appearance, [event], 'Candid phone photo, natural light.',
+                              'Wearing white sneakers and a green sweater.', dressed=True)
+    assert 'flats' not in dressed and 'white sneakers' in dressed and '..' not in dressed
+    plain = prompts.compose('Kim', appearance, [event], 'Candid phone photo, natural light.')
+    assert 'black flats' in plain and '..' not in plain

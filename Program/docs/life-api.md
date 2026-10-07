@@ -276,7 +276,9 @@ exists and its climate how many coats they need.
   change it appends one sentence ("Kim bought a mustard raincoat.") to a non-work entry, once.
   `entry.wardrobe` records `{change, sentence}`. Tests turn this off (`wardrobe.WEAVE`).
 - **Images.** Feed pictures (`images/prompts.setting`) and chat moments and selfies
-  (`build_moment`, not views) add `wardrobe.image_hint`: "Wearing a camel peacoat over …".
+  (`build_moment`, not views) add `wardrobe.image_hint`: "Wearing a camel peacoat over …". When they
+  do, `prompts.without_clothes` drops the clothing clauses from the appearance description (glasses
+  and accessories stay), so the picture doesn't mix their usual outfit with the moment's.
 - **Chat.** The context has a "Your clothes" section: their style and size, favourites, what they
   have on right now, each category's pieces and the last three weeks of changes.
 

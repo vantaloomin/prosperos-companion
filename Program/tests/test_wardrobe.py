@@ -218,11 +218,11 @@ def test_pictures_show_what_they_are_wearing(client, baltimore):
     moment = {'activity': 'walk', 'block_kind': 'leisure', 'local_date': '2026-10-05', 'weather': {'high_f': 40}}
     with connect(client, False) as connection:
         hint = wardrobe.image_hint(connection, tid, moment)
-        again = prompts.setting(connection, tid, {'summary': 'Kim went for a walk.', 'place': 'Patterson Park',
-                                                  'moment': moment})
+        again, dressed = prompts.setting(connection, tid, {'summary': 'Kim went for a walk.',
+                                                           'place': 'Patterson Park', 'moment': moment})
         indoors = wardrobe.image_hint(connection, tid, {**moment, 'activity': 'dinner'})
         undated = wardrobe.image_hint(connection, tid, {'activity': 'walk'})
-    assert hint.startswith('Wearing ') and hint in again
+    assert hint.startswith('Wearing ') and hint in again and dressed
     assert ' over ' in hint  # a coat for a cold walk
     assert indoors.startswith('Wearing ') and undated == ''
 
