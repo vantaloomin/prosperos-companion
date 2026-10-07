@@ -14,6 +14,7 @@ for comparison.
 | Texting first | Added when the companion writes first | `INSTRUCTION` in `companion/life/openers.py` |
 | Phrasing life events | Life sim moments into a sentence and a caption | `RULES` in `companion/life/synthesis.py` |
 | Suggesting memories | The memory model's fact suggestions | `RULES` in `companion/memory/suggest.py` |
+| Noting the companion's own facts | The memory model reading her replies for her people, team, work | `RULES` in `companion/memory/self_suggest.py` |
 | Describing your pictures | The "Seeing pictures" model | `DESCRIBE` in `companion/pictures.py` |
 | The Story narrator | Every reply in the Story tab, before the scene ([story.md](story.md)) | `NARRATOR` in `companion/story.py` |
 | Character drafting (5) | The quick start, "Help me write" and the paste box | `companion/prompts/character-*.md` ([character-drafting.md](character-drafting.md)) |

@@ -1338,6 +1338,14 @@ CREATE TABLE IF NOT EXISTS dating_photos (
   finished_at TEXT
 );
 
+-- Companion messages waiting for the memory model to read for what they say about the companion
+-- (companion/memory/self_suggest.py); queued by self_facts.note while model memory is on.
+CREATE TABLE IF NOT EXISTS self_fact_jobs (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  status TEXT NOT NULL CHECK (status IN ('queued', 'done', 'skipped', 'failed', 'stale')),
+  queued_at TEXT NOT NULL
+);
+
 -- Replies the user edited, through the sidecar (companion/message_edits.py): each edit keeps the text it replaced.
 CREATE TABLE IF NOT EXISTS message_edits (
   id TEXT PRIMARY KEY,

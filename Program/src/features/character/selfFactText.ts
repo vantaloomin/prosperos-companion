@@ -5,6 +5,7 @@ export function selfFactText(fact: SelfFact): string {
   if (fact.category === 'person' || fact.category === 'pet') return `Their ${fact.subject} is named ${fact.value}`
   if (fact.category === 'favorite') return `Favorite ${fact.subject}: ${fact.value}`
   if (fact.category === 'never') return `Has never ${fact.subject}`
+  if (fact.category === 'detail') return `${fact.subject.charAt(0).toUpperCase()}${fact.subject.slice(1)}: ${fact.value}`
   return `${fact.label}: ${fact.value}`
 }
 

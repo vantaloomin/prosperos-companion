@@ -32,6 +32,8 @@ def edit(database, message_id: str, text: str, expected_text: str) -> dict:
         connection.execute("DELETE FROM self_facts WHERE message_id=? AND status IN ('noted', 'conflict')",
                            (message_id,))
         connection.execute('DELETE FROM companion_plans WHERE message_id=?', (message_id,))
+        # The memory model reads the new wording again too.
+        connection.execute('DELETE FROM self_fact_jobs WHERE message_id=?', (message_id,))
         edited = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         if edited['active']:
             self_facts.note(connection, edited, now)
