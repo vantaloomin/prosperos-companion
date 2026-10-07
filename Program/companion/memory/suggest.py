@@ -7,6 +7,7 @@ waits as a suggestion the user keeps or declines. A model guess never becomes a 
 and repeating a guess does not confirm it.
 """
 import json
+import re
 
 from companion import prompt_library
 from companion.characters import require_current
@@ -18,18 +19,24 @@ from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
 from companion.text_models import config_for
 
-PROMPT_VERSION = 'memory-suggest-1'
+PROMPT_VERSION = 'memory-suggest-2'
 BATCH = 8
 MIN_WORDS = 6
+NAMED = re.compile(r"\b[A-Z][a-z']+")
+MONTHS = re.compile(r'\b(january|february|march|april|june|july|august|september|october|november|december)\b')
 SUPPORT = 0.6
 LAYERS = {'user_fact', 'plan', 'temporary', 'shared_experience', 'relationship'}
 RULES = (
     'You help a companion app remember what the user said about their real life. The user message is a JSON '
     'list of the user\'s messages, numbered. Reply with JSON only: a list of objects {"message": number, '
     '"layer": "user_fact" | "plan" | "temporary" | "shared_experience" | "relationship", "subject": short '
-    'label, "value": the fact in the user\'s own words}. Include only facts the user states plainly about '
-    'themselves. Leave out questions, hypotheticals, jokes, roleplay, quotes of other people and anything you '
-    'would have to guess. Reply [] when there is nothing.'
+    'label, "value": just the fact, in a few of the user\'s own words, without "I", "I\'m" or "my" in front}. '
+    'For "I\'m Sam, I teach 8th grade science" that is {"subject": "Name", "value": "Sam"} and {"subject": '
+    '"Work", "value": "teaches 8th grade science"}; for "my mom lives in Towson" it is {"subject": "Mom\'s home", '
+    '"value": "Towson"}. The subject says whose fact it is when it is about someone else. Include only lasting '
+    'facts the user states plainly about themselves or their people. Leave out questions, hypotheticals, jokes, '
+    'roleplay, quotes of other people, moments that will not matter tomorrow ("my dog is snoring"), facts listed '
+    'under a message\'s "already_saved" and anything you would have to guess. Reply [] when there is nothing.'
 )
 
 
@@ -39,19 +46,43 @@ class SuggestionsInvalid(Exception):
 
 def pending(connection, limit=BATCH) -> list[dict]:
     """Finished jobs the model has not seen, each with only the sentences the rules found nothing in:
-    "I'm allergic to shellfish. I'm Sam." keeps "I'm Sam." for the model."""
+    "I'm allergic to shellfish. I'm Sam." keeps "I'm Sam." for the model. A sentence the rules took a fact
+    from stays, with what they saved, when it names more than they kept ("my brother Marcus and his wife Priya
+    in Denver are having a baby in December" gives the rules only the brother)."""
     rows = many(connection, "SELECT messages.* FROM memory_jobs JOIN messages ON messages.id=memory_jobs.message_id "
                 "WHERE memory_jobs.status='done' AND memory_jobs.model_status IS NULL AND messages.redacted_at IS NULL "
                 'ORDER BY memory_jobs.queued_at LIMIT ?', (limit,))
-    return [{**row, 'text': unhandled(connection, row)} for row in rows]
+    return [{**row, 'text': unhandled(connection, row), 'saved': saved(connection, row)} for row in rows]
+
+
+def handled_proposals(connection, message) -> list[dict]:
+    return [json.loads(row['proposal']) for row in many(
+        connection, "SELECT proposal FROM memory_candidates WHERE message_id=? AND source!='model'", (message['id'],))]
+
+
+def more_to_it(sentence: str, proposals: list[dict]) -> bool:
+    """Whether a sentence the rules took facts from names something they did not keep: another name or place,
+    or a month."""
+    kept = {word.casefold() for proposal in proposals if proposal.get('excerpt') == sentence
+            for word in re.findall(r"[\w']+", f"{proposal.get('subject', '')} {proposal.get('value', '')}")}
+    names = {word.casefold() for word in NAMED.findall(sentence[1:])} | set(MONTHS.findall(sentence.casefold()))
+    return bool(names - kept - {"i'm", "i've", "i'll", "i'd"})
 
 
 def unhandled(connection, message) -> str:
-    handled = {json.loads(row['proposal']).get('excerpt') for row in many(
-        connection, 'SELECT proposal FROM memory_candidates WHERE message_id=?', (message['id'],))}
+    proposals = handled_proposals(connection, message)
+    handled = {proposal.get('excerpt') for proposal in proposals}
     if not handled:
         return message['text']
-    return ' '.join(f'{sentence}.' for sentence in sentences(message['text']) if sentence not in handled)
+    return ' '.join(f'{sentence}.' for sentence in sentences(message['text'])
+                    if sentence not in handled or more_to_it(sentence, proposals))
+
+
+def saved(connection, message) -> list[str]:
+    """What the rules kept from the sentences still sent, so the model does not suggest it again."""
+    proposals = handled_proposals(connection, message)
+    return [f"{proposal['subject']}: {proposal['value']}" for proposal in proposals
+            if more_to_it(proposal.get('excerpt') or '', proposals)]
 
 
 def eligible(message) -> bool:
@@ -90,8 +121,9 @@ def candidate(item, batch) -> tuple[dict, Candidate] | None:
 
 
 async def ask(provider, scheduler, config, key, batch, rules=RULES) -> list[dict]:
-    content = json.dumps([{'message': index, 'text': message['text']} for index, message in enumerate(batch, 1)],
-                         ensure_ascii=False)
+    content = json.dumps([{'message': index, 'text': message['text'],
+                           **({'already_saved': message['saved']} if message.get('saved') else {})}
+                          for index, message in enumerate(batch, 1)], ensure_ascii=False)
     text = []
     async with scheduler.reserve(config, MAINTENANCE) as lease:
         async for chunk in provider.stream(config, key, rules, [{'role': 'user', 'content': content}]):

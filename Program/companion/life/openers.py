@@ -40,6 +40,9 @@ FOLLOW_UP_AFTER = timedelta(hours=1)
 NEWS_WITHIN = timedelta(hours=24)
 SILENCE = timedelta(hours=ABSENCE_HOURS * 2)
 MAX_LENGTH = 600
+# A first message whose opening words match one of the last REPEAT_WINDOW companion messages is a copy.
+REPEAT_WINDOW = 300
+REPEAT_OPENING = 80
 # Words too common to say an event "reminded" the companion of something the user said.
 COMMON = {'with', 'went', 'time', 'that', 'this', 'from', 'some', 'they', 'have', 'into', 'about', 'their',
           'over', 'just', 'like', 'good', 'long', 'more', 'most', 'work', 'home', 'evening', 'morning',
@@ -59,9 +62,11 @@ EVENING = (time(19, 0), time(21, 30))
 AFTER = timedelta(minutes=90)
 PROMISE_WITHIN = timedelta(hours=18)
 # How likely each break is to bring a check-in on a given day.
-CHANCE = {'lunch': 0.5, 'after': 0.7, 'evening': 0.35}
-MOMENTS = {'lunch': 'your lunch break', 'after': 'just after {done}', 'evening': 'a free evening'}
+CHANCE = {'lunch': 0.5, 'midday': 0.5, 'after': 0.7, 'evening': 0.35}
+MOMENTS = {'lunch': 'your lunch break', 'midday': 'lunchtime on a day with no work or classes',
+           'after': 'just after {done}', 'evening': 'a free evening'}
 CHECK_IN = {'lunch': ("Lunch break, finally. How's your day going?", 'Escaped my desk for lunch. How are you doing today?'),
+            'midday': ("Slow day over here. How's yours going?", 'Hey! How is your day going?'),
             'after': ("Finally done with {done} for today. How's your day been?", 'Okay, out of {done}. How was your day?'),
             'evening': ("Hey you. How's your evening going?", 'Hi :) how was your day?')}
 DONE = {'work': 'work', 'study': 'class'}
@@ -181,19 +186,6 @@ def occasion(connection, companion, now) -> list[Trigger]:
             if item['days'] == 0]
 
 
-def agenda_blocks(connection, companion, start, end) -> list[tuple[dict, object, object]]:
-    """(block, starts_at, ends_at) the companion's day holds between start and end: the precomputed agenda
-    (so a holiday or a sick day is not work) where it has entries, else the routine."""
-    rows = many(connection, "SELECT block, starts_at, ends_at FROM life_agenda WHERE timeline_id=? AND "
-                "subject='companion' AND ends_at>? AND starts_at<? ORDER BY starts_at",
-                (companion['active_timeline_id'], stamp(start), stamp(end)))
-    if rows:
-        return [(decode(row['block']), parse(row['starts_at']), parse(row['ends_at'])) for row in rows]
-    version = companion['version']
-    return [(slot.block.view(), slot.starts_at, slot.ends_at) for slot in
-            routine.slots(routine.blocks(version['definition'])[0], version['timezone'], start, end)]
-
-
 def busy(block: dict | None) -> bool:
     return bool(block) and not block.get('holiday') and not block.get('sick_day') and block['kind'] in BUSY
 
@@ -207,10 +199,16 @@ def free_moment(connection, companion, now) -> tuple[str, str, object] | None:
         return None
     local = now.astimezone(zone(companion['version']['timezone']))
     if LUNCH[0] <= local.time() < LUNCH[1]:
-        return 'lunch', '', local.replace(hour=LUNCH[0].hour, minute=LUNCH[0].minute, second=0, microsecond=0)
+        # A lunch break is a work or school day's; on a day off it is just midday ("stuck in the breakroom" on a
+        # day off was a long run's slip).
+        midnight = local.replace(hour=0, minute=0, second=0, microsecond=0)
+        working = any(busy(item) for item, _starts_at, _ends_at in
+                      pacing.day_blocks(connection, companion, midnight, midnight + timedelta(days=1)))
+        return 'lunch' if working else 'midday', '', local.replace(hour=LUNCH[0].hour, minute=LUNCH[0].minute,
+                                                                    second=0, microsecond=0)
     if busy(block) or (block and block['kind'] == 'social'):
         return None
-    ended = [(item, ends_at) for item, _starts_at, ends_at in agenda_blocks(connection, companion, now - AFTER, now)
+    ended = [(item, ends_at) for item, _starts_at, ends_at in pacing.day_blocks(connection, companion, now - AFTER, now)
              if busy(item) and now - AFTER < ends_at <= now]
     if ended:
         item, ends_at = ended[-1]
@@ -277,8 +275,9 @@ def candidates(connection, companion, now) -> list[Trigger]:
     return [trigger for finder in FINDERS for trigger in finder(connection, companion, now) if trigger.key not in fired]
 
 
-def held(connection, companion, life, now) -> str | None:
-    """Why the companion should not text right now, or None."""
+def held(connection, companion, life, now, occasion: bool = False) -> str | None:
+    """Why the companion should not text right now, or None. An unanswered first message holds back the next
+    one, except on an occasion: a friend still says happy birthday when the last text went unanswered."""
     workspace, timeline_id = settings(connection), companion['active_timeline_id']
     if not life['texts_first']:
         return 'off'
@@ -297,8 +296,8 @@ def held(connection, companion, life, now) -> str | None:
                     'ORDER BY seq DESC LIMIT 1', (timeline_id,))
     if last and now - parse(last['created_at']) < timedelta(hours=life['texts_gap_hours']):
         return 'recent_conversation'
-    if last and last['role'] == 'companion' and optional(connection, 'SELECT id FROM openers WHERE message_id=?',
-                                                         (last['id'],)):
+    if not occasion and last and last['role'] == 'companion' and optional(
+            connection, 'SELECT id FROM openers WHERE message_id=?', (last['id'],)):
         return 'waiting_for_answer'
     sent = one(connection, 'SELECT COUNT(*) AS n FROM openers WHERE timeline_id=? AND created_at>?',
                (timeline_id, stamp(now - timedelta(days=1))))['n']
@@ -321,10 +320,15 @@ class Openers:
             if companion is None:
                 return {'state': 'no_companion', 'message': None}
             life = one(connection, 'SELECT * FROM life_settings WHERE id=1')
-            if reason := held(connection, companion, life, now):
+            reason = held(connection, companion, life, now)
+            occasions_only = reason == 'waiting_for_answer' and not held(connection, companion, life, now, True)
+            if reason and not occasions_only:
                 return {'state': reason, 'message': None}
             config = config_for(connection, CHAT)
-            found = candidates(connection, companion, now)
+            found = [trigger for trigger in candidates(connection, companion, now)
+                     if not occasions_only or trigger.kind == 'occasion']
+            if not found and reason:
+                return {'state': reason, 'message': None}
         for trigger in found:
             if trigger.template is None and config is None:
                 continue
@@ -367,9 +371,10 @@ class Openers:
         written = ''.join(text).strip().strip('"').strip()
         if in_character.applies('', companion['version']['definition']):
             written = in_character.clean(written)
-        if not written or len(written) > MAX_LENGTH:
-            return fallback, 'template'
-        return written, 'model'
+        with self.database.connect() as connection:
+            fresh = bool(written) and len(written) <= MAX_LENGTH and not repeats(
+                connection, companion['active_timeline_id'], written)
+        return (written, 'model') if fresh else (fallback, 'template')
 
     def save(self, companion, trigger, text, wording, now) -> dict:
         from companion.conversation import message_view, next_seq
@@ -381,7 +386,7 @@ class Openers:
             # character changed. Try again on the next check.
             if (timeline_id != companion['active_timeline_id'] or latest['active_version_id'] != companion[
                     'active_version_id'] or held(connection, latest, one(
-                    connection, 'SELECT * FROM life_settings WHERE id=1'), now)
+                    connection, 'SELECT * FROM life_settings WHERE id=1'), now, trigger.kind == 'occasion')
                     or optional(connection, 'SELECT id FROM openers WHERE timeline_id=? AND trigger_key=?',
                                 (timeline_id, trigger.key))):
                 return {'state': 'superseded', 'message': None}
@@ -403,8 +408,25 @@ class Openers:
         return {'state': 'sent', 'kind': trigger.kind, 'message': message_view(row)}
 
 
-LOWERCASE = re.compile(r'lower-?case|avoids? capital|no capital|without capital|never capitali|skips? capital',
-                       re.IGNORECASE)
+def plain(text: str) -> str:
+    return ' '.join(re.sub(r"[^\w\s]", ' ', text.casefold()).split())
+
+
+def repeats(connection, timeline_id, text: str) -> bool:
+    """A model can copy one of its own earlier messages word for word when the context recalls it (a check-in
+    from weeks ago about news that is no longer new); such a message is not sent again."""
+    words = plain(text)
+    opening = words[:REPEAT_OPENING]
+    for row in many(connection, "SELECT text FROM messages WHERE timeline_id=? AND role='companion' "
+                    "AND status='complete' ORDER BY seq DESC LIMIT ?", (timeline_id, REPEAT_WINDOW)):
+        earlier = plain(row['text'])
+        if earlier == words or (len(opening) == REPEAT_OPENING and earlier[:REPEAT_OPENING] == opening):
+            return True
+    return False
+
+
+LOWERCASE = re.compile(r'lower-?case|avoids? capital|rarely (?:uses? )?capital|no capital|without capital|'
+                       r'never capitali|skips? capital', re.IGNORECASE)
 
 
 def voiced(template: str | None, definition: dict) -> str | None:

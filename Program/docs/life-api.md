@@ -157,7 +157,7 @@ with `kind: "thread"` and `details.state: "open"`, a stable `details.thread_key`
 `details.settles_on`, the local date from which it may settle. Once it is committed, the first
 simulated slot on or after that date writes how it turned out: another `kind: "thread"` event with
 `details.state: "settled"` and the same `thread_key`. Both are reviewed like any event, at most one
-thread is open at a time, and the batch result for the slot carries `thread_event_id` and
+thread is open at a time, a kind of thread is not opened again within 120 days, and the batch result for the slot carries `thread_event_id` and
 `thread_outcome`. `GET /api/today` lists committed open threads whose outcome is not committed yet
 under `plans.threads`.
 
@@ -352,7 +352,10 @@ reviewed events above: a batch uses the precomputed entry for each slot it simul
 reveals an upcoming entry. Changing the character rebuilds the companion's upcoming entries. The chat context lists the companion's next few
 upcoming entries within a day as likely intentions, so "what are you doing tonight?" gets an answer
 that matches what later happens; the companion is told they have not happened and may change, and
-mentioning them commits nothing. On a public holiday in the city's
+mentioning them commits nothing. The Time section also lays out the companion's own day from the same
+entries (today's blocks with their times, what they are in right now, "no work or classes today" and
+the next shift or class), and the recent events are dated in the companion's own time, so a reply does
+not claim a shift on a day off. On a public holiday in the city's
 calendar, a work or study block becomes a day off: the entry's block has `kind: "leisure"`, a label
 such as "Thanksgiving (day off)" and `holiday`, and events simulated from it carry that block. Slots
 inside a pause are marked skipped.
@@ -486,17 +489,20 @@ each at most once per timeline:
 | `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
 | `check_in` | A free moment, on a seeded roll per day and moment (lunch 50%, after work or class 70%, free evening 35%), at a seeded minute 5 to 50 minutes into it | No (template per moment) |
 
-A free moment is lunch (12:00 to 13:30 in the companion's timezone, even on a work day), the 90
+A free moment is lunch (12:00 to 13:30 in the companion's timezone; a lunch break on a work or study
+day, plain midday on a day off, with the same chance), the 90
 minutes after a work or study block ends (by the precomputed agenda, so a holiday or sick day is not
 work) unless they are in another busy or social block, or a free evening (19:00 to 21:30). Never
 while asleep.
 
 The model gets the normal chat context plus the reason and its facts, and is told not to add events,
 places or people. A reply that is empty, cut off or longer than 600 characters falls back to the
-template, or to nothing for triggers without one. `state` says why nothing was sent: `off`,
+template, or to nothing for triggers without one, and so does one that repeats an earlier companion
+message (the same words, or the same first 80 characters ignoring case and punctuation). `state` says why
+nothing was sent: `off`,
 `paused`, `quiet_hours` (the notification quiet hours, in the user's timezone), `asleep` (a sleep
 block in the companion's routine), `recent_conversation`, `waiting_for_answer` (their last first
-message is still unanswered), `daily_cap`, `interrupted` or `nothing`. A sent message is an ordinary
+message is still unanswered; an `occasion` such as the user's birthday still goes out), `daily_cap`, `interrupted` or `nothing`. A sent message is an ordinary
 companion message with `reply_to: null`; the chat shows it before the user's next message and the
 next reply sees it. With notifications on it is announced (kind `message`) before any waiting
 posts. A forked timeline keeps the triggers its parent already used.

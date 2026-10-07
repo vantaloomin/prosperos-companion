@@ -42,6 +42,19 @@ def test_the_home_is_where_the_draft_says_they_live():
     assert money.where_they_live(commuter) == ''
 
 
+def test_the_building_the_draft_names_is_kept_where_the_budget_picks_the_neighbourhood():
+    """A long run's nurse "living alone in a rowhouse in Baltimore" was given a studio in a Victorian, and chat
+    then mixed the two."""
+    mya = {'name': 'Mya Freeman', 'home_city': 'baltimore', 'money': {'career': 'registered-nurse'},
+           'identity': 'Mya is a 31-year-old ER nurse living alone in a rowhouse in Baltimore.'}
+    city = money.city_for(mya)
+    budget = money.profile(mya)
+    hood = next(item for item in city['neighborhoods'] if item['name'] == budget.neighborhood)
+    assert 'rowhouse' not in hood['housing']  # The neighbourhood her pay fits has none in the city data.
+    place = home.place_item('seed', mya, city)
+    assert place['variety'] == 'rowhouse' and place['details']['neighborhood'] == budget.neighborhood
+
+
 def test_expensive_rent_means_sharing_a_place():
     barista = money.snapshot({'name': 'Jo', 'home_city': 'new-york', 'identity': 'Works as a barista.'}, '2026-10-05')
     assert barista['housing']['unit'] == 'shared'
