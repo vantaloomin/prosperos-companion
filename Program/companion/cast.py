@@ -9,7 +9,7 @@ run into them. Switching back puts them in slot 1 again, history intact.
 """
 from datetime import date
 
-from companion import drafting
+from companion import drafting, story
 from companion.characters import current, insert_version, require_current
 from companion.clock import zone
 from companion.database import identifier, many, optional
@@ -35,6 +35,8 @@ VOICES = {
     'dreamy': 'Wanders off on ideas and loses the thread, then laughs about it.',
 }
 # What working toward each goal says about them.
+# How a profile's line about who they know begins (shared_text).
+SHARED = ('Has crossed paths with', 'Has met the user')
 GOAL_INTERESTS = {
     'own-place': 'saving up', 'race': 'running', 'band': 'music', 'exam': 'studying', 'novel': 'writing',
     'reconcile': 'family', 'move': 'apartment hunting', 'language': 'languages', 'promotion': 'work',
@@ -61,14 +63,18 @@ def met(connection, companion: dict, now) -> tuple[dict, dict, dict]:
     return data, cast, encounters.history_for(connection, companion, cast, now)
 
 
-def townsperson(connection, companion: dict, key: str, now) -> tuple[dict, dict, list[dict]]:
-    """A townsperson the main character has met, with the city and their meetings; refused otherwise."""
+def townsperson(connection, companion: dict, key: str, now) -> tuple[dict, dict, list[dict], dict | None]:
+    """A townsperson the main character or the user's own story has met (companion/story_people.py), with the
+    city, the companion's meetings and the story's record; refused otherwise."""
     require(not key.startswith('cast:'), 'They are already one of your companions. Switch to them instead.', 409)
     data, _cast, history = met(connection, companion, now)
+    in_story = optional(connection, 'SELECT * FROM story_people WHERE key=?', (key,))
+    if in_story and townsfolk.find(data, key) is None:
+        data = story.city_data(connection, in_story['city_id'])  # Met in the story in another city.
     sheet = townsfolk.find(data, key)
-    require(sheet is not None and key in history,
-            f"{companion['version']['name']} hasn't met them. Only someone they have met can take over.", 404)
-    return data, sheet, history[key]
+    require(sheet is not None and (key in history or in_story is not None),
+            f"{companion['version']['name']} hasn't met them. Only someone they or you have met can take over.", 404)
+    return data, sheet, history.get(key, []), in_story
 
 
 # Their profile --------------------------------------------------------------------------------------
@@ -117,14 +123,23 @@ def article(word: str) -> str:
     return 'an' if word[:1].lower() in 'aeiou' else 'a'
 
 
-def shared_text(focus_name: str, meetings: list[dict]) -> str:
+def shared_text(focus_name: str, meetings: list[dict], in_story: dict | None = None) -> str:
+    """How they know the companion stepping back and the user. It starts with one of SHARED, so a rewrite of
+    the profile by the text model can keep it word for word."""
+    met_user = ''
+    if in_story:
+        count = in_story['meetings']
+        met_user = f" Has met the user in person {'once' if count == 1 else 'twice' if count == 2 else f'{count} times'}."
+    if not meetings:
+        return met_user.strip()
     places = list(dict.fromkeys(meeting['place'] for meeting in meetings if meeting['place']))[:3]
     times = 'once' if len(meetings) == 1 else 'twice' if len(meetings) == 2 else f'{len(meetings)} times'
     where = f" around {' and '.join(places)}" if places else ''
-    return f"Has crossed paths with {focus_name} {times}{where}, and has heard about the user through {focus_name}."
+    heard = '' if in_story else f", and has heard about the user through {focus_name}"
+    return f"{SHARED[0]} {focus_name} {times}{where}{heard}.{met_user}"
 
 
-def profile(data: dict, sheet: dict, focus: dict, meetings: list[dict], today: date) -> dict:
+def profile(data: dict, sheet: dict, focus: dict, meetings: list[dict], today: date, in_story: dict | None = None) -> dict:
     """A full character definition from a townsperson's sheet, with no model involved."""
     name, career = sheet['name'], career_for(data, sheet)
     state = townsfolk.story(sheet, data, today)
@@ -145,7 +160,7 @@ def profile(data: dict, sheet: dict, focus: dict, meetings: list[dict], today: d
         'skills': [f"Knows the regulars and the rhythms of {sheet['place']['name']}."],
         'interests': [item for item in (goal_interest, sheet['place']['kind']) if item],
         'background': f"Has lived in {home} for years. Right now {name} is trying to {state['goal']['text']}."
-                      f"{lately}{reached} {shared_text(focus['version']['name'], meetings)}",
+                      f"{lately}{reached} {shared_text(focus['version']['name'], meetings, in_story)}".rstrip(),
         'routine': townsfolk.routine_text(sheet)[:1].upper() + townsfolk.routine_text(sheet)[1:] + '.',
         'location': f"{home}, {data['name']}, {data['region']}",
         'home_city': data['id'],
@@ -163,9 +178,9 @@ def draft(database, key: str) -> dict:
     now = database.clock.now()
     with database.connect() as connection:
         focus = require_current(connection)
-        data, sheet, meetings = townsperson(connection, focus, key, now)
+        data, sheet, meetings, in_story = townsperson(connection, focus, key, now)
         today = now.astimezone(zone(focus['version']['timezone'])).date()
-        return {'definition': profile(data, sheet, focus, meetings, today), 'person': person_view(data, sheet),
+        return {'definition': profile(data, sheet, focus, meetings, today, in_story), 'person': person_view(data, sheet),
                 'stepping_back': focus['version']['name']}
 
 
@@ -190,7 +205,8 @@ async def fleshed(state, key: str) -> dict:
                                  age=str(found['person']['age']), home_city=base['home_city'],
                                  timezone=base['timezone'])
     written = (await drafting.draft(state, body))['definition']
-    shared = base['background'][base['background'].rfind('Has crossed paths'):]
+    found_at = [at for at in (base['background'].rfind(start) for start in SHARED) if at >= 0]
+    shared = base['background'][min(found_at):] if found_at else ''
     written |= {field: base[field] for field in ('name', 'location', 'home_city', 'timezone', 'relationship')}
     written['background'] = f"{written['background'].rstrip()} {shared}".strip()[:12000]
     return {**found, 'definition': written}

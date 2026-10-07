@@ -192,6 +192,8 @@ export interface WorkspaceSettings {
   /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
   chat_retro_dark?: boolean
+  /** Story mode (src/features/story) is opt-in, in Settings > Advanced. */
+  story_mode?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean
@@ -1063,4 +1065,9 @@ export interface StoryMessage {
   id: string; seq: number; role: 'user' | 'narrator' | 'scene'; text: string; reply_to: string | null
   status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
 }
-export interface Story { scene: StoryScene; messages: StoryMessage[]; ready: boolean }
+/** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
+export interface StoryPerson {
+  key: string; name: string; role: string; city: string; meetings: number; last_met_at: string; notes: string[]
+  doing: string; place: { id: string; name: string; city_id: string } | null
+}
+export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; ready: boolean; can_switch: boolean }

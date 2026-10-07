@@ -8,6 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
 import { aroundText, placeGroups, sceneTime, whereText } from './storyText'
+import { StoryPeople } from './StoryPeople'
 
 const STORY_KEY = ['story']
 const OUT_OF_STORY = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)).'
@@ -34,6 +35,8 @@ export function Story({ go }: { go: (view: View) => void }) {
         <h1 id="story-heading">Story</h1>
         <p className="subtle">Your own story around town, told by a narrator. Your companion never sees it.</p>
         <SceneBar scene={story.data.scene} onMove={(body) => run(null, () => api<StoryData>('/story/scene', body, 'PUT').then(update))} />
+        <StoryPeople people={story.data.people} canSwitch={story.data.can_switch} go={go}
+          onFind={(key) => void run(null, () => api<StoryData>('/story/find', { key }).then(update))} />
       </header>
       {!story.data.ready && <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Models</button>}>
         Add a text model in Settings &gt; Models to tell the story.</Notice>}
@@ -133,7 +136,7 @@ function NewStory({ empty, onClear }: { empty: boolean; onClear: () => Promise<v
         <button type="button" className="button" onClick={() => setAsking(false)}>Cancel</button>
         <button type="button" className="button primary" onClick={() => void onClear().then(() => setAsking(false))}>Start a new story</button>
       </>}>
-        <p>The story so far is cleared for good. You stay where you are.</p>
+        <p>The story so far and the people you&apos;ve met in it are cleared for good. You stay where you are.</p>
       </ConfirmDialog>}
     </div>
   )

@@ -57,11 +57,13 @@ export default function App() {
   useNotifications(!!companion.data, go)
   useTexts(!!companion.data)
   useFocusOnViewChange(view)
+  // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
+  const storyOn = !!useWorkspaceSettings().data?.story_mode
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
       <nav className="app-nav" aria-label="Views">
-        {VIEWS.map(({ id, label, icon: Icon }) => (
+        {VIEWS.filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
             <Icon aria-hidden="true" /><span>{label}</span>
           </button>
@@ -107,7 +109,10 @@ function inWorkspace(view: View) {
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
-  return view === 'story' ? <Story go={go} /> : <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
+  const storyOn = useWorkspaceSettings().data?.story_mode
+  if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} />
+  return storyOn ? <Story go={go} />
+    : <Notice action={<button type="button" className="text-button" onClick={() => go('settings/advanced')}>Open Settings</button>}>Story mode is off. Turn it on in Settings &gt; Advanced.</Notice>
 }
 
 function CompanionView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {

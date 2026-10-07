@@ -1,4 +1,4 @@
-import type { StoryPlace, StoryScene } from '../../types'
+import type { StoryPerson, StoryPlace, StoryScene } from '../../types'
 
 /** "Tuesday, 9:40 am" from the scene's local time, which is the city's own clock with no offset. */
 export function sceneTime(localTime: string): string {
@@ -26,4 +26,11 @@ export function placeGroups(places: StoryPlace[]): [string, StoryPlace[]][] {
 
 export function whereText(scene: StoryScene): string {
   return `${scene.place.name}, ${scene.place.neighborhood}, ${scene.city.name}`
+}
+
+/** "Met once · now working as the barista at The Daily Grind" */
+export function personLine(person: StoryPerson): string {
+  const times = person.meetings === 1 ? 'once' : person.meetings === 2 ? 'twice' : `${person.meetings} times`
+  const where = person.place && !person.doing.includes(person.place.name) ? ` at ${person.place.name}` : ''
+  return `Met ${times} · now ${person.doing}${where}`
 }
