@@ -188,3 +188,27 @@ def test_comfyui_inserts_the_lora_after_the_model_loader():
     assert result.workflow.endswith('+ LoRA prospero-x.safetensors')
     report = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', 'lora_name': 'prospero-x.safetensors'}))
     assert any('LoraLoaderModelOnly' in line for line in report.details)
+
+
+def test_style_loras_chain_after_the_characters_own_and_never_repeat_it():
+    server = ComfyStandIn()
+    adapter = ComfyAdapter(httpx.MockTransport(server), poll_seconds=0)
+    character = {'comfy_name': 'prospero-x.safetensors', 'strength': 1.0, 'trigger': 'm1ra'}
+    styles = [{'name': 'phone.safetensors', 'strength': 0.7, 'trigger': 'phone photo'},
+              {'name': 'prospero-x.safetensors', 'strength': 0.5, 'trigger': 'again'},
+              {'name': 'real.safetensors', 'strength': 0.6, 'trigger': ''}]
+    config = {'base_url': 'http://127.0.0.1:8188', 'style_loras': styles}
+    result = asyncio.run(adapter.generate(request_for('comfyui', config, lora=character)))
+    sent = server.prompts[0]
+    assert sent['4']['inputs']['text'] == 'm1ra, phone photo, A café'
+    assert sent['prospero-style-lora-1']['inputs']['model'] == ['prospero-lora', 0]
+    assert sent['prospero-style-lora-2']['inputs'] == {'model': ['prospero-style-lora-1', 0],
+                                                       'lora_name': 'real.safetensors', 'strength_model': 0.6}
+    assert 'prospero-style-lora-3' not in sent
+    users = [node for node_id, node in sent.items() if node_id not in {'prospero-lora', 'prospero-style-lora-1',
+                                                                        'prospero-style-lora-2'}]
+    assert all(node['inputs'].get('model') in (None, ['prospero-style-lora-2', 0]) for node in users)
+    assert result.workflow.endswith('+ style LoRA real.safetensors at 0.6')
+    alone = asyncio.run(adapter.generate(request_for('comfyui', config)))
+    assert server.prompts[1]['prospero-style-lora-1']['inputs']['model'] == ['1', 0] and 'prospero-lora' not in server.prompts[1]
+    assert alone.workflow.count('style LoRA') == 3
