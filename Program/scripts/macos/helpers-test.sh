@@ -123,7 +123,7 @@ check 'update.command refuses a branch other than main' exits 1 update.command
 # update from a ZIP download: a copy without .git gets main's ZIP (here a local one) copied over it.
 # Files an earlier ZIP update listed and main no longer has are removed; anything else stays.
 zip="$temp/update-main.zip"
-git archive --format=zip --prefix=prosperos-companion-main/ --output "$zip" HEAD
+git -C "$CHECKOUT_ROOT" archive --format=zip --prefix=prosperos-companion-main/ --output "$zip" HEAD
 rm "$MAC_FOLDER/README.txt"
 echo stale > "$CHECKOUT_ROOT/stale-from-zip.txt"
 echo mine > "$CHECKOUT_ROOT/my-own-file.txt"

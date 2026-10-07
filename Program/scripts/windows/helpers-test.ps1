@@ -136,7 +136,7 @@ Check ((Invoke-Bat 'update.bat') -eq 1) 'update.bat refuses a branch other than 
 # update from a ZIP download: a copy without .git gets main's ZIP (here a local one) copied over it.
 # Files an earlier ZIP update listed and main no longer has are removed; anything else stays.
 $zip = Join-Path $temp 'update-main.zip'
-Invoke-TestGit @('archive', '--format=zip', '--prefix=prosperos-companion-main/', '--output', $zip, 'HEAD')
+Invoke-TestGit @('-C', $CheckoutRoot, 'archive', '--format=zip', '--prefix=prosperos-companion-main/', '--output', $zip, 'HEAD')
 Remove-Item -LiteralPath (Join-Path $WindowsFolder 'README.txt')
 Set-Content -LiteralPath (Join-Path $CheckoutRoot 'stale-from-zip.txt') -Value 'stale'
 Set-Content -LiteralPath (Join-Path $CheckoutRoot 'my-own-file.txt') -Value 'mine'
