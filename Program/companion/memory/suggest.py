@@ -4,7 +4,10 @@ When the user turns on model suggestions (with automatic memory), the sentences 
 rules found nothing in are sent in small batches to the configured model at maintenance priority. Its answers are
 only candidates: each must name a message in the batch and use that message's own words, then it
 waits as a suggestion the user keeps or declines. A model guess never becomes a fact on its own,
-and repeating a guess does not confirm it.
+and repeating a guess does not confirm it. Each message goes with the user's current facts its words
+touch (`known`); an answer that says one of them is wrong (`corrects`, which must name one that was sent),
+or that negates the one current memory with its layer and subject, waits as a correction of that memory
+(`corrections.py`), and a new value for a single-valued subject waits as a conflict.
 """
 import json
 import re
@@ -12,14 +15,14 @@ import re
 from companion import prompt_library
 from companion.characters import require_current
 from companion.database import encode, identifier, many, optional, settings
-from companion.memory import formation
+from companion.memory import corrections, formation
 from companion.memory.extraction import Candidate, sentences, subject_key
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
 from companion.text_models import config_for
 
-PROMPT_VERSION = 'memory-suggest-2'
+PROMPT_VERSION = 'memory-suggest-3'
 BATCH = 8
 MIN_WORDS = 6
 NAMED = re.compile(r"\b[A-Z][a-z']+")
@@ -36,7 +39,9 @@ RULES = (
     '"value": "Towson"}. The subject says whose fact it is when it is about someone else. Include only lasting '
     'facts the user states plainly about themselves or their people. Leave out questions, hypotheticals, jokes, '
     'roleplay, quotes of other people, moments that will not matter tomorrow ("my dog is snoring"), facts listed '
-    'under a message\'s "already_saved" and anything you would have to guess. Reply [] when there is nothing.'
+    'under a message\'s "already_saved" and anything you would have to guess. A message may list "known": what is '
+    'already remembered. When it says one of those is wrong or no longer true, add "corrects": that subject exactly '
+    'as listed, with the corrected fact as the value ("not a gardener"). Reply [] when there is nothing.'
 )
 
 
@@ -108,7 +113,8 @@ def supported(value: str, message_text: str) -> bool:
     return bool(words) and len(words & source) / len(words) >= SUPPORT
 
 
-def candidate(item, batch) -> tuple[dict, Candidate] | None:
+def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
+    """A supported answer, with the sent memory it corrects; a `corrects` naming anything not sent drops it."""
     index, layer = item.get('message'), item.get('layer')
     subject, value = str(item.get('subject') or '').strip()[:200], str(item.get('value') or '').strip()[:1000]
     if not isinstance(index, int) or not 1 <= index <= len(batch) or layer not in LAYERS or not subject or not value:
@@ -116,13 +122,20 @@ def candidate(item, batch) -> tuple[dict, Candidate] | None:
     message = batch[index - 1]
     if not supported(value, message['text']) or not sentences(message['text']):
         return None
+    corrected = None
+    if item.get('corrects') is not None:
+        corrected = corrections.named(message.get('known') or [], item['corrects'])
+        if corrected is None:
+            return None
     return message, Candidate(layer, subject, value, 'model', message['text'][:500], subject_key=subject_key(subject),
-                              plan_status='proposed' if layer == 'plan' else None)
+                              plan_status='proposed' if layer == 'plan' else None), corrected
 
 
 async def ask(provider, scheduler, config, key, batch, rules=RULES) -> list[dict]:
     content = json.dumps([{'message': index, 'text': message['text'],
-                           **({'already_saved': message['saved']} if message.get('saved') else {})}
+                           **({'already_saved': message['saved']} if message.get('saved') else {}),
+                           **({'known': [corrections.label(row) for row in message['known']]}
+                              if message.get('known') else {})}
                           for index, message in enumerate(batch, 1)], ensure_ascii=False)
     text = []
     async with scheduler.reserve(config, MAINTENANCE) as lease:
@@ -154,10 +167,27 @@ def record(database, batch, items, revision) -> int:
         return added
 
 
-def store(connection, companion, message, found, timestamp) -> int:
+def correction(connection, companion, found, corrected, timestamp) -> dict | None:
+    """The memory an answer corrects: the one it named, or the one current memory with its layer and subject when
+    the answer negates it ("Mom's interests: not a gardener")."""
+    if corrected is not None:
+        return corrections.current(connection, {'corrects': corrected['id']}, timestamp)
+    if not corrections.negated(found.value):
+        return None
+    return corrections.same_subject(connection, companion['id'], found.layer, found.subject_key, timestamp)
+
+
+def store(connection, companion, message, found, corrected, timestamp) -> int:
     current = optional(connection, 'SELECT * FROM messages WHERE id=?', (message['id'],))
     if current is None or formation.blocked(connection, current):
         return 0
+    if target := correction(connection, companion, found, corrected, timestamp):
+        fields = corrections.fields_for(target, found.value, current, found.excerpt,
+                                        ending=corrections.ends(target, found.value, current['text']))
+        added = corrections.record(connection, companion, current, fields, 'model', PROMPT_VERSION, timestamp)
+        if added:
+            formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail=corrections.RULE)
+        return added
     mark_value = formation.fingerprint(found)
     declined = optional(connection, "SELECT 1 FROM memory_candidates WHERE fingerprint=? AND status='declined'",
                         (mark_value,))
@@ -165,12 +195,15 @@ def store(connection, companion, message, found, timestamp) -> int:
                          'subject_key=? AND lower(value)=lower(?)', (companion['id'], found.subject_key, found.value))
     if declined or duplicate:
         return 0
+    fields = formation.proposal(found, current)
+    # A new value for a single-valued subject is the same choice as a rule-found conflict ("Denver" vs "Chicago").
+    reason = 'conflict' if formation.contradicts(connection, companion, found, fields, timestamp) else 'model_guess'
     cursor = connection.execute(
         'INSERT OR IGNORE INTO memory_candidates (id, companion_id, timeline_id, message_id, source, rule, proposal, '
-        "fingerprint, status, reason, created_at) VALUES (?, ?, ?, ?, 'model', ?, ?, ?, 'pending', 'model_guess', ?)",
-        (identifier(), companion['id'], current['timeline_id'], current['id'], PROMPT_VERSION,
-         encode(formation.proposal(found, current)), mark_value, timestamp))
-    formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail='model_guess')
+        "fingerprint, status, reason, created_at) VALUES (?, ?, ?, ?, 'model', ?, ?, ?, 'pending', ?, ?)",
+        (identifier(), companion['id'], current['timeline_id'], current['id'], PROMPT_VERSION, encode(fields),
+         mark_value, reason, timestamp))
+    formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail=reason)
     return cursor.rowcount
 
 
@@ -184,7 +217,9 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
         batch = pending(connection)
         skipped = [message for message in batch if not eligible(message)]
         mark(connection, skipped, 'skipped')
-        batch = [message for message in batch if eligible(message)]
+        companion, now = require_current(connection), database.now()
+        batch = [{**message, 'known': corrections.relevant(connection, companion['id'], message['text'], now)}
+                 for message in batch if eligible(message)]
         revision = row['permission_revision']
         rules = prompt_library.text(connection, 'memory-suggestions')
     if not batch:

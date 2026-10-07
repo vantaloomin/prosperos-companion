@@ -1,11 +1,13 @@
 """What the companion has said about themselves (realism: an LLM must not flip its own facts).
 
 Rule-based capture, no model: after each completed companion message, first-person statements
-about their own tastes, people, pets and history ("I hate cilantro", "my brother Theo", "I've
-never been to Europe", "I grew up in Duluth") are noted with the sentence they came from. Noted
-facts go into the chat context so later replies stay consistent, and the user can keep or remove
-each one in Character Studio. A new statement that contradicts one already on record waits as a
-conflict instead of quietly replacing it.
+about their own tastes, people, pets, history, team and work ("I hate cilantro", "my brother Theo",
+"I've never been to Europe", "I grew up in Duluth", "i play blocker") are noted with the sentence
+they came from. Noted facts go into the chat context so later replies stay consistent, and the user
+can keep or remove each one in Character Studio. A new statement that contradicts one already on
+record waits as a conflict instead of quietly replacing it. A companion who texts in lowercase
+writes names in lowercase too ("my cat juniper"), so in lowercase text a plain word after "my cat"
+counts as a name unless it is a common word ("my cat is sleeping").
 
 These are fiction about the character, never facts about the user (M1). They are separate from the
 character definition (C1), so a deliberate edit still applies from a stated point. A fact belongs to
@@ -15,10 +17,12 @@ stops applying when that reply is replaced by another version or deleted.
 import re
 from dataclasses import dataclass
 
+from companion import texting
 from companion.characters import require_current
 from companion.database import identifier, many, one
 from companion.errors import require
 from companion.memory.extraction import CLAUSE_END, HYPOTHETICAL, NOT_THINGS, QUESTION_START, QUOTED, SENTENCE
+from companion.memory.people_rules import NOT_NAMES, RELATIONS
 
 ACTIONS = re.compile(r'\*[^*\n]+\*')
 THING = r"([^,.;!?]{2,50})"
@@ -33,22 +37,77 @@ PETS = ('cat', 'dog', 'kitten', 'puppy', 'rabbit', 'bunny', 'parrot', 'hamster',
 ONE_OF = {'mom', 'mother', 'dad', 'father', 'boss', 'stepmom', 'stepdad'}
 SAME = {'mother': 'mom', 'father': 'dad'}
 LIKE = r'(?:really |absolutely |totally |kind of |kinda |honestly |just )?'
+SPORTS = ('roller derby', 'derby', 'soccer', 'softball', 'baseball', 'basketball', 'football', 'hockey', 'volleyball',
+          'rugby', 'lacrosse', 'netball', 'cricket', 'water polo', 'ultimate frisbee', 'ultimate', 'tennis', 'golf',
+          'badminton', 'pickleball', 'squash', 'chess', 'poker', 'bowling', 'curling', 'kickball', 'dodgeball')
+INSTRUMENTS = ('piano', 'guitar', 'bass', 'cello', 'violin', 'viola', 'drums', 'ukulele', 'flute', 'clarinet',
+               'saxophone', 'sax', 'trumpet', 'trombone', 'french horn', 'tuba', 'harp', 'banjo', 'mandolin', 'oboe',
+               'accordion', 'keyboard', 'harmonica')
+POSITIONS = ('blocker', 'jammer', 'pivot', 'goalie', 'goalkeeper', 'keeper', 'striker', 'defender', 'midfielder',
+             'forward', 'center', 'centre', 'point guard', 'guard', 'pitcher', 'catcher', 'shortstop', 'first base',
+             'second base', 'third base', 'outfield', 'quarterback', 'linebacker', 'setter', 'libero', 'winger',
+             'fullback', 'left wing', 'right wing', 'defense', 'defence')
+PLAYABLE = '|'.join(sorted(SPORTS + INSTRUMENTS + POSITIONS, key=len, reverse=True))
+TEAM_SPORT = rf"(?:(?:{'|'.join(SPORTS)}|trivia|quiz|rowing|swim|track) )?"
+TEAM = r"([\w'’&-]+(?: [\w'’&-]+){0,3})"
+# Words that end a team name: "the crabshells and we won".
+TEAM_END = {'and', 'are', 'is', 'was', 'were', 'who', 'we', 'but', 'so', 'just', 'won', 'lost', 'play', 'played',
+            'have', 'had', 'this', 'last', 'next', 'tonight', 'today', 'tomorrow', 'in', 'at', 'on', 'for', 'with',
+            'lol', 'haha'}
+LOWER_NAME = r"([a-z][\w'’-]+)"
+# Words that follow "my cat" or "my sister" in lowercase text without being a name ("my dog just ate").
+NOT_LOWER_NAMES = NOT_NAMES | NOT_THINGS | TEAM_END | set(RELATIONS) | set(RELATIVES) | set(PETS) | {
+    'sat', 'bit', 'ran', 'fell', 'hit', 'let', 'put', 'saw', 'met', 'found', 'left', 'kept', 'slept', 'woke', 'threw',
+    'broke', 'bought', 'brought', 'caught', 'sold', 'drove', 'wrote', 'chose', 'knew', 'got', 'made', 'ate', 'drank',
+    'snores', 'sleeps', 'barks', 'bites', 'runs', 'cries', 'needs', 'gives', 'helps', 'hides', 'visits', 'visited',
+    'yells', 'refuses', 'swears', 'sits', 'stays', 'sounds', 'looks', 'seems', 'feels', 'means', 'probably',
+    'has', 'gets', 'got', 'will', 'would', 'can', 'could', 'should', 'does', 'did', 'do', 'which', 'from', 'to',
+    'of', 'too', 'still', 'always', 'never', 'sometimes', 'usually', 'finally', 'already', 'even', 'now', 'omg',
+    'ugh', 'me', 'us', 'all', 'both', 'like', 'because', 'if', 'when', 'where', 'what', 'how', 'why', 'not', 'ate',
+    'said', 'says', 'calls', 'called', 'named', 'texts', 'texted', 'loves', 'hates', 'likes', 'wants', 'thinks',
+    'knows', 'lives', 'works', 'keeps', 'makes', 'misses', 'sent', 'went', 'came', 'comes', 'goes', 'took', 'made',
+    'told', 'tells', 'asked', 'asks', 'gave', 'died', 'passed', 'sleeps', 'eats', 'used', 'back', 'again', 'here',
+    'home', 'over', 'every', 'one', 'lately', 'literally', 'basically', 'really', 'totally', 'actually', 'never'}
+NOT_WORKPLACES = {'home', 'night', 'nights', 'the moment', 'moment', 'all', 'all hours', 'it', 'that', 'this'}
+
+
+def kin(relations, name):
+    return rf"\bmy ({'|'.join(relations)}),? (?:is |was )?(?:named |called )?{name}"
+
+
+def kin_lowercase(relations):
+    # "is" and "was" only before "named" or "called": "my mom was mad" names nobody.
+    return rf"\bmy ({'|'.join(relations)}),? (?:(?:is |was )?(?:named|called) )?{LOWER_NAME}"
+
+
 RULES = (
     ('likes', re.compile(rf"\bi {LIKE}(?:love|adore|like|enjoy)\s+{THING}", re.IGNORECASE)),
     ('dislikes', re.compile(rf"\bi {LIKE}(?:hate|loathe|dislike|can'?t stand|cannot stand|don'?t like|do not like)"
                             rf"\s+{THING}", re.IGNORECASE)),
     ('favorite', re.compile(r"\bmy (?:all-time |absolute )?favou?rite ([a-z]+(?: [a-z]+)?) (?:is|has to be|was) "
                             rf"{THING}", re.IGNORECASE)),
-    ('person', re.compile(rf"\bmy ({'|'.join(RELATIVES)}),? (?:is |was )?(?:named |called )?{NAME}", re.IGNORECASE)),
-    ('pet', re.compile(rf"\bmy ({'|'.join(PETS)}),? (?:is |was )?(?:named |called )?{NAME}", re.IGNORECASE)),
+    ('person', re.compile(kin(RELATIVES, NAME), re.IGNORECASE)),
+    ('pet', re.compile(kin(PETS, NAME), re.IGNORECASE)),
     ('never', re.compile(r"\bi(?:'ve| have) never (been to|tried|seen|read|watched|played|eaten|had|ridden|learned)"
                          rf"\s+{THING}", re.IGNORECASE)),
     ('grew_up', re.compile(r"\bi grew up (?:in|on|near|outside(?: of)?) " r"(?-i:([A-Z][\w.'’-]*(?: [A-Z][\w.'’-]*)*))",
                            re.IGNORECASE)),
     ('allergy', re.compile(rf"\bi(?:'m| am) allergic to {THING}", re.IGNORECASE)),
+    ('team', re.compile(rf"\bmy {TEAM_SPORT}team(?:,| is| was|) (?:the|called|named) {TEAM}|"
+                        rf"\bi (?:also |still )?play for the {TEAM}", re.IGNORECASE)),
+    ('plays', re.compile(rf"\bi (?:also |still |mostly |usually )?play (?:the |as (?:a |an |the )?)?({PLAYABLE})\b",
+                         re.IGNORECASE)),
+    ('works_at', re.compile(rf"\bi (?:still |currently )?work(?: (?:in|on) [^,.;!?]{{2,30}}?)? at {THING}",
+                            re.IGNORECASE)),
 )
+# In lowercase text the person and pet rules also take a lowercase name.
+LOWERCASE_RULES = {'person': re.compile(kin_lowercase(RELATIVES), re.IGNORECASE),
+                   'pet': re.compile(kin_lowercase(PETS), re.IGNORECASE)}
+# Categories with one current answer: a second team or workplace is a contradiction.
+SINGLE = {'favorite', 'grew_up', 'person', 'team', 'works_at'}
 LABELS = {'likes': 'Likes', 'dislikes': 'Dislikes', 'favorite': 'Favorite', 'person': 'Person', 'pet': 'Pet',
-          'never': 'Never', 'grew_up': 'Grew up', 'allergy': 'Allergic to'}
+          'never': 'Never', 'grew_up': 'Grew up', 'allergy': 'Allergic to', 'team': 'Team', 'plays': 'Plays',
+          'works_at': 'Works at'}
 STATUSES = ('noted', 'kept', 'rejected', 'conflict')
 IN_FORCE = ('noted', 'kept')
 # Objects that are the conversation, not a taste ("I love that", "I like talking to you").
@@ -75,13 +134,50 @@ def clean(thing: str) -> str:
     return re.sub(r'^(?:the|a|an|my|some) ', '', thing).strip()
 
 
-def fact_for(category: str, match, sentence: str) -> Fact | None:
+def titled(text: str) -> str:
+    return ' '.join(word[:1].upper() + word[1:] for word in text.split())
+
+
+def lowercase_style(text: str) -> bool:
+    """Texted in lowercase: some sentence starts lowercase and no word is capitalised but "I" and sentence starts."""
+    sentences = [part.split() for part in SENTENCE.findall(text) if part.strip()]
+    starts = [words[0] for words in sentences]
+    later = [word for words in sentences for word in words[1:]]
+    return any(word[:1].islower() for word in starts) and not any(
+        word[:1].isupper() and not re.match(r"I(?:['’]\w+)?\W*$", word) for word in later)
+
+
+def named_fact(category: str, groups: list[str], sentence: str, lowercase: bool) -> Fact | None:
+    relation, name = groups[0].lower(), groups[1]
+    if lowercase:
+        if name.lower() in NOT_LOWER_NAMES or re.search(r"(?:ing|ed|ly|n['’]t)$", name.lower()):
+            return None
+        name = titled(name)
+    return Fact(category, SAME.get(relation, relation) if category == 'person' else relation, name, sentence)
+
+
+def life_fact(category: str, groups: list[str], sentence: str) -> Fact | None:
+    """Their team, what they play and where they work."""
+    if category == 'team':
+        words = groups[0].split()
+        ends = [index for index, word in enumerate(words) if word.lower() in TEAM_END]
+        team = ' '.join(words[:ends[0]] if ends else words)
+        return Fact('team', 'team', titled(team) if team.islower() else team, sentence) if team else None
+    if category == 'plays':
+        return Fact('plays', groups[0].lower(), groups[0].lower(), sentence)
+    place = re.sub(r'\s+(?:as|now|today|tonight|tomorrow|until|till|every|most|during|on|lol|haha)\b.*$', '',
+                   clean(groups[-1]), flags=re.IGNORECASE)
+    if not place[:1].isalpha() or place.lower() in NOT_WORKPLACES:
+        return None
+    return Fact('works_at', 'workplace', place, sentence)
+
+
+def fact_for(category: str, match, sentence: str, lowercase=False) -> Fact | None:
     groups = [group for group in match.groups() if group]
-    if category == 'person':
-        relation, name = groups[0].lower(), groups[1]
-        return Fact('person', SAME.get(relation, relation), name, sentence)
-    if category == 'pet':
-        return Fact('pet', groups[0].lower(), groups[1], sentence)
+    if category in {'person', 'pet'}:
+        return named_fact(category, groups, sentence, lowercase)
+    if category in {'team', 'plays', 'works_at'}:
+        return life_fact(category, groups, sentence)
     if category == 'favorite':
         thing = clean(groups[1])
         return Fact('favorite', groups[0].lower(), thing, sentence) if thing else None
@@ -96,18 +192,21 @@ def fact_for(category: str, match, sentence: str) -> Fact | None:
     return Fact(category, thing.lower(), thing, sentence)
 
 
-def extract(text: str) -> list[Fact]:
-    """First-person statements in one companion message. Questions, hypotheticals and quoted lines are skipped."""
+def extract(text: str, lowercase=False) -> list[Fact]:
+    """First-person statements in one companion message. Questions, hypotheticals and quoted lines are skipped.
+    In lowercase text (or for a companion who texts in lowercase) names may be lowercase too."""
     text = QUOTED.sub(' ', ACTIONS.sub(' ', text))
+    lowercase = lowercase or lowercase_style(text)
+    rules = RULES + tuple(LOWERCASE_RULES.items()) if lowercase else RULES
     found, seen = [], set()
     for sentence in (part.strip() for part in SENTENCE.findall(text)):
         if not sentence or sentence.endswith('?') or QUESTION_START.match(sentence) or HYPOTHETICAL.search(sentence):
             continue
         if re.search(r"\b(?:wish|if only|maybe|might|probably)\b", sentence, re.IGNORECASE):
             continue
-        for category, pattern in RULES:
+        for index, (category, pattern) in enumerate(rules):
             for match in pattern.finditer(sentence):
-                fact = fact_for(category, match, sentence)
+                fact = fact_for(category, match, sentence, index >= len(RULES))
                 if fact and fact.key not in seen and len(fact.value) <= 50:
                     seen.add(fact.key)
                     found.append(fact)
@@ -126,12 +225,18 @@ def opposite(fact: Fact) -> str | None:
 def in_force(connection, timeline_id) -> list[dict]:
     """Facts whose message, or a copy of it, is an active complete message on this timeline. A reply to
     a message the user excluded or deleted from recall usually repeats it, so its facts leave with it (M12)."""
-    from companion.memory.records import blocked_messages
     rows = many(connection, "SELECT self_facts.*, messages.reply_to AS reply_to, messages.id AS shown_id FROM "
                 "self_facts JOIN messages ON (messages.id=self_facts.message_id OR "
                 "messages.origin_id=self_facts.message_id) WHERE self_facts.status IN ('noted', 'kept') "
                 "AND messages.timeline_id=? AND messages.active=1 AND messages.status='complete' "
                 'AND messages.redacted_at IS NULL ORDER BY self_facts.created_at', (timeline_id,))
+    return shown(connection, timeline_id, rows)
+
+
+def shown(connection, timeline_id, rows: list[dict]) -> list[dict]:
+    """Rows joined to their shown message (`shown_id`, `reply_to`), once each, leaving out those whose
+    message or the message it answers is blocked or redacted."""
+    from companion.memory.records import blocked_messages
     if not rows:
         return []
     blocked = blocked_messages(connection, rows[0]['companion_id']) | {row['id'] for row in many(
@@ -150,7 +255,7 @@ def contradiction(fact: Fact, current: list[dict]) -> dict | None:
         if row['key'] == opposite(fact):
             return row
         if row['category'] == fact.category and row['subject'] == fact.subject and row['value'].lower() != \
-                fact.value.lower() and fact.category in {'favorite', 'grew_up', 'person'} and (
+                fact.value.lower() and fact.category in SINGLE and (
                     fact.category != 'person' or fact.subject in ONE_OF):
             return row
     return None
@@ -164,7 +269,7 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
     current = in_force(connection, message['timeline_id'])
     known = {row['key']: row for row in current}
     added = []
-    for fact in extract(message['text']):
+    for fact in extract(message['text'], texting.style(companion['version']['definition'])['lowercase']):
         if fact.key in known and known[fact.key]['value'].lower() == fact.value.lower():
             continue
         clash = contradiction(fact, current)

@@ -9,6 +9,7 @@ import time
 
 from companion.characters import require_current
 from companion.database import settings
+from companion.life import storylines
 from companion.memory import consolidation, vectors
 from companion.memory import suggest as model_suggestions
 from companion.memory.formation import run_pending
@@ -71,13 +72,14 @@ class MemoryWorker:
         await asyncio.to_thread(consolidation.run, self.database)
 
     async def index(self) -> int:
-        """Embed one batch of memories and messages without a current vector. Returns how many were saved."""
+        """Embed one batch of memories, messages and old storylines without a current vector. Returns how many were saved."""
         with self.database.connect() as connection:
             config = config_for(connection, 'recall')
             if not config or not config.get('embedding_model'):
                 return 0
-            timeline_id = require_current(connection)['active_timeline_id']
-            items = vectors.missing(connection, vector_model(config), timeline_id)
+            companion = require_current(connection)
+            stories = storylines.recall_items(connection, companion, self.database.clock.now())
+            items = vectors.missing(connection, vector_model(config), companion['active_timeline_id'], stories=stories)
         if not items:
             return 0
         key = key_for(self.vault, config)

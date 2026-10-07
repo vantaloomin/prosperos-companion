@@ -1,4 +1,4 @@
-"""Stored embeddings for memories and messages, and semantic rankings over the eligible pool (PRD M10, M12).
+"""Stored embeddings for memories, messages and old storylines, and semantic rankings over the eligible pool (PRD M10, M12).
 
 Vectors are keyed by owner, model and the digest of the exact text embedded, so an edited or
 redacted text never matches an old vector. Deleting a memory or redacting a message deletes its
@@ -46,8 +46,9 @@ def forget(connection, kind: str, owner_ids):
                            [(kind, owner_id) for owner_id in owner_ids])
 
 
-def missing(connection, model: str, timeline_id: str, limit=INDEX_BATCH) -> list[tuple[str, str, str]]:
-    """(kind, id, text) for active memories and complete messages that lack a current vector."""
+def missing(connection, model: str, timeline_id: str, limit=INDEX_BATCH, stories=()) -> list[tuple[str, str, str]]:
+    """(kind, id, text) for active memories, complete messages and the given storylines
+    (companion/life/storylines.py recall_items) that lack a current vector."""
     memories = many(connection, "SELECT memories.* FROM memories LEFT JOIN memory_vectors v ON v.owner_kind='memory' "
                     "AND v.owner_id=memories.id AND v.model=? WHERE memories.status='active' AND v.owner_id IS NULL "
                     'LIMIT ?', (model, limit))
@@ -60,14 +61,19 @@ def missing(connection, model: str, timeline_id: str, limit=INDEX_BATCH) -> list
                     "AND v.owner_id IS NULL ORDER BY messages.seq DESC LIMIT ?",
                     (model, timeline_id, limit - len(found)))
     # A message's text includes what its pictures show (companion/pictures.py).
-    return found + [('message', row['id'], row['text']) for row in pictures.described(connection, messages)]
+    found += [('message', row['id'], row['text']) for row in pictures.described(connection, messages)]
+    stored = {row['owner_id']: row['digest'] for row in many(
+        connection, "SELECT owner_id, digest FROM memory_vectors WHERE owner_kind='storyline' AND model=?", (model,))}
+    return found + [('storyline', story['id'], story['text']) for story in stories
+                    if stored.get(story['id']) != digest(story['text'])][:limit - len(found)]
 
 
 def store(connection, model, items, vectors, timestamp) -> int:
     """Save vectors only for owners whose text is unchanged since it was read."""
     saved = 0
     for (kind, owner_id, text), vector in zip(items, vectors):
-        if current_text(connection, kind, owner_id) != text:
+        # A storyline's text is rebuilt from its names on every reply; rank skips a vector that no longer matches.
+        if kind != 'storyline' and current_text(connection, kind, owner_id) != text:
             continue
         connection.execute('INSERT OR REPLACE INTO memory_vectors (owner_kind, owner_id, model, digest, vector, '
                            'created_at) VALUES (?, ?, ?, ?, ?, ?)',
@@ -85,7 +91,7 @@ def current_text(connection, kind, owner_id) -> str | None:
 
 
 def rank(connection, model: str, query_vector, owners: dict[str, str], limit: int) -> list[str]:
-    """Owner keys (`memory:<id>` or `message:<id>`) by similarity, best first, above a floor.
+    """Owner keys (`memory:<id>`, `message:<id>` or `storyline:<id>`) by similarity, best first, above a floor.
 
     `owners` maps each eligible owner key to the exact text in the pool, so a stale vector is ignored.
     """

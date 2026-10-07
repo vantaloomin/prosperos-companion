@@ -225,7 +225,7 @@ CREATE INDEX IF NOT EXISTS memory_candidates_status ON memory_candidates(compani
 
 -- Embeddings of memories and messages for semantic recall, keyed by the digest of the text embedded.
 CREATE TABLE IF NOT EXISTS memory_vectors (
-  owner_kind TEXT NOT NULL CHECK (owner_kind IN ('memory', 'message')),
+  owner_kind TEXT NOT NULL CHECK (owner_kind IN ('memory', 'message', 'storyline')),
   owner_id TEXT NOT NULL,
   model TEXT NOT NULL,
   digest TEXT NOT NULL,
@@ -1230,3 +1230,19 @@ CREATE TABLE IF NOT EXISTS wardrobe_log (
   created_at TEXT NOT NULL,
   UNIQUE (timeline_id, period)
 );
+
+-- Plans the companion made in chat for a date (companion/life/own_plans.py), tied to the message they came
+-- from like self_facts; the agenda gives each one the day's matching free slot.
+CREATE TABLE IF NOT EXISTS companion_plans (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL REFERENCES messages(id),
+  local_date TEXT NOT NULL,
+  at_time TEXT,
+  activity TEXT NOT NULL,
+  form TEXT NOT NULL CHECK (form IN ('doing', 'thing', 'scene')),
+  statement TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (message_id, local_date)
+);
+CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id);

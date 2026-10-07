@@ -127,7 +127,8 @@ weather, marked as fictional dates.
 Each circle member has a birthday (`birthday: "MM-DD"` in the circle API), seeded by their id. On
 that date one leisure or social block goes to them: the companion celebrates with a local friend
 who is free then (`activity: "birthday"`, at a restaurant or bar, `with` naming them), or calls a
-relative who lives out of town (no place). The chat context marks the person's birthday on the day.
+relative who lives out of town (no place). The chat context marks the person's birthday on the day, and
+lists it with the birthdays and anniversaries from a week ahead (see below).
 
 Events are composed from the routine, a fixed activity catalog and the world data, without a
 model. When a model is connected and `phrase_with_model` is on, it only rewrites the wording;
@@ -299,7 +300,8 @@ Everyone in the circle has their own people, and theirs have theirs, down to fou
 companion (`companion/life/network.py`). Nobody out there is stored or simulated: a person is a seeded
 path from a circle member (`circle:<timeline>:<n>/2/0`) rebuilt the same way on request, with an
 era-fitting name (`companion/world/naming.py`) and only relatives sharing a family name. A partner gets no
-partner of their own.
+partner of their own. Nobody unrelated to the companion carries the companion's family name or a relative's
+(the city's `kin`, see world-data.md); townsfolk and newcomers follow the same rule.
 
 ```http
 GET /api/life/network?key=<key>   # {person, people: [{key, full, relation, how, age, occupation, met}], deeper}
@@ -408,6 +410,28 @@ leisure and social time to calm activities at home or nearby. Events carry `deta
 `day.body` shows it and the chat context gets one line about it. Background reconciles extend the agenda only when background
 activity is on.
 
+### Plans made in chat
+
+When a completed companion message (a reply or a first message) states a plan of their own for one
+resolvable day, `companion/life/own_plans.py` pins it with no model: "my bout is Saturday the 24th,
+first whistle at 6", "I'm hosting a potluck at my place on Thanksgiving", "I'm going to my grandma's
+Sunday", "Christmas is just going to be me and Juniper on the couch". The day can be a weekday,
+"the 24th" (which must agree with a weekday given with it), a month and day, "tonight" or "tomorrow",
+or a holiday in the city's calendar (the US one when the city is unknown); a time is kept when given
+(a bare hour from 1 to 11 is read as pm unless the sentence says morning). Questions, maybes,
+conditionals, negations, past tense, vague days ("this weekend") and plans about the user or "we"
+are skipped. A plan belongs to its message the way a self fact does: it applies on every timeline
+holding that message or a copy, and goes when the reply is replaced or deleted.
+
+On that date the agenda gives the plan the companion's free block that holds its time, or with no
+time the free block around 7 pm (else the day's last free one), and the day's other free blocks stay
+quiet. Work, study and sleep are never overridden: a plan during a shift stays noted but places
+nowhere, though a public holiday's day off counts as free. The entry has activity `own-plan` and
+`entry.own_plan: {id, message_id, statement, at}`; every companion block on a date with plans lists
+their ids in `block.plans`, so upcoming entries are rebuilt whenever the plans in force for their date
+change. Return batches simulate these slots first, and the event carries `details.own_plan`. The chat
+context lists upcoming plans under "Plans you have made in chat".
+
 ### Recommendations
 
 When the user writes "you should watch / read / listen to / play / try / visit / go to / check out X"
@@ -446,12 +470,17 @@ A storyline is `{id, story, level, started_on, status, cast: [{id, name, role}],
 share, tone}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
 named now; removing someone ends the storylines they are in. The chat context lists the last three
 weeks' storylines and says when one is still unfolding, so the companion never guesses the ending.
+There the beats are told to the companion as "you" ("You got the promotion", "Cathy, your mom, got a
+promotion at work"), rewritten from each template, so the companion never hands its own news back to
+the user; Today keeps the third person. A settled storyline stays in the context by its outcome for
+60 days after its last beat; after that it joins memory search, so asking about it months later can
+still bring the outcome back (embedded like memories when semantic recall is on).
 A beat from today or yesterday can open a conversation, using its `share` line when no model is
 connected. Days are decided as the agenda extends, up to 14 days back after time away.
 
 ### Birthdays and anniversaries
 
-`companion/life/occasions.py` keeps three kinds of day, from the calendar and saved state only:
+`companion/life/occasions.py` keeps four kinds of day, from the calendar and saved state only:
 
 - The companion's birthday: the definition's `birthday` (`"MM-DD"`), or a date seeded by the
   companion's id when it is empty. On the day, their first free leisure or social slot from noon is a
@@ -460,13 +489,17 @@ connected. Days are decided as the agenda extends, up to 14 days back after time
   time the user says it plainly ("my birthday is March 3rd", "it's my birthday today"; questions and
   "if…" are skipped) and is never replaced by a later message; the user changes or clears it in
   Settings.
+- An active circle member's birthday (seeded by their id, in the companion's timezone): "Today is your mom
+  Cathy's birthday." It is the companion's news, so it carries no hint to wish anyone and never opens a
+  conversation.
 - How long they have talked, counted from the timeline's first message in the user's timezone: a
   month, 100 days, three months, six months, then every year. For a romance it reads as their
   anniversary.
 
 The chat context lists the day itself and birthdays within a week. Today's response has `occasions`
 (`[{key, kind, date, days, span, text, template}]`, `kind` one of `user_birthday`, `own_birthday`,
-`anniversary`). On the day, an occasion is the first reason the companion may message first.
+`circle_birthday`, `anniversary`; a `circle_birthday` adds `person` and `relation`). On the day, an occasion
+other than a circle birthday is the first reason the companion may message first.
 
 ## Limits and permissions
 

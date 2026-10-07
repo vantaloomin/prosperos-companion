@@ -141,6 +141,14 @@ timeline that the current conversation does not use (`in_timeline: false`).
 6. Older turns and episodic memories, ranked by the Study's lexical retrieval and rank fusion.
    When the recall profile names an embedding model, an embedding ranking of the same eligible pool
    joins the fusion, so a related memory is found without shared words ("puppy" finds "hound").
+   Settled storylines past their 60 days in the context join the same pool
+   (`storylines.recall_items`), told to the companion as "you".
+
+When the companion's last 15 replies keep reaching for the same wording, the character section gets
+one line naming it ('You keep repeating: "honestly" (8 of your last 15 messages). Say it
+differently.'). `companion/memory/phrases.py` finds phrases of three to eight words in at least three
+replies with the Study's phrase detection, plus single words in at least five replies, leaving out
+stopwords, ordinary words and names; up to three are named. It is rule-based and calls no model.
 
 ### Semantic recall
 
@@ -272,10 +280,30 @@ model suggest more (`model_memory_suggestions`). The sentences of each message t
 nothing in, six words or more, go to the chat connection in batches of eight at maintenance priority, so a
 conversation interrupts them. A sentence the rules took a fact from still goes when it names another name,
 place or month, with what the rules kept listed as `already_saved`. The model is asked for just the fact
-("Sam", not "I'm Sam"), with a subject that says whose fact it is. Each answer must name a message in the batch and take most of its
-words from that message, or it is dropped. Survivors wait as `model_guess` suggestions; keeping one
+("Sam", not "I'm Sam"), with a subject that says whose fact it is. Each message also goes with up to six of
+the user's current facts its words touch, as `known` ("Mom's interests: she loves gardening"; never a sensitive
+memory or a boundary), and the model marks an answer that says one of them is wrong or no longer true with
+`corrects`, naming that subject as sent (prompt `memory-suggest-3`). Each answer must name a message in the batch and take most of its
+words from that message, or it is dropped; so is one whose `corrects` names anything that was not sent. An
+answer marked `corrects`, or one that negates the one current memory with its layer and subject ("Mom's
+interests: not a gardener"), waits as a `correction` of that memory (below); a new value for a single-valued
+subject waits as a `conflict`, like a rule-found one. Other survivors wait as `model_guess` suggestions; keeping one
 makes it `confirmed`, and nothing the model says is ever committed on its own. A malformed answer
 marks the batch failed; changed permissions make it stale. Each message is sent once.
+
+**Corrections.** "My mom is definitely not a gardener" while "Mom's interests: she loves gardening" is
+current says that memory is wrong. `companion/memory/corrections.py` finds a few plain shapes with rules: a
+sentence that opens with who it is about (I, "my mom", "my sister Jo", a name already known), then a negation
+("isn't", "is not", "doesn't like", "don't live in", "no longer") or "is A, not B" ("No, Pickles is a beagle,
+not a lab"). The negated words must repeat a word of exactly one current fact about that same someone (theirs
+by identity, or a subject that names them, such as "Mom's interests"); a tie, a passing state ("my mom isn't
+home", "I'm not sure about Chicago"), reported speech ("I told her my mom isn't a gardener") or a sentence that
+only mentions the subject proposes nothing, and only "don't live in" can end a home. The result waits as a
+`correction` suggestion naming the memory (`corrects`) and showing its value in `replaces`, even after Remember
+this. Keeping it rewords that memory as a new revision (the old value becomes history), or, when the value just
+stopped being true ("anymore", "no longer", or a home, job or other single-valued subject), ends it so it is
+recalled as no longer current. If the memory changed meanwhile, keeping it does nothing. A sentence with a
+correction counts as handled, so the model does not see it again.
 
 **Supersession.** Single-valued subjects (`preferred_name`, `home_city`, `work`, `birthday`,
 `favourite_*`) hold one current value. A new current value ends the earlier one at its start
@@ -283,7 +311,8 @@ marks the batch failed; changed permissions make it stale. Each message is sent 
 move to Boston" is a proposed plan, and "I lived in Boston ten years ago" ends nothing. A different
 value stated without saying it changed ("I live in Denver" while Chicago is current) does not end
 anything automatically: it waits as a `conflict` suggestion that shows the value it would replace,
-until the user picks one. Remember this on that message is the user's choice and replaces directly.
+until the user picks one. Remember this on that message is the user's choice and replaces directly. Saying a
+current value is wrong or no longer true waits as a `correction` (above).
 Spans are half-open, so a value ended at a moment is no longer current at that moment. A correction
 is a different thing: a new revision that supersedes a wrong value. Ended facts are recallable
 history marked "no longer current"; expired temporary circumstances are not recalled. Open plans
@@ -320,12 +349,17 @@ fits the conversation.
 `companion/self_facts.py` keeps an LLM from flipping its own facts. After each completed companion
 message (a reply or a first message), fixed patterns pick out first-person statements about
 the character: likes and dislikes, a favorite, a named relative or pet, something they have never
-done, where they grew up, an allergy. Questions, hypotheticals ("maybe", "if only", "wish"),
+done, where they grew up, an allergy, their team ("my team, the X", "i play for the X"), a sport,
+instrument or position they play ("i play blocker"), and where they work ("i work at X"). When the
+message is texted in lowercase (no capitalised word but "I" and sentence starts, with a sentence
+starting lowercase) or the definition's texting style is lowercase, a lowercase word after "my
+sister" or "my cat" is taken as a name and stored title-cased ("my cat juniper" is Juniper), unless
+it is a common word ("my cat is sleeping", "my mom was mad", "my grandma calls"). Questions, hypotheticals ("maybe", "if only", "wish"),
 quoted lines and *actions* are skipped. Each fact keeps the sentence it came from and belongs to that
 message: it applies on any timeline that holds the message or a copy of it, and stops applying when
 the reply is replaced by another version or deleted. Facts in force go into the chat context as
 "What you have said about yourself before". A statement that contradicts one in force (likes
-against dislikes, a second favorite band, a second mom) waits as a `conflict` instead. In Character
+against dislikes, a second favorite band, a second mom, a second team or workplace) waits as a `conflict` instead. In Character
 Studio the user keeps a fact (marked confirmed in the context), removes it, or keeps the conflicting
 one, which removes the earlier fact. Stated likes and dislikes also steer the composer: a disliked
 activity is left out and a liked one counts like an interest, and noting either rebuilds the

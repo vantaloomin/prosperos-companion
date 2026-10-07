@@ -229,6 +229,40 @@ def test_a_redone_field_cannot_bring_in_invented_names(client, provider):
     assert 'Seraphina' not in response.json()['value'] and len(provider.requests) == 2
 
 
+MYA = {**GOOD, 'name': 'Mya Freeman', 'voice': 'Warm but blunt. She rarely uses capital letters and swears when tired.',
+       'routine': ('Weekdays are for 12-hour shifts in the ER, and Saturdays at the rink with her derby team. '
+                   'Sundays she sleeps in. She calls her mom on the drive home.'),
+       'schedule': [{'label': 'ER shift', 'kind': 'work', 'days': [2, 4, 6], 'start': '07:00', 'end': '19:30',
+                     'themes': ['patients']},
+                    {'label': 'Asleep', 'kind': 'sleep', 'days': list(range(7)), 'start': '21:30', 'end': '05:30'},
+                    {'label': 'Day off', 'kind': 'leisure', 'days': [0, 1, 3, 5], 'start': '10:00', 'end': '16:00'}]}
+
+
+def test_a_draft_agrees_with_itself(client, provider):
+    connect(client)
+    provider.respond = replying(json.dumps(MYA))
+    definition = client.post('/api/companion/draft', json={'idea': 'an ER nurse'}).json()['definition']
+    assert definition['texting']['lowercase'] is True
+    routine = definition['routine']
+    # The weekday shifts, the rink and the Sunday lie-in contradict the schedule; the schedule's week replaces them.
+    assert 'Weekdays' not in routine and 'rink' not in routine and 'Sundays she sleeps' not in routine
+    assert routine.startswith('She calls her mom on the drive home.')
+    assert 'Works 12-hour shifts Wednesday, Friday and Sunday, 07:00-19:30.' in routine
+    assert 'Day off: Monday, Tuesday, Thursday and Saturday, 10:00-16:00.' in routine
+
+
+def test_routine_prose_that_fits_the_schedule_is_kept():
+    blocks = [{'themes': [], **block} for block in MYA['schedule']]
+    blocks.append({'label': 'Roller derby practice', 'kind': 'social', 'days': [5], 'start': '17:00', 'end': '19:00',
+                   'themes': ['the rink']})
+    fits = 'I work Wednesday, Friday, and Sunday. Mondays I sleep in. Saturdays are derby at the rink.'
+    assert drafting.agreeing_routine(fits, blocks) == fits
+    assert drafting.named_days('weekends and Friday to Monday') == {4, 5, 6, 0}
+    assert drafting.agreeing_routine('Mondays are for work.', blocks).endswith(
+        'Roller derby practice: Saturday, 17:00-19:00.')
+    assert not drafting.texting.LOWERCASE.search('Writes in full sentences with proper capitals.')
+
+
 def test_quick_start_ages_are_read_from_the_pick():
     assert [drafting.age_value(text) for text in ('', 'twenties', 'thirties', '34', 'sixty or older')] == \
         [None, 25, 35, 34, 65]

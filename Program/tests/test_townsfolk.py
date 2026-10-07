@@ -1,4 +1,5 @@
 """Townsfolk: seeded people at the city's places, run by rules, met by the companion while out."""
+from collections import Counter
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -7,8 +8,8 @@ from test_social_circle import make
 
 from companion.characters import require_current
 from companion.database import decode
-from companion.life import body, encounters
-from companion.world import catalog, naming, townsfolk
+from companion.life import body, encounters, network
+from companion.world import catalog, generators, naming, townsfolk
 
 
 @pytest.fixture(autouse=True)
@@ -109,6 +110,31 @@ def test_every_neighborhood_has_residents_with_their_own_days():
     assert commuter['key'] in {sheet['key'] for sheet in regulars}
     assert all(commuter['place']['id'] in sheet['reach'] for sheet in regulars)
     assert townsfolk.find(data, 'town:baltimore:~nowhere:0') is None
+
+
+def everyone(data):
+    return [*(sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])),
+            *(sheet for hood in data['neighborhoods'] for sheet in townsfolk.residents(data, hood['id']))]
+
+
+def test_strangers_never_share_the_companions_family_name(client):
+    data = catalog.city('baltimore')
+    before = everyone(data)
+    common = Counter(sheet['full'].split()[-1] for sheet in before).most_common(1)[0][0]
+    make(client, 'Warm and curious.', name=f'Mya {common}')
+    with client.app.state.database.connect() as connection:
+        theirs = network.city(connection, require_current(connection))
+    assert common in theirs['kin']
+    after = everyone(theirs)
+    assert not any(sheet['full'].endswith(f' {common}') for sheet in after)
+    for old, new in zip(before, after, strict=True):
+        # Only the family name that clashed is drawn again; everyone else keeps their name.
+        assert new['full'] == old['full'] if not old['full'].endswith(f' {common}') else \
+            new['full'].startswith(f"{old['name']} ") and new['pronouns'] == old['pronouns']
+    for index in range(30):
+        made = generators.circle(data, seed=f'kin-{index}', size=6, family=common)
+        assert all(person['name']['family'] != common for person in made['people']
+                   if generators.ROLES[person['role']][2] is False)
 
 
 def test_the_city_view_lists_a_neighborhoods_residents(client):

@@ -277,8 +277,11 @@ export interface Suggestion {
   dates_uncertain: boolean
   excerpt: string
   reason: string | null
-  /** For a conflict: the current values keeping this would replace. */
+  /** For a conflict or a correction: the current values keeping this would replace. */
   replaces?: string[]
+  /** For a correction: the id of the memory it corrects, and whether keeping it ends that memory as history. */
+  corrects?: string
+  ends?: boolean
   created_at: string
 }
 
@@ -863,7 +866,8 @@ export interface Closeness {
 export interface SelfFact {
   id: string
   message_id: string
-  category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy'
+  category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy' | 'team' | 'plays'
+    | 'works_at'
   label: string
   subject: string
   value: string
@@ -899,7 +903,7 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 
 export interface HomeItem {

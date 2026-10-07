@@ -452,12 +452,16 @@ RETIRED_SCHEDULE = [
 
 
 def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | None = None,
-         family: str | None = None, age: int | None = None) -> dict:
+         family: str | None = None, age: int | None = None, avoid=()) -> dict:
     """A resident's name from the city's name groups. `family` keeps a relative's family name.
 
     In modern settings a group linked to cultures takes the given name from what babies were called around
     the person's birth year (`age` years before the data's present year; a seeded adult age without one),
     and the family name from that culture when it lists its own.
+
+    Someone unrelated (no `family`) never gets a family name in `avoid` or in the city's `kin` (the
+    companion's own and their relatives', set by companion/life/network.py): only that family name is drawn
+    again, from the same seed, so everyone else's name stays as it was.
     """
     groups, mix = catalog.name_groups(data)
     group = group if group in groups else pick(seed, 'name-group', list(mix), list(mix.values()))
@@ -480,17 +484,27 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
             pools.insert(0, names['neutral'])
         pools += [names['feminine'] + names['masculine'] + names['neutral']]
         given = pick(seed, 'given', next(pool for pool in pools if pool))
-    surnames = naming.culture(culture)['surnames'] if culture else []
-    if not family and surnames:
-        family = pick(seed, 'family', surnames, naming.rank_weights(surnames))
-    if culture and family:
-        family = naming.gendered(culture, naming.base_family(culture, family), pronouns)
-    if not family:
-        # Most residents' family names come from the same heritage group; some from anywhere in the city.
-        other = pick(seed, 'family-group', list(mix), list(mix.values()))
-        family = pick(seed, 'family', names['family'] if unit(seed, 'mixed') >= 0.2 else groups[other]['family'])
+    if family:
+        family = naming.gendered(culture, naming.base_family(culture, family), pronouns) if culture else family
+    else:
+        avoid = {item.casefold() for item in (*avoid, *data.get('kin', ()))}
+        family = _family(seed, culture, pronouns, names, groups, mix)
+        for attempt in range(1, 9):
+            if not family or not avoid & {family.casefold(), naming.base_family(culture, family).casefold()}:
+                break
+            family = _family(f'{seed}:family:{attempt}', culture, pronouns, names, groups, mix)
     return {'given': given, 'family': family, 'full': f'{given} {family}', 'pronouns': PRONOUNS[pronouns],
             'group': group, 'culture': culture}
+
+
+def _family(seed: str, culture: str | None, pronouns: str, names: dict, groups: dict, mix: dict) -> str:
+    surnames = naming.culture(culture)['surnames'] if culture else []
+    if surnames:
+        family = pick(seed, 'family', surnames, naming.rank_weights(surnames))
+        return naming.gendered(culture, naming.base_family(culture, family), pronouns)
+    # Most residents' family names come from the same heritage group; some from anywhere in the city.
+    other = pick(seed, 'family-group', list(mix), list(mix.values()))
+    return pick(seed, 'family', names['family'] if unit(seed, 'mixed') >= 0.2 else groups[other]['family'])
 
 
 def _given_for(seed: str, culture: str, born: int, pronouns: str) -> str:
@@ -613,12 +627,14 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
         chosen = name(data, seed=f'{seed}:family', group=group)
         family, group = naming.base_family(chosen['culture'], chosen['family']), group or chosen['group']
     people, used, taken = [], set(), {employer} - {None}
+    # Friends, coworkers and neighbors never carry the family's name; only relatives do.
+    others = data | {'kin': [*data.get('kin', ()), family]}
     for index, role in enumerate(roles[:size]):
         member_seed, related = f'{seed}:{role}:{index}', ROLES[role][2]
         if related is None:
             related = unit(member_seed, 'shares-name') < 0.5
         local = role not in ('parent', 'sibling', 'cousin') or unit(member_seed, 'local') < 0.6
-        person = resident(data, seed=member_seed, role=role, around_age=age, local=local,
+        person = resident(data if related else others, seed=member_seed, role=role, around_age=age, local=local,
                           near=home if role in ('neighbor', 'parent', 'sibling') else None,
                           employer=employer if role == 'coworker' else None,
                           career=career if role == 'coworker' and not employer else None,
@@ -629,8 +645,8 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
         retry = 0
         while person['name']['full'] in used and retry < 5:
             retry += 1
-            person['name'] = name(data, seed=f'{member_seed}:{retry}', family=family if related else None,
-                                  group=person['name']['group'], age=person['age'])
+            person['name'] = name(data if related else others, seed=f'{member_seed}:{retry}',
+                                  family=family if related else None, group=person['name']['group'], age=person['age'])
         used.add(person['name']['full'])
         people.append(person)
     refs = list(dict.fromkeys(ref for person in people for ref in person['refs']))

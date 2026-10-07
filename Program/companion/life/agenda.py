@@ -24,6 +24,7 @@ from companion.life import (
     home,
     network,
     occasions,
+    own_plans,
     recommendations,
     routine,
     storylines,
@@ -87,6 +88,10 @@ def extend(connection, companion, world, now) -> dict:
 def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion=None) -> int:
     stale = connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
                                'AND basis!=?', (timeline_id, subject, basis)).rowcount
+    plans = {}
+    if subject == COMPANION:
+        plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, (now - BACKFILL).date().isoformat()))
+        stale += repin(connection, timeline_id, plans)
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, subject))
     # A timeline's days begin when it last became active: nothing is filled in for time it spent
@@ -115,6 +120,11 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         if local_date not in days:
             days[local_date] = day_facts(connection, timeline_id, subject, definition, world, slot.local_date,
                                          days_off.get(local_date))
+            if local_date in plans:
+                days[local_date]['plans'] = plans[local_date]
+                days[local_date]['pinned'] = own_plans.assign(plans[local_date], [
+                    holiday_block(block.view(), days_off.get(local_date)) for block in schedule
+                    if slot.local_date.weekday() in block.days])
         written += write_slot(connection, scope, slot, days[local_date], recent)
     connection.execute('INSERT INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?) '
                        'ON CONFLICT (timeline_id, subject) DO UPDATE SET through=excluded.through',
@@ -128,8 +138,11 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     block, entry, shift = day_block(slot.block.view(), facts), None, None
     seed = seed_for(timeline_id, subject, slot.key)
     resting = block['kind'] in routine.RESTING
+    pinned = facts.get('pinned', {})
+    if 'plans' in facts:
+        block['plans'] = sorted(plan['id'] for plan in facts['plans'])
     company = free_people(connection, timeline_id, slot) if subject == COMPANION and not resting else []
-    if scope['shifting'] and not resting:
+    if scope['shifting'] and not resting and slot.block.key not in pinned:
         shift = disruptions.roll(f'{seed}:shift', block, company)
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
@@ -137,8 +150,12 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         company = [shift['friend']]
     if block['kind'] not in routine.RESTING:
         view = {**slot.view(), 'block': block, 'starts_at': stamp(starts_at), 'ends_at': stamp(ends_at)}
-        entry = compose_entry(connection, scope, slot, view, company, recent, seed)
-        entry = disruptions.entry_with(entry, shift, definition['name'])
+        if slot.block.key in pinned:
+            plan = pinned[slot.block.key]
+            entry = plan and own_plans.entry(plan, block, definition)
+        else:
+            entry = compose_entry(connection, scope, slot, view, company, recent, seed)
+            entry = disruptions.entry_with(entry, shift, definition['name'])
         entry = home.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition, scope['world'],
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
@@ -167,6 +184,19 @@ def compose_entry(connection, scope: dict, slot, view: dict, company: list, rece
     entry = entry or composer.compose(view, definition, world, seed, recent[-3:], company, celebrants)
     entry = network.run_in(connection, timeline_id, entry, view, block, seed)
     return encounters.meet(connection, scope['companion'], entry, view, block, seed)
+
+
+def repin(connection, timeline_id, plans: dict) -> int:
+    """Remove the companion's upcoming entries built from other plans than those now in force for their date
+    (a plan was made, or its message replaced or deleted), so they are composed again."""
+    removed = 0
+    for row in many(connection, "SELECT id, local_date, json_extract(block, '$.plans') AS plans FROM life_agenda "
+                    "WHERE timeline_id=? AND subject=? AND status='upcoming'", (timeline_id, COMPANION)):
+        wanted = sorted(plan['id'] for plan in plans.get(row['local_date'], []))
+        if (decode(row['plans']) if row['plans'] else []) != wanted:
+            connection.execute('DELETE FROM life_agenda WHERE id=?', (row['id'],))
+            removed += 1
+    return removed
 
 
 def day_facts(connection, timeline_id, subject, definition, world, day, holiday) -> dict:

@@ -237,6 +237,7 @@ changes made.
 | `companion/memory/hybrid_recall.py` | `server/memory/hybrid_recall.py` | Takes chunks and a read limit from the caller |
 | `companion/memory/chunks.py` | `server/memory/chunks.py` | No persistent cache format |
 | `companion/memory/cache.py` | `server/memory/cache.py` | Persistent index backing removed |
+| `companion/memory/phrases.py` | `server/phrases/detection.py` | Findings without evidence quotes; single-word check and context line added |
 | `companion/memory/budget.py` | `server/memory/budget.py` | Estimates plain text |
 | `companion/providers/scheduling.py` | `server/providers/scheduling.py` | Companion work kinds |
 | `companion/providers/chat.py` | `server/providers/http.py`, `completion.py` | Conversation messages; token-limit and filter stops stay visible incomplete replies |

@@ -12,8 +12,10 @@ everyday trouble; dramatic adds health scares, feuds and secret romances; soap o
 kisses, separations and family secrets. A companion in a romance with the user never gets a
 storyline about their own love life.
 
-Beats reach the chat context (decided, never contradicted, the ending never guessed), can open a
-conversation (companion/life/openers.py), and are listed in Today, where the user can end one.
+Beats reach the chat context told to the companion as "you" (decided, never contradicted, the ending
+never guessed); a settled one stays pinned for two months by its outcome, then goes to memory search.
+They can open a conversation (companion/life/openers.py) and are listed in Today, where the user can
+end one.
 Text names people as they are named now, so renaming someone carries over; removing someone ends
 the storylines they are in.
 """
@@ -33,6 +35,7 @@ RUNNING = (1, 2, 3, 4)
 REPEAT_AFTER = timedelta(days=90)
 CATCH_UP_DAYS = 14
 RECENT_DAYS = 21
+SETTLED_DAYS = 60
 
 
 @dataclass(frozen=True)
@@ -289,9 +292,23 @@ def end_removed(connection, timeline_id):
             connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (row['id'],))
 
 
+# The chat context speaks to the companion: a template's third person becomes "you" before it is filled.
+SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} has ', 'you have '),
+                 ('but has not', 'but have not'), ('{name} heard they are', 'you heard you are'),
+                 ('hitting on them', 'hitting on you'), ('to their manager', 'to your manager'),
+                 ('their best friend', 'your best friend'), ('they never knew', 'you never knew'), ('{name}', 'you'))
+
+
+def second_person(text: str) -> str:
+    for old, new in SECOND_PERSON:
+        text = text.replace(old, new)
+    return text
+
+
 # Views --------------------------------------------------------------------------------------------
 
-def fill(text: str, row: dict, names: dict, definition: dict) -> str:
+def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
+    text = second_person(text) if you else text
     cast = decode(row['cast_ids'])
     people = [names.get(person_id, {'name': 'someone', 'role': 'friend'}) for person_id in cast]
     values = {'name': definition['name'], 'a': '', 'b': '', 'a_rel': ''}
@@ -303,9 +320,9 @@ def fill(text: str, row: dict, names: dict, definition: dict) -> str:
     return filled[0].upper() + filled[1:] if filled else filled
 
 
-def view(row: dict, names: dict, definition: dict, today: str) -> dict:
+def view(row: dict, names: dict, definition: dict, today: str, you=False) -> dict:
     stages = decode(row['stages'])
-    beats = [{'on': stage['on'], 'text': fill(stage['text'], row, names, definition),
+    beats = [{'on': stage['on'], 'text': fill(stage['text'], row, names, definition, you),
               'share': fill(stage['share'], row, names, definition), 'tone': stage['tone']}
              for stage in stages if stage['on'] <= today]
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
@@ -314,8 +331,8 @@ def view(row: dict, names: dict, definition: dict, today: str) -> dict:
             'beats': beats, 'unfolding': row['status'] == 'running' and stages[-1]['on'] > today}
 
 
-def visible(connection, companion, now, include_ended=False) -> list[dict]:
-    """Storylines with at least one beat that has happened, newest first."""
+def visible(connection, companion, now, include_ended=False, you=False) -> list[dict]:
+    """Storylines with at least one beat that has happened, newest first; `you` tells them to the companion."""
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     today = local_today(companion, now).isoformat()
     names = {row['id']: {'name': row['name'], 'role': row['role']}
@@ -323,27 +340,40 @@ def visible(connection, companion, now, include_ended=False) -> list[dict]:
     status = '' if include_ended else "AND status='running' "
     rows = many(connection, f'SELECT * FROM storylines WHERE timeline_id=? {status}AND started_on<=? '
                 'ORDER BY started_on DESC', (timeline_id, today))
-    return [view(row, names, definition, today) for row in rows]
+    return [view(row, names, definition, today, you) for row in rows]
 
 
 def context_lines(connection, companion, now) -> list[tuple[str, str]]:
-    """Recent storylines for the chat context: what happened so far, and whether it is still unfolding."""
-    since = (local_today(companion, now) - timedelta(days=RECENT_DAYS)).isoformat()
+    """Recent storylines for the chat context, told to the companion: what happened so far, and whether it is
+    still unfolding. A settled one stays pinned for SETTLED_DAYS after its last beat, by its outcome once older."""
+    today = local_today(companion, now)
+    recent, pinned = ((today - timedelta(days=days)).isoformat() for days in (RECENT_DAYS, SETTLED_DAYS))
     result = []
-    for item in visible(connection, companion, now):
-        if item['beats'][-1]['on'] < since:
-            continue
-        text = ' Then: '.join(f"{beat_['text']}" for beat_ in item['beats'])
-        tail = ' Still unfolding: you do not know how it ends yet.' if item['unfolding'] else ''
-        result.append((item['id'], f"- Since {item['started_on']}: {text}{tail}"))
+    for item in visible(connection, companion, now, you=True):
+        last = item['beats'][-1]
+        if last['on'] >= recent:
+            text = ' Then: '.join(beat_['text'] for beat_ in item['beats'])
+            tail = ' Still unfolding: you do not know how it ends yet.' if item['unfolding'] else ''
+            result.append((item['id'], f"- Since {item['started_on']}: {text}{tail}"))
+        elif not item['unfolding'] and last['on'] >= pinned:
+            result.append((item['id'], f"- Settled on {last['on']}: {last['text']}"))
     return result
+
+
+def recall_items(connection, companion, now) -> list[dict]:
+    """Settled storylines past the pinned window, for memory search (companion/memory/context.py): {id, day, text}."""
+    pinned = (local_today(companion, now) - timedelta(days=SETTLED_DAYS)).isoformat()
+    return [{'id': item['id'], 'day': item['beats'][-1]['on'],
+             'text': ' Then: '.join(beat_['text'] for beat_ in item['beats'])}
+            for item in visible(connection, companion, now, you=True)
+            if not item['unfolding'] and item['beats'][-1]['on'] < pinned]
 
 
 def fresh_beats(connection, companion, now) -> list[tuple[str, dict]]:
     """Beats that happened today or yesterday, for a first message: (trigger key, beat)."""
     yesterday = (local_today(companion, now) - timedelta(days=1)).isoformat()
     result = []
-    for item in visible(connection, companion, now):
+    for item in visible(connection, companion, now, you=True):
         for index, beat_ in enumerate(item['beats']):
             if beat_['on'] >= yesterday:
                 result.append((f"storyline:{item['id']}:{index}", beat_))

@@ -17,7 +17,7 @@ from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import occasions, pacing, recommendations
+from companion.life import occasions, own_plans, pacing, recommendations
 from companion.memory import context, formation
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -401,8 +401,9 @@ class Conversation:
             if status == 'complete':
                 connection.execute('UPDATE messages SET active=0 WHERE reply_to=?', (attempt['reply_to'],))
                 connection.execute('UPDATE messages SET active=1 WHERE id=?', (attempt_id,))
-                self_facts.note(connection, one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,)),
-                                self.database.now())
+                finished = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
+                self_facts.note(connection, finished, self.database.now())
+                own_plans.note(connection, finished, companion, self.database.now())
 
 
 def still_current(connection, attempt, companion) -> bool:

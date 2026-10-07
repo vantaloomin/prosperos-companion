@@ -199,15 +199,16 @@ def recent_threads(connection, timeline_id, local_date: str) -> list[str]:
 
 
 def recommended(connection, timeline_id, slot_key) -> bool:
+    """The slot holds a session of a recommendation or a plan the companion made in chat."""
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
-                         "AND slot_key=? AND json_extract(entry, '$.recommendation.id') IS NOT NULL",
-                         (timeline_id, slot_key)))
+                         "AND slot_key=? AND (json_extract(entry, '$.recommendation.id') IS NOT NULL "
+                         "OR json_extract(entry, '$.own_plan.id') IS NOT NULL)", (timeline_id, slot_key)))
 
 
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
     """Slots a committed plan names come first, so a plan happens when its time comes; then sessions of
-    something the user recommended, so the companion's account follows it, and slots photographed in
-    chat, so the moment the user saw becomes an event."""
+    something the user recommended or plans the companion made in chat, so the companion's account follows
+    them, and slots photographed in chat, so the moment the user saw becomes an event."""
     planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)
                or recommended(connection, timeline_id, slot.key)
                or feed.photographed(connection, event_key(timeline_id, slot.key))][:count]
@@ -495,7 +496,8 @@ class LifeEngine:
                      'local_date': slot['local_date'], 'timezone': version['timezone'],
                      'post': written['post'], 'mood': composed['mood'], 'with': composed.get('with'),
                      'fulfils': composed.get('fulfils'), 'weather': composed.get('weather'),
-                     'body': block.get('body'), 'recommendation': composed.get('recommendation')},
+                     'body': block.get('body'), 'recommendation': composed.get('recommendation'),
+                     'own_plan': composed.get('own_plan')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {
@@ -513,10 +515,11 @@ class LifeEngine:
         return result
 
     def compose_slot(self, slot, version, key, plan, precomputed, recent) -> tuple:
-        """(composed, slot, prepared wording): a committed plan's outing, else the precomputed entry,
+        """(composed, slot, prepared wording): a committed plan's outing unless the slot holds a plan made in
+        chat, else the precomputed entry,
         else a fresh composition. The precomputed block can differ from the routine's, for example
         a work block that became a day off on a public holiday."""
-        if plan:
+        if plan and not (precomputed and (precomputed['entry'] or {}).get('own_plan')):
             return composer.fulfil(events.view(plan), version['definition']), slot, None
         if precomputed:
             return precomputed['entry'], {**slot, 'block': decode(precomputed['block'])}, precomputed['prepared']
