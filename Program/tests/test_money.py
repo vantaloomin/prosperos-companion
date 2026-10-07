@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from companion.life import composer, money
+from companion.life import composer, home, money
 from companion.life.world import Place, StaticWorld
 
 NURSE = {'name': 'Mara', 'home_city': 'baltimore', 'identity': 'A registered nurse at Hopkins.'}
@@ -27,6 +27,19 @@ def test_a_chosen_career_wins_over_the_guess_and_better_pay_means_more_money():
     chosen = money.snapshot(engineer, '2026-10-05')
     assert chosen['career'] == {'id': 'software-engineer', 'name': 'Software engineer', 'pay': '$$$', 'guessed': False}
     assert chosen['budget']['income'] > money.snapshot(NURSE, '2026-10-05')['budget']['income']
+
+
+def test_the_home_is_where_the_draft_says_they_live():
+    stephen = {'name': 'Stephen', 'home_city': 'baltimore',
+               'identity': 'Stephen is a marine biologist at the aquarium. He lives alone in a small rowhouse in '
+                           'Canton.', 'background': 'He grew up in Highlandtown.'}
+    view = money.snapshot(stephen, '2026-10-05')
+    assert view['career']['id'] == 'biologist'
+    place = home.place_item('seed', stephen, money.city_for(stephen))
+    assert place['details']['neighborhood'] == 'Canton' and place['variety'] == 'rowhouse'
+    # Working downtown is not living there.
+    commuter = {**stephen, 'identity': 'Stephen works downtown at the aquarium.'}
+    assert money.where_they_live(commuter) == ''
 
 
 def test_expensive_rent_means_sharing_a_place():

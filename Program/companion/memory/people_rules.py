@@ -172,6 +172,14 @@ def introductions(sentence: str, exclude=()):
             yield Reference(match.group(2), relation_word(match.group(1)))
 
 
+def contracted(rest: str) -> str:
+    """What follows "she" with the contraction spelled out: "'s into jazz" is "is into jazz"."""
+    if match := re.match(r"^(?:'s|’s|'re|’re)(?= )", rest):
+        tail = rest[match.end():]
+        return (' has' + tail[4:]) if tail.startswith(' got ') else ' is' + tail
+    return rest
+
+
 def predicate(rest: str):
     """The fact a sentence states about the person it starts with: (topic, value) or None."""
     rest = rest.lstrip(' ,')
@@ -211,7 +219,7 @@ def scan(sentence: str, known: dict, previous: Reference | None, exclude=()) -> 
     candidates = [(rest, by_relation.get(reference.relation, reference) if not reference.name else reference)
                   for rest, reference in candidates]
     if previous and (match := PRONOUN.match(sentence)):
-        candidates.insert(0, (sentence[match.end():], previous))
+        candidates.insert(0, (contracted(sentence[match.end():]), previous))
     elif previous and (match := POSSESSIVE_PRONOUN.match(sentence)):
         candidates.insert(0, ("'s " + sentence[match.end():], previous))
     for rest, reference in candidates:

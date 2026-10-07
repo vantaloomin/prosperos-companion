@@ -5,8 +5,8 @@ Run as `python companion/mcp/servers/pulse.py`; the app starts it for each looku
 - `get_local_news(location, topic?)`: headlines from Google News's public RSS search, for the topic
   when one is given, else for the place; without a topic it adds what people are reading on
   Wikipedia today and the hot posts in the city's subreddit.
-- `get_local_happenings(location, latitude?, longitude?)`: pro games played in or near the city from
-  yesterday through the next six days, with final scores for games already played (MLB's free stats
+- `get_local_happenings(location, latitude?, longitude?)`: pro games played in or near the city, and
+  the local teams' away games, from yesterday through the next six days, with final scores for games already played (MLB's free stats
   API, and ESPN's public scoreboards for the NFL, NBA, WNBA, NHL and MLS), and today's air quality
   from Open-Meteo.
 
@@ -68,8 +68,8 @@ TOOLS = [
          'required': ['location']},
      'annotations': {'readOnlyHint': True, 'openWorldHint': True}},
     {'name': 'get_local_happenings',
-     'description': 'Pro sports games in or near a city from yesterday through the next six days, with final '
-                    "scores, and today's air quality.",
+     'description': "Pro sports games in or near a city, and its teams' away games, from yesterday through the "
+                    "next six days, with final scores, and today's air quality.",
      'inputSchema': {'type': 'object', 'properties': {
          'location': {'type': 'string', 'description': 'City or region, such as "Baltimore, MD".'},
          'latitude': {'type': 'number', 'description': 'Optional; used instead of looking up the place.'},
@@ -237,6 +237,12 @@ def local_cities(place: dict) -> set[str]:
     return METRO.get(place['city'], {place['city']})
 
 
+def local_team(team: dict, cities: set[str]) -> bool:
+    """A team from the city ("Baltimore Ravens", or ESPN's location "Baltimore"), so its away games count too."""
+    names = [str(team.get(key) or '').lower() for key in ('location', 'displayName', 'name')]
+    return any(name == city or name.startswith(f'{city} ') for name in names for city in cities)
+
+
 def espn_games(client, league: tuple, start: date, end: date, cities: set[str]) -> list[dict]:
     sport, code = league
     # ESPN answers a date range ("20261004-20261011") with HTTP 400, so ask for each month the week touches.
@@ -250,10 +256,11 @@ def espn_games(client, league: tuple, start: date, end: date, cities: set[str]) 
             continue
         competition = (event.get('competitions') or [{}])[0]
         venue = competition.get('venue') or {}
-        if str((venue.get('address') or {}).get('city') or '').lower() not in cities:
-            continue
         sides = {item.get('homeAway'): item for item in competition.get('competitors') or []}
         home, away = sides.get('home') or {}, sides.get('away') or {}
+        if (str((venue.get('address') or {}).get('city') or '').lower() not in cities
+                and not local_team(away.get('team') or {}, cities)):
+            continue
         finished = bool(((event.get('status') or {}).get('type') or {}).get('completed'))
         found.append({'league': LEAGUES[league][0], 'start': event.get('date'), 'venue': text_of(venue.get('fullName')),
                       'home': text_of((home.get('team') or {}).get('displayName')),
@@ -270,9 +277,10 @@ def mlb_games(client, start: date, end: date, cities: set[str]) -> list[dict]:
     for day in data.get('dates') or []:
         for game in day.get('games') or []:
             venue = game.get('venue') or {}
-            if str((venue.get('location') or {}).get('city') or '').lower() not in cities:
-                continue
             teams = game.get('teams') or {}
+            if (str((venue.get('location') or {}).get('city') or '').lower() not in cities
+                    and not local_team((teams.get('away') or {}).get('team') or {}, cities)):
+                continue
             finished = ((game.get('status') or {}).get('abstractGameState')) == 'Final'
             found.append({'league': 'MLB', 'start': game.get('gameDate'), 'venue': text_of(venue.get('name')),
                           'home': text_of(((teams.get('home') or {}).get('team') or {}).get('name')),
@@ -332,7 +340,8 @@ def happenings(arguments: dict, client, today: date) -> dict:
     checked = [key for key, value in found.items() if value is not None]
     parts = []
     if games:
-        parts.append(f"Pro games in and around {place['label']} from yesterday through next week:\n" +
+        parts.append(f"Pro games in and around {place['label']}, and its teams' away games, from yesterday "
+                     'through next week:\n' +
                      '\n'.join(f'- {game_line(game, zone)}' for game in games))
     elif checked:
         parts.append(f"No {', '.join(checked)} games in {place['label']} from yesterday through next week.")

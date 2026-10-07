@@ -15,6 +15,9 @@ KINDS = {
     'beach': ('beach',), 'venue': ('venue', 'stadium'), 'shop': ('shopping',),
 }
 TAGGED = {'waterfront': {'waterfront', 'harbour', 'harbor', 'docks', 'beach'}, 'bookstore': {'books', 'bookshop'}}
+# A tag only makes a place one of these kinds when the place is outdoors: a waterfront distillery bar is no
+# place for a walk along the water.
+TAGGED_OUTDOORS = {'waterfront': {'park', 'garden', 'trail', 'beach', 'landmark', 'attraction', 'market', 'docks'}}
 # Everyday stops a person makes close to home; museums, venues and beaches stay city-wide.
 LOCAL = {'cafe', 'restaurant', 'bar', 'market', 'grocery', 'library', 'gym', 'park'}
 # How far "near home" reaches; with fewer than ENOUGH places that close, the nearest ENOUGH + 1 instead.
@@ -82,7 +85,8 @@ class CatalogWorld:
         result, seen = [], set()
         for kind in kinds:
             matches = [item for item in data['places'] if (item['kind'] in KINDS.get(kind, ())
-                       or set(item['tags']) & TAGGED.get(kind, set()))
+                       or set(item['tags']) & TAGGED.get(kind, set())
+                       and item['kind'] in TAGGED_OUTDOORS.get(kind, {item['kind']}))
                        and (day_part is None or day_part in item['day_parts'])
                        and (season is None or not item['seasons'] or season in item['seasons'])]
             if kind == 'college':

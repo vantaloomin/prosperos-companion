@@ -65,12 +65,16 @@ def test_relatives_named_before_get_the_family_name_unless_the_user_renamed_them
     first, second = relatives[0], relatives[1]
     with client.app.state.database.connect() as connection:
         for person in (first, second):
-            row = dict(connection.execute('SELECT details FROM circle_people WHERE id=?', (person['id'],)).fetchone())
+            row = dict(connection.execute('SELECT name, details FROM circle_people WHERE id=?',
+                                          (person['id'],)).fetchone())
             details = {key: value for key, value in decode(row['details']).items()
                        if key not in ('married', 'birth_family')}
-            # `name` is the full name when two people share a first name; build from the first name alone.
+            # `name` is the full name when two people share a first name; build from the first name alone,
+            # and give such a name the old surname too, as a circle from before family names would have it.
             details['full_name'] = f"{person['full_name'].split()[0]} Freeman"
-            connection.execute('UPDATE circle_people SET details=? WHERE id=?', (encode(details), person['id']))
+            name = details['full_name'] if row['name'] == person['full_name'] else row['name']
+            connection.execute('UPDATE circle_people SET name=?, details=? WHERE id=?',
+                               (name, encode(details), person['id']))
     assert client.patch(f"/api/life/circle/{second['id']}", json={'name': 'Kaity'}).status_code == 200
     after = {person['id']: person for person in client.get('/api/life/circle').json()}
     assert after[first['id']]['full_name'] == first['full_name'] and after[first['id']]['name'] == first['name']

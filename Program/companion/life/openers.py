@@ -337,10 +337,12 @@ class Openers:
         return {'state': 'nothing', 'message': None}
 
     async def write(self, trigger, config, now) -> tuple[str | None, str]:
-        if config is None:
-            return trigger.template, 'template'
         with self.database.connect() as connection:
             companion = current(connection)
+        fallback = voiced(trigger.template, companion['version']['definition'])
+        if config is None:
+            return fallback, 'template'
+        with self.database.connect() as connection:
             packet = context.build(connection, companion, now, config['context_tokens'] - config['max_output_tokens'])
             ask = '(' + prompt_library.text(connection, 'first-texts', reason=trigger.reason) + ')'
         messages = list(packet['messages'])
@@ -357,16 +359,16 @@ class Openers:
                         raise BackgroundInterrupted()
                     text.append(chunk.text)
                     if chunk.finish_reason in INCOMPLETE:
-                        return trigger.template, 'template'
+                        return fallback, 'template'
         except BackgroundInterrupted:
             raise
         except DomainError:
-            return trigger.template, 'template'
+            return fallback, 'template'
         written = ''.join(text).strip().strip('"').strip()
         if in_character.applies('', companion['version']['definition']):
             written = in_character.clean(written)
         if not written or len(written) > MAX_LENGTH:
-            return trigger.template, 'template'
+            return fallback, 'template'
         return written, 'model'
 
     def save(self, companion, trigger, text, wording, now) -> dict:
@@ -399,6 +401,19 @@ class Openers:
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
             self_facts.note(connection, row, timestamp)
         return {'state': 'sent', 'kind': trigger.kind, 'message': message_view(row)}
+
+
+LOWERCASE = re.compile(r'lower-?case|avoids? capital|no capital|without capital|never capitali|skips? capital',
+                       re.IGNORECASE)
+
+
+def voiced(template: str | None, definition: dict) -> str | None:
+    """A fixed message in the character's typing style: all lowercase sentences for a voice that avoids
+    capitals ("finally done with work for today"). The model phrases most messages; this covers the rest."""
+    if not template or not LOWERCASE.search(definition.get('voice') or ''):
+        return template
+    text = re.sub(r"(^|[.!?]\s+)([A-Z])(?=[a-z' ])", lambda match: match.group(1) + match.group(2).lower(), template)
+    return re.sub(r"\bI(?=\b|')", 'i', text)
 
 
 def opener_for(connection, message_id) -> dict | None:

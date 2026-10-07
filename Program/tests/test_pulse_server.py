@@ -92,15 +92,16 @@ def test_news_keeps_what_worked_and_fails_only_when_nothing_did():
         pulse.news({'location': 'Baltimore'}, recorded({}), TODAY)
 
 
-def test_happenings_list_local_games_with_scores_and_air_quality():
+def test_happenings_list_local_and_away_games_with_scores_and_air_quality():
     seen = []
     client = recorded({'geocoding': PLACES, 'air-quality': AIR, 'football/nfl': NFL, 'statsapi.mlb.com': MLB,
                        'espn.com': {'events': []}}, seen)
     result = pulse.happenings({'location': 'Baltimore, MD'}, client, TODAY)
     assert result['text'] == (
-        'Pro games in and around Baltimore, MD from yesterday through next week:\n'
+        "Pro games in and around Baltimore, MD, and its teams' away games, from yesterday through next week:\n"
         '- Sun Oct 4, 1:00 PM: final, Los Angeles Rams 17, Baltimore Ravens 24 at M&T Bank Stadium (NFL)\n'
         '- Tue Oct 6, 7:08 PM: New York Yankees at Baltimore Orioles at Oriole Park at Camden Yards (MLB)\n'
+        '- Sun Oct 11, 1:00 PM: Baltimore Ravens at Pittsburgh Steelers at Acrisure Stadium (NFL)\n'
         'Air quality now: good (US AQI 42). Air quality data by Open-Meteo.com (CC BY 4.0).')
     assert set(result['structured']['leagues_checked']) == {'MLB', 'NFL', 'NBA', 'WNBA', 'NHL', 'MLS'}
     espn = next(request for request in seen if 'football/nfl' in str(request.url))

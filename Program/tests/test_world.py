@@ -179,6 +179,8 @@ def test_the_catalog_answers_the_life_composer(app):
     world = CatalogWorld()
     waterfront = world.places('baltimore', ['waterfront'])
     assert waterfront and all(place.kind == 'waterfront' and place.city == 'Baltimore' for place in waterfront)
+    # A waterfront bar or distillery is not somewhere to walk along the water.
+    assert 'Sagamore Spirit Distillery' not in {place.name for place in waterfront}
     assert world.places('Fells Point, Baltimore', ['cafe', 'bar'])
     colleges = world.places('baltimore', ['college'])
     assert {'Johns Hopkins University'} <= {place.name for place in colleges}
