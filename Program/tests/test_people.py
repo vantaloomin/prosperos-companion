@@ -71,6 +71,7 @@ def people_section(client) -> str:
 
 
 def test_nothing_about_people_is_kept_without_automatic_memory(client, connected):
+    client.put('/api/settings', json={'automatic_memory': False})
     say(client, 'My sister Jo just got engaged.')
     assert client.get('/api/people').json() == []
 

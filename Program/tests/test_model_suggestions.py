@@ -1,4 +1,4 @@
-"""Model-proposed memories stay suggestions until the user keeps them (PRD M1, M7)."""
+"""Model-found memories are saved automatically; contradictions and held sensitive facts wait (PRD M1, M7)."""
 import asyncio
 import json
 
@@ -27,25 +27,38 @@ def run(client, app):
     return asyncio.run(app.state.memory.suggest())
 
 
-def test_model_suggestions_are_off_by_default(client, app, connected, provider):
-    client.put('/api/settings', json={'automatic_memory': True})
+def test_model_memory_is_on_by_default_and_can_be_turned_off(client, app, connected, provider):
+    settings = client.get('/api/settings').json()
+    assert settings['automatic_memory'] and settings['model_memory_suggestions'] and settings['sensitive_memory']
+    client.put('/api/settings', json={'model_memory_suggestions': False})
     send(client, LONG, 'model-0001')
     assert run(client, app) == 0
     assert all('help a companion app remember' not in request['system'] for request in provider.requests)
 
 
-def test_a_supported_guess_waits_and_is_confirmed_when_kept(client, app, connected, provider):
+def test_a_supported_guess_is_saved_automatically(client, app, connected, provider):
     enable(client)
     provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Hobby',
                                      'value': 'weekly pottery class with Jun'}])
     send(client, LONG, 'model-0001')
     assert run(client, app) == 1
+    [memory] = client.get('/api/memories').json()
+    assert memory['value'] == 'weekly pottery class with Jun' and memory['origin'] == 'automatic'
+    assert client.get('/api/memory/suggestions').json() == []
+    assert run(client, app) == 0, 'a message is sent to the model once'
+
+
+def test_a_sensitive_guess_waits_while_sensitive_memory_is_off(client, app, connected, provider):
+    enable(client, sensitive_memory=False)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Allergy',
+                                     'value': 'peanut allergy'}])
+    send(client, 'ugh the bake sale is tomorrow and I have to avoid half of it, peanut allergy life', 'model-0001')
+    run(client, app)
     assert client.get('/api/memories').json() == []
     [suggestion] = client.get('/api/memory/suggestions').json()
-    assert suggestion['reason'] == 'model_guess' and suggestion['source'] == 'model'
+    assert suggestion['reason'] == 'sensitive' and suggestion['source'] == 'model'
     kept = client.post(f"/api/memory/suggestions/{suggestion['id']}/accept").json()['memory']
     assert kept['authority'] == 'confirmed' and kept['origin'] == 'suggestion'
-    assert run(client, app) == 0, 'a message is sent to the model once'
 
 
 def test_unsupported_or_malformed_guesses_are_dropped(client, app, connected, provider):
@@ -77,19 +90,18 @@ def test_sentences_the_rules_missed_still_reach_the_model(client, app, connected
     [asked] = [request for request in provider.requests if 'help a companion app remember' in request['system']]
     sent = json.loads(asked['messages'][0]['content'])
     assert sent == [{'message': 1, 'text': f'{LONG}.'}]
-    assert [item['value'] for item in client.get('/api/memory/suggestions').json() if item['source'] == 'model'] == [
-        'weekly pottery class with Jun']
+    assert sorted(item['value'] for item in client.get('/api/memories').json()) == ['Chicago', 'weekly pottery class with Jun']
 
 
 def test_a_declined_guess_is_not_suggested_again(client, app, connected, provider):
-    enable(client)
-    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Hobby',
-                                     'value': 'weekly pottery class with Jun'}])
-    send(client, LONG, 'model-0001')
+    enable(client, sensitive_memory=False)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Allergy',
+                                     'value': 'peanut allergy'}])
+    send(client, 'ugh the bake sale is tomorrow and I have to avoid half of it, peanut allergy life', 'model-0001')
     run(client, app)
     [suggestion] = client.get('/api/memory/suggestions').json()
     client.post(f"/api/memory/suggestions/{suggestion['id']}/decline")
-    send(client, LONG + ' again', 'model-0002')
+    send(client, 'the bake sale was a minefield again, peanut allergy life for real', 'model-0002')
     run(client, app)
     assert client.get('/api/memory/suggestions').json() == []
 

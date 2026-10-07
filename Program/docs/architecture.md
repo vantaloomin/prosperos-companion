@@ -272,9 +272,13 @@ the user's timezone (`companion/memory/dates.py`); an ambiguous one is kept but 
 - **Running.** `MemoryWorker` drains the queue after each turn and waits while a reply is being
   written. A job commits only if automatic memory is still on under the same permission revision;
   otherwise it is `stale`. A failure marks the job `failed` and leaves the conversation alone.
+- **Defaults.** Memory is opt-out (2026-10-07): automatic memory, sensitive memory and model memory are
+  on for new workspaces and were turned on once for existing ones (`memory_on_by_default`), because the
+  six-month test showed that a user who never reviews suggestions ends up with almost nothing saved.
+  Turning any of them off sticks.
 - **Committing.** Ordinary stated facts commit as `automatic` memories with their source message.
   Sensitive ones (health, sexuality, religion, politics, finances, legal status, addresses) wait as
-  suggestions unless sensitive memory is allowed. An added fact does not advance the memory revision,
+  suggestions only when sensitive memory is turned off. An added fact does not advance the memory revision,
   so it never withholds a reply being written; ending an earlier value or changing a plan does.
 - **Suggestions.** Accepting one is deliberate permission. A declined suggestion's fingerprint is
   never suggested again, from that message or a later one.
@@ -283,8 +287,8 @@ the user's timezone (`companion/memory/dates.py`); an ambiguous one is kept but 
   extraction from the message and deletes memories extracted from it automatically; the transcript
   stays.
 
-**Model suggestions.** Off by default, and only with automatic memory on, the user can let the
-model suggest more (`model_memory_suggestions`). The sentences of each message the rules found
+**Model memory.** On by default, and only with automatic memory on, the model picks out facts the rules
+missed (`model_memory_suggestions`). The sentences of each message the rules found
 nothing in, six words or more, go to the chat connection in batches of eight at maintenance priority, so a
 conversation interrupts them. A sentence the rules took a fact from still goes when it names another name,
 place or month, with what the rules kept listed as `already_saved`. The model is asked for just the fact
@@ -295,8 +299,9 @@ memory or a boundary), and the model marks an answer that says one of them is wr
 words from that message, or it is dropped; so is one whose `corrects` names anything that was not sent. An
 answer marked `corrects`, or one that negates the one current memory with its layer and subject ("Mom's
 interests: not a gardener"), waits as a `correction` of that memory (below); a new value for a single-valued
-subject waits as a `conflict`, like a rule-found one. Other survivors wait as `model_guess` suggestions; keeping one
-makes it `confirmed`, and nothing the model says is ever committed on its own. A malformed answer
+subject waits as a `conflict`, like a rule-found one. Other survivors are saved as `automatic` memories (shown as
+saved automatically, so the user can correct or delete them), except a sensitive one while sensitive memory is off,
+which waits. A malformed answer
 marks the batch failed; changed permissions make it stale. Each message is sent once.
 
 **Corrections.** "My mom is definitely not a gardener" while "Mom's interests: she loves gardening" is

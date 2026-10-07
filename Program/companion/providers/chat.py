@@ -96,6 +96,9 @@ class Completion:
         self.reasoning = self.reasoning or chunk.reasoning
         self.finish_reason = chunk.finish_reason or self.finish_reason
 
+    def spent_on_thinking(self) -> bool:
+        return self.reasoning and not self.has_text and self.finish_reason == 'length'
+
     def validate(self):
         require(self.completed, 'The connection ended before the service completed its reply.', 502)
         if self.finish_reason in FAILURES:
@@ -139,7 +142,30 @@ class ChatProvider:
             check_status(response)
             yield kobold_result(response)
             return
-        completion, parser = Completion(), PARSERS[config['provider']]
+        completion = Completion()
+        held = []
+        async for chunk in self.attempt(client, config, key, url, body, completion):
+            if completion.has_text:
+                for waiting in held:
+                    yield waiting
+                held = []
+                yield chunk
+            else:
+                # Nothing to show yet: a reply that ends here may be all thinking and no text.
+                held.append(chunk)
+        if completion.spent_on_thinking() and (lighter := lighter_body(config, body)):
+            # The model spent the whole reply limit thinking (Sonnet 5.5 on OpenRouter cannot turn thinking
+            # off). Ask once more with less thinking and more room rather than show an empty reply.
+            completion, held = Completion(), []
+            async for chunk in self.attempt(client, config, key, url, lighter, completion):
+                yield chunk
+        else:
+            for waiting in held:
+                yield waiting
+        completion.validate()
+
+    async def attempt(self, client, config, key, url, body, completion) -> AsyncIterator[Chunk]:
+        parser = PARSERS[config['provider']]
         for attempt in range(RATE_LIMIT_ATTEMPTS):
             async with client.stream('POST', url, headers=headers_for(config, key), json=body) as response:
                 if response.status_code == 429 and attempt + 1 < RATE_LIMIT_ATTEMPTS:
@@ -153,7 +179,6 @@ class ChatProvider:
                     if chunk.text or chunk.finish_reason:
                         yield chunk
             break
-        completion.validate()
 
     async def check(self, config: dict, key: str | None) -> dict:
         """List the service's models without generating anything."""
@@ -163,6 +188,28 @@ class ChatProvider:
         async with httpx.AsyncClient(transport=self.transport, timeout=15, trust_env=False,
                                      follow_redirects=False) as client:
             return await check_with_deadline(discover_models, client, config, key)
+
+
+OUTPUT_LIMITS = ('max_tokens', 'max_completion_tokens', 'max_output_tokens')
+
+
+def lighter_body(config: dict, body: dict) -> dict | None:
+    """The same request with twice the output room and, unless the user chose a thinking setting, low effort."""
+    lighter = {**body}
+    limits = [key for key in OUTPUT_LIMITS if key in lighter]
+    if not limits:
+        return None
+    for key in limits:
+        lighter[key] = lighter[key] * 2
+    chosen = config.get('reasoning_effort') or config.get('thinking_mode')
+    if not chosen:
+        if config['provider'] == 'openrouter':
+            lighter['reasoning'] = {'effort': 'low'}
+        elif config['provider'] == 'openai':
+            lighter['reasoning'] = {'effort': 'low'}
+        elif config['provider'] == 'anthropic':
+            lighter['output_config'] = {'effort': 'low'}
+    return lighter
 
 
 def kobold_result(response: httpx.Response) -> Chunk:

@@ -115,6 +115,9 @@ ADDED_COLUMNS = (
     ('companions', 'portrait_reference_id', 'TEXT'),
     # Texts first became on by default; a workspace from before that is switched on once (see initialize).
     ('life_settings', 'texts_first_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
+    # Memory is opt-out: every workspace gets automatic, sensitive and model memory turned on once (Vanta,
+    # 2026-10-07: users can't be relied on to approve suggestions); turning them off afterwards sticks.
+    ('workspace_settings', 'memory_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
     # Switching the main character (companion/cast.py): the townsperson a companion was made from, and
     # when they last stepped back from slot 1.
     ('companions', 'townsfolk_key', 'TEXT'),
@@ -156,6 +159,8 @@ def initialize(connection, timestamp: str):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))
     connection.execute('UPDATE life_settings SET texts_first=1, texts_first_on_by_default=1 '
                        'WHERE texts_first_on_by_default=0')
+    connection.execute('UPDATE workspace_settings SET automatic_memory=1, sensitive_memory=1, '
+                       'model_memory_suggestions=1, memory_on_by_default=1 WHERE memory_on_by_default=0')
     connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',
                            (('schema_version', str(SCHEMA_VERSION)), ('schema_digest', schema_digest()),
                             ('app_version', VERSION)))

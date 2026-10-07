@@ -167,12 +167,13 @@ def test_a_model_correction_of_something_not_sent_is_dropped(client, app, connec
     assert [item['value'] for item in memories(client)] == ['she loves gardening']
 
 
-def test_a_model_fact_that_only_mentions_a_memory_stays_a_plain_guess(client, app, connected, provider):
+def test_a_model_fact_that_only_mentions_a_memory_is_saved_as_a_new_fact(client, app, connected, provider):
     remember(client, **GARDENING)
     enable(client, model_memory_suggestions=True)
     provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Mom's garden",
                                      'value': 'tomatoes in the garden this summer'}])
     send(client, 'My mom planted tomatoes in the garden this summer', 'model-0001')
     suggest(client, app)
-    [suggestion] = suggestions(client)
-    assert suggestion['reason'] == 'model_guess' and 'corrects' not in suggestion
+    assert suggestions(client) == []
+    assert sorted(item['value'] for item in memories(client)) == ['she loves gardening',
+                                                                  'tomatoes in the garden this summer']

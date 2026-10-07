@@ -1,13 +1,13 @@
-"""Model-proposed memory suggestions (PRD M1, M7): optional, background-only and never committed alone.
+"""Model-found memories (PRD M1, M7): background-only, saved like rule-found facts.
 
-When the user turns on model suggestions (with automatic memory), the sentences of each message the
-rules found nothing in are sent in small batches to the configured model at maintenance priority. Its answers are
-only candidates: each must name a message in the batch and use that message's own words, then it
-waits as a suggestion the user keeps or declines. A model guess never becomes a fact on its own,
-and repeating a guess does not confirm it. Each message goes with the user's current facts its words
-touch (`known`); an answer that says one of them is wrong (`corrects`, which must name one that was sent),
-or that negates the one current memory with its layer and subject, waits as a correction of that memory
-(`corrections.py`), and a new value for a single-valued subject waits as a conflict.
+With model memory on (with automatic memory; both on by default since 2026-10-07), the sentences of each message
+the rules found nothing in are sent in small batches to the configured model at maintenance priority. Each answer
+must name a message in the batch and use that message's own words. A supported answer is saved as an automatic
+memory, shown as saved automatically in Memories where the user can correct or delete it; a sensitive one waits
+while sensitive memory is off. Each message goes with the user's current facts its words touch (`known`); an
+answer that says one of them is wrong (`corrects`, which must name one that was sent), or that negates the one
+current memory with its layer and subject, waits as a correction of that memory (`corrections.py`), and a new
+value for a single-valued subject waits as a conflict.
 """
 import json
 import re
@@ -198,11 +198,22 @@ def store(connection, companion, message, found, corrected, timestamp) -> int:
     fields = formation.proposal(found, current)
     # A new value for a single-valued subject is the same choice as a rule-found conflict ("Denver" vs "Chicago").
     reason = 'conflict' if formation.contradicts(connection, companion, found, fields, timestamp) else 'model_guess'
+    if reason == 'model_guess' and fields['sensitive'] and not settings(connection)['sensitive_memory']:
+        reason = 'sensitive'
+    candidate_id = identifier()
     cursor = connection.execute(
         'INSERT OR IGNORE INTO memory_candidates (id, companion_id, timeline_id, message_id, source, rule, proposal, '
         "fingerprint, status, reason, created_at) VALUES (?, ?, ?, ?, 'model', ?, ?, ?, 'pending', ?, ?)",
-        (identifier(), companion['id'], current['timeline_id'], current['id'], PROMPT_VERSION, encode(fields),
+        (candidate_id, companion['id'], current['timeline_id'], current['id'], PROMPT_VERSION, encode(fields),
          mark_value, reason, timestamp))
+    if cursor.rowcount and reason == 'model_guess':
+        # Saved like a rule-found fact (users rarely review suggestions); it shows as saved automatically in
+        # Memories, where it can be corrected or deleted. Conflicts, corrections and held sensitive facts still wait.
+        memory, outcome = formation.commit(connection, companion, fields, [current['id']], timestamp, 'automatic')
+        formation.resolve(connection, candidate_id, 'committed' if memory else 'dismissed', memory, outcome, timestamp)
+        formation.log(connection, timestamp, outcome, memory_id=memory and memory['id'], candidate_id=candidate_id,
+                      message_id=current['id'])
+        return cursor.rowcount
     formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail=reason)
     return cursor.rowcount
 
