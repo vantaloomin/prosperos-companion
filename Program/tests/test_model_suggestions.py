@@ -118,3 +118,18 @@ def test_a_malformed_model_reply_leaves_the_conversation_intact(client, app, con
     assert run(client, app) == 1
     assert client.get('/api/memory/suggestions').json() == []
     assert len(client.get('/api/conversation').json()['messages']) == 2
+
+
+def test_a_sentence_that_names_more_than_the_rules_kept_still_reaches_the_model(client, app, connected, provider):
+    """A long run lost the sister-in-law and the baby's due date: the rules kept the brother, so the model never saw
+    the sentence."""
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Brother's wife",
+                                     'value': 'Priya'}])
+    text = 'My brother Marcus and his wife Priya in Denver are having a baby in December'
+    send(client, text, 'model-0001')
+    assert run(client, app) == 1
+    [asked] = [request for request in provider.requests if 'help a companion app remember' in request['system']]
+    [sent] = json.loads(asked['messages'][0]['content'])
+    assert sent['text'] == f'{text}.' and sent['already_saved'] == ['Brother: Marcus']
+    assert 'without "I", "I\'m" or "my" in front' in asked['system']

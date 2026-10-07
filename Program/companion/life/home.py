@@ -167,9 +167,12 @@ def home_name(housing: str, bedrooms: str, data: dict) -> str:
 def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = '') -> dict:
     """The home the budget (companion/life/money.py) already pays rent on: its neighbourhood, size and
     rent, so chat, the budget and this panel agree. Only the kind of building and its quirks are new,
-    and the building is the one the draft names ("a small rowhouse") when the neighbourhood has it."""
+    and the building is the one the draft names ("a small rowhouse"): one the neighbourhood has, else one
+    found elsewhere in the city, so the panel never contradicts the character's own description."""
     hood = next(hood for hood in data['neighborhoods'] if hood['name'] == budget.neighborhood)
-    named = [kind for kind in hood['housing'] if re.search(rf"\b{re.escape(housing_text(kind))}s?\b", lived, re.IGNORECASE)]
+    citywide = [kind for other in data['neighborhoods'] for kind in other['housing'] if kind not in hood['housing']]
+    named = [kind for kind in [*hood['housing'], *dict.fromkeys(citywide)]
+             if re.search(rf"\b{re.escape(housing_text(kind))}s?\b", lived, re.IGNORECASE)]
     housing = named[0] if named else generators.pick(seed, 'housing', hood['housing'])
     name = home_name(housing, budget.unit, data)
     step = 25 if budget.rent >= 400 else 5 if budget.rent >= 40 else 1

@@ -288,6 +288,9 @@ def test_check_ins_need_a_free_moment(client, companion, clock, monkeypatch):
         after = openers.free_moment(connection, companion_row, clock.now().replace(hour=16, minute=45))
         assert after[:2] == ('after', 'work')
         assert openers.free_moment(connection, companion_row, clock.now().replace(hour=18, minute=0)) is None
+        # Saturday noon is no lunch break: no office that day.
+        saturday = openers.free_moment(connection, companion_row, clock.now().replace(day=10, hour=11, minute=30))
+        assert saturday[0] == 'midday'
 
 
 def test_a_fixed_message_follows_a_lowercase_voice():
@@ -296,3 +299,39 @@ def test_a_fixed_message_follows_a_lowercase_voice():
         "finally done with work for today. how's your day been?")
     assert openers.voiced('Okay, I finished Dune. I loved it.', voice) == 'okay, i finished Dune. i loved it.'
     assert openers.voiced("How's your evening going?", {'voice': 'Warm and chatty.'}) == "How's your evening going?"
+
+
+def test_a_birthday_is_wished_even_when_the_last_text_went_unanswered(client, companion, clock):
+    """A long run had the user's birthday pass in silence: her previous first message was still unanswered."""
+    set_life(client, texts_first=True)
+    interview(client)
+    assert check(client)['kind'] == 'follow_up'
+    clock.advance(timedelta(days=1))
+    clock.instant = clock.now().replace(hour=13)
+    assert check(client)['state'] == 'waiting_for_answer'
+    set_life(client, user_birthday=clock.now().strftime('%m-%d'))
+    result = check(client)
+    assert result['state'] == 'sent' and result['kind'] == 'occasion'
+    clock.advance(timedelta(hours=4))
+    assert check(client)['state'] == 'waiting_for_answer'
+
+
+def test_a_first_message_copied_from_an_earlier_one_is_not_sent(client, connected, provider, clock):
+    """A long run sent "stuck in the breakroom ... since the baby news broke" twice, 25 days apart."""
+    set_life(client, texts_first=True)
+    interview(client)
+    provider.replies = [[Chunk('So?? How did the bank interview go?'), Chunk('', 'stop')]]
+    first = check(client)['message']
+    send(client, 'It went fine!', 'client-repeat-01')
+    clock.advance(timedelta(days=2))
+    remember(client, layer='plan', subject='Dentist', value='Dentist this morning', plan_status='agreed',
+             applies_from=(clock.now() - timedelta(hours=6)).isoformat(),
+             applies_until=(clock.now() - timedelta(hours=2)).isoformat())
+    provider.replies = [[Chunk('so?? how did the BANK interview go'), Chunk('', 'stop')]]
+    second = check(client)['message']
+    assert second['text'] != first['text'] and second['text'] == 'Hey! How did the dentist go?'
+
+
+def test_rarely_using_capitals_is_a_lowercase_voice():
+    voice = {'voice': 'She texts in short sentences and rarely uses capital letters except for emphasis.'}
+    assert openers.voiced('Finally done with work for today.', voice) == 'finally done with work for today.'

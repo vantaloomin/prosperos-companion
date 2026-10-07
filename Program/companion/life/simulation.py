@@ -14,7 +14,7 @@ the app was closed (T4).
 """
 import asyncio
 import random
-from datetime import timedelta
+from datetime import date, timedelta
 
 from companion import events, notifications
 from companion.characters import current
@@ -188,9 +188,13 @@ def unsettled_thread(connection, timeline_id) -> dict | None:
     return optional(connection, OPEN_THREADS.format(statuses="'proposed','committed'") + ' LIMIT 1', (timeline_id,))
 
 
-def recent_threads(connection, timeline_id) -> list[str]:
+def recent_threads(connection, timeline_id, local_date: str) -> list[str]:
+    """Threads opened in the last few months; they are not opened again yet (a second leaky faucet a month
+    after the first reads as the app repeating itself)."""
+    since = (date.fromisoformat(local_date) - timedelta(days=composer.THREAD_REPEAT_DAYS)).isoformat()
     rows = many(connection, "SELECT details FROM life_events WHERE timeline_id=? AND kind='thread' "
-                "AND json_extract(details, '$.state')='open' ORDER BY starts_at DESC LIMIT 3", (timeline_id,))
+                "AND json_extract(details, '$.state')='open' AND json_extract(details, '$.local_date')>=?",
+                (timeline_id, since))
     return [decode(row['details']).get('thread') for row in rows]
 
 
@@ -526,7 +530,7 @@ class LifeEngine:
         with self.database.connect() as connection:
             due = due_thread(connection, timeline_id, slot['local_date'])
             busy = due or unsettled_thread(connection, timeline_id)
-            used = [] if busy else recent_threads(connection, timeline_id)
+            used = [] if busy else recent_threads(connection, timeline_id, slot['local_date'])
         common = {'slot': slot['key'], 'local_date': slot['local_date'], 'timezone': version['timezone'],
                   'post': '', 'mood': ''}
         if due:

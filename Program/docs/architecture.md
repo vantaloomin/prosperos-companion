@@ -270,7 +270,9 @@ the user's timezone (`companion/memory/dates.py`); an ambiguous one is kept but 
 **Model suggestions.** Off by default, and only with automatic memory on, the user can let the
 model suggest more (`model_memory_suggestions`). The sentences of each message the rules found
 nothing in, six words or more, go to the chat connection in batches of eight at maintenance priority, so a
-conversation interrupts them. Each answer must name a message in the batch and take most of its
+conversation interrupts them. A sentence the rules took a fact from still goes when it names another name,
+place or month, with what the rules kept listed as `already_saved`. The model is asked for just the fact
+("Sam", not "I'm Sam"), with a subject that says whose fact it is. Each answer must name a message in the batch and take most of its
 words from that message, or it is dropped. Survivors wait as `model_guess` suggestions; keeping one
 makes it `confirmed`, and nothing the model says is ever committed on its own. A malformed answer
 marks the batch failed; changed permissions make it stale. Each message is sent once.

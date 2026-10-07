@@ -503,7 +503,24 @@ THREADS = (
     Thread('plant', '{name} is trying to rescue a drooping houseplant.',
            ('{name}\'s houseplant perked up with new leaves.',
             'The houseplant did not make it; {name} kept a cutting just in case.')),
+    Thread('lost-scarf', '{name} lost a favorite scarf somewhere around town and is retracing their steps.',
+           ('Someone had handed in {name}\'s scarf at a cafe they stopped at.',
+            '{name} gave up on the scarf and found a new one they like almost as much.')),
+    Thread('noisy-neighbor', 'A neighbor of {name}\'s started a noisy renovation.',
+           ('The neighbor\'s renovation wrapped up, and it is quiet again.',
+            '{name} and the neighbor agreed on quiet hours, and it is better now.')),
+    Thread('recipe', '{name} is trying to get a tricky recipe right after two failed attempts.',
+           ('The third try worked, and {name} is proud of it.',
+            '{name} shelved the recipe for now after another flop.')),
+    Thread('tickets', '{name} is hoping to get tickets to a show that sold out fast.',
+           ('{name} found resale tickets to the show at a fair price.',
+            'No luck with the tickets; {name} will catch the show next time.')),
+    Thread('gift', '{name} is hunting for the right birthday present for a friend.',
+           ('{name} found the perfect present at a little shop.',
+            '{name} settled on a handwritten card and a small present.')),
 )
+# A thread is not opened again within this many days of the last time, so a long run does not repeat itself.
+THREAD_REPEAT_DAYS = 120
 
 
 def find_thread(key) -> Thread:

@@ -51,6 +51,19 @@ def block_now(connection, companion, now) -> tuple[dict, str] | None:
     return (slot.block.view(), stamp(slot.ends_at)) if slot else None
 
 
+def day_blocks(connection, companion, start, end) -> list[tuple[dict, object, object]]:
+    """(block, starts_at, ends_at) the companion's day holds between start and end: the precomputed agenda
+    (so a holiday or a sick day is not work) where it has entries, else the routine."""
+    rows = many(connection, "SELECT block, starts_at, ends_at FROM life_agenda WHERE timeline_id=? AND "
+                "subject='companion' AND ends_at>? AND starts_at<? ORDER BY starts_at",
+                (companion['active_timeline_id'], stamp(start), stamp(end)))
+    if rows:
+        return [(decode(row['block']), parse(row['starts_at']), parse(row['ends_at'])) for row in rows]
+    version = companion['version']
+    return [(slot.block.view(), slot.starts_at, slot.ends_at) for slot in
+            routine.slots(routine.blocks(version['definition'])[0], version['timezone'], start, end)]
+
+
 def busy_kind(block: dict) -> str | None:
     if block['kind'] in routine.RESTING:
         return 'sleep'

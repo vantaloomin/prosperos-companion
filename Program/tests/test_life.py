@@ -483,3 +483,16 @@ def test_background_ticks_catch_blocks_that_were_still_going(app, client, life, 
         asyncio.run(app.state.life.reconcile('background'))
     keys = [event['idempotency_key'] for event in all_events(client)]
     assert len(keys) >= 3 and len(keys) == len(set(keys))
+
+
+def test_a_thread_is_not_opened_again_for_months(client, life, clock, monkeypatch):
+    """A long run once had the same leaky faucet, and the same record player ordered, twice in three months."""
+    monkeypatch.setattr(composer, 'THREAD_SHARE', 1)
+    set_life(client, automatic_events=True, catch_up_max_events=3)
+    for _ in range(35):
+        clock.advance(timedelta(days=1))
+        reconcile(client)
+    opened = [event['details']['thread'] for event in all_events(client)
+              if event['kind'] == 'thread' and event['details']['state'] == 'open']
+    assert len(opened) >= 6
+    assert len(opened) == len(set(opened))

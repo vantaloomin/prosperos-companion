@@ -6,7 +6,7 @@ dropping them. Everything else is added in priority order until the budget is sp
 receipt records what was included and what was left out, by identity only.
 """
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from companion import pictures, prompt_library, self_facts, texting
 from companion.almanac import context as almanac
@@ -24,6 +24,7 @@ from companion.life import (
     money,
     network,
     occasions,
+    pacing,
     recommendations,
     storylines,
 )
@@ -44,6 +45,8 @@ from companion.world import newcomers
 RECENT_MESSAGES = 24
 RECALL_LIMIT = 8
 RECENT_EVENTS = 5
+# Blocks that are the companion's job or classes, for "your next shift" in the Time section.
+WORKING = {'work', 'study'}
 RECALLED_LAYERS = {'shared_experience', 'relationship', 'companion_life', 'plan'}
 # Experiences that can bring a related one along (M11): a link is a retrieval aid, never an identity.
 LINKED_LAYERS = {'shared_experience', 'relationship'}
@@ -233,6 +236,56 @@ def time_text(now, user_tz, companion_tz, previous) -> str:
         hours = (now - parse(previous)).total_seconds() / 3600
         if hours >= 6:
             lines.append(f'The previous message in this conversation was about {round(hours)} hours ago.')
+    return '\n'.join(lines)
+
+
+def clock_time(instant: datetime, tz) -> str:
+    return instant.astimezone(tz).strftime('%H:%M')
+
+
+def block_name(block: dict) -> str:
+    label = block.get('label') or block['kind']
+    if block.get('sick_day') and 'sick' not in label.casefold():
+        label += ' (sick day)'
+    return f'{label} (work shift)' if block['kind'] == 'work' else label
+
+
+def day_text(connection, companion, now: datetime) -> str:
+    """What the companion's own day holds: today's blocks, what they are in right now and their next shift, so
+    a reply never claims a shift on a day off ("just got home from the ER" at 10 AM on a day off) or the reverse."""
+    tz = zone(companion['version']['timezone'])
+    local = now.astimezone(tz)
+    start = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=1)
+    ahead = pacing.day_blocks(connection, companion, start, start + timedelta(days=8))
+    if not ahead:
+        return ''
+    parts = []
+    for block, starts_at, ends_at in ahead:
+        if starts_at >= end:
+            break
+        name = block_name(block)
+        if starts_at < start:
+            parts.append(f'{name} until {clock_time(ends_at, tz)}')
+        elif ends_at > end:
+            parts.append(f'{name} from {clock_time(starts_at, tz)}')
+        else:
+            parts.append(f'{name} {clock_time(starts_at, tz)}-{clock_time(ends_at, tz)}')
+    working = [item for item in ahead if item[0]['kind'] in WORKING and not item[0].get('sick_day')]
+    lines = [f"Your day today: {'; '.join(parts) or 'nothing planned'}. Time between these is free."]
+    if working and not any(start <= starts_at < end for _block, starts_at, _ends_at in working):
+        lines.append('You have no work or classes today.')
+    now_block = next(((block, ends_at) for block, starts_at, ends_at in ahead if starts_at <= now < ends_at), None)
+    if now_block:
+        lines.append(f'Right now you are: {block_name(now_block[0])}, until {clock_time(now_block[1], tz)}.')
+    else:
+        lines.append('Right now you are: free.')
+    following = next(((block, starts_at, ends_at) for block, starts_at, ends_at in working if starts_at > now), None)
+    if following and not (now_block and now_block[0]['kind'] in WORKING):
+        block, starts_at, ends_at = following
+        lines.append(f"Your next {'shift' if block['kind'] == 'work' else 'class'}: "
+                     f"{starts_at.astimezone(tz).strftime('%A %d %B')}, {clock_time(starts_at, tz)}-"
+                     f"{clock_time(ends_at, tz)}.")
     return '\n'.join(lines)
 
 
@@ -450,7 +503,8 @@ def offer_life(packet, connection, companion, now):
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
-        packet.offer('companion_life', event['id'], f"- {event['starts_at'][:16]}: {event['summary']}")
+        when = parse(event['starts_at']).astimezone(zone(version['timezone'])).strftime('%A %d %B, %H:%M')
+        packet.offer('companion_life', event['id'], f"- {when}: {event['summary']}")
     for identity, text in city_changes.context_lines(connection, version, now):
         packet.offer('city_news', identity, text)
 
@@ -501,6 +555,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     previous = recent[-2]['created_at'] if len(recent) > 1 else None
     packet.require('time', 'clock', time_text(now, settings(connection)['user_timezone'], version['timezone'],
                                               previous))
+    if today := day_text(connection, companion, now):
+        packet.offer('time', 'day', today)
     conversation = fit_conversation(packet, recent)
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))

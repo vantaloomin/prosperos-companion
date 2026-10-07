@@ -17,6 +17,7 @@ comments are not stored: they follow from the post, the circle and the clock, so
 up some time after its post, a renamed friend comments under the new name and a removed one
 leaves the conversation. The companion likes and comments on friends' posts the same way.
 """
+import re
 from datetime import date, datetime, time, timedelta
 
 from companion.characters import require_current
@@ -76,7 +77,9 @@ HAPPENING = ('{event} is on today{where}. Anyone going?', 'Reminder that {event}
 
 COMMENTS = {
     'general': ('Love this!', 'This is so you.', 'Jealous.', 'Save me a spot next time.', 'Wait, I need details.',
-                '😂', 'Looks like a good day.', 'Same, honestly.', 'Call me later?'),
+                '😂', 'Looks like a good day.', 'Same, honestly.', 'Call me later?', 'Okay, this is cute.',
+                'Living vicariously.', 'Ha, classic.', 'Need this energy.', 'Iconic.', 'Where is this?',
+                'Proud of you.', 'Yes!!'),
     'sick': ('Feel better!', 'Sending soup.', 'Oh no. Need anything?'),
     'down': ('Rest up!', 'Hang in there.', 'You deserve a nap.', 'Big hug.'),
     'birthday': ('Happy birthday, {name}! 🎉', 'Happy birthday!! 🥳', 'Have the best day, {name}!'),
@@ -85,8 +88,9 @@ COMMENTS = {
     'closing': ('Noooo.', 'End of an era.', 'Wait, really?'),
     'city': ('Good to know.', 'Thanks for the heads up.', 'Ugh.'),
     'question': ('{option}, obviously.', '{option}. No contest.', 'Team {option}.'),
-    'from_companion': ('Love this!', "Wish I'd been there.", 'Look at you!', 'Okay, I need the full story.',
-                       "Next time I'm coming.", 'This made my day.'),
+    'from_companion': ("Wish I'd been there.", 'Look at you!', 'Okay, I need the full story.',
+                       "Next time I'm coming.", 'This made my day.', 'Obsessed with this.', 'Stop, this is great.',
+                       'Tell me everything later.'),
 }
 LIKELY = {'close friend': 0.85, 'sibling': 0.7, 'roommate from years ago': 0.55}
 COMMENT_CHANCE, COMPANION_LIKES = 0.22, 0.7
@@ -217,8 +221,18 @@ def status_text(seed: str, day: date, facts: dict, definition: dict) -> tuple[st
     interests = [text for text in definition.get('interests', ()) if text and len(text) <= 40]
     if interests:
         interest = pick(seed, 'interest', interests)
-        choices += [line.format(interest=interest.lower()) for line in STATUS['interest']]
+        choices += [line.format(interest=interest_text(interest)) for line in STATUS['interest']]
     return pick(seed, 'line', choices), ''
+
+
+def interest_text(interest: str) -> str:
+    """An interest as it reads mid-sentence: "Fell down a History of Medicine museum rabbit hole", never
+    "a the history of medicine museum"; names keep their capitals, a capitalised first word alone does not."""
+    text = re.sub(r'^(?:the|a|an)\s+', '', interest.strip(), flags=re.IGNORECASE)
+    words = text.split()
+    if words and all(word == word.lower() for word in words[1:]):
+        text = text[:1].lower() + text[1:]
+    return text
 
 
 def celebrations(prefix, day, timezone, facts, people) -> list[dict]:
@@ -350,7 +364,7 @@ def audience(post_id: str, kind: str, author: str, content: dict, occurs_at: str
 
 
 # How many earlier posts a comment line is not repeated across.
-NEARBY = 4
+NEARBY = 10
 
 
 def add_audiences(posts: list[dict], now: str, people: dict, companion_name: str) -> None:

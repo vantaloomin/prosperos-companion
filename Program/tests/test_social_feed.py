@@ -192,3 +192,11 @@ def test_reacting_returns_the_post_as_the_feed_shows_it(client, city, clock):
     for post in feed(client)['posts'][:4]:
         reacted = client.post(f"/api/feed/{post['id']}/reaction", json={'reaction': 'hug'}).json()
         assert reacted['author'] == post['author'] and reacted['audience'] == post['audience']
+
+
+def test_an_interest_reads_naturally_mid_sentence():
+    """A long run posted "Fell down a the history of medicine museum rabbit hole again."""
+    assert social.interest_text('the History of Medicine museum') == 'History of Medicine museum'
+    assert social.interest_text('Roller derby matches') == 'roller derby matches'
+    assert social.interest_text('Baltimore Orioles games') == 'Baltimore Orioles games'
+    assert social.interest_text('a good thriller') == 'good thriller'
