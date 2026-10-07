@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.4 (2026-10-07)
+
+- **Editable prompts:** Settings > Show advanced settings adds an Advanced tab to reword the core
+  prompts, with defaults, placeholder checks and Reset to default.
+- **Fixes from real-AI and browser test runs:** plain answers to OOC questions; no ((asides)) or
+  "no real-time data" lines in character; OpenRouter 429 retried once; ESPN schedules and away games;
+  more jobs and people details remembered; Help me write never writes JSON into a field; drafted homes
+  match where they live and their rent; lowercase first texts; switching companions keeps the page;
+  smaller Feed, Start over and life-event fixes.
+
 ## v0.1.3 (2026-10-07)
 
 - **Fix:** every chat reply failed in v0.1.0 to v0.1.2 (a townsfolk lookup in the reply context).
