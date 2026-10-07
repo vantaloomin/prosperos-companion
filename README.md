@@ -69,7 +69,7 @@ To run from the source instead:
 3. Double-click **`launch.bat`**. The Companion opens in your browser at http://127.0.0.1:8775. Keep its window open while you use it.
 4. Add a model in **Settings > Models**, then create your companion.
 
-Later, `update.bat` pulls the newest version (Git clones only) and `create-shortcut.bat` puts a shortcut on your desktop.
+Later, `update.bat` gets the newest version (it pulls in a Git clone and downloads the ZIP otherwise) and `create-shortcut.bat` puts a shortcut on your desktop.
 
 ### Mac
 
@@ -93,7 +93,7 @@ Your companion's data never lives in the program folder, so updating or re-downl
 | --- | --- |
 | `install.bat` | Finds or installs Python 3.12+ and Node.js 22.13+, installs the locked dependencies and builds the interface. Run once, and again after changing dependencies. |
 | `launch.bat` | Starts the Companion on http://127.0.0.1:8775 and opens it in the browser. Keep its window open; close it to stop. |
-| `update.bat` | Pulls the latest `main` and reruns the install. Close the Companion first. |
+| `update.bat` | Gets the latest `main` (Git pull, or the ZIP for a downloaded copy) and reruns the install. Close the Companion first. |
 | `status.bat` | Says whether the Companion is running, and on which address. |
 | `stop.bat` | Stops a running Companion, for when its window is lost. Never stops another program on the port. |
 | `create-shortcut.bat` | Puts a Prospero Companion shortcut to `launch.bat` on the desktop. |

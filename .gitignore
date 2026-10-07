@@ -132,6 +132,9 @@ $RECYCLE.BIN/
 # Keep source, README/license files, dependency manifests and lockfiles,
 # install/launch scripts, public assets, and design/brand.md versioned.
 
+# The file list update.command/update.bat keep in a ZIP copy.
+/.zip-update-files
+
 # Personal city packs (for example private fan cities). Never committed; see Program/docs/world-data.md.
 # They live in Program/private-cities/ now; this covers a checkout from before the move.
 /private-cities/

@@ -14,7 +14,7 @@ that behaves differently on your Mac.
 
 1. Get the project, either way:
    - With Git: `git clone https://github.com/vantaloomin/prosperos-companion.git` in Terminal. This
-     is the easier path: macOS does not flag cloned files, and `update.command` works.
+     is the easier path: macOS does not flag cloned files.
    - Or download the ZIP from GitHub (Code > Download ZIP) and unzip it. See
      [the security warning](#the-first-time-macos-blocks-installcommand) below.
 2. Open the `Mac` folder and double-click `install.command`. It needs Python 3.12 or newer and Node.js 22.13 or newer.
@@ -53,7 +53,7 @@ A Git clone never shows this warning.
 | --- | --- |
 | `install.command` | Finds or installs Python and Node.js, installs the locked dependencies into `.venv` and builds the interface. `--check-only` verifies an existing install. |
 | `launch.command` | Starts the Companion on http://127.0.0.1:8775 and opens it in the browser. Takes `--port <n>` and `--no-browser`. |
-| `update.command` | Pulls the latest `main` and reinstalls. Close the Companion first. Needs a Git clone; a ZIP copy updates by downloading again. |
+| `update.command` | Gets the latest `main` and reinstalls. Close the Companion first. A Git clone pulls; a ZIP copy downloads the latest ZIP and copies it over the folder (files you added stay). The folder must be writable, so copy it off a disk image or read-only drive first. |
 | `status.command` | Says whether the Companion is running. Exit code 0 running, 1 stopped, 2 port held by another program. Takes `--port <n>`. |
 | `stop.command` | Stops a running Companion, for when its window is lost. Never stops another program on the port. Takes `--port <n>`. |
 | `create-shortcut.command` | Puts a small **Prospero Companion** app in `~/Applications` that opens `launch.command` in Terminal. Spotlight and Launchpad find it, and you can drag it to the Dock. `--destination <folder>` puts it elsewhere. |
