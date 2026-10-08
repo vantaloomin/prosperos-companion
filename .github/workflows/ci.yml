@@ -70,8 +70,13 @@ jobs:
       - name: Lint
         run: python -m ruff check .
       - name: Test
-        # Spread over the runner's cores (pytest-xdist); each test has its own temporary workspace.
-        run: python -m pytest -q -n auto
+        # Spread over the runner's cores (pytest-xdist); each test has its own temporary workspace. Those go in
+        # runner.temp: on Windows TEMP is on the runner's slow C: drive, and runner.temp is on D:.
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+          TMPDIR: ${{ runner.temp }}
+        run: python -m pytest -q -n auto --durations=15
       - name: Check city data
         run: python -m companion.world.check
 
