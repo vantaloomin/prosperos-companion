@@ -506,6 +506,8 @@ export interface ImageBackend {
   base_url: string
   model: string
   api_style: 'images' | 'chat' | null
+  // Starts this backend's image prompts; '' uses the general style.
+  style: string
   cli_path: string
   custom_workflow: boolean
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.

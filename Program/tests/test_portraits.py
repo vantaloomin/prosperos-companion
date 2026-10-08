@@ -76,6 +76,13 @@ def test_later_pictures_follow_the_profile_picture_on_one_backend(client, compan
     assert ok(client.get('/api/lora/generations'))['generations'] == []
 
 
+def test_profile_pictures_start_with_the_chosen_backends_style(client, companion):
+    add_backend(client, kind='codex', style='Soft pastel anime illustration')
+    draft = ok(client.get('/api/lora/portraits/draft'))
+    preview = ok(client.post('/api/lora/portraits/preview', json=plan(draft)))['shots']
+    assert all(shot['prompt'].startswith('Soft pastel anime illustration. ') for shot in preview)
+
+
 def test_without_a_reference_backend_nothing_is_sent_unless_asked(client, companion, adapters):
     add_backend(client, kind='hosted', provider='google', api_key='k', model='imagen-4')
     draft = ok(client.get('/api/lora/portraits/draft'))

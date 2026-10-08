@@ -165,6 +165,26 @@ def camera(style: str, framing='moment') -> str:
     return CAMERAS.get(framing, CAMERAS['moment'])
 
 
+def restyle(inputs: dict, own: str | None) -> dict:
+    """The request with the backend's own style (Settings > Images, per backend) in place of the one it
+    was built with, or back to the general style for a backend without one: the opening style line
+    and the camera details that follow from it. `general_style` keeps the general one, so a retry or
+    fallback on another backend starts from it. A prompt that does not open with its style (a meme)
+    is left as it is."""
+    general = inputs.get('general_style', inputs.get('style'))
+    old = (inputs.get('style') or DEFAULT_STYLE).strip().rstrip('.')
+    style = ((own or '').strip() or general or DEFAULT_STYLE).strip().rstrip('.')
+    prompt = inputs['prompt']
+    if style == old or not prompt.startswith((f'{old} ', f'{old},')):
+        return inputs
+    framing = inputs.get('framing') or 'moment'
+    before, after = camera(old, framing), camera(style, framing)
+    if before and prompt.endswith(before):
+        prompt = prompt[:-len(before)].rstrip()
+    prompt = f"{style}{prompt[len(old):]}{' ' + after if after else ''}"
+    return {**inputs, 'prompt': prompt, 'style': style, 'general_style': general}
+
+
 def compose(name, appearance, events, style, setting='', dressed=False, framing='moment', who=None) -> str:
     """A digest is illustrated by its first event; one picture of several outings would invent a
     moment that never happened. `dressed` means `setting` says what they wear, so the appearance's
