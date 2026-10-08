@@ -1211,6 +1211,8 @@ export interface GroupMessage {
   status: 'complete' | 'streaming' | 'failed' | 'cancelled'
   error: string | null
   reply_to: string | null
+  /** What the secret check did to this reply (companion/secrets.py): rewritten once, let a secret slip, or held back. */
+  guard?: 'redrafted' | 'revealed' | 'held' | null
   created_at: string
   /** Kept as a shared moment: it brings everyone who was there a little closer. */
   kept?: boolean
@@ -1239,4 +1241,43 @@ export interface GroupChat {
   phase: GroupPhase | null
   /** Text written so far, by message id. */
   live: Record<string, string>
+}
+
+/** Secrets in group chats (companion/secrets.py): who knows what, and who must not find out. */
+export type SecretVia = 'origin' | 'witness' | 'slip' | 'history' | 'reveal'
+
+export interface SecretHolder {
+  key: string
+  companion_id: string | null
+  name: string
+  via: SecretVia
+  /** How they came to know it, in words ("heard it in a group"). */
+  how: string
+  learned_at: string
+  /** The group they learned it in, when they did. */
+  group: { id: string; name: string } | null
+}
+
+export interface Secret {
+  id: string
+  /** The user's own, or registered from a companion's storyline or description. */
+  kind: 'declared' | 'storyline' | 'character'
+  statement: string
+  /** "You added this", "From Billy's storyline". */
+  source: string
+  about: string[]
+  /** The words the reply check looks for; `own_key_words` are the ones the user set. */
+  key_words: string[]
+  own_key_words: string[]
+  keep_from_everyone: boolean
+  knows: SecretHolder[]
+  kept_from: { key: string; companion_id: string | null; name: string }[]
+  created_at: string
+}
+
+export interface SecretsData {
+  secrets: Secret[]
+  companions: { id: string; name: string }[]
+  /** Drama is at soap opera: a slip that gets past the rewrite stays. */
+  slips: boolean
 }

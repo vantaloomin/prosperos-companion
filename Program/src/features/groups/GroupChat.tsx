@@ -21,6 +21,7 @@ import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
 import { chatKey, GROUPS_KEY, useCast } from './groupState'
 import { canRetry, failureText, groupActivity, membersLine, shownMessages, toldOnly } from './groupText'
+import { guardNote } from './secretText'
 
 // While replies are being written, the chat asks for what is new this often.
 const POLL_MS = 700
@@ -151,6 +152,7 @@ function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: 
   const mine = message.kind === 'user'
   const name = mine ? 'You' : message.name
   const failure = failureText(message)
+  const slip = guardNote(message)
   if (failure && !message.text) return <p className="reply-status group-failure" role="note">{failure}</p>
   return (
     <article id={`message-${message.id}`} className={`message ${mine ? 'message-user' : 'message-companion'}`} aria-label={name}>
@@ -165,6 +167,7 @@ function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: 
       </header>
       <div className="prose"><Paragraphs text={message.text} /></div>
       {failure && <p className="reply-status" role="note">{failure}</p>}
+      {slip && <p className="reply-status group-slip" role="note">{slip}</p>}
     </article>
   )
 }

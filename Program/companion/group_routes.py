@@ -1,10 +1,10 @@
-"""Group chats API (companion/groups.py, docs/group-chat.md)."""
+"""Group chats and secrets API (companion/groups.py, companion/secrets.py, docs/group-chat.md)."""
 from typing import Literal
 
 from fastapi import APIRouter, Request
 from pydantic import Field
 
-from companion import groups
+from companion import groups, secrets
 from companion.memory import pairs
 from companion.models import Input
 
@@ -120,3 +120,61 @@ async def retry(request: Request, group_id: str, wait: bool = True):
 @router.post('/{group_id}/stop')
 def stop(request: Request, group_id: str):
     return {'stopped': chats(request).stop(group_id)}
+
+
+# Secrets (companion/secrets.py): who knows what, and who must not find out.
+
+secrets_router = APIRouter(prefix='/api/secrets')
+
+
+class NewSecret(Input):
+    statement: str = Field(min_length=1, max_length=secrets.STATEMENT_LIMIT)
+    # Who it's about, by name: a companion's name links to them; anyone else stays as typed.
+    about: list[str] = Field(default_factory=list, max_length=10)
+    knows: list[str] = Field(min_length=1, max_length=50)
+    kept_from: list[str] = Field(default_factory=list, max_length=50)
+    keep_from_everyone: bool = False
+    key_words: list[str] = Field(default_factory=list, max_length=30)
+
+
+class SecretChange(Input):
+    statement: str | None = Field(None, min_length=1, max_length=secrets.STATEMENT_LIMIT)
+    about: list[str] | None = Field(None, max_length=10)
+    knows: list[str] | None = Field(None, max_length=50)
+    kept_from: list[str] | None = Field(None, max_length=50)
+    keep_from_everyone: bool | None = None
+    key_words: list[str] | None = Field(None, max_length=30)
+
+
+class Person(Input):
+    companion_id: str = Field(min_length=1, max_length=100)
+
+
+@secrets_router.get('')
+def secret_listing(request: Request):
+    return secrets.listing(request.app.state.database)
+
+
+@secrets_router.post('')
+def secret_create(request: Request, body: NewSecret):
+    return secrets.create(request.app.state.database, body)
+
+
+@secrets_router.patch('/{secret_id}')
+def secret_change(request: Request, secret_id: str, body: SecretChange):
+    return secrets.update(request.app.state.database, secret_id, body)
+
+
+@secrets_router.delete('/{secret_id}')
+def secret_end(request: Request, secret_id: str):
+    return secrets.end(request.app.state.database, secret_id)
+
+
+@secrets_router.post('/{secret_id}/reveal')
+def secret_reveal(request: Request, secret_id: str, body: Person):
+    return secrets.reveal(request.app.state.database, secret_id, body.companion_id)
+
+
+@secrets_router.post('/{secret_id}/forget')
+def secret_forget(request: Request, secret_id: str, body: Person):
+    return secrets.forget(request.app.state.database, secret_id, body.companion_id)

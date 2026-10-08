@@ -188,6 +188,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(context_routes.router)
     app.include_router(story_routes.router)
     app.include_router(group_routes.router)
+    app.include_router(group_routes.secrets_router)
     app.include_router(dating_routes.router)
     app.include_router(lora_routes.router)
     if app.state.lora_maker:

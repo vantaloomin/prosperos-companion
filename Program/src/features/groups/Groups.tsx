@@ -11,6 +11,7 @@ import { Stamp } from '../../components/Stamp'
 import { Backstories } from './Backstories'
 import { latestLine, membersLine, toldOnly } from './groupText'
 import { GROUPS_KEY, useCast } from './groupState'
+import { Secrets } from './Secrets'
 
 /** Every group chat, most recently active first, and New group. Groups sit beside the 1:1 chats. */
 export function Groups({ go }: { go: (view: View) => void }) {
@@ -39,6 +40,7 @@ export function Groups({ go }: { go: (view: View) => void }) {
             </li>
           ))}
         </ul>
+        <Secrets />
       </div>
       {creating && <NewGroup companions={companions} onClose={() => setCreating(false)} onMade={(group) => { setCreating(false); go(`group/${group.id}`) }} />}
     </section>

@@ -5,6 +5,8 @@ import type { CastMember } from '../../types'
 export const GROUPS_KEY = ['groups']
 export const CAST_KEY = ['companion-cast']
 
+export const SECRETS_KEY = ['secrets']
+
 export const chatKey = (id: string) => ['group', id]
 
 /** Every companion in the workspace, the main character first: who can be in a group. */

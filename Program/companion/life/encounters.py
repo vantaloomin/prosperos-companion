@@ -323,7 +323,7 @@ def stand_in(data: dict, companion_id: str, townsfolk_key: str | None, definitio
     base = townsfolk.find(data, townsfolk_key) if townsfolk_key else None
     extra = {}
     if base is None:
-        if not data['neighborhoods']:
+        if not data.get('neighborhoods'):  # No city set (naming.DEFAULT_CITY): nowhere to live in town.
             return None
         hood = home_hood(data, definition) or data['neighborhoods'][0]['id']
         base = townsfolk.resident(data, hood, 0, key=f'cast:{companion_id}')

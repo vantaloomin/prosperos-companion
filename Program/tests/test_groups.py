@@ -123,7 +123,9 @@ def test_every_speaker_shares_the_cast_and_transcript_and_sees_only_their_own_li
     others = [request for request in requests if request is not mira]
     assert 'Quince' in mira['system'] and all('Quince' not in request['system'] for request in others)
     assert all(line in mira['system'] for line in lines['Mira']['private'])
-    assert all(line not in request['system'] for request in others for line in lines['Mira']['private'])
+    # Two people can draw the same bank phrase for themselves; only Mira's own lines must stay out of the others'.
+    mine = set(lines['Mira']['private']) - {line for name in ('Billy', 'Sally') for line in lines[name]['private']}
+    assert all(line not in request['system'] for request in others for line in mine)
     assert all('plum' not in request['system'] for request in others)
 
     # At one moment, every speaker who sees the same messages gets byte-identical shared text.

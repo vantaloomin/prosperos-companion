@@ -139,6 +139,8 @@ ADDED_COLUMNS = (
     ('phone_settings', 'lan_enabled', 'INTEGER NOT NULL DEFAULT 0 CHECK (lan_enabled IN (0, 1))'),
     # One shared allowance for messages sent while the user is away, across every companion (companion/away.py).
     ('life_settings', 'away_daily', 'INTEGER NOT NULL DEFAULT 6'),
+    # A group reply a secret check touched (companion/secrets.py): 'redrafted', 'revealed' or 'held'.
+    ('group_messages', 'guard', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
