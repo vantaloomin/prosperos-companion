@@ -18,7 +18,7 @@ export function PhonePush({ enabled, onEnable }: { enabled: boolean; onEnable: (
   const client = useQueryClient()
   const state = useQuery({ queryKey: KEY, queryFn: () => api<PushState>('/phone/push') })
   const [error, setError] = useState('')
-  const hint = pushHint(supported(), navigator.userAgent)
+  const hint = pushHint(supported(), navigator.userAgent, window.isSecureContext)
   const turnOn = async (key: string) => {
     if (await Notification.requestPermission() !== 'granted') throw new Error('Notifications are blocked for the Companion in this phone’s settings. Allow them there, then try again.')
     const registration = await navigator.serviceWorker.ready

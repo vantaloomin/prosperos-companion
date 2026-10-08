@@ -1105,7 +1105,7 @@ CREATE TABLE IF NOT EXISTS user_people (
 CREATE INDEX IF NOT EXISTS user_people_companion ON user_people(companion_id);
 
 -- Phone access over Tailscale (companion/phone/). The server still listens only on this PC; a paired phone
--- reaches it through `tailscale serve`. Only a hash of each device's sign-in token is kept.
+-- reaches it through `tailscale serve`, or through the opt-in home Wi-Fi listener (lan_enabled, companion/phone/lan.py). Only a hash of each device's sign-in token is kept.
 CREATE TABLE IF NOT EXISTS phone_settings (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),

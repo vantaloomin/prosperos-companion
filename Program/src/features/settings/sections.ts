@@ -66,7 +66,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   },
   {
     id: 'phone', label: 'Phone access', sections: [
-      { heading: 'phone-heading', title: 'Phone access', keywords: 'phone mobile tailscale network remote away pair qr code device home screen install' },
+      { heading: 'phone-heading', title: 'Phone access', keywords: 'phone mobile tailscale network remote away pair qr code device home screen install wifi wi-fi lan local network' },
     ],
   },
   {

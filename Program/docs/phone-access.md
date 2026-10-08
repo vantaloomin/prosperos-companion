@@ -36,6 +36,21 @@ opens on the phone** walks through the rest:
 - If only the backup address works, the phone looks names up without Tailscale: on Android, Private DNS set to a
   provider name does this; in the Tailscale app, Use Tailscale DNS should stay on.
 
+## On your home Wi-Fi, without Tailscale
+
+**Use on home Wi-Fi** in Settings > Phone access is off by default. Turned on, it opens a second listener on port
+8776 (or `COMPANION_LAN_PORT`) on every network the PC is on, so a phone on the same Wi-Fi can open
+`http://<the PC's address>:8776`; the app's own port stays on this PC only. It stays on across restarts until
+turned off, and restoring a backup turns it off. Windows or macOS may ask once whether to let the Companion accept
+connections; allow it on private networks.
+
+Every request through that listener counts as a phone's, whatever headers it carries: it needs the switch on and a
+paired device (the same pairing codes), and the PC-only list below applies. Only requests from, and naming, a
+private home address (10/8, 172.16/12, 192.168/16, link-local, fc00::/7) are answered, so a forwarded port or a
+renamed host is refused. It is plain http: anyone else on the same network could read what passes or copy a phone's
+sign-in cookie, so the switch warns to use it only on a trusted home network. Notifications need the Tailscale https
+address. Routers with client (AP) isolation keep phones from reaching the PC; Tailscale works there.
+
 ## What a phone may do
 
 A request is from a phone when it arrives through the Tailscale proxy (forwarded headers, or a host name other

@@ -1,13 +1,15 @@
 """Phone access over Tailscale: pairing, what a phone may do, and the Tailscale command line."""
 import json
+import socket
 from datetime import timedelta
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 from companion import backup
 from companion.identity import CLIENT_HEADER
-from companion.phone import access, tailscale
+from companion.phone import access, lan, tailscale
 
 PHONE_HOST = 'home-vanta.tail1234.ts.net'
 
@@ -247,3 +249,78 @@ def test_served_tells_the_https_address_from_the_backup(monkeypatch):
     assert tailscale.served(8775) == {'https': True, 'http': True}
     del config['Web']['home-vanta.tail1234.ts.net:8775']
     assert tailscale.served(8775) == {'https': True, 'http': False}
+
+
+@pytest.fixture
+def home(app):
+    """A phone on the home Wi-Fi, through the second listener (companion/phone/lan.py)."""
+    return TestClient(lan.marked(app), base_url='http://192.168.1.20:8776', client=('192.168.1.30', 50000),
+                      headers={CLIENT_HEADER: 'workspace'})
+
+
+@pytest.fixture
+def lan_port(monkeypatch):
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        number = probe.getsockname()[1]
+    monkeypatch.setenv(lan.PORT_ENV, str(number))
+    monkeypatch.setattr(lan, 'addresses', lambda: ['192.168.1.20'])
+    return number
+
+
+def test_home_wifi_is_off_by_default_and_pairs_like_tailscale(client, home, companion, net, lan_port):
+    assert client.get('/api/phone').json()['lan'] == {'enabled': False, 'running': False, 'port': lan_port,
+                                                      'addresses': [f'http://192.168.1.20:{lan_port}']}
+    assert home.get('/api/companion').json()['code'] == 'lan_off'
+    assert client.post('/api/phone/pairings').status_code == 409
+    on = client.post('/api/phone/lan/enable').json()['lan']
+    assert on['enabled'] and on['running']
+    pairing = client.post('/api/phone/pairings').json()
+    assert pairing['link'] == pairing['lan_link'] == f"http://192.168.1.20:{lan_port}/?pair={pairing['code']}"
+    assert home.get('/api/phone/status').json() == {'remote': True, 'paired': False, 'device': None}
+    assert home.get('/api/companion').status_code == 401
+    response = home.post('/api/phone/pair', json={'code': pairing['code'], 'name': 'Pixel'})
+    assert response.status_code == 200 and 'Secure' not in response.headers['set-cookie']
+    assert home.get('/api/companion').status_code == 200
+    assert home.get('/api/backups').json()['code'] == 'pc_only'
+    off = client.post('/api/phone/lan/disable').json()['lan']
+    assert not off['enabled'] and not off['running']
+    assert home.get('/api/companion').json()['code'] == 'lan_off'
+
+
+def test_home_wifi_answers_only_home_addresses_whatever_the_headers_say(client, app, companion, lan_port):
+    client.post('/api/phone/lan/enable')
+    pretend = TestClient(lan.marked(app), base_url='http://127.0.0.1:8776', client=('192.168.1.30', 50000))
+    assert pretend.get('/api/companion').status_code == 400
+    outside = TestClient(lan.marked(app), base_url='http://192.168.1.20:8776', client=('203.0.113.9', 50000))
+    assert outside.get('/api/phone/status').status_code == 400
+    tailnet = TestClient(lan.marked(app), base_url='http://100.90.1.2:8776', client=('100.101.102.103', 50000))
+    assert tailnet.get('/api/phone/status').status_code == 400
+    # The real listener: this PC's own browser on it is treated as an outsider, not as the PC.
+    response = httpx.get(f'http://127.0.0.1:{lan_port}/api/companion', timeout=5)
+    assert response.status_code == 400
+    client.post('/api/phone/lan/disable')
+    with pytest.raises(httpx.ConnectError):
+        httpx.get(f'http://127.0.0.1:{lan_port}/api/health', timeout=5)
+
+
+def test_a_busy_home_wifi_port_is_explained(client, companion, lan_port):
+    with socket.socket() as taken:
+        taken.bind(('0.0.0.0', lan_port))
+        taken.listen()
+        response = client.post('/api/phone/lan/enable')
+    assert response.status_code == 409 and response.json()['code'] == 'lan_port'
+    assert not client.get('/api/phone').json()['lan']['enabled']
+
+
+def test_a_restore_turns_home_wifi_off(client, home, app, companion, lan_port):
+    client.post('/api/phone/lan/enable')
+    backup.hold_for_review(app.state.database)
+    assert home.get('/api/companion').json()['code'] == 'lan_off'
+    client.post('/api/phone/lan/disable')
+
+
+def test_home_addresses():
+    assert lan.home_address('192.168.1.20') and lan.home_address('10.0.0.5') and lan.home_address('fe80::1%3')
+    assert not lan.home_address('100.90.1.2') and not lan.home_address('127.0.0.1')
+    assert not lan.home_address('8.8.8.8') and not lan.home_address('example.com')

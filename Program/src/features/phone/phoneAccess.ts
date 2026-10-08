@@ -19,9 +19,11 @@ export interface PhoneAccess {
     installed: boolean; running: boolean; name: string | null; serving: boolean; install_url: string
     ip: string | null; magic_dns: boolean; https: boolean; phones: TailnetPhone[]
   }
+  /** Use on home Wi-Fi: a second, opt-in listener on the home network (companion/phone/lan.py). */
+  lan: { enabled: boolean; running: boolean; port: number; addresses: string[] }
 }
 
-export interface PhonePairing { code: string; link: string; backup_link: string | null; expires_at: string; qr_svg: string }
+export interface PhonePairing { code: string; link: string; backup_link: string | null; lan_link: string | null; expires_at: string; qr_svg: string }
 
 export const PHONE_STATUS_KEY = ['phone-status']
 export const PHONE_ACCESS_KEY = ['phone-access']

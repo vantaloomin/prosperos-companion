@@ -4,6 +4,7 @@ import { QrCode, RefreshCw, Smartphone } from 'lucide-react'
 import { api } from '../../api'
 import { useWorkspaceSettings } from '../../companion'
 import { Notice } from '../../components/Feedback'
+import { Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { linkParts } from '../phone/pairing'
 import { PHONE_ACCESS_KEY, PHONE_STATUS_KEY, usePhoneStatus, type PhoneAccess, type PhonePairing, type TailnetPhone } from '../phone/phoneAccess'
@@ -71,19 +72,15 @@ function OnThePc() {
   })
   if (access.isPending) return <p className="subtle">Checking Tailscale…</p>
   if (access.isError) return <ErrorNotice error={access.error} />
-  const { enabled, devices, tailscale } = access.data
+  const { enabled, devices, tailscale, lan } = access.data
+  const canPair = (enabled && tailscale.running) || lan.enabled
   return (
     <div className="form-stack">
       {error && <Notice tone="error"><Linked text={error} /></Notice>}
       <Explanation access={access.data} />
-      <div className="form-actions">
-        {enabled ? <>
-            {tailscale.running && <button type="button" className="button primary" aria-disabled={busy} onClick={() => void pair()}><QrCode aria-hidden="true" />Pair a phone</button>}
-            <button type="button" className="button" aria-disabled={busy} onClick={() => void change('/phone/disable')}>Turn off phone access</button>
-          </>
-          : tailscale.running ? <button type="button" className="button primary" aria-disabled={busy} onClick={() => void change('/phone/enable')}><Smartphone aria-hidden="true" />Turn on phone access</button>
-            : <button type="button" className="button" aria-disabled={busy} onClick={() => void access.refetch()}><RefreshCw aria-hidden="true" />Check again</button>}
-      </div>
+      <div className="form-actions"><TailscaleButton enabled={enabled} running={tailscale.running} busy={busy} change={change} check={() => void access.refetch()} /></div>
+      <HomeWifi lan={lan} busy={busy} onChange={(on) => void change(on ? '/phone/lan/enable' : '/phone/lan/disable')} />
+      {canPair && <div className="form-actions"><button type="button" className="button primary" aria-disabled={busy} onClick={() => void pair()}><QrCode aria-hidden="true" />Pair a phone</button></div>}
       {pairing && <PairingCode pairing={pairing} />}
       {devices.length > 0 && (
         <div className="form-stack">
@@ -98,6 +95,28 @@ function OnThePc() {
           </ul>
         </div>
       )}
+    </div>
+  )
+}
+
+function TailscaleButton({ enabled, running, busy, change, check }: { enabled: boolean; running: boolean; busy: boolean; change: (path: string) => Promise<void>; check: () => void }) {
+  if (enabled) return <button type="button" className="button" aria-disabled={busy} onClick={() => void change('/phone/disable')}>Turn off phone access</button>
+  if (running) return <button type="button" className="button primary" aria-disabled={busy} onClick={() => void change('/phone/enable')}><Smartphone aria-hidden="true" />Turn on phone access</button>
+  return <button type="button" className="button" aria-disabled={busy} onClick={check}><RefreshCw aria-hidden="true" />Check again</button>
+}
+
+/** The opt-in home-network listener: no Tailscale needed, but plain http, so only for a network you trust. */
+function HomeWifi({ lan, busy, onChange }: { lan: PhoneAccess['lan']; busy: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <div className="form-stack">
+      <h3>On your home Wi-Fi</h3>
+      <Toggle label="Use on home Wi-Fi" checked={lan.enabled} disabled={busy} onChange={onChange}
+        hint={`Lets a paired phone on the same network open the Companion without Tailscale, on port ${lan.port}. Off by default.`} />
+      <Notice tone="warning">Only turn this on at home, on a network you trust. The connection is not encrypted, so anyone else on the same Wi-Fi could read your chats or copy a phone’s sign-in. Phones still need to pair, and the PC-only settings stay on this PC. Notifications need Tailscale.</Notice>
+      {lan.enabled && (lan.addresses.length > 0
+        ? <p>On your home Wi-Fi, the phone opens <strong>{lan.addresses[0]}</strong>{lan.addresses.length > 1 && <span className="subtle"> (or {lan.addresses.slice(1).join(', ')})</span>}. If your PC asks whether to let the Companion accept connections, allow it on private networks.</p>
+        : <p>This PC does not seem to be on a home network right now. Connect it to your Wi-Fi or router, then check again.</p>)}
+      {lan.enabled && !lan.running && <Notice tone="error">Home Wi-Fi access is switched on but not listening. Turn it off and on again; if it still fails, the message says why.</Notice>}
     </div>
   )
 }
@@ -139,6 +158,7 @@ function PhonesOnTailnet({ phones }: { phones: TailnetPhone[] }) {
 }
 
 function PairingCode({ pairing }: { pairing: PhonePairing }) {
+  const tailnet = pairing.link !== pairing.lan_link
   return (
     <div className="phone-pairing" role="group" aria-label="Pairing code">
       {/* The QR code is drawn by the Companion itself (segno) from the link below. */}
@@ -149,15 +169,28 @@ function PairingCode({ pairing }: { pairing: PhonePairing }) {
         <p className="subtle">It works once, until {new Date(pairing.expires_at).toLocaleTimeString()}.</p>
         <details className="phone-help">
           <summary>If nothing opens on the phone</summary>
-          <ol>
-            <li>Open the Tailscale app on the phone and check it is switched on and signed in to the same account as this PC.</li>
-            <li>The first visit can take up to a minute while Tailscale sets up the secure address. Wait, then reload the page.</li>
-            {pairing.backup_link && <li>Still nothing? Open <strong>{pairing.backup_link}</strong> on the phone instead. It skips the name lookup and works the same, except that phone notifications need the first address.</li>}
-            <li>If only that backup address works, the phone looks up names without Tailscale. On Android, set Settings &gt; Network &amp; internet &gt; Private DNS to Automatic or Off. In the Tailscale app, keep Use Tailscale DNS on.</li>
-          </ol>
+          {tailnet ? (
+            <ol>
+              <li>Open the Tailscale app on the phone and check it is switched on and signed in to the same account as this PC.</li>
+              <li>The first visit can take up to a minute while Tailscale sets up the secure address. Wait, then reload the page.</li>
+              {pairing.backup_link && <li>Still nothing? Open <strong>{pairing.backup_link}</strong> on the phone instead. It skips the name lookup and works the same, except that phone notifications need the first address.</li>}
+              <li>If only that backup address works, the phone looks up names without Tailscale. On Android, set Settings &gt; Network &amp; internet &gt; Private DNS to Automatic or Off. In the Tailscale app, keep Use Tailscale DNS on.</li>
+              {pairing.lan_link && <li>At home, on the same Wi-Fi as this PC, the phone can also open <strong>{pairing.lan_link}</strong>.</li>}
+            </ol>
+          ) : <HomeWifiHelp />}
         </details>
       </div>
     </div>
+  )
+}
+
+function HomeWifiHelp() {
+  return (
+    <ol>
+      <li>Check the phone is on the same Wi-Fi as this PC, not on mobile data or a guest network.</li>
+      <li>When the Companion started listening, Windows or macOS may have asked whether to allow it. Allow it on private networks, in Windows Security &gt; Firewall or macOS System Settings &gt; Network &gt; Firewall.</li>
+      <li>Some routers keep devices on the Wi-Fi apart (often called AP or client isolation). Tailscale works there instead.</li>
+    </ol>
   )
 }
 

@@ -39,6 +39,7 @@ from companion.mcp.lookups import Lookups
 from companion.memory import closeness_routes, people_routes
 from companion.memory.worker import MemoryWorker
 from companion.phone import access as phone_access
+from companion.phone import lan as phone_lan
 from companion.phone import push as phone_push
 from companion.phone import routes as phone_routes
 from companion.providers.builtin_recall import BuiltinRecall
@@ -79,6 +80,17 @@ async def invalid_request(_request: Request, error: RequestValidationError):
     return JSONResponse({'detail': details}, status_code=422)
 
 
+async def start_lan(app):
+    """Home Wi-Fi access stays on across restarts (companion/phone/lan.py); a busy port is logged, not fatal."""
+    with app.state.database.connect() as connection:
+        wanted = phone_access.phone_settings(connection)['lan_enabled']
+    if wanted and app.state.life_tasks:
+        try:
+            await app.state.lan.start(phone_lan.port())
+        except DomainError as error:
+            logging.getLogger('companion').warning('%s', error.message)
+
+
 @asynccontextmanager
 async def lifespan(app):
     recover(app.state.database)
@@ -94,7 +106,9 @@ async def lifespan(app):
         # Built-in recall loads its model now, so the first reply does not wait for it.
         app.state.builtin_recall.kick()
     app.state.memory.kick()
+    await start_lan(app)
     yield
+    await app.state.lan.stop()
     app.state.builtin_recall.shutdown()
     app.state.training.shutdown()
     for task in tasks:
@@ -154,6 +168,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.phone = phone_access.Gate(app.state.database)
     app.state.push = phone_push.Pusher(app.state.database, app.state.vault, push_transport)
     app.middleware('http')(app.state.phone)
+    app.state.lan = phone_lan.LanServer(app)
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)
     app.add_exception_handler(Exception, unexpected_error)

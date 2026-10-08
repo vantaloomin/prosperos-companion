@@ -36,4 +36,16 @@ test('iPhones are told to install first before push works', () => {
   assert.equal(pushHint(true, 'iPhone'), null)
   assert.match(pushHint(false, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)') ?? '', /home screen/)
   assert.match(pushHint(false, 'Firefox') ?? '', /cannot/)
+  assert.match(pushHint(true, 'Android', false) ?? '', /Tailscale https address/)
+})
+
+test('ids work on plain http pages, where randomUUID is missing', async () => {
+  const { newId } = await import('../../src/ids.ts')
+  const saved = crypto.randomUUID
+  Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true })
+  try {
+    const id = newId()
+    assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    assert.notEqual(newId(), id)
+  } finally { Object.defineProperty(crypto, 'randomUUID', { value: saved, configurable: true }) }
 })

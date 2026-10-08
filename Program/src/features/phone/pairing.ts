@@ -24,8 +24,10 @@ export function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(text, (letter) => letter.charCodeAt(0))
 }
 
-/** iPhones only offer push to the Companion once it is opened from the home screen. */
-export function pushHint(supported: boolean, userAgent: string): string | null {
+/** iPhones only offer push to the Companion once it is opened from the home screen, and no browser offers it
+ * to a plain http page (home Wi-Fi, or the Tailscale backup address). */
+export function pushHint(supported: boolean, userAgent: string, secure = true): string | null {
+  if (!secure) return 'Notifications only work when the phone opens the Companion at its Tailscale https address, not over home Wi-Fi or the backup address.'
   if (supported) return null
   if (/iPhone|iPad/.test(userAgent)) return 'On an iPhone, add the Companion to your home screen first (Share, then Add to Home Screen), and open it from there.'
   return 'This browser cannot get notifications while the app is closed.'
