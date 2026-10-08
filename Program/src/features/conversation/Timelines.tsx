@@ -24,7 +24,7 @@ export function TimelinePanel({ name, onClose }: { name: string; onClose: () => 
   return (
     <div className="conversation-search timeline-panel" role="region" aria-label="Timelines" onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
       <div className="search-bar">
-        <p className="timeline-intro">Only the current timeline moves with real time. To try something different, choose Branch from here or Edit in a message's actions (hover over it, or tap its ⋯ button).</p>
+        <p className="timeline-intro">Only the current timeline moves with real time. To try something different, choose Branch from here or Edit in a message's actions (hover over it, or press and hold it on a phone).</p>
         <button type="button" className="icon-button" aria-label="Close timelines" onClick={onClose}><X aria-hidden="true" /></button>
       </div>
       <div className="search-results">

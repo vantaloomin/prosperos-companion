@@ -5,6 +5,7 @@ import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { Stamp } from '../../components/Stamp'
 import { sidecar } from '../sidecar/store'
+import { useMessageSheet, type Act, type Action } from './useMessageSheet'
 import { waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
@@ -78,7 +79,6 @@ function RetryAction({ label, onRetry }: { label: string; onRetry: () => void })
 }
 
 /** Messages the companion sent first: shown like replies, with no versions to page through. */
-type Act = (message: Message) => void
 
 function Leads({ messages, name, highlight, onStop, onEdit, onBranch, onMoment, bursts }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void; onEdit: Act; onBranch: Act; onMoment: Act; bursts: boolean }) {
   return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />)}</>
@@ -89,18 +89,15 @@ function TurnUser({ turn, name, highlight, onRemember, onDecline, onEdit, onBran
   return <UserMessage message={turn.user} name={name} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} />
 }
 
-/** A message's actions. On a touch screen they wait behind a button, so each message is not followed by a row of them.
- * Opened, they float over the messages below (styles.css) and close once one is used or focus leaves. */
-function MessageActions({ message, actions, children }: { message: Message; actions: [string, ReactNode, Act][]; children?: ReactNode }) {
-  const [open, setOpen] = useState(false)
+/** A message's actions: shown on hover or focus with a mouse. On a touch screen the message is pressed and held
+ * instead (MessageSheet.tsx); the hidden button here opens the same sheet for keyboards and screen readers. */
+function MessageActions({ message, actions, onSheet, children }: { message: Message; actions: Action[]; onSheet: () => void; children?: ReactNode }) {
   return (
-    <span className={classes('message-actions', { open })}
-      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
-      onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
+    <span className="message-actions">
       {actions.length > 0 && <>
-        <button type="button" className="text-button message-more" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /><span className="visually-hidden">Message actions</span></button>
+        <button type="button" className="text-button message-more" onClick={onSheet}><Ellipsis aria-hidden="true" /><span className="visually-hidden">Message actions</span></button>
         <span className="message-tools">
-          {actions.map(([label, icon, action]) => <button key={label} type="button" className="text-button" onClick={() => { setOpen(false); action(message) }}>{icon}{label}</button>)}
+          {actions.map(([label, icon, action]) => <button key={label} type="button" className="text-button" onClick={() => action(message)}>{icon}{label}</button>)}
         </span>
       </>}
       {children}
@@ -109,24 +106,26 @@ function MessageActions({ message, actions, children }: { message: Message; acti
 }
 
 function UserMessage({ message, name, found, settled, onRemember, onDecline, onEdit, onBranch, onMoment }: { message: Message; name: string; found: boolean; settled: string; onRemember: Act; onDecline: Act; onEdit: Act; onBranch: Act; onMoment: Act }) {
-  const actions: [string, ReactNode, Act][] = message.redacted ? [] : [
+  const actions: Action[] = message.redacted ? [] : [
     ['Remember this', <BookmarkPlus key="icon" aria-hidden="true" />, onRemember],
     [MOMENT, <HeartHandshake key="icon" aria-hidden="true" />, onMoment],
     ["Don't remember this", <BookmarkX key="icon" aria-hidden="true" />, onDecline],
     ['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit],
     ['Branch from here', <GitBranch key="icon" aria-hidden="true" />, onBranch],
   ]
+  const sheet = useMessageSheet(message, actions)
   return (
-    <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
+    <article id={`message-${message.id}`} className={classes('message message-user', { found, pressing: sheet.pressing })} aria-label="You" tabIndex={found ? -1 : undefined} {...sheet.press}>
       <Avatar name="You" />
       <header>
         <Stamp value={message.created_at} clock className="stamp-lead" />
         <span className="speaker">You</span>
-        <MessageActions message={message} actions={actions}><Stamp value={message.created_at} /></MessageActions>
+        <MessageActions message={message} actions={actions} onSheet={sheet.open}><Stamp value={message.created_at} /></MessageActions>
       </header>
       <div className="prose">{message.redacted ? <p className="subtle">This message was deleted.</p> : <Paragraphs text={message.text} />}</div>
       {!message.redacted && <SentPictures message={message} name={name} />}
       <LinkNotes message={message} settled={settled} />
+      {sheet.sheet}
     </article>
   )
 }
@@ -138,24 +137,28 @@ function Reply({ message, found, name, text, position, onPage, onStop, onEdit, o
   const held = useHeld(message)
   // A reply being written while they are away stays out of sight: no typing dots, no Stop.
   const streaming = message.status === 'streaming' && !held
+  const actions = replyActions(message, streaming, onEdit, onBranch, onMoment)
+  // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply.
+  const sheet = useMessageSheet(message, message.status === 'complete' && actions.length
+    ? [...actions, ['Ask the sidecar', <MessageSquareText key="icon" aria-hidden="true" />, (item) => sidecar.ask(item)]] : actions)
   // Until they get back to the user there is nothing to see; a holding text they sent meanwhile is its own message.
   if (held) return null
   return (
-    <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
+    <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found, pressing: sheet.pressing })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined} {...sheet.press}>
       <Avatar name={name} companion />
       <header>
         <Stamp value={message.created_at} clock className="stamp-lead" />
         <span className="speaker">{name}</span>
-        <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} />
+        <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} actions={actions} onSheet={sheet.open} />
       </header>
       <ReplyBody text={text} streaming={streaming} bursts={bursts} />
       <ReplyExtras message={message} name={name} note={note} />
+      {sheet.sheet}
     </article>
   )
 }
 
-function ReplyTools({ message, position, streaming, onPage, onStop, onEdit, onBranch, onMoment }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop' | 'onEdit' | 'onBranch' | 'onMoment'> & { streaming: boolean }) {
-  const actions = replyActions(message, streaming, onEdit, onBranch, onMoment)
+function ReplyTools({ message, position, streaming, onPage, onStop, actions, onSheet }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop'> & { streaming: boolean; actions: Action[]; onSheet: () => void }) {
   return (
     <span className="reply-tools">
       <Stamp value={message.created_at} />
@@ -168,7 +171,7 @@ function ReplyTools({ message, position, streaming, onPage, onStop, onEdit, onBr
       )}
       {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
       {message.status === 'complete' && !message.redacted && <button type="button" className="text-button reply-sidecar" aria-label="Ask the sidecar about this reply" title="Ask the sidecar about this reply" onClick={() => sidecar.ask(message)}><MessageSquareText aria-hidden="true" /></button>}
-      <MessageActions message={message} actions={actions} />
+      <MessageActions message={message} actions={actions} onSheet={onSheet} />
     </span>
   )
 }
@@ -176,9 +179,9 @@ function ReplyTools({ message, position, streaming, onPage, onStop, onEdit, onBr
 const MOMENT = 'Keep as a shared moment'
 
 /** Only a finished reply can be reworded or kept as a shared moment; one that stopped or failed can still be a branch point. */
-function replyActions(message: Message, streaming: boolean, onEdit: Act, onBranch: Act, onMoment: Act): [string, ReactNode, Act][] {
+function replyActions(message: Message, streaming: boolean, onEdit: Act, onBranch: Act, onMoment: Act): Action[] {
   if (message.redacted || streaming || message.status === 'withheld') return []
-  const branch: [string, ReactNode, Act] = ['Branch from here', <GitBranch key="icon" aria-hidden="true" />, onBranch]
+  const branch: Action = ['Branch from here', <GitBranch key="icon" aria-hidden="true" />, onBranch]
   return message.status === 'complete'
     ? [['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit], [MOMENT, <HeartHandshake key="icon" aria-hidden="true" />, onMoment], branch]
     : [branch]

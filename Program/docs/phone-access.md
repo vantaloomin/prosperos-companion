@@ -38,7 +38,7 @@ Restoring a backup turns phone access off and unpairs every phone.
 ## On the phone
 
 The interface has a bottom tab bar on narrow screens, leaves room for a notch and home bar, keeps the keyboard
-from covering the message box, and keeps each message's actions behind a ⋯ button on touch screens.
+from covering the message box, and opens a message's actions in a sheet from the bottom of the screen when the message is pressed and held (Copy, Edit, Branch from here and the rest), as phone messaging apps do.
 
 ## Notifications on a phone
 

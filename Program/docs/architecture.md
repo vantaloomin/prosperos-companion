@@ -118,7 +118,7 @@ moment it is chosen: the time it spent frozen, or before a fork was first chosen
 simulated, and switching is not an absence for the absence mood. `GET /api/timelines` lists them
 (the first is labelled "Original"); `PATCH /api/timelines/{id}` renames one or clears its draft.
 
-In the interface, every message's actions (shown on hover or focus, behind ⋯ on touch screens) have
+In the interface, every message's actions (shown on hover or focus; on touch screens, pressing and holding a message opens them in a bottom sheet with Copy, see `useMessageSheet.tsx`) have
 **Branch from here** and **Edit**. Edit on your own message is the historical edit above; on the
 companion's reply it changes the wording in place (`companion/message_edits.py`, see
 [sidecar.md](sidecar.md#editing-a-reply)). Branch and edit open with a choice to switch now or keep

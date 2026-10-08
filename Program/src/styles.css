@@ -257,21 +257,38 @@ textarea { resize: vertical; line-height: 1.6; }
 .message-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0 12px; }
 .message-actions .text-button { opacity: 0; font-size: 0.75rem; }
 .message:hover .message-actions .text-button, .message:focus-within .message-actions .text-button { opacity: 1; }
-@media (hover: none) { .message-actions .text-button { opacity: .8; } }
-/* Touch screens keep a message's actions behind its ⋯ button (TurnView.tsx). */
 .message-tools { display: contents; }
 .message-more { display: none; }
-/* Opened, they float over the messages below instead of pushing them down. */
+/* Touch screens: no buttons on every message. Press and hold a message for its sheet (useMessageSheet.tsx); a hidden
+   button opens the same sheet for keyboards and screen readers and shows only while it has focus. */
 @media (hover: none) {
-  .message-actions { position: relative; }
-  .message-actions .message-more { display: inline-flex; justify-content: center; min-width: 36px; min-height: 28px; }
-  .message-actions:not(.open) .message-tools { display: none; }
-  /* The skipped rendering of off-screen messages (content-visibility) would clip an open menu at the message's edge. */
-  .message:has(.message-actions.open) { content-visibility: visible; position: relative; z-index: 3; }
-  .message-actions.open .message-tools { position: absolute; z-index: 2; top: 100%; right: 0; display: flex; flex-direction: column; align-items: stretch;
-    min-width: max-content; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 18px #0006; }
-  .message-actions.open .message-tools .text-button { opacity: 1; justify-content: flex-start; min-height: 36px; padding: 6px 10px; font-size: 0.8125rem; }
+  .message-tools, .reply-sidecar { display: none; }
+  .message-actions .message-more { display: inline-flex; position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .message-actions .message-more:focus-visible { position: static; width: auto; height: auto; overflow: visible; clip: auto; opacity: 1; }
+  /* Holding a message must not select its text or open the browser's own menu; Copy is in the sheet. */
+  .message { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: transform .18s ease; }
+  .message.pressing { transform: scale(.97); }
 }
+@media (hover: none) and (prefers-reduced-motion: reduce) { .message { transition: none; } .message.pressing { transform: none; } }
+
+/* The sheet: a dimmed chat, the message lifted above a group of large rows, and Cancel apart, as phone apps do. */
+.message-sheet { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 560px; max-height: 100dvh; margin: 0 auto; padding: 0 10px calc(10px + env(safe-area-inset-bottom));
+  border: 0; background: transparent; color: var(--text); overflow: auto; display: flex; flex-direction: column; gap: 8px; animation: sheet-up .22s cubic-bezier(.2, .8, .2, 1); }
+.message-sheet:not([open]) { display: none; }
+.message-sheet::backdrop { background: #050504a6; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.sheet-preview { align-self: flex-start; max-width: 88%; overflow: hidden; margin-bottom: 6px; padding: 10px 14px; border-radius: 18px; background: var(--raised);
+  font-size: 1rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 10px 30px #0008;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 8; line-clamp: 8; }
+.message-sheet-user .sheet-preview { align-self: flex-end; background: var(--accent); color: var(--on-accent); }
+.sheet-group { display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; background: var(--surface); }
+.sheet-action { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 54px; padding: 0 18px; border: 0; border-radius: 0; background: var(--surface); color: var(--text);
+  font: inherit; font-size: 1.0625rem; text-align: left; }
+.sheet-group .sheet-action + .sheet-action { border-top: 1px solid var(--border); }
+.sheet-action svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--muted); }
+.sheet-action:active { background: var(--raised); }
+.sheet-cancel { justify-content: center; border-radius: 14px; font-weight: 600; }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .message-sheet { animation: none; } }
 
 .settings > .notice { max-width: 760px; margin-bottom: 16px; }
 .settings-search { max-width: 960px; margin-bottom: 20px; }
@@ -760,7 +777,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .message .stamp-lead::before { content: '[' / ''; }
 .chat-retro .message .stamp-lead::after { content: ']' / ''; }
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
-@media (hover: none) { .chat-retro .message-actions.open .message-tools { right: auto; left: 0; } }
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
 .chat-retro .turn-actions { margin: 0 0 8px; }
 .chat-retro .message.found { outline-offset: 2px; }
