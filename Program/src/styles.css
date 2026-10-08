@@ -1095,6 +1095,20 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* Lines from the app (who joined or left) sit centred and small, like a group text's. */
 .group-note { margin: 4px auto 14px; text-align: center; font-size: 0.8125rem; color: var(--muted); max-width: 90%; }
 .group-failure { text-align: center; }
+/* Secrets (features/groups/Secrets.tsx): below the list of groups. */
+.secrets { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
+.secrets h2 { font-size: 1.1rem; }
+.secrets > p { margin: 0; }
+.secrets > ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.secret { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
+.secret p { margin: 0; }
+.secret-knowers { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.875rem; }
+.secret-knowers li { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.secret-knowers .text-button { flex: none; white-space: nowrap; }
+.secret .form-actions { flex-wrap: wrap; gap: 8px 18px; }
+.secret-reveal { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.secret-form { display: flex; flex-direction: column; gap: 14px; }
+.group-slip { font-style: italic; color: var(--muted); font-size: 0.875rem; }
 /* Bubbles hide names in a 1:1 chat; in a group each bubble needs whose it is. */
 .group-chat.chat-bubbles .message-companion > header { order: 0; margin: 0 12px 3px; }
 .group-chat.chat-bubbles .message-companion .speaker { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-size: 0.75rem; font-weight: 600; color: var(--muted); }

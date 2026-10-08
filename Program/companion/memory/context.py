@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import pictures, prompt_library, self_facts, texting
+from companion import pictures, prompt_library, secrets, self_facts, texting
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
@@ -108,6 +108,8 @@ HEADINGS = {
             'storylines': "What is going on in your life and your people's lives (these happened to you and your "
                           'people, never to the user; decided: bring it up the way a friend would, never contradict '
                           'it, and never invent how an unfolding one ends)',
+            # Secrets they learned from others, or that the user declared (companion/secrets.py).
+            'knowledge': 'What you know that others may not (keep each one as private as it says)',
             'townsfolk': 'People around town (background characters you keep running into; you know only what is '
                          'listed here, so never invent more about them or claim to know them better)',
             'city_news': 'Changes around your city (fictional unless marked as a real listing; you know them as a '
@@ -602,6 +604,16 @@ def offer_own(packet, connection, timeline_id, version, now):
         packet.offer('own_plans', identity, text)
 
 
+def offer_secrets(packet, connection, companion, group: dict | None):
+    """A group reply's own group section; in a 1:1 chat, the secrets they learned from others instead (in a group,
+    the group section says what they know and who there must not find out)."""
+    for identity, text in (group or {}).get('lines', ()):
+        packet.offer('group', identity, text)
+    if group is None:
+        for identity, text in secrets.context_lines(connection, companion):
+            packet.offer('knowledge', identity, text)
+
+
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
           semantic: dict | None = None, outside: list[dict] | None = None, photo: dict | None = None,
           group: dict | None = None) -> dict:
@@ -637,8 +649,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     offer_own(packet, connection, timeline_id, version, now)
-    for identity, text in (group or {}).get('lines', ()):
-        packet.offer('group', identity, text)
+    offer_secrets(packet, connection, companion, group)
     closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

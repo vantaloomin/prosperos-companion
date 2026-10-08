@@ -24,8 +24,8 @@ Only the one-time backstory is stored (`pair_backstories`); the user has no othe
 """
 import json
 import re
-import sqlite3
 
+from companion import secrets
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
@@ -226,22 +226,9 @@ def reacts_to_secrets(definition: dict) -> bool:
 
 
 def secrets_found(connection, holder: str, about: str) -> int:
-    """Guarded secrets about `about` that `holder` found out (revealed or let slip), from the secrets ledger. The
-    ledger comes with the secrets in group chats; until it exists nothing has been found out."""
-    try:
-        rows = many(connection, 'SELECT k.subjects FROM knowledge_holders h JOIN knowledge k ON k.id=h.knowledge_id '
-                    "WHERE h.holder=? AND h.via IN ('reveal', 'slip') AND h.ended_at IS NULL", (holder,))
-    except sqlite3.OperationalError:
-        return 0
-    found = 0
-    for row in rows:
-        subjects = row['subjects']
-        try:
-            subjects = json.loads(subjects) if isinstance(subjects, str) else subjects or []
-        except ValueError:
-            subjects = [subjects]
-        found += about in {normal(str(subject)) for subject in subjects}
-    return found
+    """Secrets about `about` that were kept from `holder` and that they found out (it slipped, or the user let them
+    find out). The secrets ledger counts them (companion/secrets.py)."""
+    return secrets.found_about(connection, normal(holder), normal(about))
 
 
 def story_moves(connection, companion: dict, person_id: str, today: str) -> dict:

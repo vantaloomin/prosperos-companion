@@ -156,14 +156,103 @@ writing someone else's line is cut there (`groups.tidy`).
 | `POST /api/groups/{id}/messages?wait=` `{text, client_id}` | Saves the message once per `client_id` and starts the replies. `connection: not_configured` without a model. |
 | `POST /api/groups/{id}/retry`, `POST /api/groups/{id}/stop` | Writes failed or stopped replies again; stops the round. |
 
+## Secrets
+
+A secret is something only some of them know: "Billy and Katie have been secretly seeing each other", kept from
+Sally. Sally's prompt never holds it, so no model has to keep it (`companion/secrets.py`, tables `knowledge` and
+`knowledge_holders`). It rides only in a knower's private part, below the shared transcript, so the shared prefix
+and its cache stay the same for every speaker.
+
+### Where secrets come from
+
+- **The Secrets panel** (below the list in Groups): what it is, who it's about (names; a companion's name links to
+  them), who knows it, and who must not find out (chosen people, or everyone who doesn't know). Optional words
+  that give it away; without them, the secret's own content words are used.
+- **Storylines** that are secrets register once their first beat has happened (`STORY_SECRETS`): `secret_couple`
+  (the companion and the couple know) and `family_secret` (the companion and the parent who let it slip). Both
+  are kept from everyone else. Its words are filled with today's names, and "made it official" ends it.
+- **A line in a companion's own description** that reads as a secret ("secretly", "nobody knows", "never told",
+  "behind her back") is one only they know, kept from everyone else. It is read from the current sheet: edit the
+  line and the secret follows; remove it and the secret ends.
+- **A companion's memory that reads like a secret** (the same words, in its subject or value) is one they know,
+  kept from everyone else. It is read from the memory: a correction rewords it, and excluding or replacing the
+  memory ends it.
+
+Nothing waits for the user: these register on their own, and the panel edits or ends any of them ("Not a secret
+anymore" stays on record as dismissed, so it isn't registered again).
+
+Rows point at their source instead of copying it, so a rename, a sheet edit or a storyline ending reaches the
+ledger; a secret the user added is the user's own words, changed in the panel.
+
+### Who knows
+
+Each holder row says how they learned it (`via`):
+
+| via | How |
+| --- | --- |
+| origin | It started with them: the panel's "Who knows it", the storyline's people, the description's owner. |
+| witness | Said in a group while they were there (the message's `present`), by anyone. |
+| slip | A knower said it in a group in front of someone it was kept from. |
+| reveal | "Let them find out" in the panel, or the user said it in a group in front of someone it was kept from. |
+| history | Added to a group with everything so far, where it had been said. |
+
+"Make them forget" ends what someone learned, the way "Don't remember this" works; what happened in their own life
+can't be forgotten. Start over or Delete ends everything the companion learned. A companion never learns something
+because the user knows it.
+
+### In prompts
+
+- **Group**: the speaker's group section lists each secret they know: "You know: … Sally doesn't know and must not
+  find out: never say it or hint at it in this group." Someone who doesn't know gets nothing.
+- **1:1 chat**: one `knowledge` section ("What you know that others may not") with secrets the user added that they
+  know, and anything they learned from others. Their own storylines and sheet already tell them the rest. What they
+  heard in a group follows automatic memory, like other memories.
+
+### The reply check
+
+While someone a secret is kept from is in the group, a knower's reply is written out of sight and checked by rules
+(`secrets.hits`): it gives the secret away when it names everyone the secret is about (the speaker counts as named
+when it is about them) and a word that gives it away: one of the user's words or a storyline's; for words taken
+from the secret itself, one when it is about two or more people and two otherwise. A hit is written again once
+with a private reminder. If the rewrite still gives it away:
+
+- at the **Soap opera** drama setting it stays: everyone there finds out, and a note under the reply says so
+  (Settings > General > "Say when a secret slips out", workspace `show_secret_slips`, on by default, hides the note
+  only);
+- otherwise the reply isn't sent ("Billy nearly let a secret slip, so this reply wasn't sent."), and Try again can
+  write it once more.
+
+Paraphrases get through ("you two have been close lately"). That is accepted because a slip is shown and recorded,
+never quietly undone.
+
+### API
+
+| Request | Does |
+| --- | --- |
+| `GET /api/secrets` | `{secrets, companions, slips}`: every active secret with who knows it and how, who it's kept from, its key words. Registers storyline and description secrets first. |
+| `POST /api/secrets` `{statement, about, knows, kept_from, keep_from_everyone, key_words}` | Adds a secret. |
+| `PATCH /api/secrets/{id}` | Changes it; a storyline or description secret keeps its words but takes key words and who it's kept from. |
+| `DELETE /api/secrets/{id}` | Deletes the user's own secret, or stops treating another one as a secret. |
+| `POST /api/secrets/{id}/reveal` `{companion_id}` | Let them find out. |
+| `POST /api/secrets/{id}/forget` `{companion_id}` | Make them forget. |
+
+### With closeness
+
+- `secrets.found_about(connection, holder, about)`: secrets about someone that were kept from `holder` and that they
+  found out (slip or reveal). `pairs.secrets_found` reads it, so a discovery lowers closeness in one place only.
+- `secrets.spreads(connection, secret, teller, listener, now)`: a companion whose flaw is gossip, who feels Close
+  (stage 4) or closer to someone it isn't kept from, has "You're close enough to X that you'd happily tell them."
+  in their private group lines. Nothing is ever passed on to someone it's kept from; the reply check still guards
+  that.
+
 ### Seams for the later PRs
 
 - `public_line(connection, member)`: the cast's "Others see" line; a guest from the town would use
   `perception.sheet_lines`.
-- `group_lines(connection, group, stay, now)`: secrets the speaker knows and who they're not speaking to (closeness
-  to each member is in, see below).
+- `group_lines(connection, group, stay, now)`: who they're not speaking to (secrets and closeness to each member
+  are in).
 - `weights`, `plan` and `chime_in`: ignoring someone.
-- `pairs.closeness(connection, a, b, now)`: how close `a` feels to `b` (1 to 5), for gossip and mood.
+- `pairs.closeness(connection, a, b, now)`: how close `a` feels to `b` (1 to 5), for mood (gossip uses it already).
 - Members are person keys (`companion:<id>`), so guests can be another kind.
 
 ## Closeness between them

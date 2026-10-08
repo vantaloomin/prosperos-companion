@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ChevronLeft, HeartHandshake, Pencil, RotateCcw, UsersRound } from 'lucide-react'
 import { api, ApiError } from '../../api'
-import type { View } from '../../companion'
+import { useWorkspaceSettings, type View } from '../../companion'
 import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -21,6 +21,7 @@ import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
 import { chatKey, GROUPS_KEY, useCast } from './groupState'
 import { canRetry, failureText, groupActivity, membersLine, shownMessages, toldOnly } from './groupText'
+import { guardNote } from './secretText'
 
 // While replies are being written, the chat asks for what is new this often.
 const POLL_MS = 700
@@ -165,8 +166,16 @@ function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: 
       </header>
       <div className="prose"><Paragraphs text={message.text} /></div>
       {failure && <p className="reply-status" role="note">{failure}</p>}
+      <SlipNote message={message} />
     </article>
   )
+}
+
+/** "Let a secret slip", unless turned off in Settings > General; the secret is out either way. */
+function SlipNote({ message }: { message: GroupMessage }) {
+  const shown = useWorkspaceSettings().data?.show_secret_slips !== false
+  const slip = guardNote(message)
+  return shown && slip ? <p className="reply-status group-slip" role="note">{slip}</p> : null
 }
 
 function KeepMoment({ kept, onKeep }: { kept: boolean; onKeep: (kept: boolean) => void }) {

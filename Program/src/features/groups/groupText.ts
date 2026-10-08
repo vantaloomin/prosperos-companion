@@ -50,6 +50,7 @@ export function canRetry(chat: Pick<GroupChat, 'busy' | 'messages'>): boolean {
 
 /** Why a reply did not show, under its name. */
 export function failureText(message: GroupMessage): string | null {
+  if (message.status === 'cancelled' && message.guard === 'held') return message.error ?? `${message.name} nearly let a secret slip, so this reply wasn't sent.`
   if (message.status === 'cancelled') return message.text ? 'Stopped.' : `${message.name}'s reply was stopped.`
   if (message.status === 'failed') return `${message.name}'s reply didn't come through: ${message.error ?? 'something went wrong with the model.'}`
   return null

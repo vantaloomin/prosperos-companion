@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
   -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
+  -- The note under a group message when someone lets a secret slip (companion/secrets.py).
+  show_secret_slips INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,
@@ -1441,3 +1443,36 @@ CREATE TABLE IF NOT EXISTS group_moments (
   message_id TEXT PRIMARY KEY REFERENCES group_messages(id),
   created_at TEXT NOT NULL
 );
+
+-- Secrets (companion/secrets.py, docs/group-chat.md): who knows what, and who must not find out. `kind` says where
+-- a secret comes from: the user ('declared', with `statement` and `subjects` as typed), a storyline or a line in a
+-- companion's description (`source_id` points at it, so its words follow the source). `key_words` are the user's
+-- own; empty means they come from the statement. `guard_all` keeps it from everyone who doesn't know.
+CREATE TABLE IF NOT EXISTS knowledge (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL CHECK (kind IN ('declared', 'storyline', 'character', 'memory')),
+  source_id TEXT,
+  statement TEXT,
+  subjects TEXT NOT NULL DEFAULT '[]',
+  key_words TEXT NOT NULL DEFAULT '[]',
+  guard_all INTEGER NOT NULL DEFAULT 0 CHECK (guard_all IN (0, 1)),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'ended', 'dismissed')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS knowledge_source ON knowledge(kind, source_id);
+
+-- Who knows a secret ('knows') and who must not find out ('guarded'), each a person key (companion:<id>,
+-- circle:<timeline>:<n>, the circle person's seed). `via` says how they learned it; `message_id` is the group message they learned it from.
+CREATE TABLE IF NOT EXISTS knowledge_holders (
+  id TEXT PRIMARY KEY,
+  knowledge_id TEXT NOT NULL REFERENCES knowledge(id),
+  holder TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('knows', 'guarded')),
+  learned_at TEXT NOT NULL,
+  via TEXT NOT NULL CHECK (via IN ('origin', 'witness', 'history', 'reveal', 'slip')),
+  message_id TEXT,
+  ended_at TEXT
+);
+CREATE INDEX IF NOT EXISTS knowledge_holders_knowledge ON knowledge_holders(knowledge_id);
+CREATE INDEX IF NOT EXISTS knowledge_holders_holder ON knowledge_holders(holder);

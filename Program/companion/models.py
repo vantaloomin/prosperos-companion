@@ -219,6 +219,7 @@ class SettingsUpdate(Input):
     chat_retro_dark: bool | None = None
     ask_about_people: bool | None = None
     story_mode: bool | None = None
+    show_secret_slips: bool | None = None
     review_complete: bool | None = None
 
 

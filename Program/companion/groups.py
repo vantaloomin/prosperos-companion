@@ -29,7 +29,7 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from companion import in_character, prompt_library, texting
+from companion import in_character, prompt_library, secrets, texting
 from companion.characters import by_id
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
@@ -220,6 +220,8 @@ def add(database, group_id: str, companion_id: str, everything: bool = False, ti
                 'They are already in this group.', 409)
         pairs.tell_all(connection, ties, timestamp)
         stay = join(connection, group_id, companion_id, timestamp, sees_from=1 if everything else None)
+        if everything:
+            secrets.history(connection, group_id, key, timestamp)
         note(connection, group_id, timestamp, f"You added {stay['name']}.")
         return group_view(connection, group_id)
 
@@ -277,7 +279,8 @@ def message_view(row: dict, kept: frozenset = frozenset()) -> dict:
     kind = 'user' if row['author'] == 'user' else APP if row['author'] == APP else 'companion'
     return {'id': row['id'], 'seq': row['seq'], 'kind': kind, 'companion_id': companion_of(row['author']),
             'name': row['name'], 'text': row['text'], 'status': row['status'], 'error': row['error'],
-            'reply_to': row['reply_to'], 'created_at': row['created_at'], 'kept': row['id'] in kept}
+            'reply_to': row['reply_to'], 'guard': row['guard'], 'created_at': row['created_at'],
+            'kept': row['id'] in kept}
 
 
 def member_view(connection, stay: dict) -> dict:
@@ -400,8 +403,8 @@ def shared_part(connection, group: dict, member: str, budget: int, until_seq: in
 
 
 def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str]]:
-    """The speaker's own view of the group, private to them: how close they feel to each member. Later: what
-    they know that others don't, and who they're not speaking to."""
+    """The speaker's own view of the group, private to them: how close they feel to each member, and the secrets
+    they know with who here must not find out (companion/secrets.py). Later: who they're not speaking to."""
     members = [item for item in current_members(connection, group['id']) if item['member'] != stay['member']]
     lines = [(f"group:{group['id']}",
               f"You are {stay['name']} in the group chat \"{title(connection, group)}\" with "
@@ -411,6 +414,8 @@ def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str
                       'was said since you joined; never claim to know what was said before.'))
     for item in members:
         lines += member_lines(connection, stay['member'], item, now)
+    lines += secrets.group_lines(connection, stay['member'], [item['member'] for item in members],
+                                 {item['member']: item['name'] for item in members}, now)
     return lines
 
 
@@ -572,7 +577,9 @@ def record(database, group_id: str, text: str, client_id: str) -> dict:
             return existing
         require_group(connection, group_id)
         require(current_members(connection, group_id), 'Add someone to this group to keep talking.', 409)
-        return add_line(connection, group_id, database.now(), 'user', USER, text, client_id=client_id)
+        row = add_line(connection, group_id, database.now(), 'user', USER, text, client_id=client_id)
+        secrets.witness(connection, row)  # The user can tell them; then they know.
+        return row
 
 
 def recover(database):
@@ -665,6 +672,8 @@ class GroupChats:
 
     async def round(self, group_id: str, user: dict, running: Round):
         """Speakers in turn, each seeing the replies before theirs; it ends early if the user writes again."""
+        with self.database.connect(write=True) as connection:
+            secrets.sync(connection, self.database.clock.now())
         with self.database.connect() as connection:
             group = require_group(connection, group_id)
             members = current_members(connection, group_id)
@@ -702,10 +711,12 @@ class GroupChats:
             row = add_line(connection, group_id, database.now(), stay['member'], stay['name'], '', status='streaming',
                            reply_to=user['id'])
             hold = paced(connection)
-        # A paced reply is written out of sight and shows whole when it is sent, like a text.
-        text, status, error = [], 'complete', None
+            # Secrets this speaker knows that someone here must not find out: the reply is checked before it shows.
+            watch = secrets.watched(connection, stay['member'], json.loads(row['present']))
+        # A paced or checked reply is written out of sight and shows whole when it is sent, like a text.
+        text, status, error, guard = [], 'complete', None, None
         running.phase = 'preparing'
-        if not hold:
+        if not hold and not watch:
             running.live[row['id']] = text
         companion = None
         try:
@@ -714,19 +725,50 @@ class GroupChats:
                 companion = by_id(connection, companion_of(stay['member']) or '')
                 require(companion is not None, 'That companion is no longer in this workspace.', 404)
                 packet = await asyncio.to_thread(self.packet, group, companion, stay, config, row['seq'], user)
-            status, error = await self.write(config, packet, text, running,
-                                             in_character.applies(user['text'], companion['version']['definition']))
+            active = in_character.applies(user['text'], companion['version']['definition'])
+            status, error = await self.write(config, packet, text, running, active)
+            if watch and status == 'complete':
+                status, error, guard = await self.check(config, packet, text, running, active, stay, watch, row)
             if hold and status == 'complete':
                 await self.pace(running, ''.join(text), row['id'])
         except asyncio.CancelledError:
-            self.finish(row, ''.join(text), 'cancelled', 'Stopped.', companion, stay, running)
+            self.finish(row, ''.join(text), 'cancelled', 'Stopped.', companion, stay, running, guard)
             raise
         except DomainError as failure:
             status, error = 'failed', failure.message
         except Exception as failure:  # noqa: BLE001 - a failure must still leave a visible state.
             LOG.exception('A group reply failed unexpectedly.')
             status, error = 'failed', f"Couldn't finish the reply: {failure}"
-        return self.finish(row, ''.join(text), status, error, companion, stay, running)
+        return self.finish(row, ''.join(text), status, error, companion, stay, running, guard)
+
+    async def check(self, config, packet, text: list, running: Round, active: bool, stay: dict, watch: list[dict],
+                    row: dict) -> tuple[str, str | None, str | None]:
+        """A knower's reply with someone here who must not find out: a draft that gives a secret away is written
+        once more with a private reminder. If that still gives it away, it stays as a slip only at the soap opera
+        drama setting; otherwise the reply is held back. Returns the status, error and what the check did."""
+        present = json.loads(row['present'])
+        with self.database.connect() as connection:
+            members = current_members(connection, row['group_id'])
+            labels = {item['member']: item['name'] for item in members}
+
+            def slipped() -> list[dict]:
+                draft = tidy(''.join(text), stay['name'], members)
+                return [secret for secret in watch if secrets.hits(secret, draft, stay['member'])]
+
+            given = slipped()
+            if not given:
+                return 'complete', None, None
+            reminder = secrets.reminder(given, stay['name'], present, connection, labels)
+            allowed = secrets.slips_allowed(connection)
+        text.clear()
+        status, error = await self.write(config, {**packet, 'system': f"{packet['system']}\n\n{reminder}"}, text,
+                                         running, active)
+        if status != 'complete' or not slipped():
+            return status, error, 'redrafted'
+        if allowed:
+            return 'complete', None, 'revealed'
+        text.clear()
+        return 'cancelled', f"{stay['name']} nearly let a secret slip, so this reply wasn't sent.", 'held'
 
     async def pace(self, running: Round, reply: str, seed: str):
         """Wait out what is left of the time a person would take; writing it already used some of that time."""
@@ -761,8 +803,9 @@ class GroupChats:
                 text.append(piece)
         return status, error
 
-    def finish(self, row, text, status, error, companion, stay, running: Round) -> dict:
-        """Saved in its final state before its live text is let go, so a poll never sees it blank."""
+    def finish(self, row, text, status, error, companion, stay, running: Round, guard: str | None = None) -> dict:
+        """Saved in its final state before its live text is let go, so a poll never sees it blank. A finished
+        reply is witnessed: everyone present learns any secret it gives away."""
         database = self.database
         with database.connect(write=True) as connection:
             members = current_members(connection, row['group_id'])
@@ -772,9 +815,11 @@ class GroupChats:
                     status, error = 'failed', 'The model returned no reply text.'
                 elif companion:
                     text = texting.restyle(text, companion['version']['definition'], row['id'])
-            connection.execute('UPDATE group_messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
-                               (text, status, error, database.now(), row['id']))
+            connection.execute('UPDATE group_messages SET text=?, status=?, error=?, guard=?, completed_at=? WHERE id=?',
+                               (text, status, error, guard, database.now(), row['id']))
             saved = one(connection, 'SELECT * FROM group_messages WHERE id=?', (row['id'],))
+            if status == 'complete':
+                secrets.witness(connection, saved)
         running.live.pop(row['id'], None)
         if status == 'complete':
             running.shown_at, running.before = time.monotonic(), text
