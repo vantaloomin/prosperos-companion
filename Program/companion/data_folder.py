@@ -79,7 +79,8 @@ def mount_type(path: Path) -> str:
             return ''
     except (OSError, subprocess.SubprocessError, ValueError):
         return ''
-    resolved = str(path.resolve())
+    # Resolve symlinks on a real folder; a path that is not there is matched as written (POSIX form).
+    resolved = path.resolve().as_posix() if path.exists() else path.as_posix()
     best = max((item for item in mounts if resolved == item[0] or resolved.startswith(item[0].rstrip('/') + '/')),
                key=lambda item: len(item[0]), default=None)
     return best[1] if best else ''
