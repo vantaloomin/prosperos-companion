@@ -29,6 +29,19 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.2.1 (2026-10-08)
+
+- **Portable data:** Settings > Data shows where data lives and can move it into a Data folder beside
+  the app.
+- **Hardware check:** reads the graphics card and memory, says what local models fit, and warns about
+  setups that will run badly (Settings, welcome screen, installer).
+- **Timestamps** on messages and posts in every chat style.
+- **NanoGPT** for chat models and pictures; image backends get an editable Connection panel.
+- **Forgiving city import:** shared city files load despite small mistakes and keep new kinds of
+  places, schools and jobs.
+- **Fixes:** macOS "._" files on external drives broke the city catalog; reinstall rebuilds a broken
+  .venv; errors name the log file. CI runs faster.
+
 ## v0.2.0 (2026-10-08)
 
 - **Matchlight:** a dating app in the sidebar for meeting townsfolk and app-only singles; a match can
