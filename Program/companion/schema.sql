@@ -874,7 +874,9 @@ CREATE TABLE IF NOT EXISTS prompt_overrides (
 
 -- Closeness stages (PRD M3, M4) are worked out from shared history, never stored as a score. These rows
 -- hold only the user's own choices for one timeline: when counting restarted, a held stage, a nickname
--- and the shared moments they made running jokes.
+-- and the shared moments they made running jokes. Columns added later (companion/database.py
+-- ADDED_COLUMNS): head_start and set_on (a stage the user set, which keeps growing), ceiling_level and
+-- cooling_since (gentle cooling after long silences, opt-in).
 CREATE TABLE IF NOT EXISTS closeness_settings (
   timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
   counted_from TEXT,

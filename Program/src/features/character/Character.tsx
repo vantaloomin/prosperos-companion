@@ -5,7 +5,7 @@ import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput } from '../../components/Fields'
-import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, timezones } from './definition'
+import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, stageNames, timezones } from './definition'
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
 import { FieldHelp } from './FieldHelp'
 import { DetailsToggle } from './CharacterDetails'
@@ -109,6 +109,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
           </Field>
           <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} hint="A fictional or real city for their life." tip="This is how they describe where they live. Home city, further down, is what builds their actual days." />
         </div>
+        <KnowEachOther definition={definition} creating={!companion} set={set} />
         <datalist id="timezones">{timezones().map((zone) => <option key={zone} value={zone} />)}</datalist>
         <TextArea label="Who they are" value={definition.identity} onChange={(identity) => set({ identity })} maxLength={4000} hint="Age, work, what matters to them." />
         {help('identity', 'who they are')}
@@ -239,5 +240,24 @@ function Versions({ current }: { current: string }) {
         ))}
       </ol>
     </details>
+  )
+}
+
+/** How close they start (only when making them; afterwards it is changed in Memories) and how you know each other. */
+function KnowEachOther({ definition, creating, set }: { definition: CharacterDefinition; creating: boolean; set: (change: Partial<CharacterDefinition>) => void }) {
+  return (
+    <div className="form-grid">
+      {creating && (
+        <Field label="How close you start" hint="Just met unless you pick otherwise. It grows from here as you talk." tip="You can change it any time later in Memories, under How close you are.">
+          {(id, hint) => (
+            <select id={id} aria-describedby={hint} value={definition.starting_closeness ?? 1} onChange={(event) => set({ starting_closeness: Number(event.target.value) })}>
+              {stageNames(definition.relationship).map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
+            </select>
+          )}
+        </Field>
+      )}
+      <TextArea label="How you know each other (optional)" value={definition.history_together ?? ''} onChange={(history_together) => set({ history_together })} rows={2} maxLength={2000}
+        placeholder="Roommates all through college; we still get breakfast most Sundays." hint="Your history together so far, so a close start has something real behind it." />
+    </div>
   )
 }

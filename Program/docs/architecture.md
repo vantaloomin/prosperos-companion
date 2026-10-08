@@ -232,12 +232,22 @@ Closeness stages (`companion/memory/closeness.py`, `GET/PUT /api/closeness`) are
 the active timeline's history on every reply, never stored as a score (M4). One point per local
 day the user wrote (message count and length do not matter) plus one per eligible shared moment
 (`shared_experience` or `relationship` memories), capped at the days talked; thresholds 0, 3, 8,
-16 and 30 give five stages, named for friends when the relationship is friendship. Time apart
-never lowers it, and excluding or deleting a moment takes it out of the count. The `closeness`
-context section tells the companion how open to be, whether a nickname fits, and the running jokes
-the user picked; it repeats the non-romantic framing and that closeness never strengthens
-emotional traits. The user's choices live in `closeness_settings` (a held stage, a nickname, and
-`counted_from` after Start over) and `closeness_jokes`. Shared moments recalled on three separate
+16 and 30 give five stages, named for friends when the relationship is friendship. A head start
+is added to those points: the character's `starting_closeness` (how close they start, also set
+for a townsperson from how often they have crossed paths), or, once the user sets a stage
+(`set_level`: Set it to, One step closer, One step back), the head start that lands exactly on it
+that day, so it keeps growing from there. An optional ceiling caps it. Time apart never lowers it
+unless the user turns on gentle cooling for that companion: a silence of 21 days cools it a step,
+60 days two, never below the second stage, and every two days talked afterwards win a step back,
+all worked out from the days talked. A held stage overrides all of this. Excluding or deleting a
+moment takes it out of the count. The `closeness` context section tells the companion how open to
+be, whether a nickname fits, that things have cooled when they have, and the running jokes the
+user picked; it repeats the non-romantic framing and that closeness never strengthens emotional
+traits. The character's `history_together` (how you know each other) goes in the character
+section. The user's choices live in `closeness_settings` (a held stage, a set stage's
+`head_start` and `set_on`, `ceiling_level`, `cooling_since`, a nickname, and `counted_from` after
+Start over) and `closeness_jokes`. Keep as a shared moment, on any message, opens the Remember
+form on a shared moment with that message in it. Shared moments recalled on three separate
 days are offered as running jokes, never added on their own. A fork starts with default choices.
 
 ## Consolidation (M10, M11)

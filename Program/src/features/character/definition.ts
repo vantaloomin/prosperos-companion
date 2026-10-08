@@ -22,7 +22,7 @@ export function emptyMoney(): MoneySetup {
 
 export function emptyDefinition(timezone = 'UTC'): CharacterDefinition {
   return { name: '', identity: '', personality: '', voice: '', skills: [], flaws: [], interests: [], background: '', appearance: '', routine: '',
-    location: '', home_city: '', relationship: 'friendship', absence_reaction: '', emotional_traits: [], timezone, schedule: [], life_themes: [], money: emptyMoney() }
+    location: '', home_city: '', relationship: 'friendship', starting_closeness: 1, history_together: '', absence_reaction: '', emotional_traits: [], timezone, schedule: [], life_themes: [], money: emptyMoney() }
 }
 
 /** Fill fields that older saved versions may lack, so the form always edits a complete definition. */
@@ -58,4 +58,12 @@ export function cleanDefinition(definition: CharacterDefinition, interestsText: 
 
 export function timezones(): string[] {
   try { return Intl.supportedValuesOf('timeZone') } catch { return ['UTC'] }
+}
+
+/** Closeness stage names (companion/memory/closeness.py): friendship has its own. */
+const STAGES = ['Just met', 'Getting to know each other', 'Comfortable', 'Close', 'Deeply close']
+const FRIEND_STAGES = ['Just met', 'Getting to know each other', 'Friends', 'Close friends', 'Like old friends']
+
+export function stageNames(relationship: string): string[] {
+  return relationship === 'friendship' ? FRIEND_STAGES : STAGES
 }

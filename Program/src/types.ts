@@ -111,6 +111,9 @@ export interface CharacterDefinition {
   routine: string
   location: string
   relationship: Relationship
+  /** The closeness stage they start at (1 = Just met) and how the two of you know each other already. */
+  starting_closeness?: number
+  history_together?: string
   absence_reaction: string
   emotional_traits: EmotionalTrait[]
   timezone: string
@@ -879,13 +882,23 @@ export interface Generation {
 }
 
 export interface ClosenessJoke { memory_id: string; subject: string; value: string }
-export interface ClosenessMilestone { level: number; on: string; days: number; moments: number }
+/** A stage reached from shared history, or (kind) where it started or the day the user set it. */
+export interface ClosenessMilestone { level: number; on: string | null; days?: number; moments?: number; kind?: 'start' | 'set' }
 /** Worked out from shared history each time (PRD M4): never a hidden score. */
 export interface Closeness {
   level: number
   name: string
   grown_level: number
   held_level: number | null
+  /** From history, a set stage and the starting stage, before a ceiling or cooling. */
+  earned_level: number
+  ceiling_level: number | null
+  starting_level: number
+  cooling: boolean
+  cooled_steps: number
+  warm_days_left: number
+  silent_days: number
+  set_on: string | null
   relationship: string
   stages: string[]
   days_talked: number

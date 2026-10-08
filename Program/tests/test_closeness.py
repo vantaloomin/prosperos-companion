@@ -132,3 +132,88 @@ def test_moments_that_keep_coming_up_are_offered_as_running_jokes(client, connec
     assert [(item['memory_id'], item['days']) for item in candidates] == [(moment['id'], closeness.JOKE_DAYS)]
     chosen = client.post('/api/closeness/jokes', json={'memory_id': moment['id']}).json()
     assert chosen['joke_candidates'] == [] and len(chosen['jokes']) == 1
+
+
+def revise(client, **changes):
+    current = client.get('/api/companion').json()['companion']
+    response = client.post('/api/companion/versions', json={'definition': {**current['version']['definition'], **changes},
+                                                             'expected_version_id': current['active_version_id']})
+    assert response.status_code == 200, response.text
+
+
+def test_a_set_stage_keeps_growing_from_there(client, connected, clock):
+    talk_on_days(client, clock, 3)
+    state = client.put('/api/closeness', json={'set_level': 4}).json()
+    assert state['level'] == 4 and state['held_level'] is None and state['history'][-1]['kind'] == 'set'
+    assert 'Close friends.' in system(client)
+    talk_on_days(client, clock, 13)
+    assert view(client)['level'] == 4
+    talk_on_days(client, clock, 1)
+    assert view(client)['level'] == 5  # 17 days talked + the 13 points the set stage added = 30
+
+
+def test_a_step_back_lowers_it_and_it_grows_again(client, connected, clock):
+    talk_on_days(client, clock, 8)
+    assert view(client)['level'] == 3
+    state = client.put('/api/closeness', json={'set_level': 2}).json()
+    assert state['level'] == 2 and state['earned_level'] == 2
+    talk_on_days(client, clock, 5)
+    assert view(client)['level'] == 3  # 3 points from the set stage + 5 days = 8
+
+
+def test_a_ceiling_caps_growth_and_setting_above_it_lifts_it(client, connected, clock):
+    assert client.put('/api/closeness', json={'ceiling_level': 2}).json()['ceiling_level'] == 2
+    talk_on_days(client, clock, 8)
+    state = view(client)
+    assert state['level'] == 2 and state['earned_level'] == 3
+    state = client.put('/api/closeness', json={'set_level': 4}).json()
+    assert state['level'] == 4 and state['ceiling_level'] is None
+    assert client.put('/api/closeness', json={'ceiling_level': 6}).status_code == 422
+
+
+def test_a_new_companion_can_start_close_with_a_shared_history(client, connected, clock):
+    revise(client, starting_closeness=3, history_together='Roommates all through college.')
+    state = view(client)
+    assert state['level'] == 3 and state['starting_level'] == 3 and state['history'][0]['kind'] == 'start'
+    prompt = system(client)
+    assert 'Friends.' in prompt and 'How you and the user know each other: Roommates all through college.' in prompt
+    talk_on_days(client, clock, 8)
+    assert view(client)['level'] == 4  # 8 starting points + 8 days = 16
+    assert client.post('/api/closeness/reset').json()['level'] == 1
+
+
+def test_gentle_cooling_is_opt_in_and_warms_back_up(client, connected, clock):
+    talk_on_days(client, clock, 3)
+    client.put('/api/closeness', json={'set_level': 4, 'cooling': True})
+    clock.advance(timedelta(days=closeness.COOL_AFTER[0]))
+    state = view(client)
+    assert state['cooling'] and state['level'] == 3 and state['cooled_steps'] == 1
+    assert closeness.COOLED in system(client)
+    clock.advance(timedelta(days=closeness.COOL_AFTER[1]))
+    state = view(client)
+    assert state['level'] == closeness.COOL_FLOOR and state['cooled_steps'] == 2
+    talk_on_days(client, clock, closeness.WARM_DAYS)
+    assert view(client)['level'] == 3
+    talk_on_days(client, clock, closeness.WARM_DAYS)
+    state = view(client)
+    assert state['level'] == 4 and state['cooled_steps'] == 0 and closeness.COOLED not in system(client)
+    held = client.put('/api/closeness', json={'held_level': 4}).json()
+    clock.advance(timedelta(days=90))
+    assert view(client)['level'] == 4 and held['level'] == 4
+    client.put('/api/closeness', json={'held_level': None, 'cooling': False})
+    assert view(client)['level'] == 4 and view(client)['cooling'] is False
+
+
+def test_cooling_never_goes_below_the_floor_or_starts_before_it_was_turned_on():
+    assert closeness.cooling(['2026-01-01'], '2026-03-01', '2026-03-10')['steps'] == 0
+    assert closeness.cooling([], '2026-01-01', '2026-12-31')['steps'] == len(closeness.COOL_AFTER)
+    warming = closeness.cooling(['2026-02-01'], '2026-01-01', '2026-02-01')
+    assert warming == {'steps': 1, 'warm_days_left': 1, 'silent_days': 0}
+
+
+def test_townsfolk_start_as_close_as_their_meetings_make_them():
+    from companion.cast import starting_closeness
+    meet = lambda count: {'match': None, 'meetings': [{}] * count, 'in_story': None}  # noqa: E731
+    assert [starting_closeness(meet(count)) for count in (0, 2, 3, 5, 6, 20)] == [1, 1, 2, 2, 3, 3]
+    assert starting_closeness({'match': {'noun': 'match'}, 'meetings': [{}] * 9, 'in_story': None}) == 1
+    assert starting_closeness({'match': None, 'meetings': [{}] * 2, 'in_story': {'meetings': 4}}) == 3
