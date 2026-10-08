@@ -101,6 +101,20 @@ Your companion's data normally lives outside the program folder, so updating or 
 
 Each script has a Mac twin in `Mac` with the same name ending in `.command`.
 
+## Adding your own cities
+
+The easy way: in the app, open **Settings > Cities > Open a city file** and choose the file. The city is saved with your data, so backups and updates keep it.
+
+To drop city files in by hand instead, put them in the `city-packs` folder inside your data folder (create it if it isn't there), then press **Reload packs** under Settings > Cities > Pack folders, which also lists the folders it reads:
+
+| Where your data lives | City packs folder |
+| --- | --- |
+| Windows | `%LOCALAPPDATA%\ProsperoCompanion\city-packs` |
+| Mac | `~/Library/Application Support/ProsperoCompanion/city-packs` |
+| A `Data` folder inside the app folder (portable mode, Settings > Backups) | `Data/city-packs` next to the `Windows`, `Mac` and `Program` folders |
+
+Don't put city files in `Program/companion/world/data/cities`. That folder holds the built-in cities, and every update replaces it.
+
 ## Privacy
 
 The Companion only listens on your own computer (127.0.0.1); phone access goes through your own Tailscale network, never the open internet. Conversations, memories and pictures stay in your data folder. The only things that leave your PC are requests to the model and image services you set up, and lookups you switch on, each of which asks before it shares anything. API keys are kept in your operating system's credential store and never written to logs.
