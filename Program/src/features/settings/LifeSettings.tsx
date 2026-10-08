@@ -63,7 +63,7 @@ export function LifeSettings({ name }: { name: string }) {
       <Toggle label={`Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
         hint={`${name} may start a conversation: to check in on a break or after work, to ask about something they said they'd ask about, how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
       <Toggle label={`Reply at ${name}'s pace`} checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
-        hint={`When ${name} is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. Turn off for replies right away.`} />
+        hint={`When ${name} is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
       <Toggle label={`Let ${name}'s days go off plan`} checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
         hint={`Now and then ${name} runs late, stays late, has plans fall through, has something come up or gets a surprise visit. Rolled with fixed dice, so a day never changes after the fact.`} />
       <BirthdayField saved={data.user_birthday} onSave={(value) => save({ user_birthday: value }, value ? 'Birthday saved.' : 'Birthday forgotten.')} name={name} />

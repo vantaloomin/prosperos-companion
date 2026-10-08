@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from companion import dating_routes, local_zone, logs, story_routes, troubleshoot, workspace
+from companion import dating_routes, group_routes, groups, local_zone, logs, story_routes, troubleshoot, workspace
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.dating_photos import DatingPhotos
@@ -94,6 +94,7 @@ async def start_lan(app):
 @asynccontextmanager
 async def lifespan(app):
     recover(app.state.database)
+    groups.recover(app.state.database)
     image_jobs.recover(app.state.database)
     lora_training.recover(app.state.database)
     lora_evaluation.recover(app.state.database)
@@ -155,6 +156,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
         app.state.images.wake()
 
     app.state.conversation.after_turn = after_turn
+    app.state.groups = groups.GroupChats(app.state)
     app.state.training = lora_training.TrainingRunner(app.state.database, trainer_spawn)
     app.state.evaluations = lora_evaluation.EvaluationRunner(app.state.database, app.state.vault, app.state.images)
     app.state.generations = lora_generation.GenerationRunner(app.state.database, app.state.vault, app.state.images)
@@ -185,6 +187,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(image_routes.router)
     app.include_router(context_routes.router)
     app.include_router(story_routes.router)
+    app.include_router(group_routes.router)
     app.include_router(dating_routes.router)
     app.include_router(lora_routes.router)
     if app.state.lora_maker:
