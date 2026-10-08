@@ -3,10 +3,12 @@ import json
 import threading
 import time
 
+from companion import conversation as conversation_module
 from companion.conversation import Conversation
 from companion.memory import context
 from companion.models import MessageCreate
 from companion.providers.chat import Chunk
+from companion.providers.scheduling import CONVERSATION, RequestScheduler
 
 
 def parse_events(body: str) -> list[tuple[str, dict]]:
@@ -69,7 +71,7 @@ def test_stream_sends_snapshot_then_new_text_then_the_saved_reply(app, connected
         return [first] + [event async for event in events]
 
     events = asyncio.run(scenario())
-    assert events[0] == ('snapshot', {'id': events[0][1]['id'], 'text': 'First part. '})
+    assert events[0] == ('snapshot', {'id': events[0][1]['id'], 'text': 'First part. ', 'phase': 'writing'})
     assert events[1][0] == 'delta' and events[1][1]['text'] == 'And the rest.'
     assert events[-1][0] == 'done'
     assert events[-1][1]['status'] == 'complete'
@@ -169,3 +171,29 @@ def test_context_build_does_not_hold_the_event_loop(app, client, companion, prov
     # A build holding the loop would take the full 5 seconds; a busy Windows runner can need just over 2
     # for the whole reply, so the margin sits between the two.
     assert time.perf_counter() - started < 4
+
+
+def test_a_reply_waiting_for_the_model_says_so_then_fails_visibly_at_the_time_limit(app, connected, monkeypatch):
+    """Waiting behind other work for the model is shown, and never lasts past the reply's time limit unseen."""
+    original = conversation_module.config_for
+    monkeypatch.setattr(conversation_module, 'config_for',
+                        lambda connection, job: original(connection, job) and {**original(connection, job),
+                                                                               'timeout_seconds': 0.3})
+    scheduler = RequestScheduler()
+    conversation = Conversation(app.state.database, app.state.vault, GatedProvider(), scheduler)
+
+    async def scenario():
+        async with scheduler.reserve({'base_url': 'http://127.0.0.1:1234/v1'}, CONVERSATION):
+            result = await conversation.send(MessageCreate(text='Hi', client_id='client-0001'), wait=False)
+            events = conversation.events(result['reply']['id'])
+            first = await anext(events)
+            rest = [event async for event in events]
+        return [first] + rest
+
+    events = asyncio.run(scenario())
+    phases = [data['phase'] for name, data in events if name == 'phase'] or [events[0][1]['phase']]
+    assert 'waiting' in [events[0][1]['phase'], *phases]
+    assert 'writing' not in phases
+    done = events[-1][1]
+    assert done['status'] == 'failed'
+    assert 'busy with other work' in done['error']

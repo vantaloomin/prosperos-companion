@@ -12,6 +12,12 @@ const LINES: Partial<Record<ImageStatus, (photo: ChatPhoto) => string>> = {
   interrupted: (photo) => `The app closed before the ${noun(photo)} was made.`,
 }
 
+/** A photo that ended without a picture: it can be made again. */
+export const canRetry = (photo: ChatPhoto) => !photo.ref && (photo.status === 'failed' || photo.status === 'cancelled' || photo.status === 'interrupted')
+
+/** The shape the chat holds for a photo while it loads: a meme is square, older photos without one are landscape. */
+export const photoShape = (photo: ChatPhoto) => photo.kind === 'meme' ? 'square' : photo.aspect ?? 'landscape'
+
 /** One plain line about a photo still coming or one that could not be made, else null. */
 export function photoLine(photo: ChatPhoto): string | null {
   return LINES[photo.status]?.(photo) ?? null

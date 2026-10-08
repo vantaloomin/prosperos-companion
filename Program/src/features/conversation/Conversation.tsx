@@ -13,11 +13,13 @@ import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
 import { ConversationSearch } from './ConversationSearch'
 import { GettingStarted } from './GettingStarted'
-import { isHeld, releaseHeld } from './held'
+import { releaseHeld, waitsUntilLater } from './held'
+import { ActivityLine } from './ActivityLine'
+import type { Phase } from './activity'
 import { TurnView } from './TurnView'
 import { EditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
-import { applyFinished, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
+import { applyFinished, groupTurns, lastUserMessage, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
@@ -29,8 +31,8 @@ import { latestPhotoId } from './photoState'
 const PAGE = 100
 const JUMP_PAGE = 500
 
-function ReplyFollower({ id, onText, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
-  useReplyStream(id, { onText, onDone, onLost })
+function ReplyFollower({ id, onText, onPhase, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onPhase: (id: string, phase: Phase) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
+  useReplyStream(id, { onText, onPhase, onDone, onLost })
   return null
 }
 
@@ -39,6 +41,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const history = useQuery({ queryKey: HISTORY_KEY, queryFn: () => api<History>(`/conversation?limit=${PAGE}`) })
   const messages = useMemo(() => history.data?.messages ?? [], [history.data])
   const [live, setLive] = useState<Record<string, string>>({})
+  const [phases, setPhases] = useState<Record<string, Phase>>({})
   const [announcement, setAnnouncement] = useState('')
   const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string; settings?: boolean } | null>(null)
   const [exhausted, setExhausted] = useState(false)
@@ -59,6 +62,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }, [client])
 
   const onText = useCallback((id: string, text: string) => setLive((current) => ({ ...current, [id]: text })), [])
+  const onPhase = useCallback((id: string, phase: Phase) => setPhases((current) => ({ ...current, [id]: phase })), [])
   const onDone = useCallback((reply: Message) => {
     if (reply.superseded_at) {
       // The user wrote again before it showed; the reply to their new message takes its place.
@@ -66,8 +70,10 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
       return
     }
+    setPhases((current) => { const next = { ...current }; delete next[reply.id]; return next })
     // A reply that shows at once shows the ones held before it; a held one stays quiet until its time.
-    const held = isHeld(reply, appNow())
+    // One that failed shows now, so an error is never hidden behind the companion being busy.
+    const held = waitsUntilLater(reply, appNow())
     update((current) => applyFinished(held ? current : releaseHeld(current, reply.seq), reply))
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     if (held) return
@@ -176,13 +182,16 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const turns = useMemo(() => groupTurns(messages), [messages])
   const following = streamingIds(messages)
   const latestUserId = latestUser(turns)
-  const streaming = following.length > 0
+  const lastUserId = lastUserMessage(messages)
+  // A held reply written in the background stays out of sight: no Stop, and the user can keep writing (pacing.take_over).
+  const writing = messages.filter((message) => following.includes(message.id) && !waitsUntilLater(message, appNow())).map((message) => message.id)
+  const streaming = writing.length > 0
   const hasEarlier = !exhausted && messages.length >= PAGE
 
   return (
     <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
       <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
-      {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onDone={onDone} onLost={onLost} />)}
+      {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
       <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
           {history.isPending && <Loading label="Loading the conversation" />}
@@ -190,18 +199,19 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} />
+            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
           ))}
         </div>
       </div>
       <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
+      <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
       <ConversationNotice notice={notice} go={go} />
       {editing && <EditDialog message={editing} name={name} onClose={() => setEditing(null)} onDone={() => {
         setEditing(null)
         setNotice({ tone: 'info', text: `You're on the new timeline. Your edited message is in the box below; send it when you're ready.` })
       }} />}
       {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
-      <Composer name={name} draft={draft} streaming={streaming} onSend={send} onStop={() => following.forEach((id) => void stop(id))} />
+      <Composer name={name} draft={draft} streaming={streaming} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
     </section>
   )
 }

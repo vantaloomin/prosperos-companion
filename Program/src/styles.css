@@ -424,23 +424,39 @@ textarea { resize: vertical; line-height: 1.6; }
 .correct-event { display: grid; gap: 10px; margin-top: 6px; }
 
 /* Images */
-/* A photo a reply sent: the picture as made, never cropped, at most a comfortable reading height. */
-.chat-photo { display: grid; gap: 6px; justify-items: start; margin: 8px 0 0; max-width: min(100%, 440px); }
-.chat-photo-frame { position: relative; width: fit-content; max-width: 100%; }
-.chat-photo-frame > img { display: block; max-width: 100%; max-height: 380px; border-radius: 12px; background: var(--accent-tint); }
+/* A photo a reply sent: the picture as made, never cropped, at most a comfortable reading height. The frame
+   takes the shape it is made in from the start (ChatPhoto.tsx), so the picture lands without moving anything. */
+.chat-photo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; justify-items: start; width: 440px; max-width: 100%; margin: 8px 0 0; }
+.chat-photo-frame { position: relative; max-width: 100%; overflow: hidden; border-radius: 12px; background: var(--accent-tint); }
+.chat-photo-frame.photo-landscape { width: min(100%, 440px); aspect-ratio: 3 / 2; }
+.chat-photo-frame.photo-portrait { width: min(100%, 253px); aspect-ratio: 2 / 3; }
+.chat-photo-frame.photo-square { width: min(100%, 340px); aspect-ratio: 1; }
+.chat-photo-frame > img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .6s ease; }
+.chat-photo-frame.landed > img { opacity: 1; }
+/* Until it lands: a blurry picture filling in from the top, like a photo on a slow connection. */
+.chat-photo-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); overflow: hidden;
+  background: radial-gradient(circle at 28% 32%, color-mix(in srgb, var(--accent) 38%, transparent), transparent 46%),
+    radial-gradient(circle at 72% 64%, color-mix(in srgb, var(--muted) 34%, transparent), transparent 52%),
+    radial-gradient(circle at 60% 18%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 40%), var(--accent-tint);
+  filter: blur(10px); transform: scale(1.12); }
+.chat-photo-loading::after { content: ''; position: absolute; inset: 0; background: var(--accent-tint); animation: photo-fill 5s ease-out infinite; }
+.chat-photo-loading.failed { filter: grayscale(1) blur(10px); opacity: .55; }
+.chat-photo-loading.failed::after { animation: none; display: none; }
+.chat-photo-loading.failed svg { position: relative; width: 28px; height: 28px; filter: blur(0); }
+.chat-photo-frame.landed > .chat-photo-loading { visibility: hidden; transition: visibility 0s .6s; }
+@keyframes photo-fill { from { transform: translateY(0); } 85%, to { transform: translateY(100%); } }
 /* Meme captions: white capitals with a dark outline, over the top and bottom of the picture. */
-.chat-meme .chat-photo-frame > img { width: 340px; max-width: 100%; max-height: none; aspect-ratio: 1; object-fit: cover; }
-.chat-meme .chat-photo-waiting { width: 340px; max-width: 100%; aspect-ratio: 1; }
+.chat-meme .chat-photo-frame > img { object-fit: cover; }
 .meme-text { position: absolute; left: 6px; right: 6px; text-align: center; color: #ffffff; font-family: Impact, 'Arial Narrow Bold', 'IBM Plex Sans', sans-serif;
   font-weight: 800; font-size: clamp(1rem, 4.5vw, 1.45rem); line-height: 1.1; text-transform: uppercase; overflow-wrap: anywhere;
   text-shadow: 2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000; }
 .meme-top { top: 8px; }
 .meme-bottom { bottom: 8px; }
-.chat-photo-waiting { display: grid; place-items: center; width: min(100%, 260px); aspect-ratio: 3 / 2; border-radius: 12px; background: var(--accent-tint); color: var(--muted); }
-.chat-photo-waiting svg { width: 28px; height: 28px; }
 .post-image { display: grid; gap: 6px; }
 .post-image > img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 10px; background: var(--accent-tint); }
+.post-image-frame { position: relative; width: 100%; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 10px; background: var(--accent-tint); }
 .image-line { margin: 0; }
+.image-line .text-button { margin-left: 10px; padding: 0; vertical-align: baseline; }
 .error-text { color: var(--danger, #b42318); font-size: 0.8125rem; }
 .image-details { display: grid; gap: 10px; padding: 10px 0; }
 .image-details details summary { cursor: pointer; font-size: 0.8125rem; }
@@ -668,7 +684,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-bubbles .message-user .link-notes { justify-content: flex-end; order: 3; }
 .chat-bubbles .reply-status { order: 3; }
 .chat-bubbles .chat-photo { margin-top: 4px; }
-.chat-bubbles .chat-photo-frame > img, .chat-bubbles .chat-photo-waiting { border-radius: 18px; }
+.chat-bubbles .chat-photo-frame { border-radius: 18px; }
 .chat-bubbles .turn-actions { margin: -6px 0 16px 6px; align-self: flex-start; }
 .chat-bubbles .load-earlier { align-self: center; }
 
@@ -725,7 +741,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .message-actions, .chat-retro .reply-tools { order: 2; justify-self: start; gap: 10px; }
 .chat-retro .link-notes, .chat-retro .reply-status { order: 3; }
 .chat-retro .chat-photo { margin: 2px 0 4px; }
-.chat-retro .chat-photo-frame > img, .chat-retro .chat-photo-waiting { border-radius: 0; border: 2px inset #e8e6e1; max-height: 300px; }
+.chat-retro .chat-photo-frame { border-radius: 0; border: 2px inset #e8e6e1; max-height: 300px; }
+.chat-retro .chat-photo-frame.photo-portrait { width: min(100%, 200px); }
+.chat-retro .chat-photo-frame.photo-square { width: min(100%, 296px); }
 .chat-retro .speaker { grid-column: 2; font-size: 0.875rem; font-weight: 700; line-height: 1.5; color: #b00000; }
 .chat-retro .speaker::after { content: ':'; }
 .chat-retro .message-companion .speaker { color: #0000b8; }
@@ -757,8 +775,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro.retro-dark .conversation-header { background: linear-gradient(90deg, #0b1636, #1b2f5c); }
 .chat-retro.retro-dark .conversation-header .portrait { background: #e8e8ea; color: #0b1636; }
 .chat-retro.retro-dark .chat-style-switch { background: #101114; color: #e8e8ea; }
-.chat-retro.retro-dark .transcript, .chat-retro.retro-dark .composer textarea, .chat-retro.retro-dark .chat-photo-frame > img,
-.chat-retro.retro-dark .chat-photo-waiting { border-color: #4a4a50; }
+.chat-retro.retro-dark .transcript, .chat-retro.retro-dark .composer textarea, .chat-retro.retro-dark .chat-photo-frame { border-color: #4a4a50; }
 .chat-retro.retro-dark .transcript { background: #101114; }
 .chat-retro.retro-dark .speaker { color: #ff7b7b; }
 .chat-retro.retro-dark .message-companion .speaker { color: #8fb0ff; }
@@ -782,7 +799,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-novel .message-user .prose { color: var(--text); }
 .chat-novel .turn-actions { margin: -8px 0 18px; }
 .chat-novel .chat-photo { margin-top: 12px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); }
-.chat-novel .chat-photo-frame > img, .chat-novel .chat-photo-waiting { border-radius: 6px; }
+.chat-novel .chat-photo-frame { border-radius: 6px; }
 @media (max-height: 560px) { .novel-stage { display: none; } }
 
 @media (max-width: 720px) {
@@ -980,3 +997,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .profile-message { min-width: 40px; padding-inline: 10px; }
   .profile-message span { display: none; }
 }
+
+/* What the app is doing for the conversation (ActivityLine.tsx): one line that always keeps its space, so it never moves the messages. */
+.chat-activity { max-width: 760px; width: 100%; height: 1.25rem; margin: 0 auto; padding: 0 32px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.75rem; line-height: 1.25rem; }
+.chat-community .chat-activity { max-width: none; }
+.chat-retro .chat-activity { max-width: none; padding: 0 6px; font-size: 0.6875rem; }
+@media (max-width: 720px) { .chat-activity { padding: 0 12px; } }

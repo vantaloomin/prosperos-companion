@@ -188,3 +188,11 @@ def read_photo(request: Request, message_id: str):
     if photo is None:
         raise DomainError('This photo could not be found.', 404)
     return photo
+
+
+@router.post('/photos/{message_id}/retry')
+def retry_photo(request: Request, message_id: str):
+    """Try a chat photo that failed again; it shows as on its way until the new attempt ends."""
+    photo = photos.retry(db(request), message_id)
+    runner(request).wake()
+    return photo

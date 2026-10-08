@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { isTaking, latestPhotoId, photoAlt, photoLine } from '../../src/features/conversation/photoState.ts'
+import { canRetry, isTaking, latestPhotoId, photoAlt, photoLine, photoShape } from '../../src/features/conversation/photoState.ts'
 import type { ChatPhoto, Message } from '../../src/types.ts'
 
 const photo: ChatPhoto = { message_id: 'r1', post_id: 'p1', kind: 'moment', summary: 'Mira painted by the river.', top_text: '', bottom_text: '', status: 'queued', job_id: 'j1', ref: null, error: null, in_feed: false, unasked: false }
@@ -37,4 +37,14 @@ test('memes and selfies are named for what they are, and memes stay off the stag
   assert.equal(photoAlt('Mira', meme), 'Meme picture from Mira: a cat staring at a laptop')
   assert.equal(photoAlt('Mira', { ...photo, kind: 'selfie' }), 'Selfie from Mira: Mira painted by the river.')
   assert.equal(latestPhotoId([message('a', 'companion', 1, photo), message('b', 'companion', 2, meme)]), 'a')
+})
+
+test('a photo holds the shape it is made in, and one that ended without a picture can be tried again', () => {
+  assert.equal(photoShape(photo), 'landscape')
+  assert.equal(photoShape({ ...photo, aspect: 'portrait' }), 'portrait')
+  assert.equal(photoShape({ ...photo, kind: 'meme', aspect: 'portrait' }), 'square')
+  assert.equal(canRetry(photo), false)
+  assert.equal(canRetry({ ...photo, status: 'failed', error: 'The provider did not answer within the time limit.' }), true)
+  assert.equal(canRetry({ ...photo, status: 'interrupted' }), true)
+  assert.equal(canRetry({ ...photo, status: 'completed', ref: 'j1' }), false)
 })

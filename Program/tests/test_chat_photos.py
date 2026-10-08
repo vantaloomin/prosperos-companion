@@ -345,3 +345,24 @@ def test_no_photo_text_without_a_backend_or_with_unasked_pictures_off(client, li
     client.put('/api/images/settings', json={'unprompted_photos': False})
     assert share(client) is None
     assert client.get('/api/conversation').json()['messages'] == []
+
+
+def test_a_photo_that_failed_can_be_tried_again_from_the_chat(client, life, adapters, monkeypatch):
+    """A failed or timed-out photo says so with a reason, and Retry makes it again in the same place."""
+    monkeypatch.setattr('companion.life.body.COLD_CHANCE', {'winter': 0, 'other': 0})
+    from companion.images.adapters.base import AdapterError
+    local_comfy(client)
+    adapters['comfyui'].outcomes = [AdapterError('timeout', 'The provider did not answer within the time limit.')]
+    reply = ask(client)
+    drain(client)
+    failed = client.get(f"/api/images/photos/{reply['id']}").json()
+    assert failed['status'] == 'failed' and 'time limit' in failed['error']
+    retried = client.post(f"/api/images/photos/{reply['id']}/retry")
+    assert retried.status_code == 200, retried.text
+    assert retried.json()['status'] == 'queued' and retried.json()['job_id'] != failed['job_id']
+    drain(client)
+    shown = client.get(f"/api/images/photos/{reply['id']}").json()
+    assert shown['status'] == 'completed' and shown['ref'] == shown['job_id']
+    history = client.get('/api/conversation').json()['messages']
+    assert next(message for message in history if message['id'] == reply['id'])['photo']['ref'] == shown['ref']
+    assert client.post(f"/api/images/photos/{reply['id']}/retry").status_code == 409

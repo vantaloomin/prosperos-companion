@@ -5,7 +5,7 @@ import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { Stamp } from '../../components/Stamp'
 import { sidecar } from '../sidecar/store'
-import { isHeld } from './held'
+import { waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
@@ -26,6 +26,8 @@ interface Props {
   bursts: boolean
   /** A message found by search: shown even when it is not the default attempt, and marked. */
   highlight?: string | null
+  /** On the newest turn when it holds only the companion's messages: the user message they answer, for Retry. */
+  followUpOf?: string
 }
 
 function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }) {
@@ -33,7 +35,7 @@ function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
-export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, bursts, highlight }: Props) {
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, bursts, highlight, followUpOf }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
@@ -45,10 +47,22 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} bursts={bursts} />
       )}
-      {isLatest && !busy && turn.user && <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} onRetry={() => { setChosen(null); onRetry(turn.user!.id) }} />}
+      {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onRetry={(id) => { setChosen(null); onRetry(id) }} />}
     </>
   )
 })
+
+/** Another reply or Retry under the newest message, or Retry under a promised full reply that failed. */
+function TurnRetry({ turn, isLatest, shown, followUpOf, onRetry }: { turn: Turn; isLatest: boolean; shown: Message | null; followUpOf?: string; onRetry: (userId: string) => void }) {
+  if (isLatest && turn.user) return <RetryAction label={shown?.status === 'complete' ? 'Another reply' : 'Retry'} onRetry={() => onRetry(turn.user!.id)} />
+  if (followUpOf && failedFollowUp(turn.leads.at(-1))) return <RetryAction label="Retry" onRetry={() => onRetry(followUpOf)} />
+  return null
+}
+
+/** The full reply promised after a holding text ("brb, boss is here") that failed: it answers the user's last message. */
+function failedFollowUp(lead: Message | undefined): boolean {
+  return !!lead?.held_line && (lead.status === 'failed' || lead.status === 'incomplete')
+}
 
 function RetryAction({ label, onRetry }: { label: string; onRetry: () => void }) {
   return (
@@ -117,7 +131,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} />
       </header>
-      <ReplyBody text={text} name={name} streaming={streaming} bursts={bursts} />
+      <ReplyBody text={text} streaming={streaming} bursts={bursts} />
       <ReplyExtras message={message} name={name} note={note} />
     </article>
   )
@@ -150,18 +164,19 @@ function ReplyExtras({ message, name, note }: { message: Message; name: string; 
   )
 }
 
-function ReplyBody({ text, name, streaming, bursts }: { text: string; name: string; streaming: boolean; bursts: boolean }) {
+/** Before any text arrives, a quiet placeholder; the line above the message box says what is happening. */
+function ReplyBody({ text, streaming, bursts }: { text: string; streaming: boolean; bursts: boolean }) {
   return (
     <div className={bursts ? 'prose bursts' : 'prose'}>
-      {text ? <Paragraphs text={text} bursts={bursts} /> : streaming ? <p className="typing subtle">{name} is writing…</p> : null}
+      {text ? <Paragraphs text={text} bursts={bursts} /> : streaming ? <p className="typing subtle" aria-hidden="true">…</p> : null}
     </div>
   )
 }
 
-/** True until the reply's time comes; re-renders once at that moment. */
+/** True until the reply's time comes; re-renders once at that moment. A failed reply is never held. */
 function useHeld(message: Message): boolean {
   const [now, setNow] = useState(() => appNow())
-  const held = isHeld(message, now)
+  const held = waitsUntilLater(message, now)
   useEffect(() => {
     if (!held) return undefined
     const timer = window.setTimeout(() => setNow(appNow()), Math.min(realDelay(Date.parse(message.held_until!) - now) + 500, 2 ** 31 - 1))
