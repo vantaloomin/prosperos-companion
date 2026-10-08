@@ -1358,6 +1358,52 @@ CREATE TABLE IF NOT EXISTS message_edits (
 );
 CREATE INDEX IF NOT EXISTS message_edits_message ON message_edits(message_id);
 
+-- Group chats (companion/groups.py, docs/group-chat.md): the user and several companions in one chat. Groups
+-- belong to the workspace (start_over.WORKSPACE); a companion who starts over or is deleted leaves them.
+CREATE TABLE IF NOT EXISTS group_chats (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  reply_cap INTEGER NOT NULL DEFAULT 2 CHECK (reply_cap BETWEEN 1 AND 3),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Membership over time, one row per stay. `member` is a person key (companion:<id>), `name` how the chat names
+-- them. They see messages from seq `sees_from` (1 when added with everything so far) until `left_seq`.
+CREATE TABLE IF NOT EXISTS group_members (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL REFERENCES group_chats(id),
+  member TEXT NOT NULL,
+  name TEXT NOT NULL,
+  joined_at TEXT NOT NULL,
+  sees_from INTEGER NOT NULL,
+  left_at TEXT,
+  left_seq INTEGER,
+  forgot_at TEXT
+);
+CREATE INDEX IF NOT EXISTS group_members_group ON group_members(group_id);
+CREATE INDEX IF NOT EXISTS group_members_member ON group_members(member);
+
+-- The shared transcript. `author` is 'user', 'app' (join and leave lines) or a member key, `name` as written in
+-- the transcript, and `present` the members in the group when it was written (the witness rule).
+CREATE TABLE IF NOT EXISTS group_messages (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL REFERENCES group_chats(id),
+  seq INTEGER NOT NULL,
+  author TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  text TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'complete' CHECK (status IN ('complete', 'streaming', 'failed', 'cancelled')),
+  error TEXT,
+  present TEXT NOT NULL DEFAULT '[]',
+  reply_to TEXT,
+  client_id TEXT UNIQUE,
+  created_at TEXT NOT NULL,
+  completed_at TEXT,
+  UNIQUE (group_id, seq)
+);
+CREATE INDEX IF NOT EXISTS group_messages_reply ON group_messages(reply_to);
+
 -- How far the user has read each chat (companion/chats.py): a companion's chat by its timeline id, and any
 -- other kind of chat by its own id. Messages after read_seq are unread.
 CREATE TABLE IF NOT EXISTS chat_reads (

@@ -1,7 +1,7 @@
 import type { View } from '../../companion'
 import type { Chat, ChatStyle } from '../../types'
 import { Stamp } from '../../components/Stamp'
-import { badge, chatLabel, preview } from './chatText'
+import { badge, chatLabel, isOpen, preview, type OpenChat } from './chatText'
 import { ChatAvatar } from './ChatsPanel'
 import { useChats, useOpenChat } from './useChats'
 import { useChatListCollapsed, useChatListWidth } from './layout'
@@ -15,23 +15,25 @@ import { CollapseButton, ResizeHandle } from './SideControls'
  * Phones use the Chats button instead (ChatsPanel). It can be hidden, and the side lists made wider or narrower,
  * on this device (layout.ts).
  */
-export function ChatSidebar({ style, retroDark, go }: { style: ChatStyle; retroDark: boolean; go: (view: View) => void }) {
+export function ChatSidebar({ style, retroDark, go, current = null }: { style: ChatStyle; retroDark: boolean; go: (view: View) => void; current?: OpenChat }) {
   const chats = useChats().data?.chats ?? []
   const { open, busy } = useOpenChat(go)
   const [collapsed] = useChatListCollapsed()
   if (chats.length < 2 || collapsed) return null
-  const choose = (chat: Chat) => void open(chat.id, chat.focus)
-  if (style === 'community') return <Rail chats={chats} busy={busy} onOpen={choose} />
-  if (style === 'retro') return <BuddyList chats={chats} busy={busy} dark={retroDark} onOpen={choose} />
-  if (style === 'feed') return <Tray chats={chats} busy={busy} onOpen={choose} />
-  if (style === 'novel') return <Cast chats={chats} busy={busy} onOpen={choose} />
-  return <ConversationList chats={chats} busy={busy} style={style} onOpen={choose} />
+  const here = (chat: Chat) => isOpen(chat, current)
+  const choose = (chat: Chat) => void open(chat, here(chat))
+  const props = { chats, busy, here, current, onOpen: choose }
+  if (style === 'community') return <Rail {...props} />
+  if (style === 'retro') return <BuddyList {...props} dark={retroDark} />
+  if (style === 'feed') return <Tray {...props} />
+  if (style === 'novel') return <Cast {...props} />
+  return <ConversationList {...props} style={style} />
 }
 
-type ListProps = { chats: Chat[]; busy: string | null; onOpen: (chat: Chat) => void }
+type ListProps = { chats: Chat[]; busy: string | null; here: (chat: Chat) => boolean; current: OpenChat; onOpen: (chat: Chat) => void }
 
 /** Bubbles: a conversation list, as in a desktop messaging app. */
-function ConversationList({ chats, busy, style, onOpen }: ListProps & { style: ChatStyle }) {
+function ConversationList({ chats, busy, here, current, style, onOpen }: ListProps & { style: ChatStyle }) {
   const [width, setWidth] = useChatListWidth('list')
   const choose = onOpen
   return (
@@ -40,8 +42,8 @@ function ConversationList({ chats, busy, style, onOpen }: ListProps & { style: C
       <ul>
         {chats.map((chat) => (
           <li key={`${chat.kind}:${chat.id}`}>
-            <button type="button" className={`chat-row${chat.focus ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat)}
-              aria-current={chat.focus ? 'true' : undefined} disabled={busy !== null} onClick={() => choose(chat)}>
+            <button type="button" className={`chat-row${here(chat) ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat, current)}
+              aria-current={here(chat) ? 'true' : undefined} disabled={busy !== null} onClick={() => choose(chat)}>
               <ChatAvatar chat={chat} />
               <span className="chat-row-text">
                 <span className="chat-row-top"><strong>{chat.name}</strong>{chat.last && <Stamp className="chat-row-time" value={chat.last.at} />}</span>
@@ -58,13 +60,13 @@ function ConversationList({ chats, busy, style, onOpen }: ListProps & { style: C
 }
 
 /** Community: round pictures down the side, a pill beside the open one and a count on the ones with news. */
-function Rail({ chats, busy, onOpen }: ListProps) {
+function Rail({ chats, busy, here, current, onOpen }: ListProps) {
   return (
     <nav className="chat-side side-rail" aria-label="Chats">
       <ul>
         {chats.map((chat) => (
-          <li key={`${chat.kind}:${chat.id}`} className={`${chat.focus ? 'current' : ''}${chat.unread ? ' unread' : ''}`}>
-            <button type="button" className="rail-button" title={chat.name} aria-label={chatLabel(chat)} aria-current={chat.focus ? 'true' : undefined}
+          <li key={`${chat.kind}:${chat.id}`} className={`${here(chat) ? 'current' : ''}${chat.unread ? ' unread' : ''}`}>
+            <button type="button" className="rail-button" title={chat.name} aria-label={chatLabel(chat, current)} aria-current={here(chat) ? 'true' : undefined}
               disabled={busy !== null} onClick={() => onOpen(chat)}>
               <ChatAvatar chat={chat} />
               {chat.unread > 0 && <span className="unread-badge" aria-hidden="true">{badge(chat.unread)}</span>}
@@ -78,7 +80,7 @@ function Rail({ chats, busy, onOpen }: ListProps) {
 }
 
 /** Retro IM: a buddy list window. One group of everyone, names in bold with a count when something is new. */
-function BuddyList({ chats, busy, dark, onOpen }: ListProps & { dark: boolean }) {
+function BuddyList({ chats, busy, here, current, dark, onOpen }: ListProps & { dark: boolean }) {
   const [width, setWidth] = useChatListWidth('buddies')
   return (
     <nav className={`chat-retro${dark ? ' retro-dark' : ''} chat-side side-buddies`} aria-label="Chats" style={{ width }}>
@@ -88,8 +90,8 @@ function BuddyList({ chats, busy, dark, onOpen }: ListProps & { dark: boolean })
       <ul>
         {chats.map((chat) => (
           <li key={`${chat.kind}:${chat.id}`}>
-            <button type="button" className={`buddy${chat.focus ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat)}
-              aria-current={chat.focus ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
+            <button type="button" className={`buddy${here(chat) ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat, current)}
+              aria-current={here(chat) ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
               <span className="buddy-name">{chat.name}</span>
               {chat.unread > 0 && <span className="buddy-count" aria-hidden="true">({badge(chat.unread)})</span>}
             </button>
@@ -101,14 +103,14 @@ function BuddyList({ chats, busy, dark, onOpen }: ListProps & { dark: boolean })
 }
 
 /** Feed: a tray of pictures across the top, the way a social app shows who has something new: a ring for news. */
-function Tray({ chats, busy, onOpen }: ListProps) {
+function Tray({ chats, busy, here, current, onOpen }: ListProps) {
   return (
     <nav className="chat-side side-tray" aria-label="Chats">
       <ul>
         {chats.map((chat) => (
           <li key={`${chat.kind}:${chat.id}`}>
-            <button type="button" className={`tray-item${chat.focus ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat)}
-              aria-current={chat.focus ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
+            <button type="button" className={`tray-item${here(chat) ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat, current)}
+              aria-current={here(chat) ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
               <span className="tray-ring"><ChatAvatar chat={chat} /></span>
               {chat.unread > 0 && <span className="unread-badge" aria-hidden="true">{badge(chat.unread)}</span>}
               <span className="tray-name">{chat.name}</span>
@@ -122,7 +124,7 @@ function Tray({ chats, busy, onOpen }: ListProps) {
 }
 
 /** Visual novel: the cast as portrait cards, like choosing whose route to follow, with a ribbon for news. */
-function Cast({ chats, busy, onOpen }: ListProps) {
+function Cast({ chats, busy, here, current, onOpen }: ListProps) {
   const [width, setWidth] = useChatListWidth('cast')
   return (
     <nav className="chat-side side-cast" aria-label="Chats" style={{ width }}>
@@ -130,8 +132,8 @@ function Cast({ chats, busy, onOpen }: ListProps) {
       <ul>
         {chats.map((chat) => (
           <li key={`${chat.kind}:${chat.id}`}>
-            <button type="button" className={`cast-card${chat.focus ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat)}
-              aria-current={chat.focus ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
+            <button type="button" className={`cast-card${here(chat) ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat, current)}
+              aria-current={here(chat) ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
               <span className="cast-arch"><ChatAvatar chat={chat} /></span>
               <span className="cast-name">{chat.name}</span>
               {chat.last && <span className="cast-line">{busy === chat.id ? 'Opening…' : preview(chat)}</span>}

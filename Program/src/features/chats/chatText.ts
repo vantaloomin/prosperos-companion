@@ -7,8 +7,8 @@ export function preview(chat: Pick<Chat, 'last' | 'name'>): string {
 }
 
 /** Unread messages in the chats you are not looking at, for the Chats button. */
-export function othersUnread(chats: Pick<Chat, 'focus' | 'unread'>[]): number {
-  return chats.reduce((total, chat) => total + (chat.focus ? 0 : chat.unread), 0)
+export function othersUnread(chats: Pick<Chat, 'kind' | 'id' | 'focus' | 'unread'>[], open: OpenChat = null): number {
+  return chats.reduce((total, chat) => total + (isOpen(chat, open) ? 0 : chat.unread), 0)
 }
 
 /** A badge's number: 1 to 99, then "99+". */
@@ -17,10 +17,10 @@ export function badge(count: number): string {
 }
 
 /** For screen readers: "Sally, 2 unread messages". */
-export function chatLabel(chat: Pick<Chat, 'name' | 'unread' | 'focus'>): string {
-  const parts = [chat.name]
+export function chatLabel(chat: Pick<Chat, 'kind' | 'id' | 'name' | 'unread' | 'focus'>, open: OpenChat = null): string {
+  const parts = [chat.kind === 'group' ? `${chat.name} (group)` : chat.name]
   if (chat.unread) parts.push(`${chat.unread} unread message${chat.unread === 1 ? '' : 's'}`)
-  if (chat.focus) parts.push('open now')
+  if (isOpen(chat, open)) parts.push('open now')
   return parts.join(', ')
 }
 
@@ -53,4 +53,16 @@ export const WIDTHS: Record<string, { min: number; max: number; start: number }>
 export function clampWidth(kind: string, width: number): number {
   const range = WIDTHS[kind] ?? WIDTHS.list
   return Math.round(Math.min(range.max, Math.max(range.min, width)))
+}
+
+/** Which chat is on screen: a group's while it is open, else the companion in focus. */
+export type OpenChat = { kind: string; id: string } | null
+
+export function isOpen(chat: Pick<Chat, 'kind' | 'id' | 'focus'>, open: OpenChat): boolean {
+  return open ? chat.kind === open.kind && chat.id === open.id : chat.focus
+}
+
+/** Unread messages by kind of chat, for the Profile (companions) and Groups tabs. */
+export function unreadOf(chats: Pick<Chat, 'kind' | 'unread'>[], kind: string): number {
+  return chats.reduce((total, chat) => total + (chat.kind === kind ? chat.unread : 0), 0)
 }

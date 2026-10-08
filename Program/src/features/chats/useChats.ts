@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import { appNow } from '../../appTime.ts'
 import type { View } from '../../companion'
-import type { ChatList, Companion, Message } from '../../types'
+import type { Chat, ChatList, Companion } from '../../types'
 import { refocus } from '../character/refocus'
-import { readThrough } from './chatText'
 
 export const CHATS_KEY = ['chats']
 const EVERY_MS = 30_000
@@ -15,14 +13,19 @@ export function useChats(enabled = true) {
   return useQuery({ queryKey: CHATS_KEY, queryFn: () => api<ChatList>('/chats'), enabled, refetchInterval: EVERY_MS })
 }
 
-/** Open a companion's chat: they come into focus (every view follows them), then the chat shows. */
+/**
+ * Open a chat. A companion's: they come into focus (every view follows them), then the chat shows. A group's
+ * opens as its own view.
+ */
 export function useOpenChat(go: (view: View) => void) {
   const client = useQueryClient()
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const open = useCallback(async (companionId: string, inFocus: boolean) => {
+  const open = useCallback(async (chat: Pick<Chat, 'kind' | 'id'>, isOpen: boolean) => {
     setError('')
-    if (inFocus) { go('conversation'); return true }
+    const companionId = chat.id
+    if (chat.kind === 'group') { go(`group/${encodeURIComponent(chat.id)}`); return true }
+    if (isOpen) { go('conversation'); return true }
     setBusy(companionId)
     try {
       await api<Companion>('/companion/cast/focus', { companion_id: companionId })
@@ -38,10 +41,10 @@ export function useOpenChat(go: (view: View) => void) {
 }
 
 /**
- * While the chat is on screen, everything of theirs it shows counts as read. A window in the background
+ * While the chat is on screen, everything it shows up to `seq` counts as read (chatText.readThrough). A window in the background
  * reads nothing until it is looked at again.
  */
-export function useMarkRead(threadId: string, messages: Message[]) {
+export function useMarkRead(threadId: string, seq: number | null) {
   const client = useQueryClient()
   const sent = useRef<{ thread: string; seq: number } | null>(null)
   const [visible, setVisible] = useState(() => document.visibilityState === 'visible')
@@ -50,7 +53,6 @@ export function useMarkRead(threadId: string, messages: Message[]) {
     document.addEventListener('visibilitychange', sync)
     return () => document.removeEventListener('visibilitychange', sync)
   }, [])
-  const seq = readThrough(messages, appNow())
   useEffect(() => {
     if (!visible || seq === null) return
     const last = sent.current

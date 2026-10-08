@@ -1162,3 +1162,54 @@ export interface Dating {
   /** After a like: the person, when they liked the user back. */
   matched?: DatingCard | null
 }
+
+/** Group chats (companion/groups.py, docs/group-chat.md). */
+export interface GroupMember {
+  companion_id: string | null
+  /** Their full name now; `label` is how the chat names them (a first name unless two share it). */
+  name: string
+  label: string
+  main: boolean
+  joined_at: string
+  /** The first message they can see: 1 when added with everything so far. */
+  sees_from: number
+}
+
+export interface GroupMessage {
+  id: string
+  seq: number
+  /** The user, a companion, or the app's own line about who joined or left. */
+  kind: 'user' | 'companion' | 'app'
+  companion_id: string | null
+  name: string
+  text: string
+  status: 'complete' | 'streaming' | 'failed' | 'cancelled'
+  error: string | null
+  reply_to: string | null
+  created_at: string
+}
+
+export interface Group {
+  id: string
+  name: string
+  /** The name, or who is in it when it has none. */
+  title: string
+  reply_cap: number
+  created_at: string
+  updated_at: string
+  members: GroupMember[]
+  latest?: GroupMessage | null
+}
+
+export type GroupPhase = 'preparing' | 'waiting' | 'writing'
+
+export interface GroupChat {
+  group: Group
+  messages: GroupMessage[]
+  ready: boolean
+  /** Replies are being written; `phase` says what the app is doing, never who is about to answer. */
+  busy: boolean
+  phase: GroupPhase | null
+  /** Text written so far, by message id. */
+  live: Record<string, string>
+}

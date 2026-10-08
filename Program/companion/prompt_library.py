@@ -80,6 +80,10 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'Opens every reply in the Story tab, before the scene: the place, the hour, the weather and who is '
            'there, which the app decides. OOC answers are also enforced by the app.',
            constant('companion.story', 'NARRATOR')),
+    Prompt('group-rules', CHAT, 'Group chats',
+           'Opens every reply in a group chat, before who is in the group and the chat so far. Each person still '
+           "answers only from what they know, which the app decides; staying in character is enforced as in 1:1 chats.",
+           constant('companion.groups', 'RULES')),
     Prompt('character-rules.md', DRAFTING, 'What makes a character believable', 'Sent with every draft and rewrite.',
            drafting_file('character-rules.md')),
     Prompt('character-draft.md', DRAFTING, 'Drafting a whole character',

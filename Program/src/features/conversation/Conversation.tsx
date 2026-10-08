@@ -31,6 +31,7 @@ import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
 import { ChatsPanel } from '../chats/ChatsPanel'
 import { ChatSidebar } from '../chats/ChatSidebar'
+import { readThrough } from '../chats/chatText'
 import { useMarkRead } from '../chats/useChats'
 
 const PAGE = 100
@@ -63,7 +64,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   useEffect(() => { sounds.current = chat.sounds })
 
   const timeline = useCurrentTimeline(draft, () => setNotice(null))
-  useMarkRead(companion.active_timeline_id, messages)
+  useMarkRead(companion.active_timeline_id, readThrough(messages, appNow()))
   const update = useCallback((change: (messages: Message[]) => Message[]) => {
     client.setQueryData<History>(HISTORY_KEY, (current) => current && { ...current, messages: change(current.messages) })
   }, [client])
@@ -239,7 +240,7 @@ function ConversationTop({ companion, go, onJump, timeline, stage, photoId }: { 
   const toggle = (panel: 'chats' | 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
     <ConversationHeader companion={companion} listing={open === 'chats'} chatsButton={chatsButton} onChats={() => toggle('chats')} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} />
+      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={() => go('groups')} />
     {open === 'chats' && <ChatsPanel go={go} onClose={() => setOpen(null)} />}
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}

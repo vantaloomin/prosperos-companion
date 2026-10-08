@@ -13,6 +13,8 @@ export type View = 'conversation' | 'dating' | 'story' | 'today' | 'feed' | 'mem
   | `cast/${string}`
   /** A companion's chat, opened from a notification: #chat/<their id>. */
   | `chat/${string}`
+  /** Group chats (src/features/groups): the list, and one group as #group/<its id>. */
+  | 'groups' | `group/${string}`
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

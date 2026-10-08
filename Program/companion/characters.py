@@ -17,9 +17,9 @@ def current(connection) -> dict | None:
 
 
 def by_id(connection, companion_id: str) -> dict | None:
-    """Any companion in the workspace, in focus or not, in the same shape as `current`."""
+    """Any companion in the workspace, main or stepped back, with their active version (as `current`)."""
     companion = optional(connection, 'SELECT * FROM companions WHERE id=?', (companion_id,))
-    if companion is None:
+    if companion is None or companion['active_version_id'] is None:
         return None
     version = one(connection, 'SELECT * FROM character_versions WHERE id=?', (companion['active_version_id'],))
     return {**companion, 'version': view(version)}

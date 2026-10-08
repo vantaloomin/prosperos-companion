@@ -110,3 +110,21 @@ def test_a_held_back_companion_does_not_stop_the_others(client, companion, clock
     # Sally waits for an answer now, and Mira still has nothing: the focus companion's state is reported.
     clock.advance(timedelta(hours=4))
     assert check(client)['state'] == 'nothing'
+
+
+def test_a_group_chat_is_listed_with_its_unread(client, companion, clock):
+    sally, _timeline = another(client)
+    group = ok(client.post('/api/groups', json={'companion_ids': [companion['id'], sally], 'name': 'Book club'}))
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        for seq, (author, name, text) in enumerate([('user', '', 'Who finished it?'),
+                                                    (f'companion:{sally}', 'Sally', 'Me! Loved it.'),
+                                                    (f'companion:{companion["id"]}', 'Mira', 'Halfway.')], 100):
+            connection.execute('INSERT INTO group_messages (id, group_id, seq, author, name, text, created_at) '
+                               'VALUES (?, ?, ?, ?, ?, ?, ?)', (identifier(), group['id'], seq, author, name, text,
+                                                                 database.now()))
+    listed = {chat['kind']: chat for chat in chats(client)['chats']}
+    book = listed['group']
+    assert book['name'] == 'Book club' and book['thread_id'] == group['id'] and book['unread'] == 2
+    assert book['last'] == {'role': 'companion', 'text': 'Mira: Halfway.', 'at': book['last']['at']}
+    assert ok(client.post('/api/chats/read', json={'thread_id': group['id']}))['unread'] == 0

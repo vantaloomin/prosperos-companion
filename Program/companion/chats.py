@@ -15,8 +15,9 @@ PREVIEW = 120
 def mark_read(connection, thread_id: str, seq: int | None, timestamp: str) -> None:
     """The user has seen the chat up to `seq` (its latest message when None). Never moves backwards."""
     if seq is None:
-        seq = one(connection, 'SELECT COALESCE(MAX(seq), 0) AS seq FROM messages WHERE timeline_id=?',
-                  (thread_id,))['seq']
+        seq = one(connection, 'SELECT MAX(COALESCE((SELECT MAX(seq) FROM messages WHERE timeline_id=?), 0), '
+                  'COALESCE((SELECT MAX(seq) FROM group_messages WHERE group_id=?), 0)) AS seq',
+                  (thread_id, thread_id))['seq']
     connection.execute('INSERT INTO chat_reads (thread_id, read_seq, read_at) VALUES (?, ?, ?) '
                        'ON CONFLICT(thread_id) DO UPDATE SET read_seq=MAX(read_seq, excluded.read_seq), '
                        'read_at=excluded.read_at', (thread_id, seq, timestamp))
@@ -63,9 +64,35 @@ def companion_chats(connection, now) -> list[dict]:
     return chats
 
 
+def group_chats(connection, now) -> list[dict]:
+    """Each group chat (companion/groups.py), keyed by the group's own id. Unread counts the members' messages
+    after both the last one the user saw and the user's own last message there; the app's join and leave
+    lines never count."""
+    from companion import groups
+    chats = []
+    for group in many(connection, 'SELECT * FROM group_chats'):
+        seen = one(connection, "SELECT MAX(COALESCE((SELECT read_seq FROM chat_reads WHERE thread_id=?), 0), "
+                   "COALESCE((SELECT MAX(seq) FROM group_messages WHERE group_id=? AND author='user'), 0)) AS seq",
+                   (group['id'], group['id']))['seq']
+        count = one(connection, "SELECT COUNT(*) AS n FROM group_messages WHERE group_id=? AND seq>? AND "
+                    "status='complete' AND author NOT IN ('user', 'app')", (group['id'], seen))['n']
+        row = optional(connection, "SELECT author, name, text, created_at FROM group_messages WHERE group_id=? AND "
+                       "status='complete' AND author!='app' ORDER BY seq DESC LIMIT 1", (group['id'],))
+        last = None
+        if row:
+            text = ' '.join(row['text'].split())
+            text = text if row['author'] == 'user' else f"{row['name']}: {text}"
+            last = {'role': 'user' if row['author'] == 'user' else 'companion', 'at': row['created_at'],
+                    'text': text if len(text) <= PREVIEW else text[:PREVIEW - 1].rstrip() + '…'}
+        chats.append({'kind': 'group', 'id': group['id'], 'thread_id': group['id'],
+                      'name': groups.title(connection, group), 'focus': False, 'unread': count, 'last': last,
+                      'active_at': last['at'] if last else group['updated_at']})
+    return chats
+
+
 # Each kind of chat lists its own entries: (connection, now) -> [{kind, id, thread_id, name, focus, unread,
 # last, active_at}].
-KINDS = [companion_chats]
+KINDS = [companion_chats, group_chats]
 
 
 def listed(database) -> dict:
