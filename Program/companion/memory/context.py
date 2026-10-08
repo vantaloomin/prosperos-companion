@@ -42,7 +42,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import newcomers
+from companion.world import newcomers, perception
 
 RECENT_MESSAGES = 24
 RECALL_LIMIT = 8
@@ -210,6 +210,9 @@ def character_text(version, connection=None) -> str:
         lines.append(FLAWS + '; '.join(definition['flaws']))
     if definition.get('interests'):
         lines.append('Interests: ' + ', '.join(definition['interests']))
+    if version.get('companion_id'):
+        found = perception.for_companion(version['companion_id'], definition)
+        lines.append(perception.own_text(found['public'], found['private']))
     if style := texting.instruction(definition):
         lines.append(style)
     return '\n'.join(lines)

@@ -79,6 +79,9 @@ class CharacterDefinition(Input):
     # How close they start (a closeness stage, 1 = Just met) and how the two of them know each other already.
     starting_closeness: int = Field(default=1, ge=1, le=5)
     history_together: str = Field(default='', max_length=2000)
+    # How others see them and how they see themselves (companion/world/perception.py); empty fills itself in.
+    seen_as: str = Field(default='', max_length=400)
+    sees_self: str = Field(default='', max_length=1200)
     # Empty means neutral about absence. Jealousy, guilt or missing the user are opt-in traits.
     absence_reaction: str = Field(default='', max_length=2000)
     emotional_traits: list[EmotionalTrait] = Field(default_factory=list, max_length=12)
@@ -108,6 +111,11 @@ class CharacterDraftRequest(Input):
     timezone: str = Field(default='UTC', max_length=64)
     # Jealousy, guilt over absence and similar traits stay off unless the user asks for them (PRD C6).
     emotional_edges: bool = False
+
+
+class PerceptionRequest(Input):
+    """The character form as it stands, for suggestions for how others see them and how they see themselves."""
+    definition: dict
 
 
 class FieldDraftRequest(Input):

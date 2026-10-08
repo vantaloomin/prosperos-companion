@@ -165,7 +165,7 @@ def test_skills_and_flaws_reach_the_chat_context(client, provider, connected):
 
 
 def test_every_template_placeholder_is_filled():
-    filled = {'character-draft.md': {'rules', 'picks', 'city', 'careers', 'names', 'emotional'},
+    filled = {'character-draft.md': {'rules', 'picks', 'city', 'careers', 'names', 'emotional', 'perception'},
               'character-field.md': {'rules', 'character', 'city', 'emotional', 'field', 'field_guide', 'request',
                                      'field_shape'},
               'character-split.md': {'rules', 'pasted', 'city', 'careers', 'names', 'emotional'},

@@ -5,14 +5,15 @@ import { listTexts } from './definition.ts'
 import { fieldValue, withField, type DraftField, type FieldValue, type FormState } from './drafting.ts'
 import { DAYS, type RoutineBlock } from './schedule.ts'
 
-export type HelperField = DraftField | 'name' | 'location'
+export type HelperField = DraftField | 'name' | 'location' | 'seen_as' | 'sees_self'
+const PLAIN: HelperField[] = ['name', 'location', 'seen_as', 'sees_self']
 export interface SplitResult { definition: CharacterDefinition; filled_in: DraftField[]; home_city: string }
 export interface CardText { name: string; text: string; truncated: boolean }
 
 export const FIELD_LABELS: Record<HelperField, string> = {
   name: 'Name', location: 'Where they live', identity: 'Who they are', personality: 'Personality', voice: 'Voice', skills: 'Skills',
   flaws: 'Flaws', interests: 'Interests', background: 'Background', appearance: 'Appearance', routine: 'Routine in their words',
-  life_themes: 'Life themes', schedule: 'Weekly routine',
+  life_themes: 'Life themes', schedule: 'Weekly routine', seen_as: 'How others see them', sees_self: 'How they see themselves',
 }
 
 /** A pasted character this long, on a form that is still mostly empty, is split into every field at once. */
@@ -39,12 +40,16 @@ export function shownValue(field: HelperField, value: FieldValue): string {
 }
 
 export function currentValue(state: FormState, field: HelperField): FieldValue {
-  return field === 'name' || field === 'location' ? state.definition[field] : fieldValue(state, field)
+  return isPlain(field) ? state.definition[field] ?? '' : fieldValue(state, field)
 }
 
 export function withHelperField(state: FormState, field: HelperField, value: FieldValue): FormState {
-  if (field === 'name' || field === 'location') return { ...state, definition: { ...state.definition, [field]: value } }
+  if (isPlain(field)) return { ...state, definition: { ...state.definition, [field]: value } }
   return withField(state, field, value)
+}
+
+function isPlain(field: HelperField): field is 'name' | 'location' | 'seen_as' | 'sees_self' {
+  return PLAIN.includes(field)
 }
 
 /** The form a split character fills: everything from the split, with the user's relationship kept. */

@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, many
 from companion.life import money, network
-from companion.world import generators, newcomers, townsfolk
+from companion.world import generators, newcomers, perception, townsfolk
 
 ACTIVE = True
 CHANCE = 0.15
@@ -219,7 +219,8 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
               'first_met': meetings[0]['local_date'], 'first_place': meetings[0]['place'],
               'last_met': last['local_date'], 'last_place': last['place'],
               'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None,
-              'cast': sheet.get('cast')}
+              'cast': sheet.get('cast'), 'comes_across': None, 'says_they_are': None}
+    person |= perception.revealed(data, sheet, times)
     if times >= KNOWS_GOAL:
         state = townsfolk.story(sheet, data, date.fromisoformat(last['local_date']))
         person |= {'goal': state['goal']['text'], 'lately': state['line'] or None, 'reached': state['reached'],
@@ -242,11 +243,15 @@ def text(person: dict) -> str:
     parts = [f"- {person['full']}, about {round(person['age'], -1) if person['age'] >= 25 else person['age']}, "
              f"{where}{hood}: {person['temperament']}, {person['quirk']}. You've crossed paths {times}, "
              f"last on {when} at {person['last_place']}."]
+    if person.get('comes_across'):
+        parts.append(f"How they come across: {person['comes_across']}")
     if person['goal']:
         lately = f" Last you heard: {person['lately']}." if person['lately'] else ''
         parts.append(f"They are trying to {person['goal']}.{lately}")
     if person['flaw']:
         parts.append(f"You've noticed they're {person['flaw']}; they seem to want {person['desire']}.")
+    if person.get('says_they_are'):
+        parts.append(f"They once said they're {person['says_they_are']}.")
     if person.get('cast'):
         parts.append('They know the user well.')
     return ' '.join(parts)
@@ -328,6 +333,8 @@ def stand_in(data: dict, companion_id: str, townsfolk_key: str | None, definitio
         if definition.get('flaws'):
             extra['flaw_text'] = definition['flaws'][0].rstrip('.')
     name = definition['name'].strip()
+    # They come across in town the way they do everywhere else.
+    extra['perception'] = perception.for_companion(companion_id, definition)
     return {**base, **extra, 'key': f'cast:{companion_id}', 'name': name.split()[0], 'full': name,
             'cast': companion_id}
 

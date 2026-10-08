@@ -1,6 +1,6 @@
 import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useEffect, useState, type ReactNode } from 'react'
-import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, MessageSquareText, Pencil, RotateCcw, Square } from 'lucide-react'
+import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, MessageSquareText, Pencil, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { Stamp } from '../../components/Stamp'
@@ -187,14 +187,20 @@ function replyActions(message: Message, streaming: boolean, onEdit: Act, onBranc
     : [branch]
 }
 
-/** What follows a reply once it shows: the picture it sent and a note on how it ended. */
+/** What follows a reply once it shows: the picture it sent and a note on how it ended. The note is the app speaking,
+ * not her, so it sits in its own box (styles.css .system-note). */
 function ReplyExtras({ message, name, note }: { message: Message; name: string; note: string | null }) {
   return (
     <>
       {message.photo && <ChatPhoto message={message} name={name} />}
-      {note && <p className="reply-status" role="note">{note}</p>}
+      {note && <SystemNote failed={message.status === 'failed'}>{note}</SystemNote>}
     </>
   )
+}
+
+function SystemNote({ failed, children }: { failed: boolean; children: string }) {
+  const Icon = failed ? AlertCircle : Info
+  return <p className={failed ? 'system-note system-note-error' : 'system-note'} role="note"><Icon aria-hidden="true" /><span>{children}</span></p>
 }
 
 /** Before any text arrives, a quiet placeholder; the line above the message box says what is happening. */

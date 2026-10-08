@@ -18,9 +18,17 @@ from companion.world import catalog, custom
 HELPER_TOKENS = 3000
 # Fields the helper may change. Relationship, home city and emotional traits are the user's own picks.
 HELPER_FIELDS = ('name', 'identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background',
-                 'appearance', 'routine', 'location', 'life_themes', 'schedule')
-EXTRA_GUIDES = {'name': ('their full name.', 'a string'), 'location': ('where they live, in general terms.', 'a string')}
-SPLIT_FIELDS = set(HELPER_FIELDS) - {'name', 'location'}
+                 'appearance', 'routine', 'location', 'life_themes', 'schedule', 'seen_as', 'sees_self')
+EXTRA_GUIDES = {'name': ('their full name.', 'a string'), 'location': ('where they live, in general terms.', 'a string'),
+                # Left empty, the app fills these from its phrase bank (companion/world/perception.py); write them
+                # only when the user asks.
+                'seen_as': ('how others see them, one line: "<how they come across>; <a habit people notice>; '
+                            '<what sets them off>." Change it only when the user asks.', 'a string'),
+                'sees_self': ('how they see themselves, private: 3 to 6 short first-person lines, one per line, '
+                              'which may differ from how others see them. Change it only when the user asks.',
+                              'a string')}
+FREE_TEXT = {'name': 120, 'location': 200, 'seen_as': 400, 'sees_self': 1200}
+SPLIT_FIELDS = set(HELPER_FIELDS) - set(FREE_TEXT)
 # Aliases shorter than this ("LV", "SD") match too much ordinary text.
 ALIAS_LENGTH = 4
 
@@ -86,8 +94,8 @@ def fields_text() -> str:
 
 
 def helper_value(field: str, value, final: bool):
-    if field in ('name', 'location'):
-        found = drafting.text_value(value, drafting.TEXT_LIMITS[field])
+    if field in FREE_TEXT:
+        found = drafting.text_value(value, FREE_TEXT[field])
         if not found:
             raise drafting.Unusable(f'"{field}" was empty.')
         return found

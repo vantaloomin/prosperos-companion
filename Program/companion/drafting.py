@@ -20,7 +20,7 @@ from companion.models import CharacterDefinition, EmotionalTrait, RoutineBlock
 from companion.providers.scheduling import Work
 from companion.text_models import config_for, key_for
 from companion.traits import ABSENCE_WORDS
-from companion.world import catalog, custom, generators, naming
+from companion.world import catalog, custom, generators, naming, perception
 
 PROMPT_VERSION = 'character-draft-3'
 PROMPTS = Path(__file__).parent / 'prompts'
@@ -428,6 +428,10 @@ class Draft:
             definition['emotional_traits'] = traits_value(raw.get('emotional_traits'))
         else:
             definition['absence_reaction'] = ''
+        if isinstance(raw.get('perception'), dict):
+            # Bank entries by id only; an id the bank doesn't have is dropped and the sheet's words fill in.
+            picked = raw['perception']
+            definition |= perception.compose(definition, self.seed, picked, picked.get('gaps'))
         try:
             valid = CharacterDefinition.model_validate(definition).model_dump()
         except ValidationError as error:
@@ -451,7 +455,7 @@ async def draft(state, body) -> dict:
     system = fill(template('character-draft.md', state.database), rules=template('character-rules.md', state.database),
                   picks=picks_text(body),
                   city=city_text(data), careers=careers_text(offered), names=names_text(data, seed, body.age),
-                  emotional=EDGES if edges_allowed(body) else NO_EDGES)
+                  emotional=EDGES if edges_allowed(body) else NO_EDGES, perception=perception.menu())
     return await ask(state, config, system, DRAFT_TOKENS, Draft(body, data, offered, seed))
 
 
@@ -490,7 +494,8 @@ def field_value(field: str, raw: dict, final: bool):
 
 def character_json(definition: dict) -> str:
     keys = ('name', 'relationship', 'identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background',
-            'appearance', 'routine', 'location', 'life_themes', 'schedule', 'emotional_traits', 'absence_reaction')
+            'appearance', 'routine', 'location', 'life_themes', 'schedule', 'emotional_traits', 'absence_reaction',
+            'seen_as', 'sees_self')
     return json.dumps({key: definition[key] for key in keys if definition.get(key)}, ensure_ascii=False, indent=1)
 
 

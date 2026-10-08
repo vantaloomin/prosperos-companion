@@ -40,6 +40,7 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
   return (
     <div className="town-detail">
       <p>About {person.age}, {person.temperament}; {person.quirk}.</p>
+      <ComesAcross person={person} />
       {person.goal && <p>Trying to {person.goal}.{person.lately ? ` Last heard: ${person.lately}.` : ''}</p>}
       {person.reached.length > 0 && <p className="subtle">Already managed to {person.reached.join('; ')}.</p>}
       {person.routine && <p className="subtle">Usually {person.routine}.</p>}
@@ -49,6 +50,12 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
       <TownSwitch person={person} go={go} />
     </div>
   )
+}
+
+/** How they come across, and from the third meeting how they once described themselves. */
+function ComesAcross({ person }: { person: Townsperson }) {
+  if (!person.comes_across) return null
+  return <p>{person.comes_across}{person.says_they_are ? ` Once said they're ${person.says_they_are}.` : ''}</p>
 }
 
 /** Another companion goes back to being the main character; anyone else gets a profile to review first. */

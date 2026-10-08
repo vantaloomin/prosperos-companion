@@ -15,6 +15,8 @@ Occupations available there. Choose the one that fits best and put its id in "ca
 
 {{emotional}}
 
+{{perception}}
+
 Reply with one JSON object and nothing else: no Markdown fence, no commentary. Use exactly these keys:
 
 {
@@ -36,7 +38,9 @@ Reply with one JSON object and nothing else: no Markdown fence, no commentary. U
      "days": [0, 1, 2, 3, 4], "start": "HH:MM", "end": "HH:MM", "themes": ["up to 5 short themes"]}
   ],
   "emotional_traits": [],
-  "absence_reaction": ""
+  "absence_reaction": "",
+  "perception": {"temperament": "id", "tell": "id", "flaw": "id", "desire": "id", "self_story": "id", "sore_spot": "id",
+                 "gaps": {"facet": "its gap kind"}}
 }
 
 Schedule rules: 4 to 8 blocks in 24-hour time, in their local time. Days are numbers, 0 is Monday and 6 is Sunday. Always include a sleep block every day; a block that ends earlier than it starts runs past midnight. The work block matches their occupation's real hours. Blocks on the same day must not overlap. Add at least one recurring thing that is theirs, such as a class, a standing call with a relative, a sport or a regular errand.
