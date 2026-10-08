@@ -975,3 +975,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .profile-message { min-width: 40px; padding-inline: 10px; }
   .profile-message span { display: none; }
 }
+
+/* What the app is doing for the conversation (ActivityLine.tsx): one line that always keeps its space, so it never moves the messages. */
+.chat-activity { max-width: 760px; width: 100%; height: 1.25rem; margin: 0 auto; padding: 0 32px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.75rem; line-height: 1.25rem; }
+.chat-community .chat-activity { max-width: none; }
+.chat-retro .chat-activity { max-width: none; padding: 0 6px; font-size: 0.6875rem; }
+@media (max-width: 720px) { .chat-activity { padding: 0 12px; } }

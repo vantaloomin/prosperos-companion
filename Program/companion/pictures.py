@@ -199,13 +199,14 @@ class Seer:
         self.provider = provider
         self.scheduler = scheduler
 
-    async def look(self, user) -> list[dict]:
+    async def look(self, user, looking=lambda: None) -> list[dict]:
         """Describe any picture of this message not described yet; returns all its pictures."""
         with self.database.connect() as connection:
             rows = for_messages(connection, [user['id']]).get(user['id'], [])
             config = config_for(connection, JOB)
         for row in rows:
             if row['status'] == 'pending':
+                looking()
                 await self.describe(row, config, user['text'])
         with self.database.connect() as connection:
             return for_messages(connection, [user['id']]).get(user['id'], [])

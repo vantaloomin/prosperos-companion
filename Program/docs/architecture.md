@@ -50,11 +50,12 @@ Sending (or asking for an alternative) with `?wait=false` returns as soon as the
 and the reply attempt are saved; the attempt is `streaming`. The query embedding, current-context lookups
 and context assembly happen afterwards in the reply's own task, so a slow service or background work
 never delays acceptance. A context that cannot fit marks the attempt `failed` with the reason. The client then follows
-`GET /api/conversation/replies/{id}/events`, a server-sent event stream with three events:
+`GET /api/conversation/replies/{id}/events`, a server-sent event stream with four events:
 
 | Event | Data |
 | --- | --- |
-| `snapshot` | `{id, text}`: everything written so far, so a reconnecting client catches up |
+| `snapshot` | `{id, text, phase}`: everything written so far and what the app is doing, so a reconnecting client catches up |
+| `phase` | `{id, phase}`: `preparing` (recall and context), `looking` (describing the user's pictures), `waiting` (queued behind other work for the model) or `writing` |
 | `delta` | `{id, text}`: the next piece of text |
 | `done` | The saved reply, in its final status (`complete`, `incomplete`, `cancelled`, `failed` or `withheld`) |
 
@@ -62,7 +63,10 @@ A finished reply's stream sends only `done`. Generation belongs to the app, not 
 the stream: closing the stream or reloading never stops a reply, only
 `POST /api/conversation/replies/{id}/stop` does. Retrying a send while its reply is still being
 written returns that same attempt instead of starting another. Without `wait=false` the request
-waits for the finished reply, as before.
+waits for the finished reply, as before. Waiting for the model is capped at the profile's time limit,
+like the request itself, so a reply never waits unseen; it fails with the reason instead. The chat shows
+the phase in one line above the message box, "will get back to you later" for a reply held by pacing
+(never when), and a held reply that failed shows at once with Retry.
 
 ### Search
 

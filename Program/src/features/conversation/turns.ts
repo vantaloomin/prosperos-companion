@@ -14,6 +14,12 @@ export function latestUser(turns: Turn[]): string | undefined {
   return turns.at(-1)?.user?.id
 }
 
+/** The id of the newest loaded message the user sent (messages are in sequence order). */
+export function lastUserMessage(messages: Message[]): string | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) if (messages[index].role === 'user') return messages[index].id
+  return undefined
+}
+
 /** A stable key: the user message, or the first message the companion sent unprompted. */
 export function turnKey(turn: Turn): string {
   return (turn.user ?? turn.leads[0]).id

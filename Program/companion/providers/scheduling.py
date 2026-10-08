@@ -128,7 +128,8 @@ class RequestScheduler:
         lease.ready.set_result(None)
 
     @asynccontextmanager
-    async def reserve(self, config, work=None):
+    async def reserve(self, config, work=None, wait_seconds=None):
+        """Admission to the model service; with `wait_seconds`, waiting longer than that fails visibly."""
         work = work or CURRENT_WORK.get()
         resource, limit = resource_for(config)
         self.limits[resource] = min(limit, self.limits.get(resource, limit))
@@ -139,7 +140,12 @@ class RequestScheduler:
             self.interrupt_background(resource)
         self.dispatch()
         try:
-            await lease.ready
+            try:
+                async with asyncio.timeout(wait_seconds):
+                    await lease.ready
+            except TimeoutError as error:
+                raise DomainError('The model was still busy with other work when the time limit ran out. '
+                                  'Try again in a moment.', 504, 'timeout') from error
             yield lease
         finally:
             if lease in self.waiting:

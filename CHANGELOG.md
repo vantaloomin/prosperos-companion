@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Always know what the chat is doing:** a small line above the message box says when a reply is
+  being got ready, waiting for the model, being written, or when your companion will get back to you
+  later. A reply that times out or fails now shows straight away with Retry, even while your companion
+  is busy, instead of staying hidden until they would have answered. While a reply waits for later you
+  can keep writing.
+
 - **Running from an external drive on a Mac:** macOS leaves a hidden `._` file beside every file copied
   to a drive formatted for Windows, and the app read those as cities. Matchlight, the city pickers and
   Today's local news then failed with "Something went wrong". Those files are skipped now.

@@ -118,18 +118,29 @@ def recover(database):
                            ('The app closed before this reply finished.', database.now()))
 
 
+# What the app is doing for a reply before its text arrives, so the chat can always say (never the companion's presence).
+PHASES = ('preparing', 'looking', 'waiting', 'writing')
+
+
 @dataclass
 class LiveReply:
-    """Text streamed so far for one attempt, fanned out to every open event stream."""
+    """Text streamed so far for one attempt and what the app is doing for it, fanned out to every open event stream."""
     task: asyncio.Task | None = None
     text: list[str] = field(default_factory=list)
     listeners: set[asyncio.Queue] = field(default_factory=set)
+    phase: str = 'preparing'
 
     def publish(self, text: str):
         if text:
             self.text.append(text)
             for queue in self.listeners:
-                queue.put_nowait(text)
+                queue.put_nowait(('delta', {'text': text}))
+
+    def step(self, phase: str):
+        if phase != self.phase:
+            self.phase = phase
+            for queue in self.listeners:
+                queue.put_nowait(('phase', {'phase': phase}))
 
 
 class Conversation:
@@ -232,7 +243,7 @@ class Conversation:
 
     def start(self, prepared) -> LiveReply:
         attempt_id, live = prepared['attempt_id'], LiveReply()
-        live.task = asyncio.create_task(self.generate(prepared, live.publish))
+        live.task = asyncio.create_task(self.generate(prepared, live.publish, live.step))
         self.running[attempt_id] = live
         live.task.add_done_callback(lambda _task: self.close(attempt_id))
         return live
@@ -257,9 +268,9 @@ class Conversation:
             queue = asyncio.Queue()
             live.listeners.add(queue)
             try:
-                yield 'snapshot', {'id': attempt_id, 'text': ''.join(live.text)}
-                while (text := await queue.get()) is not None:
-                    yield 'delta', {'id': attempt_id, 'text': text}
+                yield 'snapshot', {'id': attempt_id, 'text': ''.join(live.text), 'phase': live.phase}
+                while (item := await queue.get()) is not None:
+                    yield item[0], {'id': attempt_id, **item[1]}
             finally:
                 live.listeners.discard(queue)
         yield 'done', self.reply(attempt_id)
@@ -298,12 +309,13 @@ class Conversation:
                 'instruction': held['instruction'], 'note': note, 'dropped': dropped,
                 'definition': companion['version']['definition']}
 
-    async def assemble(self, prepared) -> dict:
+    async def assemble(self, prepared, step=lambda _phase: None) -> dict:
         """Build the reply's inputs and record the memory revision and character version they reflect,
         so a change made after this point withholds the reply (M9)."""
         user = prepared['user']
         photo = self.photos.for_message(user, prepared['attempt_id']) if self.photos else None
-        shown = await self.seer.look(user)
+        shown = await self.seer.look(user, lambda: step('looking'))
+        step('preparing')
         # Recall also looks for what the pictures show; lookups answer only what the user wrote.
         seen = {**user, 'text': pictures.with_pictures(user['text'], shown)} if shown else user
         semantic, outside = await asyncio.gather(self.query_vector(seen), self.outside(user))
@@ -328,14 +340,14 @@ class Conversation:
                                 prepared['attempt_id']))
         return packet
 
-    async def generate(self, prepared, publish=lambda _text: None):
+    async def generate(self, prepared, publish=lambda _text: None, step=lambda _phase: None):
         text, status, error = [], 'complete', None
         definition = prepared.get('definition') or {}
         active = in_character.applies(prepared['user']['text'], definition)
         try:
             key = key_for(self.vault, prepared['config'])
             with self.scheduler.foreground_work():
-                packet = await self.assemble(prepared)
+                packet = await self.assemble(prepared, step)
                 if prepared.get('instruction'):
                     # Busy: a quick note now, or the full reply after a holding text (companion/life/pacing.py).
                     packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['instruction']}"}
@@ -343,12 +355,12 @@ class Conversation:
                     note = in_character.OUT_OF_CHARACTER_NOTE.format(
                         name=definition.get('name', 'the character'), model=default_name(prepared['config']))
                     packet = {**packet, 'system': f"{packet['system']}\n\n{note}"}
-                status, error, dropped = await self.write(prepared, key, packet, text, publish, active)
+                status, error, dropped = await self.write(prepared, key, packet, text, publish, active, step)
                 if dropped and not ''.join(text).strip():
                     # The reply only stepped out of character: written once more with a reminder.
                     reminder = in_character.REMINDER.format(name=definition.get('name', 'yourself'))
                     status, error, dropped = await self.write(
-                        prepared, key, {**packet, 'system': f"{packet['system']}\n\n{reminder}"}, text, publish, active)
+                        prepared, key, {**packet, 'system': f"{packet['system']}\n\n{reminder}"}, text, publish, active, step)
                     if dropped and not ''.join(text).strip():
                         error = 'Every line of the reply stepped out of character, so it was hidden.'
         except asyncio.CancelledError:
@@ -362,9 +374,11 @@ class Conversation:
             status, error = 'failed', error or 'The model returned no reply text.'
         self.finish(prepared['attempt_id'], ''.join(text), status, error)
 
-    async def write(self, prepared, key, packet, text, publish, active) -> tuple[str, str | None, int]:
+    async def write(self, prepared, key, packet, text, publish, active, step=lambda _phase: None
+                    ) -> tuple[str, str | None, int]:
         """One pass at the reply. Sentences that say the companion is an AI or not real are dropped before
-        they are shown (companion/in_character.py); returns the status, error and how many were dropped."""
+        they are shown (companion/in_character.py); returns the status, error and how many were dropped.
+        Waiting for the model is capped at the reply's time limit, so a reply never waits unseen forever."""
         status, error, guard = 'complete', None, in_character.Guard(active)
         text.clear()
 
@@ -373,8 +387,10 @@ class Conversation:
                 text.append(piece)
                 publish(piece)
 
+        step('waiting')
         try:
-            async with self.scheduler.reserve(prepared['config'], CONVERSATION):
+            async with self.scheduler.reserve(prepared['config'], CONVERSATION, prepared['config']['timeout_seconds']):
+                step('writing')
                 async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
                                                         packet['messages']):
                     keep(guard.feed(chunk.text))

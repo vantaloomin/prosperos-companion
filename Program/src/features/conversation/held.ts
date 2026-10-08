@@ -9,3 +9,8 @@ export function isHeld(message: Pick<Message, 'held_until'>, now: number): boole
 export function releaseHeld(messages: Message[], seq: number): Message[] {
   return messages.map((message) => message.seq < seq && message.held_until ? { ...message, held_until: null } : message)
 }
+
+/** Out of sight until its time: a held reply being written or ready. One that failed shows at once, so an error is never hidden. */
+export function waitsUntilLater(message: Pick<Message, 'held_until' | 'status'>, now: number): boolean {
+  return isHeld(message, now) && (message.status === 'streaming' || message.status === 'complete')
+}
