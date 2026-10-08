@@ -8,6 +8,7 @@ there, restores a backup, starts the companion over or deletes them, or could se
 new address. A lost phone is revoked in Settings > Phone access.
 """
 import hashlib
+import ipaddress
 import secrets
 from datetime import timedelta
 
@@ -22,6 +23,8 @@ LOCAL_HOSTS = {'localhost', '127.0.0.1', '::1', 'testserver'}
 # Headers a proxy in front of the server adds; the PC's own browser never sends them.
 FORWARDED = ('x-forwarded-for', 'x-forwarded-host', 'forwarded', 'tailscale-user-login')
 TAILNET_SUFFIX = '.ts.net'
+# The addresses Tailscale gives devices: the backup address is the PC's own (companion/phone/tailscale.py).
+TAILNET_ADDRESSES = (ipaddress.ip_network('100.64.0.0/10'), ipaddress.ip_network('fd7a:115c:a1e0::/48'))
 COOKIE = 'companion_device'
 COOKIE_AGE = 400 * 24 * 3600  # the longest browsers keep a cookie
 PAIRING_LIFETIME = timedelta(minutes=10)
@@ -71,9 +74,25 @@ def pc_only(method: str, path: str) -> bool:
     return under(path, PC_ONLY) or (method not in {'GET', 'HEAD'} and under(path, PC_ONLY_CHANGES))
 
 
+def tailnet_address(name: str) -> bool:
+    try:
+        found = ipaddress.ip_address(name)
+    except ValueError:
+        return False
+    return any(found in network for network in TAILNET_ADDRESSES)
+
+
 def allowed_host(request: Request, address: str | None) -> bool:
     name = host_name(request)
-    return name.endswith(TAILNET_SUFFIX) or (address is not None and name == address.removeprefix('https://'))
+    return (name.endswith(TAILNET_SUFFIX) or tailnet_address(name)
+            or (address is not None and name == address.removeprefix('https://')))
+
+
+def secure(request: Request) -> bool:
+    """Whether the phone's browser reached the proxy over https; the backup address is plain http, and a browser
+    drops a Secure cookie sent over http."""
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    return scheme.split(',')[0].strip().lower() == 'https'
 
 
 class Gate:

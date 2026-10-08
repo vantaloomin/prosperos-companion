@@ -850,6 +850,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .phone-pairing .form-stack { gap: 10px; flex: 1; min-width: 220px; }
 .phone-qr svg { display: block; width: 200px; max-width: 100%; height: auto; border-radius: 8px; }
 .phone-code { font-size: 1.25rem; letter-spacing: .08em; }
+.phone-help summary { cursor: pointer; }
+.phone-help ol { margin: 8px 0 0; padding-left: 1.25rem; display: grid; gap: 6px; }
 
 /* Debug time (Settings > Debug): the banner while it is on, and the tab's controls. */
 .debug-banner { display: flex; flex: none; align-items: center; gap: 10px; max-width: 760px; margin: 12px 24px 0; padding: 9px 13px; border: 1px dashed var(--accent); border-radius: 8px; font-size: 0.875rem; background: var(--surface); }

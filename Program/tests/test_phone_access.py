@@ -1,4 +1,5 @@
 """Phone access over Tailscale: pairing, what a phone may do, and the Tailscale command line."""
+import json
 from datetime import timedelta
 
 import pytest
@@ -15,11 +16,13 @@ PHONE_HOST = 'home-vanta.tail1234.ts.net'
 def net(monkeypatch):
     """A signed-in Tailscale that serves whatever it is asked to."""
     calls = []
-    monkeypatch.setattr(tailscale, 'status', lambda: {'installed': True, 'running': True, 'name': PHONE_HOST,
-                                                      'install_url': tailscale.INSTALL_URL})
-    monkeypatch.setattr(tailscale, 'serving', lambda port: bool(calls) and calls[-1] == ('serve', port))
+    monkeypatch.setattr(tailscale, 'status', lambda: {
+        'installed': True, 'running': True, 'name': PHONE_HOST, 'ip': '100.90.1.2', 'magic_dns': True,
+        'https': True, 'phones': [{'name': 'pixel-9', 'online': True}], 'install_url': tailscale.INSTALL_URL})
+    monkeypatch.setattr(tailscale, 'served', lambda port: dict.fromkeys(
+        ('https', 'http'), bool(calls) and calls[-1] == ('serve', port)))
     monkeypatch.setattr(tailscale, 'serve', lambda port: calls.append(('serve', port)))
-    monkeypatch.setattr(tailscale, 'stop', lambda: calls.append(('stop',)))
+    monkeypatch.setattr(tailscale, 'stop', lambda port: calls.append(('stop',)))
     return calls
 
 
@@ -56,6 +59,7 @@ def test_a_phone_is_refused_while_phone_access_is_off(phone, companion):
 def test_turning_phone_access_on_shares_this_port_on_the_tailnet(client, net, enabled):
     assert enabled['enabled'] and enabled['address'] == f'https://{PHONE_HOST}'
     assert enabled['tailscale']['serving'] and net == [('serve', 80)]
+    assert enabled['backup_address'] == 'http://100.90.1.2:80'
     off = client.post('/api/phone/disable').json()
     assert not off['enabled'] and net[-1] == ('stop',)
 
@@ -181,7 +185,8 @@ def test_serve_retries_without_yes_on_older_tailscale(monkeypatch):
         return (1, 'flag provided but not defined: -yes') if '--yes' in args else (0, '')
     monkeypatch.setattr(tailscale, 'run', run)
     tailscale.serve(8775)
-    assert calls[-1] == ['tailscale', 'serve', '--bg', 'http://127.0.0.1:8775']
+    assert calls[1] == ['tailscale', 'serve', '--bg', 'http://127.0.0.1:8775']
+    assert calls[-1] == ['tailscale', 'serve', '--bg', '--http=8775', 'http://127.0.0.1:8775']
 
 
 def test_status_and_serving_read_the_json(monkeypatch):
@@ -193,3 +198,52 @@ def test_status_and_serving_read_the_json(monkeypatch):
     monkeypatch.setattr(tailscale, 'run', lambda args, timeout=10: (0, replies[args[1]]))
     assert tailscale.status()['name'] == PHONE_HOST and tailscale.status()['running']
     assert tailscale.serving(8775) and not tailscale.serving(9000)
+
+
+def test_a_phone_can_pair_on_the_plain_http_backup_address(client, app, companion, enabled):
+    pairing = client.post('/api/phone/pairings').json()
+    assert pairing['backup_link'] == f"http://100.90.1.2:80/?pair={pairing['code']}"
+    backup = TestClient(app, base_url='http://100.90.1.2:80', headers={
+        CLIENT_HEADER: 'workspace', 'x-forwarded-for': '100.101.102.103', 'x-forwarded-proto': 'http'})
+    response = backup.post('/api/phone/pair', json={'code': pairing['code'], 'name': 'Pixel'})
+    assert response.status_code == 200, response.text
+    assert 'Secure' not in response.headers['set-cookie']
+    assert backup.get('/api/phone/status').json()['paired']
+    other = TestClient(app, base_url='http://192.168.1.20:80', headers={'x-forwarded-for': '192.168.1.30'})
+    assert other.get('/api/phone/status').status_code == 400
+
+
+def test_status_lists_phones_and_what_the_tailnet_has_switched_on(monkeypatch):
+    monkeypatch.setattr(tailscale, 'binary', lambda: 'tailscale')
+    state = {'BackendState': 'Running', 'CertDomains': ['home-vanta.tail1234.ts.net'],
+             'CurrentTailnet': {'MagicDNSEnabled': False},
+             'Self': {'DNSName': 'home-vanta.tail1234.ts.net.', 'TailscaleIPs': ['100.90.1.2', 'fd7a:115c:a1e0::1']},
+             'Peer': {'a': {'HostName': 'pixel-9', 'OS': 'android', 'Online': False},
+                      'b': {'HostName': 'iPhone', 'OS': 'iOS', 'Online': True},
+                      'c': {'HostName': 'laptop', 'OS': 'windows', 'Online': True}}}
+    monkeypatch.setattr(tailscale, 'run', lambda args, timeout=10: (0, json.dumps(state)))
+    found = tailscale.status()
+    assert found['ip'] == '100.90.1.2' and found['https'] and not found['magic_dns']
+    assert found['phones'] == [{'name': 'iPhone', 'online': True}, {'name': 'pixel-9', 'online': False}]
+
+
+def test_serve_adds_the_http_backup_and_stop_removes_both(monkeypatch):
+    monkeypatch.setattr(tailscale, 'binary', lambda: 'tailscale')
+    calls = []
+    monkeypatch.setattr(tailscale, 'run', lambda args, timeout=10: calls.append(args) or (0, ''))
+    tailscale.serve(8775)
+    assert calls == [['tailscale', 'serve', '--bg', '--yes', 'http://127.0.0.1:8775'],
+                     ['tailscale', 'serve', '--bg', '--yes', '--http=8775', 'http://127.0.0.1:8775']]
+    calls.clear()
+    tailscale.stop(8775)
+    assert calls == [['tailscale', 'serve', '--https=443', 'off'], ['tailscale', 'serve', '--http=8775', 'off']]
+
+
+def test_served_tells_the_https_address_from_the_backup(monkeypatch):
+    monkeypatch.setattr(tailscale, 'binary', lambda: 'tailscale')
+    config = {'Web': {'home-vanta.tail1234.ts.net:443': {'Handlers': {'/': {'Proxy': 'http://127.0.0.1:8775'}}},
+                      'home-vanta.tail1234.ts.net:8775': {'Handlers': {'/': {'Proxy': 'http://127.0.0.1:8775'}}}}}
+    monkeypatch.setattr(tailscale, 'run', lambda args, timeout=10: (0, json.dumps(config)))
+    assert tailscale.served(8775) == {'https': True, 'http': True}
+    del config['Web']['home-vanta.tail1234.ts.net:8775']
+    assert tailscale.served(8775) == {'https': True, 'http': False}

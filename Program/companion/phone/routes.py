@@ -29,8 +29,15 @@ def state(request: Request) -> dict:
         config = access.phone_settings(connection)
         devices = access.devices(connection)
     net = tailscale.status()
+    shared = tailscale.served(port(request)) if net['running'] else {'https': False, 'http': False}
     return {'enabled': bool(config['enabled']), 'address': config['address'], 'devices': devices,
-            'tailscale': {**net, 'serving': net['running'] and tailscale.serving(port(request))}}
+            'backup_address': backup_address(net, shared, port(request)) if config['enabled'] else None,
+            'tailscale': {**net, 'serving': shared['https']}}
+
+
+def backup_address(net: dict, shared: dict, number: int) -> str | None:
+    """The PC's tailnet address over plain http (companion/phone/tailscale.py), when Tailscale shares it."""
+    return f"http://{net['ip']}:{number}" if shared['http'] and net['ip'] else None
 
 
 @router.get('/status')
@@ -44,8 +51,8 @@ def phone_status(request: Request):
 def pair(request: Request, response: Response, body: Pairing):
     require(access.is_remote(request), 'Open the pairing link on your phone.', 409)
     device, token = access.pair(request.app.state.database, gate(request), body.code, body.name)
-    response.set_cookie(access.COOKIE, token, max_age=access.COOKIE_AGE, httponly=True, secure=True,
-                        samesite='lax')
+    response.set_cookie(access.COOKIE, token, max_age=access.COOKIE_AGE, httponly=True,
+                        secure=access.secure(request), samesite='lax')
     return {'device': device}
 
 
@@ -54,7 +61,7 @@ def sign_out(request: Request, response: Response):
     device = request.state.device
     require(device is not None, 'This phone is not paired.', 409)
     access.revoke(request.app.state.database, device['id'])
-    response.delete_cookie(access.COOKIE, httponly=True, secure=True, samesite='lax')
+    response.delete_cookie(access.COOKIE, httponly=True, secure=access.secure(request), samesite='lax')
     return {'paired': False}
 
 
@@ -79,7 +86,7 @@ def enable(request: Request):
 @router.post('/disable')
 def disable(request: Request):
     """Stops forwarding and turns phone access off. Paired phones stay paired for next time."""
-    tailscale.stop()
+    tailscale.stop(port(request))
     database = request.app.state.database
     with database.connect(write=True) as connection:
         connection.execute('UPDATE phone_settings SET enabled=0, updated_at=? WHERE id=1', (database.now(),))
@@ -95,7 +102,10 @@ def new_pairing(request: Request):
     code, expires = gate(request).new_code()
     link = f"{config['address']}/?pair={code}"
     qr = segno.make(link, error='m').svg_inline(border=2, dark='#1b1916', light='#ffffff', omitsize=True)
-    return {'code': code, 'link': link, 'expires_at': expires, 'qr_svg': qr}
+    net = tailscale.status()
+    backup = backup_address(net, tailscale.served(port(request)), port(request)) if net['running'] else None
+    return {'code': code, 'link': link, 'backup_link': backup and f'{backup}/?pair={code}', 'expires_at': expires,
+            'qr_svg': qr}
 
 
 @router.delete('/devices/{device_id}')

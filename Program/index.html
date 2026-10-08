@@ -14,9 +14,14 @@
     <meta name="apple-mobile-web-app-title" content="Companion" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Prospero Companion</title>
+    <!-- Shown only if the app never starts, as on a browser too old for it; the app replaces it. -->
+    <style>
+      .boot { opacity: 0; animation: boot-show 0s 6s forwards; margin: 0; padding: 32px 20px; font: 16px/1.5 system-ui, sans-serif; color: #e9e4dc; background: #191816; min-height: 100vh; box-sizing: border-box; }
+      @keyframes boot-show { to { opacity: 1; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><p class="boot">The Companion has not started in this browser. Reload the page. If it still does not open, update this browser or try another one.</p></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

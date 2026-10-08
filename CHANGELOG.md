@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Phone access that tells you why it isn't loading:** Settings > Phone access now shows which phones are
+  signed in to your Tailscale account and warns when there are none, or when Tailscale is switched off on
+  them, the usual reason the pairing link opens and nothing loads. Under the QR code, "If nothing opens on
+  the phone" walks through the fixes, including a backup address that works without Tailscale's name lookup.
 - **Always know what the chat is doing:** a small line above the message box says when a reply is
   being got ready, waiting for the model or being written, or simply "Delivered" while your companion
   gets to it in their own time. A reply that times out or fails now shows straight away with Retry, even while your companion

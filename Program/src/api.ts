@@ -31,7 +31,7 @@ function failure(status: number, data: { detail?: unknown; code?: string }): Api
   return new ApiError(errorMessage(status, data), status, data.code)
 }
 
-export const newId = () => crypto.randomUUID()
+export { newId } from './ids.ts'
 
 /** Send a file as the request body, with its details in the query string. */
 export async function upload<T>(path: string, file: Blob, params: Record<string, string>): Promise<T> {

@@ -6,7 +6,7 @@ import { useWorkspaceSettings } from '../../companion'
 import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { linkParts } from '../phone/pairing'
-import { PHONE_ACCESS_KEY, PHONE_STATUS_KEY, usePhoneStatus, type PhoneAccess, type PhonePairing } from '../phone/phoneAccess'
+import { PHONE_ACCESS_KEY, PHONE_STATUS_KEY, usePhoneStatus, type PhoneAccess, type PhonePairing, type TailnetPhone } from '../phone/phoneAccess'
 
 const formatDate = (iso: string | null) => iso ? new Date(iso).toLocaleString() : 'never'
 
@@ -117,9 +117,25 @@ function Explanation({ access: { enabled, address, tailscale } }: { access: Phon
   return (
     <>
       <p>Your phone opens the Companion at <strong>{address}</strong>.{!tailscale.serving && ' Tailscale is not sharing it right now; turn phone access off and on again.'}</p>
-      <p className="subtle">Install Tailscale on your phone and sign in with the same account, then pair it here. A paired phone can chat and use Today, the Feed, Memories and Character. {pcOnly(loraMaker)} stay on this PC.</p>
+      <PhonesOnTailnet phones={tailscale.phones} />
+      {!tailscale.magic_dns && <Notice tone="warning"><Linked text={`MagicDNS is off for your tailnet, so a phone cannot find ${tailscale.name}. Turn it on under DNS in the Tailscale admin console, https://login.tailscale.com/admin/dns, or use the backup address when you pair.`} /></Notice>}
+      <p className="subtle">A paired phone can chat and use Today, the Feed, Memories and Character. {pcOnly(loraMaker)} stay on this PC.</p>
     </>
   )
+}
+
+/** The usual reason a phone opens the link and nothing loads: Tailscale is not on it, or is switched off. */
+function PhonesOnTailnet({ phones }: { phones: TailnetPhone[] }) {
+  if (phones.length === 0) {
+    return <Notice tone="warning">No phone is signed in to your Tailscale account yet. Install the Tailscale app on your phone, sign in with the same account as this PC and switch it on. Without it, the phone cannot open the address.</Notice>
+  }
+  const names = (list: TailnetPhone[]) => list.map((phone) => phone.name).join(', ')
+  const online = phones.filter((phone) => phone.online)
+  if (online.length === 0) {
+    return <Notice tone="warning">Tailscale is switched off on {names(phones)}. Open the Tailscale app on the phone and switch it on before you scan the code.</Notice>
+  }
+  const offline = phones.filter((phone) => !phone.online)
+  return <p className="subtle">Connected to Tailscale now: {names(online)}.{offline.length > 0 && ` Not connected: ${names(offline)}.`}</p>
 }
 
 function PairingCode({ pairing }: { pairing: PhonePairing }) {
@@ -131,6 +147,15 @@ function PairingCode({ pairing }: { pairing: PhonePairing }) {
         <p>Scan this with your phone’s camera, or open <strong>{pairing.link}</strong> on the phone.</p>
         <p>Code: <strong className="phone-code">{pairing.code}</strong></p>
         <p className="subtle">It works once, until {new Date(pairing.expires_at).toLocaleTimeString()}.</p>
+        <details className="phone-help">
+          <summary>If nothing opens on the phone</summary>
+          <ol>
+            <li>Open the Tailscale app on the phone and check it is switched on and signed in to the same account as this PC.</li>
+            <li>The first visit can take up to a minute while Tailscale sets up the secure address. Wait, then reload the page.</li>
+            {pairing.backup_link && <li>Still nothing? Open <strong>{pairing.backup_link}</strong> on the phone instead. It skips the name lookup and works the same, except that phone notifications need the first address.</li>}
+            <li>If only that backup address works, the phone looks up names without Tailscale. On Android, set Settings &gt; Network &amp; internet &gt; Private DNS to Automatic or Off. In the Tailscale app, keep Use Tailscale DNS on.</li>
+          </ol>
+        </details>
       </div>
     </div>
   )
