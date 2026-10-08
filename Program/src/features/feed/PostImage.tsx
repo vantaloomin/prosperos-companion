@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ImagePlus, RefreshCw, X } from 'lucide-react'
+import { ImageOff, ImagePlus, RefreshCw, X } from 'lucide-react'
 import { api } from '../../api'
 import type { FeedPost, ImageJob, PostImage as Illustration } from '../../types'
 import { imageAlt, imageFile, imageLine, isActive, provenance } from './imageState'
@@ -41,10 +41,17 @@ export function PostImage({ post, image, onChange }: { post: FeedPost; image: Il
 function ImageView({ post, image, waiting, error }: { post: FeedPost; image: Illustration; waiting?: string | null; error: string | null }) {
   const line = imageLine(image, waiting)
   return <>
-    {image.ref && <img src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} loading="lazy" />}
+    {image.ref ? <img src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} loading="lazy" /> : <Placeholder status={image.status} />}
     {line && <p className={image.status === 'failed' ? 'image-line error-text' : 'image-line subtle'} role="status">{line}</p>}
     {error && <p className="image-line error-text" role="alert">{error}</p>}
   </>
+}
+
+/** Until the first picture lands, its space with a blurry photo filling in, like one on a slow connection; greyed when it failed. */
+function Placeholder({ status }: { status: Illustration['status'] }) {
+  const failed = RETRYABLE.includes(status)
+  if (!failed && !isActive(status)) return null
+  return <div className="post-image-frame" aria-hidden="true"><span className={failed ? 'chat-photo-loading failed' : 'chat-photo-loading'}>{failed && <ImageOff />}</span></div>
 }
 
 function ImageActions({ image, details, setDetails, run, generate }: { image: Illustration; details: boolean; setDetails: (open: boolean) => void; run: Run; generate: () => Promise<void> }) {
