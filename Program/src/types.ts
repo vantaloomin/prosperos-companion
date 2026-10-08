@@ -580,7 +580,7 @@ export interface ImageJob {
 
 // Current context through MCP (PRD X1–X3)
 export type ContextCategory = 'weather' | 'news' | 'local_events' | 'link' | 'web_search' | 'culture'
-export type ContextPurpose = 'conversation' | 'companion_city'
+export type ContextPurpose = 'conversation' | 'companion_city' | 'ambient'
 export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal' | 'url'
 export interface ToolArgument { source: ArgumentSource; value?: string | number | boolean }
 export interface ContextTool { name: string; description: string; input_schema: { properties?: Record<string, { type?: string; description?: string }>; required?: string[] }; read_only: boolean }

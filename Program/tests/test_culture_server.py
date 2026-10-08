@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import threading
-from datetime import date
+from datetime import date, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -116,7 +116,7 @@ def test_chat_triggers(text, topic):
 class Recorded(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
-        body = {'/itunes': ITUNES, '/news': REVIEWS}.get(path, {})
+        body = {'/itunes': ITUNES, '/news': REVIEWS, '/apple_music/songs.json': SONGS, '/openlibrary': BOOKS}.get(path, {})
         self.send_response(200)
         self.end_headers()
         self.wfile.write(body if isinstance(body, bytes) else json.dumps(body).encode())
@@ -181,3 +181,76 @@ def test_built_in_culture_in_the_app_and_in_chat(client, connected, provider, se
         row = connection.execute('SELECT * FROM context_services WHERE id=?', (created['id'],)).fetchone()
     transport = context_services.transport_for(dict(row), client.app.state.vault)
     assert transport.env['TMDB_API_KEY'] == 'v3key'
+
+
+@pytest.fixture
+def offline(monkeypatch):
+    """Every source on the recorded server, so the digest of every section needs no network."""
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Recorded)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f'http://127.0.0.1:{server.server_port}'
+    monkeypatch.setenv('PROSPERO_CULTURE_ENDPOINTS', json.dumps({key: f'{base}/{key}' for key in culture.ENDPOINTS}
+                                                                | {'itunes_movies': f'{base}/itunes',
+                                                                   'news': f'{base}/news'}))
+    monkeypatch.setenv('NO_PROXY', '127.0.0.1')
+    yield
+    server.shutdown()
+
+
+def builtin_culture(client, run_in, service_id=None):
+    if service_id is None:
+        service_id = client.post('/api/context/services/builtin', json={'kind': 'culture'}).json()['id']
+        client.post(f'/api/context/services/{service_id}/check')
+    path = f'/api/context/services/{service_id}/tools/culture'
+    saved = client.put(path, json={'tool': 'get_culture_pulse', 'arguments': {'topic': {'source': 'topic'}},
+                                   'run_in': run_in})
+    assert saved.status_code == 200, saved.text
+    disclosure = saved.json()['mappings'][0]['disclosure']
+    assert client.post(f'{path}/enable', json={'digest': disclosure['digest']}).status_code == 200
+    return disclosure
+
+
+def ambient_observations(client):
+    return [item for item in client.get('/api/context/observations').json()['observations']
+            if item['purpose'] == 'ambient']
+
+
+def test_a_daily_digest_gives_a_sense_of_whats_out(client, app, connected, provider, clock, offline):
+    disclosure = builtin_culture(client, ['conversation', 'ambient'])
+    assert any('once a day in the background' in line and 'with no topic' in line for line in disclosure['summary'])
+    asyncio.run(app.state.life.quietly_observe())
+    asyncio.run(app.state.life.quietly_observe())  # asked once a day, not on every tick
+    [observation] = ambient_observations(client)
+    assert observation['status'] == 'ok', observation
+    assert observation['arguments'] == {}  # nothing about the user, not even a topic
+    client.post('/api/conversation/messages', json={'text': 'Hey, how was work?', 'client_id': 'ambient-1'})
+    system = provider.requests[-1]['system']
+    assert "## What's out and trending right now" in system
+    assert 'you have not watched, played, read or heard any of them' in system
+    assert 'Top movies on iTunes (new home releases): Big Movie, Small Movie' in system
+    assert 'Most-played songs on Apple Music in the US: Song A by Artist A' in system
+    # Lines of the feed can come from it, for today only.
+    from companion.life import social
+    with app.state.database.connect() as connection:
+        companion = client.get('/api/companion').json()['companion']
+        assert social.culture_picks(connection, clock.now(), companion['version']['definition']) == {
+            'movies': 'Big Movie', 'music': 'Song A by Artist A', 'books': 'A Novel by Writer'}
+    facts = {'weather': None, 'body': None, 'culture': {'music': 'Song A by Artist A'}}
+    lines = {social.status_text(f'seed-{n}', date(2026, 10, 7), facts, {})[0] for n in range(200)}
+    assert "Can't get Song A by Artist A out of my head." in lines
+    clock.advance(timedelta(hours=25))
+    asyncio.run(app.state.life.quietly_observe())
+    assert len(ambient_observations(client)) == 2
+
+
+def test_no_digest_without_its_switch_or_outside_the_present_day(client, app, connected, provider, offline):
+    builtin_culture(client, ['conversation'])
+    asyncio.run(app.state.life.quietly_observe())
+    assert ambient_observations(client) == []
+    builtin_culture(client, ['ambient'], client.get('/api/context').json()['services'][0]['id'])
+    companion = client.get('/api/companion').json()['companion']
+    definition = {**companion['version']['definition'], 'home_city': 'london-1895', 'timezone': 'Europe/London'}
+    client.post('/api/companion/versions', json={'definition': definition,
+                                                 'expected_version_id': companion['active_version_id']})
+    asyncio.run(app.state.life.quietly_observe())
+    assert ambient_observations(client) == []

@@ -340,8 +340,8 @@ class ToolArgument(Input):
 class ToolMapping(Input):
     tool: str = Field(min_length=1, max_length=128)
     arguments: dict[Annotated[str, Field(max_length=100)], ToolArgument] = Field(default_factory=dict, max_length=12)
-    run_in: list[Literal['conversation', 'companion_city']] = Field(default_factory=lambda: ['conversation'],
-                                                                    min_length=1, max_length=2)
+    run_in: list[Literal['conversation', 'companion_city', 'ambient']] = Field(
+        default_factory=lambda: ['conversation'], min_length=1, max_length=3)
 
 
 class ToolApproval(Input):

@@ -682,7 +682,8 @@ class LifeEngine:
 
     async def quietly_observe(self):
         """Real weather and local events for the companion's city, when the user allowed lookups for their
-        simulated day. Fresh results are reused (an hour for weather, twelve for events); never while paused."""
+        simulated day, and the daily culture digest when they turned it on. Fresh results are reused (an hour for
+        weather, twelve for events, a day for the digest); never while paused."""
         if self.lookups is None:
             return
         with self.database.connect() as connection:
@@ -693,6 +694,10 @@ class LifeEngine:
                 await self.lookups.run(category, 'companion_city', None, BACKGROUND_LOOKUP_DEADLINE)
             except Exception:  # noqa: BLE001 - the day keeps its typical weather and its own plans.
                 pass
+        try:
+            await self.lookups.ambient(BACKGROUND_LOOKUP_DEADLINE)
+        except Exception:  # noqa: BLE001 - the companion just knows less about what's out today.
+            pass
 
     async def quietly_text(self):
         if self.openers is None:
