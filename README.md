@@ -115,6 +115,8 @@ To drop city files in by hand instead, put them in the `city-packs` folder insid
 
 Don't put city files in `Program/companion/world/data/cities`. That folder holds the built-in cities, and every update replaces it.
 
+Writing a city of your own, or asking a chatbot to write one? [Making a city](Program/docs/making-a-city.md) says what a city file needs and what makes one feel alive, with a ready-to-paste prompt.
+
 ## Privacy
 
 The Companion only listens on your own computer (127.0.0.1); phone access goes through your own Tailscale network, never the open internet. Conversations, memories and pictures stay in your data folder. The only things that leave your PC are requests to the model and image services you set up, and lookups you switch on, each of which asks before it shares anything. API keys are kept in your operating system's credential store and never written to logs.
@@ -135,6 +137,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [Character drafting](Program/docs/character-drafting.md)
 - [Image generation](Program/docs/images.md)
 - [World data and building cities](Program/docs/world-data.md)
+- [Making a city](Program/docs/making-a-city.md): what a city file needs, for players
 - [Current context tools (MCP)](Program/docs/context-tools.md)
 - [Phone access](Program/docs/phone-access.md)
 - [Importing from Prospero's Study](Program/docs/study-import.md)
