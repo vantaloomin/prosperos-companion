@@ -13,15 +13,15 @@ export function Backstories({ companionIds, value, onChange }: { companionIds: s
     queryFn: () => api<{ pairs: UntoldPair[] }>('/groups/untold', { companion_ids: ids }) })
   const pairs = ids.length >= 2 ? untold.data?.pairs ?? [] : []
   if (!pairs.length) return null
-  const told = (pair: UntoldPair) => value.find((item) => item.a === pair.a && item.b === pair.b) ?? { a: pair.a, b: pair.b, level: null, how: '' }
+  const told = (pair: UntoldPair) => value.find((item) => item.a === pair.a && item.b === pair.b) ?? { a: pair.a, b: pair.b, level: null, how: pair.how }
   const set = (pair: UntoldPair, change: Partial<Backstory>) => {
     const next = { ...told(pair), ...change }
     onChange([...value.filter((item) => !(item.a === pair.a && item.b === pair.b)), next])
   }
   return (
     <fieldset className="group-backstories">
-      <legend>How they know each other (optional)</legend>
-      <p className="subtle">You can tell this once, the first time they share a group. After that, only what happens between them changes it.</p>
+      <legend>How they know each other</legend>
+      <p className="subtle">Filled in from where they live and whether they have met. Change it now if you like: after they first share a group, only what happens between them changes it.</p>
       {pairs.map((pair) => {
         const current = told(pair)
         const label = `${pair.a_name.split(' ')[0]} and ${pair.b_name.split(' ')[0]}`

@@ -142,6 +142,11 @@ ADDED_COLUMNS = (
     # A group reply a secret check touched (companion/secrets.py): 'redrafted', 'revealed' or 'held'.
     ('group_messages', 'guard', 'TEXT'),
     ('workspace_settings', 'show_secret_slips', 'INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1))'),
+    # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
+    # from before that is switched on once (see initialize), and turning it off afterwards sticks.
+    ('life_settings', 'events_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
+    # A moment that keeps coming up becomes a running joke on its own; one the user removed stays out.
+    ('closeness_jokes', 'removed', 'INTEGER NOT NULL DEFAULT 0 CHECK (removed IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -174,6 +179,7 @@ def initialize(connection, timestamp: str):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))
     connection.execute('UPDATE life_settings SET texts_first=1, texts_first_on_by_default=1 '
                        'WHERE texts_first_on_by_default=0')
+    connection.execute('UPDATE life_settings SET automatic_events=1, events_on_by_default=1 WHERE events_on_by_default=0')
     connection.execute('UPDATE workspace_settings SET automatic_memory=1, sensitive_memory=1, '
                        'model_memory_suggestions=1, memory_on_by_default=1 WHERE memory_on_by_default=0')
     connection.executemany('INSERT OR REPLACE INTO app_identity (key, value) VALUES (?, ?)',

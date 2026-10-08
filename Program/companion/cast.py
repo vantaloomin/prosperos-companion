@@ -280,6 +280,7 @@ def switch(database, key: str, definition, ties=()) -> dict:
     """Make a townsperson the main character, with the definition the user reviewed, and how they know the
     companions already here when the user wrote it on the form (once; companion/memory/pairs.py)."""
     zone(definition.timezone)
+    require(definition.name.strip(), 'Give them a name.', 422)
     timestamp = database.now()
     with database.connect(write=True) as connection:
         found = candidate(connection, key, database.clock.now())

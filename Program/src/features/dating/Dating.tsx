@@ -6,7 +6,7 @@ import type { View } from '../../companion'
 import type { CitySummary, Dating as DatingData, DatingCard, DatingMatch, DatingProfile } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { useSwitchBack } from '../character/useSwitchBack'
+import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
 import { Photo } from './Photo'
@@ -58,7 +58,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
           <LookingIn data={data} onEdit={() => setEditing(true)} onMove={(cityId) => void run(() => api<DatingData>('/dating/city', { city_id: cityId }, 'PUT'))} />
           {data.date && <Notice action={<button type="button" className="text-button" onClick={() => void api('/dating/dates/current', undefined, 'DELETE').then(() => client.invalidateQueries())}>End the date</button>}>
             You are on a date with {data.date.name} in your story.</Notice>}
-          {matched && <Notice action={<button type="button" className="text-button" onClick={() => go(`match/${encodeURIComponent(matched.key)}`)}>Start talking to {matched.name}…</button>}>
+          {matched && <Notice action={<StartTalking name={matched.name} matchKey={matched.key} go={go} />}>
             {data.words.matched}: {matched.name} likes you too.</Notice>}
           <Deck data={data} onSwipe={(key, like) => void swipe(key, like)} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
           <Matches data={data} go={go} onUnmatch={(key) => void run(() => api<DatingData>(`/dating/matches/${encodeURIComponent(key)}`, undefined, 'DELETE'))}
@@ -139,6 +139,16 @@ function Deck({ data, onSwipe, onPassedAgain }: { data: DatingData; onSwipe: (ke
   )
 }
 
+/** One tap makes a match a companion and opens the chat; their profile can be read and changed first, or later. */
+function StartTalking({ name, matchKey, go, primary = false }: { name: string; matchKey: string; go: (view: View) => void; primary?: boolean }) {
+  const { startWith, busy, error } = useStartWith(go)
+  return (<>
+    <button type="button" className={primary ? 'button primary' : 'text-button'} disabled={busy !== null} onClick={() => void startWith(matchKey)}>{busy ? 'Starting…' : `Start talking to ${name}`}</button>
+    <button type="button" className="text-button" onClick={() => go(`match/${encodeURIComponent(matchKey)}`)}>Read their profile first</button>
+    {error && <Notice tone="error">{error}</Notice>}
+  </>)
+}
+
 interface MatchesProps { data: DatingData; go: (view: View) => void; onUnmatch: (key: string) => void; onDate: (key: string, placeId: string) => Promise<void> }
 
 function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
@@ -154,7 +164,7 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
           <div className="form-actions">
             {match.companion_id
               ? <button type="button" className="button primary" disabled={busy !== null} onClick={() => void switchTo(match.companion_id!)}>Talk to {match.name}</button>
-              : <button type="button" className="button primary" onClick={() => go(`match/${encodeURIComponent(match.key)}`)}>Start talking to {match.name}…</button>}
+              : <StartTalking name={match.name} matchKey={match.key} go={go} primary />}
             {data.story && <MeetInStory match={match} onDate={onDate} />}
             {!match.companion_id && <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>}
           </div>

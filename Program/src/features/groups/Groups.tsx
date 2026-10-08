@@ -61,10 +61,10 @@ function GroupsHeader({ companions, go, onNew }: { companions: number | null; go
   )
 }
 
-/** Pick two or more companions, main or stepped back, and optionally name the group. */
-export function NewGroup({ companions, chosen = [], onClose, onMade }: { companions: CastMember[]; chosen?: string[]; onClose: () => void; onMade: (group: Group) => void }) {
+/** Two or more companions, main or stepped back (everyone unless given), and optionally a name for the group. */
+export function NewGroup({ companions, chosen, onClose, onMade }: { companions: CastMember[]; chosen?: string[]; onClose: () => void; onMade: (group: Group) => void }) {
   const client = useQueryClient()
-  const [picked, setPicked] = useState<string[]>(chosen)
+  const [picked, setPicked] = useState<string[]>(() => chosen ?? companions.map((member) => member.id))
   const [name, setName] = useState('')
   const [ties, setTies] = useState<Backstory[]>([])
   const [error, setError] = useState('')

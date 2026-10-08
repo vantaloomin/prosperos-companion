@@ -253,7 +253,7 @@ step can be skipped and run again from the Character page (**Profile pictures**)
 - Each picture is classified and routed like any image: NSFW goes only to a backend that accepts it and
   Prohibited is refused. When picture 1 fails or is refused, the other two are not made. **Make
   this one again** remakes that picture with a new seed; remaking picture 1 remakes all three.
-- **Keep these** adds the finished pictures to the character's reference pictures (as
+- Finished pictures are kept as they are ready (**Keep** shows again only if keeping failed): this adds them to the character's reference pictures (as
   `generated`, for training) and makes picture 1 the companion's picture: in the conversation
   header, the Community style's avatars and the Visual novel stage. Any reference picture can be
   chosen instead in Look and LoRA, and removing it brings back their initial.

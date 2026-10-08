@@ -123,13 +123,17 @@ def test_milestones_walk_the_history_in_order():
     assert [(item['level'], item['on']) for item in reached] == [(2, '2026-10-02'), (3, '2026-10-04')]
 
 
-def test_moments_that_keep_coming_up_are_offered_as_running_jokes(client, connected, clock):
+def test_moments_that_keep_coming_up_become_running_jokes_on_their_own(client, connected, clock):
     moment = remember_moment(client, 'The goose incident', 'A goose chased us across the park')
     for _ in range(closeness.JOKE_DAYS):
         send(client, 'Remember the goose that chased us across the park?', f'client-{uuid4().hex}')
         clock.advance(timedelta(days=1))
-    candidates = view(client)['joke_candidates']
-    assert [(item['memory_id'], item['days']) for item in candidates] == [(moment['id'], closeness.JOKE_DAYS)]
+    state = view(client)
+    assert [joke['memory_id'] for joke in state['jokes']] == [moment['id']] and state['joke_candidates'] == []
+    # Removed, it stays out and is offered back; added again, it is a running joke again.
+    removed = client.post(f"/api/closeness/jokes/{moment['id']}/remove").json()
+    assert removed['jokes'] == []
+    assert [(item['memory_id'], item['days']) for item in removed['joke_candidates']] == [(moment['id'], closeness.JOKE_DAYS)]
     chosen = client.post('/api/closeness/jokes', json={'memory_id': moment['id']}).json()
     assert chosen['joke_candidates'] == [] and len(chosen['jokes']) == 1
 

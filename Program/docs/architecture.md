@@ -241,14 +241,13 @@ unless the user turns on gentle cooling for that companion: a silence of 21 days
 60 days two, never below the second stage, and every two days talked afterwards win a step back,
 all worked out from the days talked. A held stage overrides all of this. Excluding or deleting a
 moment takes it out of the count. The `closeness` context section tells the companion how open to
-be, whether a nickname fits, that things have cooled when they have, and the running jokes the
-user picked; it repeats the non-romantic framing and that closeness never strengthens emotional
+be, whether a nickname fits, that things have cooled when they have, and the running jokes; it repeats the non-romantic framing and that closeness never strengthens emotional
 traits. The character's `history_together` (how you know each other) goes in the character
 section. The user's choices live in `closeness_settings` (a held stage, a set stage's
 `head_start` and `set_on`, `ceiling_level`, `cooling_since`, a nickname, and `counted_from` after
-Start over) and `closeness_jokes`. Keep as a shared moment, on any message, opens the Remember
+Start over) and `closeness_jokes` (added or removed by the user). Keep as a shared moment, on any message, opens the Remember
 form on a shared moment with that message in it. Shared moments recalled on three separate
-days are offered as running jokes, never added on their own. A fork starts with default choices.
+days become running jokes on their own; one the user removed stays out and is offered back. A fork starts with default choices.
 
 ## Consolidation (M10, M11)
 
@@ -319,8 +318,8 @@ memory or a boundary), and the model marks an answer that says one of them is wr
 `corrects`, naming that subject as sent (prompt `memory-suggest-3`). Each answer must name a message in the batch and take most of its
 words from that message, or it is dropped; so is one whose `corrects` names anything that was not sent. An
 answer marked `corrects`, or one that negates the one current memory with its layer and subject ("Mom's
-interests: not a gardener"), waits as a `correction` of that memory (below); a new value for a single-valued
-subject waits as a `conflict`, like a rule-found one. Other survivors are saved as `automatic` memories (shown as
+interests: not a gardener"), corrects that memory (below); a new value for a single-valued subject replaces the
+current one, like a rule-found one. Other survivors are saved as `automatic` memories (shown as
 saved automatically, so the user can correct or delete them), except a sensitive one while sensitive memory is off,
 which waits. A malformed answer
 marks the batch failed; changed permissions make it stale. Each message is sent once.
@@ -332,13 +331,14 @@ sentence that opens with who it is about (I, "my mom", "my sister Jo", a name al
 not a lab"). The negated words must repeat a word of exactly one current fact about that same someone (theirs
 by identity, or a subject that names them, such as "Mom's interests"); a tie, a passing state ("my mom isn't
 home", "I'm not sure about Chicago"), reported speech ("I told her my mom isn't a gardener") or a sentence that
-only mentions the subject proposes nothing, and only "don't live in" can end a home. The result waits as a
-`correction` suggestion naming the memory (`corrects`) and showing its value in `replaces`, even after Remember
-this. Keeping it rewords that memory as a new revision (the old value becomes history), or, when the value just
+only mentions the subject proposes nothing, and only "don't live in" can end a home. The correction is applied
+as soon as it is found ("the world exists outside of User"; it is recorded as a committed `correction` candidate
+naming the memory in `corrects`, and Memories can change it back): it rewords that memory as a new revision (the old value becomes history), or, when the value just
 stopped being true ("anymore", "no longer", "now"), ends it so it is recalled as no longer current. A home, job or
 other single value said to be untrue with no word that it changed ("No, I don't live in Chicago") was never true,
-so keeping that retracts it (superseded by nothing) instead of recalling a past in Chicago that never happened.
-If the memory changed meanwhile, keeping it does nothing.
+so it is retracted (superseded by nothing) instead of recalling a past in Chicago that never happened.
+If the memory changed meanwhile, the correction does nothing. Corrections that waited from before this change can
+still be kept or declined in Memories.
 
 **Old words of a corrected memory.** A correction changes the memory, but the words it came from stay in the
 transcript, where raw recall can still find them: the user's original message, the companion's reply to it, a
@@ -353,10 +353,9 @@ correction counts as handled, so the model does not see it again.
 `favourite_*`) hold one current value. A new current value ends the earlier one at its start
 (`applies_until`, `ended_by_id`), which stays as history: "I moved to Boston" ends Chicago, "I might
 move to Boston" is a proposed plan, and "I lived in Boston ten years ago" ends nothing. A different
-value stated without saying it changed ("I live in Denver" while Chicago is current) does not end
-anything automatically: it waits as a `conflict` suggestion that shows the value it would replace,
-until the user picks one. Remember this on that message is the user's choice and replaces directly. Saying a
-current value is wrong or no longer true waits as a `correction` (above).
+value stated without saying it changed ("I live in Denver" while Chicago is current) replaces it too:
+the newest statement wins and Chicago stays as history, which the user can restore in Memories. Saying a
+current value is wrong or no longer true is a `correction` (above).
 Spans are half-open, so a value ended at a moment is no longer current at that moment. A correction
 is a different thing: a new revision that supersedes a wrong value. Ended facts are recallable
 history marked "no longer current"; expired temporary circumstances are not recalled. Open plans
@@ -369,8 +368,8 @@ such a plan happened, and offers to set a date that was unclear.
 "my sister Jo", "my sister is called Ana", "Sam is my best friend", "I have a dog called Rex", a known
 name ("Jo got promoted" once Jo is known) and "she"/"he" right after someone in the same message.
 Relations most people have several of (friend, cousin, coworker) need a name; "my mum" or "my boss" is
-one person without one. Facts about them are work, home (moves replace, a different home without a
-change word waits as a conflict like the user's own), age, birthday, studies, pets and family, likes,
+one person without one. Facts about them are work, home (moves replace, and so does a different home
+without a change word, like the user's own: the newest statement wins and the old one is kept as history), age, birthday, studies, pets and family, likes,
 dislikes and news ("just got engaged"). A loss is news, but sensitive.
 
 People are stored in `user_people` (`companion/memory/people.py`); everything said about them is an

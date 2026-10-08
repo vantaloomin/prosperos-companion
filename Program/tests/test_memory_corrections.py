@@ -1,4 +1,4 @@
-"""A user's correction of a current memory waits as a correction of that memory, never as a stray fact (PRD M8, M9)."""
+"""A user's correction of a current memory corrects that memory straight away, never as a stray fact (PRD M8, M9)."""
 import asyncio
 import json
 
@@ -30,12 +30,6 @@ def suggestions(client):
     return client.get('/api/memory/suggestions').json()
 
 
-def accept(client, suggestion):
-    response = client.post(f"/api/memory/suggestions/{suggestion['id']}/accept")
-    assert response.status_code == 200, response.text
-    return response.json()
-
-
 def memories(client, history=False):
     return client.get('/api/memories', params={'history': history}).json()
 
@@ -48,20 +42,16 @@ def model_reply(items):
     return respond
 
 
-def test_saying_a_remembered_fact_is_wrong_waits_as_a_correction_of_it(client, connected):
+def test_saying_a_remembered_fact_is_wrong_corrects_it(client, connected):
     """A real run kept "Mom's interests: she loves gardening" after "my mom is definitely not a gardener"."""
     old = remember(client, **GARDENING)
     enable(client)
     send(client, 'my mom is definitely not a gardener', 'client-0001')
     run(client)
-    [suggestion] = suggestions(client)
-    assert (suggestion['reason'], suggestion['corrects'], suggestion['ends']) == ('correction', old['id'], False)
-    assert (suggestion['subject'], suggestion['value'], suggestion['replaces']) == (
-        "Mom's interests", 'not a gardener', ['she loves gardening'])
-    assert [item['value'] for item in memories(client)] == ['she loves gardening'], 'nothing changes on its own'
-    result = accept(client, suggestion)
-    assert result['outcome'] == 'corrected' and result['memory']['supersedes_id'] == old['id']
-    assert [(item['subject'], item['value']) for item in memories(client)] == [("Mom's interests", 'not a gardener')]
+    assert suggestions(client) == [], 'nothing waits for the user'
+    [current] = memories(client)
+    assert (current['subject'], current['value'], current['supersedes_id']) == (
+        "Mom's interests", 'not a gardener', old['id'])
     history = {item['value']: (item['status'], item['retracted']) for item in memories(client, history=True)}
     assert history == {'she loves gardening': ('superseded', False), 'not a gardener': ('active', False)}
 
@@ -73,11 +63,7 @@ def test_something_that_stopped_being_true_ends_as_history(client, connected):
     work = remember(client, layer='user_fact', subject='Work', value='teacher at Lincoln High')
     send(client, "Actually I don't live in Chicago anymore. I'm not a teacher anymore.", 'client-0002')
     run(client)
-    found = {item['replaces'][0]: item for item in suggestions(client)}
-    assert set(found) == {'Chicago', 'teacher at Lincoln High'}
-    assert all(item['reason'] == 'correction' and item['ends'] for item in found.values())
-    for suggestion in found.values():
-        assert accept(client, suggestion)['outcome'] == 'ended'
+    assert suggestions(client) == []
     ended = {item['value']: item for item in memories(client)}
     assert ended['Chicago']['current'] is False and ended['teacher at Lincoln High']['current'] is False
     assert ended['teacher at Lincoln High']['id'] == work['id'] and len(ended) == 2, 'nothing new is invented'
@@ -90,9 +76,8 @@ def test_a_known_pet_corrected_by_name_is_reworded(client, connected):
     breed = remember(client, layer='user_fact', subject="Pickles' breed", value='a lab')
     send(client, 'No, Pickles is a beagle, not a lab', 'client-0002')
     run(client)
-    [suggestion] = suggestions(client)
-    assert (suggestion['corrects'], suggestion['value'], suggestion['replaces']) == (breed['id'], 'a beagle', ['a lab'])
-    assert accept(client, suggestion)['memory']['value'] == 'a beagle'
+    assert suggestions(client) == []
+    assert {item['value']: item.get('supersedes_id') for item in memories(client)}['a beagle'] == breed['id']
 
 
 def test_mentions_without_a_contradiction_propose_nothing(client, connected):
@@ -109,16 +94,15 @@ def test_mentions_without_a_contradiction_propose_nothing(client, connected):
     assert {'she loves gardening', 'Chicago'} <= {item['value'] for item in memories(client) if item['current']}
 
 
-def test_a_declined_correction_is_not_offered_again(client, connected):
+def test_saying_a_correction_again_changes_nothing_more(client, connected):
     remember(client, **GARDENING)
     enable(client)
     send(client, 'my mom is not a gardener', 'client-0001')
     run(client)
-    [suggestion] = suggestions(client)
-    client.post(f"/api/memory/suggestions/{suggestion['id']}/decline")
+    once = memories(client, history=True)
     send(client, "My mom's not a gardener", 'client-0002')
     run(client)
-    assert suggestions(client) == []
+    assert suggestions(client) == [] and memories(client, history=True) == once
 
 
 def suggest(client, app):
@@ -126,7 +110,7 @@ def suggest(client, app):
     return asyncio.run(app.state.memory.suggest())
 
 
-def test_a_model_answer_that_corrects_a_sent_memory_waits_as_its_correction(client, app, connected, provider):
+def test_a_model_answer_that_corrects_a_sent_memory_corrects_it(client, app, connected, provider):
     old = remember(client, **GARDENING)
     enable(client, model_memory_suggestions=True)
     provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': "Mom's interests",
@@ -137,11 +121,9 @@ def test_a_model_answer_that_corrects_a_sent_memory_waits_as_its_correction(clie
     [sent] = json.loads(asked['messages'][0]['content'])
     assert sent['known'] == ["Mom's interests: she loves gardening"]
     assert '"corrects"' in asked['system']
-    [suggestion] = suggestions(client)
-    assert (suggestion['source'], suggestion['reason'], suggestion['corrects']) == ('model', 'correction', old['id'])
-    assert suggestion['rule'] == 'memory-suggest-3' and suggestion['replaces'] == ['she loves gardening']
-    assert accept(client, suggestion)['memory']['value'] == 'never really gardening'
-    assert [item['value'] for item in memories(client)] == ['never really gardening']
+    assert suggestions(client) == []
+    [current] = memories(client)
+    assert (current['value'], current['supersedes_id']) == ('never really gardening', old['id'])
 
 
 def test_a_model_answer_negating_the_same_subject_is_routed_without_a_mark(client, app, connected, provider):
@@ -151,8 +133,8 @@ def test_a_model_answer_negating_the_same_subject_is_routed_without_a_mark(clien
                                      'value': 'never really gardening'}])
     send(client, "Turns out gardening was never really my mom's thing at all", 'model-0001')
     suggest(client, app)
-    [suggestion] = suggestions(client)
-    assert (suggestion['reason'], suggestion['corrects']) == ('correction', old['id'])
+    [current] = memories(client)
+    assert (current['value'], current['supersedes_id']) == ('never really gardening', old['id'])
 
 
 def test_a_model_correction_of_something_not_sent_is_dropped(client, app, connected, provider):
@@ -189,10 +171,7 @@ def test_a_home_said_to_be_untrue_is_dropped_not_kept_as_a_past(client, provider
     [home] = memories(client)
     send(client, "No, I don't live in Chicago", 'client-0002')
     run(client)
-    [suggestion] = suggestions(client)
-    assert (suggestion['corrects'], suggestion['ends'], suggestion['retracts']) == (home['id'], False, True)
-    assert accept(client, suggestion)['outcome'] == 'retracted'
-    assert memories(client) == []
+    assert memories(client) == [] and suggestions(client) == []
     assert [(item['value'], item['status'], item['retracted']) for item in memories(client, history=True)] == [
         ('Chicago', 'superseded', True)]
     send(client, 'Any good pizza in Chicago?', 'client-0003')
@@ -216,8 +195,6 @@ def test_recalled_words_of_a_corrected_memory_carry_the_correction(client, app, 
     enable(client)
     send(client, 'my mom is definitely not a gardener', 'client-0004')
     run(client)
-    [suggestion] = suggestions(client)
-    accept(client, suggestion)
     send(client, 'Did I ever tell you about gardening?', 'client-0005')
     note = "the user later changed this; it now reads: Mom's interests: not a gardener"
     assert f'My mom loves gardening [{note}]' in provider.requests[-1]['system']

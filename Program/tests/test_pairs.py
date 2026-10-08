@@ -99,7 +99,10 @@ def test_two_companions_start_as_strangers_unless_their_backstory_is_told_once(c
     assert stage(client, mira, billy) == 2 and stage(client, mira, sally) == 1 and stage(client, billy, sally) == 3
     with client.app.state.database.connect() as connection:
         rows = connection.execute('SELECT first, second, start_level, how FROM pair_backstories').fetchall()
-    assert sorted((row['start_level'], row['how']) for row in rows) == [(2, ''), (3, 'They shared a flat in college.')]
+    told = {(row['first'], row['second']): (row['start_level'], row['how']) for row in rows}
+    # Mira and Sally, told nothing, get the backstory the app works out.
+    assert sorted(told.values(), key=str) == sorted([(2, ''), (3, 'They shared a flat in college.'),
+                                                     (None, 'Only know each other through the user')], key=str)
     # Anyone outside a companion is never worked out.
     assert stage(client, 'town:baltimore:somewhere:0', 'town:baltimore:somewhere:1') is None
 
@@ -248,3 +251,14 @@ def test_a_new_companion_starts_at_their_meetings_and_the_form_can_tell_it_once(
     assert [(item['name'], item['feels']['level'], item['how']) for item in ties] == \
         [('Mira', 4, 'Regulars at the same bar.')]
     assert stage(client, key(new['id']), key(mira['id'])) == 4
+
+
+def test_an_untold_backstory_is_worked_out_from_where_they_live(client, cast):
+    edit(client, cast['Billy'], home_city='baltimore')
+    edit(client, cast['Sally'], home_city='baltimore')
+    [pair] = ok(client.post('/api/groups/untold', json={'companion_ids': [cast['Billy'], cast['Sally']]}))['pairs']
+    assert pair['how'] == 'Both live in Baltimore, but only know each other through the user'
+    ok(client.post('/api/groups', json={'companion_ids': [cast['Billy'], cast['Sally']]}))
+    with client.app.state.database.connect() as connection:
+        found = pairs.backstory(connection, key(cast['Billy']), key(cast['Sally']))
+    assert (found['start_level'], found['how']) == (None, pair['how'])

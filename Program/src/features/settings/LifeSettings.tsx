@@ -60,7 +60,7 @@ export function LifeSettings({ name }: { name: string }) {
       <Toggle label="Catch up when you return" checked={data.catch_up_on_return} onChange={(value) => void save({ catch_up_on_return: value })}
         hint="Off: nothing is written for the time you were away, and their life picks up from when you return." />
       <Toggle label="Add everyday events without asking" checked={data.automatic_events} onChange={(value) => void save({ automatic_events: value })}
-        hint="Off: new events wait in Today for you to keep or discard. Big changes to who they are or your relationship always wait for you." />
+        hint="On unless you turn it off: their days just happen, and you can correct anything afterwards. Off: new events wait in Today for you to keep or discard." />
       <Toggle label="Let the model word their days" checked={data.phrase_with_model} onChange={(value) => void save({ phrase_with_model: value })}
         hint="What happens is always built from their routine and city. With this on, your model rewrites it in their voice; off, plain wording is used and no model calls are made." />
       <Toggle label={others ? `Let ${name} and your other companions message you first` : `Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}

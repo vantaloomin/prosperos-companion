@@ -61,7 +61,8 @@ class MoneySetup(Input):
 
 
 class CharacterDefinition(Input):
-    name: str = Field(min_length=1, max_length=120)
+    # Empty when creating gives them a name that fits (companion/characters.py); a revision needs one.
+    name: str = Field(default='', max_length=120)
     identity: str = Field(default='', max_length=4000)
     personality: str = Field(default='', max_length=8000)
     voice: str = Field(default='', max_length=4000)

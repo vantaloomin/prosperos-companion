@@ -35,6 +35,8 @@ LOG = logging.getLogger(__name__)
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
+# Columns that record a one-time switch to a new default, not settings.
+MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
@@ -46,7 +48,7 @@ def life_settings(connection) -> dict:
 
 
 def settings_view(row: dict) -> dict:
-    view = {key: value for key, value in row.items() if key != 'texts_first_on_by_default'}
+    view = {key: value for key, value in row.items() if key not in MARKERS}
     return {**view, **{flag: bool(row[flag]) for flag in FLAGS}}
 
 
