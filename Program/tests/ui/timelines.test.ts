@@ -11,14 +11,14 @@ function timeline(id: string, extra: Partial<Timeline> = {}): Timeline {
 
 test('the summary says which timeline is current and which edit has not been started', () => {
   assert.equal(timelineSummary(timeline('a', { active: true, status: 'active', messages: 1 })), 'Current · 1 message')
-  assert.match(timelineSummary(timeline('b', { parent_id: 'a', draft: 'Hi' })), /^Not started yet · 2 messages from before your edit, with your edit waiting$/)
+  assert.match(timelineSummary(timeline('b', { parent_id: 'a', draft: 'Hi' })), /^Not started yet · 2 messages, with your edit waiting$/)
   assert.match(timelineSummary(timeline('c', { activated_at: '2026-10-05T12:00:00Z', frozen_at: '2026-10-06T12:00:00Z' })), /^Set aside since /)
 })
 
-test('a fork names the timeline it was edited from', () => {
+test('a fork names the timeline it branched from', () => {
   const original = timeline('a', { label: 'Original' })
   const fork = timeline('b', { parent_id: 'a', forked_at: '2026-10-05T12:00:00Z' })
-  assert.match(forkNote(fork, [original, fork]) ?? '', /^Edited from Original at a message from /)
+  assert.match(forkNote(fork, [original, fork]) ?? '', /^Branched from Original at a message from /)
   assert.equal(forkNote(original, [original, fork]), null)
 })
 

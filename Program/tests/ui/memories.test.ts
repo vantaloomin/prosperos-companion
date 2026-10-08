@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason } from '../../src/features/memories/memoryGroups.ts'
+import { correction, dayInput, deletePreviewText, earlierVersions, followUp, groupMemories, groupPeople, personLine, rememberedText, statusLabels, suggestionReason, titleFrom } from '../../src/features/memories/memoryGroups.ts'
 import type { Memory, Person } from '../../src/types.ts'
 
 function memory(id: string, extra: Partial<Memory> = {}): Memory {
@@ -98,4 +98,9 @@ test('a person is described by relation, or by what is still unknown', () => {
   assert.equal(personLine(person('a', { name: 'Jo', relation: 'sister' })), 'Your sister')
   assert.equal(personLine(person('b', { relation: 'mum' })), 'Name not known yet')
   assert.equal(personLine(person('c', { name: 'Sam' })), 'Relation not known yet')
+})
+
+test('a memory saved without a title is named by its first words', () => {
+  assert.equal(titleFrom('  QonCat  '), 'QonCat')
+  assert.equal(titleFrom('Likes to be called Q by close friends only'), 'Likes to be called Q by…')
 })

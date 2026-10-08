@@ -7,6 +7,7 @@ from conftest import reconcile, send, set_life
 from companion import timelines
 from companion.clock import parse
 from companion.life import social
+from companion.providers.chat import Chunk
 
 
 @pytest.fixture(autouse=True)
@@ -75,10 +76,61 @@ def test_editing_an_earlier_message_creates_an_inactive_timeline(client, connect
     assert texts(client)[-2:] == ['It rained.', 'Hello again.']
 
 
-def test_only_your_own_messages_can_be_edited(client, connected, clock):
+def test_only_your_own_messages_are_edited_in_a_new_timeline(client, connected, clock):
     sent = send(client, 'Hello there', 'client-0001')
     response = client.post('/api/timelines', json={'message_id': sent['reply']['id'], 'text': 'Changed'})
     assert response.status_code == 422
+
+
+def branch(client, message_id, **extra):
+    response = client.post('/api/timelines', json={'message_id': message_id, **extra})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_branching_from_a_reply_keeps_everything_up_to_it(client, connected, clock):
+    sent = []
+    for index, line in enumerate(['Morning!', 'I went hiking today.', 'It rained.']):
+        sent.append(send(client, line, f'client-{index:04d}'))
+        clock.advance(timedelta(minutes=5))
+    created = branch(client, sent[1]['reply']['id'], label='After hiking')
+    assert created['draft'] is None and created['messages'] == 4
+    # Memories and life until the next message belong to the branch.
+    assert created['forked_at'] == sent[2]['message']['created_at']
+    activate(client, created['id'])
+    assert texts(client) == ['Morning!', 'Hello again.', 'I went hiking today.', 'Hello again.']
+    send(client, 'Want to go again tomorrow?', 'client-next')
+    assert texts(client)[-2:] == ['Want to go again tomorrow?', 'Hello again.']
+
+
+def test_branching_from_your_message_keeps_it_without_a_reply(client, connected, clock):
+    first = send(client, 'Morning!', 'client-0001')
+    clock.advance(timedelta(minutes=5))
+    send(client, 'Tea or coffee?', 'client-0002')
+    created = branch(client, first['message']['id'])
+    activate(client, created['id'])
+    assert texts(client) == ['Morning!']
+
+
+def test_branching_from_the_newest_message_keeps_memories_until_now(client, connected, clock):
+    sent = send(client, 'We watched the meteor shower', 'client-0001')
+    clock.advance(timedelta(minutes=5))
+    remember(client, subject='Meteor shower', value='Watched the meteor shower together')
+    clock.advance(timedelta(minutes=1))
+    created = branch(client, sent['reply']['id'])
+    activate(client, created['id'])
+    assert 'meteor shower together' in client.get('/api/context/preview').json()['system']
+
+
+def test_branching_from_another_version_of_a_reply_shows_that_version(client, connected, clock, provider):
+    sent = send(client, 'Tell me a joke', 'client-0001')
+    provider.replies = [[Chunk('A second joke.'), Chunk('', 'stop')]]
+    other = client.post(f"/api/conversation/messages/{sent['message']['id']}/alternatives").json()['reply']
+    created = branch(client, sent['reply']['id'])
+    activate(client, created['id'])
+    shown = [message for message in client.get('/api/conversation').json()['messages'] if message['active']]
+    assert [message['text'] for message in shown] == ['Tell me a joke', 'Hello again.']
+    assert other['id'] not in {message['origin_id'] for message in shown}
 
 
 def test_a_reply_finishing_after_a_switch_is_withheld(app, client, connected, clock, provider):

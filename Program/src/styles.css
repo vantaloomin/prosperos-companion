@@ -265,6 +265,8 @@ textarea { resize: vertical; line-height: 1.6; }
   .message-actions { position: relative; }
   .message-actions .message-more { display: inline-flex; justify-content: center; min-width: 36px; min-height: 28px; }
   .message-actions:not(.open) .message-tools { display: none; }
+  /* The skipped rendering of off-screen messages (content-visibility) would clip an open menu at the message's edge. */
+  .message:has(.message-actions.open) { content-visibility: visible; position: relative; z-index: 3; }
   .message-actions.open .message-tools { position: absolute; z-index: 2; top: 100%; right: 0; display: flex; flex-direction: column; align-items: stretch;
     min-width: max-content; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 18px #0006; }
   .message-actions.open .message-tools .text-button { opacity: 1; justify-content: flex-start; min-height: 36px; padding: 6px 10px; font-size: 0.8125rem; }
@@ -1004,3 +1006,4 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-community .chat-activity { max-width: none; }
 .chat-retro .chat-activity { max-width: none; padding: 0 6px; font-size: 0.6875rem; }
 @media (max-width: 720px) { .chat-activity { padding: 0 12px; } }
+.branch-quote { margin: 0; padding: 6px 12px; border-left: 2px solid var(--border); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 9em; overflow: auto; }

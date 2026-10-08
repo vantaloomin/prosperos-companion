@@ -14,7 +14,7 @@ from companion.memory import dates, people_rules
 EXTRACTOR_VERSION = 'rules-v1'
 
 # Subjects that hold one current value: a new current value ends the previous one (M8).
-SINGLE_VALUED = {'preferred_name', 'home_city', 'work', 'birthday'}
+SINGLE_VALUED = {'preferred_name', 'nickname', 'home_city', 'work', 'birthday'}
 # Rules and words that say a value changed, so a new value may replace the current one (M8).
 CHANGE_RULES = {'moved', 'new_job', 'person_moved'}
 CHANGE_MARKER = re.compile(r'\b(?:now|these days|nowadays|any ?more|from now on|currently|changed|switched|new|'
@@ -25,6 +25,7 @@ SUBJECT_KEYS = {
     'where i live': 'home_city', 'lives in': 'home_city',
     'job': 'work', 'work': 'work', 'occupation': 'work', 'career': 'work', 'employer': 'work',
     'birthday': 'birthday',
+    'nickname': 'nickname', 'nick name': 'nickname', 'my nickname': 'nickname',
 }
 
 SENSITIVE = re.compile(
@@ -174,6 +175,14 @@ def name_rule(statement):
         yield Candidate('user_fact', 'Preferred name', match.group(1), 'name', statement.sentence)
 
 
+def nickname_rule(statement):
+    """Nicknames are often lower case ("my nickname is qoncat"), so the word after the phrase is taken as written."""
+    match = re.search(r"\bmy nick ?name(?: is|'s|’s)\s+([\w'’-]+)", statement.sentence, re.IGNORECASE)
+    negated = match and re.search(r"(?:n't|\bnot|\bnever)\s+(?:ever\s+)?$", statement.sentence[:match.start()])
+    if match and not negated:
+        yield Candidate('user_fact', 'Nickname', match.group(1), 'nickname', statement.sentence)
+
+
 def place_rules(statement):
     """Moves, current homes, past homes and possible moves are different facts (M8)."""
     text = statement.sentence
@@ -314,7 +323,7 @@ def plan_rules(statement):
                         dates_uncertain=uncertain, target=noun.lower())
 
 
-RULES = (name_rule, place_rules, work_rule, boundary_rule, preference_rules, personal_rules, temporary_rule,
+RULES = (name_rule, nickname_rule, place_rules, work_rule, boundary_rule, preference_rules, personal_rules, temporary_rule,
          plan_rules)
 
 

@@ -17,7 +17,7 @@ import { releaseHeld, waitsUntilLater } from './held'
 import { ActivityLine } from './ActivityLine'
 import type { Phase } from './activity'
 import { TurnView } from './TurnView'
-import { EditDialog, TimelinePanel } from './Timelines'
+import { EditDialog, ReplyEditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
 import { applyFinished, groupTurns, lastUserMessage, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
 import { useReplyStream } from './useReplyStream'
@@ -47,6 +47,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [exhausted, setExhausted] = useState(false)
   const [declining, setDeclining] = useState<Message | null>(null)
   const [editing, setEditing] = useState<Message | null>(null)
+  const [branching, setBranching] = useState<Message | null>(null)
   const [found, setFound] = useState<{ id: string; at: number } | null>(null)
   const draft = useDraft()
   const transcript = useRef<HTMLDivElement>(null)
@@ -178,6 +179,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     remember: (message: Message) => void handlers.current.remember(message),
     decline: setDeclining,
     edit: setEditing,
+    branch: setBranching,
   }), [])
   const turns = useMemo(() => groupTurns(messages), [messages])
   const following = streamingIds(messages)
@@ -199,17 +201,15 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
+            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
           ))}
         </div>
       </div>
       <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
       <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
       <ConversationNotice notice={notice} go={go} />
-      {editing && <EditDialog message={editing} name={name} onClose={() => setEditing(null)} onDone={() => {
-        setEditing(null)
-        setNotice({ tone: 'info', text: `You're on the new timeline. Your edited message is in the box below; send it when you're ready.` })
-      }} />}
+      <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
+        onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
       {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
       <Composer name={name} draft={draft} streaming={streaming} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
     </section>
@@ -229,6 +229,14 @@ function ConversationTop({ companion, onJump, timeline, stage, photoId }: { comp
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
     {stage && <NovelStage name={companion.version.name} photoId={photoId} />}
   </>
+}
+
+/** Edit (your message: a new timeline; theirs: in place) and Branch from here. */
+function MessageDialogs({ name, editing, branching, onClose, onNotice, onReworded }: { name: string; editing: Message | null; branching: Message | null; onClose: () => void; onNotice: (text: string) => void; onReworded: (id: string, text: string) => void }) {
+  if (branching) return <EditDialog branch message={branching} name={name} onClose={onClose} onDone={() => { onClose(); onNotice(`You're on the new timeline. It goes on from that message.`) }} />
+  if (editing?.role === 'companion') return <ReplyEditDialog message={editing} name={name} onClose={onClose} onDone={(text) => { onReworded(editing.id, text); onClose() }} />
+  if (editing) return <EditDialog message={editing} name={name} onClose={onClose} onDone={() => { onClose(); onNotice(`You're on the new timeline. Your edited message is in the box below; send it when you're ready.`) }} />
+  return null
 }
 
 function ConversationNotice({ notice, go }: { notice: { tone: 'info' | 'error'; text: string; settings?: boolean } | null; go: (view: View) => void }) {

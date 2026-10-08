@@ -78,7 +78,20 @@ export function Memories({ companion }: { companion: Companion }) {
       return !!result
     },
   }
-  const remember = (memory: NewMemory) => run(() => api<Memory>('/memories', memory), `${name} will remember “${memory.subject}”.`)
+  // A refusal is shown on the form itself, next to what needs changing, rather than further down the page.
+  const remember = async (memory: NewMemory): Promise<Memory | string> => {
+    try {
+      const saved = await api<Memory>('/memories', memory)
+      setFeedback({ tone: 'info', text: `${name} will remember “${memory.subject}”.` })
+      void client.invalidateQueries({ queryKey: PREVIEW_KEY })
+      void client.invalidateQueries({ queryKey: CLOSENESS_KEY })
+      void client.invalidateQueries({ queryKey: PEOPLE_KEY })
+      await client.invalidateQueries({ queryKey: MEMORIES_KEY })
+      return saved
+    } catch (error) {
+      return error instanceof Error ? error.message : 'That memory was not saved.'
+    }
+  }
   const all = memories.data ?? []
   const groups = groupMemories(all)
   const empty = memories.isSuccess && all.length === 0
