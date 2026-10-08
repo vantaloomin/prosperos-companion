@@ -1461,7 +1461,7 @@ CREATE TABLE IF NOT EXISTS knowledge (
 CREATE INDEX IF NOT EXISTS knowledge_source ON knowledge(kind, source_id);
 
 -- Who knows a secret ('knows') and who must not find out ('guarded'), each a person key (companion:<id>,
--- circle:<id>). `via` says how they learned it; `message_id` is the group message they learned it from.
+-- circle:<timeline>:<n>, the circle person's seed). `via` says how they learned it; `message_id` is the group message they learned it from.
 CREATE TABLE IF NOT EXISTS knowledge_holders (
   id TEXT PRIMARY KEY,
   knowledge_id TEXT NOT NULL REFERENCES knowledge(id),

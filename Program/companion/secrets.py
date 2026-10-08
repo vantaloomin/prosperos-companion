@@ -86,8 +86,10 @@ def companion_key(companion_id: str) -> str:
     return f'companion:{companion_id}'
 
 
-def circle_key(person_id: str) -> str:
-    return f'circle:{person_id}'
+def circle_key(connection, person_id: str) -> str:
+    """A circle person's key is their seed (circle:<timeline>:<n>), the one memory/pairs.py uses too."""
+    row = optional(connection, 'SELECT seed FROM circle_people WHERE id=?', (person_id,))
+    return row['seed'] if row else f'circle:{person_id}'
 
 
 def person_name(connection, key: str | None) -> str | None:
@@ -99,7 +101,7 @@ def person_name(connection, key: str | None) -> str | None:
         found = by_id(connection, value)
         return found['version']['name'] if found else None
     if kind == 'circle':
-        row = optional(connection, 'SELECT name FROM circle_people WHERE id=?', (value,))
+        row = optional(connection, 'SELECT name FROM circle_people WHERE seed=?', (key,))
         return row['name'] if row else None
     return None
 
@@ -173,7 +175,7 @@ def story_parts(connection, row: dict) -> dict | None:
              for person in circle.people(connection, story['timeline_id'], include_removed=True)}
     cast = decode(story['cast_ids'])
     keys = {'name': companion_key(found['id'])} | {
-        field: circle_key(person_id) for field, person_id in zip(('a', 'b'), cast)}
+        field: circle_key(connection, person_id) for field, person_id in zip(('a', 'b'), cast)}
     subjects = []
     for field in rule['subjects']:
         key = keys.get(field)
@@ -307,7 +309,7 @@ def sync_storylines(connection, now, timestamp: str):
             cast = dict(zip(('a', 'b'), decode(story['cast_ids'])))
             for field in rule['knowers']:
                 if field in cast:
-                    hold(connection, knowledge_id, circle_key(cast[field]), 'knows', learned, 'origin')
+                    hold(connection, knowledge_id, circle_key(connection, cast[field]), 'knows', learned, 'origin')
         elif existing is not None and public and existing['status'] == 'active':
             connection.execute("UPDATE knowledge SET status='ended', updated_at=? WHERE id=?",
                                (timestamp, existing['id']))

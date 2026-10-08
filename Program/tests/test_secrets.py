@@ -194,8 +194,8 @@ def test_a_secret_storyline_registers_itself_and_ends_when_it_goes_public(client
         for ordinal, name in ((90, 'Jo Park'), (91, 'Ana Ruiz')):
             people.append(identifier())
             connection.execute('INSERT INTO circle_people (id, timeline_id, ordinal, seed, name, role, career, details, '
-                               "schedule, created_at, updated_at) VALUES (?, ?, ?, 'seed', ?, 'friend', 'Nurse', '{}', "
-                               "'[]', ?, ?)", (people[-1], timeline, ordinal, name, now, now))
+                               "schedule, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'friend', 'Nurse', '{}', "
+                               "'[]', ?, ?)", (people[-1], timeline, ordinal, f'circle:{timeline}:{ordinal}', name, now, now))
         story_id = identifier()
         stages = [{'on': '2000-01-01', 'text': '{name} found out {a} and {b} have been secretly seeing each other.',
                    'share': '', 'tone': 'mixed'},
