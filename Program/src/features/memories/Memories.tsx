@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { HISTORY_KEY, MEMORIES_KEY } from '../../companion'
 import type { Companion, DeleteResult, History, Memory, Message } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Toggle } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
@@ -101,7 +102,7 @@ export function Memories({ companion }: { companion: Companion }) {
       <div className="memory-toolbar"><Toggle label="Show earlier values" checked={history} onChange={setHistory} /></div>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {memories.isPending && <Loading label="Loading memories" />}
-      {memories.isError && <Notice tone="error">{memories.error.message}</Notice>}
+      {memories.isError && <ErrorNotice error={memories.error} />}
       {empty && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Automatic memory is off unless you turn it on in Settings; with it on, facts you state directly are saved after each reply.</p>}
       {groups.filter((group) => group.layer === 'user_fact').map(renderGroup)}
       {memories.isSuccess && <People name={name} all={all} sources={sources} actions={actions} run={run} />}

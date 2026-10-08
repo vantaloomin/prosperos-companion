@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Smartphone } from 'lucide-react'
 import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { Field, TextInput } from '../../components/Fields'
 import { codeFromAddress, guessDeviceName } from './pairing'
 import { PHONE_STATUS_KEY, UNPAIRED_EVENT, usePhoneStatus } from './phoneAccess'
@@ -20,7 +21,7 @@ export function PhoneGate({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(UNPAIRED_EVENT, unpaired)
   }, [])
   if (status.isPending) return <div className="gate"><Loading label="Opening your companion" /></div>
-  if (status.isError) return <div className="gate"><Notice tone="error">{status.error.message}</Notice></div>
+  if (status.isError) return <div className="gate"><ErrorNotice error={status.error} /></div>
   if (status.data.remote && !status.data.paired) return <PairScreen />
   return children
 }

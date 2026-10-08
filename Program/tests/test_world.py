@@ -292,6 +292,30 @@ def test_private_city_packs_load_from_a_local_folder(client, tmp_path, monkeypat
     assert 'harbor-town' not in catalog.cities()
 
 
+# The start of the Finder data macOS writes as `._<name>` beside each file copied to an exFAT or FAT32 drive.
+APPLE_DOUBLE = b'\x00\x05\x16\x07\x00\x02\x00\x00Mac OS X        '
+
+
+def test_macos_finder_files_beside_the_cities_are_skipped(client, tmp_path, monkeypatch):
+    """A Mac tester running the app from an external drive had a `._` file beside every built-in city; reading
+    one as a city broke the city list, and with it Matchlight, Today's context and the city pickers."""
+    (tmp_path / 'baltimore.json').write_text('{}', encoding='utf-8')
+    (tmp_path / '._baltimore.json').write_bytes(APPLE_DOUBLE)
+    assert catalog.city_files(tmp_path) == [tmp_path / 'baltimore.json']
+    assert catalog.city_files(tmp_path / 'missing') == []
+    packs = tmp_path / 'packs'
+    packs.mkdir()
+    (packs / '._harbor-town.json').write_bytes(APPLE_DOUBLE)
+    monkeypatch.setenv(catalog.PACKS_ENV, str(packs))
+    try:
+        report = client.post('/api/world/packs/reload').json()
+        assert report['loaded'] == [] and report['errors'] == []
+        assert client.get('/api/dating').status_code == 200
+    finally:
+        monkeypatch.delenv(catalog.PACKS_ENV)
+        catalog.reload()
+
+
 def test_packs_are_not_committed():
     ignored = (Path(__file__).parent.parent / '.gitignore').read_text(encoding='utf-8')
     assert '/private-cities/' in ignored and catalog.CHECKOUT_PACKS.name == 'private-cities'

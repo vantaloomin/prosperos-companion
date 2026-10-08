@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { ContextPreview, Memory } from '../../types'
-import { Loading, Notice } from '../../components/Feedback'
+import { Loading } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { PREVIEW_KEY, budgetShare, receiptRows, type ReceiptRow } from './receiptRows'
 
 
@@ -14,7 +15,7 @@ export function ContextReceipt({ name, memories }: { name: string; memories: Mem
     <details className="context-receipt" onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary>What {name}'s next reply uses</summary>
       {preview.isPending && open && <Loading label="Working out the next reply's context" />}
-      {preview.isError && <Notice tone="error">{preview.error.message}</Notice>}
+      {preview.isError && <ErrorNotice error={preview.error} />}
       {preview.isSuccess && <ReceiptBody preview={preview.data} name={name} memories={memories} />}
     </details>
   )

@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { SETTINGS_KEY, type View } from '../../companion'
 import type { Companion, LifeEvent, PauseRecord, Today as TodayData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { Circle } from './Circle'
 import { CorrectEvent, type EventCorrection } from './CorrectEvent'
 import { EventItem } from './EventItem'
@@ -54,7 +55,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
   const resetMood = (id: string) => act(() => api(`/today/mood/${id}/reset`, {}), 'Mood reset.')
 
   if (today.isPending) return <Loading label="Loading today" />
-  if (today.isError) return <section className="page"><Notice tone="error">{today.error.message}</Notice></section>
+  if (today.isError) return <section className="page"><ErrorNotice error={today.error} /></section>
   const data = today.data
   return (
     <section className="page today">

@@ -4,6 +4,7 @@ import { BookOpen, Pencil, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-
 import { api } from '../../api'
 import type { CirclePerson, CircleRoom, DiaryEntry } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { displayName, personFacts, personNow, personTies, personWork } from './circleText'
@@ -41,7 +42,7 @@ export function Circle({ name }: { name: string }) {
       <Toggle label="Show people you removed" checked={removed} onChange={setRemoved} />
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {circle.isPending && <Loading label="Loading the people in their life" />}
-      {circle.isError && <Notice tone="error">{circle.error.message}</Notice>}
+      {circle.isError && <ErrorNotice error={circle.error} />}
       {circle.isSuccess && circle.data.length === 0 && <p className="subtle">No one yet. People appear once {name} has a home city.</p>}
       {circle.isSuccess && circle.data.length > 0 && (
         <ul className="person-list">{circle.data.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
@@ -151,7 +152,7 @@ function Diary({ person }: { person: CirclePerson }) {
     getNextPageParam: (last) => (last.length === DIARY_PAGE ? last[last.length - 1].starts_at : undefined),
   })
   if (diary.isPending) return <Loading label="Loading the diary" />
-  if (diary.isError) return <Notice tone="error">{diary.error.message}</Notice>
+  if (diary.isError) return <ErrorNotice error={diary.error} />
   const entries = diary.data.pages.flat()
   return (
     <div className="diary">

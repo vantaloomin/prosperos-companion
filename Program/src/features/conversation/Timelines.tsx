@@ -6,6 +6,7 @@ import { TIMELINES_KEY } from '../../companion'
 import type { Message, Timeline } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { TextArea, TextInput } from '../../components/Fields'
 import { forkNote, timelineSummary } from './timelineText'
 import { useSwitchTimeline, useTimelines } from './useTimelines'
@@ -28,7 +29,7 @@ export function TimelinePanel({ name, onClose }: { name: string; onClose: () => 
       </div>
       <div className="search-results">
         {timelines.isPending && <Loading label="Loading timelines" />}
-        {timelines.isError && <Notice tone="error">{timelines.error.message}</Notice>}
+        {timelines.isError && <ErrorNotice error={timelines.error} />}
         {error && <Notice tone="error">{error}</Notice>}
         <ul>
           {all.map((timeline) => (

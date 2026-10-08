@@ -5,6 +5,7 @@ import pytest
 from conftest import life_reply, reconcile, set_life
 from fastapi.testclient import TestClient
 
+from companion import logs
 from companion.clock import stamp, zone
 from companion.identity import CLIENT_HEADER
 from companion.life import body, circle, composer, social
@@ -227,4 +228,9 @@ def test_new_posts_that_cannot_be_written_leave_the_feed_readable(app, client, c
     with TestClient(app, headers={CLIENT_HEADER: 'workspace'}, raise_server_exceptions=False) as failing:
         response = failing.get('/api/feed')
     assert response.status_code == 500 and response.json()['code'] == 'server_error'
-    assert 'logs/companion.log' in response.json()['detail']
+    # It names the log by its full path, and the page's "Open the log folder" button shows that folder.
+    assert str(logs.file_path()) in response.json()['detail'] and response.json()['log'] == str(logs.file_path())
+    opened = []
+    monkeypatch.setattr(logs, 'open_folder', opened.append)
+    assert client.post('/api/logs/open-folder').json() == {'folder': str(logs.file_path().parent)}
+    assert opened == [logs.file_path().parent]

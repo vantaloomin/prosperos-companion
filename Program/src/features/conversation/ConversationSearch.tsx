@@ -3,7 +3,8 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { api } from '../../api'
 import type { SearchResult, SearchResults } from '../../types'
-import { Loading, Notice } from '../../components/Feedback'
+import { Loading } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { snippet } from './search'
 
 const DELAY = 250
@@ -42,7 +43,7 @@ export function ConversationSearch({ name, onPick, onClose }: Props) {
 function SearchBody({ query, search, name, onPick }: { query: string; search: UseQueryResult<SearchResults>; name: string; onPick: (result: SearchResult) => void }) {
   if (query.length < 2) return null
   if (search.isPending) return <Loading label="Searching" />
-  if (search.isError) return <Notice tone="error">{search.error.message}</Notice>
+  if (search.isError) return <ErrorNotice error={search.error} />
   const { results, more } = search.data
   return (
     <div className="search-results">

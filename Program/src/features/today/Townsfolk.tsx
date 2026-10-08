@@ -5,6 +5,7 @@ import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Townsperson, TownspersonNow } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { useSwitchBack } from '../character/useSwitchBack'
 import { townMet, townNow, townRole } from './townText'
 
@@ -44,7 +45,7 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
       {person.routine && <p className="subtle">Usually {person.routine}.</p>}
       {person.flaw && <p>{person.flaw.charAt(0).toUpperCase()}{person.flaw.slice(1)}; seems to want {person.desire}.</p>}
       {!person.goal && <p className="subtle">Cross paths again to learn more.</p>}
-      {now.isPending ? <Loading label="Finding them" /> : now.isError ? <Notice tone="error">{now.error.message}</Notice> : now.data.now && <p className="subtle">{townNow(now.data.now)}</p>}
+      {now.isPending ? <Loading label="Finding them" /> : now.isError ? <ErrorNotice error={now.error} /> : now.data.now && <p className="subtle">{townNow(now.data.now)}</p>}
       <TownSwitch person={person} go={go} />
     </div>
   )

@@ -1,11 +1,9 @@
 """Settings > Models: built-in recall and the recall test (companion/providers/builtin_recall.py)."""
-import os
-import subprocess
-import sys
 import time
 
 from fastapi import APIRouter, Request
 
+from companion import logs
 from companion.errors import require
 from companion.memory.vectors import cosine
 from companion.models import Input
@@ -65,11 +63,7 @@ async def install(request: Request):
 @router.post('/builtin-recall/open-folder')
 def open_folder(request: Request):
     folder = request.app.state.builtin_recall.folder / 'models'
-    folder.mkdir(parents=True, exist_ok=True)
-    if sys.platform == 'win32':
-        os.startfile(folder)  # noqa: S606 - opens the user's own folder in Explorer.
-    else:
-        subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', str(folder)])
+    logs.open_folder(folder)
     return {'folder': str(folder)}
 
 

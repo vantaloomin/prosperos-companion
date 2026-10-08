@@ -4,6 +4,7 @@ import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { HomeItem, HomeKind, HomeView } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { KIND_LABELS, homeTitle, itemDetail, rentText, sentence, sinceText } from './homeText'
 
@@ -37,7 +38,7 @@ export function Home({ name }: { name: string }) {
       <p className="subtle">Drawn from their city's housing data and changing slowly over time. Their moments, pictures and replies mention these. Edits apply to upcoming days; what already happened stays.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {home.isPending && <Loading label="Loading their home" />}
-      {home.isError && <Notice tone="error">{home.error.message}</Notice>}
+      {home.isError && <ErrorNotice error={home.error} />}
       {home.isSuccess && <>
         <ul className="person-list">{home.data.items.map((item) => <ItemCard key={item.id} item={item} view={home.data} act={act} />)}</ul>
         {adding

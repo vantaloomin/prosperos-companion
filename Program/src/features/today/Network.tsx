@@ -3,14 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { Users } from 'lucide-react'
 import { api } from '../../api'
 import type { Acquaintance, NetworkAnswer, NetworkPerson } from '../../types'
-import { Loading, Notice } from '../../components/Feedback'
+import { Loading } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { metLine, networkLine } from './networkText'
 
 /** Someone's own people, opened one layer at a time. They are built on request and mostly never come up. */
 export function TheirPeople({ personKey, name }: { personKey: string; name: string }) {
   const answer = useQuery({ queryKey: ['network', personKey], queryFn: () => api<NetworkAnswer>(`/life/network?key=${encodeURIComponent(personKey)}`) })
   if (answer.isPending) return <Loading label={`Loading ${name}'s people`} />
-  if (answer.isError) return <Notice tone="error">{answer.error.message}</Notice>
+  if (answer.isError) return <ErrorNotice error={answer.error} />
   if (answer.data.people.length === 0) return <p className="subtle">No one further out.</p>
   return (
     <ul className="network-list" aria-label={`${name}'s people`}>
