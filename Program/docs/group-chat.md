@@ -110,6 +110,13 @@ All rules, seeded by the user's message so a retry picks the same people (`group
 Writing again while replies are being written lets the reply in progress finish and starts a round for the new
 message. Stop ends the round; Try again writes the replies that failed or were stopped.
 
+Replies come one after another at a person's pace while the Life setting "Reply at their pace" is on (the
+default). Each reply is written out of sight and shows whole, like a text arriving, once the time a person
+would take has passed since the message before it showed: 1 to 4 s to read it (longer for longer messages),
+0.5 to 2.5 s to think, and 5 to 8 characters a second to type, between 2.5 and 15 s in all and seeded per reply
+(`groups.pace_seconds`). Time spent writing it counts toward that wait. The line above the message box still
+describes only the app's work; nobody is shown typing.
+
 ### Building one speaker's prompt
 
 Each reply is one model call for one companion, with the conversation's text model. The request is built so the

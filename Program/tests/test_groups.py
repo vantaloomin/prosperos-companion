@@ -3,7 +3,7 @@ import json
 import re
 
 import pytest
-from conftest import send
+from conftest import send, set_life
 
 from companion import groups
 from companion.characters import by_id, insert_version
@@ -194,6 +194,31 @@ def test_who_answers_is_decided_by_rules(client, cast):
     assert queue == ['companion:Sally', 'companion:Billy']
     assert groups.banter([], {'companion:Mira'}, 'Sally?', members, False) is False
     assert groups.mentioned('Billyboy and Sallyanne', members) == []
+
+
+def test_replies_show_one_after_another_at_a_persons_pace(client, cast, monkeypatch):
+    # Longer messages take longer to read and type, within bounds, and the same reply always takes the same time.
+    quick, slow = groups.pace_seconds('hi', 'ok', 'a'), groups.pace_seconds('x' * 400, 'y' * 300, 'a')
+    assert groups.PACE_SECONDS[0] <= quick < slow <= groups.PACE_SECONDS[1]
+    assert quick == groups.pace_seconds('hi', 'ok', 'a')
+
+    monkeypatch.setattr(groups, 'PACED', True)
+    waits, seen = [], []
+
+    async def pace(self, running, reply, seed):
+        # Nobody sees a reply while it is written or held: it shows whole when it is sent.
+        seen.append(dict(running.live))
+        waits.append(reply)
+
+    monkeypatch.setattr(groups.GroupChats, 'pace', pace)
+    group = start(client, list(cast.values()))
+    say(client, group['id'], 'Hey all, how is everyone?', 'group-pace')
+    replies = [line for line in messages(client, group['id']) if line['kind'] == 'companion']
+    assert len(waits) == len(replies) == 2 and seen == [{}, {}]
+    # Turned off in Life settings, replies show as they are written.
+    set_life(client, paced_replies=False)
+    say(client, group['id'], 'Again?', 'group-pace-2')
+    assert len(waits) == 2
 
 
 def test_a_reply_keeps_only_the_speakers_own_words(client, cast):

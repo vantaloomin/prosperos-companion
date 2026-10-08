@@ -26,6 +26,7 @@ import json
 import logging
 import random
 import re
+import time
 from dataclasses import dataclass, field
 
 from companion import in_character, prompt_library, texting
@@ -48,6 +49,17 @@ CHUNK = 20
 TRANSCRIPT_SHARE = 0.4
 NAME_LIMIT = 60
 HISTORY_LIMIT = 300
+
+# Replies at a person's pace, with the Life setting `paced_replies` on (the default): each reply is written
+# whole, then shown once the time a person would take has passed since the message before it showed, to read
+# that message, think and type their own. Replies come one after another, never all at once. Off in tests
+# unless a test turns it on.
+PACED = True
+READ_SECONDS = (1.0, 4.0)       # From 1 s, plus READ_PER_CHARACTER, up to 4 s.
+READ_PER_CHARACTER = 0.02
+THINK_SECONDS = (0.5, 2.5)
+TYPE_CHARACTERS_PER_SECOND = (5.0, 8.0)
+PACE_SECONDS = (2.5, 15.0)      # Never sooner than this after the message before, nor later.
 
 RULES = """This is a group chat. The user and the people listed below write to each other in one shared \
 conversation, the way friends do in a group text.
@@ -443,6 +455,20 @@ def tidy(text: str, speaker: str, members: list[dict]) -> str:
     return (text[:cut.start()] if cut else text).strip()
 
 
+def pace_seconds(before: str, reply: str, seed: str) -> float:
+    """How long after `before` showed a person would send `reply`: read, think, type. Seeded per reply."""
+    rng = random.Random(f'group-pace:{seed}')
+    low, high = READ_SECONDS
+    reading = min(high, low + READ_PER_CHARACTER * len(before))
+    typing = len(reply) / rng.uniform(*TYPE_CHARACTERS_PER_SECOND)
+    return min(PACE_SECONDS[1], max(PACE_SECONDS[0], reading + rng.uniform(*THINK_SECONDS) + typing))
+
+
+def paced(connection) -> bool:
+    life = optional(connection, 'SELECT paced_replies FROM life_settings WHERE id=1')
+    return PACED and bool(life is None or life['paced_replies'])
+
+
 # Running replies ------------------------------------------------------------------------------------
 
 @dataclass
@@ -452,6 +478,9 @@ class Round:
     task: asyncio.Task | None = None
     phase: str = 'preparing'
     live: dict = field(default_factory=dict)
+    # When the latest message in the round showed (time.monotonic) and its text, for the pace.
+    shown_at: float = field(default_factory=time.monotonic)
+    before: str = ''
 
 
 def record(database, group_id: str, text: str, client_id: str) -> dict:
@@ -528,7 +557,7 @@ class GroupChats:
         return True
 
     async def start(self, group_id: str, user: dict, wait: bool):
-        running = Round(user['id'])
+        running = Round(user['id'], before=user['text'])
         lock = self.locks.setdefault(group_id, asyncio.Lock())
 
         async def go():
@@ -585,8 +614,12 @@ class GroupChats:
                 return None
             row = add_line(connection, group_id, database.now(), stay['member'], stay['name'], '', status='streaming',
                            reply_to=user['id'])
-        running.phase, running.live[row['id']] = 'preparing', []
-        text, status, error = running.live[row['id']], 'complete', None
+            hold = paced(connection)
+        # A paced reply is written out of sight and shows whole when it is sent, like a text.
+        text, status, error = [], 'complete', None
+        running.phase = 'preparing'
+        if not hold:
+            running.live[row['id']] = text
         companion = None
         try:
             with database.connect() as connection:
@@ -596,6 +629,8 @@ class GroupChats:
                 packet = await asyncio.to_thread(self.packet, group, companion, stay, config, row['seq'], user)
             status, error = await self.write(config, packet, text, running,
                                              in_character.applies(user['text'], companion['version']['definition']))
+            if hold and status == 'complete':
+                await self.pace(running, ''.join(text), row['id'])
         except asyncio.CancelledError:
             self.finish(row, ''.join(text), 'cancelled', 'Stopped.', companion, stay, running)
             raise
@@ -605,6 +640,12 @@ class GroupChats:
             LOG.exception('A group reply failed unexpectedly.')
             status, error = 'failed', f"Couldn't finish the reply: {failure}"
         return self.finish(row, ''.join(text), status, error, companion, stay, running)
+
+    async def pace(self, running: Round, reply: str, seed: str):
+        """Wait out what is left of the time a person would take; writing it already used some of that time."""
+        left = running.shown_at + pace_seconds(running.before, reply, seed) - time.monotonic()
+        if left > 0:
+            await asyncio.sleep(left)
 
     def packet(self, group, companion, stay, config, until_seq, user) -> dict:
         with self.database.connect() as connection:
@@ -648,5 +689,7 @@ class GroupChats:
                                (text, status, error, database.now(), row['id']))
             saved = one(connection, 'SELECT * FROM group_messages WHERE id=?', (row['id'],))
         running.live.pop(row['id'], None)
+        if status == 'complete':
+            running.shown_at, running.before = time.monotonic(), text
         return saved
 
