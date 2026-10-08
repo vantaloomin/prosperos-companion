@@ -108,7 +108,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .conversation-notice { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .conversation-notice .text-button { flex-shrink: 0; padding: 0; }
 .composer { display: flex; align-items: flex-end; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; padding: 12px 32px 22px; }
-.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; }
+.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; overflow-y: auto; }
 
 /* Story mode (src/features/story): one reading column of narration, the user's lines set apart. */
 .story { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -257,21 +257,38 @@ textarea { resize: vertical; line-height: 1.6; }
 .message-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0 12px; }
 .message-actions .text-button { opacity: 0; font-size: 0.75rem; }
 .message:hover .message-actions .text-button, .message:focus-within .message-actions .text-button { opacity: 1; }
-@media (hover: none) { .message-actions .text-button { opacity: .8; } }
-/* Touch screens keep a message's actions behind its ⋯ button (TurnView.tsx). */
 .message-tools { display: contents; }
 .message-more { display: none; }
-/* Opened, they float over the messages below instead of pushing them down. */
+/* Touch screens: no buttons on every message. Press and hold a message for its sheet (useMessageSheet.tsx); a hidden
+   button opens the same sheet for keyboards and screen readers and shows only while it has focus. */
 @media (hover: none) {
-  .message-actions { position: relative; }
-  .message-actions .message-more { display: inline-flex; justify-content: center; min-width: 36px; min-height: 28px; }
-  .message-actions:not(.open) .message-tools { display: none; }
-  /* The skipped rendering of off-screen messages (content-visibility) would clip an open menu at the message's edge. */
-  .message:has(.message-actions.open) { content-visibility: visible; position: relative; z-index: 3; }
-  .message-actions.open .message-tools { position: absolute; z-index: 2; top: 100%; right: 0; display: flex; flex-direction: column; align-items: stretch;
-    min-width: max-content; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 18px #0006; }
-  .message-actions.open .message-tools .text-button { opacity: 1; justify-content: flex-start; min-height: 36px; padding: 6px 10px; font-size: 0.8125rem; }
+  .message-tools, .reply-sidecar { display: none; }
+  .message-actions .message-more { display: inline-flex; position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .message-actions .message-more:focus-visible { position: static; width: auto; height: auto; overflow: visible; clip: auto; opacity: 1; }
+  /* Holding a message must not select its text or open the browser's own menu; Copy is in the sheet. */
+  .message { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: transform .18s ease; }
+  .message.pressing { transform: scale(.97); }
 }
+@media (hover: none) and (prefers-reduced-motion: reduce) { .message { transition: none; } .message.pressing { transform: none; } }
+
+/* The sheet: a dimmed chat, the message lifted above a group of large rows, and Cancel apart, as phone apps do. */
+.message-sheet { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 560px; max-height: 100dvh; margin: 0 auto; padding: 0 10px calc(10px + env(safe-area-inset-bottom));
+  border: 0; background: transparent; color: var(--text); overflow: auto; display: flex; flex-direction: column; gap: 8px; animation: sheet-up .22s cubic-bezier(.2, .8, .2, 1); }
+.message-sheet:not([open]) { display: none; }
+.message-sheet::backdrop { background: #050504a6; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.sheet-preview { align-self: flex-start; max-width: 88%; overflow: hidden; margin-bottom: 6px; padding: 10px 14px; border-radius: 18px; background: var(--raised);
+  font-size: 1rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 10px 30px #0008;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 8; line-clamp: 8; }
+.message-sheet-user .sheet-preview { align-self: flex-end; background: var(--accent); color: var(--on-accent); }
+.sheet-group { display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; background: var(--surface); }
+.sheet-action { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 54px; padding: 0 18px; border: 0; border-radius: 0; background: var(--surface); color: var(--text);
+  font: inherit; font-size: 1.0625rem; text-align: left; }
+.sheet-group .sheet-action + .sheet-action { border-top: 1px solid var(--border); }
+.sheet-action svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--muted); }
+.sheet-action:active { background: var(--raised); }
+.sheet-cancel { justify-content: center; border-radius: 14px; font-weight: 600; }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .message-sheet { animation: none; } }
 
 .settings > .notice { max-width: 760px; margin-bottom: 16px; }
 .settings-search { max-width: 960px; margin-bottom: 20px; }
@@ -760,7 +777,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .message .stamp-lead::before { content: '[' / ''; }
 .chat-retro .message .stamp-lead::after { content: ']' / ''; }
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
-@media (hover: none) { .chat-retro .message-actions.open .message-tools { right: auto; left: 0; } }
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
 .chat-retro .turn-actions { margin: 0 0 8px; }
 .chat-retro .message.found { outline-offset: 2px; }
@@ -860,6 +876,24 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 #debug-progress { width: 100%; accent-color: var(--accent); }
 .info-tip.above .info-tip-text { top: auto; bottom: calc(100% + 6px); left: auto; right: -4px; }
 .composer > .info-tip { align-self: center; }
+/* Phones: one full-width box that grows as you type, between a round picture button and a round send arrow,
+   as in Messages or WhatsApp. The writing tips stay available to screen readers and on a computer. */
+.composer-send svg { flex-shrink: 0; }
+/* The way back to the newest messages while reading history; it floats over the bottom of the transcript. */
+.jump-latest { position: sticky; bottom: 12px; height: 0; display: flex; justify-content: flex-end; padding-right: 16px; pointer-events: none; }
+.jump-latest .icon-button { pointer-events: auto; transform: translateY(-100%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 4px 14px #0007; }
+@media (max-width: 720px) {
+  .composer { gap: 8px; align-items: flex-end; padding: 8px 10px max(8px, env(safe-area-inset-bottom)); }
+  .composer textarea { min-height: 40px; max-height: 30dvh; padding: 8px 14px; border-radius: 20px; line-height: 1.4; resize: none; }
+  .composer > .info-tip, .composer-label { display: none; }
+  .composer .composer-attach, .composer .composer-send { flex-shrink: 0; width: 40px; height: 40px; min-height: 0; padding: 0; justify-content: center; border-radius: 50%; }
+  .composer .composer-attach { order: -1; border-color: transparent; background: transparent; }
+  .composer .composer-send svg, .composer .composer-attach svg { width: 22px; height: 22px; }
+  /* Scrolled up into the history: one line, so more of it shows. Tapping the box or coming back down restores it. */
+  .composer.compact textarea:not(:focus) { max-height: 40px; overflow: hidden; padding-block: 0; line-height: 38px; }
+  .chat-retro .composer textarea { border-radius: 0; }
+  .chat-retro .composer .composer-send, .chat-retro .composer .composer-attach { border-radius: 0; }
+}
 
 /* Pictures you send (companion/pictures.py): thumbnails waiting in the composer, then the pictures in your message. */
 .composer:has(.composer-pictures) { flex-wrap: wrap; }
