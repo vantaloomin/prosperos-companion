@@ -205,7 +205,7 @@ def require_safe_loras(backend: dict):
     if style:
         found = content.classify({'prompt': style})
         require(found.tier == content.SAFE, f"This style reads as {', '.join(found.reasons) or 'not safe'}; "
-                'it can only be used on a ComfyUI server on this computer or one you control.', 422)
+                'it can only be used on a backend that takes NSFW requests.', 422)
     for lora in decode(backend['config']).get('style_loras') or []:
         found = content.classify({'prompt': f"{lora['name']}\n{lora['trigger']}"})
         require(found.tier == content.SAFE, f"The LoRA {lora['name']} reads as {', '.join(found.reasons) or 'not safe'}; "

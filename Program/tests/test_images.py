@@ -356,7 +356,7 @@ def test_a_meme_keeps_its_own_opening_whatever_the_backend_style():
 def test_a_backend_style_never_makes_a_server_less_strict(client):
     hosted = add_backend(client, kind='hosted', provider='openrouter', model='m', api_key='k')
     refused = client.put(f"/api/images/backends/{hosted['id']}", json={'style': 'Erotic nude photograph'})
-    assert refused.status_code == 422 and 'this computer' in refused.json()['detail']
+    assert refused.status_code == 422 and 'takes NSFW requests' in refused.json()['detail']
     created = client.post('/api/images/backends', json={'kind': 'codex', 'style': 'Erotic nude photograph',
                                                         'accept_disclosure': True})
     assert created.status_code == 422
