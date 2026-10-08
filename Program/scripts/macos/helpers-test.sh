@@ -141,4 +141,10 @@ check 'a file of your own is kept' test -f "$CHECKOUT_ROOT/my-own-file.txt"
 check 'the new file list was written' grep -qx 'Mac/update.command' "$CHECKOUT_ROOT/.zip-update-files"
 check 'the interface was rebuilt after the ZIP update' test -f dist/index.html
 
+# A .venv without pip (as when Homebrew moves python3 to a newer version under it) is rebuilt.
+"$python" -m pip uninstall --yes --quiet pip
+check 'the test .venv has lost pip' test "$("$python" -m pip --version >/dev/null 2>&1; echo $?)" -ne 0
+check 'install.command rebuilds a .venv without pip' exits 0 install.command
+check 'the rebuilt .venv has pip' "$python" -m pip --version
+
 echo 'All checkout helper checks passed.'

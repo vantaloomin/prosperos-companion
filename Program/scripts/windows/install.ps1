@@ -31,6 +31,12 @@ function Test-Python {
     } catch { return }
 }
 
+function Test-Pip {
+    param([string]$Executable)
+    $ErrorActionPreference = 'Continue'
+    try { & $Executable -m pip --version 2>$null | Out-Null; return $LASTEXITCODE -eq 0 } catch { return $false }
+}
+
 function Find-Python {
     $candidates = @(
         (Join-Path $CompanionRoot '.venv\Scripts\python.exe'),
@@ -91,11 +97,15 @@ function Test-ProjectInstallation {
 function Install-Project {
     param([hashtable]$Runtime)
     $python = Join-Path $CompanionRoot '.venv\Scripts\python.exe'
-    if (Test-Path -LiteralPath '.venv') {
-        if (-not (Test-Python $python)) { throw 'The existing .venv is broken or uses an older Python. Rename that environment folder and rerun install.bat. Your companion''s data is not in that folder.' }
-    } else {
-        Invoke-Checked $Runtime.Python @('-m', 'venv', '.venv')
+    # .venv only holds installed packages, so a broken one is rebuilt. It breaks when the Python it was
+    # made from is upgraded or removed, which can leave it without pip or its packages.
+    if ((Test-Path -LiteralPath '.venv') -and -not ((Test-Python $python) -and (Test-Pip $python))) {
+        Write-Host 'The project environment (.venv) is broken or was made by a Python that has since changed. Rebuilding it.' -ForegroundColor Yellow
+        try { Remove-Item -LiteralPath '.venv' -Recurse -Force } catch { throw "Could not remove $CompanionRoot\.venv ($($_.Exception.Message)). Delete that folder and rerun install.bat." }
+        $Runtime.Python = Find-Python
+        if (-not $Runtime.Python) { throw 'Python 3.12+ was not found. Reopen this installer after installing Python.' }
     }
+    if (-not (Test-Path -LiteralPath '.venv')) { Invoke-Checked $Runtime.Python @('-m', 'venv', '.venv') }
     Invoke-Checked $python @('-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '-r', 'requirements.lock.txt')
     Invoke-Checked $Runtime.Npm @('ci', '--no-audit', '--no-fund')
     Invoke-Checked $Runtime.Npm @('run', 'build')

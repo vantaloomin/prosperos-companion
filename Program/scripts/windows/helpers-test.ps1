@@ -155,6 +155,18 @@ Check (Test-Path -LiteralPath (Join-Path $CheckoutRoot 'my-own-file.txt')) 'a fi
 Check ((Get-Content -LiteralPath (Join-Path $CheckoutRoot '.zip-update-files')) -contains 'Windows/update.bat') 'the new file list was written'
 Check (Test-Path -LiteralPath 'dist\index.html') 'the interface was rebuilt after the ZIP update'
 
+# A .venv without pip (as when the Python it was made from changes under it) is rebuilt.
+$previous = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+& $python -m pip uninstall --yes --quiet pip 2>&1 | ForEach-Object { "$_" } | Out-Host
+& $python -m pip --version 2>&1 | Out-Null
+$code = $LASTEXITCODE
+$ErrorActionPreference = $previous
+Check ($code -ne 0) 'the test .venv has lost pip'
+Check ((Invoke-Bat 'install.bat') -eq 0) 'install.bat rebuilds a .venv without pip'
+& $python -m pip --version | Out-Host
+Check ($LASTEXITCODE -eq 0) 'the rebuilt .venv has pip'
+
 # Earlier checks expect exit code 1 from update.bat; don't let one become this script's result.
 Write-Host 'All checkout helper checks passed.'
 exit 0
