@@ -283,6 +283,19 @@ def test_a_city_dropped_among_the_built_in_ones_loads_like_a_pack(client, tmp_pa
         catalog.reload()
 
 
+def test_a_saved_copy_of_a_city_that_is_now_built_in_is_not_listed_twice(app, client):
+    """Los Angeles became a built-in city after testers had imported their own copy of it."""
+    with app.state.database.connect(write=True) as connection:
+        connection.execute('INSERT INTO world_cities (id, definition, created_at, updated_at) VALUES (?, ?, ?, ?)',
+                           ('los-angeles', json.dumps(plain(catalog.city('los-angeles'))), '2026-10-01', '2026-10-01'))
+    listed = [city for city in client.get('/api/world/cities').json() if city['id'] == 'los-angeles']
+    assert [city['origin'] for city in listed] == ['builtin']
+    assert client.get('/api/world/broken-cities').json() == []
+    assert client.delete('/api/world/cities/los-angeles').status_code == 200
+    assert 'los-angeles' in catalog.cities()
+    assert client.delete('/api/world/cities/los-angeles').status_code == 409
+
+
 def test_every_shipped_city_loads_strictly():
     assert catalog.reload()['errors'] == []
     assert all(data['origin'] == 'builtin' for data in catalog.cities().values() if not data.get('pack_file'))

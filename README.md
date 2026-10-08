@@ -39,7 +39,7 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 **Pictures.** Selfies, photos of what they're doing, views and memes, through the Codex CLI, a local ComfyUI or a hosted image API. Every request is classified on your PC first: NSFW only goes to a local ComfyUI, and prohibited content is refused everywhere.
 
-**Cities.** Built-in real cities (Baltimore, New York, Miami, San Diego, Las Vegas), public-domain ones (Victorian London, Camelot, Oz) and originals (steampunk Calderwick, frontier Whitlock). Build your own, including fantasy settings with their own currency. Cities change month to month as places open and close.
+**Cities.** Built-in real cities (Baltimore, New York, Miami, San Diego, Los Angeles, Las Vegas), public-domain ones (Victorian London, Camelot, Oz) and originals (steampunk Calderwick, frontier Whitlock). Build your own, including fantasy settings with their own currency. Cities change month to month as places open and close.
 
 **The real world, if you want it.** Weather where you both live, holidays and sports seasons, and optional built-in lookups for local headlines, scores, movies, TV and music, so they can bring up what's actually going on.
 
