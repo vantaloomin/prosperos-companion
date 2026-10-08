@@ -415,7 +415,7 @@ def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str
     for item in members:
         lines += member_lines(connection, stay['member'], item, now)
     lines += secrets.group_lines(connection, stay['member'], [item['member'] for item in members],
-                                 {item['member']: item['name'] for item in members})
+                                 {item['member']: item['name'] for item in members}, now)
     return lines
 
 

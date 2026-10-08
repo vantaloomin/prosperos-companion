@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ChevronLeft, HeartHandshake, Pencil, RotateCcw, UsersRound } from 'lucide-react'
 import { api, ApiError } from '../../api'
-import type { View } from '../../companion'
+import { useWorkspaceSettings, type View } from '../../companion'
 import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -152,7 +152,6 @@ function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: 
   const mine = message.kind === 'user'
   const name = mine ? 'You' : message.name
   const failure = failureText(message)
-  const slip = guardNote(message)
   if (failure && !message.text) return <p className="reply-status group-failure" role="note">{failure}</p>
   return (
     <article id={`message-${message.id}`} className={`message ${mine ? 'message-user' : 'message-companion'}`} aria-label={name}>
@@ -167,9 +166,16 @@ function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: 
       </header>
       <div className="prose"><Paragraphs text={message.text} /></div>
       {failure && <p className="reply-status" role="note">{failure}</p>}
-      {slip && <p className="reply-status group-slip" role="note">{slip}</p>}
+      <SlipNote message={message} />
     </article>
   )
+}
+
+/** "Let a secret slip", unless turned off in Settings > General; the secret is out either way. */
+function SlipNote({ message }: { message: GroupMessage }) {
+  const shown = useWorkspaceSettings().data?.show_secret_slips !== false
+  const slip = guardNote(message)
+  return shown && slip ? <p className="reply-status group-slip" role="note">{slip}</p> : null
 }
 
 function KeepMoment({ kept, onKeep }: { kept: boolean; onKeep: (kept: boolean) => void }) {

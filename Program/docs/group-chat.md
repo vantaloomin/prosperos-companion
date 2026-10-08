@@ -174,6 +174,10 @@ and its cache stay the same for every speaker.
 - **A line in a companion's own description** that reads as a secret ("secretly", "nobody knows", "never told",
   "behind her back") is one only they know, kept from everyone else. It is read from the current sheet: edit the
   line and the secret follows; remove it and the secret ends.
+- **A memory that reads like a secret** (the same words, in its subject or value) is offered in the panel under
+  "From what they remember", once each: "Add as a secret…" opens the form filled in (the companion who remembers
+  it knows it, kept from everyone else) and saves it as the user's own, recording the memory id; "Not a secret"
+  records a dismissed row so it isn't offered again. Deleting one added from a memory dismisses it the same way.
 
 Rows point at their source instead of copying it, so a rename, a sheet edit or a storyline ending reaches the
 ledger; a secret the user added is the user's own words, changed in the panel.
@@ -210,7 +214,9 @@ when it is about them) and a word that gives it away: one of the user's words or
 from the secret itself, one when it is about two or more people and two otherwise. A hit is written again once
 with a private reminder. If the rewrite still gives it away:
 
-- at the **Soap opera** drama setting it stays: everyone there finds out, and a note under the reply says so;
+- at the **Soap opera** drama setting it stays: everyone there finds out, and a note under the reply says so
+  (Settings > General > "Say when a secret slips out", workspace `show_secret_slips`, on by default, hides the note
+  only);
 - otherwise the reply isn't sent ("Billy nearly let a secret slip, so this reply wasn't sent."), and Try again can
   write it once more.
 
@@ -227,13 +233,16 @@ never quietly undone.
 | `DELETE /api/secrets/{id}` | Deletes the user's own secret, or stops treating another one as a secret. |
 | `POST /api/secrets/{id}/reveal` `{companion_id}` | Let them find out. |
 | `POST /api/secrets/{id}/forget` `{companion_id}` | Make them forget. |
+| `POST /api/secrets/suggestions/{memory_id}/dismiss` | A memory offered as a secret isn't one. |
 
-### Seams
+### With closeness
 
 - `secrets.found_about(connection, holder, about)`: secrets about someone that were kept from `holder` and that they
-  found out (slip or reveal), for closeness between people.
-- `secrets.spreads(connection, secret, teller, listener)`: gossip passing a secret on, by closeness. Nobody passes
-  one on yet outside what is said in front of them.
+  found out (slip or reveal). `pairs.secrets_found` reads it, so a discovery lowers closeness in one place only.
+- `secrets.spreads(connection, secret, teller, listener, now)`: a companion whose flaw is gossip, who feels Close
+  (stage 4) or closer to someone it isn't kept from, has "You're close enough to X that you'd happily tell them."
+  in their private group lines. Nothing is ever passed on to someone it's kept from; the reply check still guards
+  that.
 
 ### Seams for the later PRs
 
@@ -242,7 +251,7 @@ never quietly undone.
 - `group_lines(connection, group, stay, now)`: who they're not speaking to (secrets and closeness to each member
   are in).
 - `weights`, `plan` and `chime_in`: ignoring someone.
-- `pairs.closeness(connection, a, b, now)`: how close `a` feels to `b` (1 to 5), for gossip and mood.
+- `pairs.closeness(connection, a, b, now)`: how close `a` feels to `b` (1 to 5), for mood (gossip uses it already).
 - Members are person keys (`companion:<id>`), so guests can be another kind.
 
 ## Closeness between them

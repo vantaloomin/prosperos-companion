@@ -28,7 +28,7 @@ is redrafted once with a reminder; if the redraft still gives it away, it stays 
 opera" drama setting, and otherwise that reply is held back. Paraphrases get through; that is accepted because a
 slip is shown and recorded, never silently undone.
 
-Gossip passing a secret on by closeness comes with pair closeness: `spreads` is the seam.
+A gossip passes a secret on only to someone they feel Close to (`spreads`, with memory/pairs.py).
 """
 import hashlib
 import re
@@ -38,7 +38,10 @@ from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
 from companion.life import circle, storylines
+from companion.world import perception
 
+GOSSIP_LEVEL = 4  # "Close": a gossip happily passes a secret they weren't asked to keep on to them.
+SUGGESTION_LIMIT = 10  # Memories offered as secrets at once, newest first.
 SLIP_LEVEL = 3  # Drama "soap opera": a slip that survives the redraft stays and becomes a reveal.
 STATEMENT_LIMIT = 400
 
@@ -231,10 +234,24 @@ def kept_from(secret: dict, key: str) -> bool:
     return key not in secret['knowers'] and (secret['guard_all'] or key in secret['guarded'])
 
 
-def spreads(connection, secret: dict, teller: str, listener: str) -> bool:
-    """Seam for gossip: whether a knower would pass this on to someone. Pair closeness decides it later; for now
-    nobody passes a secret on outside what was said in front of them."""
-    return False
+def gossips(connection, key: str) -> bool:
+    """Whether this person's flaw is gossip: only companions have a sheet to read it from."""
+    if not key.startswith('companion:'):
+        return False
+    found = by_id(connection, key.split(':', 1)[1])
+    return bool(found) and perception.for_companion(found['id'], found['version']['definition'])['picks'].get(
+        'flaw') == 'gossip'
+
+
+def spreads(connection, secret: dict, teller: str, listener: str, now) -> bool:
+    """Whether a knower would happily pass this on: a gossip, to someone they feel Close to or closer, and only
+    when it isn't being kept from that person. Never anything kept from them; the slip check still guards that."""
+    if teller not in secret['knowers'] or listener in secret['knowers'] or kept_from(secret, listener):
+        return False
+    if not gossips(connection, teller):
+        return False
+    from companion.memory import pairs  # pairs reads found_about from here
+    return (pairs.closeness(connection, teller, listener, now) or 0) >= GOSSIP_LEVEL
 
 
 # Registering storyline and character secrets -----------------------------------------------------------
@@ -376,7 +393,8 @@ def label(connection, key: str, labels: dict[str, str]) -> str:
     return labels.get(key) or first_name(person_name(connection, key) or 'someone')
 
 
-def group_lines(connection, speaker: str, present: list[str], labels: dict[str, str]) -> list[tuple[str, str]]:
+def group_lines(connection, speaker: str, present: list[str], labels: dict[str, str],
+                now=None) -> list[tuple[str, str]]:
     """The speaker's private lines about secrets in this group: only those they know, with who here must not
     find out. `labels` names members as the chat does."""
     lines = []
@@ -393,6 +411,10 @@ def group_lines(connection, speaker: str, present: list[str], labels: dict[str, 
                      'out: never say it or hint at it in this group.')
         elif unaware:
             text += f" {names_text(unaware)} {'does' if len(unaware) == 1 else 'do'}n't know it."
+            told = [label(connection, member, labels) for member in others
+                    if now is not None and spreads(connection, secret, speaker, member, now)]
+            if told:
+                text += f" You're close enough to {names_text(told)} that you'd happily tell them."
         elif others:
             text += ' Everyone else here knows it too.'
         lines.append((f"secret:{secret['id']}", text))
@@ -488,11 +510,31 @@ def panel_view(connection, secret: dict) -> dict:
             'created_at': secret['created_at']}
 
 
+def memory_text(memory: dict) -> str:
+    value = ' '.join(memory['value'].split())
+    text = value if SECRET_LINE.search(value) else f"{' '.join(memory['subject'].split())}: {value}"
+    return text[:STATEMENT_LIMIT].rstrip('.')
+
+
+def suggestions(connection) -> list[dict]:
+    """Memories that read like a secret ("hasn't told her mum", "nobody knows"), offered to add as one: the
+    companion who remembers it knows it. Each is offered once; adding or dismissing it records the memory id."""
+    rows = many(connection, 'SELECT m.id, m.companion_id, m.subject, m.value, v.name FROM memories m '
+                'JOIN companions c ON c.id=m.companion_id AND c.active_timeline_id=m.timeline_id '
+                "JOIN character_versions v ON v.id=c.active_version_id WHERE m.status='active' "
+                "AND NOT EXISTS (SELECT 1 FROM knowledge k WHERE k.kind='declared' AND k.source_id=m.id) "
+                'ORDER BY m.updated_at DESC')
+    found = [row for row in rows if SECRET_LINE.search(row['subject']) or SECRET_LINE.search(row['value'])]
+    return [{'memory_id': row['id'], 'companion_id': row['companion_id'], 'name': row['name'],
+             'statement': memory_text(row)} for row in found[:SUGGESTION_LIMIT]]
+
+
 def listing(database) -> dict:
     with database.connect(write=True) as connection:
         sync(connection, database.clock.now())
         return {'secrets': [panel_view(connection, secret) for secret in active(connection)],
-                'companions': companions(connection), 'slips': slips_allowed(connection)}
+                'companions': companions(connection), 'slips': slips_allowed(connection),
+                'suggestions': suggestions(connection)}
 
 
 def subjects_for(connection, names: list[str]) -> list[dict]:
@@ -545,7 +587,9 @@ def create(database, body) -> dict:
         statement = ' '.join(body.statement.split())[:STATEMENT_LIMIT].rstrip('.')
         require(statement, 'Write what the secret is.', 422)
         require(body.knows, 'Pick at least one companion who knows it.', 422)
-        knowledge_id = insert(connection, 'declared', None, timestamp, statement=statement,
+        require(body.memory_id is None or optional(connection, 'SELECT id FROM memories WHERE id=?',
+                                                   (body.memory_id,)) is not None, 'That memory is gone.', 404)
+        knowledge_id = insert(connection, 'declared', body.memory_id, timestamp, statement=statement,
                               subjects=subjects_for(connection, body.about), key_words=clean_words(body.key_words),
                               guard_all=body.keep_from_everyone)
         set_people(connection, knowledge_id, body.knows, [] if body.keep_from_everyone else body.kept_from, timestamp)
@@ -589,16 +633,30 @@ def update(database, knowledge_id: str, body) -> dict:
 
 
 def end(database, knowledge_id: str) -> dict:
-    """Delete the user's own secret, or stop treating a storyline or character one as a secret."""
+    """Delete the user's own secret, or stop treating one as a secret. One from a memory, a storyline or a
+    character stays on record as dismissed, so it isn't offered or registered again."""
     timestamp = database.now()
     with database.connect(write=True) as connection:
         row = require_secret(connection, knowledge_id)
-        if row['kind'] == 'declared':
+        if row['kind'] == 'declared' and not row['source_id']:
             connection.execute('DELETE FROM knowledge_holders WHERE knowledge_id=?', (knowledge_id,))
             connection.execute('DELETE FROM knowledge WHERE id=?', (knowledge_id,))
         else:
             connection.execute("UPDATE knowledge SET status='dismissed', updated_at=? WHERE id=?",
                                (timestamp, knowledge_id))
+    return listing(database)
+
+
+def dismiss_memory(database, memory_id: str) -> dict:
+    """Not a secret: the memory stops being offered (a dismissed row records it)."""
+    timestamp = database.now()
+    with database.connect(write=True) as connection:
+        require(optional(connection, 'SELECT id FROM memories WHERE id=?', (memory_id,)) is not None,
+                'That memory is gone.', 404)
+        if optional(connection, "SELECT id FROM knowledge WHERE kind='declared' AND source_id=?",
+                    (memory_id,)) is None:
+            knowledge_id = insert(connection, 'declared', memory_id, timestamp)
+            connection.execute("UPDATE knowledge SET status='dismissed' WHERE id=?", (knowledge_id,))
     return listing(database)
 
 

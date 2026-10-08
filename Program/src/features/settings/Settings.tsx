@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 import type { Companion } from '../../types'
 import { useAdvancedSettings } from './advanced'
 import { StoryModeSetting } from './StoryModeSetting'
+import { SecretSlipSetting } from './SecretSlipSetting'
 import { Backups } from './Backups'
 import { DataFolder } from './DataFolder'
 import { DebugSettings } from './DebugSettings'
@@ -88,7 +89,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   // Built-in recall reads and runs files on the PC, so a phone does not show it (companion/phone/access.py).
   const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
-    general: <><TimezoneSettings /><ChatStyleSettings /><PauseSettings /><BackgroundSettings /></>,
+    general: <><TimezoneSettings /><ChatStyleSettings /><SecretSlipSetting /><PauseSettings /><BackgroundSettings /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <BuiltinRecall />}</>,
     life: <><LifeSettings name={name} /><Cities /></>,
     memory: <MemorySettings />,

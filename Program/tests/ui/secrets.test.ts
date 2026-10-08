@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { failureText } from '../../src/features/groups/groupText.ts'
-import { canForget, formBody, formFrom, guardNote, howText, keptLine, knowsLine, wordsFrom } from '../../src/features/groups/secretText.ts'
+import { canForget, formBody, formFrom, formFromMemory, guardNote, howText, keptLine, knowsLine, wordsFrom } from '../../src/features/groups/secretText.ts'
 import type { Secret, SecretHolder } from '../../src/types.ts'
 
 const holder = (name: string, via: SecretHolder['via'], extra: Partial<SecretHolder> = {}): SecretHolder =>
@@ -45,4 +45,12 @@ test('a reply the check touched says what happened', () => {
   assert.equal(failureText({ ...reply, status: 'cancelled', error: null, guard: 'held' }), "Billy nearly let a secret slip, so this reply wasn't sent.")
   assert.equal(guardNote({ name: 'Billy', status: 'complete', guard: 'revealed' }), 'Billy let a secret slip. Everyone here knows it now.')
   assert.equal(guardNote({ name: 'Billy', status: 'complete', guard: 'redrafted' }), null)
+})
+
+test('a memory offered as a secret starts known to whoever remembers it, kept from everyone else', () => {
+  const form = formFromMemory({ memory_id: 'm1', companion_id: 'Mira', name: 'Mira Lane', statement: "You haven't told your sister" })
+  assert.deepEqual(formBody(form, true), {
+    statement: "You haven't told your sister", about: [], knows: ['Mira'], kept_from: [], keep_from_everyone: true, key_words: [], memory_id: 'm1',
+  })
+  assert.equal('memory_id' in formBody(formFrom(secret), true), false)
 })

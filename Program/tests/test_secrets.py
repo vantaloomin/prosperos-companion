@@ -8,6 +8,7 @@ from test_groups import by_speaker, companion_named, messages, ok, say, speaker,
 from companion import secrets
 from companion.characters import by_id, insert_version
 from companion.database import identifier
+from companion.memory import pairs
 from companion.models import CharacterDefinition
 from companion.providers.chat import Chunk
 
@@ -124,6 +125,8 @@ def test_the_user_can_tell_them_or_let_them_find_out(client, cast, provider):
     with client.app.state.database.connect() as connection:
         assert secrets.found_about(connection, f"companion:{cast['Sally']}", f"companion:{cast['Billy']}") == 1
         assert secrets.found_about(connection, f"companion:{cast['Billy']}", f"companion:{cast['Sally']}") == 0
+        # Pair closeness reads the same count, so a discovery lowers it only once (memory/pairs.py).
+        assert pairs.secrets_found(connection, f"companion:{cast['Sally']}", f"companion:{cast['Billy']}") == 1
 
     other = declare(client, cast, statement='Billy is moving to Denver in May', about=['Billy'])
     listed = ok(client.post(f"/api/secrets/{other['id']}/reveal", json={'companion_id': cast['Mira']}))
@@ -140,6 +143,46 @@ def test_the_user_can_tell_them_or_let_them_find_out(client, cast, provider):
     # Make Mira forget it, the way "Don't remember this" works.
     ok(client.post(f"/api/secrets/{other['id']}/forget", json={'companion_id': cast['Mira']}))
     assert knows(client, other['id']) == {'Billy': 'origin'}
+
+
+def test_a_gossip_would_tell_only_someone_close_it_is_not_kept_from(client, cast, provider, monkeypatch):
+    declare(client, cast)
+    billy = f"companion:{cast['Billy']}"
+    monkeypatch.setattr(secrets, 'gossips', lambda connection, key: key == billy)
+    closeness = {f"companion:{cast['Mira']}": 4, f"companion:{cast['Sally']}": 5}
+    monkeypatch.setattr(pairs, 'closeness', lambda connection, a, b, now: closeness[b] if a == billy else 2)
+    group = start(client, list(cast.values()))
+    provider.requests.clear()
+    say(client, group['id'], 'Billy, any news?', 'group-0001')
+    prompt = requests_of(provider, 'Billy')[0]['system']
+    # Sally is closer still, but it's kept from her: she never appears as someone he'd tell.
+    assert "Sally doesn't know and must not find out" in prompt
+    assert "close enough to Sally" not in prompt
+
+    closeness[f"companion:{cast['Mira']}"] = 3
+    with client.app.state.database.connect() as connection:
+        secret = secrets.active(connection)[0]
+        mira = f"companion:{cast['Mira']}"
+        assert not secrets.spreads(connection, secret, billy, mira, None)
+        closeness[mira] = 4
+        assert secrets.spreads(connection, secret, billy, mira, None)
+        assert not secrets.spreads(connection, secret, billy, f"companion:{cast['Sally']}", None)
+        monkeypatch.setattr(secrets, 'gossips', lambda connection, key: False)
+        assert not secrets.spreads(connection, secret, billy, mira, None)
+
+
+def test_a_gossip_line_names_who_they_would_tell(client, cast, provider, monkeypatch):
+    statement = 'Billy is moving to Denver in May'
+    ok(client.post('/api/secrets', json={'statement': statement, 'about': ['Billy'], 'knows': [cast['Billy']],
+                                         'kept_from': []}))
+    billy = f"companion:{cast['Billy']}"
+    monkeypatch.setattr(secrets, 'gossips', lambda connection, key: key == billy)
+    monkeypatch.setattr(pairs, 'closeness', lambda connection, a, b, now: 4 if b.endswith(cast['Mira']) else 2)
+    group = start(client, list(cast.values()))
+    provider.requests.clear()
+    say(client, group['id'], 'Billy, any news?', 'group-0001')
+    prompt = requests_of(provider, 'Billy')[0]['system']
+    assert "You're close enough to Mira that you'd happily tell them." in prompt
 
 
 def test_someone_added_with_everything_so_far_learns_what_was_said(client, cast, provider):
@@ -280,3 +323,31 @@ def test_a_companion_with_no_city_never_stops_a_reply(client, cast, provider, mo
     say(client, group['id'], 'Billy and Sally, hi!', 'group-0001')
     replies = [line for line in messages(client, group['id']) if line['kind'] == 'companion']
     assert replies and all(line['status'] == 'complete' for line in replies)
+
+
+def test_a_memory_that_reads_like_a_secret_is_offered_once(client, cast):
+    ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Family',
+                                          'value': "You haven't told your sister you quit the bakery"}))
+    ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Job', 'value': 'Pilot'}))
+    offered = ok(client.get('/api/secrets'))['suggestions']
+    assert offered == [{'memory_id': offered[0]['memory_id'], 'companion_id': cast['Mira'], 'name': offered[0]['name'],
+                        'statement': "You haven't told your sister you quit the bakery"}]
+
+    body = {'statement': offered[0]['statement'], 'knows': [cast['Mira']], 'keep_from_everyone': True,
+            'memory_id': offered[0]['memory_id']}
+    listed = ok(client.post('/api/secrets', json=body))
+    assert listed['suggestions'] == [] and listed['secrets'][0]['knows'][0]['name'].startswith('Mira')
+    # Deleting it doesn't offer it again.
+    listed = ok(client.delete(f"/api/secrets/{listed['secrets'][0]['id']}"))
+    assert listed['secrets'] == [] and listed['suggestions'] == []
+
+    ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Secret', 'value': 'Wants to move to Lisbon'}))
+    memory = ok(client.get('/api/secrets'))['suggestions'][0]
+    assert memory['statement'] == 'Secret: Wants to move to Lisbon'
+    assert ok(client.post(f"/api/secrets/suggestions/{memory['memory_id']}/dismiss", json={}))['suggestions'] == []
+    assert client.post('/api/secrets/suggestions/nope/dismiss', json={}).status_code == 404
+
+
+def test_the_slip_note_can_be_turned_off(client):
+    assert ok(client.get('/api/settings'))['show_secret_slips'] is True
+    assert ok(client.put('/api/settings', json={'show_secret_slips': False}))['show_secret_slips'] is False

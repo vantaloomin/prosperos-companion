@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { api } from '../../api'
-import type { Secret, SecretsData } from '../../types'
+import type { Secret, SecretsData, SecretSuggestion } from '../../types'
 import { Loading } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { TextArea, TextInput } from '../../components/Fields'
 import { SECRETS_KEY } from './groupState'
-import { canForget, formFrom, formBody, howText, keptLine, slipText, type SecretForm as Form } from './secretText'
+import { canForget, formFrom, formFromMemory, formBody, howText, keptLine, slipText, type SecretForm as Form } from './secretText'
 
 type Companion = SecretsData['companions'][number]
 type Change = (request: () => Promise<unknown>) => Promise<void>
@@ -32,6 +32,7 @@ export function Secrets() {
       {data.isPending && <Loading label="Loading secrets" />}
       {data.isError && <ErrorNotice error={data.error} />}
       {data.isSuccess && <SecretList data={data.data} onChange={change} />}
+      {data.isSuccess && <FromMemories suggestions={data.data.suggestions ?? []} companions={companions} onChange={change} />}
       {error && <p className="error-text" role="alert">{error}</p>}
       <div className="form-actions">
         <button type="button" className="button" disabled={!companions.length} onClick={() => setCreating(true)}><Plus aria-hidden="true" />New secret</button>
@@ -48,6 +49,29 @@ function SecretList({ data, onChange }: { data: SecretsData; onChange: Change })
       ? <ul>{data.secrets.map((secret) => <SecretRow key={secret.id} secret={secret} companions={data.companions} onChange={onChange} />)}</ul>
       : <p className="subtle">No secrets yet.</p>}
   </>
+}
+
+/** Memories that read like a secret, offered once: add one (and adjust it first) or say it isn't one. */
+function FromMemories({ suggestions, companions, onChange }: { suggestions: SecretSuggestion[]; companions: Companion[]; onChange: Change }) {
+  const [adding, setAdding] = useState<SecretSuggestion | null>(null)
+  if (!suggestions.length) return null
+  return (
+    <div className="secret-suggestions">
+      <h3>From what they remember</h3>
+      <ul>
+        {suggestions.map((suggestion) => (
+          <li key={suggestion.memory_id} className="secret">
+            <p className="secret-statement">{suggestion.statement} <span className="subtle">· {suggestion.name} remembers this</span></p>
+            <div className="form-actions">
+              <button type="button" className="text-button" onClick={() => setAdding(suggestion)}>Add as a secret…</button>
+              <button type="button" className="text-button" onClick={() => void onChange(() => api(`/secrets/suggestions/${suggestion.memory_id}/dismiss`, {}))}>Not a secret</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {adding && <SecretDialog start={formFromMemory(adding)} companions={companions} onChange={onChange} onClose={() => setAdding(null)} />}
+    </div>
+  )
 }
 
 function SecretRow({ secret, companions, onChange }: { secret: Secret; companions: Companion[]; onChange: Change }) {
@@ -105,8 +129,8 @@ function EndDialog({ secret, onChange, onClose }: { secret: Secret; onChange: Ch
 }
 
 /** A new secret, or a change to one. Words from a storyline or a description stay as they are there. */
-function SecretDialog({ secret, companions, onChange, onClose }: { secret?: Secret; companions: Companion[]; onChange: Change; onClose: () => void }) {
-  const [form, setForm] = useState<Form>(() => formFrom(secret))
+function SecretDialog({ secret, start, companions, onChange, onClose }: { secret?: Secret; start?: Form; companions: Companion[]; onChange: Change; onClose: () => void }) {
+  const [form, setForm] = useState<Form>(() => start ?? formFrom(secret))
   const set = (change: Partial<Form>) => setForm((current) => ({ ...current, ...change }))
   const own = !secret || secret.kind === 'declared'
   const ready = !own || (form.statement.trim() && form.knows.length > 0)

@@ -202,6 +202,8 @@ export interface WorkspaceSettings {
   chat_retro_dark?: boolean
   /** Story mode (src/features/story) is opt-in, in Settings > Advanced. */
   story_mode?: boolean
+  /** The note under a group message when someone lets a secret slip; on unless turned off. */
+  show_secret_slips?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean
@@ -1280,4 +1282,8 @@ export interface SecretsData {
   companions: { id: string; name: string }[]
   /** Drama is at soap opera: a slip that gets past the rewrite stays. */
   slips: boolean
+  /** Memories that read like a secret, offered once each; the companion who remembers it knows it. */
+  suggestions?: SecretSuggestion[]
 }
+
+export interface SecretSuggestion { memory_id: string; companion_id: string; name: string; statement: string }

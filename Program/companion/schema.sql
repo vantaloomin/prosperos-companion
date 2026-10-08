@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
   -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
+  -- The note under a group message when someone lets a secret slip (companion/secrets.py).
+  show_secret_slips INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,

@@ -1,4 +1,4 @@
-import type { GroupMessage, Secret, SecretHolder } from '../../types'
+import type { GroupMessage, Secret, SecretHolder, SecretSuggestion } from '../../types'
 import { namesText } from './groupText.ts'
 
 const firstName = (name: string) => name.split(/\s+/)[0] || name
@@ -49,7 +49,7 @@ export function guardNote(message: Pick<GroupMessage, 'guard' | 'name' | 'status
 }
 
 /** The secret form's fields: `knows` and `kept` are companion ids, `about` and `words` typed lists. */
-export interface SecretForm { statement: string; about: string; knows: string[]; kept: string[]; everyone: boolean; words: string }
+export interface SecretForm { statement: string; about: string; knows: string[]; kept: string[]; everyone: boolean; words: string; memory?: string }
 
 export function formFrom(secret?: Secret): SecretForm {
   if (!secret) return { statement: '', about: '', knows: [], kept: [], everyone: false, words: '' }
@@ -61,11 +61,17 @@ export function formFrom(secret?: Secret): SecretForm {
   }
 }
 
+/** A memory offered as a secret: whoever remembers it knows it, kept from everyone else to start with. */
+export function formFromMemory(suggestion: SecretSuggestion): SecretForm {
+  return { statement: suggestion.statement, about: '', knows: [suggestion.companion_id], kept: [], everyone: true, words: '', memory: suggestion.memory_id }
+}
+
 /** What the form sends: words and who knows only for the user's own secrets; nobody both knows and is kept from it. */
 export function formBody(form: SecretForm, own: boolean) {
   return {
     ...(own ? { statement: form.statement.trim(), about: form.about.split(',').map((name) => name.trim()).filter(Boolean), knows: form.knows } : {}),
     kept_from: form.everyone ? [] : form.kept.filter((id) => !form.knows.includes(id)),
     keep_from_everyone: form.everyone, key_words: wordsFrom(form.words),
+    ...(form.memory ? { memory_id: form.memory } : {}),
   }
 }

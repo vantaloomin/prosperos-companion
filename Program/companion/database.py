@@ -141,6 +141,7 @@ ADDED_COLUMNS = (
     ('life_settings', 'away_daily', 'INTEGER NOT NULL DEFAULT 6'),
     # A group reply a secret check touched (companion/secrets.py): 'redrafted', 'revealed' or 'held'.
     ('group_messages', 'guard', 'TEXT'),
+    ('workspace_settings', 'show_secret_slips', 'INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

@@ -165,14 +165,10 @@ def test_a_found_out_secret_lowers_it_only_when_their_sheet_says_so(client, cast
     billy, sally = key(cast['Billy']), key(cast['Sally'])
     ok(client.post('/api/groups', json={'companion_ids': [cast['Billy'], cast['Sally']], 'ties': [
         {'a': cast['Billy'], 'b': cast['Sally'], 'level': 4}]}))
-    database = client.app.state.database
-    with database.connect(write=True) as connection:
-        # The secrets ledger arrives with secrets in group chats; its shape is stood in for here.
-        connection.execute('CREATE TABLE IF NOT EXISTS knowledge (id TEXT PRIMARY KEY, subjects TEXT)')
-        connection.execute('CREATE TABLE IF NOT EXISTS knowledge_holders (knowledge_id TEXT, holder TEXT, role TEXT, '
-                           'via TEXT, ended_at TEXT)')
-        connection.execute('INSERT INTO knowledge VALUES (?, ?)', ('k1', json.dumps([billy, 'circle:x:0'])))
-        connection.execute("INSERT INTO knowledge_holders VALUES ('k1', ?, 'knows', 'reveal', NULL)", (sally,))
+    # Sally finds out a secret about Billy that was kept from her (companion/secrets.py).
+    secret = ok(client.post('/api/secrets', json={'statement': 'Billy is moving to Denver in May', 'about': ['Billy'],
+                                                  'knows': [cast['Billy']], 'kept_from': [cast['Sally']]}))['secrets'][0]
+    ok(client.post(f"/api/secrets/{secret['id']}/reveal", json={'companion_id': cast['Sally']}))
     before = stage(client, sally, billy)
     assert before == stage(client, billy, sally)  # Sally takes it in her stride: nothing built in.
     edit(client, cast['Sally'], personality='Warm, but she holds grudges and hates being lied to.')
