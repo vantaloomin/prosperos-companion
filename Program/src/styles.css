@@ -879,13 +879,18 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* Phones: one full-width box that grows as you type, between a round picture button and a round send arrow,
    as in Messages or WhatsApp. The writing tips stay available to screen readers and on a computer. */
 .composer-send svg { flex-shrink: 0; }
+/* The way back to the newest messages while reading history; it floats over the bottom of the transcript. */
+.jump-latest { position: sticky; bottom: 12px; height: 0; display: flex; justify-content: flex-end; padding-right: 16px; pointer-events: none; }
+.jump-latest .icon-button { pointer-events: auto; transform: translateY(-100%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 4px 14px #0007; }
 @media (max-width: 720px) {
   .composer { gap: 8px; align-items: flex-end; padding: 8px 10px max(8px, env(safe-area-inset-bottom)); }
-  .composer textarea { min-height: 40px; max-height: 45dvh; padding: 8px 14px; border-radius: 20px; line-height: 1.4; resize: none; }
+  .composer textarea { min-height: 40px; max-height: 30dvh; padding: 8px 14px; border-radius: 20px; line-height: 1.4; resize: none; }
   .composer > .info-tip, .composer-label { display: none; }
   .composer .composer-attach, .composer .composer-send { flex-shrink: 0; width: 40px; height: 40px; min-height: 0; padding: 0; justify-content: center; border-radius: 50%; }
   .composer .composer-attach { order: -1; border-color: transparent; background: transparent; }
   .composer .composer-send svg, .composer .composer-attach svg { width: 22px; height: 22px; }
+  /* Scrolled up into the history: one line, so more of it shows. Tapping the box or coming back down restores it. */
+  .composer.compact textarea:not(:focus) { max-height: 40px; overflow: hidden; padding-block: 0; line-height: 38px; }
   .chat-retro .composer textarea { border-radius: 0; }
   .chat-retro .composer .composer-send, .chat-retro .composer .composer-attach { border-radius: 0; }
 }

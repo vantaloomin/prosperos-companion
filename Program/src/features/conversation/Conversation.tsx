@@ -1,6 +1,7 @@
 import { appNow } from '../../appTime.ts'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowDown } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import type { Companion, DeclineResult, History, Message, RememberResult, SearchResult, SendResult } from '../../types'
 import { HISTORY_KEY, MEMORIES_KEY, type View } from '../../companion'
@@ -23,6 +24,7 @@ import { applyFinished, groupTurns, lastUserMessage, liveFor, mergeMessages, rep
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
+import { useScrollAway } from './useScrollAway'
 import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
 import { NovelStage } from './NovelStage'
@@ -95,10 +97,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     element.scrollIntoView({ block: 'center' })
     element.focus({ preventScroll: true })
   }, [found])
-  const onScroll = () => {
-    const element = transcript.current
-    if (element) pinned.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80
-  }
+  const scroll = useScrollAway(transcript, pinned)
 
   const accept = (result: SendResult) => {
     const dropped = new Set(result.dropped ?? [])
@@ -201,7 +200,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
       <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
       {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
-      <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
+      <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
           {history.isPending && <Loading label="Loading the conversation" />}
           {history.isError && <ErrorNotice error={history.error} />}
@@ -211,6 +210,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
           ))}
         </div>
+        {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
       </div>
       <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
       <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
@@ -218,7 +218,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
         onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
       {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
-      <Composer name={name} draft={draft} streaming={streaming} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
+      <Composer name={name} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
     </section>
   )
 }

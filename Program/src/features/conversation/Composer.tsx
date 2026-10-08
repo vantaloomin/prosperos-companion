@@ -8,9 +8,11 @@ import { canSend as ready, PER_MESSAGE } from './pictureState'
 
 const OUT_OF_CHARACTER = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)) for a plain, honest answer.'
 
-export function Composer({ name, draft, streaming, onSend, onStop }: { name: string; draft: DraftState; streaming: boolean; onSend: () => void; onStop: () => void }) {
+/** `compact` while the reader scrolls up through the history: on a phone the box keeps one line until they come back
+ * down or tap it. */
+export function Composer({ name, draft, streaming, compact, onSend, onStop }: { name: string; draft: DraftState; streaming: boolean; compact: boolean; onSend: () => void; onStop: () => void }) {
   const prepare = usePrepare()
-  const text = useGrowing(draft.value.text)
+  const text = useGrowing(draft.value.text, compact)
   const pictures = usePictureAdder(draft)
   const canSend = ready(draft.value.text, draft.value.pictures?.length ?? 0, draft.sending || streaming || pictures.busy)
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -23,7 +25,7 @@ export function Composer({ name, draft, streaming, onSend, onStop }: { name: str
   }
   return (
     // Sending with the button disables it; keep the keyboard in the message box for the next message.
-    <form className="composer" onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}
+    <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}
       onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault() }} onDrop={pictures.drop}>
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
       <label className="visually-hidden" htmlFor="composer-text">Message {name}</label>
@@ -41,8 +43,9 @@ export function Composer({ name, draft, streaming, onSend, onStop }: { name: str
 }
 
 /** The message box grows with what is written, up to its maximum height (styles.css), then scrolls, so a long
- * message stays readable while it is typed. It shrinks again once sent. */
-function useGrowing(value: string) {
+ * message stays readable while it is typed. It shrinks again once sent; shrunk to one line while the reader is up in
+ * the history, it shows the line being written. */
+function useGrowing(value: string, compact: boolean) {
   const text = useRef<HTMLTextAreaElement>(null)
   useLayoutEffect(() => {
     const element = text.current
@@ -50,7 +53,8 @@ function useGrowing(value: string) {
     element.style.height = 'auto'
     const border = element.offsetHeight - element.clientHeight
     element.style.height = `${element.scrollHeight + border}px`
-  }, [value])
+    if (compact) element.scrollTop = element.scrollHeight
+  }, [value, compact])
   return text
 }
 
