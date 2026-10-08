@@ -95,8 +95,9 @@ def test_double_launch_runs_one_batch(tmp_path, client, life, clock, provider):
     async def both():
         return await asyncio.gather(first.state.life.reconcile(), second.state.life.reconcile())
 
+    # The other launch finds the batch running, or, on a slow runner, already finished; never a second batch.
     states = sorted(result['state'] for result in asyncio.run(both()))
-    assert states == ['in_progress', 'started']
+    assert states[1] == 'started' and states[0] in {'in_progress', 'not_due'}
     assert len(client.get('/api/life/runs').json()) == 1
     assert len(all_events(client)) == 3 and len(life_requests(provider)) == 3
 
