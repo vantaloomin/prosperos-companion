@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Clock, MapPin, Users } from 'lucide-react'
+import { Clock, MapPin, MessageCircle, Users } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CirclePerson, Companion } from '../../types'
@@ -11,7 +11,8 @@ import { PROFILE_TABS, circleText, handle, profileClass, profileTab, showsCard }
 
 /**
  * The companion's profile: their card, then Messages, Posts and Character as tabs. It takes the chat
- * style's look. Messages keeps its own header, so the card only shows above Posts and Character.
+ * style's look. Messages keeps its own header, so the card only shows above Posts and Character, with a
+ * Message button that goes back to the chat the way a social app's profile does.
  */
 export function Profile({ companion, view, go, children }: { companion: Companion; view: View; go: (view: View) => void; children: ReactNode }) {
   const chat = useChatStyle()
@@ -20,7 +21,7 @@ export function Profile({ companion, view, go, children }: { companion: Companio
     <div className={`${profileClass(chat.style, chat.retroDark)}${card ? ' with-card' : ''}`}>
       {card ? (
         <div className="profile-scroll">
-          <ProfileCard companion={companion} />
+          <ProfileCard companion={companion} message={() => go('conversation')} />
           <ProfileTabs view={view} go={go} />
           {children}
         </div>
@@ -43,7 +44,7 @@ function ProfileTabs({ view, go }: { view: View; go: (view: View) => void }) {
   )
 }
 
-function ProfileCard({ companion }: { companion: Companion }) {
+function ProfileCard({ companion, message }: { companion: Companion; message: () => void }) {
   const { identity, interests } = companion.version.definition
   const name = companion.version.name
   const portrait = usePortrait()
@@ -57,6 +58,7 @@ function ProfileCard({ companion }: { companion: Companion }) {
           <h1>{name}</h1>
           {handle(name) && <p className="profile-handle">{handle(name)}</p>}
         </div>
+        <button type="button" className="button primary profile-message" aria-label="Message" onClick={message}><MessageCircle aria-hidden="true" /><span>Message</span></button>
       </div>
       {identity.trim() && <p className="profile-bio">{identity.trim()}</p>}
       <ProfileFacts companion={companion} />

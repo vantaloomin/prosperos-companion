@@ -17,6 +17,7 @@ comments are not stored: they follow from the post, the circle and the clock, so
 up some time after its post, a renamed friend comments under the new name and a removed one
 leaves the conversation. The companion likes and comments on friends' posts the same way.
 """
+import logging
 import re
 from datetime import date, datetime, time, timedelta
 
@@ -94,15 +95,22 @@ COMMENTS = {
 }
 LIKELY = {'close friend': 0.85, 'sibling': 0.7, 'roommate from years ago': 0.55}
 COMMENT_CHANCE, COMPANION_LIKES = 0.22, 0.7
+LOG = logging.getLogger(__name__)
 
 
 # Writing posts ----------------------------------------------------------------------------------
 
 def refresh(database) -> None:
-    """Write the social posts that are due on the active timeline. Cheap and idempotent."""
+    """Write the social posts that are due on the active timeline. Cheap and idempotent. If writing them
+    fails, the error is logged and the feed and Today still open with the posts already there."""
     now = database.clock.now()
     with database.connect(write=True) as connection:
-        write(connection, require_current(connection), now)
+        companion = require_current(connection)
+        try:
+            write(connection, companion, now)
+        except Exception:
+            connection.rollback()
+            LOG.exception('Could not write new feed posts; showing the ones already there.')
 
 
 def write(connection, companion, now: datetime) -> int:
@@ -111,6 +119,8 @@ def write(connection, companion, now: datetime) -> int:
     started = parse(one(connection, 'SELECT COALESCE(forked_at, created_at) AS started FROM timelines WHERE id=?',
                         (timeline_id,))['started'])
     since = max(now - LOOKBACK, started)
+    if since > now:
+        return 0  # The timeline starts later than now, as after Debug time's "keep what happened".
     people = active_people(connection, timeline_id)
     found = [*friend_posts(connection, timeline_id, people, since, now),
              *day_posts(connection, companion, people, since, now),

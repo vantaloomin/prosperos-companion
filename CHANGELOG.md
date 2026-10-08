@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Posts opens again after Debug time:** keeping what happened in Debug time could leave the Posts tab
+  (and Today) failing with "The request could not be completed". It opens now, a failed load says what
+  went wrong with a Try again button, and the profile card has a Message button back to the chat.
 - **Recall has its own profiles:** embedding models moved out of text model profiles into a Recall
   section of Settings > Models, beside Built-in recall. A recall profile is just a service and an
   embedding model, so recall can use a different service from the one that writes replies (for example
