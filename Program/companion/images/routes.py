@@ -10,6 +10,7 @@ from companion.errors import DomainError
 from companion.images import backends, jobs, photos, storage
 from companion.images.adapters.base import AdapterError
 from companion.images.adapters.comfyui import FILE_INPUTS, SAMPLER_LISTS, default_files, default_sampler, krea_first
+from companion.images.adapters.hosted import api_base
 from companion.images.models import (
     BackendCreate,
     BackendFields,
@@ -17,9 +18,11 @@ from companion.images.models import (
     ImageSettingsUpdate,
     JobCreate,
     JobRetry,
+    ModelProbe,
     Preview,
 )
 from companion.lora.appearance import current_for_images
+from companion.providers.urls import validate_compatible_url
 
 router = APIRouter(prefix='/api/images')
 MODEL_LINKS = Path(__file__).parent / 'model_links.json'
@@ -82,6 +85,31 @@ async def check_backend(request: Request, backend_id: str):
     adapter = runner(request).adapters[backend['kind']]
     config = {**decode(backend['config']), **({'lora_name': lora['comfy_name']} if lora else {})}
     return (await adapter.check(backend, config, key)).view()
+
+
+@router.post('/models')
+async def list_models(request: Request, body: ModelProbe):
+    """The image models a hosted provider lists, for the add form or a saved backend's connection, so the model
+    can be picked rather than typed. Lists only: nothing is made. An unreachable list is not an error: the page
+    then takes a typed name."""
+    provider = backends.provider_for('hosted', body.provider)
+    base_url = api_base(body.base_url) if provider == 'other' else backends.HOSTED_DEFAULTS[provider]['base_url']
+    key = body.api_key or None
+    if body.backend_id:
+        with db(request).connect() as connection:
+            backend = backends.get(connection, body.backend_id)
+        saved = api_base(decode(backend['config']).get('base_url') or '')
+        base_url = base_url or saved
+        if not key and backend['credential_ref'] and backend['provider'] == provider and base_url == saved:
+            key = request.app.state.vault.get(backend['credential_ref'])
+    if not base_url:
+        raise DomainError('Enter the API base URL.', 422)
+    validate_compatible_url(base_url)
+    try:
+        models = await runner(request).adapters['hosted'].models(provider, {'base_url': base_url}, key)
+    except AdapterError as error:
+        return {'ok': False, 'error': error.message, 'models': []}
+    return {'ok': True, 'error': None, 'models': models}
 
 
 @router.get('/backends/{backend_id}/files')
