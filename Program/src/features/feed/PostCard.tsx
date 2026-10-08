@@ -6,6 +6,7 @@ import { REACTIONS } from './feedState'
 import { PostImage } from './PostImage'
 import { Audience, SocialBody } from './SocialPost'
 import { usePortrait } from '../conversation/portrait'
+import { Stamp } from '../../components/Stamp'
 
 export interface PostActions {
   react: (post: FeedPost, reaction: Reaction) => void
@@ -16,8 +17,6 @@ export interface PostActions {
   saw: (post: FeedPost) => void
   refresh: () => void
 }
-
-const when = (value: string) => new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
 
 export function PostCard({ post, name, actions }: { post: FeedPost; name: string; actions: PostActions }) {
   const card = useRef<HTMLElement>(null)
@@ -77,7 +76,7 @@ function PostHeader({ post }: { post: FeedPost }) {
     <header className="post-header">
       <PostAvatar post={post} />
       <span id={`post-${post.id}`} className="speaker">{post.author.name}{post.author.role && <span className="post-role"> · {post.author.role}</span>}{!post.read && <span className="unread-dot" role="img" aria-label="unread" />}</span>
-      <time dateTime={post.occurs_at}>{when(post.occurs_at)}</time>
+      <Stamp value={post.occurs_at} />
     </header>
   )
 }

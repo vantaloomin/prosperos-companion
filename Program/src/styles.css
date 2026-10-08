@@ -83,7 +83,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .message > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; min-height: 28px; }
 .speaker { font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
 .message-companion .speaker { color: var(--accent); }
-.message time { font-size: 0.75rem; color: var(--faint); }
+.message time { font-size: 0.75rem; color: var(--faint); white-space: nowrap; }
+/* Retro IM's "[9:14 PM]" before the name; every other style shows the time beside the message tools. */
+.message .stamp-lead { display: none; }
 .prose { font-family: 'Literata', Georgia, serif; font-size: 1.0625rem; line-height: 1.75; overflow-wrap: anywhere; }
 .prose p { white-space: pre-wrap; margin-bottom: 1em; }
 .prose p:last-child { margin-bottom: 0; }
@@ -631,7 +633,6 @@ textarea { resize: vertical; line-height: 1.6; }
 /* Chat styles: presentation only. Each lays out the same message markup; Feed is the base rules above. */
 .avatar { display: none; }
 .chat-style-switch { padding: 5px 8px; font-size: 0.8125rem; border-radius: 7px; max-width: 132px; }
-.chat-feed .message-companion > header time { display: none; }
 .chat-style-options { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
 .chat-style-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); cursor: pointer; }
 .chat-style-option:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
@@ -712,21 +713,24 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .chat-style-switch { border-radius: 0; padding: 3px 6px; background: #ffffff; color: #000000; }
 .chat-retro .transcript { margin: 6px 6px 0; background: #ffffff; border: 2px inset #e8e6e1; }
 .chat-retro .reading-column { max-width: none; padding: 8px 10px 12px; font-size: 0.875rem; }
-.chat-retro .message { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; margin-bottom: 4px; contain-intrinsic-size: auto 40px; }
+.chat-retro .message { display: grid; grid-template-columns: auto auto minmax(0, 1fr); column-gap: 6px; margin-bottom: 4px; contain-intrinsic-size: auto 40px; }
 .chat-retro .message > header { display: contents; }
-.chat-retro .message > :not(header), .chat-retro .message > header > :not(.speaker) { grid-column: 2; }
+.chat-retro .message > :not(header), .chat-retro .message > header > :not(.speaker, .stamp-lead) { grid-column: 3; }
 .chat-retro .message-actions, .chat-retro .reply-tools { order: 2; justify-self: start; gap: 10px; }
 .chat-retro .link-notes, .chat-retro .reply-status { order: 3; }
 .chat-retro .chat-photo { margin: 2px 0 4px; }
 .chat-retro .chat-photo-frame > img, .chat-retro .chat-photo-waiting { border-radius: 0; border: 2px inset #e8e6e1; max-height: 300px; }
-.chat-retro .speaker { grid-column: 1; font-size: 0.875rem; font-weight: 700; line-height: 1.5; color: #b00000; }
+.chat-retro .speaker { grid-column: 2; font-size: 0.875rem; font-weight: 700; line-height: 1.5; color: #b00000; }
 .chat-retro .speaker::after { content: ':'; }
 .chat-retro .message-companion .speaker { color: #0000b8; }
 .chat-retro .prose { font-family: inherit; font-size: 0.875rem; line-height: 1.5; color: #000000; }
 .chat-retro .message-user .prose { color: #000000; }
 .chat-retro .message-companion.inactive .prose { color: var(--faint); }
 .chat-retro .prose p { margin-bottom: 0.4em; }
-.chat-retro .message time { display: none; }
+.chat-retro .message :is(.message-actions, .reply-tools) time { display: none; }
+.chat-retro .message .stamp-lead { display: block; grid-column: 1; font-size: 0.75rem; line-height: 1.75; color: var(--faint); }
+.chat-retro .message .stamp-lead::before { content: '[' / ''; }
+.chat-retro .message .stamp-lead::after { content: ']' / ''; }
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
 @media (hover: none) { .chat-retro .message-actions.open .message-tools { right: auto; left: 0; } }
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
@@ -770,7 +774,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-novel .speaker { padding: 2px 12px; border-radius: 6px; background: var(--raised); border: 1px solid var(--border); color: var(--text); font-weight: 600; }
 .chat-novel .message-companion .speaker { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .chat-novel .message-user .prose { color: var(--text); }
-.chat-novel .message-companion > header time { display: none; }
 .chat-novel .turn-actions { margin: -8px 0 18px; }
 .chat-novel .chat-photo { margin-top: 12px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); }
 .chat-novel .chat-photo-frame > img, .chat-novel .chat-photo-waiting { border-radius: 6px; }
