@@ -1450,7 +1450,7 @@ CREATE TABLE IF NOT EXISTS group_moments (
 -- own; empty means they come from the statement. `guard_all` keeps it from everyone who doesn't know.
 CREATE TABLE IF NOT EXISTS knowledge (
   id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL CHECK (kind IN ('declared', 'storyline', 'character')),
+  kind TEXT NOT NULL CHECK (kind IN ('declared', 'storyline', 'character', 'memory')),
   source_id TEXT,
   statement TEXT,
   subjects TEXT NOT NULL DEFAULT '[]',

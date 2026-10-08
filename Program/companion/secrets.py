@@ -41,7 +41,6 @@ from companion.life import circle, storylines
 from companion.world import perception
 
 GOSSIP_LEVEL = 4  # "Close": a gossip happily passes a secret they weren't asked to keep on to them.
-SUGGESTION_LIMIT = 10  # Memories offered as secrets at once, newest first.
 SLIP_LEVEL = 3  # Drama "soap opera": a slip that survives the redraft stays and becomes a reveal.
 STATEMENT_LIMIT = 400
 
@@ -200,6 +199,22 @@ def character_parts(connection, row: dict) -> dict | None:
     return {'statement': line, 'subjects': subjects, 'keys': derived_keys(line, subjects), 'explicit': False}
 
 
+def memory_text(memory: dict) -> str:
+    value = ' '.join(memory['value'].split())
+    text = value if SECRET_LINE.search(value) else f"{' '.join(memory['subject'].split())}: {value}"
+    return text[:STATEMENT_LIMIT].rstrip('.')
+
+
+def memory_parts(connection, row: dict) -> dict | None:
+    """A memory that reads like a secret, read from the memory itself; None once it's corrected, excluded or gone."""
+    memory = optional(connection, "SELECT subject, value FROM memories WHERE id=? AND status='active'",
+                      (row['source_id'],))
+    if memory is None:
+        return None
+    statement = memory_text(memory)
+    return {'statement': statement, 'subjects': [], 'keys': derived_keys(statement, []), 'explicit': False}
+
+
 def declared_parts(connection, row: dict) -> dict:
     subjects = [{'key': item.get('key'), 'name': person_name(connection, item.get('key')) or item['name']}
                 for item in decode(row['subjects']) or []]
@@ -209,8 +224,7 @@ def declared_parts(connection, row: dict) -> dict:
 
 def view(connection, row: dict) -> dict | None:
     """One secret as the rules and the panel use it, or None when its source is gone."""
-    parts = (story_parts if row['kind'] == 'storyline' else character_parts if row['kind'] == 'character'
-             else declared_parts)(connection, row)
+    parts = PARTS[row['kind']](connection, row)
     if parts is None:
         return None
     own_keys = decode(row['key_words'])
@@ -222,6 +236,10 @@ def view(connection, row: dict) -> dict | None:
             'guard_all': bool(row['guard_all']), 'own_keys': own_keys or [], 'created_at': row['created_at'],
             'knows': knows, 'knowers': {holder['holder'] for holder in knows},
             'guarded': {holder['holder'] for holder in rows if holder['role'] == 'guarded'}}
+
+
+PARTS = {'storyline': story_parts, 'character': character_parts, 'memory': memory_parts,
+         'declared': declared_parts}
 
 
 def active(connection) -> list[dict]:
@@ -297,6 +315,7 @@ def sync(connection, now) -> None:
     timestamp = stamp(now)
     sync_storylines(connection, now, timestamp)
     sync_characters(connection, timestamp)
+    sync_memories(connection, timestamp)
     for row in many(connection, "SELECT * FROM knowledge WHERE status='active' AND kind!='declared'"):
         if view(connection, row) is None:
             connection.execute("UPDATE knowledge SET status='ended', updated_at=? WHERE id=?", (timestamp, row['id']))
@@ -342,6 +361,18 @@ def sync_characters(connection, timestamp: str):
                 continue
             knowledge_id = insert(connection, 'character', source, timestamp, guard_all=True)
             hold(connection, knowledge_id, companion_key(row['id']), 'knows', timestamp, 'origin')
+
+
+def sync_memories(connection, timestamp: str):
+    """A companion's memory that reads like a secret ("hasn't told her sister", "nobody knows") is one they know,
+    kept from everyone else: registered on its own, edited or removed in the panel like any other."""
+    rows = many(connection, 'SELECT m.id, m.companion_id, m.subject, m.value FROM memories m JOIN companions c '
+                "ON c.id=m.companion_id AND c.active_timeline_id=m.timeline_id WHERE m.status='active' AND NOT EXISTS "
+                "(SELECT 1 FROM knowledge k WHERE k.kind='memory' AND k.source_id=m.id)")
+    for row in rows:
+        if SECRET_LINE.search(row['subject']) or SECRET_LINE.search(row['value']):
+            knowledge_id = insert(connection, 'memory', row['id'], timestamp, guard_all=True)
+            hold(connection, knowledge_id, companion_key(row['companion_id']), 'knows', timestamp, 'origin')
 
 
 # The witness rule --------------------------------------------------------------------------------------
@@ -488,13 +519,16 @@ def holder_view(connection, holder: dict) -> dict:
             'how': VIA_TEXT[holder['via']], 'learned_at': holder['learned_at'], 'group': group}
 
 
+SOURCE_TEXT = {'storyline': 'storyline', 'character': 'character', 'memory': 'memories'}
+
+
 def source_text(connection, secret: dict) -> str:
     if secret['kind'] == 'declared':
         return 'You added this'
     owner = next((holder['holder'] for holder in secret['knows'] if holder['via'] == 'origin'
                   and holder['holder'].startswith('companion:')), None)
     name = first_name(person_name(connection, owner) or 'a companion')
-    return f"From {name}'s {'storyline' if secret['kind'] == 'storyline' else 'character'}"
+    return f"From {name}'s {SOURCE_TEXT[secret['kind']]}"
 
 
 def panel_view(connection, secret: dict) -> dict:
@@ -510,31 +544,11 @@ def panel_view(connection, secret: dict) -> dict:
             'created_at': secret['created_at']}
 
 
-def memory_text(memory: dict) -> str:
-    value = ' '.join(memory['value'].split())
-    text = value if SECRET_LINE.search(value) else f"{' '.join(memory['subject'].split())}: {value}"
-    return text[:STATEMENT_LIMIT].rstrip('.')
-
-
-def suggestions(connection) -> list[dict]:
-    """Memories that read like a secret ("hasn't told her mum", "nobody knows"), offered to add as one: the
-    companion who remembers it knows it. Each is offered once; adding or dismissing it records the memory id."""
-    rows = many(connection, 'SELECT m.id, m.companion_id, m.subject, m.value, v.name FROM memories m '
-                'JOIN companions c ON c.id=m.companion_id AND c.active_timeline_id=m.timeline_id '
-                "JOIN character_versions v ON v.id=c.active_version_id WHERE m.status='active' "
-                "AND NOT EXISTS (SELECT 1 FROM knowledge k WHERE k.kind='declared' AND k.source_id=m.id) "
-                'ORDER BY m.updated_at DESC')
-    found = [row for row in rows if SECRET_LINE.search(row['subject']) or SECRET_LINE.search(row['value'])]
-    return [{'memory_id': row['id'], 'companion_id': row['companion_id'], 'name': row['name'],
-             'statement': memory_text(row)} for row in found[:SUGGESTION_LIMIT]]
-
-
 def listing(database) -> dict:
     with database.connect(write=True) as connection:
         sync(connection, database.clock.now())
         return {'secrets': [panel_view(connection, secret) for secret in active(connection)],
-                'companions': companions(connection), 'slips': slips_allowed(connection),
-                'suggestions': suggestions(connection)}
+                'companions': companions(connection), 'slips': slips_allowed(connection)}
 
 
 def subjects_for(connection, names: list[str]) -> list[dict]:
@@ -587,9 +601,7 @@ def create(database, body) -> dict:
         statement = ' '.join(body.statement.split())[:STATEMENT_LIMIT].rstrip('.')
         require(statement, 'Write what the secret is.', 422)
         require(body.knows, 'Pick at least one companion who knows it.', 422)
-        require(body.memory_id is None or optional(connection, 'SELECT id FROM memories WHERE id=?',
-                                                   (body.memory_id,)) is not None, 'That memory is gone.', 404)
-        knowledge_id = insert(connection, 'declared', body.memory_id, timestamp, statement=statement,
+        knowledge_id = insert(connection, 'declared', None, timestamp, statement=statement,
                               subjects=subjects_for(connection, body.about), key_words=clean_words(body.key_words),
                               guard_all=body.keep_from_everyone)
         set_people(connection, knowledge_id, body.knows, [] if body.keep_from_everyone else body.kept_from, timestamp)
@@ -633,30 +645,17 @@ def update(database, knowledge_id: str, body) -> dict:
 
 
 def end(database, knowledge_id: str) -> dict:
-    """Delete the user's own secret, or stop treating one as a secret. One from a memory, a storyline or a
-    character stays on record as dismissed, so it isn't offered or registered again."""
+    """Delete the user's own secret, or stop treating one from a memory, a storyline or a character as a secret
+    (it stays on record as dismissed, so it isn't registered again)."""
     timestamp = database.now()
     with database.connect(write=True) as connection:
         row = require_secret(connection, knowledge_id)
-        if row['kind'] == 'declared' and not row['source_id']:
+        if row['kind'] == 'declared':
             connection.execute('DELETE FROM knowledge_holders WHERE knowledge_id=?', (knowledge_id,))
             connection.execute('DELETE FROM knowledge WHERE id=?', (knowledge_id,))
         else:
             connection.execute("UPDATE knowledge SET status='dismissed', updated_at=? WHERE id=?",
                                (timestamp, knowledge_id))
-    return listing(database)
-
-
-def dismiss_memory(database, memory_id: str) -> dict:
-    """Not a secret: the memory stops being offered (a dismissed row records it)."""
-    timestamp = database.now()
-    with database.connect(write=True) as connection:
-        require(optional(connection, 'SELECT id FROM memories WHERE id=?', (memory_id,)) is not None,
-                'That memory is gone.', 404)
-        if optional(connection, "SELECT id FROM knowledge WHERE kind='declared' AND source_id=?",
-                    (memory_id,)) is None:
-            knowledge_id = insert(connection, 'declared', memory_id, timestamp)
-            connection.execute("UPDATE knowledge SET status='dismissed' WHERE id=?", (knowledge_id,))
     return listing(database)
 
 

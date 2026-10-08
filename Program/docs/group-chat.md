@@ -174,10 +174,12 @@ and its cache stay the same for every speaker.
 - **A line in a companion's own description** that reads as a secret ("secretly", "nobody knows", "never told",
   "behind her back") is one only they know, kept from everyone else. It is read from the current sheet: edit the
   line and the secret follows; remove it and the secret ends.
-- **A memory that reads like a secret** (the same words, in its subject or value) is offered in the panel under
-  "From what they remember", once each: "Add as a secret…" opens the form filled in (the companion who remembers
-  it knows it, kept from everyone else) and saves it as the user's own, recording the memory id; "Not a secret"
-  records a dismissed row so it isn't offered again. Deleting one added from a memory dismisses it the same way.
+- **A companion's memory that reads like a secret** (the same words, in its subject or value) is one they know,
+  kept from everyone else. It is read from the memory: a correction rewords it, and excluding or replacing the
+  memory ends it.
+
+Nothing waits for the user: these register on their own, and the panel edits or ends any of them ("Not a secret
+anymore" stays on record as dismissed, so it isn't registered again).
 
 Rows point at their source instead of copying it, so a rename, a sheet edit or a storyline ending reaches the
 ledger; a secret the user added is the user's own words, changed in the panel.
@@ -233,7 +235,6 @@ never quietly undone.
 | `DELETE /api/secrets/{id}` | Deletes the user's own secret, or stops treating another one as a secret. |
 | `POST /api/secrets/{id}/reveal` `{companion_id}` | Let them find out. |
 | `POST /api/secrets/{id}/forget` `{companion_id}` | Make them forget. |
-| `POST /api/secrets/suggestions/{memory_id}/dismiss` | A memory offered as a secret isn't one. |
 
 ### With closeness
 

@@ -325,27 +325,30 @@ def test_a_companion_with_no_city_never_stops_a_reply(client, cast, provider, mo
     assert replies and all(line['status'] == 'complete' for line in replies)
 
 
-def test_a_memory_that_reads_like_a_secret_is_offered_once(client, cast):
-    ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Family',
-                                          'value': "You haven't told your sister you quit the bakery"}))
+def test_a_memory_that_reads_like_a_secret_becomes_one_on_its_own(client, cast):
+    memory = ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Family',
+                                                   'value': "You haven't told your sister you quit the bakery"}))
     ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Job', 'value': 'Pilot'}))
-    offered = ok(client.get('/api/secrets'))['suggestions']
-    assert offered == [{'memory_id': offered[0]['memory_id'], 'companion_id': cast['Mira'], 'name': offered[0]['name'],
-                        'statement': "You haven't told your sister you quit the bakery"}]
+    listed = ok(client.get('/api/secrets'))['secrets']
+    assert [item['statement'] for item in listed] == ["You haven't told your sister you quit the bakery"]
+    secret = listed[0]
+    assert secret['kind'] == 'memory' and secret['source'] == "From Mira's memories"
+    assert secret['keep_from_everyone'] and knows(client, secret['id']) == {'Mira': 'origin'}
+    # She already remembers it, so her 1:1 chat doesn't repeat it.
+    with client.app.state.database.connect() as connection:
+        assert secrets.context_lines(connection, by_id(connection, cast['Mira'])) == []
 
-    body = {'statement': offered[0]['statement'], 'knows': [cast['Mira']], 'keep_from_everyone': True,
-            'memory_id': offered[0]['memory_id']}
-    listed = ok(client.post('/api/secrets', json=body))
-    assert listed['suggestions'] == [] and listed['secrets'][0]['knows'][0]['name'].startswith('Mira')
-    # Deleting it doesn't offer it again.
-    listed = ok(client.delete(f"/api/secrets/{listed['secrets'][0]['id']}"))
-    assert listed['secrets'] == [] and listed['suggestions'] == []
+    # The memory is the source: excluding it ends the secret.
+    memory_id = memory.get('id') or memory['memory']['id']
+    ok(client.post(f'/api/memories/{memory_id}/exclude', json={}))
+    assert ok(client.get('/api/secrets'))['secrets'] == []
 
+    # "Not a secret anymore" sticks: it isn't registered again.
     ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Secret', 'value': 'Wants to move to Lisbon'}))
-    memory = ok(client.get('/api/secrets'))['suggestions'][0]
-    assert memory['statement'] == 'Secret: Wants to move to Lisbon'
-    assert ok(client.post(f"/api/secrets/suggestions/{memory['memory_id']}/dismiss", json={}))['suggestions'] == []
-    assert client.post('/api/secrets/suggestions/nope/dismiss', json={}).status_code == 404
+    secret = ok(client.get('/api/secrets'))['secrets'][0]
+    assert secret['statement'] == 'Secret: Wants to move to Lisbon'
+    assert ok(client.delete(f"/api/secrets/{secret['id']}"))['secrets'] == []
+    assert ok(client.get('/api/secrets'))['secrets'] == []
 
 
 def test_the_slip_note_can_be_turned_off(client):

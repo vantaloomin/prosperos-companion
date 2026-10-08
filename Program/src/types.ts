@@ -1263,7 +1263,7 @@ export interface SecretHolder {
 export interface Secret {
   id: string
   /** The user's own, or registered from a companion's storyline or description. */
-  kind: 'declared' | 'storyline' | 'character'
+  kind: 'declared' | 'storyline' | 'character' | 'memory'
   statement: string
   /** "You added this", "From Billy's storyline". */
   source: string
@@ -1282,8 +1282,4 @@ export interface SecretsData {
   companions: { id: string; name: string }[]
   /** Drama is at soap opera: a slip that gets past the rewrite stays. */
   slips: boolean
-  /** Memories that read like a secret, offered once each; the companion who remembers it knows it. */
-  suggestions?: SecretSuggestion[]
 }
-
-export interface SecretSuggestion { memory_id: string; companion_id: string; name: string; statement: string }

@@ -135,8 +135,6 @@ class NewSecret(Input):
     kept_from: list[str] = Field(default_factory=list, max_length=50)
     keep_from_everyone: bool = False
     key_words: list[str] = Field(default_factory=list, max_length=30)
-    # Added from a memory the panel offered: it stops being offered.
-    memory_id: str | None = Field(None, max_length=100)
 
 
 class SecretChange(Input):
@@ -160,11 +158,6 @@ def secret_listing(request: Request):
 @secrets_router.post('')
 def secret_create(request: Request, body: NewSecret):
     return secrets.create(request.app.state.database, body)
-
-
-@secrets_router.post('/suggestions/{memory_id}/dismiss')
-def secret_suggestion_dismiss(request: Request, memory_id: str):
-    return secrets.dismiss_memory(request.app.state.database, memory_id)
 
 
 @secrets_router.patch('/{secret_id}')
