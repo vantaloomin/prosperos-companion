@@ -347,6 +347,10 @@ function backendBody(draft: Draft, disclosure: string | null, accepted: boolean)
     allows_nsfw: NSFW_PROVIDERS.includes(draft.provider) ? draft.nsfw : undefined }
 }
 
+const MODEL_EXAMPLES: Record<HostedProvider, string> = {
+  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', other: 'gpt-image-1',
+}
+
 /** The NSFW switch for a new image API backend; Google and the OpenAI API only say they stay safe-only. */
 function NsfwChoice({ provider, checked, onChange }: { provider: HostedProvider; checked: boolean; onChange: (value: boolean) => void }) {
   if (!NSFW_PROVIDERS.includes(provider)) return <p className="subtle">{PROVIDERS.find((item) => item.id === provider)?.label} only receives safe requests.</p>
@@ -402,7 +406,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
             {PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
-        <TextInput label="Image model" value={model} required onChange={setModel} placeholder={provider === 'openrouter' ? 'google/gemini-2.5-flash-image' : provider === 'google' ? 'imagen-4.0-generate-001' : 'gpt-image-1'}
+        <TextInput label="Image model" value={model} required onChange={setModel} placeholder={MODEL_EXAMPLES[provider]}
           hint="The model's exact name from the provider's documentation." />
         <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />
         {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} hint="For an OpenAI-compatible image service, usually ending in /v1." />}

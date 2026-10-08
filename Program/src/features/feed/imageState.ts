@@ -57,11 +57,12 @@ export const PROVIDERS: { id: HostedProvider; label: string }[] = [
   { id: 'openrouter', label: 'OpenRouter' },
   { id: 'google', label: 'Google' },
   { id: 'openai', label: 'OpenAI API' },
+  { id: 'nanogpt', label: 'NanoGPT' },
   { id: 'other', label: 'Other OpenAI-compatible API' },
 ]
 
 /** Hosted providers the NSFW switch is offered for, matching the server's NSFW_PROVIDERS. */
-export const NSFW_PROVIDERS: HostedProvider[] = ['openrouter', 'other']
+export const NSFW_PROVIDERS: HostedProvider[] = ['openrouter', 'nanogpt', 'other']
 
 export function isLoopback(url: string): boolean {
   try {

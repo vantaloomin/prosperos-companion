@@ -13,6 +13,7 @@ cost stays unknown. A provider's content refusal is reported as `refused`, which
 request as NSFW so it is never offered to another hosted provider (F6).
 """
 import base64
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -20,6 +21,19 @@ from companion.images.adapters.base import AdapterError, Check, ImageResult, med
 
 REFUSAL_SIGNS = ('content_policy', 'content policy', 'safety', 'moderation', 'prohibited', 'blocked', 'nsfw')
 TIMEOUT_SECONDS = 180
+# Request paths people paste with the base URL from a provider's docs; the adapter adds them itself.
+ENDPOINT_SUFFIXES = ('/images/generations', '/images/edits', '/images/edit', '/chat/completions', '/models', '/images')
+
+
+def api_base(value: str) -> str:
+    """The API base without a trailing request path, so a URL copied from an endpoint's docs (say
+    `https://nano-gpt.com/api/v1/images/generations`) still works. Applied when saving and again
+    when calling, for backends saved before this."""
+    value = value.strip().rstrip('/')
+    for suffix in ENDPOINT_SUFFIXES:
+        if value.endswith(suffix) and urlsplit(value).path != suffix:
+            return value.removesuffix(suffix).rstrip('/')
+    return value
 
 
 def refused(text: str) -> bool:
@@ -32,6 +46,15 @@ def decode_data_url(url: str) -> bytes:
     if not header.startswith('data:image/') or ';base64' not in header:
         raise AdapterError('invalid_output', 'The provider returned an image in an unexpected form.')
     return base64.b64decode(payload, validate=False)
+
+
+def models_url(config, provider) -> str:
+    """Where the provider lists its image models. NanoGPT's `/models` lists text models only, so a
+    NanoGPT address (chosen by name or entered as another API) uses its image list."""
+    host = urlsplit(config['base_url']).hostname or ''
+    if provider == 'nanogpt' or host == 'nano-gpt.com' or host.endswith('.nano-gpt.com'):
+        return config['base_url'] + '/images/models'
+    return config['base_url'] + '/models'
 
 
 def takes_reference(config, provider) -> bool:
@@ -60,7 +83,7 @@ class HostedAdapter:
     async def generate(self, request) -> ImageResult:
         if not request.key:
             raise AdapterError('auth', 'Add an API key for this provider in Settings.')
-        config, provider = request.config, request.backend['provider']
+        config, provider = {**request.config, 'base_url': api_base(request.config['base_url'])}, request.backend['provider']
         prompt = f'{request.prompt}\nAvoid: {request.negative}' if request.negative else request.prompt
         headers = {'Authorization': f'Bearer {request.key}'}
         if request.reference is not None and not takes_reference(config, provider):
@@ -147,13 +170,20 @@ class HostedAdapter:
         """Lists the provider's models with the key; sends no prompt and spends no image quota."""
         if not key:
             return Check(False, 'Add an API key for this provider.')
+        config = {**config, 'base_url': api_base(config['base_url'])}
         try:
             async with self.client() as client:
-                response = await client.get(config['base_url'] + '/models', headers={'Authorization': f'Bearer {key}'})
+                url = models_url(config, backend.get('provider'))
+                response = await client.get(url, headers={'Authorization': f'Bearer {key}'})
         except httpx.RequestError:
             return Check(False, 'Cannot reach the provider at this address.')
         if response.status_code in (401, 403):
             return Check(False, 'The provider rejected the API key.')
+        if response.status_code in (404, 405):
+            return Check(False, f'Nothing answered at {url}, so the key and model could not be checked.', [
+                'Check the API base URL: it should end at the API version (like /v1), without '
+                '/images/generations on the end.',
+                'Some services have no model list. Making an image is the real test, and Check never blocks it.'])
         if not response.is_success:
             return Check(False, f'The provider answered HTTP {response.status_code} when listing models.')
         try:
