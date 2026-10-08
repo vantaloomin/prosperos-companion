@@ -5,14 +5,32 @@ from fastapi import APIRouter, Request
 from pydantic import Field
 
 from companion import groups
+from companion.memory import pairs
 from companion.models import Input
 
 router = APIRouter(prefix='/api/groups')
 
 
+class Backstory(Input):
+    """How two companions know each other, told once when they first share a group: a starting stage, a line."""
+    a: str = Field(min_length=1, max_length=100)
+    b: str = Field(min_length=1, max_length=100)
+    level: int | None = Field(None, ge=1, le=pairs.STAGES)
+    how: str = Field('', max_length=pairs.HOW_LIMIT)
+
+
 class NewGroup(Input):
     companion_ids: list[str] = Field(min_length=2, max_length=50)
     name: str | None = Field(None, max_length=200)
+    ties: list[Backstory] = Field(default_factory=list, max_length=200)
+
+
+class Untold(Input):
+    companion_ids: list[str] = Field(min_length=2, max_length=50)
+
+
+class Moment(Input):
+    kept: bool = True
 
 
 class GroupChange(Input):
@@ -24,6 +42,7 @@ class NewMember(Input):
     companion_id: str = Field(min_length=1, max_length=100)
     # What they can see: the chat from when they join (the default), or all of it so far.
     history: Literal['from_now', 'everything'] = 'from_now'
+    ties: list[Backstory] = Field(default_factory=list, max_length=50)
 
 
 class GroupMessage(Input):
@@ -42,7 +61,13 @@ def listing(request: Request):
 
 @router.post('')
 def create(request: Request, body: NewGroup):
-    return groups.create(request.app.state.database, body.companion_ids, body.name)
+    return groups.create(request.app.state.database, body.companion_ids, body.name, body.ties)
+
+
+@router.post('/untold')
+def untold(request: Request, body: Untold):
+    """Pairs among these companions who would meet in a group for the first time: their backstory can be told."""
+    return {'pairs': groups.untold(request.app.state.database, body.companion_ids)}
 
 
 @router.get('/{group_id}')
@@ -63,7 +88,8 @@ def delete(request: Request, group_id: str):
 
 @router.post('/{group_id}/members')
 def add(request: Request, group_id: str, body: NewMember):
-    return groups.add(request.app.state.database, group_id, body.companion_id, body.history == 'everything')
+    return groups.add(request.app.state.database, group_id, body.companion_id, body.history == 'everything',
+                      body.ties)
 
 
 @router.delete('/{group_id}/members/{companion_id}')
@@ -74,6 +100,11 @@ def remove(request: Request, group_id: str, companion_id: str):
 @router.post('/{group_id}/copy')
 def copy(request: Request, group_id: str):
     return groups.copy(request.app.state.database, group_id)
+
+
+@router.post('/{group_id}/messages/{message_id}/moment')
+def keep_moment(request: Request, group_id: str, message_id: str, body: Moment):
+    return groups.keep_moment(request.app.state.database, group_id, message_id, body.kept)
 
 
 @router.post('/{group_id}/messages')

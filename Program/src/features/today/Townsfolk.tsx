@@ -7,6 +7,7 @@ import type { Townsperson, TownspersonNow } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { useSwitchBack } from '../character/useSwitchBack'
+import { stageText } from '../memories/pairText'
 import { townMet, townNow, townRole } from './townText'
 
 /** Background people the companion keeps running into around town. Hidden until there is someone. */
@@ -28,7 +29,7 @@ function TownItem({ person, go }: { person: Townsperson; go: (view: View) => voi
   const [open, setOpen] = useState(false)
   return (
     <li>
-      <strong>{person.full}</strong> <span className="subtle">{townRole(person)}. {townMet(person)}</span>
+      <strong>{person.full}</strong> <span className="subtle">{townRole(person)}. {townMet(person)}{person.stage ? ` ${stageText(person.stage, person.name)}.` : ''}</span>
       <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}><MapPin aria-hidden="true" />{open ? 'Less' : 'More'}</button>
       {open && <TownDetail person={person} go={go} />}
     </li>

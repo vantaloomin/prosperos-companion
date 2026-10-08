@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Clock, MapPin, MessageCircle, Users } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
-import type { CirclePerson, Companion } from '../../types'
+import type { CirclePerson, Companion, PairTie } from '../../types'
+import { tieText, tieWhy } from '../memories/pairText'
 import { usePortrait } from '../conversation/portrait'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
@@ -62,12 +63,28 @@ function ProfileCard({ companion, message }: { companion: Companion; message: ()
       </div>
       {identity.trim() && <p className="profile-bio">{identity.trim()}</p>}
       <ProfileFacts companion={companion} />
+      <ProfileTies name={name} />
       {interests.length > 0 && (
         <ul className="profile-interests" aria-label="Interests">
           {interests.slice(0, 8).map((interest) => <li key={interest}>{interest}</li>)}
         </ul>
       )}
     </header>
+  )
+}
+
+/** How close they and the other companions they know feel. Read-only: only what happens between them moves it. */
+function ProfileTies({ name }: { name: string }) {
+  const ties = useQuery({ queryKey: ['companion-ties'], queryFn: () => api<{ ties: PairTie[] }>('/companion/ties') })
+  if (!ties.data?.ties.length) return null
+  return (
+    <ul className="profile-facts profile-ties" aria-label={`${name} and your other companions`}>
+      {ties.data.ties.map((tie) => (
+        <li key={tie.companion_id} title={[tie.how, tieWhy(tie)].filter(Boolean).join(' · ') || undefined}>
+          {tieText(name, tie)}{tie.how && <span className="subtle"> · {tie.how}</span>}
+        </li>
+      ))}
+    </ul>
   )
 }
 

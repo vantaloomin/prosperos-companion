@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { stageText } from '../memories/pairText'
 import { displayName, personFacts, personNow, personTies, personWork } from './circleText'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
@@ -81,6 +82,7 @@ function PersonCard({ person, companion, act }: { person: CirclePerson; companio
       <header>
         <h3>{displayName(person)}</h3>
         <p className="subtle">{personFacts(person)}</p>
+        {person.stage && <p className="subtle pair-stage">With {companion}: {stageText(person.stage, person.name)}</p>}
       </header>
       {gone ? <p className="subtle">Removed. Moments that already happened still mention them.</p> : <PersonDetails person={person} work={work} />}
       {renaming && <RenameForm person={person} act={act} onDone={() => setRenaming(false)} />}

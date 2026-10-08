@@ -1422,3 +1422,22 @@ CREATE TABLE IF NOT EXISTS away_messages (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS away_messages_created ON away_messages(created_at);
+
+-- How two companions know each other, written once by the user when they are first put together (a new group,
+-- adding someone, or becoming a companion): the stage they start at and a line of backstory. Everything else
+-- about closeness between people is worked out from history (companion/memory/pairs.py). Person keys are stored
+-- in order, `first` < `second`.
+CREATE TABLE IF NOT EXISTS pair_backstories (
+  first TEXT NOT NULL,
+  second TEXT NOT NULL,
+  start_level INTEGER CHECK (start_level BETWEEN 1 AND 5),
+  how TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (first, second)
+);
+
+-- Group messages the user kept as a shared moment: they bring everyone who was in the group then a little closer.
+CREATE TABLE IF NOT EXISTS group_moments (
+  message_id TEXT PRIMARY KEY REFERENCES group_messages(id),
+  created_at TEXT NOT NULL
+);

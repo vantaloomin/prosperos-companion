@@ -36,7 +36,7 @@ WORKSPACE = (
     'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'image_settings',
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
-    'group_chats', 'group_members', 'group_messages',
+    'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories',
     'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.

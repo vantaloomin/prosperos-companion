@@ -29,7 +29,7 @@ from companion import (
 )
 from companion.identity import APP_ID, VERSION
 from companion.imports import cards
-from companion.memory import consolidation, formation, records
+from companion.memory import consolidation, formation, pairs, records
 from companion.models import (
     CastDraftRequest,
     CastFocus,
@@ -197,7 +197,16 @@ async def cast_fleshed(request: Request, body: CastDraftRequest):
 @router.post('/companion/cast/switch')
 def cast_switch(request: Request, body: CastSwitch):
     """The townsperson becomes the main character; the current one steps back with their history."""
-    return cast.switch(db(request), body.key, body.definition)
+    return cast.switch(db(request), body.key, body.definition, body.ties)
+
+
+@router.get('/companion/ties')
+def companion_ties(request: Request):
+    """How close the current companion and the other companions they know feel to each other, both ways
+    (companion/memory/pairs.py). Read-only: only what happens between them moves it."""
+    database = db(request)
+    with database.connect() as connection:
+        return {'ties': pairs.ties(connection, characters.require_current(connection), database.clock.now())}
 
 
 @router.post('/companion/town')

@@ -479,6 +479,8 @@ export interface CirclePerson {
   works_with_companion?: boolean
   /** Who they know inside the circle and how. */
   knows?: CircleTie[]
+  /** How close they and the companion feel, both ways (companion/memory/pairs.py); read-only. */
+  stage?: PairStage | null
   now: RoutineBlock | null
   recent: DiaryEntry[]
 }
@@ -1073,7 +1075,28 @@ export interface Townsperson {
   says_they_are: string | null
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
+  /** How close they and the companion feel, both ways; read-only. */
+  stage?: PairStage | null
 }
+
+/** Closeness between two people (companion/memory/pairs.py): how the companion feels, and how the other feels. */
+export interface PairStage { level: number; name: string; their_level: number; their_name: string }
+/** Another companion this one knows, for the profile: worked out from what happened between them. */
+export interface PairTie {
+  companion_id: string
+  name: string
+  feels: { level: number; name: string; cooled: boolean }
+  they_feel: { level: number; name: string; cooled: boolean }
+  how: string
+  group_days: number
+  meetings: number
+}
+/** Two companions about to share a group for the first time: their backstory can be told, once. */
+export interface UntoldPair { a: string; b: string; a_name: string; b_name: string; level: number }
+/** What the user tells about two companions: a starting stage and a line, both optional. */
+export interface Backstory { a: string; b: string; level: number | null; how: string }
+/** A companion already here, as a new one would start with them (by their meetings around town). */
+export interface NewTie { companion_id: string; name: string; meetings: number; level: number; name_of_level: string }
 /** A companion in the workspace: the main character, or one who stepped back. */
 export interface CastMember { id: string; name: string; main: boolean; from_town: boolean; stepped_back_at: string | null; created_at: string }
 /** A townsperson's drafted profile, before they become the main character. */
@@ -1083,6 +1106,8 @@ export interface CastDraft {
   /** Who steps back; null when there is no main character yet (a dating match as the first companion). */
   stepping_back: string | null
   matched?: boolean
+  /** The companions already here, at the stage the new one would start with each. */
+  ties?: NewTie[]
 }
 export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }
 
@@ -1187,6 +1212,8 @@ export interface GroupMessage {
   error: string | null
   reply_to: string | null
   created_at: string
+  /** Kept as a shared moment: it brings everyone who was there a little closer. */
+  kept?: boolean
 }
 
 export interface Group {

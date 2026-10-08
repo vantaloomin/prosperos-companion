@@ -3,12 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
-import type { CastMember, Group } from '../../types'
+import type { Backstory, CastMember, Group } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Stamp } from '../../components/Stamp'
-import { latestLine, membersLine } from './groupText'
+import { Backstories } from './Backstories'
+import { latestLine, membersLine, toldOnly } from './groupText'
 import { GROUPS_KEY, useCast } from './groupState'
 
 /** Every group chat, most recently active first, and New group. Groups sit beside the 1:1 chats. */
@@ -63,6 +64,7 @@ export function NewGroup({ companions, chosen = [], onClose, onMade }: { compani
   const client = useQueryClient()
   const [picked, setPicked] = useState<string[]>(chosen)
   const [name, setName] = useState('')
+  const [ties, setTies] = useState<Backstory[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const toggle = (id: string) => setPicked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
@@ -70,7 +72,8 @@ export function NewGroup({ companions, chosen = [], onClose, onMade }: { compani
     setBusy(true)
     setError('')
     try {
-      const group = await api<Group>('/groups', { companion_ids: picked, name: name.trim() || null })
+      const told = toldOnly(ties).filter((item) => picked.includes(item.a) && picked.includes(item.b))
+      const group = await api<Group>('/groups', { companion_ids: picked, name: name.trim() || null, ties: told })
       await client.invalidateQueries({ queryKey: GROUPS_KEY })
       onMade(group)
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'The group was not made. Try again.') } finally { setBusy(false) }
@@ -89,6 +92,7 @@ export function NewGroup({ companions, chosen = [], onClose, onMade }: { compani
           </label>
         ))}
       </fieldset>
+      <Backstories companionIds={picked} value={ties} onChange={setTies} />
       <label className="field">Name (optional)
         <input value={name} maxLength={60} placeholder="Shown instead of their names" onChange={(event) => setName(event.target.value)} />
       </label>

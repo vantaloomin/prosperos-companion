@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
-import type { CastDraft, CharacterDefinition, Companion, Connection } from '../../types'
+import type { CastDraft, CharacterDefinition, Companion, Connection, NewTie } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
+import { PAIR_STAGES } from '../memories/pairText'
 import { CharacterForm, type Start } from './Character'
 import { givenName } from './castText'
 import { refocus } from './refocus'
@@ -18,6 +19,7 @@ export function SwitchTo({ townKey, go }: Props) {
   const client = useQueryClient()
   const draft = useQuery({ queryKey: ['cast-draft', townKey], queryFn: () => api<CastDraft>(`/companion/cast/draft?key=${encodeURIComponent(townKey)}`), staleTime: Infinity, retry: false })
   const [start, setStart] = useState<Start | null>(null)
+  const [ties, setTies] = useState<Record<string, Told>>({})
   if (draft.isPending) return <Loading label="Drafting their profile" />
   if (draft.isError) {
     return (
@@ -30,7 +32,9 @@ export function SwitchTo({ townKey, go }: Props) {
   const name = givenName(person.full)
   const current = start ?? { definition: draft.data.definition, drafted: false, attempt: 0 }
   const save = async (definition: CharacterDefinition) => {
-    const saved = await api<Companion>('/companion/cast/switch', { key: townKey, definition })
+    const told = Object.entries(ties).filter(([, item]) => item.level || item.how.trim())
+      .map(([companionId, item]) => ({ companion_id: companionId, level: item.level, how: item.how.trim() }))
+    const saved = await api<Companion>('/companion/cast/switch', { key: townKey, definition, ties: told })
     await refocus(client)
     return saved
   }
@@ -42,8 +46,38 @@ export function SwitchTo({ townKey, go }: Props) {
           <h1>{person.full}</h1>
           <p className="subtle">{person.role.charAt(0).toUpperCase()}{person.role.slice(1)}, {person.neighborhood}. {matched ? `You matched with ${name}.` : `${old} has run into ${name} around town.`} Read their profile through and change anything you like before {old ? 'they take over' : 'you start talking'}.</p>
         </div></header>,
-        notice: <Written old={old} name={name} townKey={townKey} written={current.drafted} onWritten={(definition) => setStart({ definition, drafted: true, attempt: current.attempt + 1 })} onReset={() => setStart(null)} />,
+        notice: <>
+          <Written old={old} name={name} townKey={townKey} written={current.drafted} onWritten={(definition) => setStart({ definition, drafted: true, attempt: current.attempt + 1 })} onReset={() => setStart(null)} />
+          <SwitchTies name={name} ties={draft.data.ties ?? []} value={ties} onChange={setTies} />
+        </>,
       }} />
+  )
+}
+
+interface Told { level: number | null; how: string }
+
+/** How they and each companion already here know each other: told once, here, before they become a companion.
+ * Each starts at the stage their meetings around town give. */
+function SwitchTies({ name, ties, value, onChange }: { name: string; ties: NewTie[]; value: Record<string, Told>; onChange: (value: Record<string, Told>) => void }) {
+  if (!ties.length) return null
+  const set = (id: string, change: Partial<Told>) => onChange({ ...value, [id]: { ...(value[id] ?? { level: null, how: '' }), ...change } })
+  return (
+    <fieldset className="group-backstories">
+      <legend>How {name} knows your other companions (optional)</legend>
+      <p className="subtle">You can tell this once, now. After that, only what happens between them changes it.</p>
+      {ties.map((tie) => (
+        <div key={tie.companion_id} className="group-backstory">
+          <label>{tie.name.split(' ')[0]}
+            <select value={value[tie.companion_id]?.level ?? ''} onChange={(event) => set(tie.companion_id, { level: event.target.value ? Number(event.target.value) : null })}>
+              <option value="">{tie.name_of_level} ({tie.meetings ? `met ${tie.meetings === 1 ? 'once' : `${tie.meetings} times`}` : 'as things stand'})</option>
+              {PAIR_STAGES.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
+            </select>
+          </label>
+          <input aria-label={`How ${name} and ${tie.name} know each other`} value={value[tie.companion_id]?.how ?? ''} maxLength={300}
+            placeholder="e.g. Regulars at the same bar" onChange={(event) => set(tie.companion_id, { how: event.target.value })} />
+        </div>
+      ))}
+    </fieldset>
   )
 }
 
