@@ -66,7 +66,9 @@ nodejs.org download page. `create-shortcut.command` writes a small `.app` bundle
 setup-python or setup-node on Apple Silicon and Intel runners, then
 `scripts/macos/helpers-test.sh`; the backend tests also run on macOS. On a pull request the
 `macos-install` and `windows-install` jobs run only when the PR touches `Windows/`, `Mac/`, the
-platform scripts, the manifests, `companion/launch.py` or `companion/main.py`; on main they always run. No one has run these on a real Mac. User-facing instructions, Gatekeeper and what is missing on a Mac are in
+platform scripts, the manifests, `companion/launch.py` or `companion/main.py`; on main they always
+run. No one has run these on a real Mac. User-facing instructions, Gatekeeper and what is missing on
+a Mac are in
 [Installing on a Mac](macos.md).
 
 ## Windows bundle
