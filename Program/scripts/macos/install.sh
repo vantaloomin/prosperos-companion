@@ -120,3 +120,6 @@ fi
 verify
 say_ok 'Ready. Double-click launch.command in the Mac folder to open Prospero Companion.'
 echo 'Connect a model in Settings inside the app. Nothing is downloaded until you choose to.'
+# What this computer can run locally (companion/hardware.py). Advice only: it never fails setup.
+echo
+"$venv_python" -m companion.hardware || true

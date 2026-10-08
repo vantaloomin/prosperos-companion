@@ -57,6 +57,31 @@ seconds at busy times, so the same request is sent once more after its `Retry-Af
 Image prompts are assembled without a model, and image backends (and their NSFW routing) have
 their own settings under Images.
 
+## This computer
+
+`companion/hardware.py` reads the graphics cards (NVIDIA through `nvidia-smi`; Apple silicon as shared
+memory, about three quarters usable by the GPU) and system memory, and says what local models fit:
+text models up to about N billion parameters at 4-bit, and whether Krea 2 pictures fit beside one. It
+then checks the setup in use and warns when:
+
+- a local text model (Local / LM Studio, Kobold, or a loopback OpenAI-compatible address that does a
+  job) is bigger than the largest card, or bigger than the card plus system memory;
+- a local ComfyUI backend's diffusion model is bigger than its card;
+- a local text model and local ComfyUI pictures don't both fit on one card. With two cards it asks
+  ComfyUI (`/system_stats`) which card it uses and suggests `--cuda-device` when it shares the text
+  model's card;
+- the computer has less than 16 GB of memory.
+
+Sizes are estimates from names: billions of parameters (`31b`, `8x7b`) times the bits of the
+quantization in the name (`Q4_K_M`, `Q8_0`, `fp16`; 4-bit when none is named), plus 10% and 1.5 GB for
+the context. A name without a size gets a tip instead of a check. Picture models are sized by the
+precision in the diffusion model's file name (NVFP4 about 11 GB, FP8 about 16 GB, otherwise about
+24 GB, each with the text encoder and working space). The scan is kept for five minutes; Check again
+scans now. Other cards (AMD, Intel) are named on Windows but not measured, so nothing is checked.
+
+`install.bat` and `install.command` print the same summary when setup finishes
+(`python -m companion.hardware`), and the welcome screen shows it before the first model is set up.
+
 ## Upgrading from a single connection
 
 Earlier versions had one OpenAI-compatible connection. The first start after upgrading turns it
@@ -79,3 +104,4 @@ local server.
 | `POST /api/models/discover` | Test an unsaved form; reuses a profile's saved key when given its `profile_id` |
 | `POST /api/models/profiles/{id}/check` | Test a saved profile |
 | `PUT /api/models/routes` | `{job, profile_id}`; `null` returns the job to the conversation profile |
+| `GET /api/hardware` | This computer: `computer`, `can_run` lines, the `local_text` and `local_images` checked, and `warnings` (`area`, `tone`, `text`); `?fresh=true` scans again |

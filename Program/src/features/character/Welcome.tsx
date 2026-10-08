@@ -3,6 +3,8 @@ import { CheckCircle2, Circle } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Connection } from '../../types'
+import { useHardware } from '../settings/models/hardware'
+import { usePhoneStatus } from '../phone/phoneAccess'
 import { welcomeSteps } from './welcomeSteps'
 
 /** The first screen with no companion: connect the model they think with, then create them. */
@@ -10,6 +12,8 @@ export function Welcome({ go }: { go: (view: View) => void }) {
   // Shares the Settings cache entry, so saving a model there ticks the first step here.
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   const steps = welcomeSteps(connection.isSuccess ? connection.data : undefined)
+  const remote = !!usePhoneStatus().data?.remote
+  const hardware = useHardware()
   return (
     <section className="welcome">
       <p className="eyebrow">Prospero Companion</p>
@@ -27,6 +31,10 @@ export function Welcome({ go }: { go: (view: View) => void }) {
           </li>
         ))}
       </ol>
+      {!remote && hardware.data && <div className="welcome-hardware subtle">
+        <p>On this computer: {hardware.data.can_run.join(' ')}</p>
+        {hardware.data.warnings.length > 0 && <p>Settings &gt; Models has {hardware.data.warnings.length === 1 ? 'a warning' : 'warnings'} about the models you set up.</p>}
+      </div>}
     </section>
   )
 }

@@ -4,6 +4,7 @@ import { Check, Copy, Pencil, PlugZap, Trash2 } from 'lucide-react'
 import { api } from '../../../api'
 import { Notice } from '../../../components/Feedback'
 import { useReturnFocus } from '../../../components/returnFocus'
+import { HARDWARE_KEY } from './hardware'
 import { ProfileEditor } from './ProfileEditor'
 import { jobChoice } from './routing'
 import { isRecall, type ModelJob, type ModelProfile, type ModelsOverview } from './types'
@@ -25,6 +26,7 @@ export function ModelSettings() {
     if (data) client.setQueryData(KEY, data)
     void client.invalidateQueries({ queryKey: KEY })
     void client.invalidateQueries({ queryKey: ['connection'] })
+    void client.invalidateQueries({ queryKey: HARDWARE_KEY })
   }
   if (!query.data) return null
   const shared: Shared = { overview: query.data, editing, setEditing, refresh, result, setResult }
