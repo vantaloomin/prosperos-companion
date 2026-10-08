@@ -23,6 +23,8 @@
 
 - **Portable data:** Settings > Data shows where data lives and can move it into a Data folder beside
   the app.
+- **Hardware check:** reads the graphics card and memory, says what local models fit, and warns about
+  setups that will run badly (Settings, welcome screen, installer).
 - **Timestamps** on messages and posts in every chat style.
 - **NanoGPT** for chat models and pictures; image backends get an editable Connection panel.
 - **Forgiving city import:** shared city files load despite small mistakes and keep new kinds of
