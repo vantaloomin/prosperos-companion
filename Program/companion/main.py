@@ -16,6 +16,8 @@ from companion.dating_photos import DatingPhotos
 from companion.debug_routes import router as debug_router
 from companion.debug_time import DebugTime
 from companion.errors import DomainError
+from companion.hardware import Hardware
+from companion.hardware_routes import router as hardware_router
 from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
 from companion.images import jobs as image_jobs
 from companion.images import routes as image_routes
@@ -102,7 +104,7 @@ async def lifespan(app):
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
                life_tasks=True, world=None, embedder=None, image_adapters=None,
                context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None,
-               lora_maker=None, builtin_spawn=None, builtin_transport=None) -> FastAPI:
+               lora_maker=None, builtin_spawn=None, builtin_transport=None, hardware=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
@@ -115,6 +117,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                                           lookups=app.state.lookups)
     app.state.builtin_recall = BuiltinRecall(app.state.database, builtin_spawn, builtin_transport)
     app.state.conversation.embedder.builtin = app.state.builtin_recall
+    app.state.hardware = hardware or Hardware()
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
                                     app.state.conversation.embedder, enabled=life_tasks,
                                     provider=app.state.conversation.provider)
@@ -157,6 +160,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(router)
     app.include_router(model_router)
     app.include_router(recall_router)
+    app.include_router(hardware_router)
     app.include_router(life_routes.router)
     app.include_router(home_routes.router)
     app.include_router(wardrobe_routes.router)
