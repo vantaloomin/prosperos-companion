@@ -194,6 +194,16 @@ def test_gentle_cooling_follows_the_companions_own_switch(client, cast, clock):
 def test_a_mask_makes_at_most_one_step_of_difference(client, companion, monkeypatch):
     monkeypatch.setattr(pairs, 'MASK_CHANCE', 1)
     ids = [companion_named(client, f'Person {n}') for n in range(12)]
+    # Whose temperament is a mask is drawn from their random id; make sure one of them has one.
+    drawn = pairs.perception.for_companion
+
+    def lines(companion_id, definition):
+        found = drawn(companion_id, definition)
+        if companion_id != ids[0]:
+            return found
+        return {**found, 'gaps': {**found['gaps'], 'temperament': 'mask'},
+                'written': {**found['written'], 'sees_self': []}}
+    monkeypatch.setattr(pairs.perception, 'for_companion', lines)
     database = client.app.state.database
     with database.connect(write=True) as connection:
         for index, a in enumerate(ids):
