@@ -97,12 +97,16 @@ textarea { resize: vertical; line-height: 1.6; }
 .prose p:last-child { margin-bottom: 0; }
 .message-user .prose { color: #cfc9bd; }
 .link-notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; list-style: none; padding: 0; }
-.link-note { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); font-size: 0.75rem; color: var(--muted); }
+.link-note { padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--border); background: var(--raised); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.75rem; color: var(--muted); }
 .link-note.failed { color: var(--danger); border-color: #98655888; }
 .message-companion.inactive .prose { color: var(--muted); }
 .reply-tools { display: flex; align-items: center; gap: 10px; }
 .pager { display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; color: var(--muted); }
-.reply-status { margin-top: 10px; padding-left: 10px; border-left: 2px solid var(--border); font-size: 0.8125rem; color: var(--muted); line-height: 1.55; }
+/* Notes from the app (a failed or stopped reply) in a box of their own, so they never read as her words. */
+.system-note { display: flex; align-items: flex-start; gap: 8px; width: fit-content; max-width: 100%; margin-top: 10px; padding: 8px 12px; border: 1px dashed var(--border); border-radius: 10px; background: var(--raised); color: var(--muted); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.8125rem; font-style: normal; line-height: 1.5; }
+.system-note > svg { width: 15px; height: 15px; margin-top: 2px; flex-shrink: 0; }
+.system-note > span { min-width: 0; overflow-wrap: anywhere; }
+.system-note-error { border-style: solid; border-color: #98655866; background: var(--danger-tint); color: var(--danger); }
 .turn-actions { display: flex; gap: 16px; margin: -12px 0 24px; }
 .typing { font-style: italic; }
 .conversation-notice { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
@@ -703,7 +707,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .chat-bubbles .message-companion .prose.bursts { background: none; padding: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .chat-bubbles .message-companion .prose.bursts p.burst { margin: 0; padding: 9px 14px; border-radius: 18px; border-bottom-left-radius: 5px; background: var(--raised); }
 .chat-bubbles .message-user .link-notes { justify-content: flex-end; order: 3; }
-.chat-bubbles .reply-status { order: 3; }
+.chat-bubbles .system-note { order: 3; }
 .chat-bubbles .chat-photo { margin-top: 4px; }
 .chat-bubbles .chat-photo-frame { border-radius: 18px; }
 .chat-bubbles .turn-actions { margin: -6px 0 16px 6px; align-self: flex-start; }
@@ -760,7 +764,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .message > header { display: contents; }
 .chat-retro .message > :not(header), .chat-retro .message > header > :not(.speaker, .stamp-lead) { grid-column: 3; }
 .chat-retro .message-actions, .chat-retro .reply-tools { order: 2; justify-self: start; gap: 10px; }
-.chat-retro .link-notes, .chat-retro .reply-status { order: 3; }
+.chat-retro .link-notes, .chat-retro .system-note { order: 3; }
+.chat-retro .system-note { border-radius: 0; border-style: dotted; font-family: inherit; }
 .chat-retro .chat-photo { margin: 2px 0 4px; }
 .chat-retro .chat-photo-frame { border-radius: 0; border: 2px inset #e8e6e1; max-height: 300px; }
 .chat-retro .chat-photo-frame.photo-portrait { width: min(100%, 200px); }
