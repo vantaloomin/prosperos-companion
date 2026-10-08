@@ -104,7 +104,7 @@ echo 'Prospero Companion - dependency setup'
 xattr -d com.apple.quarantine "$MAC_FOLDER"/*.command "$COMPANION_ROOT"/scripts/macos/*.sh 2>/dev/null
 if [ "$CHECK_ONLY" = 0 ]; then
     if [ -d .venv ]; then
-        python_ok "$venv_python" >/dev/null || fail "The existing .venv is broken or uses an older Python. Rename that folder and run install.command again. Your companion's data lives separately in ~/Library/Application Support/ProsperoCompanion."
+        python_ok "$venv_python" >/dev/null || fail "The existing .venv is broken or uses an older Python. Rename that folder and run install.command again. Your companion's data is not in that folder."
     else
         run "$python" -m venv .venv
     fi

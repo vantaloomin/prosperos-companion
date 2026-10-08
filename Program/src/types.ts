@@ -348,6 +348,11 @@ export interface StartOverPreview {
   others: string[]
 }
 export interface StartOverResult { backup: { name: string; path: string } }
+export interface DataFolderStatus {
+  path: string; portable: boolean; pinned: boolean; target: string; default: string
+  can_move: boolean; reason: string | null; pending: boolean; notes: string[]
+}
+
 export interface BackupList { backups: BackupEntry[]; pending: { name: string; requested_at: string } | null }
 
 export interface LifeEvent {

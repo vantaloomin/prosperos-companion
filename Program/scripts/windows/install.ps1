@@ -92,7 +92,7 @@ function Install-Project {
     param([hashtable]$Runtime)
     $python = Join-Path $CompanionRoot '.venv\Scripts\python.exe'
     if (Test-Path -LiteralPath '.venv') {
-        if (-not (Test-Python $python)) { throw 'The existing .venv is broken or uses an older Python. Rename that environment folder and rerun install.bat. Your companion''s data lives separately in %LOCALAPPDATA%\ProsperoCompanion.' }
+        if (-not (Test-Python $python)) { throw 'The existing .venv is broken or uses an older Python. Rename that environment folder and rerun install.bat. Your companion''s data is not in that folder.' }
     } else {
         Invoke-Checked $Runtime.Python @('-m', 'venv', '.venv')
     }

@@ -12,6 +12,8 @@ Other scripts in this folder:
   create-shortcut.command  Puts a Prospero Companion app in your Applications folder.
   dev.command              Development mode, for working on the code.
 
-Your companion's data is not in this folder. It lives in ~/Library/Application Support/ProsperoCompanion,
-so updating or re-downloading the program keeps it. The app itself is in the Program folder,
-which you never need to open.
+Your companion's data is normally not in this folder. It lives in ~/Library/Application Support/ProsperoCompanion,
+so updating or re-downloading the program keeps it. To keep it with the app instead (for example
+on an external drive), use Settings > Data > "Move into the app folder": it then lives in a Data
+folder here, which updates leave alone. The app itself is in the Program folder, which you never
+need to open.

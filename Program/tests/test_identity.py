@@ -58,6 +58,7 @@ def test_data_directory_follows_the_platform(monkeypatch, tmp_path, platform, ex
     monkeypatch.setenv('HOME', str(tmp_path))
     monkeypatch.setenv('USERPROFILE', str(tmp_path))
     monkeypatch.setattr(identity.sys, 'platform', platform)
+    monkeypatch.setattr(identity, 'APP_FOLDER', tmp_path / 'app')  # No Data folder there.
     assert identity.data_dir() == tmp_path.joinpath(*expected)
 
 

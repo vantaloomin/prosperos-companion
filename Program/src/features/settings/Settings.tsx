@@ -4,6 +4,7 @@ import type { Companion } from '../../types'
 import { useAdvancedSettings } from './advanced'
 import { StoryModeSetting } from './StoryModeSetting'
 import { Backups } from './Backups'
+import { DataFolder } from './DataFolder'
 import { DebugSettings } from './DebugSettings'
 import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
@@ -94,7 +95,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     images: <ImageSettings />,
     notifications: <NotificationSettings />,
     phone: <PhoneSettings />,
-    data: <Backups />,
+    data: <>{!remote && <DataFolder />}<Backups /></>,
     debug: <DebugSettings name={name} />,
     advanced: <><StoryModeSetting /><PromptSettings /></>,
   }

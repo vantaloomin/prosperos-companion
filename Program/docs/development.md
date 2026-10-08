@@ -100,7 +100,8 @@ workspace and backups in its own data directory, and reuse the running copy on a
 shortcut (a desktop shortcut is optional) and a per-user uninstall entry, and offers to close a
 running Companion before replacing files. An upgrade clears the old `app/` and `runtime/` first so
 modules a release drops do not linger. The workspace in `%LOCALAPPDATA%\ProsperoCompanion` is
-never installed, replaced or removed: uninstalling keeps it, and the app upgrades it on first open
+never installed, replaced or removed: uninstalling keeps it (a portable `Data/` folder in the
+install folder is kept too), and the app upgrades it on first open
 as described under [Upgrades](#upgrades).
 
 ```powershell
@@ -166,7 +167,7 @@ The Companion has its own identity so it can run beside Prospero's Study without
 
 | Item | Companion | Study |
 | --- | --- | --- |
-| Data directory | `%LOCALAPPDATA%\ProsperoCompanion` (Windows), `~/Library/Application Support/ProsperoCompanion` (macOS), `$XDG_DATA_HOME/prospero-companion` elsewhere; `COMPANION_DATA_DIR` overrides | `data/` in the checkout |
+| Data directory | `COMPANION_DATA_DIR` if set, else `Data/` in the app folder if it exists (portable; `companion/data_folder.py`), else `%LOCALAPPDATA%\ProsperoCompanion` (Windows), `~/Library/Application Support/ProsperoCompanion` (macOS), `$XDG_DATA_HOME/prospero-companion` elsewhere | `data/` in the checkout |
 | Database | `companion.sqlite3`; `COMPANION_DB` overrides | `roleplay.sqlite3` (`ROLEPLAY_DB`) |
 | Port | 8775 | 8765 |
 | Credential service | `Prospero Companion` (`COMPANION_API_KEY` fallback) | `Roleplay Interface` |
