@@ -36,6 +36,18 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.3.0 (2026-10-08)
+
+- **Group chats:** several companions in one chat, each answering from what they know; secrets kept
+  from those who mustn't know (set up from memories, editable, optional slip note); "how others see
+  them" lines; two-way closeness between companions, their circle and townsfolk.
+- **Every companion texts first** with one shared daily cap, a Chats list with unread counts per chat
+  style, and openers at the times you usually show up.
+- **Closeness controls:** step, set, cap and pre-set stages, shared moments, optional gentle cooling.
+- **Branch from and edit any message;** the app's own notes get a box of their own.
+- **Phone:** opt-in home Wi-Fi access, Tailscale checks and a backup address, press-and-hold actions.
+- **Cities and errors:** Los Angeles built in, a city guide, plain-language errors, image model lists.
+
 ## v0.2.1 (2026-10-08)
 
 - **Portable data:** Settings > Data shows where data lives and can move it into a Data folder beside
