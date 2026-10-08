@@ -29,8 +29,8 @@ export function setLine(set: Generation): string {
     return `Kept ${set.counts.kept} picture${set.counts.kept === 1 ? '' : 's'}.`
   }
   const failed = set.images.filter((image) => image.status !== 'completed').length
-  if (!failed) return 'All three are ready. Keep them, or make any of them again.'
-  return `${set.counts.completed} made, ${failed} not made. Make the missing ones again, or keep what you have.`
+  if (!failed) return 'All three are ready. Make any of them again if you like.'
+  return `${set.counts.completed} made, ${failed} not made. Make the missing ones again if you like.`
 }
 
 /** Remaking the profile picture remakes the others too, since both are made from it. */

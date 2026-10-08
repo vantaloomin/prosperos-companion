@@ -106,13 +106,11 @@ def test_a_name_learned_later_joins_the_same_person(client, connected):
     assert subjects['Ana: Home city'] == 'Leeds' and subjects['Sister'] == 'Ana'
 
 
-def test_a_different_home_without_a_change_word_waits(client, connected):
+def test_a_different_home_replaces_the_old_one(client, connected):
     enable(client)
     say(client, 'My sister Jo lives in Leeds.')
     say(client, 'Jo lives in York.')
-    [suggestion] = client.get('/api/memory/suggestions').json()
-    assert suggestion['reason'] == 'conflict' and suggestion['replaces'] == ['Leeds']
-    say(client, 'Jo moved to York.')
+    assert client.get('/api/memory/suggestions').json() == []
     homes = [item['value'] for item in client.get('/api/memories').json() if item['subject'] == 'Jo: Home city'
              and item['current']]
     assert homes == ['York']

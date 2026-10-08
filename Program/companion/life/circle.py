@@ -279,7 +279,13 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
     timeline_id = companion['active_timeline_id']
     rows = people(connection, timeline_id, include_removed=True)
     if rows:
-        if match_family(connection, companion, world, rows, now):
+        changed = match_family(connection, companion, world, rows, now)
+        # A circle assembled smaller than it should now be (a bigger size in Settings, a more sociable
+        # companion) fills itself. People the user removed still count, so nobody is replaced behind their back.
+        if (missing := target_size(companion['version']['definition'], setting(connection)) - len(rows)) > 0:
+            fill(connection, companion, world, rows, now, missing)
+            changed = True
+        if changed:
             rows = people(connection, timeline_id, include_removed=True)
         return [row for row in rows if row['status'] == 'active']
     definition = companion['version']['definition']
@@ -336,13 +342,21 @@ def room(connection, companion: dict) -> dict:
 def grow(connection, companion: dict, world, now) -> list[dict]:
     """Add people to a circle smaller than it should be, filling the roles a sociable circle has and this
     one lacks (coworkers, old and new friends, family) before anyone else. Nobody already there changes."""
-    timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     ensure(connection, companion, world, now)
-    rows = people(connection, timeline_id, include_removed=True)
+    rows = people(connection, companion['active_timeline_id'], include_removed=True)
+    active = [row for row in rows if row['status'] == 'active']
+    missing = target_size(companion['version']['definition'], setting(connection)) - len(active)
+    require(missing > 0, 'Their circle already has everyone it should. Raise the circle size in Settings to add more '
+            'people.', 409)
+    fill(connection, companion, world, rows, now, missing)
+    return people(connection, companion['active_timeline_id'])
+
+
+def fill(connection, companion: dict, world, rows: list[dict], now, count: int):
+    """Add `count` people to the circle, the roles it lacks first."""
+    timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     active = [row for row in rows if row['status'] == 'active']
     want = target_size(definition, setting(connection))
-    require(len(active) < want, 'Their circle already has everyone it should. Raise the circle size in Settings '
-            'to add more people.', 409)
     taken = {row['name'] for row in rows}
     candidates = build(definition, world, timeline_id, len(SOCIAL_ROLES), f'circle:{timeline_id}:more:{len(rows)}', taken)
     have = {}
@@ -358,8 +372,7 @@ def grow(connection, companion: dict, world, now) -> list[dict]:
             chosen.append(person)
             have[kind] = have.get(kind, 0) + 1
     chosen += [person for person in candidates if person not in chosen]
-    insert(connection, timeline_id, chosen[:want - len(active)], max(row['ordinal'] for row in rows) + 1, now)
-    return people(connection, timeline_id)
+    insert(connection, timeline_id, chosen[:count], max(row['ordinal'] for row in rows) + 1, now)
 
 
 def people(connection, timeline_id, include_removed=False) -> list[dict]:

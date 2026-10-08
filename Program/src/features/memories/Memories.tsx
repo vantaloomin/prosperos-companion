@@ -116,7 +116,7 @@ export function Memories({ companion }: { companion: Companion }) {
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {memories.isPending && <Loading label="Loading memories" />}
       {memories.isError && <ErrorNotice error={memories.error} />}
-      {empty && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Automatic memory is off unless you turn it on in Settings; with it on, facts you state directly are saved after each reply.</p>}
+      {empty && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Facts you state directly are saved after each reply, unless you turn automatic memory off in Settings.</p>}
       {groups.filter((group) => group.layer === 'user_fact').map(renderGroup)}
       {memories.isSuccess && <People name={name} all={all} sources={sources} actions={actions} run={run} />}
       {groups.filter((group) => group.layer !== 'user_fact').map(renderGroup)}

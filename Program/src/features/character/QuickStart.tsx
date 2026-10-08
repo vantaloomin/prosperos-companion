@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
@@ -9,7 +9,7 @@ import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { RELATIONSHIPS, guessTimezone, stageNames } from './definition'
 import { PasteCharacter } from './PasteCharacter'
 import type { SplitResult } from './helper'
-import { placeGroups } from './places'
+import { defaultCity, placeGroups } from './places'
 import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
 import { CitiesUnavailable } from '../world/CitiesUnavailable'
 
@@ -19,7 +19,11 @@ interface Props { onDraft: (definition: CharacterDefinition) => void; onSplit: (
  * The idea, relationship, vibe and emotional edges wait under "More options". */
 export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
+  const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
   const [request, setRequest] = useState<DraftRequest>(() => emptyRequest(guessTimezone()))
+  // The app picks where they live until the user picks somewhere else (or "Anywhere").
+  const [cityPicked, setCityPicked] = useState(false)
+  const homeCity = cityPicked ? request.home_city : defaultCity(cities.data ?? [], request.timezone)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const set = (change: Partial<DraftRequest>) => setRequest((current) => ({ ...current, ...change }))
@@ -31,7 +35,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
     setError('')
     try {
       const { starting_closeness, ...body } = request
-      onDraft({ ...(await api<DraftResult>('/companion/draft', body)).definition, starting_closeness })
+      onDraft({ ...(await api<DraftResult>('/companion/draft', { ...body, home_city: homeCity })).definition, starting_closeness })
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'The draft could not be written.')
     } finally { setBusy(false) }
@@ -45,7 +49,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
         <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button>}>Drafting uses your text model, and none is connected yet. You can still fill in the form yourself.</Notice>
       )}
       <form className="form-stack" onSubmit={submit}>
-        <Picks request={request} set={set} />
+        <Picks request={request} set={set} cities={cities} homeCity={homeCity} pickCity={(home_city) => { setCityPicked(true); set({ home_city }) }} />
         <details className="advanced more-options">
           <summary>More options</summary>
           <div className="form-stack">
@@ -82,8 +86,12 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
   </>)
 }
 
-function Picks({ request, set }: { request: DraftRequest; set: (change: Partial<DraftRequest>) => void }) {
-  const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
+interface PicksProps {
+  request: DraftRequest; set: (change: Partial<DraftRequest>) => void
+  cities: UseQueryResult<CitySummary[]>; homeCity: string; pickCity: (id: string) => void
+}
+
+function Picks({ request, set, cities, homeCity, pickCity }: PicksProps) {
   return (<>
     <div className="form-grid three">
       <TextInput label="Name" value={request.name} onChange={(name) => set({ name })} maxLength={120} hint="Optional. Left empty, they get one that fits." />
@@ -94,9 +102,9 @@ function Picks({ request, set }: { request: DraftRequest; set: (change: Partial<
           </select>
         )}
       </Field>
-      <Field label="Where and when" hint="Their days use its real places, and its era.">
+      <Field label="Where and when" hint="Picked near you unless you choose. Their days use its real places, and its era.">
         {(id, hint) => (
-          <select id={id} aria-describedby={hint} value={request.home_city} onChange={(event) => set({ home_city: event.target.value })}>
+          <select id={id} aria-describedby={hint} value={homeCity} onChange={(event) => pickCity(event.target.value)}>
             <option value="">Anywhere, today</option>
             {placeGroups(cities.data ?? []).map((group) => (
               <optgroup key={group.label} label={group.label}>

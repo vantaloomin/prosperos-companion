@@ -1,12 +1,12 @@
 """Corrections of what is already remembered (PRD M8, M9), found by rules or marked by the model.
 
 "My mom is not a gardener" while "Mom's interests: she loves gardening" is current is not a new fact
-to file beside the old one: it says the old one is wrong. A correction never changes a memory on its
-own. It waits as a `correction` suggestion that names the memory it corrects, like a conflict does;
-keeping it supersedes that memory with the corrected words (the old value stays as history). When the
+to file beside the old one: it says the old one is wrong. The correction is applied as soon as it is found
+("the world exists outside of User", Vanta 2026-10-08: users don't review suggestions): it supersedes that
+memory with the corrected words (the old value stays as history, and Memories can change it back). When the
 value simply stopped being true ("I don't live in Chicago anymore") it ends, recalled as no longer
 current. A home, job or other single value said to be untrue with no word that it changed ("No, I don't
-live in Chicago") was never true, so keeping that retracts it rather than inventing a past.
+live in Chicago") was never true, so applying that retracts it rather than inventing a past.
 
 The rules are narrow on purpose. A sentence must open with who it is about (I, "my mom", "my sister
 Jo", or a name already known), then a negation ("is not", "isn't", "doesn't", "don't", "no longer",
@@ -233,16 +233,27 @@ def fingerprint(fields) -> str:
 
 
 def record(connection, companion, message, fields, source, rule, timestamp) -> int:
-    """Store a correction once per message; one declined before is kept dismissed. Returns 1 when it now waits."""
+    """Store a correction once per message and apply it straight away; one declined before is kept dismissed.
+    Returns 1 when it was applied."""
     mark = fingerprint(fields)
     declined = optional(connection, "SELECT 1 FROM memory_candidates WHERE fingerprint=? AND status='declined' "
                         'AND companion_id=?', (mark, companion['id']))
+    candidate_id = identifier()
     cursor = connection.execute(
         'INSERT OR IGNORE INTO memory_candidates (id, companion_id, timeline_id, message_id, source, rule, proposal, '
         'fingerprint, status, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        (identifier(), companion['id'], message['timeline_id'], message['id'], source, rule, encode(fields), mark,
+        (candidate_id, companion['id'], message['timeline_id'], message['id'], source, rule, encode(fields), mark,
          'dismissed' if declined else 'pending', 'declined_before' if declined else RULE, timestamp))
-    return 0 if declined else cursor.rowcount
+    if declined or not cursor.rowcount:
+        return 0
+    memory, outcome = apply(connection, fields, message['id'], timestamp)
+    connection.execute('UPDATE memory_candidates SET status=?, memory_id=?, reason=?, resolved_at=? WHERE id=?',
+                       ('committed' if memory else 'dismissed', memory and memory['id'], outcome, timestamp,
+                        candidate_id))
+    connection.execute('INSERT INTO memory_activity (at, action, memory_id, candidate_id, message_id, detail) '
+                       'VALUES (?, ?, ?, ?, ?, ?)', (timestamp, outcome, memory and memory['id'], candidate_id,
+                                                     message['id'], RULE))
+    return 1 if memory else 0
 
 
 def current(connection, fields, now) -> dict | None:

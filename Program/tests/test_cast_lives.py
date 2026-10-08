@@ -73,15 +73,15 @@ def test_the_cast_follows_the_same_settings_and_never_repeats_a_day(app, client,
     reconcile(client)
     settle(app)
     first = timeline_events(app, billy)
-    assert len(first) == 3 and {event['status'] for event in first} == {'proposed'}
+    assert len(first) == 3 and {event['status'] for event in first} == {'committed'}
     reconcile(client)
     settle(app)
     assert len(timeline_events(app, billy)) == 3
 
-    # Background ticks need the user's permission, for him as for the one in focus.
+    # Background ticks run for him too, rule-built like the one in focus's without the permission.
     engine = app.state.life
     clock.advance(timedelta(hours=20))
-    assert {item['state'] for item in asyncio.run(engine.reconcile_cast('background'))} == {'not_permitted'}
+    assert {item['state'] for item in asyncio.run(engine.reconcile_cast('background'))} == {'started'}
 
 
 def test_a_long_cast_takes_turns(app, client, companion):

@@ -18,8 +18,8 @@ with `user_timezone_source: "detected"`, which is ignored once the user has chos
 Call `POST /api/life/reconcile` when the interface opens and when it becomes visible again after
 being hidden. It is cheap when nothing is due and safe to call repeatedly, from several windows or
 after a restart: at most one batch runs per return, and a repeated call returns `not_due`. The
-server also reconciles once on start and, only when the user enabled background activity, about
-once a minute while it runs.
+server also reconciles once on start and about once a minute while it runs. Those background batches are
+rule-built with no model calls unless the user enabled background activity, which adds model wording.
 
 ```http
 POST /api/life/reconcile
@@ -83,7 +83,7 @@ unchanged. A server running with background activity on prepares after each tick
 reconcile resumes it), or `failed` (shown with `error`). Each result's
 `outcome` is:
 
-- `proposed`: an event awaiting the user's review (automatic events are off).
+- `proposed`: an event awaiting the user's review (the user turned automatic events off).
 - `committed`: an event that is now part of the companion's life.
 - `rejected`: the event was made stale by a pause, character change or permission change (`reason`).
 - `quiet`: nothing notable happened (`reason`). Quiet stretches are valid.
@@ -93,7 +93,8 @@ reconcile resumes it), or `failed` (shown with `error`). Each result's
 
 ## Reviewing proposed events
 
-With automatic events off (the default), catch-up only proposes. Proposed events appear in
+Automatic events are on by default (a workspace from before that is switched on once); with them
+off, catch-up only proposes. Proposed events appear in
 `GET /api/events?history=true` with `status: "proposed"`. Commit or reject them with the existing
 `POST /api/events/{id}/commit` and `POST /api/events/{id}/reject`. A commit can still come back
 `rejected` with a `rejection` reason when the event became stale. Only committed events reach chat,

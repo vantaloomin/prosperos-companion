@@ -62,7 +62,7 @@ export function Backups() {
       {list.data && list.data.backups.length > 0 && (
         <div className="form-stack">
           <h3>Restore a backup</h3>
-          <p className="subtle">Restoring replaces this workspace when the Companion next starts. The current one is moved aside, not deleted, and anything you deleted since the backup stays deleted. The restored workspace starts paused, with memory and background activity off, until you review it.</p>
+          <p className="subtle">Restoring replaces this workspace when the Companion next starts. The current one is moved aside, not deleted, and anything you deleted since the backup stays deleted. Your current settings, connections and paired phones stay as they are.</p>
           <ul className="plain-list">
             {list.data.backups.map((entry) => (
               <li key={entry.name}>

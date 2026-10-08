@@ -182,12 +182,14 @@ def clean_name(name: str | None) -> str:
 
 def create(database, companion_ids: list[str], name: str | None = None, ties=None) -> dict:
     """A new group of two or more companions, any of them; it never changes who the main character is. `ties`
-    are the backstories the user wrote for pairs meeting in a group for the first time (memory/pairs.py)."""
+    are the backstories the user wrote for pairs meeting in a group for the first time; any other such pair gets
+    the one the app works out (memory/pairs.py)."""
     chosen = list(dict.fromkeys(companion_ids))
     require(len(chosen) >= 2, 'Pick at least two companions for a group.', 422)
     timestamp = database.now()
     with database.connect(write=True) as connection:
         pairs.tell_all(connection, ties, timestamp)
+        pairs.tell_rest(connection, chosen, database.clock.now(), timestamp)
         group_id = identifier()
         connection.execute('INSERT INTO group_chats (id, name, reply_cap, created_at, updated_at) '
                            'VALUES (?, ?, ?, ?, ?)', (group_id, clean_name(name), DEFAULT_CAP, timestamp, timestamp))
@@ -222,6 +224,8 @@ def add(database, group_id: str, companion_id: str, everything: bool = False, ti
         require(all(stay['member'] != key for stay in current_members(connection, group_id)),
                 'They are already in this group.', 409)
         pairs.tell_all(connection, ties, timestamp)
+        pairs.tell_rest(connection, [companion_id, *(companion_of(stay['member']) for stay in current_members(
+            connection, group_id) if companion_of(stay['member']))], database.clock.now(), timestamp)
         stay = join(connection, group_id, companion_id, timestamp, sees_from=1 if everything else None)
         if everything:
             secrets.history(connection, group_id, key, timestamp)

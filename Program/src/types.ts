@@ -1094,7 +1094,7 @@ export interface PairTie {
   meetings: number
 }
 /** Two companions about to share a group for the first time: their backstory can be told, once. */
-export interface UntoldPair { a: string; b: string; a_name: string; b_name: string; level: number }
+export interface UntoldPair { a: string; b: string; a_name: string; b_name: string; level: number; how: string }
 /** What the user tells about two companions: a starting stage and a line, both optional. */
 export interface Backstory { a: string; b: string; level: number | null; how: string }
 /** A companion already here, as a new one would start with them (by their meetings around town). */

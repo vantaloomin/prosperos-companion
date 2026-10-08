@@ -6,8 +6,8 @@ must name a message in the batch and use that message's own words. A supported a
 memory, shown as saved automatically in Memories where the user can correct or delete it; a sensitive one waits
 while sensitive memory is off. Each message goes with the user's current facts its words touch (`known`); an
 answer that says one of them is wrong (`corrects`, which must name one that was sent), or that negates the one
-current memory with its layer and subject, waits as a correction of that memory (`corrections.py`), and a new
-value for a single-valued subject waits as a conflict.
+current memory with its layer and subject, corrects that memory (`corrections.py`), and a new value for a
+single-valued subject replaces the current one, which ends as history.
 """
 import json
 import re
@@ -197,10 +197,7 @@ def store(connection, companion, message, found, corrected, timestamp) -> int:
         fields = corrections.fields_for(target, found.value, current, found.excerpt,
                                         ending=corrections.ends(target, found.value, current['text']),
                                         retracting=corrections.retracts(target, found.value, current['text']))
-        added = corrections.record(connection, companion, current, fields, 'model', PROMPT_VERSION, timestamp)
-        if added:
-            formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail=corrections.RULE)
-        return added
+        return corrections.record(connection, companion, current, fields, 'model', PROMPT_VERSION, timestamp)
     mark_value = formation.fingerprint(found)
     declined = optional(connection, "SELECT 1 FROM memory_candidates WHERE fingerprint=? AND status='declined'",
                         (mark_value,))
@@ -209,10 +206,8 @@ def store(connection, companion, message, found, corrected, timestamp) -> int:
     if declined or duplicate:
         return 0
     fields = formation.proposal(found, current)
-    # A new value for a single-valued subject is the same choice as a rule-found conflict ("Denver" vs "Chicago").
-    reason = 'conflict' if formation.contradicts(connection, companion, found, fields, timestamp) else 'model_guess'
-    if reason == 'model_guess' and fields['sensitive'] and not settings(connection)['sensitive_memory']:
-        reason = 'sensitive'
+    # A new value for a single-valued subject commits like a rule-found one: the newest statement wins.
+    reason = 'sensitive' if fields['sensitive'] and not settings(connection)['sensitive_memory'] else 'model_guess'
     candidate_id = identifier()
     cursor = connection.execute(
         'INSERT OR IGNORE INTO memory_candidates (id, companion_id, timeline_id, message_id, source, rule, proposal, '
@@ -221,7 +216,7 @@ def store(connection, companion, message, found, corrected, timestamp) -> int:
          mark_value, reason, timestamp))
     if cursor.rowcount and reason == 'model_guess':
         # Saved like a rule-found fact (users rarely review suggestions); it shows as saved automatically in
-        # Memories, where it can be corrected or deleted. Conflicts, corrections and held sensitive facts still wait.
+        # Memories, where it can be corrected or deleted. Only a sensitive fact held while sensitive memory is off waits.
         memory, outcome = formation.commit(connection, companion, fields, [current['id']], timestamp, 'automatic')
         formation.resolve(connection, candidate_id, 'committed' if memory else 'dismissed', memory, outcome, timestamp)
         formation.log(connection, timestamp, outcome, memory_id=memory and memory['id'], candidate_id=candidate_id,

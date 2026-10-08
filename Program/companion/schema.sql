@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS deletion_markers (
 -- Life simulation (PRD T3–T7). Limits are user-visible and bounded by tested ceilings.
 CREATE TABLE IF NOT EXISTS life_settings (
   id INTEGER PRIMARY KEY CHECK (id = 1),
-  automatic_events INTEGER NOT NULL DEFAULT 0 CHECK (automatic_events IN (0, 1)),
+  automatic_events INTEGER NOT NULL DEFAULT 1 CHECK (automatic_events IN (0, 1)),
   catch_up_on_return INTEGER NOT NULL DEFAULT 1 CHECK (catch_up_on_return IN (0, 1)),
   phrase_with_model INTEGER NOT NULL DEFAULT 1 CHECK (phrase_with_model IN (0, 1)),
   catch_up_max_events INTEGER NOT NULL DEFAULT 3,

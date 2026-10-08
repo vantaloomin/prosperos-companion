@@ -5,8 +5,8 @@ a score. It counts the days the user talked (a quick hello and a long talk count
 messages never earn more) and the shared moments remembered, which can never outrun those days.
 Time apart never lowers it unless the user turns on gentle cooling for this companion. The user sees the stage
 and why it changed, can set it to any stage (or a step closer or further) and let it keep growing from there,
-hold it, cap it, give a nickname, pick running jokes from shared moments and restart the count. A new
-companion can start at any stage (the character's `starting_closeness`).
+hold it, cap it, give a nickname, add or remove running jokes (moments that keep coming up become one on
+their own) and restart the count. A new companion can start at any stage (the character's `starting_closeness`).
 
 The stage changes how open the companion is: what they share, nicknames and in-jokes. It follows
 the relationship style the user chose, never makes emotional traits stronger, and is never used to
@@ -158,7 +158,7 @@ def cooling(days: list[str], since: str, today: str) -> dict:
 
 
 def joke_candidates(connection, timeline_id, moments, chosen, since, timezone) -> list[dict]:
-    """Shared moments that came up in replies on several separate days. Only the user makes them running jokes."""
+    """Shared moments that came up in replies on several separate days and are not running jokes yet."""
     days = {}
     for row in many(connection, "SELECT receipt, created_at FROM messages WHERE timeline_id=? AND role='companion' "
                     'AND receipt IS NOT NULL AND active=1 AND created_at>=?', (timeline_id, since or '')):
@@ -169,11 +169,16 @@ def joke_candidates(connection, timeline_id, moments, chosen, since, timezone) -
             if memory['id'] not in chosen and len(days.get(memory['id'], ())) >= JOKE_DAYS]
 
 
-def jokes(connection, timeline_id, moments) -> list[dict]:
-    chosen = {row['memory_id'] for row in many(connection, 'SELECT memory_id FROM closeness_jokes WHERE timeline_id=?',
-                                               (timeline_id,))}
-    return [{'memory_id': memory['id'], 'subject': memory['subject'], 'value': memory['value']}
-            for memory in moments if memory['id'] in chosen]
+def jokes(connection, timeline_id, moments, recurring) -> tuple[list[dict], list[dict]]:
+    """Running jokes and the moments offered as one. A moment that keeps coming up becomes a running joke on its
+    own ("the world exists outside of User", Vanta 2026-10-08); one the user removed stays out until they add it back."""
+    marked = {row['memory_id']: row['removed'] for row in many(
+        connection, 'SELECT memory_id, removed FROM closeness_jokes WHERE timeline_id=?', (timeline_id,))}
+    running = {memory_id for memory_id, removed in marked.items() if not removed}
+    running |= {item['memory_id'] for item in recurring if item['memory_id'] not in marked}
+    return ([{'memory_id': memory['id'], 'subject': memory['subject'], 'value': memory['value']}
+             for memory in moments if memory['id'] in running],
+            [item for item in recurring if item['memory_id'] not in running])
 
 
 def state(connection, companion, now) -> dict:
@@ -193,7 +198,8 @@ def state(connection, companion, now) -> dict:
     grown = max(capped - cooled['steps'], min(capped, COOL_FLOOR))
     level = chosen['held_level'] or grown
     names = stage_names(definition['relationship'])
-    running = jokes(connection, timeline_id, moments)
+    running, offered = jokes(connection, timeline_id, moments,
+                             joke_candidates(connection, timeline_id, moments, set(), since, timezone))
     return {'level': level, 'name': names[level - 1], 'grown_level': grown, 'held_level': chosen['held_level'],
             'earned_level': earned, 'ceiling_level': ceiling, 'starting_level': level_for(start),
             'cooling': chosen['cooling_since'] is not None, 'cooled_steps': capped - grown,
@@ -205,9 +211,7 @@ def state(connection, companion, now) -> dict:
             'counted_from': since, 'set_on': set_day, 'nickname': chosen['nickname'],
             'history': milestones(days, [local_day(memory['created_at'], timezone) for memory in moments],
                                   start, chosen['head_start'], set_day),
-            'jokes': running,
-            'joke_candidates': joke_candidates(connection, timeline_id, moments,
-                                               {joke['memory_id'] for joke in running}, since, timezone)}
+            'jokes': running, 'joke_candidates': offered}
 
 
 def cooled_state(chosen, days, set_day, today, timezone) -> dict:
@@ -241,7 +245,7 @@ def joke_text(joke) -> str:
 
 
 def offer(packet, connection, companion, now):
-    """Adds the 'closeness' section: the stage's guidance, then each running joke the user picked."""
+    """Adds the 'closeness' section: the stage's guidance, then each running joke."""
     current = state(connection, companion, now)
     packet.offer('closeness', f"stage:{current['level']}", context_text(current, companion['version']['definition']))
     for index, joke in enumerate(current['jokes'][:JOKE_LIMIT]):
@@ -314,14 +318,15 @@ def add_joke(database, memory_id) -> dict:
         moments = shared_moments(connection, companion, timeline_id, now, options(connection, timeline_id)['counted_from'])
         require(any(memory['id'] == memory_id for memory in moments),
                 'Only a shared moment that is used in conversation can become a running joke.', 422)
-        connection.execute('INSERT OR IGNORE INTO closeness_jokes (timeline_id, memory_id, created_at) VALUES (?, ?, ?)',
-                           (timeline_id, memory_id, database.now()))
+        connection.execute('INSERT INTO closeness_jokes (timeline_id, memory_id, created_at, removed) VALUES (?, ?, ?, 0) '
+                           'ON CONFLICT(timeline_id, memory_id) DO UPDATE SET removed=0', (timeline_id, memory_id, database.now()))
         return state(connection, companion, now)
 
 
 def remove_joke(database, memory_id) -> dict:
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        connection.execute('DELETE FROM closeness_jokes WHERE timeline_id=? AND memory_id=?',
-                           (companion['active_timeline_id'], memory_id))
+        connection.execute('INSERT INTO closeness_jokes (timeline_id, memory_id, created_at, removed) VALUES (?, ?, ?, 1) '
+                           'ON CONFLICT(timeline_id, memory_id) DO UPDATE SET removed=1',
+                           (companion['active_timeline_id'], memory_id, database.now()))
         return state(connection, companion, database.clock.now())

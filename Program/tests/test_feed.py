@@ -29,6 +29,7 @@ def commit_all(client):
 
 
 def test_a_return_batch_makes_one_digest_that_waits_for_review(client, life, clock):
+    set_life(client, automatic_events=False)
     clock.advance(timedelta(days=1))
     reconcile(client)
     assert feed(client)['posts'] == [] and feed(client)['unread'] == 0
@@ -142,6 +143,7 @@ def test_explicit_post_for_a_committed_event(client, companion, clock):
 
 
 def test_today_shows_routine_review_changes_and_availability(client, life, clock):
+    set_life(client, automatic_events=False)
     clock.instant = datetime(2026, 10, 6, 10, 0, tzinfo=UTC)
     reconcile(client)
     view = client.get('/api/today').json()

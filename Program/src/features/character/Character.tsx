@@ -100,7 +100,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       {chrome.notice && <div className="start-notice">{chrome.notice}</div>}
       <form className="form-stack" onSubmit={submit}>
         <div className="form-grid">
-          <TextInput label="Name" value={definition.name} onChange={(name) => set({ name })} required maxLength={120} hint="What they go by. Their family shares the last name." />
+          <NameField name={definition.name} creating={!companion} onChange={(name) => set({ name })} />
           <Field label="Relationship" hint="Romance is only ever your choice; warmth alone never changes it." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
             {(id, hint) => (
               <select id={id} aria-describedby={hint} value={definition.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
@@ -144,7 +144,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         <SaveFeedback result={result} saved={savedNow(saved, companion)} onReload={() => void client.invalidateQueries({ queryKey: COMPANION_KEY })} />
         {problems.length > 0 && <Notice tone="error">{problems.join(' ')}</Notice>}
         <div className="form-actions">
-          <button type="submit" className="button primary" disabled={saving || !definition.name.trim() || problems.length > 0}>{chrome.label}</button>
+          <button type="submit" className="button primary" disabled={saving || !nameReady(definition.name, !companion) || problems.length > 0}>{chrome.label}</button>
         </div>
       </form>
       {companion && <SavedSections companion={companion} details={details} go={go} />}
@@ -192,6 +192,16 @@ function initialForm(companion: Companion | null, start: Start | null): FormStat
 }
 
 /** The version just saved, while the form still shows it. */
+/** A new companion left without a name gets one that fits (companion/characters.py); an existing one keeps one. */
+function NameField({ name, creating, onChange }: { name: string; creating: boolean; onChange: (name: string) => void }) {
+  return <TextInput label="Name" value={name} onChange={onChange} required={!creating} maxLength={120}
+    hint={`${creating ? 'Left empty, they get one that fits. ' : 'What they go by. '}Their family shares the last name.`} />
+}
+
+function nameReady(name: string, creating: boolean): boolean {
+  return creating || name.trim() !== ''
+}
+
 function savedNow(saved: number | null, companion: Companion | null): number | null {
   return saved !== null && saved === companion?.version.number ? saved : null
 }
@@ -212,7 +222,7 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
     <header className="page-header">
       <div>
         {companion ? <h2>Character</h2> : <h1>Create your companion</h1>}
-        <p className="subtle">{companion ? `${companion.version.name}, version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Only a name is required, and you can change everything later.'}</p>
+        <p className="subtle">{companion ? `${companion.version.name}, version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Nothing here is required, and you can change everything later.'}</p>
       </div>
       {companion && <div className="form-actions">
         <button type="button" className="button" onClick={() => go('portraits')}>Profile pictures</button>

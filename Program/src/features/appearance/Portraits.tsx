@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, upload } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
@@ -151,6 +151,15 @@ function PortraitSet({ set, name, go, onNew }: { set: Generation; name: string; 
     try { await action(); setError(null) } catch (failed) { setError(failure(failed, 'That did not work.')) }
     await refresh()
   }
+  // Finished pictures are kept as they are ready, picture 1 as the profile picture; Redo or a new set replaces them.
+  const keeping = useRef(new Set<string>())
+  useEffect(() => {
+    const fresh = set.status === 'running' ? [] : keepable(set).filter((image) => !keeping.current.has(image.id))
+    if (!fresh.length) return
+    fresh.forEach((image) => keeping.current.add(image.id))
+    keepAll(fresh).then(() => { setKept(true); setError(null) }, (failed) => setError(failure(failed, 'The pictures could not be kept.')))
+      .finally(() => void Promise.all([client.invalidateQueries({ queryKey: PORTRAITS_KEY }), client.invalidateQueries({ queryKey: REFERENCES_KEY }), client.invalidateQueries({ queryKey: COMPANION_KEY })]))
+  }, [set, client])
   const running = set.status === 'running'
   const ready = keepable(set)
   return (
@@ -165,7 +174,7 @@ function PortraitSet({ set, name, go, onNew }: { set: Generation; name: string; 
       {error && <Notice tone="error">{error}</Notice>}
       <div className="form-actions">
         {running && <button type="button" className="button" onClick={() => void act(() => api(`/lora/generations/${set.id}/cancel`, {}))}>Stop</button>}
-        {!running && ready.length > 0 && <button type="button" className="button primary" onClick={() => void act(async () => { await keepAll(ready); setKept(true) })}>Keep {ready.length === set.images.length ? 'these' : `the ${ready.length} finished`}</button>}
+        {!running && error && ready.length > 0 && <button type="button" className="button primary" onClick={() => void act(async () => { await keepAll(ready); setKept(true) })}>Keep {ready.length === set.images.length ? 'these' : `the ${ready.length} finished`}</button>}
         {!running && <button type="button" className="button" onClick={onNew}>Plan new pictures</button>}
       </div>
     </section>
