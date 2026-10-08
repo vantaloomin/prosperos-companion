@@ -11,6 +11,8 @@ export type View = 'conversation' | 'dating' | 'story' | 'today' | 'feed' | 'mem
   | `match/${string}`
   /** Making a townsperson the main character: #cast/<their key>. */
   | `cast/${string}`
+  /** Group chats (src/features/groups): the list, and one group as #group/<its id>. */
+  | 'groups' | `group/${string}`
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

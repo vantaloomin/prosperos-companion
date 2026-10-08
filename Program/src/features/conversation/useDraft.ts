@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { editDraft, newDraft, pictureDraft, readDraft, writeDraft, type Draft, type DraftPicture } from './draft'
+import { DRAFT_KEY, editDraft, newDraft, pictureDraft, readDraft, writeDraft, type Draft, type DraftPicture } from './draft'
 
 const storage = () => { try { return window.localStorage } catch { return undefined } }
 
-export function useDraft() {
-  const [value, setValue] = useState<Draft>(() => readDraft(storage()))
+/** `key` is where the unsent message is kept; each chat has its own. */
+export function useDraft(key = DRAFT_KEY) {
+  const [value, setValue] = useState<Draft>(() => readDraft(storage(), key))
   const [sending, setSending] = useState(false)
-  const save = (next: Draft) => { setValue(next); writeDraft(storage(), next) }
+  const save = (next: Draft) => { setValue(next); writeDraft(storage(), next, key) }
   return {
     value,
     sending,

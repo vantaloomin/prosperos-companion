@@ -7,8 +7,9 @@ typing the companion's name.
 Every table in the schema is in exactly one group below (tests/test_start_over.py checks this):
 
 - WORKSPACE stays through both: settings, model connections, image backends, lookup services,
-  cities and the user's changes to them, notification and phone setup, and the user's own story (Story mode,
-  apart from every companion). Deletion markers stay too, so a restore still honours them.
+  cities and the user's changes to them, notification and phone setup, the user's own story (Story mode,
+  apart from every companion) and group chats (the companion leaves each one; their old lines stay).
+  Deletion markers stay too, so a restore still honours them.
 - CHARACTER is who the companion is: the companion, every version of the character, and their
   look (reference pictures, adapters, training and test pictures). Starting over keeps it;
   deleting removes it.
@@ -25,7 +26,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-from companion import backup, pictures
+from companion import backup, groups, pictures
 from companion.characters import require_current
 from companion.database import identifier, many
 from companion.errors import require
@@ -35,6 +36,7 @@ WORKSPACE = (
     'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'image_settings',
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
+    'group_chats', 'group_members', 'group_messages',
     'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.
@@ -202,6 +204,7 @@ def wipe(database, keep_character: bool) -> tuple[list[str], list[str], list[str
         # Checked at commit, so a kept row still pointing at a cleared one fails the whole change.
         connection.execute('PRAGMA defer_foreign_keys=ON')
         companion = require_current(connection)
+        groups.leave_everywhere(connection, companion['id'], database.now())
         others = others_of(connection, companion['id'])
         if others:
             return wipe_own(database, connection, companion, others, keep_character)

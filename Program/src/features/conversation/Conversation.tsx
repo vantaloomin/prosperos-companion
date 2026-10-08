@@ -198,7 +198,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   return (
     <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
-      <ConversationTop companion={companion} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
+      <ConversationTop companion={companion} onGroups={() => go('groups')} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
       {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
       <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
@@ -223,7 +223,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   )
 }
 
-function ConversationTop({ companion, onJump, timeline, stage, photoId }: { companion: Companion; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean; photoId: string | null }) {
+function ConversationTop({ companion, onGroups, onJump, timeline, stage, photoId }: { companion: Companion; onGroups: () => void; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean; photoId: string | null }) {
   const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
   const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
   const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
@@ -231,7 +231,7 @@ function ConversationTop({ companion, onJump, timeline, stage, photoId }: { comp
   const toggle = (panel: 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
     <ConversationHeader companion={companion} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} />
+      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={onGroups} />
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
     {stage && <NovelStage name={companion.version.name} photoId={photoId} />}

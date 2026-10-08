@@ -17,6 +17,7 @@ for comparison.
 | Noting the companion's own facts | The memory model reading her replies for her people, team, work | `RULES` in `companion/memory/self_suggest.py` |
 | Describing your pictures | The "Seeing pictures" model | `DESCRIBE` in `companion/pictures.py` |
 | The Story narrator | Every reply in the Story tab, before the scene ([story.md](story.md)) | `NARRATOR` in `companion/story.py` |
+| Group chats | Every group chat reply, before who is in the group and the chat so far ([group-chat.md](group-chat.md)) | `RULES` in `companion/groups.py` |
 | Character drafting (5) | The quick start, "Help me write" and the paste box | `companion/prompts/character-*.md` ([character-drafting.md](character-drafting.md)) |
 | Sidecar | The sidecar's replies and proposed changes ([sidecar.md](sidecar.md)) | `companion/prompts/sidecar.md` |
 

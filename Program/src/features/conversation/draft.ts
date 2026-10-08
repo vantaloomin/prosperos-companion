@@ -22,17 +22,18 @@ export function pictureDraft(draft: Draft, pictures: DraftPicture[], makeId?: ()
   return newDraft(draft.text, makeId, pictures)
 }
 
-export function readDraft(storage: Pick<Storage, 'getItem'> | undefined): Draft {
+/** `key` keeps another chat's draft apart (a group chat's, src/features/groups). */
+export function readDraft(storage: Pick<Storage, 'getItem'> | undefined, key = DRAFT_KEY): Draft {
   try {
-    const value = JSON.parse(storage?.getItem(DRAFT_KEY) ?? 'null')
+    const value = JSON.parse(storage?.getItem(key) ?? 'null')
     if (value && typeof value.text === 'string' && typeof value.clientId === 'string') return value
   } catch { /* A damaged draft slot starts empty. */ }
   return newDraft()
 }
 
-export function writeDraft(storage: Pick<Storage, 'setItem' | 'removeItem'> | undefined, draft: Draft) {
+export function writeDraft(storage: Pick<Storage, 'setItem' | 'removeItem'> | undefined, draft: Draft, key = DRAFT_KEY) {
   try {
-    if (draft.text || draft.pictures?.length) storage?.setItem(DRAFT_KEY, JSON.stringify(draft))
-    else storage?.removeItem(DRAFT_KEY)
+    if (draft.text || draft.pictures?.length) storage?.setItem(key, JSON.stringify(draft))
+    else storage?.removeItem(key)
   } catch { /* Storage can be unavailable; the composer still holds the text. */ }
 }

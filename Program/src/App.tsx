@@ -1,5 +1,5 @@
 import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Heart, MessageSquareText, Settings as SettingsIcon, UserRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Download, Heart, MessageSquareText, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
 import type { Companion } from './types'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api'
@@ -28,11 +28,14 @@ const Today = lazy(() => import('./features/today/Today').then((m) => ({ default
 const Dating = lazy(() => import('./features/dating/Dating').then((m) => ({ default: m.Dating })))
 const Story = lazy(() => import('./features/story/Story').then((m) => ({ default: m.Story })))
 const Sidecar = lazy(() => import('./features/sidecar/Sidecar').then((m) => ({ default: m.Sidecar })))
+const Groups = lazy(() => import('./features/groups/Groups').then((m) => ({ default: m.Groups })))
+const GroupChat = lazy(() => import('./features/groups/GroupChat').then((m) => ({ default: m.GroupChat })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
 // The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
 const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
   { id: 'conversation', label: 'Profile', icon: UserRound },
+  { id: 'groups', label: 'Groups', icon: UsersRound },
   { id: 'dating', label: 'Matchlight', icon: Heart },
   { id: 'story', label: 'Story', icon: BookOpen },
   { id: 'today', label: 'Today', icon: CalendarDays },
@@ -42,11 +45,11 @@ const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') || id.startsWith('group/') ? id as View : 'conversation'
 }
 
 function isCurrent(id: View, view: View) {
-  return view === id || (id === 'conversation' && profileTab(view) !== null) || (id === 'settings' && view.startsWith('settings/'))
+  return view === id || (id === 'conversation' && profileTab(view) !== null) || (id === 'settings' && view.startsWith('settings/')) || (id === 'groups' && view.startsWith('group/'))
 }
 
 export default function App() {
@@ -113,7 +116,7 @@ interface CurrentViewProps { view: View; companion: Companion | null; go: (view:
 
 function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
   const loraMaker = useWorkspaceSettings().data?.lora_maker
-  // Settings, the dating app and the story belong to the workspace, so they open with or without a companion.
+  // Settings, the dating app, the story and group chats belong to the workspace, so they open with or without a companion.
   if (inWorkspace(view)) return <WorkspaceView view={view} companion={companion} go={go} openTab={openTab} />
   // With the LoRA creator switched off (the default), an old #appearance link opens the Character page.
   const shown = view === 'appearance' && !loraMaker ? 'character' : view
@@ -124,11 +127,14 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
 
 function inWorkspace(view: View) {
   return view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
+    || view === 'groups' || view.startsWith('group/')
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
   const storyOn = useWorkspaceSettings().data?.story_mode
   if (view === 'dating') return <Dating go={go} />
+  if (view === 'groups') return <Groups go={go} />
+  if (view.startsWith('group/')) return <GroupChat key={view} id={decodeURIComponent(view.slice(6))} go={go} />
   if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />
   if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} onCreate={() => go('character')} />
   return storyOn ? <Story go={go} />
