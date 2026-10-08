@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { PanelLeftOpen, X } from 'lucide-react'
 import type { View } from '../../companion'
 import type { Chat } from '../../types'
 import { Stamp } from '../../components/Stamp'
@@ -7,6 +7,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { usePortrait } from '../conversation/portrait'
 import { badge, chatLabel, preview } from './chatText'
 import { useChats, useOpenChat } from './useChats'
+import { useChatListCollapsed } from './layout'
 
 /**
  * Every chat, the most recent first, the way a messaging app lists them: who, their latest message, when, and
@@ -15,11 +16,14 @@ import { useChats, useOpenChat } from './useChats'
 export function ChatsPanel({ go, onClose }: { go: (view: View) => void; onClose: () => void }) {
   const chats = useChats()
   const { open, busy, error } = useOpenChat(go)
+  const [collapsed, setCollapsed] = useChatListCollapsed()
   const choose = async (chat: Chat) => { if (await open(chat.id, chat.focus)) onClose() }
   return (
     <div className="conversation-search chats-panel" role="region" aria-label="Chats" onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
       <div className="search-bar chats-bar">
         <h2>Chats</h2>
+        {/* On a wide screen the list can stay beside the chat again; phones always use this one. */}
+        {collapsed && <button type="button" className="text-button side-expand" onClick={() => { setCollapsed(false); onClose() }}><PanelLeftOpen aria-hidden="true" />Keep beside the chat</button>}
         <button type="button" className="icon-button" aria-label="Close chats" onClick={onClose}><X aria-hidden="true" /></button>
       </div>
       <div className="search-results">

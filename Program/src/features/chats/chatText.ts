@@ -42,3 +42,15 @@ export function readThrough(messages: { seq: number; role: string; status: strin
   }
   return seq
 }
+
+/** The narrowest and widest a resizable list may be, by style. */
+export const WIDTHS: Record<string, { min: number; max: number; start: number }> = {
+  list: { min: 200, max: 420, start: 280 },
+  cast: { min: 150, max: 280, start: 200 },
+  buddies: { min: 150, max: 320, start: 190 },
+}
+
+export function clampWidth(kind: string, width: number): number {
+  const range = WIDTHS[kind] ?? WIDTHS.list
+  return Math.round(Math.min(range.max, Math.max(range.min, width)))
+}

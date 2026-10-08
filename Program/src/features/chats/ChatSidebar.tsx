@@ -4,26 +4,39 @@ import { Stamp } from '../../components/Stamp'
 import { badge, chatLabel, preview } from './chatText'
 import { ChatAvatar } from './ChatsPanel'
 import { useChats, useOpenChat } from './useChats'
+import { useChatListCollapsed, useChatListWidth } from './layout'
+import { CollapseButton, ResizeHandle } from './SideControls'
 
 /**
  * The chat list beside the chat on a wide screen, in the look of the app each style borrows from: a rail of
  * round pictures for Community, a buddy list window for Retro IM, a tray of ringed pictures across the top for
  * Feed, a cast of portrait cards for Visual novel and a conversation list for Bubbles. Only
  * names, the latest message, when, and what is unread: never whether anyone is online, away or typing.
- * Phones use the Chats button instead (ChatsPanel).
+ * Phones use the Chats button instead (ChatsPanel). It can be hidden, and the side lists made wider or narrower,
+ * on this device (layout.ts).
  */
 export function ChatSidebar({ style, retroDark, go }: { style: ChatStyle; retroDark: boolean; go: (view: View) => void }) {
   const chats = useChats().data?.chats ?? []
   const { open, busy } = useOpenChat(go)
-  if (chats.length < 2) return null
+  const [collapsed] = useChatListCollapsed()
+  if (chats.length < 2 || collapsed) return null
   const choose = (chat: Chat) => void open(chat.id, chat.focus)
   if (style === 'community') return <Rail chats={chats} busy={busy} onOpen={choose} />
   if (style === 'retro') return <BuddyList chats={chats} busy={busy} dark={retroDark} onOpen={choose} />
   if (style === 'feed') return <Tray chats={chats} busy={busy} onOpen={choose} />
   if (style === 'novel') return <Cast chats={chats} busy={busy} onOpen={choose} />
+  return <ConversationList chats={chats} busy={busy} style={style} onOpen={choose} />
+}
+
+type ListProps = { chats: Chat[]; busy: string | null; onOpen: (chat: Chat) => void }
+
+/** Bubbles: a conversation list, as in a desktop messaging app. */
+function ConversationList({ chats, busy, style, onOpen }: ListProps & { style: ChatStyle }) {
+  const [width, setWidth] = useChatListWidth('list')
+  const choose = onOpen
   return (
-    <nav className={`chat-side side-list side-${style}`} aria-label="Chats">
-      <h2 className="side-title">Chats</h2>
+    <nav className={`chat-side side-list side-${style}`} aria-label="Chats" style={{ width }}>
+      <div className="side-head"><h2 className="side-title">Chats</h2><CollapseButton /></div>
       <ul>
         {chats.map((chat) => (
           <li key={`${chat.kind}:${chat.id}`}>
@@ -39,11 +52,10 @@ export function ChatSidebar({ style, retroDark, go }: { style: ChatStyle; retroD
           </li>
         ))}
       </ul>
+      <ResizeHandle kind="list" width={width} onWidth={setWidth} />
     </nav>
   )
 }
-
-type ListProps = { chats: Chat[]; busy: string | null; onOpen: (chat: Chat) => void }
 
 /** Community: round pictures down the side, a pill beside the open one and a count on the ones with news. */
 function Rail({ chats, busy, onOpen }: ListProps) {
@@ -60,15 +72,18 @@ function Rail({ chats, busy, onOpen }: ListProps) {
           </li>
         ))}
       </ul>
+      <CollapseButton />
     </nav>
   )
 }
 
 /** Retro IM: a buddy list window. One group of everyone, names in bold with a count when something is new. */
 function BuddyList({ chats, busy, dark, onOpen }: ListProps & { dark: boolean }) {
+  const [width, setWidth] = useChatListWidth('buddies')
   return (
-    <nav className={`chat-retro${dark ? ' retro-dark' : ''} chat-side side-buddies`} aria-label="Chats">
-      <div className="buddy-titlebar" aria-hidden="true">Buddy List</div>
+    <nav className={`chat-retro${dark ? ' retro-dark' : ''} chat-side side-buddies`} aria-label="Chats" style={{ width }}>
+      <div className="buddy-titlebar"><span aria-hidden="true">Buddy List</span><CollapseButton side="right" /></div>
+      <ResizeHandle kind="buddies" width={width} onWidth={setWidth} side="right" />
       <h2 className="buddy-group">Buddies ({chats.length})</h2>
       <ul>
         {chats.map((chat) => (
@@ -101,15 +116,17 @@ function Tray({ chats, busy, onOpen }: ListProps) {
           </li>
         ))}
       </ul>
+      <CollapseButton />
     </nav>
   )
 }
 
 /** Visual novel: the cast as portrait cards, like choosing whose route to follow, with a ribbon for news. */
 function Cast({ chats, busy, onOpen }: ListProps) {
+  const [width, setWidth] = useChatListWidth('cast')
   return (
-    <nav className="chat-side side-cast" aria-label="Chats">
-      <h2 className="side-title">Cast</h2>
+    <nav className="chat-side side-cast" aria-label="Chats" style={{ width }}>
+      <div className="side-head"><h2 className="side-title">Cast</h2><CollapseButton /></div>
       <ul>
         {chats.map((chat) => (
           <li key={`${chat.kind}:${chat.id}`}>
@@ -123,6 +140,7 @@ function Cast({ chats, busy, onOpen }: ListProps) {
           </li>
         ))}
       </ul>
+      <ResizeHandle kind="cast" width={width} onWidth={setWidth} />
     </nav>
   )
 }

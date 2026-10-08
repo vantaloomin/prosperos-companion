@@ -1148,3 +1148,18 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .cast-line { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.75rem; font-style: italic; }
 .cast-ribbon { position: absolute; top: 10px; right: -6px; padding: 2px 8px; border-radius: 3px 0 0 3px; background: var(--accent); color: var(--on-accent); font-size: 0.6875rem; font-weight: 600; }
 .cast-card.unread .cast-name { font-weight: 600; }
+/* Hiding and resizing the chat list (src/features/chats/layout.ts). */
+.chat-side { position: relative; }
+.side-head { display: flex; align-items: center; gap: 6px; margin: 0 4px 10px 10px; }
+.side-head .side-title { flex: 1; margin: 0; }
+.side-collapse { flex-shrink: 0; }
+.side-collapse svg { width: 18px; height: 18px; }
+.side-rail .side-collapse, .side-tray .side-collapse { margin: auto auto 0; }
+.side-tray .side-collapse { margin: 0 0 0 auto; align-self: center; }
+.buddy-titlebar { display: flex; align-items: center; justify-content: space-between; }
+.buddy-titlebar .side-collapse { width: 22px; height: 22px; color: #ffffff; border-radius: 2px; }
+.side-resize { position: absolute; top: 0; bottom: 0; right: 0; width: 6px; cursor: col-resize; z-index: 2; touch-action: none; }
+.side-resize-right { right: auto; left: 0; }
+.side-resize:hover, .side-resize:focus-visible { background: var(--accent); opacity: .5; outline: none; }
+.side-list, .side-cast { flex-shrink: 0; }
+@media (max-width: 720px) { .side-expand { display: none; } }

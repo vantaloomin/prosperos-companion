@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { badge, chatLabel, chatsButtonLabel, othersUnread, preview, readThrough } from '../../src/features/chats/chatText.ts'
+import { badge, chatLabel, chatsButtonLabel, clampWidth, othersUnread, preview, readThrough } from '../../src/features/chats/chatText.ts'
 
 test('a chat shows their latest message, or yours with "You:"', () => {
   assert.equal(preview({ name: 'Sally', last: { role: 'companion', text: 'Lunch?', at: '2026-10-08T12:00:00Z' } }), 'Lunch?')
@@ -28,4 +28,11 @@ test('a chat is read up to their newest message on screen, not a held one', () =
   ], now), 1)
   assert.equal(readThrough([{ seq: 5, role: 'companion', status: 'complete', held_until: '2026-10-08T11:00:00Z' }], now), 5)
   assert.equal(readThrough([], now), null)
+})
+
+test('a side list is kept between its narrowest and widest', () => {
+  assert.equal(clampWidth('list', 100), 200)
+  assert.equal(clampWidth('list', 999), 420)
+  assert.equal(clampWidth('cast', 210.4), 210)
+  assert.equal(clampWidth('unknown', 50), 200)
 })
