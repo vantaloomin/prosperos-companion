@@ -256,26 +256,39 @@ def test_a_saved_city_that_crashes_while_loading_leaves_the_others_listed(app, c
     assert client.get('/api/context').status_code == 200
 
 
-def test_a_stray_file_among_the_built_in_cities_is_skipped(client, tmp_path, monkeypatch):
-    """A city file dropped among the built-in ones, or saved there under another name, once failed every city
-    list, Real-world lookups and the life sim. It is now left out and named under Settings > Cities."""
+def test_a_city_dropped_among_the_built_in_ones_loads_like_a_pack(client, tmp_path, monkeypatch):
+    """A Mac tester put a Los Angeles file among the built-in cities. Loaded strictly, its one job the app lacked
+    failed every city list, so Real-world lookups went blank and Matchlight and Life & cities showed errors.
+    Such a file now loads like a pack, mended, and one that still cannot load is left out and named."""
     folder = tmp_path / 'cities'
     folder.mkdir()
     for path in catalog.city_files(catalog.BUILTIN_CITIES):
         (folder / path.name).write_bytes(path.read_bytes())
-    (folder / 'baltimore (1).json').write_bytes((catalog.BUILTIN_CITIES / 'baltimore.json').read_bytes())
+    stray = plain(baltimore()) | {'id': 'harbor-town', 'name': 'Harbor Town', 'aliases': [], 'setting': 'fictional'}
+    stray['employers'][0]['careers'].append('aerospace-engineer')
+    (folder / 'Harbor Town.json').write_text(json.dumps(stray), encoding='utf-8')
     (folder / 'notes.json').write_text('[1, 2]', encoding='utf-8')
     monkeypatch.setattr(catalog, 'BUILTIN_CITIES', folder)
     monkeypatch.setenv(catalog.PACKS_ENV, str(tmp_path / 'no-packs'))
     try:
         report = catalog.reload()
-        assert sorted(Path(item['file']).name for item in report['errors']) == ['baltimore (1).json', 'notes.json']
+        assert [Path(item['file']).name for item in report['errors']] == ['notes.json']
+        assert [item['id'] for item in report['loaded']] == ['harbor-town']
         listed = client.get('/api/world/cities')
-        assert listed.status_code == 200 and 'baltimore' in {city['id'] for city in listed.json()}
+        assert listed.status_code == 200 and {'baltimore', 'harbor-town'} <= {city['id'] for city in listed.json()}
         assert client.get('/api/context').status_code == 200
+        assert client.get('/api/dating').status_code == 200
     finally:
         monkeypatch.undo()
         catalog.reload()
+
+
+def test_every_shipped_city_loads_strictly():
+    assert catalog.reload()['errors'] == []
+    assert all(data['origin'] == 'builtin' for data in catalog.cities().values() if not data.get('pack_file'))
+    assert {path.stem for path in catalog.city_files(catalog.BUILTIN_CITIES)} == \
+        {key for key, data in catalog.cities().items() if data['origin'] == 'builtin'}
+
 
 def test_copying_a_built_in_city_and_living_in_a_user_city(app, client):
     copied = client.post('/api/world/cities/baltimore/copy', json={'id': 'my-baltimore', 'name': 'My Baltimore'})
