@@ -15,7 +15,7 @@ python -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock.txt      # Windows: .\.venv\Scripts\python.exe
 .venv/bin/python -m companion                                  # serves http://127.0.0.1:8775
 .venv/bin/python -m ruff check .
-.venv/bin/python -m pytest -q
+.venv/bin/python -m pytest -q -n auto                         # -n auto spreads tests over every core
 ```
 
 Writes require the `x-companion-client: workspace` header, which the local interface sends.
@@ -64,8 +64,11 @@ holds the port checks (`curl` and `lsof`). They behave as their Windows twins, w
 nodejs.org download page. `create-shortcut.command` writes a small `.app` bundle that opens
 `launch.command` in Terminal. The `macos-install` CI job runs `install.command` without
 setup-python or setup-node on Apple Silicon and Intel runners, then
-`scripts/macos/helpers-test.sh`; the backend tests also run on macOS. No one has run these on a
-real Mac. User-facing instructions, Gatekeeper and what is missing on a Mac are in
+`scripts/macos/helpers-test.sh`; the backend tests also run on macOS. On a pull request the
+`macos-install` and `windows-install` jobs run only when the PR touches `Windows/`, `Mac/`, the
+platform scripts, the manifests, `companion/launch.py` or `companion/main.py`; on main they always
+run. No one has run these on a real Mac. User-facing instructions, Gatekeeper and what is missing on
+a Mac are in
 [Installing on a Mac](macos.md).
 
 ## Windows bundle

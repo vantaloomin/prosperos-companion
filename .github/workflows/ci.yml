@@ -8,12 +8,49 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels that pull request's older run; every push to main still runs in full.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # The app and its tooling live in Program/; Windows/ and Mac/ hold only the double-click scripts.
 defaults:
   run:
     working-directory: Program
 
 jobs:
+  changes:
+    # The install and MCP SDK jobs only run on a pull request that touches what they test (always on main).
+    # A job skipped this way counts as passed for required checks.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      installers: ${{ steps.diff.outputs.installers }}
+      mcp: ${{ steps.diff.outputs.mcp }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: diff
+        shell: bash
+        working-directory: .
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo installers=true >> "$GITHUB_OUTPUT"; echo mcp=true >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          changed=$(git diff --name-only "$BASE...$HEAD")
+          printf '%s\n' "$changed"
+          shared='^(\.github/workflows/ci\.yml|Program/requirements\.lock\.txt|Program/pyproject\.toml)$'
+          installers='^(Windows/|Mac/|Program/scripts/(windows|macos)/|Program/package(-lock)?\.json$|Program/companion/(launch|main)\.py$)'
+          mcp='^(Program/companion/mcp/|Program/tests/test_mcp_sdk_interop\.py$)'
+          if grep -Eq "$shared|$installers" <<< "$changed"; then echo installers=true; else echo installers=false; fi >> "$GITHUB_OUTPUT"
+          if grep -Eq "$shared|$mcp" <<< "$changed"; then echo mcp=true; else echo mcp=false; fi >> "$GITHUB_OUTPUT"
+
   backend:
     strategy:
       fail-fast: false
@@ -33,12 +70,15 @@ jobs:
       - name: Lint
         run: python -m ruff check .
       - name: Test
-        run: python -m pytest -q
+        # Spread over the runner's cores (pytest-xdist); each test has its own temporary workspace.
+        run: python -m pytest -q -n auto
       - name: Check city data
         run: python -m companion.world.check
 
   mcp-interop:
     # The MCP client against servers built with the official MCP Python SDK (not an app dependency).
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -86,6 +126,8 @@ jobs:
         run: npm run build
 
   windows-install:
+    needs: changes
+    if: needs.changes.outputs.installers == 'true'
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -126,6 +168,8 @@ jobs:
   macos-install:
     # Nobody on the team has a Mac, so this is the macOS scripts' only test. No setup-python or
     # setup-node: install.command has to find (or install with Homebrew) what a Mac already has.
+    needs: changes
+    if: needs.changes.outputs.installers == 'true'
     strategy:
       fail-fast: false
       matrix:
