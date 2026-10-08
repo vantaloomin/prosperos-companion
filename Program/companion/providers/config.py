@@ -15,15 +15,16 @@ from companion.models import Input
 from companion.providers.capabilities import validate_options
 from companion.providers.urls import is_loopback, validate_compatible_url
 
-Provider = Literal['openai', 'anthropic', 'openrouter', 'google', 'compatible', 'local', 'kobold', 'codex']
+Provider = Literal['openai', 'anthropic', 'openrouter', 'google', 'nanogpt', 'compatible', 'local', 'kobold', 'codex']
 PROVIDER_NAMES = {'openai': 'OpenAI', 'anthropic': 'Anthropic', 'openrouter': 'OpenRouter',
-                  'google': 'Google / Gemini', 'compatible': 'OpenAI-compatible API', 'local': 'Local / LM Studio',
+                  'google': 'Google / Gemini', 'nanogpt': 'NanoGPT', 'compatible': 'OpenAI-compatible API', 'local': 'Local / LM Studio',
                   'kobold': 'Kobold', 'codex': 'Codex / ChatGPT'}
 DEFAULT_URLS = {
     'openai': 'https://api.openai.com/v1',
     'anthropic': 'https://api.anthropic.com/v1',
     'openrouter': 'https://openrouter.ai/api/v1',
     'google': 'https://generativelanguage.googleapis.com/v1beta',
+    'nanogpt': 'https://nano-gpt.com/api/v1',
     'compatible': '',
     'local': 'http://127.0.0.1:1234/v1',
     'kobold': 'http://127.0.0.1:5001/api/v1',
@@ -31,10 +32,10 @@ DEFAULT_URLS = {
 }
 # Standard variable names for hosted services; the Companion's own name for anything else.
 ENV_KEYS = {'openai': 'OPENAI_API_KEY', 'anthropic': 'ANTHROPIC_API_KEY', 'openrouter': 'OPENROUTER_API_KEY',
-            'google': 'GEMINI_API_KEY', 'compatible': 'COMPANION_API_KEY', 'local': 'COMPANION_API_KEY'}
+            'google': 'GEMINI_API_KEY', 'nanogpt': 'NANOGPT_API_KEY', 'compatible': 'COMPANION_API_KEY', 'local': 'COMPANION_API_KEY'}
 # Providers whose official API needs a key; local servers and compatible services may not.
-NEEDS_KEY = {'openai', 'anthropic', 'openrouter', 'google'}
-EMBEDDING_PROVIDERS = {'openai', 'compatible', 'local'}
+NEEDS_KEY = {'openai', 'anthropic', 'openrouter', 'google', 'nanogpt'}
+EMBEDDING_PROVIDERS = {'openai', 'nanogpt', 'compatible', 'local'}
 
 
 def validate_local_url(url: str):
@@ -126,7 +127,7 @@ class ProfileConfig(Input):
             raise ValueError('Anthropic temperature must be between 0 and 1.')
         if self.purpose == 'recall':
             if self.provider not in EMBEDDING_PROVIDERS:
-                raise ValueError('Recall profiles need an OpenAI, local or OpenAI-compatible connection.')
+                raise ValueError('Recall profiles need an OpenAI, NanoGPT, local or OpenAI-compatible connection.')
             self.model = ''
         elif self.embedding_model.strip():
             raise ValueError('Embedding models go in a recall profile, apart from text profiles.')

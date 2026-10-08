@@ -9,6 +9,7 @@ SAMPLING = {
     'anthropic': {'temperature', 'top_p', 'top_k'},
     'google': {'temperature', 'top_p', 'top_k'},
     'openrouter': {'temperature', 'top_p', 'top_k', 'min_p', 'frequency_penalty', 'presence_penalty', 'repetition_penalty', 'seed'},
+    'nanogpt': {'temperature', 'top_p', 'top_k', 'min_p', 'frequency_penalty', 'presence_penalty', 'repetition_penalty', 'seed'},
     'compatible': {'temperature', 'top_p', 'top_k', 'min_p', 'frequency_penalty', 'presence_penalty', 'repetition_penalty', 'seed'},
     'local': {'temperature', 'top_p', 'top_k', 'min_p', 'frequency_penalty', 'presence_penalty', 'repetition_penalty', 'seed'},
     'kobold': {'temperature', 'top_p', 'top_k', 'repetition_penalty'},

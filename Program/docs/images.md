@@ -12,7 +12,7 @@ backend is off until the user sets it up, and text never waits for an image. The
 | --- | --- | --- | --- |
 | `comfyui` | `adapters/comfyui.py`: ComfyUI HTTP API (`/prompt`, `/history`, `/view`) | Safe; NSFW too when local | One job at a time |
 | `codex` | `adapters/codex.py`: the Codex CLI's built-in image generation (`codex exec`) | Safe only | One job at a time across every Codex backend |
-| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations` or OpenRouter-style `/chat/completions` with image output | Safe only; NSFW too when the user switches it on (OpenRouter and other APIs only) | Its configured limit (1 to 4) |
+| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations` or OpenRouter-style `/chat/completions` with image output | Safe only; NSFW too when the user switches it on (OpenRouter, NanoGPT and other APIs only) | Its configured limit (1 to 4) |
 
 - **ComfyUI** is local when its address is a loopback address, or when the user marks it as a
   machine they control. A remote address otherwise counts as hosted (F6). The app only connects to
@@ -80,12 +80,17 @@ backend is off until the user sets it up, and text never waits for an image. The
   raw output stays in `images/raw/` until it passes the image check. The path is labelled
   experimental and has only been tested against a stand-in `codex`, not a real login.
 - **Hosted APIs** default to OpenRouter (`chat` style), Google's OpenAI-compatible endpoint
-  (`images` style) or the OpenAI API. Keys are stored in the OS vault as `image-backend:<id>`.
+  (`images` style), the OpenAI API or NanoGPT (`https://nano-gpt.com/api/v1`, `images` style;
+  **Check** reads its image list at `/images/models`, since its `/models` lists text models only,
+  also for a NanoGPT address entered as another API). A base URL saved with a request path on the
+  end (`/images/generations`, `/chat/completions`, `/models`, `/images`) is trimmed to the base.
+  Each backend's **Connection** panel edits its name, model, API key and address (another API's
+  base URL or a ComfyUI address) in place; saving a new address accepts its disclosure again. Keys are stored in the OS vault as `image-backend:<id>`.
   Enabling a hosted backend, a Codex backend or a remote ComfyUI server requires accepting a
   disclosure of what each request sends. Requests carry the prompt only. Provider-reported
   `usage` is stored as given. The tested request shapes are the two above; a model behind an
   aggregator is not assumed to work until an image comes back.
-- **NSFW on an image API** (Vanta, 2026-10-07): an OpenRouter or other image API backend has an
+- **NSFW on an image API** (Vanta, 2026-10-07): an OpenRouter, NanoGPT or other image API backend has an
   **Also take NSFW requests** switch (`allows_nsfw`), off by default, for a provider whose terms
   allow such images. Google and the OpenAI API never offer it, and Codex stays safe-only. With it on,
   the disclosure adds that NSFW requests go to that provider under its terms, and turning it on for

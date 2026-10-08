@@ -1139,3 +1139,66 @@ def test_the_action_is_the_activitys_present_tense_picture_line():
     corrected = prompts.compose('Kim', '', [{**event, 'summary': 'Kim walked the dog instead.', 'revision': 2}], 'Photo')
     assert 'walked the dog' in corrected
     assert set(prompts.PICTURES) >= {item.key for group in composer.CATALOG.values() for item in group}
+
+
+def test_nanogpt_is_a_named_provider_that_can_take_nsfw(client):
+    backend = add_backend(client, kind='hosted', provider='nanogpt', model='hidream-o1-image', api_key='k',
+                          allows_nsfw=True)
+    assert backend['base_url'] == 'https://nano-gpt.com/api/v1' and backend['api_style'] == 'images'
+    assert backend['nsfw_switch'] is True and backend['accepts_nsfw'] is True
+
+
+def test_a_base_url_copied_with_its_request_path_is_trimmed(client):
+    backend = add_backend(client, kind='hosted', provider='other', model='m', api_key='k',
+                          base_url='https://nano-gpt.com/api/v1/images/generations/')
+    assert backend['base_url'] == 'https://nano-gpt.com/api/v1'
+
+
+def model_list(seen, status=200, ids=('hidream-o1-image',)):
+    def server(request):
+        seen.append(str(request.url))
+        if status != 200:
+            return httpx.Response(status, text='<!DOCTYPE html>not found')
+        return httpx.Response(200, json={'object': 'list', 'data': [{'id': model} for model in ids]})
+    return HostedAdapter(httpx.MockTransport(server))
+
+
+@pytest.mark.parametrize('provider,base', [('nanogpt', 'https://nano-gpt.com/api/v1'),
+                                           ('other', 'https://api.nano-gpt.com/api/v1/images/generations')])
+def test_nanogpt_check_reads_its_image_model_list(provider, base):
+    seen = []
+    report = asyncio.run(model_list(seen).check({'provider': provider},
+                                                {'base_url': base, 'model': 'hidream-o1-image'}, 'k'))
+    assert report.ok and seen[0].endswith('/api/v1/images/models')
+
+
+def test_a_missing_model_list_points_at_the_base_url():
+    seen = []
+    report = asyncio.run(model_list(seen, status=404).check({'provider': 'other'},
+                                                            {'base_url': 'https://images.example.com', 'model': 'm'}, 'k'))
+    assert not report.ok and 'https://images.example.com/models' in report.summary
+    assert any('/v1' in line for line in report.details)
+
+
+def test_a_saved_base_url_with_a_request_path_still_generates():
+    seen = []
+
+    def server(request):
+        seen.append(str(request.url))
+        return httpx.Response(200, json={'data': [{'b64_json': base64.b64encode(png()).decode()}]})
+    adapter = HostedAdapter(httpx.MockTransport(server))
+    request = request_for('hosted', {'base_url': 'https://nano-gpt.com/api/v1/images/generations', 'model': 'm',
+                                     'api_style': 'images'}, provider='other', key='k')
+    asyncio.run(adapter.generate(request))
+    assert seen == ['https://nano-gpt.com/api/v1/images/generations']
+
+
+def test_an_image_api_connection_can_be_edited_in_place(client):
+    backend = add_backend(client, kind='hosted', provider='other', model='m', api_key='k',
+                          base_url='https://images.example.com/v1')
+    edited = ok(client.put(f"/api/images/backends/{backend['id']}", json={
+        'label': 'NanoGPT', 'model': 'hidream-o1-image', 'api_key': 'new',
+        'base_url': 'https://nano-gpt.com/api/v1/images/generations', 'accept_disclosure': True}))
+    assert (edited['label'], edited['model'], edited['base_url']) == \
+        ('NanoGPT', 'hidream-o1-image', 'https://nano-gpt.com/api/v1')
+    assert edited['enabled'] and edited['has_key']

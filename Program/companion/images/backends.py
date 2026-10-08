@@ -12,6 +12,7 @@ from companion.database import decode, encode, identifier, many, one
 from companion.errors import DomainError, require
 from companion.images import content
 from companion.images.adapters.comfyui import SAMPLER_INPUTS, default_sampler
+from companion.images.adapters.hosted import api_base
 from companion.providers.urls import is_loopback, validate_compatible_url
 
 HOSTED_DEFAULTS = {
@@ -19,10 +20,12 @@ HOSTED_DEFAULTS = {
     'google': {'base_url': 'https://generativelanguage.googleapis.com/v1beta/openai', 'api_style': 'images',
                'label': 'Google'},
     'openai': {'base_url': 'https://api.openai.com/v1', 'api_style': 'images', 'label': 'OpenAI API'},
+    # NanoGPT's OpenAI-compatible route; its image models are listed at /images/models, not /models.
+    'nanogpt': {'base_url': 'https://nano-gpt.com/api/v1', 'api_style': 'images', 'label': 'NanoGPT'},
     'other': {'base_url': '', 'api_style': 'images', 'label': 'Image API'},
 }
 # Hosted providers the NSFW switch is offered for. Google and OpenAI's own API stay safe-only, like Codex.
-NSFW_PROVIDERS = {'openrouter', 'other'}
+NSFW_PROVIDERS = {'openrouter', 'nanogpt', 'other'}
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
 CONFIG_KEYS = ('base_url', 'model', 'workflow', 'reference_workflow', 'cli_path', 'api_style')
 # ComfyUI only: the files chosen for the built-in workflow's loaders (see adapters/comfyui.py).
@@ -156,7 +159,7 @@ def merged_config(kind, provider, previous: dict, body) -> dict:
     for key in CONFIG_KEYS:
         value = getattr(body, key)
         if value is not None:
-            config[key] = value.rstrip('/') if key == 'base_url' else value
+            config[key] = api_base(value) if key == 'base_url' else value
     for key in FILE_KEYS:
         value = getattr(body, key)
         if value is not None:
@@ -215,7 +218,7 @@ def require_safe_loras(backend: dict):
 def provider_for(kind, provider) -> str:
     if kind in {'comfyui', 'codex'}:
         return kind
-    require(provider in HOSTED_DEFAULTS, 'Choose a hosted provider: OpenRouter, Google, OpenAI or other.', 422)
+    require(provider in HOSTED_DEFAULTS, 'Choose a hosted provider: OpenRouter, Google, OpenAI, NanoGPT or other.', 422)
     return provider
 
 

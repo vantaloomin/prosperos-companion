@@ -229,6 +229,16 @@ def test_openai_uses_responses_and_compatible_services_use_chat_completions():
     assert body['provider'] == {'allow_fallbacks': False, 'require_parameters': True}
     path, body = REQUESTS['kobold'](config('kobold'), 'sys', CONVERSATION)
     assert body['prompt'] == transcript('sys', CONVERSATION) and body['prompt'].endswith('Assistant:')
+    path, body = REQUESTS['nanogpt'](config('nanogpt'), 'sys', CONVERSATION)
+    assert path == '/chat/completions' and 'provider' not in body and body['stream_options'] == {'include_usage': True}
+
+
+def test_nanogpt_is_a_named_provider_with_its_official_address():
+    from companion.providers.config import DEFAULT_URLS, NEEDS_KEY, validate_profile_url
+    assert DEFAULT_URLS['nanogpt'] == 'https://nano-gpt.com/api/v1' and 'nanogpt' in NEEDS_KEY
+    validate_profile_url('nanogpt', 'https://nano-gpt.com/api/v1')
+    with pytest.raises(ValueError):
+        validate_profile_url('nanogpt', 'https://elsewhere.example/v1')
 
 
 def sse(events):

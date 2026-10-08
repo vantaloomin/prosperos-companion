@@ -6,7 +6,7 @@ from pydantic import Field
 from companion.models import Input
 
 Kind = Literal['comfyui', 'codex', 'hosted']
-Provider = Literal['comfyui', 'codex', 'openrouter', 'google', 'openai', 'other']
+Provider = Literal['comfyui', 'codex', 'openrouter', 'google', 'openai', 'nanogpt', 'other']
 Aspect = Literal['square', 'landscape', 'portrait']
 FILE_NAME = r'^[^\x00-\x1f\x7f]*$'
 

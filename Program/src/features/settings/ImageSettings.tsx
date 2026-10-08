@@ -111,6 +111,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
         hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
+      <BackendConnection backend={backend} save={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       <BackendStyle backend={backend} save={(style) => act(() => api(`/images/backends/${backend.id}`, { style }, 'PUT'))} />
       <ComfyFiles backend={backend} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
@@ -122,6 +123,52 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
       </div>
     </li>
+  )
+}
+
+interface ConnectionDraft { label: string; model: string; baseUrl: string; apiKey: string; cliPath: string }
+
+const connectionDraft = (backend: ImageBackend): ConnectionDraft => ({ label: backend.label, model: backend.model, baseUrl: backend.base_url, apiKey: '', cliPath: backend.cli_path })
+const editsAddress = (backend: ImageBackend) => backend.kind === 'comfyui' || (backend.kind === 'hosted' && backend.provider === 'other')
+const movesAddress = (backend: ImageBackend, draft: ConnectionDraft) => editsAddress(backend) && draft.baseUrl.trim() !== backend.base_url
+
+function connectionChanged(backend: ImageBackend, draft: ConnectionDraft): boolean {
+  const saved = connectionDraft(backend)
+  return movesAddress(backend, draft) || draft.apiKey !== '' || (['label', 'model', 'cliPath'] as const).some((key) => draft[key].trim() !== saved[key])
+}
+
+/** Only the fields this kind of backend uses; a new address is accepted on save, as its hint says. */
+function connectionBody(backend: ImageBackend, draft: ConnectionDraft): Record<string, unknown> {
+  const body: Record<string, unknown> = { label: draft.label.trim() || undefined }
+  if (backend.kind === 'hosted') Object.assign(body, { model: draft.model.trim(), api_key: draft.apiKey || undefined })
+  if (editsAddress(backend)) Object.assign(body, { base_url: draft.baseUrl.trim(), accept_disclosure: movesAddress(backend, draft) && backend.disclosure ? true : undefined })
+  if (backend.kind === 'codex') body.cli_path = draft.cliPath.trim()
+  return body
+}
+
+/** The backend's name and where it connects, edited in place: an image API's model, key and (for another
+ * API) address, a ComfyUI server's address or the Codex CLI's location. */
+function BackendConnection({ backend, save }: { backend: ImageBackend; save: (body: Record<string, unknown>) => Promise<boolean> }) {
+  const [draft, setDraft] = useState(() => connectionDraft(backend))
+  const set = (key: keyof ConnectionDraft) => (value: string) => setDraft((current) => ({ ...current, [key]: value }))
+  const hosted = backend.kind === 'hosted'
+  const moveHint = movesAddress(backend, draft) && backend.disclosure ? `Saving sends requests to the new address. ${backend.disclosure}` : undefined
+  const store = async () => { if (await save(connectionBody(backend, draft))) setDraft((current) => ({ ...current, apiKey: '' })) }
+  return (
+    <details>
+      <summary className="subtle">Connection</summary>
+      <div className="form-stack">
+        <TextInput label="Name" value={draft.label} onChange={set('label')} />
+        {hosted && <TextInput label="Image model" value={draft.model} required onChange={set('model')} hint="The model's exact name from the provider's documentation." />}
+        {hosted && <TextInput label="API key" type="password" value={draft.apiKey} onChange={set('apiKey')} placeholder={backend.has_key ? 'Saved; type a new one to replace it' : ''} hint="Saved in your system's credential store." />}
+        {editsAddress(backend) && <TextInput label={hosted ? 'API base URL' : 'ComfyUI address'} value={draft.baseUrl} required onChange={set('baseUrl')} hint={moveHint} />}
+        {backend.kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={draft.cliPath} onChange={set('cliPath')} hint="Found on PATH when empty." />}
+        {connectionChanged(backend, draft) && <div className="form-actions">
+          <button type="button" className="button primary" onClick={() => void store()}>Save connection</button>
+          <button type="button" className="button" onClick={() => setDraft(connectionDraft(backend))}>Cancel</button>
+        </div>}
+      </div>
+    </details>
   )
 }
 
@@ -347,6 +394,10 @@ function backendBody(draft: Draft, disclosure: string | null, accepted: boolean)
     allows_nsfw: NSFW_PROVIDERS.includes(draft.provider) ? draft.nsfw : undefined }
 }
 
+const MODEL_EXAMPLES: Record<HostedProvider, string> = {
+  openrouter: 'google/gemini-2.5-flash-image', google: 'imagen-4.0-generate-001', openai: 'gpt-image-1', nanogpt: 'hidream-o1-image', other: 'gpt-image-1',
+}
+
 /** The NSFW switch for a new image API backend; Google and the OpenAI API only say they stay safe-only. */
 function NsfwChoice({ provider, checked, onChange }: { provider: HostedProvider; checked: boolean; onChange: (value: boolean) => void }) {
   if (!NSFW_PROVIDERS.includes(provider)) return <p className="subtle">{PROVIDERS.find((item) => item.id === provider)?.label} only receives safe requests.</p>
@@ -402,7 +453,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
             {PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
-        <TextInput label="Image model" value={model} required onChange={setModel} placeholder={provider === 'openrouter' ? 'google/gemini-2.5-flash-image' : provider === 'google' ? 'imagen-4.0-generate-001' : 'gpt-image-1'}
+        <TextInput label="Image model" value={model} required onChange={setModel} placeholder={MODEL_EXAMPLES[provider]}
           hint="The model's exact name from the provider's documentation." />
         <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />
         {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} hint="For an OpenAI-compatible image service, usually ending in /v1." />}
