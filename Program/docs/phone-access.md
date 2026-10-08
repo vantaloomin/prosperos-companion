@@ -11,18 +11,51 @@ to reach it.
 1. Install Tailscale on the PC and on the phone, and sign in to both with the same account.
 2. In the Companion on the PC, open Settings > Phone access and choose **Turn on phone access**. This runs
    `tailscale serve --bg http://127.0.0.1:<port>`. The first time, Tailscale may ask you to allow https
-   certificates for your tailnet; the Companion shows the link it gives.
+   certificates for your tailnet; the Companion shows the link it gives. It also runs
+   `tailscale serve --bg --http=<port> http://127.0.0.1:<port>` for the backup address (below).
 3. Choose **Pair a phone** and scan the QR code with the phone's camera, or open the link and type the code.
    A code works once, for ten minutes.
 4. On the phone, use the browser's Add to Home Screen to install it like an app.
 
-Turning phone access off runs `tailscale serve --https=443 off` and refuses phones until it is turned on again.
+Turning phone access off runs `tailscale serve --https=443 off` and `tailscale serve --http=<port> off`, and refuses
+phones until it is turned on again.
 Paired phones are listed in Settings > Phone access, where each can be removed; a phone can also sign itself out.
+
+## If nothing opens on the phone
+
+Settings > Phone access lists the phones and tablets signed in to your tailnet and says when none is, or when
+Tailscale is switched off on them; that is the usual reason the link opens and nothing loads. It also warns when
+MagicDNS is off for the tailnet, since the phone then cannot look up the PC's name. Under the QR code, **If nothing
+opens on the phone** walks through the rest:
+
+- The first visit can take up to a minute while Tailscale fetches the https certificate.
+- The **backup address** is the PC's tailnet address over plain http, such as `http://100.90.1.2:8775`. It needs
+  neither MagicDNS nor a certificate, and Tailscale still encrypts the traffic between the devices. Pairing works
+  there the same way (the device cookie is then not marked Secure, since the browser would drop it over http).
+  Phone notifications need the https address, as browsers only offer push to secure pages.
+- If only the backup address works, the phone looks names up without Tailscale: on Android, Private DNS set to a
+  provider name does this; in the Tailscale app, Use Tailscale DNS should stay on.
+
+## On your home Wi-Fi, without Tailscale
+
+**Use on home Wi-Fi** in Settings > Phone access is off by default. Turned on, it opens a second listener on port
+8776 (or `COMPANION_LAN_PORT`) on every network the PC is on, so a phone on the same Wi-Fi can open
+`http://<the PC's address>:8776`; the app's own port stays on this PC only. It stays on across restarts until
+turned off, and restoring a backup turns it off. Windows or macOS may ask once whether to let the Companion accept
+connections; allow it on private networks.
+
+Every request through that listener counts as a phone's, whatever headers it carries: it needs the switch on and a
+paired device (the same pairing codes), and the PC-only list below applies. Only requests from, and naming, a
+private home address (10/8, 172.16/12, 192.168/16, link-local, fc00::/7) are answered, so a forwarded port or a
+renamed host is refused. It is plain http: anyone else on the same network could read what passes or copy a phone's
+sign-in cookie, so the switch warns to use it only on a trusted home network. Notifications need the Tailscale https
+address. Routers with client (AP) isolation keep phones from reaching the PC; Tailscale works there.
 
 ## What a phone may do
 
 A request is from a phone when it arrives through the Tailscale proxy (forwarded headers, or a host name other
-than this PC). It needs phone access to be on, a `*.ts.net` host name, and the cookie of a paired device. Only a
+than this PC). It needs phone access to be on, a `*.ts.net` host name or a Tailscale address (100.64.0.0/10 or
+fd7a:115c:a1e0::/48), and the cookie of a paired device. Only a
 hash of each device's token is stored.
 
 A paired phone can chat and use Today, the Feed, Memories, Character and most of Settings. These stay on the PC,

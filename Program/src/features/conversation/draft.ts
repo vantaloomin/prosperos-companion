@@ -2,12 +2,14 @@
  * The unsent message survives reloads and failed sends. Its client id is tied to the exact text, so
  * retrying an unchanged message can never duplicate it, while an edited message is a new message.
  */
+import { newId } from '../../ids.ts'
+
 export interface DraftPicture { id: string; width: number; height: number }
 export interface Draft { text: string; clientId: string; pictures?: DraftPicture[] }
 
 export const DRAFT_KEY = 'companion:draft'
 
-export function newDraft(text = '', makeId: () => string = () => crypto.randomUUID(), pictures: DraftPicture[] = []): Draft {
+export function newDraft(text = '', makeId: () => string = newId, pictures: DraftPicture[] = []): Draft {
   return { text, clientId: makeId(), pictures }
 }
 

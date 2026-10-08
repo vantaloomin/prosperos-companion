@@ -6,8 +6,13 @@ headers, or names a host other than this PC. Such a request needs phone access t
 of a paired device. Even then a few things stay on the PC: anything that runs a program or reads a file
 there, restores a backup, starts the companion over or deletes them, or could send a saved API key to a
 new address. A lost phone is revoked in Settings > Phone access.
+
+With "Use on home Wi-Fi" on, a second listener answers on the home network (companion/phone/lan.py). Every request
+through it is a phone's, needs that switch on and a paired device, and must come from and name a home-network
+address.
 """
 import hashlib
+import ipaddress
 import secrets
 from datetime import timedelta
 
@@ -17,11 +22,14 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from companion.clock import parse, stamp
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
+from companion.phone import lan
 
 LOCAL_HOSTS = {'localhost', '127.0.0.1', '::1', 'testserver'}
 # Headers a proxy in front of the server adds; the PC's own browser never sends them.
 FORWARDED = ('x-forwarded-for', 'x-forwarded-host', 'forwarded', 'tailscale-user-login')
 TAILNET_SUFFIX = '.ts.net'
+# The addresses Tailscale gives devices: the backup address is the PC's own (companion/phone/tailscale.py).
+TAILNET_ADDRESSES = (ipaddress.ip_network('100.64.0.0/10'), ipaddress.ip_network('fd7a:115c:a1e0::/48'))
 COOKIE = 'companion_device'
 COOKIE_AGE = 400 * 24 * 3600  # the longest browsers keep a cookie
 PAIRING_LIFETIME = timedelta(minutes=10)
@@ -49,8 +57,13 @@ def host_name(request: Request) -> str:
     return host.rpartition(':')[0] if host.count(':') == 1 else host
 
 
+def via_lan(request: Request) -> bool:
+    return bool(request.scope.get(lan.SCOPE_KEY))
+
+
 def is_remote(request: Request) -> bool:
-    return any(name in request.headers for name in FORWARDED) or host_name(request) not in LOCAL_HOSTS
+    return (via_lan(request) or any(name in request.headers for name in FORWARDED)
+            or host_name(request) not in LOCAL_HOSTS)
 
 
 def token_hash(token: str) -> str:
@@ -71,9 +84,25 @@ def pc_only(method: str, path: str) -> bool:
     return under(path, PC_ONLY) or (method not in {'GET', 'HEAD'} and under(path, PC_ONLY_CHANGES))
 
 
+def tailnet_address(name: str) -> bool:
+    try:
+        found = ipaddress.ip_address(name)
+    except ValueError:
+        return False
+    return any(found in network for network in TAILNET_ADDRESSES)
+
+
 def allowed_host(request: Request, address: str | None) -> bool:
     name = host_name(request)
-    return name.endswith(TAILNET_SUFFIX) or (address is not None and name == address.removeprefix('https://'))
+    return (name.endswith(TAILNET_SUFFIX) or tailnet_address(name)
+            or (address is not None and name == address.removeprefix('https://')))
+
+
+def secure(request: Request) -> bool:
+    """Whether the phone's browser reached the proxy over https; the backup address is plain http, and a browser
+    drops a Secure cookie sent over http."""
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    return scheme.split(',')[0].strip().lower() == 'https'
 
 
 class Gate:
@@ -99,9 +128,16 @@ class Gate:
             config = phone_settings(connection)
             device = optional(connection, 'SELECT id, name FROM phone_devices WHERE token_hash=? AND revoked_at IS '
                               'NULL', (token_hash(token),)) if token else None
-        if not allowed_host(request, config['address']):
+        if via_lan(request):
+            client = request.client.host if request.client else None
+            if not (lan.home_address(host_name(request)) and lan.home_address(client)):
+                return PlainTextResponse('Invalid host header', status_code=400)
+            if not config['lan_enabled']:
+                return refuse(403, 'Home Wi-Fi access is off. Turn it on in Settings > Phone access on your PC.',
+                              'lan_off')
+        elif not allowed_host(request, config['address']):
             return PlainTextResponse('Invalid host header', status_code=400)
-        if not config['enabled']:
+        elif not config['enabled']:
             return refuse(403, 'Phone access is off. Turn it on in Settings > Phone access on your PC.', 'phone_off')
         if device:
             request.state.device = device
