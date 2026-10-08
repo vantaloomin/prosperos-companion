@@ -125,6 +125,10 @@ def plan(connection, body) -> list[dict]:
         decision = route(classification, pool, chosen)
         refusal = blocked or decision.refusal
         target = None if refusal else decision.target
+        if target is not None and backends.style_for(target, style) != style:
+            # The chosen backend's own style starts its prompts (checked safe for it when saved).
+            prompt = generation.compose(backends.style_for(target, style), body.base, shot.shot) + \
+                (f' {FOLLOW}' if follows is not None else '')
         if position == 0 and target is not None:
             chosen = target['id']
         planned.append({'label': shot.label, 'shot': shot.shot, 'aspect': shot.aspect, 'prompt': prompt,

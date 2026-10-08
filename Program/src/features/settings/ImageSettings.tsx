@@ -76,7 +76,7 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
           </select>
         )}</Field>
       </div>
-      <TextInput label="Style" value={style ?? data.style} maxLength={500} placeholder="Candid, natural-light photograph" hint="Starts every image prompt." onChange={setStyle} />
+      <TextInput label="Style" value={style ?? data.style} maxLength={500} placeholder="Candid, natural-light photograph" hint="Starts every image prompt, unless a backend below has its own style." onChange={setStyle} />
       {(limit !== null || style !== null) && (
         <div className="form-actions">
           <button type="button" className="button primary" onClick={() => void saveDrafts()}>Save</button>
@@ -111,6 +111,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
         hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
+      <BackendStyle backend={backend} save={(style) => act(() => api(`/images/backends/${backend.id}`, { style }, 'PUT'))} />
       <ComfyFiles backend={backend} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
@@ -121,6 +122,30 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
       </div>
     </li>
+  )
+}
+
+/** The style line that starts this backend's prompts, since each model wants its own (a photo line for
+ * Krea 2, a tag-style line for an anime model). Empty uses the general style above. */
+function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: string) => Promise<boolean> }) {
+  const general = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') }).data?.style
+  const [draft, setDraft] = useState<string | null>(null)
+  const store = async (value: string) => { if (await save(value)) setDraft(null) }
+  return (
+    <details>
+      <summary className="subtle">Prompt style {backend.style ? '(its own)' : '(the general one)'}</summary>
+      <div className="form-stack">
+        <TextInput label="Style for this backend" value={draft ?? backend.style} maxLength={500} placeholder={general || 'Candid, natural-light photograph'}
+          hint="Starts every prompt this backend makes, in place of the general style. Leave empty to use the general one." onChange={setDraft} />
+        <div className="form-actions">
+          {draft !== null && <>
+            <button type="button" className="button primary" onClick={() => void store(draft)}>Save style</button>
+            <button type="button" className="button" onClick={() => setDraft(null)}>Cancel</button>
+          </>}
+          {backend.style && draft === null && <button type="button" className="text-button" onClick={() => void store('')}>Use the general style</button>}
+        </div>
+      </div>
+    </details>
   )
 }
 
