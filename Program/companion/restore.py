@@ -101,7 +101,8 @@ def keep_settings(database: Database, previous: Path):
     """The settings of the workspace being replaced, instead of the backup's (or the hold a restore starts with)."""
     connection = sqlite3.connect(database.path, isolation_level=None)
     try:
-        connection.execute('ATTACH DATABASE ? AS kept', (f'{previous.resolve().as_uri()}?mode=ro',))
+        # A plain path: URI filenames in ATTACH need SQLite built with them on, which Windows' is not.
+        connection.execute('ATTACH DATABASE ? AS kept', (str(previous.resolve()),))
         connection.execute('BEGIN IMMEDIATE')
         for table in reversed(KEPT_SETTINGS):
             connection.execute(f'DELETE FROM main.{table}')
