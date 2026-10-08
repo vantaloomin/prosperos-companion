@@ -7,6 +7,9 @@
   later. A reply that times out or fails now shows straight away with Retry, even while your companion
   is busy, instead of staying hidden until they would have answered. While a reply waits for later you
   can keep writing.
+- **Photos load like photos:** while a picture is being made, the chat holds its space with a blurry
+  photo filling in, like one coming through on a slow connection, and the real picture fades in without
+  moving anything. A picture that fails or times out says why and has a Try again button.
 
 - **Running from an external drive on a Mac:** macOS leaves a hidden `._` file beside every file copied
   to a drive formatted for Windows, and the app read those as cities. Matchlight, the city pickers and

@@ -26,6 +26,7 @@ from companion import events
 from companion.characters import current, require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, one, optional, settings
+from companion.errors import DomainError, require
 from companion.images import jobs, memes, prompts
 from companion.life import agenda, feed, routine, simulation
 from companion.life.openers import Trigger, held
@@ -323,14 +324,39 @@ def view(row) -> dict:
     return {'message_id': row['message_id'], 'post_id': row['post_id'], 'kind': row['kind'],
             'summary': row['summary'], 'top_text': row['top_text'], 'bottom_text': row['bottom_text'],
             'status': row['job_status'] or 'failed', 'job_id': row['job_id'], 'ref': row['job_id'] if done else None,
-            'error': row['job_error'], 'in_feed': row['in_feed'] > 0, 'unasked': bool(row['unasked'])}
+            'error': row['job_error'], 'in_feed': row['in_feed'] > 0, 'unasked': bool(row['unasked']),
+            # The shape it is made in, so the chat holds its space while it loads and nothing moves when it lands.
+            'aspect': decode(row['job_inputs']).get('aspect', 'landscape') if row['job_inputs'] else 'landscape'}
 
 
-SELECT = ('SELECT photo.*, job.status AS job_status, job.output_file, job.error AS job_error, '
+SELECT = ('SELECT photo.*, job.status AS job_status, job.output_file, job.error AS job_error, job.inputs AS job_inputs, '
           '(SELECT COUNT(*) FROM feed_post_events link WHERE link.post_id=post.id) AS in_feed '
           'FROM chat_photos photo JOIN feed_posts post ON post.id=photo.post_id '
           'LEFT JOIN image_jobs job ON job.id=photo.job_id '
           "WHERE post.status!='removed' AND photo.message_id IN ")
+
+
+JOB = 'id, status, output_file, error, inputs'
+
+
+def newest_job(connection, job_id) -> dict | None:
+    """The photo's newest attempt: a retry or a fallback to another backend takes the place of the one it follows."""
+    job = optional(connection, f'SELECT {JOB} FROM image_jobs WHERE id=?', (job_id,))
+    while job and (later := optional(connection, f'SELECT {JOB} FROM image_jobs '
+                                     'WHERE retry_of=? ORDER BY created_at DESC, rowid DESC LIMIT 1', (job['id'],))):
+        job = later
+    return job
+
+
+def followed(connection, row) -> dict:
+    """The row with its newest attempt's state, so a fallback or a retry shows instead of the first failure."""
+    if row['job_id'] is None or row['job_status'] in jobs.ACTIVE or row['job_status'] == 'completed':
+        return row
+    job = newest_job(connection, row['job_id'])
+    if job is None or job['id'] == row['job_id']:
+        return row
+    return {**row, 'job_id': job['id'], 'job_status': job['status'], 'output_file': job['output_file'],
+            'job_error': job['error'], 'job_inputs': job['inputs']}
 
 
 def for_messages(connection, message_ids) -> dict[str, dict]:
@@ -339,8 +365,25 @@ def for_messages(connection, message_ids) -> dict[str, dict]:
     for start in range(0, len(ids), 500):
         chunk = ids[start:start + 500]
         rows = many(connection, SELECT + f"({','.join('?' * len(chunk))})", tuple(chunk))
-        found.update({row['message_id']: view(row) for row in rows})
+        found.update({row['message_id']: view(followed(connection, row)) for row in rows})
     return found
+
+
+def retry(database, message_id) -> dict:
+    """Make a chat photo that failed again from where it stopped: the same request, or the current settings
+    when the moment changed since. The photo then follows the new attempt."""
+    photo = get(database, message_id)
+    require(photo is not None, 'This photo could not be found.', 404)
+    require(photo['status'] not in jobs.ACTIVE, 'This photo is still being made.', 409)
+    require(photo['status'] != 'completed', 'This photo is already here.', 409)
+    require(photo['job_id'] is not None, 'No image service could take this photo. Check Settings > Images.', 409)
+    try:
+        jobs.retry(database, photo['job_id'])
+    except DomainError as failure:
+        if failure.code != 'stale_inputs':
+            raise
+        jobs.retry(database, photo['job_id'], current_settings=True)
+    return get(database, message_id)
 
 
 def decorate(connection, messages: list[dict]) -> list[dict]:

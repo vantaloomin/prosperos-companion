@@ -51,6 +51,8 @@ export interface ChatPhoto {
   in_feed: boolean
   /** Sent without being asked. */
   unasked: boolean
+  /** The shape it is made in; the chat holds that space while it loads. Older servers leave it out. */
+  aspect?: 'square' | 'landscape' | 'portrait'
 }
 
 export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean }
