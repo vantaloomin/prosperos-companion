@@ -108,7 +108,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .conversation-notice { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .conversation-notice .text-button { flex-shrink: 0; padding: 0; }
 .composer { display: flex; align-items: flex-end; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; padding: 12px 32px 22px; }
-.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; }
+.composer textarea { flex: 1; min-height: 52px; max-height: 40dvh; overflow-y: auto; }
 
 /* Story mode (src/features/story): one reading column of narration, the user's lines set apart. */
 .story { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -876,6 +876,19 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 #debug-progress { width: 100%; accent-color: var(--accent); }
 .info-tip.above .info-tip-text { top: auto; bottom: calc(100% + 6px); left: auto; right: -4px; }
 .composer > .info-tip { align-self: center; }
+/* Phones: one full-width box that grows as you type, between a round picture button and a round send arrow,
+   as in Messages or WhatsApp. The writing tips stay available to screen readers and on a computer. */
+.composer-send svg { flex-shrink: 0; }
+@media (max-width: 720px) {
+  .composer { gap: 8px; align-items: flex-end; padding: 8px 10px max(8px, env(safe-area-inset-bottom)); }
+  .composer textarea { min-height: 40px; max-height: 45dvh; padding: 8px 14px; border-radius: 20px; line-height: 1.4; resize: none; }
+  .composer > .info-tip, .composer-label { display: none; }
+  .composer .composer-attach, .composer .composer-send { flex-shrink: 0; width: 40px; height: 40px; min-height: 0; padding: 0; justify-content: center; border-radius: 50%; }
+  .composer .composer-attach { order: -1; border-color: transparent; background: transparent; }
+  .composer .composer-send svg, .composer .composer-attach svg { width: 22px; height: 22px; }
+  .chat-retro .composer textarea { border-radius: 0; }
+  .chat-retro .composer .composer-send, .chat-retro .composer .composer-attach { border-radius: 0; }
+}
 
 /* Pictures you send (companion/pictures.py): thumbnails waiting in the composer, then the pictures in your message. */
 .composer:has(.composer-pictures) { flex-wrap: wrap; }

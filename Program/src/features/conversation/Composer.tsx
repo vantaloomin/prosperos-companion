@@ -1,5 +1,5 @@
-import { useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
-import { ImagePlus, Send, Square, X } from 'lucide-react'
+import { useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
+import { ArrowUp, ImagePlus, Square, X } from 'lucide-react'
 import type { DraftState } from './useDraft'
 import { usePrepare } from './usePrepare'
 import { InfoTip } from '../../components/InfoTip'
@@ -10,7 +10,7 @@ const OUT_OF_CHARACTER = 'To step out of the story, start a message with OOC: or
 
 export function Composer({ name, draft, streaming, onSend, onStop }: { name: string; draft: DraftState; streaming: boolean; onSend: () => void; onStop: () => void }) {
   const prepare = usePrepare()
-  const text = useRef<HTMLTextAreaElement>(null)
+  const text = useGrowing(draft.value.text)
   const pictures = usePictureAdder(draft)
   const canSend = ready(draft.value.text, draft.value.pictures?.length ?? 0, draft.sending || streaming || pictures.busy)
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -27,17 +27,31 @@ export function Composer({ name, draft, streaming, onSend, onStop }: { name: str
       onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault() }} onDrop={pictures.drop}>
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
       <label className="visually-hidden" htmlFor="composer-text">Message {name}</label>
-      <textarea ref={text} id="composer-text" rows={2} value={draft.value.text} placeholder={`Message ${name}`} maxLength={40000}
+      <textarea ref={text} id="composer-text" rows={1} value={draft.value.text} placeholder={`Message ${name}`} maxLength={40000}
         onChange={(event) => { draft.edit(event.target.value); prepare() }} onKeyDown={onKeyDown} onPaste={pictures.paste} aria-describedby="composer-help" />
       <AttachButton count={draft.value.pictures?.length ?? 0} busy={pictures.busy} onAdd={(files) => void pictures.add(files)} />
       <p id="composer-help" className="visually-hidden">Enter sends, Shift and Enter adds a new line{streaming ? ', Escape stops the reply' : ''}. Unsent text is kept if you leave. {OUT_OF_CHARACTER}</p>
       <InfoTip id="composer-tip" label="writing messages" above text={`Enter sends, Shift+Enter adds a new line. ${OUT_OF_CHARACTER}`} />
       {/* Send replaces Stop once the reply ends; keep the keyboard in the message box rather than losing focus. */}
       {streaming
-        ? <button type="button" className="button" onClick={() => { onStop(); text.current?.focus() }}><Square aria-hidden="true" />Stop</button>
-        : <button type="submit" className="button primary" disabled={!canSend}><Send aria-hidden="true" />Send</button>}
+        ? <button type="button" className="button composer-send" onClick={() => { onStop(); text.current?.focus() }}><Square aria-hidden="true" /><span className="composer-label">Stop</span></button>
+        : <button type="submit" className="button primary composer-send" disabled={!canSend}><ArrowUp aria-hidden="true" /><span className="composer-label">Send</span></button>}
     </form>
   )
+}
+
+/** The message box grows with what is written, up to its maximum height (styles.css), then scrolls, so a long
+ * message stays readable while it is typed. It shrinks again once sent. */
+function useGrowing(value: string) {
+  const text = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const element = text.current
+    if (!element) return
+    element.style.height = 'auto'
+    const border = element.offsetHeight - element.clientHeight
+    element.style.height = `${element.scrollHeight + border}px`
+  }, [value])
+  return text
 }
 
 /** Pictures join the draft from the button, a paste or a drop; each is shrunk and uploaded at once. */
@@ -90,6 +104,6 @@ function AttachButton({ count, busy, onAdd }: { count: number; busy: boolean; on
   const picker = useRef<HTMLInputElement>(null)
   return <>
     <input ref={picker} id="composer-pictures" type="file" accept="image/*" multiple className="visually-hidden" tabIndex={-1} aria-label="Add pictures" onChange={(event) => { onAdd(Array.from(event.target.files ?? [])); event.target.value = '' }} />
-    <button type="button" className="button" onClick={() => picker.current?.click()} disabled={count >= PER_MESSAGE || busy} aria-label="Add a picture"><ImagePlus aria-hidden="true" /></button>
+    <button type="button" className="button composer-attach" onClick={() => picker.current?.click()} disabled={count >= PER_MESSAGE || busy} aria-label="Add a picture"><ImagePlus aria-hidden="true" /></button>
   </>
 }
