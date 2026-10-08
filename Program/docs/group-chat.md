@@ -144,11 +144,13 @@ writing someone else's line is cut there (`groups.tidy`).
 | Request | Does |
 | --- | --- |
 | `GET /api/groups` | Every group with its members and latest message. |
-| `POST /api/groups` `{companion_ids, name?}` | A new group (two or more companions). |
+| `POST /api/groups` `{companion_ids, name?, ties?}` | A new group (two or more companions); `ties` are backstories, below. |
+| `POST /api/groups/untold` `{companion_ids}` | Pairs among them whose backstory can still be told, with the stage they'd start at. |
 | `GET /api/groups/{id}` | `{group, messages, ready, busy, phase, live}`: `live` is text written so far, by message id. |
 | `PATCH /api/groups/{id}` `{name?, reply_cap?}` | Rename (a line in the chat), or replies per message (1 to 3). |
 | `DELETE /api/groups/{id}` | Deletes the group and its messages. |
-| `POST /api/groups/{id}/members` `{companion_id, history}` | Adds someone; `history` is `from_now` (default) or `everything`. |
+| `POST /api/groups/{id}/members` `{companion_id, history, ties?}` | Adds someone; `history` is `from_now` (default) or `everything`. |
+| `POST /api/groups/{id}/messages/{message_id}/moment` `{kept}` | Keeps a member's message as a shared moment, or lets it go. |
 | `DELETE /api/groups/{id}/members/{companion_id}` | Removes them. |
 | `POST /api/groups/{id}/copy` | New group with the same members. |
 | `POST /api/groups/{id}/messages?wait=` `{text, client_id}` | Saves the message once per `client_id` and starts the replies. `connection: not_configured` without a model. |
@@ -158,7 +160,59 @@ writing someone else's line is cut there (`groups.tidy`).
 
 - `public_line(connection, member)`: the cast's "Others see" line; a guest from the town would use
   `perception.sheet_lines`.
-- `group_lines(connection, group, stay, now)`: secrets the speaker knows, closeness to each member, who they're
-  not speaking to.
-- `weights` and `plan`: closeness between members and ignoring someone.
+- `group_lines(connection, group, stay, now)`: secrets the speaker knows and who they're not speaking to (closeness
+  to each member is in, see below).
+- `weights`, `plan` and `chime_in`: ignoring someone.
+- `pairs.closeness(connection, a, b, now)`: how close `a` feels to `b` (1 to 5), for gossip and mood.
 - Members are person keys (`companion:<id>`), so guests can be another kind.
+
+## Closeness between them
+
+Companions, the people in their circle and the townsfolk they meet use the same five stages as closeness with the
+user (#204), worked out from shared history every time they're needed (`companion/memory/pairs.py`). It runs
+both ways: `pairs.closeness(connection, a, b, now)` is how close `a` feels to `b`, with person keys
+(`companion:<id>`, `circle:<timeline>:<n>`, a townsfolk key; `cast:<id>` means that companion). It returns None
+when neither is a companion: two townsfolk or two circle people are never worked out, so a city's townsfolk cost
+nothing. `pairs.between` gives both directions with their names and what made them.
+
+**Where it starts.**
+
+| Pair | Starting stage |
+| --- | --- |
+| Two companions | Just met, or higher with meetings around town (3+ = Getting to know each other, 6+ = Comfortable), unless the user told their backstory |
+| A companion and their circle | By role, nudged one step by the person's seed (below) |
+| A companion and a townsperson | By meetings, as for two companions |
+
+| Circle role | Default | Nudge |
+| --- | --- | --- |
+| Close friend | Close | Down one, 25% |
+| Parent, sibling | Comfortable | Up or down one, 30% each |
+| Longtime friend, old friend from school, friend | Comfortable | Up or down one, 25% each |
+| Cousin, roommate from years ago | Getting to know each other | Up one, 30% |
+| Coworker, neighbor, new friend, mentor | Getting to know each other | Up one, 20% |
+
+**The one-time backstory.** The user tells how two companions know each other (a starting stage and a line,
+both optional) only before they first share a group: in New group, in Add someone, or on the form that makes a
+townsperson or match a companion (which lists every companion already here at the stage their meetings give).
+It's the only thing stored (`pair_backstories`); once they've shared a group, nobody can set it again. There are
+no other dials between people.
+
+**What moves it, all by rules.**
+
+| Up | Down |
+| --- | --- |
+| Days both spoke in the same group (one a day) | A falling-out storyline beat with a circle person (`friend_fight`, the awkward `drunk_kiss` beat), won back when they make up |
+| Group messages kept as a shared moment while both were there (never more than the days) | Gentle cooling, when that companion has it on (#204's switch, steps and floor) |
+| Good-news storyline beats about a circle person | A guarded secret about them that they found out (the secrets ledger: `knowledge_holders.via` `reveal` or `slip`), at most two steps, and only if their sheet says they'd react (jealous, holds grudges, hates being lied to); nothing built in |
+| More meetings around town | |
+
+Someone whose "I see myself" temperament is a mask may keep another person one step further than that person keeps
+them, chosen by seed per pair.
+
+**What it changes.** The speaker's `group` section gets one line per member with the stage, worded like the A/B-tested
+tiers ("You are at ease with Sally: ..."), plus "How you know Sally" when told. From Close on, the speaker also
+learns how that member sees themselves (their self-story glimpse). A reply that names nobody may draw one more answer
+from a member at Close or above toward its writer (25% at Close, 50% at Deeply close), using the round's one extra
+answer, so close members reply to each other a little more often. Profiles show a read-only line ("Mira and Sally:
+Comfortable", both directions when they differ); the circle and townsfolk lists in Today show each person's stage.
+

@@ -24,6 +24,7 @@ from companion.life import (
     storylines,
     today,
 )
+from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
 
 router = APIRouter(prefix='/api/life')
@@ -167,7 +168,10 @@ def read_circle(request: Request, include_removed: bool = False):
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         circle.ensure(connection, companion, engine.world, now)
-        return agenda.circle_view(connection, companion['active_timeline_id'], now, include_removed)
+        people = agenda.circle_view(connection, companion['active_timeline_id'], now, include_removed)
+        stages = pairs.for_circle(connection, companion, circle.people(connection, companion['active_timeline_id'],
+                                                                       include_removed), now)
+        return [{**person, 'stage': stages.get(person['id'])} for person in people]
 
 
 @router.get('/circle/room')
@@ -246,8 +250,9 @@ def read_townsfolk(request: Request):
     first, with only what the companion has learned about them so far."""
     database = db(request)
     with database.connect() as connection:
-        companion = require_current(connection)
-        return encounters.known(connection, companion, database.clock.now())
+        companion, now = require_current(connection), database.clock.now()
+        return [{**person, 'stage': pairs.for_townsperson(connection, companion, person, now)}
+                for person in encounters.known(connection, companion, now)]
 
 
 @router.get('/townsfolk/person')

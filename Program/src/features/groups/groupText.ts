@@ -1,4 +1,4 @@
-import type { Group, GroupChat, GroupMessage, GroupPhase } from '../../types'
+import type { Backstory, Group, GroupChat, GroupMessage, GroupPhase } from '../../types'
 
 /** "Billy", "Billy and Sally", "Billy, Sally and Mira". */
 export function namesText(names: string[]): string {
@@ -53,4 +53,9 @@ export function failureText(message: GroupMessage): string | null {
   if (message.status === 'cancelled') return message.text ? 'Stopped.' : `${message.name}'s reply was stopped.`
   if (message.status === 'failed') return `${message.name}'s reply didn't come through: ${message.error ?? 'something went wrong with the model.'}`
   return null
+}
+
+/** Only what the user actually told goes to the server; untouched pairs stay as they are. */
+export function toldOnly(value: Backstory[]): Backstory[] {
+  return value.filter((item) => item.level || item.how.trim()).map((item) => ({ ...item, how: item.how.trim() }))
 }

@@ -173,10 +173,18 @@ class CastDraftRequest(Input):
     key: str = Field(min_length=1, max_length=200)
 
 
+class Tie(Input):
+    """How the new companion and one already here know each other, told once on the form that makes them one."""
+    companion_id: str = Field(min_length=1, max_length=100)
+    level: int | None = Field(None, ge=1, le=5)
+    how: str = Field('', max_length=300)
+
+
 class CastSwitch(Input):
     """Make that townsperson the main character, with the definition the user reviewed."""
     key: str = Field(min_length=1, max_length=200)
     definition: CharacterDefinition
+    ties: list[Tie] = Field(default_factory=list, max_length=200)
 
 
 class TownSeed(Input):

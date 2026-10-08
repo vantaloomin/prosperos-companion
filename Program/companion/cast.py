@@ -14,11 +14,12 @@ character to step back, and starts as a romance unless the match was for friends
 from datetime import date
 
 from companion import dating, drafting, story
-from companion.characters import current, insert_version, require_current
+from companion.characters import by_id, current, insert_version, require_current
 from companion.clock import zone
 from companion.database import identifier, many, optional
 from companion.errors import DomainError, require
 from companion.life import encounters, network
+from companion.memory import pairs
 from companion.models import CharacterDefinition, CharacterDraftRequest
 from companion.world import catalog, generators, perception, townsfolk
 
@@ -228,7 +229,14 @@ def draft(database, key: str) -> dict:
         data, sheet, focus = found['data'], found['sheet'], found['focus']
         today = now.astimezone(zone(data['timezone'])).date()
         return {'definition': profile(data, sheet, found, today), 'person': person_view(data, sheet),
-                'stepping_back': focus['version']['name'] if focus else None, 'matched': found['match'] is not None}
+                'stepping_back': focus['version']['name'] if focus else None, 'matched': found['match'] is not None,
+                'ties': pairs.defaults_for_new(connection, others(connection), key, now)}
+
+
+def others(connection) -> list[dict]:
+    """Every companion already in the workspace, the main character first."""
+    rows = many(connection, 'SELECT id FROM companions WHERE active_version_id IS NOT NULL ORDER BY slot IS NULL, created_at')
+    return [found for row in rows if (found := by_id(connection, row['id']))]
 
 
 def person_view(data: dict, sheet: dict) -> dict:
@@ -268,8 +276,9 @@ def step_back(connection, timestamp: str, companion_id: str):
     connection.execute('UPDATE companions SET slot=1, stepped_back_at=NULL WHERE id=?', (companion_id,))
 
 
-def switch(database, key: str, definition) -> dict:
-    """Make a townsperson the main character, with the definition the user reviewed."""
+def switch(database, key: str, definition, ties=()) -> dict:
+    """Make a townsperson the main character, with the definition the user reviewed, and how they know the
+    companions already here when the user wrote it on the form (once; companion/memory/pairs.py)."""
     zone(definition.timezone)
     timestamp = database.now()
     with database.connect(write=True) as connection:
@@ -288,6 +297,9 @@ def switch(database, key: str, definition) -> dict:
         connection.execute('UPDATE companions SET active_version_id=?, active_timeline_id=? WHERE id=?',
                            (version_id, timeline_id, companion_id))
         step_back(connection, timestamp, companion_id)
+        for tie in ties:
+            pairs.tell(connection, pairs.companion_key(companion_id), pairs.companion_key(tie.companion_id), tie.level,
+                       tie.how, timestamp)
         return current(connection)
 
 

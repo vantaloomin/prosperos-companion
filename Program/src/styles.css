@@ -938,6 +938,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-facts { gap: 6px 18px; color: var(--muted); font-size: 0.8125rem; }
 .profile-facts li { display: inline-flex; align-items: center; gap: 6px; }
 .profile-interests { gap: 6px; }
+.profile-ties { margin-top: 6px; }
 .profile-interests li { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.75rem; }
 .profile-tabs { flex: none; display: flex; gap: 4px; padding: 0 32px; border-bottom: 1px solid var(--border); background: var(--canvas); }
 .with-card .profile-tabs { position: sticky; top: 0; z-index: 2; margin-top: 16px; padding: 0 40px; }
@@ -1079,6 +1080,15 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .group-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; }
 .group-add legend { padding: 0 4px; font-weight: 500; }
 .group-cap { display: flex; align-items: center; gap: 10px; }
+.group-backstories { display: flex; flex-direction: column; gap: 10px; flex-basis: 100%; min-width: 0; margin: 0 0 14px; padding: 0; border: 0; }
+.group-backstories legend { margin-bottom: 6px; font-weight: 500; }
+.group-backstories .subtle { margin: 0; }
+.group-backstory { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.group-backstory label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.group-backstory select, .group-backstory input { min-width: 0; max-width: 100%; }
+.group-backstory input { flex: 1 1 14em; }
+.group-chat .reply-tools .text-button:not(.kept, :hover, :focus-visible) { opacity: 0.55; }
+.group-chat .reply-tools .text-button.kept { color: var(--accent); }
 .group-people > .subtle { margin: -6px 0 0; font-size: 0.8125rem; }
 .group-people .form-actions { flex-wrap: wrap; gap: 8px 18px; }
 .text-button.danger { color: var(--danger); }

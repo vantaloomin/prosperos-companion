@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ChevronLeft, Pencil, RotateCcw, UsersRound } from 'lucide-react'
+import { ArrowDown, ChevronLeft, HeartHandshake, Pencil, RotateCcw, UsersRound } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import type { View } from '../../companion'
-import type { CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage } from '../../types'
+import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -17,9 +17,10 @@ import { useMarkRead } from '../chats/useChats'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useDraft } from '../conversation/useDraft'
 import { useScrollAway } from '../conversation/useScrollAway'
+import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
 import { chatKey, GROUPS_KEY, useCast } from './groupState'
-import { canRetry, failureText, groupActivity, membersLine, shownMessages } from './groupText'
+import { canRetry, failureText, groupActivity, membersLine, shownMessages, toldOnly } from './groupText'
 
 // While replies are being written, the chat asks for what is new this often.
 const POLL_MS = 700
@@ -84,7 +85,8 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
       <GroupHeader group={group} go={go} onChange={act} />
       <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
-          {shown.map((message) => <GroupLine key={message.id} message={message} />)}
+          {shown.map((message) => <GroupLine key={message.id} message={message}
+            onKeep={(kept) => void act(() => api(`/groups/${id}/messages/${message.id}/moment`, { kept }))} />)}
           <TryAgain shown={canRetry(data)} onRetry={() => void act(() => api(`/groups/${id}/retry?wait=false`, {}))} />
         </div>
         {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
@@ -142,8 +144,9 @@ function Paragraphs({ text }: { text: string }) {
   return <>{text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</>
 }
 
-/** A message from you or a member, or the app's own line about who joined or left. */
-function GroupLine({ message }: { message: GroupMessage }) {
+/** A message from you or a member, or the app's own line about who joined or left. A member's finished message
+ * can be kept as a shared moment, which brings everyone who was there a little closer. */
+function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: boolean) => void }) {
   if (message.kind === 'app') return <p className="group-note" role="note">{message.text}</p>
   const mine = message.kind === 'user'
   const name = mine ? 'You' : message.name
@@ -155,11 +158,23 @@ function GroupLine({ message }: { message: GroupMessage }) {
       <header>
         <Stamp value={message.created_at} clock className="stamp-lead" />
         <span className="speaker">{name}</span>
-        <span className={mine ? 'message-actions' : 'reply-tools'}><Stamp value={message.created_at} /></span>
+        <span className={mine ? 'message-actions' : 'reply-tools'}>
+          <Stamp value={message.created_at} />
+          {!mine && message.status === 'complete' && <KeepMoment kept={!!message.kept} onKeep={onKeep} />}
+        </span>
       </header>
       <div className="prose"><Paragraphs text={message.text} /></div>
       {failure && <p className="reply-status" role="note">{failure}</p>}
     </article>
+  )
+}
+
+function KeepMoment({ kept, onKeep }: { kept: boolean; onKeep: (kept: boolean) => void }) {
+  const label = kept ? 'Kept as a shared moment' : 'Keep as a shared moment'
+  return (
+    <button type="button" className={`text-button${kept ? ' kept' : ''}`} aria-pressed={kept} aria-label={label} title={label} onClick={() => onKeep(!kept)}>
+      <HeartHandshake aria-hidden="true" />
+    </button>
   )
 }
 
@@ -242,10 +257,13 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
 function AddSomeone({ group, outside, onChange }: { group: Group; outside: CastMember[]; onChange: Change }) {
   const [adding, setAdding] = useState('')
   const [everything, setEverything] = useState(false)
+  const [ties, setTies] = useState<Backstory[]>([])
   if (!outside.length) return null
   const chosen = outside.some((member) => member.id === adding) ? adding : outside[0].id
-  const add = () => void onChange(() => api(`/groups/${group.id}/members`, { companion_id: chosen, history: everything ? 'everything' : 'from_now' }))
-    .then(() => { setAdding(''); setEverything(false) })
+  const inside = group.members.flatMap((member) => member.companion_id ? [member.companion_id] : [])
+  const told = toldOnly(ties).filter((item) => item.a === chosen || item.b === chosen)
+  const add = () => void onChange(() => api(`/groups/${group.id}/members`, { companion_id: chosen, history: everything ? 'everything' : 'from_now', ties: told }))
+    .then(() => { setAdding(''); setEverything(false); setTies([]) })
   return (
     <fieldset className="group-add">
       <legend>Add someone</legend>
@@ -254,6 +272,7 @@ function AddSomeone({ group, outside, onChange }: { group: Group; outside: CastM
       </select>
       <label><input type="radio" name="group-history" checked={!everything} onChange={() => setEverything(false)} /> They see the chat from now on</label>
       <label><input type="radio" name="group-history" checked={everything} onChange={() => setEverything(true)} /> They see everything so far</label>
+      <Backstories companionIds={[chosen, ...inside]} value={ties} onChange={setTies} />
       <button type="button" className="button" onClick={add}>Add</button>
     </fieldset>
   )

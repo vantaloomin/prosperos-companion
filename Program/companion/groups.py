@@ -18,7 +18,7 @@ The app decides everything here by rules: who is in a group, who sees which mess
 Seams the later group chat PRs build on:
 - `public_line`: a member's "Others see" line in the cast block (world/perception.py).
 - `group_lines`: the speaker's private group section (secrets, closeness between members, mood).
-- `plan` and `weights`: who answers whom (closeness between members, ignoring someone).
+- `plan`, `weights` and `chime_in`: who answers whom (closeness between members, later ignoring someone).
 - Members are person keys (`companion:<id>`), so guests from a circle or the town can join as another kind.
 """
 import asyncio
@@ -33,7 +33,7 @@ from companion import in_character, prompt_library, texting
 from companion.characters import by_id
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
-from companion.memory import closeness, context
+from companion.memory import closeness, context, pairs
 from companion.memory.budget import token_estimate
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
@@ -41,6 +41,19 @@ from companion.text_models import CHAT, config_for, default_name, key_for
 from companion.world import perception
 
 LOG = logging.getLogger(__name__)
+
+# A reply that names nobody may draw one more answer from a member who feels at least this close to its writer.
+CHIME_IN_LEVEL, CHIME_IN_CHANCE = 4, 0.25
+# Closeness between members, as the speaker's group section words it (memory/pairs.py stages).
+FEELS = (
+    'You have only just met {name}: friendly, a little polite, and you keep personal things to yourself.',
+    'You are still getting to know {name}: friendly, but you keep it light and hold the personal things back.',
+    'You are at ease with {name}: you tease a little, share everyday things and pick up where you left off.',
+    'You and {name} are close: you talk openly, look out for them and take their side when it matters.',
+    'You and {name} go back a long way: shorthand, in-jokes and plain honesty, even about hard things.',
+)
+HOW_YOU_KNOW = 'How you know {name}: {how}'
+THEIR_SELF_VIEW = '{name} has let you see how they see themselves: {view}'
 
 # Replies to each user message when nobody is named; a setting per group.
 DEFAULT_CAP, MAX_CAP = 2, 3
@@ -164,12 +177,14 @@ def clean_name(name: str | None) -> str:
     return ' '.join((name or '').split())[:NAME_LIMIT]
 
 
-def create(database, companion_ids: list[str], name: str | None = None) -> dict:
-    """A new group of two or more companions, any of them; it never changes who the main character is."""
+def create(database, companion_ids: list[str], name: str | None = None, ties=None) -> dict:
+    """A new group of two or more companions, any of them; it never changes who the main character is. `ties`
+    are the backstories the user wrote for pairs meeting in a group for the first time (memory/pairs.py)."""
     chosen = list(dict.fromkeys(companion_ids))
     require(len(chosen) >= 2, 'Pick at least two companions for a group.', 422)
     timestamp = database.now()
     with database.connect(write=True) as connection:
+        pairs.tell_all(connection, ties, timestamp)
         group_id = identifier()
         connection.execute('INSERT INTO group_chats (id, name, reply_cap, created_at, updated_at) '
                            'VALUES (?, ?, ?, ?, ?)', (group_id, clean_name(name), DEFAULT_CAP, timestamp, timestamp))
@@ -194,14 +209,16 @@ def update(database, group_id: str, name: str | None = None, reply_cap: int | No
         return group_view(connection, group_id)
 
 
-def add(database, group_id: str, companion_id: str, everything: bool = False) -> dict:
-    """Add someone later. By default they see the chat from now on; `everything` shows them all of it."""
+def add(database, group_id: str, companion_id: str, everything: bool = False, ties=None) -> dict:
+    """Add someone later. By default they see the chat from now on; `everything` shows them all of it. `ties` as
+    for create."""
     timestamp = database.now()
     with database.connect(write=True) as connection:
         require_group(connection, group_id)
         key = member_key(companion_id)
         require(all(stay['member'] != key for stay in current_members(connection, group_id)),
                 'They are already in this group.', 409)
+        pairs.tell_all(connection, ties, timestamp)
         stay = join(connection, group_id, companion_id, timestamp, sees_from=1 if everything else None)
         note(connection, group_id, timestamp, f"You added {stay['name']}.")
         return group_view(connection, group_id)
@@ -233,6 +250,7 @@ def leave_everywhere(connection, companion_id: str, timestamp: str):
                 (member_key(companion_id),))
     for stay in rows:
         leave(connection, stay['group_id'], stay, timestamp, f"{stay['name']} is no longer in the group.")
+    pairs.forget(connection, companion_id)
 
 
 def copy(database, group_id: str) -> dict:
@@ -245,6 +263,8 @@ def copy(database, group_id: str) -> dict:
 def delete(database, group_id: str) -> dict:
     with database.connect(write=True) as connection:
         require_group(connection, group_id)
+        connection.execute('DELETE FROM group_moments WHERE message_id IN (SELECT id FROM group_messages '
+                           'WHERE group_id=?)', (group_id,))
         connection.execute('DELETE FROM group_messages WHERE group_id=?', (group_id,))
         connection.execute('DELETE FROM group_members WHERE group_id=?', (group_id,))
         connection.execute('DELETE FROM group_chats WHERE id=?', (group_id,))
@@ -253,11 +273,11 @@ def delete(database, group_id: str) -> dict:
 
 # Views ------------------------------------------------------------------------------------------------
 
-def message_view(row: dict) -> dict:
+def message_view(row: dict, kept: frozenset = frozenset()) -> dict:
     kind = 'user' if row['author'] == 'user' else APP if row['author'] == APP else 'companion'
     return {'id': row['id'], 'seq': row['seq'], 'kind': kind, 'companion_id': companion_of(row['author']),
             'name': row['name'], 'text': row['text'], 'status': row['status'], 'error': row['error'],
-            'reply_to': row['reply_to'], 'created_at': row['created_at']}
+            'reply_to': row['reply_to'], 'created_at': row['created_at'], 'kept': row['id'] in kept}
 
 
 def member_view(connection, stay: dict) -> dict:
@@ -293,7 +313,33 @@ def listing(database) -> list[dict]:
 def history(connection, group_id: str, after_seq: int = 0) -> list[dict]:
     rows = many(connection, 'SELECT * FROM group_messages WHERE group_id=? AND seq>? ORDER BY seq DESC LIMIT ?',
                 (group_id, after_seq, HISTORY_LIMIT))
-    return [message_view(row) for row in reversed(rows)]
+    kept = frozenset(row['message_id'] for row in many(
+        connection, 'SELECT message_id FROM group_moments WHERE message_id IN (SELECT id FROM group_messages '
+        'WHERE group_id=?)', (group_id,)))
+    return [message_view(row, kept) for row in reversed(rows)]
+
+
+def keep_moment(database, group_id: str, message_id: str, kept: bool = True) -> dict:
+    """Keep a member's message as a shared moment (or let it go): it brings everyone who was in the group when it
+    was written a little closer to each other (memory/pairs.py), the way a kept moment does in a 1:1 chat."""
+    with database.connect(write=True) as connection:
+        require_group(connection, group_id)
+        row = optional(connection, "SELECT * FROM group_messages WHERE id=? AND group_id=? AND status='complete'",
+                       (message_id, group_id))
+        require(row is not None and companion_of(row['author']) is not None,
+                'Only a finished message from someone in the group can be kept as a shared moment.', 422)
+        if kept:
+            connection.execute('INSERT OR IGNORE INTO group_moments (message_id, created_at) VALUES (?, ?)',
+                               (message_id, database.now()))
+        else:
+            connection.execute('DELETE FROM group_moments WHERE message_id=?', (message_id,))
+        return {'messages': history(connection, group_id)}
+
+
+def untold(database, companion_ids: list[str]) -> list[dict]:
+    """Pairs among these companions meeting in a group for the first time, whose backstory can still be written."""
+    with database.connect() as connection:
+        return pairs.untold(connection, companion_ids, database.clock.now())
 
 
 # What a speaker sees ---------------------------------------------------------------------------------
@@ -354,16 +400,33 @@ def shared_part(connection, group: dict, member: str, budget: int, until_seq: in
 
 
 def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str]]:
-    """The speaker's own view of the group, private to them. Later: closeness to each member, what they know
-    that others don't, and who they're not speaking to."""
-    others = [item['name'] for item in current_members(connection, group['id']) if item['member'] != stay['member']]
+    """The speaker's own view of the group, private to them: how close they feel to each member. Later: what
+    they know that others don't, and who they're not speaking to."""
+    members = [item for item in current_members(connection, group['id']) if item['member'] != stay['member']]
     lines = [(f"group:{group['id']}",
               f"You are {stay['name']} in the group chat \"{title(connection, group)}\" with "
-              f"{names_text(['the user', *others])}.")]
+              f"{names_text(['the user', *(item['name'] for item in members)])}.")]
     if stay['sees_from'] > 1:
         lines.append((f"group:{group['id']}:joined", 'You were added to this group later and have seen only what '
                       'was said since you joined; never claim to know what was said before.'))
+    for item in members:
+        lines += member_lines(connection, stay['member'], item, now)
     return lines
+
+
+def member_lines(connection, speaker: str, item: dict, now) -> list[tuple[str, str]]:
+    """How close the speaker feels to one member, how they know each other, and (once close) how that member
+    sees themselves. The stage key changes only when the stage does, so the section stays cacheable."""
+    found = pairs.between(connection, speaker, item['member'], now)
+    if found is None:
+        return []
+    level, name = found['ab']['level'], item['name']
+    result = [(f"pair:{item['member']}:{level}", FEELS[level - 1].format(name=name))]
+    if found['how']:
+        result.append((f"pair:{item['member']}:how", HOW_YOU_KNOW.format(name=name, how=found['how'])))
+    if level >= pairs.SELF_VIEW_LEVEL and (view := pairs.self_view(connection, item['member'])):
+        result.append((f"pair:{item['member']}:self", THEIR_SELF_VIEW.format(name=name, view=view)))
+    return result
 
 
 def recall_rows(rows: list[dict], group: dict, title_text: str) -> list[dict]:
@@ -429,6 +492,21 @@ def plan(members: list[dict], text: str, seed: str, cap: int, weight: dict[str, 
         order.append(pick)
         pool.remove(pick)
     return order
+
+
+def chime_in(connection, queue: list[str], spoken: set[str], speaker: str, members: list[dict], seed: str,
+             now) -> bool:
+    """After a reply that named nobody, a member who feels close to its writer and hasn't spoken this round may
+    answer it too, a little more often the closer they are. Uses the round's one extra answer."""
+    rng = random.Random(f'group-chime:{seed}')
+    for stay in members:
+        if stay['member'] in spoken or stay['member'] in queue:
+            continue
+        level = pairs.closeness(connection, stay['member'], speaker, now) or 1
+        if level >= CHIME_IN_LEVEL and rng.random() < CHIME_IN_CHANCE * (level - CHIME_IN_LEVEL + 1):
+            queue.insert(0, stay['member'])
+            return True
+    return False
 
 
 def banter(queue: list[str], spoken: set[str], reply: str, members: list[dict], allowed: bool) -> bool:
@@ -606,8 +684,14 @@ class GroupChats:
                 continue  # Removed while the round ran.
             spoken.add(member)
             reply = await self.speak(group_id, user, stay, running)
-            if reply and reply['status'] == 'complete' and banter(queue, spoken, reply['text'], members, extra):
+            if not reply or reply['status'] != 'complete':
+                continue
+            if banter(queue, spoken, reply['text'], members, extra):
                 extra = False
+            elif extra and not mentioned(reply['text'], members):
+                with self.database.connect() as connection:
+                    if chime_in(connection, queue, spoken, member, members, reply['id'], self.database.clock.now()):
+                        extra = False
 
     async def speak(self, group_id: str, user: dict, stay: dict, running: Round) -> dict | None:
         database = self.database
