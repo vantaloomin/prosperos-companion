@@ -204,7 +204,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         </div>
       </div>
       <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
-      <ActivityLine messages={messages} phases={phases} sending={draft.sending} name={name} />
+      <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
       <ConversationNotice notice={notice} go={go} />
       {editing && <EditDialog message={editing} name={name} onClose={() => setEditing(null)} onDone={() => {
         setEditing(null)

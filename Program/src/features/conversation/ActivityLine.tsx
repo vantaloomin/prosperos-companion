@@ -5,12 +5,13 @@ import { activityLine, nextChange, type Phase } from './activity'
 
 /**
  * One small line above the message box saying what the app is doing: sending, getting a reply ready,
- * waiting for the model, writing, or that a reply will come later. It always takes its space, so text
+ * waiting for the model, writing, or Delivered when a reply is held for later (never that they are away).
+ * It always takes its space, so text
  * coming and going never moves the conversation.
  */
-export function ActivityLine({ messages, phases, sending, name }: { messages: Message[]; phases: Record<string, Phase>; sending: boolean; name: string }) {
+export function ActivityLine({ messages, phases, sending }: { messages: Message[]; phases: Record<string, Phase>; sending: boolean }) {
   const [now, setNow] = useState(() => appNow())
-  const text = activityLine(messages, phases, sending, name, now)
+  const text = activityLine(messages, phases, sending, now)
   const next = nextChange(messages, now)
   useEffect(() => {
     if (next === null) return undefined

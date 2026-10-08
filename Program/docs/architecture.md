@@ -65,8 +65,8 @@ the stream: closing the stream or reloading never stops a reply, only
 written returns that same attempt instead of starting another. Without `wait=false` the request
 waits for the finished reply, as before. Waiting for the model is capped at the profile's time limit,
 like the request itself, so a reply never waits unseen; it fails with the reason instead. The chat shows
-the phase in one line above the message box, "will get back to you later" for a reply held by pacing
-(never when), and a held reply that failed shows at once with Retry.
+the phase in one line above the message box, and only "Delivered" for a reply held by pacing
+(never that the companion is away), and a held reply that failed shows at once with Retry.
 
 ### Search
 

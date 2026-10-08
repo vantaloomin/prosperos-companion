@@ -3,8 +3,8 @@
 ## Unreleased
 
 - **Always know what the chat is doing:** a small line above the message box says when a reply is
-  being got ready, waiting for the model, being written, or when your companion will get back to you
-  later. A reply that times out or fails now shows straight away with Retry, even while your companion
+  being got ready, waiting for the model or being written, or simply "Delivered" while your companion
+  gets to it in their own time. A reply that times out or fails now shows straight away with Retry, even while your companion
   is busy, instead of staying hidden until they would have answered. While a reply waits for later you
   can keep writing.
 - **Photos load like photos:** while a picture is being made, the chat holds its space with a blurry
