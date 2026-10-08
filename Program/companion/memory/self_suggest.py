@@ -68,7 +68,11 @@ def pending(connection, limit=BATCH) -> tuple[list[dict], int]:
     rows = many(connection, "SELECT messages.*, asked.text AS answering FROM self_fact_jobs "
                 'JOIN messages ON messages.id=self_fact_jobs.message_id '
                 'LEFT JOIN messages AS asked ON asked.id=messages.reply_to '
-                "WHERE self_fact_jobs.status='queued' ORDER BY self_fact_jobs.queued_at LIMIT ?", (limit,))
+                # The model reads as the companion in focus; another companion's messages (texts they sent
+                # first) wait until they are in focus again.
+                'JOIN timelines ON timelines.id=messages.timeline_id '
+                "WHERE self_fact_jobs.status='queued' AND timelines.companion_id=(SELECT id FROM companions "
+                'WHERE slot=1) ORDER BY self_fact_jobs.queued_at LIMIT ?', (limit,))
     # An out-of-character answer is the model talking about the app, not the character.
     gone = [row for row in rows if row['status'] != 'complete' or not row['active'] or row['redacted_at']
             or in_character.out_of_character(row['answering'] or '')]

@@ -19,7 +19,7 @@ import re
 from dataclasses import dataclass
 
 from companion import self_checks, texting
-from companion.characters import require_current
+from companion.characters import for_timeline, require_current
 from companion.database import identifier, many, one, optional
 from companion.errors import require
 from companion.memory.extraction import CLAUSE_END, HYPOTHETICAL, NOT_THINGS, QUESTION_START, QUOTED, SENTENCE
@@ -306,7 +306,8 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
     The message also waits for the memory model to read (companion/memory/self_suggest.py)."""
     if message['role'] != 'companion' or message['status'] != 'complete':
         return []
-    companion = require_current(connection)
+    # A companion out of focus may text first too (companion/life/openers.py); the message says whose it is.
+    companion = for_timeline(connection, message['timeline_id']) or require_current(connection)
     from companion.memory import self_suggest
     self_suggest.queue(connection, message, timestamp)
     return record(connection, companion, message,

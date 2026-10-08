@@ -53,7 +53,7 @@ HISTORY = (
     'closeness_jokes', 'closeness_settings', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'recommendations', 'storylines',
     'storyline_days', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
-    'user_people', 'message_pictures', 'message_edits', 'messages', 'timelines',
+    'user_people', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'timelines',
 )
 # LoRA folders the backup does not carry: training runs and the test and prepared pictures.
 UNBACKED_LORA = ('runs', 'evaluations', 'generated')
@@ -92,6 +92,8 @@ OWN = {
     'memory_activity': 'memory_id IN gone_memories OR message_id IN gone_messages OR candidate_id IN gone_candidates',
     'lora_eval_images': 'evaluation_id IN gone_evaluations',
     'lora_gen_images': 'generation_id IN gone_generations',
+    'chat_reads': 'thread_id IN gone_timelines',
+    'away_messages': 'message_id IN gone_messages',
     'companions': 'id=:companion',
 }
 

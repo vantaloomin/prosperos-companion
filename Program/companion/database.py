@@ -137,6 +137,8 @@ ADDED_COLUMNS = (
     ('closeness_settings', 'ceiling_level', 'INTEGER CHECK (ceiling_level BETWEEN 1 AND 5)'),
     ('closeness_settings', 'cooling_since', 'TEXT'),
     ('phone_settings', 'lan_enabled', 'INTEGER NOT NULL DEFAULT 0 CHECK (lan_enabled IN (0, 1))'),
+    # One shared allowance for messages sent while the user is away, across every companion (companion/away.py).
+    ('life_settings', 'away_daily', 'INTEGER NOT NULL DEFAULT 6'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

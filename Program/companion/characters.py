@@ -16,6 +16,21 @@ def current(connection) -> dict | None:
     return {**companion, 'version': view(version)}
 
 
+def by_id(connection, companion_id: str) -> dict | None:
+    """Any companion in the workspace, in focus or not, in the same shape as `current`."""
+    companion = optional(connection, 'SELECT * FROM companions WHERE id=?', (companion_id,))
+    if companion is None:
+        return None
+    version = one(connection, 'SELECT * FROM character_versions WHERE id=?', (companion['active_version_id'],))
+    return {**companion, 'version': view(version)}
+
+
+def for_timeline(connection, timeline_id: str) -> dict | None:
+    """The companion a timeline belongs to."""
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    return by_id(connection, row['companion_id']) if row else None
+
+
 def require_current(connection) -> dict:
     companion = current(connection)
     if companion is None:

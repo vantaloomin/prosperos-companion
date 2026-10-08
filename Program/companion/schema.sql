@@ -1357,3 +1357,22 @@ CREATE TABLE IF NOT EXISTS message_edits (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS message_edits_message ON message_edits(message_id);
+
+-- How far the user has read each chat (companion/chats.py): a companion's chat by its timeline id, and any
+-- other kind of chat by its own id. Messages after read_seq are unread.
+CREATE TABLE IF NOT EXISTS chat_reads (
+  thread_id TEXT PRIMARY KEY,
+  read_seq INTEGER NOT NULL,
+  read_at TEXT NOT NULL
+);
+
+-- Messages sent while the user is away, from any companion or chat (companion/away.py), counted against one
+-- shared daily allowance (life_settings.away_daily) so a day left running has a bounded cost.
+CREATE TABLE IF NOT EXISTS away_messages (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  thread_id TEXT NOT NULL,
+  message_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS away_messages_created ON away_messages(created_at);
