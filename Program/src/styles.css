@@ -1093,9 +1093,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
 .side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
 .side-bubbles .chat-row.current .unread-badge { background: var(--on-accent); color: var(--accent); }
-.side-novel .side-title { font-style: italic; }
-.side-novel .chat-row { border-left: 3px solid transparent; border-radius: 0 10px 10px 0; }
-.side-novel .chat-row.current { border-left-color: var(--accent); }
 /* Community: a rail of round pictures, a pill beside the open chat and a short one beside chats with news. */
 .side-rail { width: 72px; padding: 12px 0; align-items: center; background: var(--canvas); border-right: 1px solid var(--border); }
 .side-rail ul { gap: 8px; }
@@ -1125,3 +1122,29 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .chat-side { display: none; }
   .chat-shell:has(.chat-side) .chats-button { display: inline-flex; }
 }
+/* Feed: a tray of ringed pictures across the top of the chat. */
+.shell-feed { flex-direction: column; }
+.side-tray { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 12px 24px 10px; border-bottom: 1px solid var(--border); }
+.side-tray ul { display: flex; gap: 18px; }
+.tray-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 72px; padding: 0; color: var(--muted); }
+.tray-ring { display: grid; place-items: center; padding: 3px; border-radius: 50%; border: 2px solid var(--border); }
+.tray-item.unread .tray-ring { border-color: transparent; background: conic-gradient(from 210deg, var(--accent), #e7c98f, var(--accent-hover), var(--accent)); }
+.tray-item.unread .tray-ring .portrait { border: 2px solid var(--canvas); }
+.tray-ring .portrait { width: 52px; height: 52px; font-size: 1.2rem; object-fit: cover; }
+.tray-item.current .tray-name { color: var(--text); font-weight: 600; }
+.tray-item.unread .tray-name { color: var(--text); }
+.tray-name { max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; }
+.tray-item .unread-badge { position: absolute; top: 0; right: 2px; border: 2px solid var(--canvas); }
+/* Visual novel: the cast as portrait cards. */
+.side-cast { width: 200px; padding: 14px 12px; border-right: 1px solid var(--border); background: radial-gradient(circle at 50% 0, var(--accent-tint), var(--canvas) 70%); }
+.side-cast .side-title { font-style: italic; font-weight: 400; letter-spacing: .04em; }
+.side-cast ul { gap: 12px; }
+.cast-card { position: relative; display: grid; justify-items: center; gap: 4px; width: 100%; padding: 12px 10px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); text-align: center; }
+.cast-card:hover:not(:disabled), .cast-card:focus-visible { border-color: var(--accent); }
+.cast-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cast-arch { display: grid; place-items: end center; width: 72px; height: 88px; overflow: hidden; border-radius: 36px 36px 6px 6px; background: linear-gradient(180deg, var(--raised), var(--accent-tint)); }
+.cast-arch .portrait { width: 72px; height: 88px; border: 0; border-radius: 0; background: transparent; font-size: 2.2rem; object-fit: cover; }
+.cast-name { font-family: 'Literata', Georgia, serif; font-size: 1rem; }
+.cast-line { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.75rem; font-style: italic; }
+.cast-ribbon { position: absolute; top: 10px; right: -6px; padding: 2px 8px; border-radius: 3px 0 0 3px; background: var(--accent); color: var(--on-accent); font-size: 0.6875rem; font-weight: 600; }
+.cast-card.unread .cast-name { font-weight: 600; }

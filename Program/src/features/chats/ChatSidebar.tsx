@@ -7,7 +7,8 @@ import { useChats, useOpenChat } from './useChats'
 
 /**
  * The chat list beside the chat on a wide screen, in the look of the app each style borrows from: a rail of
- * round pictures for Community, a buddy list window for Retro IM, a conversation list for the others. Only
+ * round pictures for Community, a buddy list window for Retro IM, a tray of ringed pictures across the top for
+ * Feed, a cast of portrait cards for Visual novel and a conversation list for Bubbles. Only
  * names, the latest message, when, and what is unread: never whether anyone is online, away or typing.
  * Phones use the Chats button instead (ChatsPanel).
  */
@@ -18,6 +19,8 @@ export function ChatSidebar({ style, retroDark, go }: { style: ChatStyle; retroD
   const choose = (chat: Chat) => void open(chat.id, chat.focus)
   if (style === 'community') return <Rail chats={chats} busy={busy} onOpen={choose} />
   if (style === 'retro') return <BuddyList chats={chats} busy={busy} dark={retroDark} onOpen={choose} />
+  if (style === 'feed') return <Tray chats={chats} busy={busy} onOpen={choose} />
+  if (style === 'novel') return <Cast chats={chats} busy={busy} onOpen={choose} />
   return (
     <nav className={`chat-side side-list side-${style}`} aria-label="Chats">
       <h2 className="side-title">Chats</h2>
@@ -74,6 +77,48 @@ function BuddyList({ chats, busy, dark, onOpen }: ListProps & { dark: boolean })
               aria-current={chat.focus ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
               <span className="buddy-name">{chat.name}</span>
               {chat.unread > 0 && <span className="buddy-count" aria-hidden="true">({badge(chat.unread)})</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+/** Feed: a tray of pictures across the top, the way a social app shows who has something new: a ring for news. */
+function Tray({ chats, busy, onOpen }: ListProps) {
+  return (
+    <nav className="chat-side side-tray" aria-label="Chats">
+      <ul>
+        {chats.map((chat) => (
+          <li key={`${chat.kind}:${chat.id}`}>
+            <button type="button" className={`tray-item${chat.focus ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat)}
+              aria-current={chat.focus ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
+              <span className="tray-ring"><ChatAvatar chat={chat} /></span>
+              {chat.unread > 0 && <span className="unread-badge" aria-hidden="true">{badge(chat.unread)}</span>}
+              <span className="tray-name">{chat.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+/** Visual novel: the cast as portrait cards, like choosing whose route to follow, with a ribbon for news. */
+function Cast({ chats, busy, onOpen }: ListProps) {
+  return (
+    <nav className="chat-side side-cast" aria-label="Chats">
+      <h2 className="side-title">Cast</h2>
+      <ul>
+        {chats.map((chat) => (
+          <li key={`${chat.kind}:${chat.id}`}>
+            <button type="button" className={`cast-card${chat.focus ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat)}
+              aria-current={chat.focus ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
+              <span className="cast-arch"><ChatAvatar chat={chat} /></span>
+              <span className="cast-name">{chat.name}</span>
+              {chat.last && <span className="cast-line">{busy === chat.id ? 'Opening…' : preview(chat)}</span>}
+              {chat.unread > 0 && <span className="cast-ribbon" aria-hidden="true">{badge(chat.unread)} new</span>}
             </button>
           </li>
         ))}
