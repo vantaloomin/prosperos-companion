@@ -3,7 +3,7 @@
 Nobody gets a picture until the user asks for theirs, one person at a time, so the app never makes pictures in
 bulk. The prompt is a fixed fill-in template from the person's seeded looks (companion/world/dating.py), with
 no model rewriting it. It is classified and routed like every other image (images/content.py,
-images/routing.py: NSFW only to a local backend, prohibited nowhere) and sent through the same adapters as the
+images/routing.py: NSFW only to a backend that accepts it, prohibited nowhere) and sent through the same adapters as the
 image runner, sharing its backend limits and waiting while a chat reply is written. The picture is saved, so
 the person looks the same every time afterwards.
 """

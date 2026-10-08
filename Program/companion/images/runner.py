@@ -219,7 +219,10 @@ class ImageRunner:
             fallback = jobs.image_settings(connection)['fallback']
         after = backend['id']
         if error.code == 'refused':
-            inputs, after = jobs.reclassify_refused(self.database, job['id'], ['refused by the provider']), None
+            # Reclassified NSFW, it may go to any backend that accepts NSFW, but never back to one that
+            # already did and refused it.
+            reclassified = jobs.reclassify_refused(self.database, job['id'], ['refused by the provider'])
+            inputs, after = reclassified, (after if backends.accepts_nsfw(backend) else None)
         # Fallback is opt-in and only to a backend the request is eligible for (F5, F6).
         if fallback and jobs.routable(self.database, inputs, after):
             jobs.enqueue(self.database, job['post_id'], 'fallback', inputs=inputs, retry_of=job['id'],

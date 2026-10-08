@@ -12,7 +12,7 @@ backend is off until the user sets it up, and text never waits for an image. The
 | --- | --- | --- | --- |
 | `comfyui` | `adapters/comfyui.py`: ComfyUI HTTP API (`/prompt`, `/history`, `/view`) | Safe; NSFW too when local | One job at a time |
 | `codex` | `adapters/codex.py`: the Codex CLI's built-in image generation (`codex exec`) | Safe only | One job at a time across every Codex backend |
-| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations` or OpenRouter-style `/chat/completions` with image output | Safe only | Its configured limit (1 to 4) |
+| `hosted` | `adapters/hosted.py`: OpenAI-style `/images/generations` or OpenRouter-style `/chat/completions` with image output | Safe only; NSFW too when the user switches it on (OpenRouter and other APIs only) | Its configured limit (1 to 4) |
 
 - **ComfyUI** is local when its address is a loopback address, or when the user marks it as a
   machine they control. A remote address otherwise counts as hosted (F6). The app only connects to
@@ -85,6 +85,14 @@ backend is off until the user sets it up, and text never waits for an image. The
   disclosure of what each request sends. Requests carry the prompt only. Provider-reported
   `usage` is stored as given. The tested request shapes are the two above; a model behind an
   aggregator is not assumed to work until an image comes back.
+- **NSFW on an image API** (Vanta, 2026-10-07): an OpenRouter or other image API backend has an
+  **Also take NSFW requests** switch (`allows_nsfw`), off by default, for a provider whose terms
+  allow such images. Google and the OpenAI API never offer it, and Codex stays safe-only. With it on,
+  the disclosure adds that NSFW requests go to that provider under its terms, and turning it on for
+  an existing backend asks for the disclosure again. The local check still runs before every
+  dispatch and still fails closed; the switch only adds that backend to where NSFW requests may go.
+  Prohibited requests are refused everywhere regardless. NovelAI's own image API is not an
+  OpenAI-style endpoint, so it cannot be added as "Other" yet.
 
 ## Content routing (F6)
 
@@ -95,13 +103,14 @@ asks a service. `routing.py` then decides where it may go:
 | Tier | Goes to |
 | --- | --- |
 | `prohibited`: sexual content with a minor or someone presented as one, sexual depictions of real people, sexual violence | Nowhere; refused with the reason |
-| `nsfw`: sexual content, nudity, graphic gore, anything not confidently safe, a classifier error, or marked by the user | Local ComfyUI only; refused with a pointer to Settings when none is enabled |
+| `nsfw`: sexual content, nudity, graphic gore, anything not confidently safe, a classifier error, or marked by the user | A local ComfyUI, or an image API with the NSFW switch on; refused with a pointer to Settings when none is enabled |
 | `safe` | Any enabled backend, in the user's order |
 
 - The request is classified again at every dispatch, retry and fallback, and a job never becomes
   less strict than it was.
 - A hosted provider's content refusal reclassifies the request as NSFW. With fallback on, it is
-  offered to a local backend only, never to another hosted provider.
+  offered only to a backend that accepts NSFW (never back to the one that refused it), so a
+  safe-only provider is never tried.
 - Known false positives: wording such as "steamy", "injured" or "chicken breasts" routes as NSFW.
   On the shipped city data that is 4 of 3,749 names and descriptions; the composer's own captions
   produce none (`tests/test_images.py`).
@@ -178,7 +187,7 @@ asks for no photo.
   instead of getting a post of its own or a place in a digest, so the feed shows the same picture
   and the event is told once. A batch picks photographed slots first, like planned ones.
 - The request is classified and routed like any other (F6). With nowhere allowed to send it
-  (no backend, a hosted-only setup for an NSFW moment, or the prohibited tier) no photo is sent,
+  (no backend, only safe-only backends for an NSFW moment, or the prohibited tier) no photo is sent,
   and the reply is not told about one. Sleep, quiet slots, a pause and the setting being off send
   none either.
 - A reply that sends a photo gets one context section with the moment, so it can mention the photo.
@@ -210,7 +219,7 @@ step can be skipped and run again from the Character page (**Profile pictures**)
   cannot take one.
 - When no enabled backend can, nothing is sent and the page says so. The user can choose to make
   all three from the description alone; the page then says they may not look like one person.
-- Each picture is classified and routed like any image: NSFW goes to a local backend only and
+- Each picture is classified and routed like any image: NSFW goes only to a backend that accepts it and
   Prohibited is refused. When picture 1 fails or is refused, the other two are not made. **Make
   this one again** remakes that picture with a new seed; remaking picture 1 remakes all three.
 - **Keep these** adds the finished pictures to the character's reference pictures (as
@@ -232,7 +241,7 @@ the daily limit, the shape and a style line. A blocked Codex backend shows the s
 happening, and **Make an image**, **New version**, **Cancel image** or **Retry**. **Image details**
 lists every request for the post with its backend, model, likeness method, content check,
 routing, seed and prompt, lets the user pick between finished versions, and can mark the next
-request NSFW so it stays local. The feed refreshes every few seconds while an image is in progress.
+request NSFW so it only goes to a backend that accepts NSFW. The feed refreshes every few seconds while an image is in progress.
 Display logic that needs no browser is in `src/features/feed/imageState.ts`.
 
 ## API
@@ -242,9 +251,9 @@ All writes need the `x-companion-client: workspace` header.
 | Method and path | Purpose |
 | --- | --- |
 | `GET`, `PUT /api/images/settings` | `automatic_images`, `chat_photos`, `daily_limit` (0 to 24), `queue_limit` (1 to 20), `fallback`, `aspect` (`square`, `landscape`, `portrait`), `style` |
-| `GET /api/images/backends` | Backends in order, with `local`, `accepts_nsfw`, `disclosure`, `blocked_reason`, `has_key`, `model_files` (ComfyUI); never a key |
-| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, reference_workflow?, unet_name?, clip_name?, clip_type?, vae_name?, cli_path?, api_style?, api_key?, controlled_machine?, concurrency?, enabled?, accept_disclosure?}` |
-| `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address needs the disclosure again |
+| `GET /api/images/backends` | Backends in order, with `local`, `accepts_nsfw`, `allows_nsfw`, `nsfw_switch` (whether the switch is offered), `disclosure`, `blocked_reason`, `has_key`, `model_files` (ComfyUI); never a key |
+| `POST /api/images/backends` | `{kind, provider?, label?, base_url?, model?, workflow?, reference_workflow?, unet_name?, clip_name?, clip_type?, vae_name?, cli_path?, api_style?, api_key?, controlled_machine?, allows_nsfw?, concurrency?, enabled?, accept_disclosure?}` |
+| `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address or turning `allows_nsfw` on needs the disclosure again |
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
 | `POST /api/images/backends/{id}/check` | `{ok, summary, details}`; spends no generation quota |

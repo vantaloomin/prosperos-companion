@@ -522,6 +522,10 @@ export interface ImageBackend {
   concurrency: number
   local: boolean
   accepts_nsfw: boolean
+  // Image APIs other than Google and OpenAI: the user switched it to take NSFW requests too.
+  allows_nsfw: boolean
+  // Whether that switch is offered for this backend.
+  nsfw_switch: boolean
   blocked_reason: string | null
   disclosure: string | null
   disclosure_accepted: boolean

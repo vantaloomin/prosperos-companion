@@ -11,7 +11,7 @@ The whole set goes to one backend that can take a reference picture (backends.ta
 in the user's order. When none can, nothing is sent unless the user explicitly asks for the set
 to be made from the description alone, so a set of three unrelated people is never passed off
 as one. Each picture is classified and routed like any image (PRD F6): Prohibited is refused
-everywhere and NSFW goes to a local backend only.
+everywhere and NSFW goes only to a backend that accepts it.
 
 The set is a `lora_generations` row of kind `portraits`, so it runs through the same runner,
 admission rules and keep step as the LoRA maker's generated pictures. Kept pictures join the

@@ -129,6 +129,8 @@ ADDED_COLUMNS = (
     # The routine slot still going when the life cursor last moved (companion/life/simulation.py).
     ('life_cursors', 'open_slot', 'TEXT'),
     ('prompt_overrides', 'default_text', 'TEXT'),
+    # The user switched an image API backend to take NSFW requests too (images/backends.py).
+    ('image_backends', 'allows_nsfw', 'INTEGER NOT NULL DEFAULT 0 CHECK (allows_nsfw IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

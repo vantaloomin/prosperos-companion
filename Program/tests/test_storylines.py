@@ -1,5 +1,6 @@
 """Storylines unfold over days in the companion's and the circle's lives, seeded, at the chosen drama level."""
 import json
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -105,7 +106,8 @@ def test_beats_stay_hidden_until_their_day_and_reach_the_context(client, social,
     system = client.get('/api/context/preview').json()['system']
     assert "What is going on in your life and your people's lives" in system
     section = system.split('## What is going on')[1].split('\n## ')[0]
-    assert 'Still unfolding' in section and 'Mira' not in section
+    # Mira is the companion; a relative's random name can contain it ("Miranda"), so match the whole word.
+    assert 'Still unfolding' in section and not re.search(r'\bMira\b', section)
     clock.advance(timedelta(days=30))
     reconcile(client)
     item = next(item for item in client.get('/api/life/storylines?include_ended=true').json() if item['id'] == listed[0]['id'])
