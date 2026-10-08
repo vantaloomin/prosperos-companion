@@ -50,7 +50,9 @@ def _load(connection) -> tuple[dict[str, dict], list[dict]]:
     for row in connection.execute('SELECT * FROM world_cities ORDER BY id').fetchall():
         try:
             cities[row['id']] = _view(row)
-        except (ValidationError, ValueError, KeyError, TypeError) as error:
+        except Exception as error:  # one city that no longer loads must not empty every list
+            if not isinstance(error, (ValidationError, ValueError, KeyError, TypeError)):
+                LOG.exception('Your city %r crashed while loading', row['id'])
             try:
                 definition = decode(row['definition'])
             except ValueError:

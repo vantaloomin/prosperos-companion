@@ -10,6 +10,7 @@ import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed
 import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { SectionPending } from '../../components/SectionPending'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -33,7 +34,7 @@ export function ImageSettings() {
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not saved.') }); return false }
   }
   const refresh = () => Promise.all([client.invalidateQueries({ queryKey: BACKENDS_KEY }), client.invalidateQueries({ queryKey: HARDWARE_KEY })])
-  if (!settings.data || !backends.data) return null
+  if (!settings.data || !backends.data) return <SectionPending queries={[settings, backends]} heading="images-heading" title="Images" />
   const data = settings.data
   const list = backends.data.backends
   const hasLocal = list.some((backend) => backend.enabled && backend.accepts_nsfw)

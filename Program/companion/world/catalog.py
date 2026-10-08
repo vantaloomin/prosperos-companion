@@ -1,6 +1,7 @@
 """Loading and querying the shipped city data. Everything here is read-only and needs no network."""
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -15,6 +16,8 @@ from companion.world import mend as mending
 from companion.world.schema import Career, Careers, City, Holidays, Names
 
 DATA = Path(__file__).parent / 'data'
+LOG = logging.getLogger(__name__)
+BUILTIN_CITIES = DATA / 'cities'
 
 
 @cache
@@ -153,17 +156,27 @@ def city_files(folder: Path) -> list[Path]:
 
 @cache
 def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
+    """Every city that loads, and what went wrong with each file that did not. One bad file, such as a city
+    dropped among the built-in ones, is skipped and reported (Settings > Cities > Pack folders): it must never
+    take every city list, and everything built on them, down with it."""
     result, errors = {}, []
-    for path in city_files(DATA / 'cities'):
-        data = prepare(path.read_bytes())
-        if data['id'] != path.stem:
-            raise ValueError(f'{path.name} holds city {data["id"]}.')
+    for path in city_files(BUILTIN_CITIES):
+        try:
+            data = prepare(path.read_bytes())
+            if data['id'] != path.stem:
+                raise ValueError(f'{path.name} holds city {data["id"]}, so it does not belong in this folder.')
+        except Exception as error:  # reported below, never raised
+            LOG.exception('Skipped %s among the built-in cities', path)
+            errors.append({'file': str(path), 'error': str(error)[:2000]})
+            continue
         result[data['id']] = data | {'builtin': True, 'origin': 'builtin'}
     for folder in pack_dirs():
         for path in city_files(folder):
             try:
                 data = prepare(path.read_bytes(), mend=True)
-            except (ValidationError, ValueError, OSError) as error:
+            except Exception as error:
+                if not isinstance(error, (ValidationError, ValueError, OSError)):
+                    LOG.exception('Skipped the city pack %s', path)
                 errors.append({'file': str(path), 'error': str(error)[:2000]})
                 continue
             if data['id'] in result:

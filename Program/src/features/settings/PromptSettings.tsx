@@ -4,13 +4,14 @@ import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { TextArea } from '../../components/Fields'
 import { groupPrompts, placeholderHint, type EditablePrompt } from './prompts'
+import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['prompts']
 
 /** Settings > Advanced: the core prompts sent to the user's models, each with its default (companion/prompt_library.py). */
 export function PromptSettings() {
   const prompts = useQuery({ queryKey: KEY, queryFn: () => api<EditablePrompt[]>('/prompts') })
-  if (!prompts.data) return null
+  if (!prompts.data) return <SectionPending queries={[prompts]} heading="prompts-heading" title="Prompts" />
   return (
     <section className="settings-section form-stack" aria-labelledby="prompts-heading">
       <div>

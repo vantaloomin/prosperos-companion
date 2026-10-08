@@ -237,6 +237,46 @@ def test_a_saved_city_that_no_longer_validates_leaves_the_others_listed(app, cli
     assert client.get('/api/world/broken-cities').json() == []
 
 
+
+def test_a_saved_city_that_crashes_while_loading_leaves_the_others_listed(app, client, monkeypatch):
+    """A tester's Settings > Life & cities said "Something went wrong" and Real-world lookups stayed blank: any
+    error loading one saved city, not only a validation error, failed the city list and every lookup with it."""
+    template = client.get('/api/world/template').json()
+    assert client.post('/api/world/cities', json=template | {'id': 'odd-town', 'name': 'Odd Town'}).status_code == 200
+    real = catalog.mending.mend
+
+    def mend(definition):
+        if definition.get('id') == 'odd-town':
+            raise AttributeError("'NoneType' object has no attribute 'get'")
+        return real(definition)
+    monkeypatch.setattr(catalog.mending, 'mend', mend)
+    listed = client.get('/api/world/cities')
+    assert listed.status_code == 200 and 'odd-town' not in {city['id'] for city in listed.json()}
+    assert [item['id'] for item in client.get('/api/world/broken-cities').json()] == ['odd-town']
+    assert client.get('/api/context').status_code == 200
+
+
+def test_a_stray_file_among_the_built_in_cities_is_skipped(client, tmp_path, monkeypatch):
+    """A city file dropped among the built-in ones, or saved there under another name, once failed every city
+    list, Real-world lookups and the life sim. It is now left out and named under Settings > Cities."""
+    folder = tmp_path / 'cities'
+    folder.mkdir()
+    for path in catalog.city_files(catalog.BUILTIN_CITIES):
+        (folder / path.name).write_bytes(path.read_bytes())
+    (folder / 'baltimore (1).json').write_bytes((catalog.BUILTIN_CITIES / 'baltimore.json').read_bytes())
+    (folder / 'notes.json').write_text('[1, 2]', encoding='utf-8')
+    monkeypatch.setattr(catalog, 'BUILTIN_CITIES', folder)
+    monkeypatch.setenv(catalog.PACKS_ENV, str(tmp_path / 'no-packs'))
+    try:
+        report = catalog.reload()
+        assert sorted(Path(item['file']).name for item in report['errors']) == ['baltimore (1).json', 'notes.json']
+        listed = client.get('/api/world/cities')
+        assert listed.status_code == 200 and 'baltimore' in {city['id'] for city in listed.json()}
+        assert client.get('/api/context').status_code == 200
+    finally:
+        monkeypatch.undo()
+        catalog.reload()
+
 def test_copying_a_built_in_city_and_living_in_a_user_city(app, client):
     copied = client.post('/api/world/cities/baltimore/copy', json={'id': 'my-baltimore', 'name': 'My Baltimore'})
     assert copied.status_code == 200, copied.text

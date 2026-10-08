@@ -102,6 +102,7 @@ class _Mender:
             return self.data
         for key in LOADER_KEYS:
             self.data.pop(key, None)
+        self.keyed_sources()
         self.open_words()
         for _ in range(40):
             self.references()
@@ -137,9 +138,23 @@ class _Mender:
         if isinstance(self.data.get('speeds'), dict):
             speeds = {TRANSIT_KINDS.get(slug(key), slug(key)): value for key, value in self.data['speeds'].items()}
             self.data['speeds'] = {key: value for key, value in speeds.items() if key}
-        for source in (self.data.get('sources') or {}).values():
+        for source in (self.data['sources'].values() if isinstance(self.data.get('sources'), dict) else ()):
             if isinstance(source, dict) and isinstance(source.get('kind'), str):
                 source['kind'] = slug(source['kind']) or 'other'
+
+    def keyed_sources(self) -> None:
+        """Sources written as a list of records with ids, like every other group, become the table a city keys
+        them by. Anything else that is not a table is replaced by `sources()`."""
+        if not isinstance(self.data.get('sources'), list):
+            return
+        keyed = {}
+        for number, source in enumerate(self.data['sources'], 1):
+            if isinstance(source, dict):
+                key = slug(source['id']) if isinstance(source.get('id'), str) else ''
+                keyed.setdefault(key or f'source-{number}', {k: v for k, v in source.items() if k != 'id'})
+        self.data['sources'] = keyed
+        if keyed:
+            self.note('Read the sources list as a table keyed by each source\'s id.')
 
     def kinds(self, group: str, field: str, known: dict) -> None:
         for record in self.records(group):
