@@ -113,7 +113,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'The reinstall failed; see above.' }
 } catch {
     Write-Host "Update failed: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host 'Your workspace in %LOCALAPPDATA%\ProsperoCompanion was not touched.'
+    Write-Host 'Your companion''s data was not touched.'
     $result = 1
 }
 if (-not $NoPause) { Read-Host 'Press Enter to close' | Out-Null }

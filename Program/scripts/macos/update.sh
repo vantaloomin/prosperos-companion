@@ -10,7 +10,7 @@ UPDATE_MANIFEST="$CHECKOUT_ROOT/.zip-update-files"
 
 fail() {
     say_error "Update failed: $*"
-    echo 'Your workspace in ~/Library/Application Support/ProsperoCompanion was not touched.'
+    echo "Your companion's data was not touched."
     exit 1
 }
 

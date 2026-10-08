@@ -70,6 +70,13 @@ Finder, press Cmd+Shift+G and paste that path). It is separate from the project 
 or re-downloading the project keeps your companion. Backups, private city packs (`city-packs/`),
 pictures and logs live there too. `COMPANION_DATA_DIR` points it elsewhere.
 
+To keep it with the project instead, for example on an external drive, use **Settings > Data >
+Move into the app folder**. On the next start the app copies the workspace into a `Data` folder
+beside `Mac/` and `Program/`, checks the copy, and uses it from then on; the old folder is left as
+it was, with a `MOVED.txt`, until you delete it. Updates never touch `Data/`. On an external drive
+macOS asks once whether Terminal may access files on a removable volume: allow it. Keep the drive
+connected while the Companion runs.
+
 API keys go in your login keychain under **Prospero Companion**. If Python is upgraded (for example
 by Homebrew), macOS may ask once whether `python` may use that keychain item; choose **Always Allow**.
 

@@ -79,7 +79,7 @@ Clone the repository (or download the ZIP), open the `Mac` folder and double-cli
 
 There are no helper scripts yet; [Development](Program/docs/development.md) shows how to run it from the `Program` folder.
 
-Your companion's data never lives in the program folder, so updating or re-downloading keeps it. It is in `%LOCALAPPDATA%\ProsperoCompanion` on Windows and `~/Library/Application Support/ProsperoCompanion` on a Mac.
+Your companion's data normally lives outside the program folder, so updating or re-downloading keeps it. It is in `%LOCALAPPDATA%\ProsperoCompanion` on Windows and `~/Library/Application Support/ProsperoCompanion` on a Mac. **Settings > Data** shows where it is and opens it. To keep it with the app instead, for example on an external drive, choose **Move into the app folder** there: it moves into a `Data` folder beside `Windows`, `Mac` and `Program`, which updates leave alone. Keep that folder off cloud-synced folders (OneDrive, Dropbox, iCloud) and network drives, where the database can be damaged; the app refuses to move it there.
 
 ## Which folder is for you
 

@@ -144,6 +144,15 @@ def restore_backup(archive: Path) -> int:
     return report_restore(archive.name, result)
 
 
+def move_chosen_data():
+    """Moving data into the app folder, chosen in Settings, runs here before anything opens it."""
+    from companion import data_folder
+    from companion.identity import database_path
+    told = data_folder.apply_pending(database_path().parent)
+    if told:
+        print(told, flush=True)
+
+
 def restore_chosen_backup():
     """A restore chosen in Settings runs here, before the workspace is opened."""
     from companion import restore
@@ -203,6 +212,7 @@ def main(argv=None) -> int:
     if listener is None:
         return reuse(url, args.no_browser)
     with listener:
+        move_chosen_data()
         restore_chosen_backup()
         if not prepare_workspace():
             return 1

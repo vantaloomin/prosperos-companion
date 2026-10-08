@@ -18,11 +18,26 @@ DEFAULT_PORT = 8775
 CLIENT_HEADER = 'x-companion-client'
 DATA_ENV = 'COMPANION_DATA_DIR'
 DATABASE_ENV = 'COMPANION_DB'
+# The folder holding Windows/, Mac/ and Program/ (a checkout or ZIP copy), or the installed app's folder
+# (bundle: app/companion). A `Data` folder there keeps everything with the app: see companion/data_folder.py.
+APP_FOLDER = Path(__file__).resolve().parents[2]
+PORTABLE_NAME = 'Data'
+
+
+def portable_dir() -> Path:
+    return APP_FOLDER / PORTABLE_NAME
 
 
 def data_dir() -> Path:
     if os.environ.get(DATA_ENV):
         return Path(os.environ[DATA_ENV])
+    if portable_dir().is_dir():
+        return portable_dir()
+    return default_dir()
+
+
+def default_dir() -> Path:
+    """Where data lives when nothing chooses another folder: the user's own app-data folder."""
     if sys.platform == 'win32':
         base = os.environ.get('LOCALAPPDATA') or Path.home() / 'AppData' / 'Local'
         return Path(base) / 'ProsperoCompanion'

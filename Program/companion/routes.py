@@ -10,6 +10,7 @@ from companion import (
     character_helper,
     characters,
     conversation,
+    data_folder,
     drafting,
     events,
     logs,
@@ -495,6 +496,28 @@ def schedule_restore(request: Request, name: str):
 @router.delete('/backups/restore')
 def cancel_restore(request: Request):
     return restore.cancel(db(request).path.parent)
+
+
+# Under /api/backups so a phone never sees or changes it (companion/phone/access.py PC_ONLY).
+@router.get('/backups/data-folder')
+def read_data_folder(request: Request):
+    return data_folder.status(db(request).path.parent)
+
+
+@router.post('/backups/data-folder/move')
+def schedule_data_move(request: Request):
+    """The move runs the next time the Companion starts; the open workspace cannot be copied safely."""
+    return data_folder.schedule(db(request).path.parent, db(request).now())
+
+
+@router.delete('/backups/data-folder/move')
+def cancel_data_move(request: Request):
+    return data_folder.cancel(db(request).path.parent)
+
+
+@router.post('/backups/data-folder/open')
+def open_data_folder(request: Request):
+    return data_folder.open_folder(db(request).path.parent)
 
 
 @router.get('/notifications/settings')
