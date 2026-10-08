@@ -14,6 +14,24 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.2.0 (2026-10-08)
+
+- **Matchlight:** a dating app in the sidebar for meeting townsfolk and app-only singles; a match can
+  become your companion. Personal ads or the town matchmaker in older eras.
+- **Easier start:** model setup first, a quick start of name, age and where and when, character paste
+  or card import, and life details behind Show details.
+- **Helper sidecar:** an app-wide helper that proposes edits to character fields, replies and memories.
+- **Profile** page with Messages, Posts and Character tabs, and a Message button.
+- **Realism:** tracked wardrobe, consistent self-facts over months, corrections that stick everywhere,
+  conflicts waiting in Character Studio, memory on by default, a daily sense of what's out and trending.
+- **Townsfolk and names:** seed new townsfolk; about 100 names per decade for every culture and era.
+- **Story mode** (optional, Settings > Advanced): a narrator for your own story, people-met list, dates.
+- **Pictures:** Krea 2 prompt shaping, per-backend prompt style, NSFW switch for OpenRouter-style image
+  APIs, ComfyUI model pickers, style LoRAs and sampler settings.
+- **Models:** recall profiles of their own, Duplicate profile, Codex model list on Test connection.
+- **Fixes:** Posts tab after Debug time, Home City showing only None, updating a ZIP copy, blank replies
+  from thinking models, chat hover jump, panel spacing, and more. Scale results in docs/scale.md.
+
 ## v0.1.4 (2026-10-07)
 
 - **Editable prompts:** Settings > Show advanced settings adds an Advanced tab to reword the core
