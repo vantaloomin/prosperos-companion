@@ -19,7 +19,7 @@ from companion.database import identifier, many, optional
 from companion.errors import DomainError, require
 from companion.life import encounters, network
 from companion.models import CharacterDefinition, CharacterDraftRequest
-from companion.world import catalog, generators, townsfolk
+from companion.world import catalog, generators, perception, townsfolk
 
 # A shift's part of the day sets when they sleep, as (bed, wake).
 SLEEP = {'morning': ('21:30', '05:00'), 'afternoon': ('23:30', '08:00'), 'evening': ('01:30', '09:30'),
@@ -213,6 +213,9 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
         'life_themes': list(career['themes'][:5]) if career else [sheet['place']['name']],
         'money': {'career': career['id'] if career else ''},
     }
+    # They keep how they came across in town, and how they see themselves.
+    lines = perception.for_sheet(data, sheet)
+    definition |= {'seen_as': lines['public'], 'sees_self': '\n'.join(lines['private'])}
     return CharacterDefinition.model_validate(definition).model_dump()
 
 

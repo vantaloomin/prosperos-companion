@@ -576,6 +576,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .paste-character[open] > summary { margin-bottom: 6px; }
 .character-details-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
 .character-details-toggle p { margin: 0; }
+.perception-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.perception-field select { width: 100%; min-width: 0; text-overflow: ellipsis; }
 .vibes { display: flex; flex-direction: column; gap: 8px; }
 .vibe-picks { display: flex; flex-wrap: wrap; gap: 6px; }
 .vibe-pick { padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.8125rem; background: transparent; }

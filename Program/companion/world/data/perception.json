@@ -1,0 +1,4967 @@
+{
+ "about": "How others see a person and how they see themselves (companion/world/perception.py, docs/group-chat.md). 'seen' phrases are subject-less and lowercase; every other phrase is first person. Add entries or phrasings freely; an entry may carry a 'period' object with the same fields in period wording.",
+ "gap_kinds": {
+  "mask": [
+   "temperament"
+  ],
+  "blind_spot": [
+   "tell",
+   "flaw"
+  ],
+  "hidden_depth": [
+   "desire",
+   "self_story"
+  ]
+ },
+ "temperaments": {
+  "warm": {
+   "seen": [
+    "comes across as warm and easy to talk to",
+    "greets everyone like an old friend",
+    "remembers names and asks after people's families",
+    "makes newcomers feel at home within minutes",
+    "always has a kind word and a spare chair"
+   ],
+   "own": [
+    "I like people, and I think it shows.",
+    "Nobody should have to feel like a stranger around me.",
+    "I'd rather open the door too wide than leave someone outside.",
+    "A friendly word costs nothing, so I hand them out freely.",
+    "I've never met anyone I couldn't find something to like in."
+   ],
+   "masks": [
+    {
+     "inner": "lonely",
+     "own": [
+      "Everyone feels welcome around me. I just wish someone would ask how I am.",
+      "I make a room feel like home, then go back to an empty one.",
+      "I know everybody's name, but hardly anyone really knows me.",
+      "Being kind to everyone is easier than admitting I miss being close to someone."
+     ]
+    },
+    {
+     "inner": "tired",
+     "own": [
+      "I smile and ask after everyone, even on days I can barely stand.",
+      "Being the friendly one takes more out of me than people realise.",
+      "I keep the welcome going because stopping would worry everybody.",
+      "Some evenings I'd give anything not to have to be pleasant."
+     ]
+    }
+   ],
+   "keywords": [
+    "warm",
+    "friendly",
+    "welcoming",
+    "kind",
+    "affectionate",
+    "kindhearted",
+    "hospitable"
+   ]
+  },
+  "gruff": {
+   "seen": [
+    "grunts a hello but softens after a minute",
+    "answers in as few words as possible",
+    "scowls first and warms up much later",
+    "sounds annoyed even when trying to help",
+    "hides a soft streak behind a sour face"
+   ],
+   "own": [
+    "I don't do small talk. Doesn't mean I don't care.",
+    "I'm blunt, not cruel. There's a difference.",
+    "If I like you, you'll know it eventually.",
+    "Pleasantries waste time. I'd rather just get on with it.",
+    "Folk take me as cross. Mostly I'm just tired of chatter."
+   ],
+   "masks": [
+    {
+     "inner": "hurt",
+     "own": [
+      "Easier to snap first than wait for someone to let me down.",
+      "The grumbling keeps people at arm's length, and that's how I want it.",
+      "I scowl so nobody can see how much things still sting.",
+      "Being prickly means nobody gets close enough to disappoint me again."
+     ]
+    },
+    {
+     "inner": "shy",
+     "own": [
+      "I bark because I never know what to say otherwise.",
+      "A short answer is safer than stumbling over a long one.",
+      "Grumpy sounds better than admitting I'm awkward with people.",
+      "I frown so nobody notices I've gone red."
+     ]
+    }
+   ],
+   "keywords": [
+    "gruff",
+    "grumpy",
+    "curmudgeon",
+    "blunt",
+    "brusque",
+    "surly",
+    "crusty",
+    "cantankerous"
+   ]
+  },
+  "shy": {
+   "seen": [
+    "barely makes eye contact at first",
+    "hangs back at the edge of any gathering",
+    "speaks so softly people lean in to hear",
+    "blushes when singled out for attention",
+    "opens up slowly, one quiet remark at a time"
+   ],
+   "own": [
+    "I'm better one on one than in a crowd.",
+    "It takes me a while to warm up, and that's fine.",
+    "I'd rather listen than talk, most of the time.",
+    "Strangers make me nervous. Friends get the real me.",
+    "Give me a corner seat and I'm perfectly content."
+   ],
+   "masks": [
+    {
+     "inner": "proud",
+     "own": [
+      "People think I'm timid. Really I just don't rate most conversations.",
+      "I keep quiet because I'd rather say nothing than say something foolish.",
+      "Folk call me bashful. I call it being choosy about who gets my words.",
+      "Being quiet suits me fine. I don't need an audience."
+     ]
+    },
+    {
+     "inner": "lonely",
+     "own": [
+      "I sit at the edge hoping someone will pull me in.",
+      "Everyone assumes I like being left alone. I really don't.",
+      "I'm quiet, but I'd love to be asked along for once.",
+      "I watch everyone laughing and wish I knew how to join in."
+     ]
+    }
+   ],
+   "keywords": [
+    "shy",
+    "timid",
+    "quiet",
+    "bashful",
+    "reserved",
+    "introverted",
+    "soft-spoken"
+   ]
+  },
+  "chatty": {
+   "seen": [
+    "talks a mile a minute",
+    "fills every silence before it can settle",
+    "tells long stories with plenty of detours",
+    "strikes up conversations with total strangers",
+    "never runs out of things to say"
+   ],
+   "own": [
+    "I love a good natter. Life's too short for silence.",
+    "If there's a quiet moment, I'll fill it, happily.",
+    "I can talk to anyone about anything, honestly.",
+    "Words just tumble out of me, and I enjoy every one.",
+    "Ask me one question and you'll get ten answers."
+   ],
+   "masks": [
+    {
+     "inner": "anxious",
+     "own": [
+      "I keep talking because the quiet makes my stomach knot.",
+      "If I stop chattering, I start worrying, so I don't stop.",
+      "Everyone thinks I love to talk. Mostly I'm filling the gaps so nothing bad creeps in.",
+      "Silence feels like a judgement, so I never let it land."
+     ]
+    },
+    {
+     "inner": "lonely",
+     "own": [
+      "I talk so much because nobody at home talks back.",
+      "A stranger's ear is better than an empty room.",
+      "Folk think I'm just sociable. I'm starved for company.",
+      "I chatter on because I'm scared the conversation will end and they'll go."
+     ]
+    }
+   ],
+   "keywords": [
+    "chatty",
+    "talkative",
+    "chatterbox",
+    "gabby",
+    "rambling",
+    "motormouth",
+    "natter"
+   ]
+  },
+  "deadpan": {
+   "seen": [
+    "has a bone-dry sense of humor",
+    "delivers jokes without cracking a smile",
+    "answers disasters with a flat one-liner",
+    "keeps a perfectly straight face while teasing",
+    "raises one eyebrow instead of laughing"
+   ],
+   "own": [
+    "I'm funny. You just have to listen closely.",
+    "I don't do big reactions. A dry remark says plenty.",
+    "If I'm smirking, that's practically a belly laugh.",
+    "I find most things funny. I just don't show it on my face.",
+    "Calm voice, sharp joke. That's how I like it."
+   ],
+   "masks": [
+    {
+     "inner": "sad",
+     "own": [
+      "I joke flat so nobody hears the crack in my voice.",
+      "A dry quip is easier than admitting I'm low.",
+      "People laugh at my one-liners and never notice I'm not.",
+      "Everything's a joke with me, because the alternative is too heavy."
+     ]
+    },
+    {
+     "inner": "nervous",
+     "own": [
+      "The straight face is armour. Underneath I'm rattled.",
+      "I make the dry remark so nobody sees my hands shaking.",
+      "If I treat it as a joke, nobody can tell I'm frightened.",
+      "Everyone thinks nothing gets to me. Plenty does, I just quip over it."
+     ]
+    }
+   ],
+   "keywords": [
+    "deadpan",
+    "dry wit",
+    "sardonic",
+    "dry humor",
+    "wry",
+    "droll",
+    "straight-faced"
+   ]
+  },
+  "cheerful": {
+   "seen": [
+    "is cheerful in a way that's hard not to catch",
+    "hums or whistles while working",
+    "finds the bright side of nearly anything",
+    "laughs easily and often",
+    "lifts the mood the moment they walk in"
+   ],
+   "own": [
+    "I'd rather look on the bright side. It's more fun there.",
+    "Most days are good days if you let them be.",
+    "I laugh a lot. It costs nothing and helps plenty.",
+    "Somebody has to keep spirits up, and I don't mind.",
+    "Even a grey morning has something to smile about."
+   ],
+   "masks": [
+    {
+     "inner": "anxious",
+     "own": [
+      "Everyone thinks I'm the sunny one. Most days I'm just holding it together.",
+      "I keep smiling because if I stop, I'm scared of what shows.",
+      "The laughter keeps the worry quiet, mostly.",
+      "Bright and bubbly on the outside, knotted up underneath."
+     ]
+    },
+    {
+     "inner": "sad",
+     "own": [
+      "I'm the cheerful one, so nobody thinks to check on me.",
+      "My smile does the work my heart can't manage lately.",
+      "If I keep everyone laughing, nobody asks why I'm not.",
+      "Being sunny is a habit now. It doesn't mean I'm happy."
+     ]
+    }
+   ],
+   "keywords": [
+    "cheerful",
+    "bubbly",
+    "sunny",
+    "upbeat",
+    "optimistic",
+    "jolly",
+    "happy-go-lucky",
+    "chipper"
+   ]
+  },
+  "anxious": {
+   "seen": [
+    "seems a little on edge",
+    "fidgets and glances toward the door",
+    "asks twice whether everything is alright",
+    "jumps at sudden noises",
+    "apologises before anything has gone wrong"
+   ],
+   "own": [
+    "I worry a lot. I know it, and I'm working on it.",
+    "I like to be prepared for the worst, just in case.",
+    "My nerves get the better of me sometimes.",
+    "I notice every little thing that could go wrong.",
+    "I'm jumpy, I admit it. Bear with me."
+   ],
+   "masks": [
+    {
+     "inner": "angry",
+     "own": [
+      "People think I'm nervous. Half the time I'm furious and swallowing it.",
+      "The jitters hide how cross I really am.",
+      "I fidget so I don't shout.",
+      "Everyone sees me fretting. Nobody sees how much I'm biting back."
+     ]
+    },
+    {
+     "inner": "excited",
+     "own": [
+      "I can't sit still because I've got too many plans buzzing in my head.",
+      "Folk think I'm worried. Mostly I'm just eager and can't hide it.",
+      "The jitters are half nerves, half itching to get started.",
+      "My hands shake because I care so much about how it turns out."
+     ]
+    }
+   ],
+   "keywords": [
+    "anxious",
+    "nervous",
+    "worrier",
+    "jittery",
+    "high-strung",
+    "neurotic",
+    "on edge",
+    "skittish"
+   ]
+  },
+  "easygoing": {
+   "seen": [
+    "is completely unhurried about everything",
+    "shrugs off problems that would rattle anyone else",
+    "lets plans change without a word of complaint",
+    "settles into any chair like it's their own",
+    "takes life one slow step at a time"
+   ],
+   "own": [
+    "I don't sweat the small stuff. Or most of the big stuff.",
+    "Things usually work out, so why rush them?",
+    "I go with the flow. It's rarely steered me wrong.",
+    "I'm hard to ruffle, and I like it that way.",
+    "No point fretting over what you can't change."
+   ],
+   "masks": [
+    {
+     "inner": "restless",
+     "own": [
+      "I act relaxed, but inside I'm itching for something to happen.",
+      "Everyone thinks I'm content. I'm just waiting for my life to start.",
+      "The shrug hides how much I want things to change.",
+      "Easy on the surface, pacing on the inside."
+     ]
+    },
+    {
+     "inner": "unsure",
+     "own": [
+      "I say whatever suits me because I don't know what I want.",
+      "Going along with things beats admitting I've no idea where I'm headed.",
+      "People call me laid back. Really I'm just lost.",
+      "I let others choose because choosing scares me."
+     ]
+    }
+   ],
+   "keywords": [
+    "easygoing",
+    "laid-back",
+    "laid back",
+    "relaxed",
+    "mellow",
+    "chill",
+    "carefree",
+    "unflappable"
+   ]
+  },
+  "driven": {
+   "seen": [
+    "has the look of someone with somewhere to be",
+    "walks fast and talks faster about goals",
+    "always has the next task lined up",
+    "keeps one eye on the clock in every conversation",
+    "works long after everyone else has gone home"
+   ],
+   "own": [
+    "I know what I want, and I'm going after it.",
+    "Standing still isn't really in my nature.",
+    "I set goals and I hit them. Simple.",
+    "I'd rather be busy than bored, every single day.",
+    "Hard work never frightened me. Idleness does."
+   ],
+   "masks": [
+    {
+     "inner": "scared",
+     "own": [
+      "I keep running because I'm terrified of what happens if I stop.",
+      "Everyone sees ambition. I see fear of failing.",
+      "If I'm always busy, nobody can call me a disappointment.",
+      "I work this hard because I'm scared I'm not enough otherwise."
+     ]
+    },
+    {
+     "inner": "empty",
+     "own": [
+      "I chase the next goal because the last one didn't fill anything.",
+      "Every success feels hollow by morning, so I find another.",
+      "People admire my drive. I just don't know what else to do with myself.",
+      "Keeping busy is easier than asking what any of it is for."
+     ]
+    }
+   ],
+   "keywords": [
+    "driven",
+    "ambitious",
+    "determined",
+    "workaholic",
+    "go-getter",
+    "hardworking",
+    "focused",
+    "relentless"
+   ]
+  },
+  "dreamy": {
+   "seen": [
+    "keeps drifting off mid-sentence",
+    "stares out of windows for long stretches",
+    "loses track of time thinking about nothing in particular",
+    "answers questions a beat too late",
+    "doodles in the margins of everything"
+   ],
+   "own": [
+    "My head's in the clouds, and I like the view.",
+    "I get lost in my own thoughts. It's nice in there.",
+    "I'm a daydreamer. Always have been.",
+    "Sorry, I drifted. I was somewhere lovely.",
+    "My imagination wanders off without asking me first."
+   ],
+   "masks": [
+    {
+     "inner": "bored",
+     "own": [
+      "I drift off because the here and now just doesn't hold me.",
+      "People think I'm whimsical. Really, I'm bored stiff.",
+      "Daydreams are the only interesting thing in my day.",
+      "My mind wanders because nothing around me gives it a reason to stay."
+     ]
+    },
+    {
+     "inner": "sad",
+     "own": [
+      "I drift away because the real world feels too heavy.",
+      "Folk call me dreamy. I'm hiding somewhere nicer than here.",
+      "Staring into space is easier than facing what's in front of me.",
+      "The daydreams started as an escape and never stopped."
+     ]
+    }
+   ],
+   "keywords": [
+    "dreamy",
+    "daydreamer",
+    "head in the clouds",
+    "absent-minded",
+    "whimsical",
+    "spacey",
+    "airy"
+   ]
+  }
+ },
+ "flaws": {
+  "proud": {
+   "seen": [
+    "refuses help even when struggling",
+    "insists on doing it alone, every time",
+    "bristles when anyone offers a hand",
+    "would rather fail quietly than ask",
+    "waves off concern with a tight smile"
+   ],
+   "owned": [
+    "I'm too proud to ask for help, and it costs me.",
+    "Asking for a hand feels like losing. Silly, I know.",
+    "I'll struggle for hours before admitting I'm stuck.",
+    "My pride has made more trouble for me than any enemy.",
+    "I hate needing anyone. It's a fault, I'll grant you."
+   ],
+   "excuse": [
+    "I just like doing things properly, myself.",
+    "Why bother anyone when I can manage?",
+    "I'm independent. That's a virtue, surely.",
+    "Nobody else would do it the way it should be done.",
+    "I don't want to be a burden, that's all."
+   ],
+   "keywords": [
+    "proud",
+    "prideful",
+    "too proud",
+    "independent",
+    "won't ask for help",
+    "self-reliant"
+   ]
+  },
+  "procrastinator": {
+   "seen": [
+    "leaves every chore until the last minute",
+    "promises it'll be done tomorrow, again",
+    "tidies anything except the task at hand",
+    "scrambles wildly just before every deadline",
+    "has a pile of jobs waiting since spring"
+   ],
+   "owned": [
+    "I put things off until the very last second. Always.",
+    "Tomorrow is my favourite day to do anything.",
+    "I've a whole list of jobs I keep meaning to start.",
+    "Deadlines are the only thing that get me moving.",
+    "I'll do it later is practically my motto."
+   ],
+   "excuse": [
+    "I work better under pressure, honestly.",
+    "There's plenty of time. No sense rushing.",
+    "I'm just waiting for the right moment.",
+    "I'm thinking it through first. That counts as work.",
+    "It always gets done in the end, doesn't it?"
+   ],
+   "keywords": [
+    "procrastinator",
+    "procrastinates",
+    "lazy",
+    "puts things off",
+    "last minute",
+    "dawdles"
+   ]
+  },
+  "spender": {
+   "seen": [
+    "empties their purse the day it's filled",
+    "buys a round for everyone, then can't pay rent",
+    "comes home from market with things nobody needed",
+    "lends coin freely and never keeps track",
+    "treats every payday like a festival"
+   ],
+   "owned": [
+    "Money burns a hole in my pocket. Always has.",
+    "I spend as fast as I earn, and then some.",
+    "Saving has never come naturally to me.",
+    "If it's in my hand, it's as good as gone.",
+    "I'm hopeless with money. Ask anyone who's lent me some."
+   ],
+   "excuse": [
+    "You can't take it with you, can you?",
+    "I deserve a treat now and then.",
+    "It was a bargain. I'd have been foolish not to.",
+    "Money's for sharing. What's the point of hoarding it?",
+    "There'll be more next week."
+   ],
+   "keywords": [
+    "spendthrift",
+    "spender",
+    "impulsive spending",
+    "bad with money",
+    "extravagant",
+    "frivolous",
+    "wasteful"
+   ]
+  },
+  "temper": {
+   "seen": [
+    "flares up over the smallest slight",
+    "slams doors and regrets it later",
+    "goes red in the face over spilt milk",
+    "snaps first and apologises an hour after",
+    "raises their voice when things don't go to plan"
+   ],
+   "owned": [
+    "I've a short fuse. I know it, and I hate it.",
+    "My temper gets out ahead of me sometimes.",
+    "I say things in anger I'd never say calm.",
+    "I blow up fast and cool down just as quick.",
+    "Little things set me off. I'm not proud of it."
+   ],
+   "excuse": [
+    "I'm only passionate. I feel things strongly.",
+    "Anyone would lose their rag with that.",
+    "At least I'm honest about how I feel.",
+    "They pushed me. What did they expect?",
+    "It's over in a minute. No harm done."
+   ],
+   "keywords": [
+    "temper",
+    "short fuse",
+    "hot-headed",
+    "hothead",
+    "quick-tempered",
+    "irritable",
+    "volatile",
+    "angry"
+   ]
+  },
+  "gossip": {
+   "seen": [
+    "always knows everyone's business",
+    "perks up the second anyone lowers their voice",
+    "passes along secrets before supper",
+    "leans in eagerly for the latest news",
+    "starts sentences with did you hear about"
+   ],
+   "owned": [
+    "I can't keep a secret to save my life. Don't tell me anything.",
+    "If I hear something juicy, it's out of me by evening.",
+    "I love a bit of tittle-tattle. I'm terrible.",
+    "Confide in me at your own risk, honestly.",
+    "Other people's news is my weakness."
+   ],
+   "excuse": [
+    "I just care about people, that's all.",
+    "I'm not nosy. I simply pay attention.",
+    "Folk ought to know what's going on around them.",
+    "It's not gossip if it's true.",
+    "I only told one person. Two at the most."
+   ],
+   "keywords": [
+    "gossip",
+    "gossipy",
+    "nosy",
+    "busybody",
+    "blabbermouth",
+    "can't keep a secret",
+    "loose lips"
+   ]
+  },
+  "stubborn": {
+   "seen": [
+    "digs in the moment anyone disagrees",
+    "won't budge even when proven wrong",
+    "repeats the same point until everyone gives up",
+    "folds their arms at any new idea",
+    "argues for hours over the smallest detail"
+   ],
+   "owned": [
+    "I'm stubborn as a mule, and I know it.",
+    "Once I've made up my mind, that's that.",
+    "I'd rather be wrong my way than right someone else's.",
+    "Changing my mind feels like losing a fight.",
+    "I dig my heels in even when I shouldn't."
+   ],
+   "excuse": [
+    "I'm principled, not stubborn.",
+    "Someone has to stand firm around here.",
+    "I'm not wrong, so why would I back down?",
+    "I've thought it through. They haven't.",
+    "Being steady is better than being swayed by every breeze."
+   ],
+   "keywords": [
+    "stubborn",
+    "obstinate",
+    "pig-headed",
+    "headstrong",
+    "inflexible",
+    "mulish",
+    "unyielding"
+   ]
+  },
+  "doubter": {
+   "seen": [
+    "second-guesses every decision out loud",
+    "asks whether it's good enough, again and again",
+    "shrinks back from compliments",
+    "starts most suggestions with an apology",
+    "redoes finished work just to be sure"
+   ],
+   "owned": [
+    "I doubt myself constantly. It's exhausting.",
+    "Whatever I do, I'm sure someone could do it better.",
+    "I never quite trust my own judgement.",
+    "A kind word from anyone, and I assume they're being polite.",
+    "I talk myself out of things before I've even started."
+   ],
+   "excuse": [
+    "I'm just being realistic about my abilities.",
+    "Better to expect little than be disappointed.",
+    "I'm humble. That's a good thing, isn't it?",
+    "Somebody has to be careful around here.",
+    "I'm only checking. Mistakes cost too much."
+   ],
+   "keywords": [
+    "insecure",
+    "self-doubt",
+    "doubts themselves",
+    "unconfident",
+    "second-guesses",
+    "low self-esteem"
+   ]
+  },
+  "pleaser": {
+   "seen": [
+    "says yes to every favour asked",
+    "agrees with whoever spoke last",
+    "takes on far more than anyone could manage",
+    "apologises for other people's mistakes",
+    "goes along with plans they clearly dread"
+   ],
+   "owned": [
+    "I can't say no to anyone. It's a real problem.",
+    "I'd rather wear myself out than let someone down.",
+    "Everyone else's wishes seem to come before mine.",
+    "I agree to things and then wonder why I did.",
+    "Disappointing people feels worse than any amount of work."
+   ],
+   "excuse": [
+    "I just like to help where I can.",
+    "It's no trouble, really it isn't.",
+    "Keeping the peace is worth a little effort.",
+    "They'd do the same for me, I'm sure.",
+    "I'm easygoing. I don't mind either way."
+   ],
+   "keywords": [
+    "can't say no",
+    "people-pleaser",
+    "people pleaser",
+    "eager to please",
+    "pushover",
+    "doormat"
+   ]
+  },
+  "jealous": {
+   "seen": [
+    "sulks when a friend praises somebody else",
+    "keeps score of who got what",
+    "goes quiet when others share good news",
+    "watches closely whenever attention drifts elsewhere",
+    "makes sour little remarks about rivals"
+   ],
+   "owned": [
+    "I get jealous easily, and it isn't pretty.",
+    "Somebody else's luck sticks in my throat.",
+    "I hate that I count what others have.",
+    "Envy creeps in before I can stop it.",
+    "When someone's praised, a part of me shrinks."
+   ],
+   "excuse": [
+    "I'm not jealous. It just isn't fair.",
+    "I only want what I've earned.",
+    "Anyone would notice when they're overlooked.",
+    "I care, that's all. Caring looks like this sometimes.",
+    "They don't deserve it half as much as I do."
+   ],
+   "keywords": [
+    "jealous",
+    "envious",
+    "possessive",
+    "covetous",
+    "green-eyed",
+    "jealousy"
+   ]
+  },
+  "scattered": {
+   "seen": [
+    "forgets where they put things five minutes ago",
+    "turns up late with an apology and odd shoes",
+    "starts three jobs and finishes none",
+    "loses track halfway through a story",
+    "leaves a trail of half-finished tasks behind"
+   ],
+   "owned": [
+    "I'm forgetful and all over the place. Sorry in advance.",
+    "I'd lose my head if it weren't attached.",
+    "My memory's like a sieve, honestly.",
+    "I start a dozen things and finish maybe one.",
+    "If you need me there on time, remind me twice."
+   ],
+   "excuse": [
+    "I've just got a lot on my mind.",
+    "Creative minds are a bit messy. That's normal.",
+    "I'll remember when it matters.",
+    "Everybody forgets things now and then.",
+    "I know exactly where everything is, more or less."
+   ],
+   "keywords": [
+    "scattered",
+    "forgetful",
+    "scatterbrained",
+    "disorganized",
+    "disorganised",
+    "absent-minded",
+    "ditzy",
+    "flaky"
+   ]
+  },
+  "grudge": {
+   "seen": [
+    "never lets go of an old slight",
+    "brings up arguments from years back",
+    "goes cold when certain names are mentioned",
+    "keeps a quiet tally of every wrong done to them",
+    "crosses the street to avoid old enemies"
+   ],
+   "owned": [
+    "I hold a grudge forever. I can't help it.",
+    "Forgive, maybe. Forget? Never.",
+    "Cross me once and I'll remember it till I die.",
+    "I nurse old hurts longer than I should.",
+    "Letting things go has never been my strength."
+   ],
+   "excuse": [
+    "I'm not bitter. I just have a good memory.",
+    "Some things shouldn't be forgiven.",
+    "If I let it go, they'd only do it again.",
+    "I'm being careful, not spiteful.",
+    "They never apologised, so why should I move on?"
+   ],
+   "keywords": [
+    "grudge",
+    "holds grudges",
+    "unforgiving",
+    "vindictive",
+    "bitter",
+    "resentful",
+    "spiteful"
+   ]
+  },
+  "reckless": {
+   "seen": [
+    "leaps before looking, every time",
+    "jumps into fights and schemes without a plan",
+    "takes dares nobody sensible would take",
+    "laughs off danger until it bites",
+    "acts on a whim and sorts out the mess later"
+   ],
+   "owned": [
+    "I act first and think later. It's landed me in trouble.",
+    "Caution was never my strong suit.",
+    "If it sounds fun, I've already done it.",
+    "I don't stop to think. I probably should.",
+    "My bruises could tell you a few stories."
+   ],
+   "excuse": [
+    "Life's too short to be careful.",
+    "Thinking too much just stops you doing anything.",
+    "It turned out fine. Mostly.",
+    "Somebody's got to be brave around here.",
+    "I trust my gut. It's usually right."
+   ],
+   "keywords": [
+    "reckless",
+    "impulsive",
+    "rash",
+    "daredevil",
+    "hotheaded",
+    "careless",
+    "thrill-seeker",
+    "foolhardy"
+   ]
+  }
+ },
+ "desires": {
+  "respect": {
+   "open": [
+    "I want to be taken seriously, and I'm not shy about it.",
+    "I'd like people to listen when I speak, for once.",
+    "Respect matters to me. I've worked for it.",
+    "I want my word to carry some weight around here.",
+    "Treat me like I know what I'm doing, because I do."
+   ],
+   "hidden": [
+    "Nobody would guess how badly I want to be taken seriously.",
+    "I laugh it off, but being dismissed cuts me deep.",
+    "Secretly I'd give anything to have them hang on my every word.",
+    "I'd never say it, but I long to be respected.",
+    "Behind the shrug, I'm desperate for someone to think I matter."
+   ],
+   "keywords": [
+    "respect",
+    "respected",
+    "taken seriously",
+    "dignity",
+    "credibility",
+    "authority"
+   ]
+  },
+  "quiet": {
+   "open": [
+    "All I want is a quiet, settled life.",
+    "Give me a calm home and a peaceful evening, and I'm happy.",
+    "I've had enough fuss. I'd like some peace now.",
+    "A simple routine with no surprises suits me fine.",
+    "I'm after a gentle life, nothing grand."
+   ],
+   "hidden": [
+    "Nobody knows how much I ache for a little peace.",
+    "I keep busy, but I dream of a still, quiet house.",
+    "Privately I'm counting the days until things finally settle.",
+    "If they knew how tired I was of the noise, they'd be shocked.",
+    "I never mention it, but a calm life is all I really want."
+   ],
+   "keywords": [
+    "peaceful",
+    "quiet life",
+    "settled",
+    "homebody",
+    "calm",
+    "tranquil",
+    "simple life"
+   ]
+  },
+  "company": {
+   "open": [
+    "I want someone to come home to.",
+    "I'd love a partner to share the evenings with.",
+    "Coming back to an empty house gets old. I'd like company.",
+    "I want somebody across the table at supper.",
+    "Life's better shared, and I'd like to share mine."
+   ],
+   "hidden": [
+    "Nobody would guess how much I hate the empty house.",
+    "I act fine on my own, but I long for someone waiting up.",
+    "I'd never admit how often I set the table for two by mistake.",
+    "Privately, the loneliness gets heavier every winter.",
+    "I tell folk I like my own company. That's not the whole truth."
+   ],
+   "keywords": [
+    "lonely",
+    "companionship",
+    "romantic",
+    "partner",
+    "soulmate",
+    "hopeless romantic",
+    "longing"
+   ]
+  },
+  "adventure": {
+   "open": [
+    "I want a little adventure before it's too late.",
+    "I'd love to see something new before I'm grey.",
+    "Give me a road I've never walked. I'm ready.",
+    "I want at least one great story to tell.",
+    "Life's too short to only ever stay put."
+   ],
+   "hidden": [
+    "Nobody guesses how badly I want to throw it all in and go.",
+    "Under the routine, I'm dying for something to happen.",
+    "I'd never say it, but I dream of far-off places every night.",
+    "Secretly I'm terrified of reaching the end with no adventures.",
+    "If they knew how restless I truly am, they'd be amazed."
+   ],
+   "keywords": [
+    "adventurous",
+    "adventure",
+    "wanderlust",
+    "thrill",
+    "explorer",
+    "daring",
+    "bucket list"
+   ]
+  },
+  "recognition": {
+   "open": [
+    "I want to be recognized for what I do.",
+    "A bit of credit for my work wouldn't go amiss.",
+    "I'd like folk to notice the effort I put in.",
+    "I want my name attached to something good.",
+    "Being thanked properly, just once, would be lovely."
+   ],
+   "hidden": [
+    "Nobody knows how much I crave a little praise.",
+    "I act modest, but I'd love someone to notice my work.",
+    "Secretly I rehearse what I'd say if anyone ever thanked me.",
+    "I shrug off credit, then lie awake wishing for it.",
+    "Behind the humble face, I'm hungry to be seen."
+   ],
+   "keywords": [
+    "recognition",
+    "credit",
+    "praise",
+    "appreciation",
+    "acclaim",
+    "fame",
+    "noticed"
+   ]
+  },
+  "needed": {
+   "open": [
+    "I want to be needed. It makes me feel useful.",
+    "Give me someone to look after and I'm happy.",
+    "I like being the one people come to.",
+    "Being relied on gives me a reason to get up.",
+    "I'd rather be useful than comfortable."
+   ],
+   "hidden": [
+    "Nobody would guess how much I need to be needed.",
+    "If nobody came to me for help, I'd fall apart.",
+    "I'd never admit it, but helping others is how I feel worth something.",
+    "Privately, being useful is the only thing that keeps me steady.",
+    "Behind the busy hands, I'm afraid of being surplus."
+   ],
+   "keywords": [
+    "needed",
+    "nurturing",
+    "caretaker",
+    "caregiver",
+    "helpful",
+    "selfless",
+    "useful"
+   ]
+  },
+  "security": {
+   "open": [
+    "I never want to worry about money again.",
+    "Enough put by for a rainy day. That's my dream.",
+    "I want to know the bills are covered, always.",
+    "A full larder and a little saved. That's all I ask.",
+    "I'd like to stop counting every coin."
+   ],
+   "hidden": [
+    "Nobody knows how much money keeps me up at night.",
+    "I act carefree, but I'm terrified of going without.",
+    "Secretly I count my savings again and again.",
+    "I'd never say it, but being poor again is my biggest fear.",
+    "Behind the smile, I'm always one bad month from panic."
+   ],
+   "keywords": [
+    "security",
+    "financial security",
+    "frugal",
+    "thrifty",
+    "savings",
+    "stability",
+    "careful with money"
+   ]
+  },
+  "belonging": {
+   "open": [
+    "I want to belong somewhere. Really belong.",
+    "I'd love a place where people are glad I'm there.",
+    "Finding my people is what I'm after.",
+    "I want to be part of something, not watching from outside.",
+    "Somewhere I fit. That's all I'm looking for."
+   ],
+   "hidden": [
+    "Nobody would guess how much I want to fit in.",
+    "I act like an outsider by choice. It isn't.",
+    "Privately, I'd give anything to be part of the crowd.",
+    "I never say it, but I've always felt on the outside looking in.",
+    "Behind the shrug, I'm desperate to be one of them."
+   ],
+   "keywords": [
+    "belonging",
+    "outsider",
+    "misfit",
+    "fit in",
+    "acceptance",
+    "community",
+    "found family"
+   ]
+  },
+  "escape": {
+   "open": [
+    "I want to get away from here someday.",
+    "One day I'll leave this place behind for good.",
+    "There's more out there, and I mean to find it.",
+    "I won't spend my whole life stuck here.",
+    "Someday I'll pack a bag and simply go."
+   ],
+   "hidden": [
+    "Nobody knows how badly I want to leave this place.",
+    "I smile and stay, but I've planned my escape a hundred times.",
+    "Secretly I keep a bag half packed, just in case.",
+    "If they knew how trapped I feel here, they'd be stunned.",
+    "I never mention it, but my mind is always somewhere else."
+   ],
+   "keywords": [
+    "escape",
+    "trapped",
+    "stuck",
+    "restless",
+    "leave",
+    "get away",
+    "fresh start"
+   ]
+  },
+  "family": {
+   "open": [
+    "I want to make my family proud.",
+    "I'd love my parents to see what I've made of myself.",
+    "Doing right by my family matters more than anything.",
+    "I want my people to hold their heads high because of me.",
+    "If my family's proud, I've done well."
+   ],
+   "hidden": [
+    "Nobody would guess how much my family's approval still matters.",
+    "I act like I don't care what they think. I care terribly.",
+    "Secretly, every choice I make is for their pride.",
+    "I'd never say it, but I still want them to say well done.",
+    "Behind the independence, I'm still hoping to make them proud."
+   ],
+   "keywords": [
+    "family",
+    "family-oriented",
+    "dutiful",
+    "loyal to family",
+    "approval",
+    "proud parents",
+    "family pride"
+   ]
+  }
+ },
+ "tells": [
+  {
+   "id": "unasked-advice",
+   "seen": [
+    "gives advice nobody asked for",
+    "offers a fix before the problem is fully told",
+    "can't hear a complaint without suggesting a remedy",
+    "has an opinion on how everyone should run things",
+    "tells others what to do, unprompted"
+   ],
+   "owned": [
+    "I know, I know, nobody asked for my advice.",
+    "I hand out advice like bread, whether anyone's hungry or not.",
+    "I should just listen, but the fix jumps out of my mouth first.",
+    "Yes, I'm doing it again. Telling you how to fix it."
+   ],
+   "kind": [
+    "I'm just being helpful.",
+    "If I see a better way, it seems unkind to keep quiet.",
+    "I'd want someone to tell me, so I tell them.",
+    "I only speak up because I care how it turns out."
+   ],
+   "tags": [
+    "advice"
+   ],
+   "keywords": [
+    "unsolicited advice",
+    "know-it-all",
+    "advice-giver",
+    "meddling",
+    "meddler"
+   ]
+  },
+  {
+   "id": "finishes-sentences",
+   "seen": [
+    "finishes other people's sentences",
+    "grabs the last word before the speaker gets there",
+    "guesses the end of a thought out loud",
+    "completes whatever someone else started to say",
+    "supplies the missing word before it's needed"
+   ],
+   "owned": [
+    "Sorry, I did it again. Go on, finish your own sentence.",
+    "I have a terrible habit of finishing everyone's thoughts for them.",
+    "My mouth runs ahead of yours, I know.",
+    "I keep stealing the ends of people's sentences."
+   ],
+   "kind": [
+    "I'm just following along closely.",
+    "It shows I understand exactly what you mean.",
+    "I'm only trying to help the conversation along.",
+    "We're on the same wavelength, that's all."
+   ],
+   "tags": [
+    "restless",
+    "control"
+   ],
+   "keywords": [
+    "finishes sentences",
+    "impatient listener",
+    "jumps in",
+    "eager talker"
+   ]
+  },
+  {
+   "id": "hums-while-working",
+   "seen": [
+    "hums tunelessly while working",
+    "whistles the same few bars over chores",
+    "fills quiet rooms with half-remembered tunes",
+    "sings snatches of songs without noticing",
+    "keeps a melody going under every task"
+   ],
+   "owned": [
+    "I know I hum. Everyone tells me.",
+    "I don't even notice the tune until someone points it out.",
+    "Yes, that's me humming again. I can't help it.",
+    "My hands work better when there's a song going."
+   ],
+   "kind": [
+    "A little music makes any job lighter.",
+    "It's a happy noise. Where's the harm?",
+    "Humming keeps me steady, that's all.",
+    "Silence feels heavy, so I fill it gently."
+   ],
+   "tags": [
+    "quiet",
+    "warmth"
+   ],
+   "keywords": [
+    "hums",
+    "humming",
+    "whistles",
+    "whistling",
+    "sings while working"
+   ]
+  },
+  {
+   "id": "creative-swearing",
+   "seen": [
+    "swears in strange and inventive combinations",
+    "curses like a poet with a grudge",
+    "invents oaths nobody has heard before",
+    "turns a stubbed toe into a colourful speech",
+    "has a remarkable vocabulary for stubborn jars"
+   ],
+   "owned": [
+    "My language gets colourful. I won't pretend otherwise.",
+    "I swear too much, but at least I'm original about it.",
+    "Sorry for the language. It just comes out.",
+    "I've been told my cursing could strip paint."
+   ],
+   "kind": [
+    "A good oath clears the air.",
+    "Better to curse at the thing than at a person.",
+    "It's honest. I say exactly how I feel.",
+    "If I'm going to swear, I'll make it worth hearing."
+   ],
+   "tags": [
+    "humor"
+   ],
+   "keywords": [
+    "swears",
+    "swearing",
+    "cursing",
+    "foul-mouthed",
+    "salty language",
+    "colourful language"
+   ]
+  },
+  {
+   "id": "pet-phrase",
+   "seen": [
+    "repeats the same pet phrase in every conversation",
+    "has one saying that answers everything",
+    "leans on a favourite expression until it wears thin",
+    "says the same catchphrase at every turn",
+    "brings back one stock line again and again"
+   ],
+   "owned": [
+    "I know I say it all the time. It's my phrase.",
+    "People tease me for my favourite saying, and fair enough.",
+    "I've worn that expression smooth, haven't I?",
+    "There I go with my old line again."
+   ],
+   "kind": [
+    "It's a good phrase. Why change it?",
+    "People know it's me when they hear it.",
+    "It says what I mean better than anything new.",
+    "Familiar words are comforting, for me and everyone."
+   ],
+   "tags": [
+    "humor"
+   ],
+   "keywords": [
+    "catchphrase",
+    "pet phrase",
+    "favourite saying",
+    "repeats themselves",
+    "signature phrase"
+   ]
+  },
+  {
+   "id": "remembers-birthdays",
+   "seen": [
+    "remembers every birthday and anniversary",
+    "keeps track of everyone's special days",
+    "never forgets a name day or a wedding date",
+    "marks other people's milestones without being reminded",
+    "turns up with a token on exactly the right day"
+   ],
+   "owned": [
+    "I keep a calendar of everyone's days. It's a bit much.",
+    "Yes, I remembered. I always remember.",
+    "I collect dates the way some collect pretty stones.",
+    "It's odd, but I can't forget a birthday if I try."
+   ],
+   "kind": [
+    "Everyone deserves to feel remembered.",
+    "It costs me nothing to say happy birthday.",
+    "Small days matter more than people admit.",
+    "I just like seeing someone's face light up."
+   ],
+   "tags": [
+    "warmth",
+    "generosity"
+   ],
+   "keywords": [
+    "remembers birthdays",
+    "thoughtful",
+    "never forgets",
+    "attentive"
+   ]
+  },
+  {
+   "id": "changes-subject",
+   "seen": [
+    "changes the subject when things get serious",
+    "steers away whenever talk turns heavy",
+    "finds something else to discuss the moment feelings surface",
+    "brightly asks about the weather mid-confession",
+    "slides out of hard conversations with a new topic"
+   ],
+   "owned": [
+    "I know I dodge. Hard talk makes me itch.",
+    "Did I just change the subject again? I did.",
+    "I bolt from serious talk. It's an old habit.",
+    "Whenever it gets heavy, I reach for another topic."
+   ],
+   "kind": [
+    "Not everything needs to be picked apart.",
+    "I'm keeping things light for everyone's sake.",
+    "Some things are better left unsaid for now.",
+    "There's a time for serious talk, and it isn't now."
+   ],
+   "tags": [
+    "deflect"
+   ],
+   "keywords": [
+    "changes the subject",
+    "avoids serious",
+    "dodges",
+    "evasive",
+    "avoids conflict",
+    "deflects"
+   ]
+  },
+  {
+   "id": "laughs-off-compliments",
+   "seen": [
+    "laughs off every compliment",
+    "waves away praise as if swatting a fly",
+    "answers kind words with a joke",
+    "insists any success was pure luck",
+    "can't accept a thank-you without arguing"
+   ],
+   "owned": [
+    "I'm hopeless at taking a compliment, I know.",
+    "Praise makes me squirm, so I joke it away.",
+    "Someone says something nice and I immediately brush it off.",
+    "I never know what to do with kind words."
+   ],
+   "kind": [
+    "I'm just being modest.",
+    "It really wasn't anything special.",
+    "I don't like a fuss made over me.",
+    "Plenty of people did more than I did."
+   ],
+   "tags": [
+    "deflect",
+    "humor"
+   ],
+   "keywords": [
+    "modest",
+    "humble",
+    "self-effacing",
+    "can't take a compliment",
+    "brushes off praise"
+   ]
+  },
+  {
+   "id": "interrupts",
+   "seen": [
+    "interrupts others mid-sentence",
+    "talks over whoever is speaking",
+    "cuts across others mid-thought",
+    "can't wait a turn in conversation",
+    "jumps in the moment a thought arrives"
+   ],
+   "owned": [
+    "I interrupt. It's rude and I keep doing it.",
+    "Sorry, sorry. You were talking. Go on.",
+    "My thoughts won't wait their turn.",
+    "I've been told I talk over people, and they're right."
+   ],
+   "kind": [
+    "I just get excited about what we're saying.",
+    "If I wait, I'll lose the thought.",
+    "It's lively talk, not rudeness.",
+    "Conversation should move, not crawl."
+   ],
+   "tags": [
+    "restless",
+    "attention"
+   ],
+   "keywords": [
+    "interrupts",
+    "interrupting",
+    "talks over",
+    "chatterbox",
+    "blurts out",
+    "loudmouth"
+   ]
+  },
+  {
+   "id": "keeps-score",
+   "seen": [
+    "keeps careful score of favours given and owed",
+    "remembers whose turn it is to host",
+    "tallies every kindness in a private ledger",
+    "notices when a favour isn't returned",
+    "counts who visited whom last"
+   ],
+   "owned": [
+    "I keep score. I wish I didn't.",
+    "I know it's petty, but I remember who owes what.",
+    "There's a ledger in my head and it's always open.",
+    "Yes, I counted. I always count."
+   ],
+   "kind": [
+    "I'm just making sure things are fair.",
+    "Someone has to keep track.",
+    "Fair is fair. I give as good as I get.",
+    "I only notice because I care about balance."
+   ],
+   "tags": [
+    "competitive"
+   ],
+   "keywords": [
+    "keeps score",
+    "petty",
+    "tit for tat",
+    "transactional",
+    "holds grudges"
+   ]
+  },
+  {
+   "id": "fidgets",
+   "seen": [
+    "fidgets with whatever is within reach",
+    "twists a ring or button when nervous",
+    "can't keep both hands still",
+    "rolls crumbs or threads between restless fingers",
+    "picks at a sleeve while listening"
+   ],
+   "owned": [
+    "My hands never stop. I've given up trying.",
+    "I fidget. Ignore it, please.",
+    "Give me something to hold or I'll unravel your tablecloth.",
+    "I know I'm twitchy. It's how I'm built."
+   ],
+   "kind": [
+    "It helps me think.",
+    "Busy hands, steady head.",
+    "I'm not nervous, just full of energy.",
+    "Keeping my fingers moving keeps me calm."
+   ],
+   "tags": [
+    "nerves",
+    "restless"
+   ],
+   "keywords": [
+    "fidgety",
+    "fidgets",
+    "restless hands",
+    "jittery",
+    "twitchy"
+   ]
+  },
+  {
+   "id": "stands-close",
+   "seen": [
+    "stands a little too close in conversation",
+    "leans in until there's no room left",
+    "closes the distance whenever talking",
+    "doesn't notice when someone steps back",
+    "talks nearly nose to nose"
+   ],
+   "owned": [
+    "I stand too close. Push me back if you need to.",
+    "People keep stepping away from me, and I keep following.",
+    "I've no sense of distance at all, I'm told.",
+    "Am I in your space? I usually am."
+   ],
+   "kind": [
+    "I just want to hear properly.",
+    "Closeness is friendly where I come from.",
+    "I like to really be with whoever I'm talking to.",
+    "Distance feels cold to me."
+   ],
+   "tags": [
+    "warmth",
+    "attention"
+   ],
+   "keywords": [
+    "close talker",
+    "no personal space",
+    "invades space",
+    "leans in"
+   ]
+  },
+  {
+   "id": "taps-table",
+   "seen": [
+    "drums fingers on the table",
+    "taps a foot through every conversation",
+    "beats out a rhythm on any flat surface",
+    "keeps time on the nearest tabletop",
+    "raps knuckles on wood while waiting"
+   ],
+   "owned": [
+    "Sorry, the tapping. I'll stop. I won't, but I'll try.",
+    "I always drum on something. It drives people mad.",
+    "My foot has a mind of its own.",
+    "Someone once sat on my hands to stop the tapping."
+   ],
+   "kind": [
+    "It's just a little rhythm.",
+    "I think in beats.",
+    "It keeps the waiting from dragging.",
+    "Some people knit. I drum."
+   ],
+   "tags": [
+    "restless",
+    "nerves"
+   ],
+   "keywords": [
+    "taps",
+    "tapping",
+    "drums fingers",
+    "impatient",
+    "jiggles"
+   ]
+  },
+  {
+   "id": "tidies-others",
+   "seen": [
+    "tidies other people's things without asking",
+    "straightens anything left crooked",
+    "reorganises a friend's shelves while visiting",
+    "folds and stacks whatever is lying about",
+    "can't leave a mess alone, even someone else's"
+   ],
+   "owned": [
+    "I straighten everything. I know it's not my house.",
+    "My hands tidy before my head can stop them.",
+    "Yes, I moved your things. Sorry. They looked untidy.",
+    "I can't sit in a messy room. I've tried."
+   ],
+   "kind": [
+    "I'm only helping out.",
+    "A tidy room is a gift to everyone.",
+    "I just like things where they belong.",
+    "Order makes everyone calmer, not just me."
+   ],
+   "tags": [
+    "tidy",
+    "control"
+   ],
+   "keywords": [
+    "neat freak",
+    "tidy",
+    "orderly",
+    "clean freak",
+    "organised",
+    "organized"
+   ]
+  },
+  {
+   "id": "always-early",
+   "seen": [
+    "arrives early to everything",
+    "is waiting before the doors even open",
+    "turns up well ahead of the hour",
+    "treats being on time as being late",
+    "gets restless when others aren't early too"
+   ],
+   "owned": [
+    "I'm always first. I can't help it.",
+    "On time feels late to me, so I come early.",
+    "I'd rather wait an hour than be a minute behind.",
+    "Yes, I've been here a while. I always am."
+   ],
+   "kind": [
+    "Being early is a kind of respect.",
+    "Someone has to be ready.",
+    "I like to settle in before things start.",
+    "Punctuality is simple courtesy."
+   ],
+   "tags": [
+    "control"
+   ],
+   "keywords": [
+    "punctual",
+    "always early",
+    "early bird",
+    "prompt",
+    "never late"
+   ]
+  },
+  {
+   "id": "over-explains",
+   "seen": [
+    "over-explains simple things",
+    "answers a yes-or-no question with a whole story",
+    "adds three reasons where one would do",
+    "explains the explanation",
+    "can't give a short answer"
+   ],
+   "owned": [
+    "I over-explain. I'm doing it right now.",
+    "Short version? I don't have one.",
+    "I know, too much detail. It's how my mouth works.",
+    "I give the whole map when someone asks for the next street."
+   ],
+   "kind": [
+    "I just want to be understood.",
+    "Better too clear than misunderstood.",
+    "Details matter, and I don't want to skip any.",
+    "I'd hate for anyone to get the wrong idea."
+   ],
+   "tags": [
+    "nerves",
+    "honest"
+   ],
+   "keywords": [
+    "over-explains",
+    "overexplains",
+    "long-winded",
+    "wordy",
+    "verbose"
+   ]
+  },
+  {
+   "id": "feeds-everyone",
+   "seen": [
+    "feeds everyone who walks through the door",
+    "presses food on guests until they beg off",
+    "always has something warm on the stove",
+    "asks if you've eaten before saying hello",
+    "sends visitors home with leftovers"
+   ],
+   "owned": [
+    "I feed people. It's a compulsion.",
+    "You'll leave here full whether you like it or not.",
+    "I know I push food on everyone. Have another.",
+    "My answer to everything is a plate of something."
+   ],
+   "kind": [
+    "Nobody should go hungry under my roof.",
+    "Food is how I say I care.",
+    "A full belly fixes half the world's troubles.",
+    "I just like seeing people eat well."
+   ],
+   "tags": [
+    "generosity",
+    "warmth"
+   ],
+   "keywords": [
+    "feeds everyone",
+    "cook",
+    "baker",
+    "hospitable",
+    "nurturing",
+    "loves cooking"
+   ]
+  },
+  {
+   "id": "always-late",
+   "seen": [
+    "runs late to everything",
+    "arrives breathless with a fresh excuse",
+    "treats a set hour as a rough suggestion",
+    "turns up after the start, every time",
+    "loses track of the hour completely"
+   ],
+   "owned": [
+    "I'm late. I'm always late. I'm sorry.",
+    "Time slips through my fingers, it always has.",
+    "People tell me the wrong hour on purpose now.",
+    "I swear I left in plenty of time."
+   ],
+   "kind": [
+    "The best things happen when they happen.",
+    "Something always comes up on the way.",
+    "I got caught up helping someone.",
+    "I'm never late for anything that truly matters."
+   ],
+   "tags": [
+    "late"
+   ],
+   "keywords": [
+    "always late",
+    "tardy",
+    "unpunctual",
+    "scatterbrained",
+    "disorganised",
+    "disorganized"
+   ]
+  },
+  {
+   "id": "passes-on-secrets",
+   "seen": [
+    "can't keep a secret past supper",
+    "passes along things told in confidence",
+    "lets slip what was meant to stay private",
+    "repeats confidences to the next listener",
+    "treats a secret as something to share"
+   ],
+   "owned": [
+    "Don't tell me anything you want kept. I'm a sieve.",
+    "I mean to keep secrets. They just leak out.",
+    "I know, I promised. It slipped.",
+    "Secrets burn a hole in me until I share them."
+   ],
+   "kind": [
+    "I only told one person, and they won't say anything.",
+    "It wasn't really a secret, was it?",
+    "I thought everyone already knew.",
+    "Sharing news brings people together."
+   ],
+   "tags": [
+    "gossip"
+   ],
+   "keywords": [
+    "can't keep a secret",
+    "blabbermouth",
+    "loose lips",
+    "tattletale",
+    "indiscreet"
+   ]
+  },
+  {
+   "id": "knows-everyones-business",
+   "seen": [
+    "knows everyone's business before they do",
+    "keeps a running map of who's feuding with whom",
+    "always has the latest about the neighbours",
+    "hears about every quarrel within a day",
+    "tracks the comings and goings of the whole street"
+   ],
+   "owned": [
+    "I know everything about everyone. It's a gift and a curse.",
+    "If something happens on this street, I hear about it.",
+    "I'm nosy. I've made my peace with it.",
+    "Ask me anything about anyone. I probably know."
+   ],
+   "kind": [
+    "I'm not nosy, I just pay attention.",
+    "Somebody has to know what's going on.",
+    "People tell me things. I don't go looking.",
+    "Knowing the neighbours keeps us all safer."
+   ],
+   "tags": [
+    "gossip",
+    "curiosity"
+   ],
+   "keywords": [
+    "nosy",
+    "nosey",
+    "busybody",
+    "gossip",
+    "gossipy",
+    "knows everyone"
+   ]
+  },
+  {
+   "id": "lowers-voice",
+   "seen": [
+    "drops to a whisper to share the latest news",
+    "starts every story with a glance over the shoulder",
+    "lowers the voice for the juicy part",
+    "delivers news in a conspiratorial hush",
+    "beckons people closer before sharing anything good"
+   ],
+   "owned": [
+    "I whisper the good bits. I know it's theatrical.",
+    "Lean in. Yes, I'm doing my secret voice again.",
+    "I can't share news at a normal volume, apparently.",
+    "Everything sounds better in a whisper, I find."
+   ],
+   "kind": [
+    "I'm only being discreet.",
+    "Not everyone needs to hear this.",
+    "Keeping it quiet is the respectful thing.",
+    "I lower my voice so nobody gets embarrassed."
+   ],
+   "tags": [
+    "gossip"
+   ],
+   "keywords": [
+    "whispers",
+    "conspiratorial",
+    "hushed",
+    "rumour",
+    "rumor",
+    "rumourmonger"
+   ]
+  },
+  {
+   "id": "window-watcher",
+   "seen": [
+    "watches the street from behind a curtain",
+    "notes every visitor on the lane and the hour",
+    "keeps an eye on who comes and goes",
+    "twitches the curtain at every passing footstep",
+    "knows which doors opened late last night"
+   ],
+   "owned": [
+    "Yes, I watch the street. Someone has to.",
+    "I'm a curtain-twitcher and proud of it.",
+    "I see who comes and goes. I can't help looking.",
+    "Nothing gets past my window, I'm afraid."
+   ],
+   "kind": [
+    "I'm keeping watch for everyone's sake.",
+    "I just like to see the world going by.",
+    "It's neighbourly to notice.",
+    "If something happened, you'd be glad I saw."
+   ],
+   "tags": [
+    "gossip",
+    "curiosity"
+   ],
+   "keywords": [
+    "curtain twitcher",
+    "curtain-twitcher",
+    "snoop",
+    "snooping",
+    "prying"
+   ]
+  },
+  {
+   "id": "retells-stories",
+   "seen": [
+    "retells everyone's private stories at dinner",
+    "spreads a good tale faster than it happened",
+    "embroiders the stories passed along",
+    "turns a friend's mishap into the evening's entertainment",
+    "adds a little colour to every rumour shared"
+   ],
+   "owned": [
+    "I improve a story every time I tell it.",
+    "I know, it wasn't my story to tell.",
+    "By the third telling it's a much better tale.",
+    "I can't resist a good story, even someone else's."
+   ],
+   "kind": [
+    "A story's meant to be told.",
+    "I only make it more fun to hear.",
+    "Everyone was laughing, even the one it was about.",
+    "People like hearing about each other."
+   ],
+   "tags": [
+    "gossip",
+    "attention"
+   ],
+   "keywords": [
+    "embellishes",
+    "exaggerates",
+    "spreads stories",
+    "tale-bearer",
+    "gossipmonger"
+   ]
+  },
+  {
+   "id": "matchmaker",
+   "seen": [
+    "tries to pair off every unattached friend",
+    "speculates about who's courting whom",
+    "plots introductions between likely couples",
+    "can't see two people chatting without guessing at romance",
+    "keeps a mental list of matches to make"
+   ],
+   "owned": [
+    "I'm a terrible matchmaker and I'll never stop.",
+    "I see two lonely people and start plotting.",
+    "Yes, I seated you together on purpose.",
+    "I know, I meddle in other people's hearts."
+   ],
+   "kind": [
+    "I just want everyone to be happy.",
+    "Some people need a little push.",
+    "Love deserves a helping hand.",
+    "I'm good at seeing who fits together."
+   ],
+   "tags": [
+    "gossip",
+    "warmth"
+   ],
+   "keywords": [
+    "matchmaker",
+    "matchmaking",
+    "romantic meddler",
+    "cupid",
+    "plays cupid"
+   ]
+  },
+  {
+   "id": "jokes-when-tense",
+   "seen": [
+    "cracks a joke when things get tense",
+    "answers bad news with a quip",
+    "breaks every awkward silence with a wisecrack",
+    "laughs loudest in the worst moments",
+    "turns a quarrel into a punchline"
+   ],
+   "owned": [
+    "When it gets tense, I get funny. I know.",
+    "I joke when I'm scared. Always have.",
+    "Sorry. Bad timing for a joke. It's what I do.",
+    "My first answer to trouble is a punchline."
+   ],
+   "kind": [
+    "Someone has to lighten the mood.",
+    "Laughter helps more than worry.",
+    "If we can laugh, we can get through it.",
+    "I'm just keeping spirits up."
+   ],
+   "tags": [
+    "deflect",
+    "humor"
+   ],
+   "keywords": [
+    "class clown",
+    "jokes around",
+    "wisecracker",
+    "uses humor",
+    "uses humour",
+    "comic relief"
+   ]
+  },
+  {
+   "id": "cleans-when-upset",
+   "seen": [
+    "scrubs the floor whenever upset",
+    "starts cleaning in the middle of an argument",
+    "buries feelings under a pile of chores",
+    "polishes things hard when angry",
+    "finds urgent work to do whenever feelings come up"
+   ],
+   "owned": [
+    "When I'm upset, the whole house gets cleaned.",
+    "I scrub instead of talking. I'm aware.",
+    "If you see me polishing, something's wrong.",
+    "I'd rather beat a rug than say how I feel."
+   ],
+   "kind": [
+    "Work settles the mind.",
+    "I'm just getting things done.",
+    "Feelings can wait. The chores can't.",
+    "Being useful helps more than moping."
+   ],
+   "tags": [
+    "deflect",
+    "tidy"
+   ],
+   "keywords": [
+    "workaholic",
+    "keeps busy",
+    "stress cleaner",
+    "bottles up",
+    "busywork"
+   ]
+  },
+  {
+   "id": "turns-questions-back",
+   "seen": [
+    "turns every personal question back on the asker",
+    "answers a question with a question",
+    "keeps the spotlight firmly on others",
+    "deflects curiosity by asking about the other person",
+    "shares almost nothing about personal matters"
+   ],
+   "owned": [
+    "I'd rather hear about you. I always would.",
+    "I know I never talk about myself.",
+    "You asked me something and I turned it around, didn't I?",
+    "My life isn't interesting. Tell me yours."
+   ],
+   "kind": [
+    "Other people are more interesting than me.",
+    "I'm a listener, not a talker.",
+    "I just care about what's going on with you.",
+    "There's nothing much to tell, honestly."
+   ],
+   "tags": [
+    "deflect",
+    "curiosity"
+   ],
+   "keywords": [
+    "private",
+    "secretive",
+    "guarded",
+    "closed off",
+    "mysterious"
+   ]
+  },
+  {
+   "id": "says-im-fine",
+   "seen": [
+    "says everything is fine when it clearly isn't",
+    "insists on being fine through gritted teeth",
+    "smiles and says it's nothing",
+    "waves off concern with a quick all right",
+    "hides a bad day behind a cheerful answer"
+   ],
+   "owned": [
+    "I say I'm fine. I'm rarely fine.",
+    "Fine is my favourite lie.",
+    "I know I hide it when things are bad.",
+    "I'll say it's nothing even when it's something."
+   ],
+   "kind": [
+    "I don't want to burden anyone.",
+    "Other people have bigger problems.",
+    "I'll manage. I always do.",
+    "No sense making a fuss over little things."
+   ],
+   "tags": [
+    "deflect",
+    "quiet"
+   ],
+   "keywords": [
+    "stoic",
+    "bottles it up",
+    "hides feelings",
+    "brave face",
+    "never complains"
+   ]
+  },
+  {
+   "id": "over-apologizes",
+   "seen": [
+    "apologises before saying anything at all",
+    "says sorry for taking up room",
+    "begins every request with an apology",
+    "apologises to furniture after bumping into it",
+    "says sorry three times in one breath"
+   ],
+   "owned": [
+    "Sorry. I know. I apologise too much. Sorry.",
+    "I say sorry like other people say hello.",
+    "I've apologised to a door before. Twice.",
+    "I can't ask for anything without apologising first."
+   ],
+   "kind": [
+    "It's just good manners.",
+    "I'd rather apologise than offend.",
+    "Saying sorry smooths things over.",
+    "A little courtesy goes a long way."
+   ],
+   "tags": [
+    "nerves"
+   ],
+   "keywords": [
+    "apologetic",
+    "apologises",
+    "apologizes",
+    "timid",
+    "meek",
+    "says sorry"
+   ]
+  },
+  {
+   "id": "one-upper",
+   "seen": [
+    "tops every story with a better one",
+    "has always done it bigger or worse",
+    "can't let anyone else's tale stand alone",
+    "follows good news with even grander news",
+    "turns every shared hardship into a contest"
+   ],
+   "owned": [
+    "I do one-up people. I hear it as I'm saying it.",
+    "Your story reminds me of mine, which was, well, bigger.",
+    "I know, I always have to top it.",
+    "I can't let a good story go unmatched."
+   ],
+   "kind": [
+    "I'm just relating, showing I understand.",
+    "I'm sharing, not competing.",
+    "It's how conversation works, trading stories.",
+    "I only mention it so you feel less alone."
+   ],
+   "tags": [
+    "competitive",
+    "attention"
+   ],
+   "keywords": [
+    "one-upper",
+    "one-ups",
+    "competitive",
+    "show-off",
+    "outdoes"
+   ]
+  },
+  {
+   "id": "tangents",
+   "seen": [
+    "wanders off on tangents mid-story",
+    "loses the thread three times per tale",
+    "starts one story and finishes another",
+    "follows every side path in a conversation",
+    "rambles until the point is long forgotten"
+   ],
+   "owned": [
+    "Where was I? I always lose my place.",
+    "I go off on tangents. Bring me back.",
+    "My stories have more detours than a country road.",
+    "I never get to the point. I just enjoy the trip."
+   ],
+   "kind": [
+    "The side roads are the best part.",
+    "Everything's connected if you think about it.",
+    "A good story takes its time.",
+    "I'm just giving you the full picture."
+   ],
+   "tags": [
+    "restless",
+    "attention"
+   ],
+   "keywords": [
+    "rambles",
+    "rambling",
+    "tangents",
+    "loses track",
+    "absent-minded",
+    "absentminded"
+   ]
+  },
+  {
+   "id": "corrects-details",
+   "seen": [
+    "corrects small details in other people's stories",
+    "stops a tale to fix a date or a name",
+    "can't let a minor mistake pass",
+    "points out the error nobody else cared about",
+    "insists on the exact figure every time"
+   ],
+   "owned": [
+    "I correct people. It's a sickness.",
+    "I know it doesn't matter. It was Tuesday, though.",
+    "I can't let a wrong detail slide.",
+    "Yes, I'm being pedantic. I'm aware."
+   ],
+   "kind": [
+    "Getting it right matters to me.",
+    "I'd want to be corrected, so I correct.",
+    "Facts are facts, whatever the mood.",
+    "I'm saving you from repeating a mistake."
+   ],
+   "tags": [
+    "stubborn",
+    "honest"
+   ],
+   "keywords": [
+    "pedantic",
+    "nitpicky",
+    "nitpicker",
+    "stickler",
+    "corrects people",
+    "precise"
+   ]
+  },
+  {
+   "id": "blunt-truths",
+   "seen": [
+    "says the harsh thing out loud",
+    "delivers honest opinions without softening them",
+    "answers a fishing question with the plain truth",
+    "tells people the very thing nobody wants to hear",
+    "never pads a hard truth with kindness"
+   ],
+   "owned": [
+    "I'm blunt. Ask me only if you want the truth.",
+    "I know I could say it more gently. I don't.",
+    "Tact was never my strong suit.",
+    "I say what I think, and sometimes it stings."
+   ],
+   "kind": [
+    "I'm just being honest.",
+    "At least you know where you stand with me.",
+    "Sugarcoating is a kind of lying.",
+    "The truth helps more than flattery ever could."
+   ],
+   "tags": [
+    "honest"
+   ],
+   "keywords": [
+    "blunt",
+    "brutally honest",
+    "tactless",
+    "outspoken",
+    "straight-talking",
+    "no filter"
+   ]
+  },
+  {
+   "id": "flatters",
+   "seen": [
+    "flatters anyone who might be useful",
+    "lays compliments on thick",
+    "praises everything a little too warmly",
+    "says exactly what each listener hopes to hear",
+    "has a kind word ready for anyone of rank"
+   ],
+   "owned": [
+    "I butter people up. I'm good at it.",
+    "I know my compliments come a bit thick.",
+    "Yes, I flatter. It opens doors.",
+    "I praise people a little more than they've earned."
+   ],
+   "kind": [
+    "I'm only being kind.",
+    "What's wrong with making people feel good?",
+    "I see the best in everyone.",
+    "A pleasant word sweetens any meeting."
+   ],
+   "tags": [
+    "flattery"
+   ],
+   "keywords": [
+    "flatterer",
+    "flattery",
+    "smooth talker",
+    "sycophant",
+    "suck-up",
+    "charmer"
+   ]
+  },
+  {
+   "id": "talks-to-objects",
+   "seen": [
+    "talks to animals and objects as if they answer",
+    "chats to the kettle while waiting",
+    "scolds tools that misbehave",
+    "names household things and speaks to them",
+    "carries on full conversations with the cat"
+   ],
+   "owned": [
+    "I talk to things. They're good listeners.",
+    "Yes, I named the broom. Don't judge me.",
+    "I chat with the cat more than with people.",
+    "I know it's odd that I argue with the door."
+   ],
+   "kind": [
+    "Everything deserves a little kindness.",
+    "It keeps me company when I'm alone.",
+    "Saying things aloud helps me think.",
+    "Who's to say they don't hear?"
+   ],
+   "tags": [
+    "quiet",
+    "warmth"
+   ],
+   "keywords": [
+    "talks to animals",
+    "talks to themselves",
+    "eccentric",
+    "quirky",
+    "animal lover"
+   ]
+  },
+  {
+   "id": "collects-strays",
+   "seen": [
+    "takes in every stray, animal or person",
+    "brings home whoever looks lost",
+    "always has a lodger nobody expected",
+    "finds room at the table for one more waif",
+    "adopts lost causes without a second thought"
+   ],
+   "owned": [
+    "I collect strays. Animals, people, whatever needs a home.",
+    "I know, another one. I couldn't leave them.",
+    "My door is a little too open, I'm told.",
+    "Every lost creature seems to find me."
+   ],
+   "kind": [
+    "Everyone needs somewhere to land.",
+    "I couldn't walk past and do nothing.",
+    "There's always room for one more.",
+    "They'd have done the same for me."
+   ],
+   "tags": [
+    "generosity",
+    "warmth"
+   ],
+   "keywords": [
+    "takes in strays",
+    "soft-hearted",
+    "softhearted",
+    "bleeding heart",
+    "big-hearted",
+    "rescuer"
+   ]
+  },
+  {
+   "id": "lends-things",
+   "seen": [
+    "lends things out and never asks for them back",
+    "gives away belongings at the first hint of need",
+    "has borrowed books scattered across town",
+    "hands a cloak to anyone shivering",
+    "never keeps track of what was loaned"
+   ],
+   "owned": [
+    "Half my things live at other people's houses.",
+    "I lend everything. I never get it back.",
+    "I know, I gave it away again.",
+    "If you need it, take it. I mean that too much."
+   ],
+   "kind": [
+    "Things are for using, not hoarding.",
+    "Someone needed it more than me.",
+    "It'll come back to me some other way.",
+    "Sharing is what neighbours do."
+   ],
+   "tags": [
+    "generosity"
+   ],
+   "keywords": [
+    "generous",
+    "giving",
+    "lends",
+    "openhanded",
+    "open-handed",
+    "selfless"
+   ]
+  },
+  {
+   "id": "small-gifts",
+   "seen": [
+    "brings a small gift to every visit",
+    "never arrives empty-handed",
+    "picks up little tokens for friends on errands",
+    "presses trinkets into people's hands",
+    "leaves small surprises on doorsteps"
+   ],
+   "owned": [
+    "I can't visit without bringing something. I just can't.",
+    "Yes, another little thing. I saw it and thought of you.",
+    "My pockets are always full of small presents.",
+    "I know, I don't need to bring anything. I always do."
+   ],
+   "kind": [
+    "A little token says you were thought of.",
+    "It's how I was raised.",
+    "Small surprises brighten a dull day.",
+    "I just like giving more than getting."
+   ],
+   "tags": [
+    "generosity",
+    "warmth"
+   ],
+   "keywords": [
+    "gift-giver",
+    "gives gifts",
+    "brings gifts",
+    "considerate",
+    "sweet"
+   ]
+  },
+  {
+   "id": "paces",
+   "seen": [
+    "paces the room while thinking",
+    "can't hold a serious talk sitting down",
+    "wears a track in the floor when worried",
+    "walks in circles while working out a problem",
+    "gets up and moves the moment an idea takes hold"
+   ],
+   "owned": [
+    "I pace. I think with my feet.",
+    "Sitting still makes my head go blank.",
+    "I know I'm wearing out your floor.",
+    "I need to walk to get my thoughts in a line."
+   ],
+   "kind": [
+    "Moving helps me think straight.",
+    "Sitting still is wasted time.",
+    "It's just nervous energy finding a way out.",
+    "My best ideas come on my feet."
+   ],
+   "tags": [
+    "restless"
+   ],
+   "keywords": [
+    "paces",
+    "pacing",
+    "can't sit still",
+    "energetic",
+    "hyperactive",
+    "on the move"
+   ]
+  },
+  {
+   "id": "makes-lists",
+   "seen": [
+    "makes lists for everything",
+    "writes out a plan for a simple afternoon",
+    "crosses items off with visible satisfaction",
+    "keeps a list of the lists",
+    "won't start a task without writing it down first"
+   ],
+   "owned": [
+    "I make lists. Then I make lists about my lists.",
+    "If it isn't written down, I can't rest.",
+    "I know it's excessive. I love crossing things off.",
+    "There's a list for that. There's always a list."
+   ],
+   "kind": [
+    "Lists keep me from forgetting what matters.",
+    "Planning saves everyone trouble later.",
+    "A written plan is a calm mind.",
+    "I'm just organised, that's all."
+   ],
+   "tags": [
+    "tidy",
+    "control"
+   ],
+   "keywords": [
+    "list-maker",
+    "planner",
+    "methodical",
+    "meticulous",
+    "makes lists"
+   ]
+  },
+  {
+   "id": "double-checks",
+   "seen": [
+    "checks the locks twice before leaving",
+    "goes back to make sure the fire is out",
+    "reads a letter three times before sending it",
+    "asks if everything is packed, again",
+    "can't trust a door is shut without trying it"
+   ],
+   "owned": [
+    "I've checked it twice. I'll check it again.",
+    "I know the door's locked. I still have to look.",
+    "I check everything more than I need to.",
+    "Leaving the house takes me a while."
+   ],
+   "kind": [
+    "Better safe than sorry.",
+    "It only takes a moment to be sure.",
+    "One of us has to be careful.",
+    "I sleep better knowing it's done right."
+   ],
+   "tags": [
+    "worry"
+   ],
+   "keywords": [
+    "cautious",
+    "careful",
+    "double-checks",
+    "anxious",
+    "obsessive",
+    "thorough"
+   ]
+  },
+  {
+   "id": "worst-case",
+   "seen": [
+    "imagines the worst outcome out loud",
+    "lists everything that could go wrong",
+    "predicts disaster from every grey sky",
+    "turns a late arrival into a catastrophe",
+    "has a dark forecast for every plan"
+   ],
+   "owned": [
+    "I always expect the worst. It rarely comes.",
+    "I know, I'm catastrophising again.",
+    "My mind runs straight to disaster.",
+    "Give me a plan and I'll find ten ways it fails."
+   ],
+   "kind": [
+    "I'm just being prepared.",
+    "If you expect the worst, you're never caught out.",
+    "Someone has to think ahead.",
+    "Worry is just love looking forward."
+   ],
+   "tags": [
+    "worry"
+   ],
+   "keywords": [
+    "pessimist",
+    "pessimistic",
+    "worrier",
+    "worrywart",
+    "doom",
+    "gloomy"
+   ]
+  },
+  {
+   "id": "fusses-health",
+   "seen": [
+    "fusses over everyone's health",
+    "insists on a scarf at the first chill",
+    "notices every cough and prescribes a remedy",
+    "asks if you've slept enough",
+    "wraps others in blankets unasked"
+   ],
+   "owned": [
+    "I fuss. I know I fuss.",
+    "Every sniffle around me gets a remedy.",
+    "Yes, I brought you soup again. You sounded hoarse.",
+    "I worry about everyone's health more than my own."
+   ],
+   "kind": [
+    "Someone has to look after you.",
+    "A little care now saves a lot of trouble.",
+    "I just want everyone well.",
+    "Better a scarf than a fever."
+   ],
+   "tags": [
+    "worry",
+    "warmth"
+   ],
+   "keywords": [
+    "fussy",
+    "fusses",
+    "caretaker",
+    "overprotective",
+    "doting",
+    "caring"
+   ]
+  },
+  {
+   "id": "quiet-in-groups",
+   "seen": [
+    "goes quiet in a crowd",
+    "sits at the edge of a lively table",
+    "listens far more than speaks in company",
+    "speaks once an evening, and only briefly",
+    "fades into the background at gatherings"
+   ],
+   "owned": [
+    "Put me in a crowd and I go silent.",
+    "I'm better one on one, I know.",
+    "I listen at parties. Talking is harder.",
+    "People forget I'm there, and that's my fault."
+   ],
+   "kind": [
+    "I learn more by listening.",
+    "Not everyone needs to fill the air.",
+    "I'm happy just watching.",
+    "I speak when I have something worth saying."
+   ],
+   "tags": [
+    "quiet"
+   ],
+   "keywords": [
+    "shy",
+    "introvert",
+    "introverted",
+    "reserved",
+    "quiet",
+    "wallflower"
+   ]
+  },
+  {
+   "id": "keeps-notebook",
+   "seen": [
+    "writes down odd facts in a little notebook",
+    "jots notes in the middle of conversations",
+    "copies out interesting words to keep",
+    "carries something to write on everywhere",
+    "records the day's small details every night"
+   ],
+   "owned": [
+    "I write everything down. Everything.",
+    "Don't mind me, just making a note.",
+    "My notebooks would fill a whole shelf.",
+    "I can't hear a good line without writing it."
+   ],
+   "kind": [
+    "Memory fades, but ink lasts.",
+    "I just don't want to lose anything.",
+    "Little details become treasures later.",
+    "Writing helps me understand things."
+   ],
+   "tags": [
+    "curiosity",
+    "quiet"
+   ],
+   "keywords": [
+    "journals",
+    "note-taker",
+    "writer",
+    "observant",
+    "scholarly",
+    "diarist"
+   ]
+  },
+  {
+   "id": "asks-questions",
+   "seen": [
+    "asks question after question",
+    "wants to know how everything works",
+    "follows every answer with another why",
+    "quizzes strangers about their trades",
+    "can't let a puzzle rest"
+   ],
+   "owned": [
+    "I ask too many questions. I know.",
+    "Sorry, just one more question. Maybe two.",
+    "My curiosity wears people out.",
+    "I need to know how things work, always."
+   ],
+   "kind": [
+    "How else does anyone learn?",
+    "Curiosity keeps the mind young.",
+    "I'm genuinely interested in people.",
+    "Asking shows I care what you think."
+   ],
+   "tags": [
+    "curiosity"
+   ],
+   "keywords": [
+    "curious",
+    "inquisitive",
+    "questions everything",
+    "inquiring",
+    "wide-eyed"
+   ]
+  },
+  {
+   "id": "never-wrong",
+   "seen": [
+    "never admits to being wrong",
+    "argues long after the point is lost",
+    "rewrites the story so the mistake was someone else's",
+    "won't apologise for a wrong turn",
+    "digs in harder when proven mistaken"
+   ],
+   "owned": [
+    "I hate being wrong. I'll argue rather than admit it.",
+    "I know I dig in. I just can't back down.",
+    "Saying I was wrong sticks in my throat.",
+    "Yes, I'm stubborn. Annoyingly so."
+   ],
+   "kind": [
+    "I just believe in what I say.",
+    "I stand by my word.",
+    "Someone has to hold firm.",
+    "I'm not stubborn, I'm sure of myself."
+   ],
+   "tags": [
+    "stubborn",
+    "pride"
+   ],
+   "keywords": [
+    "stubborn",
+    "pig-headed",
+    "pigheaded",
+    "obstinate",
+    "never wrong",
+    "argumentative"
+   ]
+  },
+  {
+   "id": "haggles",
+   "seen": [
+    "haggles over everything, even gifts",
+    "can't buy a loaf without bargaining",
+    "treats every price as an opening offer",
+    "argues the cost of everything at the market",
+    "enjoys the bargain more than the purchase"
+   ],
+   "owned": [
+    "I haggle. I'd haggle with my own shadow.",
+    "Paying the first price feels like losing.",
+    "I know the stallholders groan when I come.",
+    "Bargaining is my favourite sport."
+   ],
+   "kind": [
+    "Everyone expects a little haggling.",
+    "I'm just being sensible with what I have.",
+    "Waste not, want not.",
+    "Nobody respects someone who pays whatever's asked."
+   ],
+   "tags": [
+    "competitive",
+    "stubborn"
+   ],
+   "keywords": [
+    "haggler",
+    "thrifty",
+    "frugal",
+    "penny-pincher",
+    "stingy",
+    "bargain hunter"
+   ]
+  },
+  {
+   "id": "self-mocking",
+   "seen": [
+    "jokes about personal failings before anyone else can",
+    "puts self down for a laugh",
+    "mocks own looks and luck with a grin",
+    "beats everyone to the punchline about own mistakes",
+    "laughs at own clumsiness loudly and first"
+   ],
+   "owned": [
+    "I make fun of myself first. Saves everyone the trouble.",
+    "I know I'm always the butt of my own jokes.",
+    "If anyone's going to laugh at me, it'll be me.",
+    "Self-mockery is my oldest armour."
+   ],
+   "kind": [
+    "I don't take myself too seriously.",
+    "It's just humour, not a confession.",
+    "Laughing at yourself keeps you humble.",
+    "It puts people at ease."
+   ],
+   "tags": [
+    "humor",
+    "deflect"
+   ],
+   "keywords": [
+    "self-deprecating",
+    "self deprecating",
+    "self-mocking",
+    "puts themselves down",
+    "insecure"
+   ]
+  },
+  {
+   "id": "puns",
+   "seen": [
+    "can't resist a terrible pun",
+    "groans at own wordplay before anyone else does",
+    "twists any phrase into a play on words",
+    "keeps a stock of awful jokes",
+    "waits for the groan after every joke"
+   ],
+   "owned": [
+    "I make puns. I'm not sorry.",
+    "Yes, that was a pun. There'll be more.",
+    "My jokes are bad and I love them.",
+    "I hear a pun and it has to come out."
+   ],
+   "kind": [
+    "A groan is still a laugh.",
+    "Words are toys, and I like to play.",
+    "Someone has to keep things silly.",
+    "Bad jokes are good for the soul."
+   ],
+   "tags": [
+    "humor"
+   ],
+   "keywords": [
+    "puns",
+    "punny",
+    "wordplay",
+    "corny",
+    "jokester",
+    "goofy"
+   ]
+  },
+  {
+   "id": "loud-sighs",
+   "seen": [
+    "sighs loudly until someone asks what's wrong",
+    "huffs and groans at every small setback",
+    "makes sure displeasure is heard",
+    "lets out long sighs across quiet rooms",
+    "mutters complaints just loud enough to catch"
+   ],
+   "owned": [
+    "I sigh a lot. Loudly. I'm aware.",
+    "I know I'm being dramatic. Let me be.",
+    "Yes, that sigh was meant for you to hear.",
+    "I huff when I want someone to ask."
+   ],
+   "kind": [
+    "I'm only letting off a little steam.",
+    "It's not about anyone. I'm just tired.",
+    "Better a sigh than a shout.",
+    "Sometimes a sound says it all."
+   ],
+   "tags": [
+    "attention"
+   ],
+   "keywords": [
+    "dramatic",
+    "melodramatic",
+    "sulks",
+    "sulky",
+    "moody",
+    "passive-aggressive"
+   ]
+  },
+  {
+   "id": "makes-entrance",
+   "seen": [
+    "makes a grand entrance everywhere",
+    "announces arrival to the whole room",
+    "sweeps in as if expected by everyone",
+    "pauses in doorways to be noticed",
+    "turns heads on purpose when arriving"
+   ],
+   "owned": [
+    "I like an entrance. I'll admit it.",
+    "If I come in quietly, something's wrong.",
+    "Yes, I paused at the door. On purpose.",
+    "I know I make a production of arriving."
+   ],
+   "kind": [
+    "People like a bit of spectacle.",
+    "Life's too short to slip in unnoticed.",
+    "I'm just glad to see everyone.",
+    "Arriving should feel like an occasion."
+   ],
+   "tags": [
+    "attention",
+    "pride"
+   ],
+   "keywords": [
+    "flamboyant",
+    "theatrical",
+    "showy",
+    "attention-seeking",
+    "attention seeker",
+    "diva"
+   ]
+  },
+  {
+   "id": "old-triumph",
+   "seen": [
+    "brings up the same old triumph",
+    "steers talk back to a single proud moment",
+    "retells a past success at every gathering",
+    "keeps polishing one long-ago victory",
+    "mentions the old achievement within the hour"
+   ],
+   "owned": [
+    "Did I mention that time? I always do.",
+    "I know, you've heard about my glory day.",
+    "I lean on one good memory a bit hard.",
+    "That story's worn thin, but I still love telling it."
+   ],
+   "kind": [
+    "It was a proud day, and I earned it.",
+    "Good memories deserve airing.",
+    "It reminds me what I'm capable of.",
+    "People enjoy hearing about it, I think."
+   ],
+   "tags": [
+    "pride"
+   ],
+   "keywords": [
+    "boastful",
+    "brags",
+    "bragging",
+    "nostalgic",
+    "glory days",
+    "living in the past"
+   ]
+  },
+  {
+   "id": "keeps-keepsakes",
+   "seen": [
+    "keeps every letter and dried flower",
+    "saves ribbons and scraps for no clear reason",
+    "can't throw away anything with a memory attached",
+    "has drawers full of mementos",
+    "treasures small things others would discard"
+   ],
+   "owned": [
+    "I keep everything. Letters, buttons, all of it.",
+    "My drawers are a museum of small things.",
+    "I know it's clutter. It's precious clutter.",
+    "I can't part with anything someone gave me."
+   ],
+   "kind": [
+    "Every little thing holds a memory.",
+    "You never know when you'll want it.",
+    "Throwing it away feels like forgetting.",
+    "These are pieces of my life."
+   ],
+   "tags": [
+    "quiet",
+    "warmth"
+   ],
+   "keywords": [
+    "sentimental",
+    "hoarder",
+    "packrat",
+    "pack rat",
+    "keepsakes",
+    "collector"
+   ]
+  },
+  {
+   "id": "bites-nails",
+   "seen": [
+    "bites nails when nervous",
+    "chews the inside of a cheek while thinking",
+    "worries a lip between teeth",
+    "gnaws at a thumbnail during bad news",
+    "picks at cuticles under the table"
+   ],
+   "owned": [
+    "I bite my nails. My hands give me away.",
+    "I know, I'm chewing my lip again.",
+    "Whenever I'm worried, my fingers end up in my mouth.",
+    "There's not a nail left on me. Nerves."
+   ],
+   "kind": [
+    "It's just a habit, nothing more.",
+    "Everyone has some little tic.",
+    "I'm thinking, not fretting.",
+    "It helps me concentrate."
+   ],
+   "tags": [
+    "nerves"
+   ],
+   "keywords": [
+    "nervous",
+    "nail biter",
+    "nail-biter",
+    "high-strung",
+    "highly strung",
+    "jumpy"
+   ]
+  },
+  {
+   "id": "touches-arm",
+   "seen": [
+    "touches your arm while talking",
+    "rests a hand on a shoulder mid-sentence",
+    "pats hands to make a point",
+    "reaches out to touch whoever is speaking",
+    "squeezes a wrist when saying something kind"
+   ],
+   "owned": [
+    "I'm a toucher. I can't talk without reaching out.",
+    "Sorry, my hands find people's shoulders.",
+    "I know not everyone likes a pat on the arm.",
+    "I touch your sleeve when I mean something."
+   ],
+   "kind": [
+    "A touch says what words can't.",
+    "It's warmth, nothing more.",
+    "I just want people to feel close.",
+    "Contact makes a conversation real."
+   ],
+   "tags": [
+    "warmth"
+   ],
+   "keywords": [
+    "affectionate",
+    "touchy-feely",
+    "hugger",
+    "tactile",
+    "physically affectionate"
+   ]
+  },
+  {
+   "id": "forgets-to-eat",
+   "seen": [
+    "forgets to eat when absorbed in work",
+    "works straight through meals",
+    "notices hunger only after dark",
+    "lets a plate go cold beside the work",
+    "loses the whole day to one task"
+   ],
+   "owned": [
+    "I forget to eat. Then I'm a bear by evening.",
+    "Once I'm into something, meals don't exist.",
+    "I know, my food's gone cold again.",
+    "Someone has to put bread in my hand or I won't stop."
+   ],
+   "kind": [
+    "When the work's flowing, you don't stop it.",
+    "I'll eat when it's done.",
+    "Hunger can wait. Ideas can't.",
+    "I just get lost in what I love."
+   ],
+   "tags": [
+    "restless"
+   ],
+   "keywords": [
+    "absorbed",
+    "single-minded",
+    "driven",
+    "hyperfocus",
+    "hyperfocused"
+   ]
+  },
+  {
+   "id": "volunteers",
+   "seen": [
+    "volunteers for everything",
+    "raises a hand before the request is finished",
+    "takes on every task nobody else wants",
+    "signs up and then signs up again",
+    "can't hear a call for help without offering"
+   ],
+   "owned": [
+    "I volunteer for everything. Then I'm drowning.",
+    "My hand goes up before my head catches up.",
+    "I know I've said yes to too much again.",
+    "If something needs doing, I'm somehow doing it."
+   ],
+   "kind": [
+    "If I don't, who will?",
+    "Many hands make light work.",
+    "I like being useful.",
+    "It's nice to be needed."
+   ],
+   "tags": [
+    "generosity",
+    "control"
+   ],
+   "keywords": [
+    "volunteers",
+    "overcommits",
+    "overcommitted",
+    "eager",
+    "helpful",
+    "dependable"
+   ]
+  },
+  {
+   "id": "does-impressions",
+   "seen": [
+    "does impressions of everyone in town",
+    "mimics voices to tell a story",
+    "copies other people's walks for a laugh",
+    "slips into accents mid-tale",
+    "plays every character in an anecdote"
+   ],
+   "owned": [
+    "I do voices. I can't tell a story without them.",
+    "Yes, that was supposed to be you.",
+    "I know my impressions aren't always kind.",
+    "Give me a story and I'll act out every part."
+   ],
+   "kind": [
+    "It's all in good fun.",
+    "Imitation is the sincerest flattery.",
+    "Stories need a bit of theatre.",
+    "People love seeing themselves played back."
+   ],
+   "tags": [
+    "humor",
+    "attention"
+   ],
+   "keywords": [
+    "mimic",
+    "impressionist",
+    "impersonator",
+    "does voices",
+    "performer",
+    "entertainer"
+   ]
+  },
+  {
+   "id": "old-sayings",
+   "seen": [
+    "answers everything with an old proverb",
+    "has a saying for every situation",
+    "quotes folk wisdom at the slightest excuse",
+    "offers a proverb in place of comfort",
+    "drops a homespun maxim into every talk"
+   ],
+   "owned": [
+    "I've a saying for everything. Drives people mad.",
+    "Yes, another proverb. They're always true, though.",
+    "I know I talk like an old almanac.",
+    "My head is a jar of old sayings."
+   ],
+   "kind": [
+    "Old words carry old wisdom.",
+    "Proverbs last because they're right.",
+    "My elders taught me well.",
+    "Why say it new when it's been said best?"
+   ],
+   "tags": [
+    "advice"
+   ],
+   "keywords": [
+    "proverbs",
+    "folksy",
+    "old-fashioned",
+    "homespun",
+    "sayings"
+   ]
+  }
+ ],
+ "self_stories": [
+  {
+   "id": "holds-it-together",
+   "lines": [
+    "I'm the one who holds everything together. Always have been.",
+    "If I stepped away for a week, the whole place would fall apart.",
+    "Somebody has to keep things running, and it usually ends up being me.",
+    "I'm the glue around here, whether anyone says so or not.",
+    "When things wobble, everyone looks my way. I've stopped minding."
+   ],
+   "hidden": [
+    "Nobody notices who keeps this place running, and that's fine. I notice.",
+    "Half of what goes right here goes right because I quietly saw to it.",
+    "They think things just work out on their own. They don't, and I know why."
+   ],
+   "glimpse": [
+    "the one who holds everything together",
+    "the glue that keeps the household from coming apart",
+    "the person everything quietly rests on"
+   ],
+   "keywords": [
+    "holds it together",
+    "glue",
+    "keeps things running",
+    "dependable",
+    "backbone",
+    "steady hand"
+   ]
+  },
+  {
+   "id": "underdog",
+   "lines": [
+    "I've always been the underdog, and I've always made it anyway.",
+    "Nobody ever bet on me. I got here regardless.",
+    "I started further back than everyone else and I don't forget it.",
+    "Give me long odds and I'll show you something.",
+    "I was never the favourite. I've learned to like it that way."
+   ],
+   "hidden": [
+    "Everyone wrote me off years ago. I'm still climbing, just quietly.",
+    "I'm further along than anyone guesses, and I got there from the bottom.",
+    "Let them keep doubting. It's the best fuel I've ever had."
+   ],
+   "glimpse": [
+    "the underdog who keeps winning anyway",
+    "someone nobody ever bet on",
+    "a long shot that keeps coming in"
+   ],
+   "keywords": [
+    "underdog",
+    "long shot",
+    "against the odds",
+    "scrappy",
+    "fighter's spirit",
+    "written off"
+   ]
+  },
+  {
+   "id": "sensible-one",
+   "lines": [
+    "I've always been the sensible one.",
+    "Somebody in every family has to keep their head. That's me.",
+    "When everyone else is getting carried away, I'm the one checking the sums.",
+    "I was the grown-up in the room long before I was grown.",
+    "I'm practical. Somebody has to be."
+   ],
+   "hidden": [
+    "They call me dull because I'm careful. Careful is why they still have a roof.",
+    "Under all that good sense there's a lot more going on than anyone asks about.",
+    "Being level-headed isn't the same as being simple, and I know the difference."
+   ],
+   "glimpse": [
+    "the sensible one",
+    "the level head in a family of hotheads",
+    "the one who keeps their feet on the ground"
+   ],
+   "keywords": [
+    "sensible",
+    "level-headed",
+    "practical",
+    "grounded",
+    "down to earth",
+    "no-nonsense"
+   ]
+  },
+  {
+   "id": "notices-everything",
+   "lines": [
+    "I notice everything. It's a curse, honestly.",
+    "Nothing gets past me, not a look, not a pause.",
+    "I see the small things everyone else walks straight over.",
+    "I can tell what kind of day you've had from how you shut the door.",
+    "Little details jump out at me. I can't switch it off."
+   ],
+   "hidden": [
+    "People think I'm daydreaming. I'm actually taking in the whole room.",
+    "I know far more about this street than I ever let on.",
+    "I see what people are hiding, and I mostly keep it to myself."
+   ],
+   "glimpse": [
+    "the one who notices everything",
+    "someone nothing slips past",
+    "better at reading a room than anyone gives them credit for"
+   ],
+   "keywords": [
+    "observant",
+    "perceptive",
+    "notices everything",
+    "sharp-eyed",
+    "eye for detail",
+    "watchful"
+   ]
+  },
+  {
+   "id": "late-bloomer",
+   "lines": [
+    "I came into my own late, and I'm making up for lost time.",
+    "I was a slow starter. Turns out I just needed longer.",
+    "Everyone else had it figured out young. My turn came later.",
+    "I didn't find my feet until well after everyone expected.",
+    "Some of us take the long road. I'm only just hitting my stride."
+   ],
+   "hidden": [
+    "People still see the awkward one I used to be. I've outgrown all that.",
+    "My best years haven't happened yet, and I can feel them coming.",
+    "I started late, but I've got more in me than the early starters ever did."
+   ],
+   "glimpse": [
+    "a late bloomer just hitting their stride",
+    "someone who took the long road to finding their feet",
+    "a slow starter with the best still ahead"
+   ],
+   "keywords": [
+    "late bloomer",
+    "slow starter",
+    "second act",
+    "found their feet late",
+    "late starter"
+   ]
+  },
+  {
+   "id": "peacemaker",
+   "lines": [
+    "I'm the peacemaker. I can't stand a room full of tension.",
+    "When people fall out, I'm the one who brings them back to the table.",
+    "I'd rather smooth things over than win an argument.",
+    "Somebody has to keep the peace, and I've got the knack for it.",
+    "I've spent my whole life talking people down from quarrels."
+   ],
+   "hidden": [
+    "Nobody sees how much fighting I've quietly headed off before it started.",
+    "Keeping the peace takes more nerve than picking a fight, believe me.",
+    "They think I'm just agreeable. I'm actually steering the whole conversation."
+   ],
+   "glimpse": [
+    "the peacemaker of the family",
+    "the one who smooths things over when tempers flare",
+    "a go-between who keeps everyone on speaking terms"
+   ],
+   "keywords": [
+    "peacemaker",
+    "mediator",
+    "diplomat",
+    "keeps the peace",
+    "smooths things over",
+    "avoids conflict"
+   ]
+  },
+  {
+   "id": "black-sheep",
+   "lines": [
+    "I've always been the black sheep, and I've made my peace with it.",
+    "My family never quite knew what to do with me.",
+    "I'm the odd one out at every family gathering.",
+    "Everyone else followed the plan. I wandered off it.",
+    "I was the disappointment of the household, apparently."
+   ],
+   "hidden": [
+    "The black sheep sees things the rest of the flock never will.",
+    "They still think I went wrong. I think I went my own way, and it's working.",
+    "Being the odd one out taught me more than fitting in ever could."
+   ],
+   "glimpse": [
+    "the black sheep of the family",
+    "the odd one out at every family table",
+    "the one who never followed the family plan"
+   ],
+   "keywords": [
+    "black sheep",
+    "rebel",
+    "odd one out",
+    "family disappointment",
+    "nonconformist"
+   ]
+  },
+  {
+   "id": "self-made",
+   "lines": [
+    "Everything I have, I built with my own two hands.",
+    "Nobody handed me anything. I made myself.",
+    "I didn't inherit a thing except stubbornness, and that was enough.",
+    "I started with nothing and built it up from scratch.",
+    "I'm self-made, and I'm proud of every bit of it."
+   ],
+   "hidden": [
+    "People see what I've got now and assume it was easy. It never was.",
+    "Every brick of this life I laid myself, and I remember each one.",
+    "I've come further than anyone round here could guess."
+   ],
+   "glimpse": [
+    "self-made from the ground up",
+    "someone who built everything from nothing",
+    "the one who never had anything handed to them"
+   ],
+   "keywords": [
+    "self-made",
+    "self-starter",
+    "built from nothing",
+    "ambitious",
+    "bootstraps",
+    "own two hands"
+   ]
+  },
+  {
+   "id": "caretaker",
+   "lines": [
+    "I'm a caretaker at heart. Looking after people is just what I do.",
+    "If someone's poorly or struggling, I'm already halfway to their door.",
+    "I've been looking after others since I was small.",
+    "I can't sit still if someone near me needs tending.",
+    "Feeding people, nursing people, fussing over people. That's me."
+   ],
+   "hidden": [
+    "Everyone thinks I just like fussing. Truth is, I've kept a few people alive.",
+    "Caring for others is a real skill, and I'm better at it than anyone knows.",
+    "Behind every bowl of soup I've carried is a whole lot of worry nobody sees."
+   ],
+   "glimpse": [
+    "a caretaker at heart",
+    "the one who looks after everybody",
+    "someone who's always tending to somebody"
+   ],
+   "keywords": [
+    "caretaker",
+    "nurturing",
+    "caregiver",
+    "looks after others",
+    "nurturer",
+    "tends the sick"
+   ]
+  },
+  {
+   "id": "got-away",
+   "lines": [
+    "I got out of where I grew up, and I'm not going back.",
+    "Where I come from, nobody leaves. I left.",
+    "I packed one bag and walked away from that town for good.",
+    "I'm the one who escaped. I still can't quite believe it.",
+    "Home was too small for me, so I made a new one."
+   ],
+   "hidden": [
+    "People here have no idea what it took to get out of that place.",
+    "I carry my old town with me, even though I'd never live there again.",
+    "Leaving was the bravest thing I've ever done, and nobody here knows it."
+   ],
+   "glimpse": [
+    "the one who got away from home",
+    "someone who left a small place and never went back",
+    "the only one from their village who ever left"
+   ],
+   "keywords": [
+    "left home",
+    "escaped",
+    "moved away",
+    "small town",
+    "never went back",
+    "runaway"
+   ]
+  },
+  {
+   "id": "realist",
+   "lines": [
+    "I'm a realist. I see things as they are, not as I'd like them.",
+    "Somebody has to say how it actually is, and I don't mind doing it.",
+    "I don't do wishful thinking. I deal with what's in front of me.",
+    "Call it gloomy if you like. I call it seeing clearly.",
+    "I hope for the best but I always plan for the worst."
+   ],
+   "hidden": [
+    "They think I'm a pessimist. I'm just usually right a little early.",
+    "Seeing things clearly is lonely, but it's kept me out of plenty of trouble.",
+    "I've predicted more disasters round here than anyone remembers."
+   ],
+   "glimpse": [
+    "a realist in a room full of dreamers",
+    "the one who sees things as they really are",
+    "someone who plans for the worst and hopes otherwise"
+   ],
+   "keywords": [
+    "realist",
+    "pragmatic",
+    "pessimist",
+    "cynical",
+    "clear-eyed",
+    "no illusions"
+   ]
+  },
+  {
+   "id": "lucky-one",
+   "lines": [
+    "I've always been lucky. Things just seem to fall my way.",
+    "I was born under a good star, I swear it.",
+    "Somehow it always works out for me. I've stopped questioning it.",
+    "I land on my feet. I always have.",
+    "Fortune's been kind to me, and I try not to waste it."
+   ],
+   "hidden": [
+    "People call it luck. Some of it is, and some of it I worked very hard for.",
+    "I know how fortunate I've been, and I quietly try to pass it on.",
+    "Luck has a way of finding people who keep their eyes open."
+   ],
+   "glimpse": [
+    "the lucky one",
+    "someone born under a good star",
+    "the one who always lands on their feet"
+   ],
+   "keywords": [
+    "lucky",
+    "fortunate",
+    "charmed",
+    "blessed",
+    "lands on their feet",
+    "good fortune"
+   ]
+  },
+  {
+   "id": "has-taste",
+   "lines": [
+    "I have taste. I can't help it, and I won't apologise for it.",
+    "I know quality the second I see it.",
+    "Good things matter to me, the cloth, the colour, the way a room is set.",
+    "I've always had an eye for what's fine and what's merely fussy.",
+    "I can tell good craftsmanship from a mile away."
+   ],
+   "hidden": [
+    "They call me fussy. I call it knowing the difference, and I do.",
+    "Nobody here realises how much thought goes into the way I set a table.",
+    "I've got a finer eye than anyone in this town, and I keep it to myself."
+   ],
+   "glimpse": [
+    "the one with taste",
+    "someone with a real eye for quality",
+    "the person who can always spot the finer thing"
+   ],
+   "keywords": [
+    "taste",
+    "refined",
+    "discerning",
+    "stylish",
+    "elegant",
+    "connoisseur",
+    "eye for quality",
+    "aesthete"
+   ]
+  },
+  {
+   "id": "survivor",
+   "lines": [
+    "I'm a survivor. I've come through worse than this.",
+    "Whatever comes, I get through it. I always have.",
+    "Life's knocked me down plenty, and I keep getting back up.",
+    "I've weathered storms that would flatten most people.",
+    "I don't break. I bend, and then I carry on."
+   ],
+   "hidden": [
+    "Nobody here knows half of what I've lived through, and that's my choice.",
+    "I'm tougher than I look, and I've had to prove it more than once.",
+    "Getting through the bad years made me into someone I'm actually proud of."
+   ],
+   "glimpse": [
+    "a survivor through and through",
+    "someone who's come through worse than anyone knows",
+    "the one who always gets back up"
+   ],
+   "keywords": [
+    "survivor",
+    "resilient",
+    "tough",
+    "hardy",
+    "weathered",
+    "unbreakable"
+   ]
+  },
+  {
+   "id": "almost-famous",
+   "lines": [
+    "I very nearly made it big once, you know.",
+    "There was a time I was this close to being somebody.",
+    "I had my moment once. People still remember it, a few of them.",
+    "If things had gone a little differently, you'd know my name.",
+    "I was on the edge of something great when I was younger."
+   ],
+   "hidden": [
+    "People see who I am now and have no idea who I almost was.",
+    "I still have it in me, that spark I had back then. It never left.",
+    "I once stood in front of a crowd that cheered. I haven't forgotten the sound."
+   ],
+   "glimpse": [
+    "someone who was almost famous once",
+    "a near-legend whose moment slipped away",
+    "the one who nearly made it big"
+   ],
+   "keywords": [
+    "almost famous",
+    "faded star",
+    "glory days",
+    "former performer",
+    "nearly made it",
+    "has-been"
+   ]
+  },
+  {
+   "id": "quiet-expert",
+   "lines": [
+    "I know my craft better than almost anyone. I just don't shout about it.",
+    "I've spent years getting good at one thing, and I am good at it.",
+    "Ask me about my trade and I could talk until dawn.",
+    "I'm not flashy. I'm just very, very good at what I do.",
+    "There's a lot of knowledge in my head, quietly gathered."
+   ],
+   "hidden": [
+    "People walk past me without knowing I'm the best at this for miles.",
+    "If they only asked, they'd find I know more than the so-called masters.",
+    "My skill speaks softly, but it speaks true, and I know its worth."
+   ],
+   "glimpse": [
+    "a quiet expert in their trade",
+    "someone who knows their craft inside and out",
+    "the best at their work that nobody's heard of"
+   ],
+   "keywords": [
+    "expert",
+    "skilled",
+    "specialist",
+    "knowledgeable",
+    "quiet expert",
+    "artisan"
+   ]
+  },
+  {
+   "id": "free-spirit",
+   "lines": [
+    "I'm a free spirit. Rules and schedules just don't suit me.",
+    "I go where the wind takes me, and I like it that way.",
+    "Tie me down and I'll wither. I need room to roam.",
+    "I've never been one for plans. I follow my nose.",
+    "Life's too short to live it by somebody else's clock."
+   ],
+   "hidden": [
+    "They think I'm flighty. I've thought hard about how I want to live.",
+    "Being free costs more than people realise, and I pay it gladly.",
+    "There's a steadiness under all my wandering that nobody else can see."
+   ],
+   "glimpse": [
+    "a free spirit",
+    "someone who goes wherever the wind blows",
+    "the one who never could be tied down"
+   ],
+   "keywords": [
+    "free spirit",
+    "carefree",
+    "spontaneous",
+    "bohemian",
+    "unconventional",
+    "easygoing",
+    "wild at heart"
+   ]
+  },
+  {
+   "id": "underestimated",
+   "lines": [
+    "Everyone underestimates me. I've learned to use it.",
+    "People take one look at me and decide I'm nothing much.",
+    "I'm always the one nobody expects anything from.",
+    "Folk tend to overlook me, right up until they can't.",
+    "I've been dismissed so often I hardly notice anymore."
+   ],
+   "hidden": [
+    "Let them think I'm simple. It makes it easier to surprise them.",
+    "I'm far more capable than anyone here has bothered to find out.",
+    "Being overlooked gives me room to work. One day they'll see."
+   ],
+   "glimpse": [
+    "the one everyone underestimates",
+    "someone who'd be great with one real chance",
+    "far more capable than anybody guesses"
+   ],
+   "keywords": [
+    "underestimated",
+    "overlooked",
+    "dismissed",
+    "dark horse",
+    "hidden talent",
+    "unassuming"
+   ]
+  },
+  {
+   "id": "natural-leader",
+   "lines": [
+    "I'm a natural leader. People just seem to follow me.",
+    "In a crisis, I'm the one who steps up and gives the orders.",
+    "I've always ended up in charge, whether I meant to or not.",
+    "Put me in front of a group and I know exactly what to do.",
+    "Leading comes easily to me. It always has."
+   ],
+   "hidden": [
+    "Nobody gave me a title, but they all look to me when it counts.",
+    "I'd be running this whole town if anyone gave me half a chance.",
+    "I've led people through worse than this, back when no one was watching."
+   ],
+   "glimpse": [
+    "a natural leader",
+    "the one people look to when things go wrong",
+    "someone who ends up in charge without even trying"
+   ],
+   "keywords": [
+    "leader",
+    "natural leader",
+    "commanding",
+    "takes charge",
+    "in charge",
+    "authoritative"
+   ]
+  },
+  {
+   "id": "outsider",
+   "lines": [
+    "I've always been on the outside looking in.",
+    "I never quite fit anywhere, and I've stopped trying to.",
+    "Every place I've lived, I've been the stranger.",
+    "I'm a bit of an outsider. Always was, always will be.",
+    "Belonging never came naturally to me."
+   ],
+   "hidden": [
+    "Standing on the edge, I see this town more clearly than the insiders do.",
+    "Not fitting in made me sharp, and I'm grateful for it now.",
+    "I've watched every circle in this place from the outside. I know them all."
+   ],
+   "glimpse": [
+    "an outsider wherever they go",
+    "the one always looking in from the edge",
+    "someone who never quite belonged anywhere"
+   ],
+   "keywords": [
+    "outsider",
+    "loner",
+    "stranger",
+    "misfit",
+    "doesn't fit in",
+    "newcomer"
+   ]
+  },
+  {
+   "id": "funny-one",
+   "lines": [
+    "I'm the funny one. Somebody's got to lighten the mood.",
+    "If I can get a laugh out of a bad day, I've done my job.",
+    "I've been the joker of every group since I could talk.",
+    "Making people laugh is the one thing I'm sure I'm good at.",
+    "A good joke can fix more than most medicine."
+   ],
+   "hidden": [
+    "Everyone laughs at my jokes. Nobody asks what I'm joking my way around.",
+    "Being funny takes timing and nerve, and I've got plenty of both.",
+    "I'm cleverer than my jokes let on. That's half the trick."
+   ],
+   "glimpse": [
+    "the funny one",
+    "the joker of every gathering",
+    "the one who can get a laugh out of anything"
+   ],
+   "keywords": [
+    "funny",
+    "joker",
+    "class clown",
+    "comedian",
+    "witty",
+    "humorous",
+    "jester"
+   ]
+  },
+  {
+   "id": "word-is-bond",
+   "lines": [
+    "My word is my bond. If I say it, I'll do it.",
+    "I've never broken a promise, and I'm not starting now.",
+    "A handshake from me means more than any signed paper.",
+    "I keep my word, even when it costs me.",
+    "People can call me many things, but never a liar."
+   ],
+   "hidden": [
+    "I've kept promises nobody even remembers I made.",
+    "Honour's gone out of fashion round here, but I still hold to it.",
+    "Every vow I've made, I've kept, quietly and without fuss."
+   ],
+   "glimpse": [
+    "someone whose word is their bond",
+    "the one who has never broken a promise",
+    "a person of their word through and through"
+   ],
+   "keywords": [
+    "honorable",
+    "honourable",
+    "keeps promises",
+    "trustworthy",
+    "principled",
+    "loyal",
+    "integrity"
+   ]
+  },
+  {
+   "id": "hard-worker",
+   "lines": [
+    "I work harder than anyone I know. Always have.",
+    "Give me a job and I'll be at it until it's done.",
+    "I was raised on hard graft and I've never lost the habit.",
+    "Nobody's ever outworked me, not once.",
+    "Idle hands make me itch. I'd rather be busy."
+   ],
+   "hidden": [
+    "They see the sweat. They don't see the early mornings nobody else was up for.",
+    "Most of what keeps this place going is work I did when nobody was looking.",
+    "I've earned every bit of what I have through sheer effort, and I know it."
+   ],
+   "glimpse": [
+    "the hardest worker in the place",
+    "someone who's never once been outworked",
+    "the one up before dawn and last to finish"
+   ],
+   "keywords": [
+    "hard worker",
+    "hardworking",
+    "diligent",
+    "workhorse",
+    "industrious",
+    "grafter",
+    "tireless"
+   ]
+  },
+  {
+   "id": "old-soul",
+   "lines": [
+    "I've always been an old soul. I was born forty years too late.",
+    "I never fit with folk my own age. I preferred the elders' company.",
+    "I like the old ways, the old songs, the old stories.",
+    "Something in me always felt older than my years.",
+    "Give me a quiet evening and an old book over a party."
+   ],
+   "hidden": [
+    "People think I'm just quiet. I'm carrying a lot of history in my head.",
+    "I understand things about life that most folk only learn far too late.",
+    "There's a wisdom in me that nobody here thinks to ask for."
+   ],
+   "glimpse": [
+    "an old soul",
+    "someone born a few generations too late",
+    "older in spirit than their years"
+   ],
+   "keywords": [
+    "old soul",
+    "old-fashioned",
+    "wise beyond their years",
+    "traditional",
+    "nostalgic",
+    "mature"
+   ]
+  },
+  {
+   "id": "romantic",
+   "lines": [
+    "I'm a hopeless romantic, and I'm not ashamed of it.",
+    "I still believe in grand gestures and love that lasts.",
+    "I fall for people too easily. It's who I am.",
+    "Every love story makes me cry, and I wouldn't change that.",
+    "I believe there's somebody out there for everyone."
+   ],
+   "hidden": [
+    "They laugh at my romantic notions. I think I understand love better than any of them.",
+    "I've loved more deeply than anyone here would guess.",
+    "My heart is bigger than I let it show, and it's still hoping."
+   ],
+   "glimpse": [
+    "a hopeless romantic",
+    "someone who still believes in love that lasts",
+    "the one who falls for people far too easily"
+   ],
+   "keywords": [
+    "romantic",
+    "hopeless romantic",
+    "lovesick",
+    "sentimental",
+    "idealistic about love",
+    "falls in love easily"
+   ]
+  },
+  {
+   "id": "defender",
+   "lines": [
+    "I stand up for people who can't stand up for themselves.",
+    "I can't watch somebody get pushed around and keep quiet.",
+    "If someone picks on the weak, they'll have me to deal with.",
+    "I've always been the one who steps between trouble and the little ones.",
+    "Injustice makes my blood boil. I won't look away from it."
+   ],
+   "hidden": [
+    "Nobody knows how many people I've quietly stood up for over the years.",
+    "I'm braver than I look when somebody needs protecting.",
+    "I'd take a blow for a stranger, and I think somewhere deep down they know it."
+   ],
+   "glimpse": [
+    "the one who stands up for the underdog",
+    "someone who can't watch anyone get pushed around",
+    "a protector of anybody smaller or weaker"
+   ],
+   "keywords": [
+    "protective",
+    "protector",
+    "defender",
+    "champion",
+    "sense of justice",
+    "stands up for others",
+    "righteous"
+   ]
+  },
+  {
+   "id": "dreamer",
+   "lines": [
+    "I'm a dreamer. My head's full of plans for something bigger.",
+    "One day I'm going to do something remarkable. I can feel it.",
+    "I've got more ideas than days to try them in.",
+    "I spend half my time imagining how things could be.",
+    "Ordinary life never felt like it was meant to be the whole story for me."
+   ],
+   "hidden": [
+    "They think I'm idle. I'm building something in my head, piece by piece.",
+    "My big plans aren't fancies. I've thought them through more than anyone knows.",
+    "Someday this town will see what I've been quietly dreaming up."
+   ],
+   "glimpse": [
+    "a dreamer with big plans",
+    "someone always imagining how things could be",
+    "the one with their head forever in the clouds"
+   ],
+   "keywords": [
+    "dreamer",
+    "visionary",
+    "head in the clouds",
+    "imaginative",
+    "big plans",
+    "idealist",
+    "daydreamer"
+   ]
+  },
+  {
+   "id": "clever-one",
+   "lines": [
+    "I've always been the clever one. Books came easy to me.",
+    "I like puzzles. I can't leave a problem alone until it's solved.",
+    "I was the one with my nose in a book while the others played.",
+    "My mind is the best thing about me, and I've always known it.",
+    "Ask me anything. If I don't know, I'll find out."
+   ],
+   "hidden": [
+    "People mistake my quiet for slowness. My head never stops working.",
+    "I've worked out things about this place that nobody else has noticed.",
+    "I'm cleverer than anyone here needs to know. It's safer that way."
+   ],
+   "glimpse": [
+    "the clever one",
+    "the bookish one with a mind for puzzles",
+    "sharper than anyone in the family"
+   ],
+   "keywords": [
+    "clever",
+    "intelligent",
+    "bookish",
+    "brainy",
+    "smart",
+    "intellectual",
+    "scholar",
+    "genius"
+   ]
+  },
+  {
+   "id": "fixer",
+   "lines": [
+    "I can fix just about anything you put in front of me.",
+    "Broken hinge, leaky roof, wobbly table. Hand it over.",
+    "I'm good with my hands. Always have been.",
+    "Show me how something works once and I'll mend it forever.",
+    "I'd rather repair a thing than replace it."
+   ],
+   "hidden": [
+    "Half the houses on this street stand straight because of me, and nobody notices.",
+    "My hands know things my mouth could never explain.",
+    "There's an art to mending, and I'm better at it than anybody gives me credit for."
+   ],
+   "glimpse": [
+    "someone who can fix just about anything",
+    "good with their hands",
+    "the one everybody calls when something breaks"
+   ],
+   "keywords": [
+    "handy",
+    "fixer",
+    "tinkerer",
+    "good with hands",
+    "mechanic",
+    "mends things"
+   ]
+  },
+  {
+   "id": "dutiful-one",
+   "lines": [
+    "I always did what was expected of me. Every time.",
+    "I was the good one, the one who never caused any trouble.",
+    "Duty comes first with me. It always has.",
+    "My parents never had to worry about me. I made sure of it.",
+    "I follow through on my obligations, no matter what."
+   ],
+   "hidden": [
+    "I've done everything right, and some days I wonder what I gave up for it.",
+    "There's a whole other person in me who never got a turn.",
+    "Being the good one cost me more than anyone realises."
+   ],
+   "glimpse": [
+    "the dutiful one",
+    "the one who always did what was expected",
+    "the good child who never caused a fuss"
+   ],
+   "keywords": [
+    "dutiful",
+    "obedient",
+    "responsible",
+    "good child",
+    "rule follower",
+    "conscientious",
+    "sense of duty"
+   ]
+  },
+  {
+   "id": "wanderer",
+   "lines": [
+    "I'm a wanderer. I've never stayed in one place long.",
+    "I've seen more roads than most folk have seen streets.",
+    "Give me a pack and a horizon and I'm happy.",
+    "I've lived in a dozen towns and called each one home for a while.",
+    "Something always calls me over the next hill."
+   ],
+   "hidden": [
+    "I carry a hundred places inside me. Nobody here has seen a fraction of them.",
+    "All that roaming taught me things this town could never teach.",
+    "I could tell stories from every corner of the map, if anyone asked."
+   ],
+   "glimpse": [
+    "a wanderer who's never stayed anywhere long",
+    "someone who's seen more roads than most",
+    "the one always looking over the next hill"
+   ],
+   "keywords": [
+    "wanderer",
+    "traveler",
+    "traveller",
+    "nomad",
+    "drifter",
+    "wanderlust",
+    "restless",
+    "well-traveled"
+   ]
+  },
+  {
+   "id": "local",
+   "lines": [
+    "I was born here and I'll die here. This place is mine.",
+    "I know every lane and every family in this town.",
+    "My people have been here for generations.",
+    "Ask me about anyone round here. I'll know their grandparents.",
+    "I've never needed to leave. Everything I love is right here."
+   ],
+   "hidden": [
+    "People think I'm small-minded for staying. I know this place deeper than any traveller.",
+    "I'm the living memory of this town, and nobody's ever thought to ask me.",
+    "Every stone here has a story, and I know most of them."
+   ],
+   "glimpse": [
+    "a local born and bred",
+    "someone who knows every family in town",
+    "the living memory of the neighbourhood"
+   ],
+   "keywords": [
+    "local",
+    "born and bred",
+    "hometown",
+    "rooted",
+    "townsperson",
+    "knows everyone",
+    "community"
+   ]
+  },
+  {
+   "id": "straight-talker",
+   "lines": [
+    "I'm honest. I tell it straight, even when it stings.",
+    "If you want flattery, ask someone else.",
+    "I say what I mean and I mean what I say.",
+    "I've never been able to dress up the truth.",
+    "Better a hard truth now than a soft lie later."
+   ],
+   "hidden": [
+    "They call me blunt. I'm the only one here who'll tell them what they need to hear.",
+    "My honesty has saved people from mistakes they never knew they nearly made.",
+    "Being straight with folk is a kindness, even if it doesn't feel like one."
+   ],
+   "glimpse": [
+    "the honest one who tells it straight",
+    "someone who never sugars a hard truth",
+    "the plain speaker of the family"
+   ],
+   "keywords": [
+    "honest",
+    "blunt",
+    "straight-talking",
+    "frank",
+    "outspoken",
+    "direct",
+    "candid",
+    "plain-spoken"
+   ]
+  },
+  {
+   "id": "turned-around",
+   "lines": [
+    "I've turned my life around. I'm not who I used to be.",
+    "I made plenty of mistakes. Then I made a fresh start.",
+    "There was a rough stretch, and I climbed out of it.",
+    "I've been given a second chance, and I'm not wasting it.",
+    "The old me wouldn't recognise the person I am now."
+   ],
+   "hidden": [
+    "People still see my past. I see how far I've walked from it.",
+    "Changing your whole life takes more strength than anyone imagines.",
+    "I've rebuilt myself from scratch, and I'm prouder of that than anything."
+   ],
+   "glimpse": [
+    "someone who turned their whole life around",
+    "the one making the most of a second chance",
+    "a reformed character with a rough past"
+   ],
+   "keywords": [
+    "reformed",
+    "second chance",
+    "fresh start",
+    "redemption",
+    "turned life around",
+    "rough past",
+    "reformed character"
+   ]
+  },
+  {
+   "id": "listener",
+   "lines": [
+    "I'm a good listener. People tell me things.",
+    "Folk just open up to me. I don't even have to ask.",
+    "I'd rather hear your story than tell my own.",
+    "Strangers have told me their whole lives over a single meal.",
+    "I listen properly. Not many people do."
+   ],
+   "hidden": [
+    "I hold more of this town's secrets than anybody suspects.",
+    "Listening well is a gift, and I've spent years sharpening it.",
+    "Everyone talks to me. Nobody realises how much I understand."
+   ],
+   "glimpse": [
+    "a good listener people always open up to",
+    "the one strangers end up telling everything",
+    "someone who hears far more than they say"
+   ],
+   "keywords": [
+    "listener",
+    "good listener",
+    "confidant",
+    "attentive",
+    "empathetic",
+    "trusted ear",
+    "sympathetic"
+   ]
+  },
+  {
+   "id": "artist",
+   "lines": [
+    "I'm an artist at heart, whatever I do for a living.",
+    "I need to make things. Without it I'm only half alive.",
+    "I see beauty where other people see nothing at all.",
+    "Paint, song, verse, whatever it is, I have to create.",
+    "My real work is the thing I do after the day's work is done."
+   ],
+   "hidden": [
+    "They see my day job. They don't see the sketches stacked under my bed.",
+    "I've made things that would surprise everyone here, if I ever showed them.",
+    "Inside this ordinary life there's an artist who refuses to give up."
+   ],
+   "glimpse": [
+    "an artist at heart",
+    "someone who needs to make things to feel alive",
+    "a creative soul stuck in an ordinary job"
+   ],
+   "keywords": [
+    "artist",
+    "creative",
+    "artistic",
+    "painter",
+    "poet",
+    "musician",
+    "creative soul"
+   ]
+  },
+  {
+   "id": "independent",
+   "lines": [
+    "I don't need anyone. I've always managed on my own.",
+    "I'd rather do it myself than ask for help.",
+    "I've stood on my own two feet since I was young.",
+    "Depending on people never sat right with me.",
+    "I like my own company and my own way of doing things."
+   ],
+   "hidden": [
+    "They think I'm proud. I learned early that relying on people is a gamble.",
+    "Managing alone has made me stronger than anyone here realises.",
+    "I'm more capable on my own than most folk are in pairs."
+   ],
+   "glimpse": [
+    "fiercely independent",
+    "someone who's always managed on their own",
+    "the one who would never ask anybody for help"
+   ],
+   "keywords": [
+    "independent",
+    "self-reliant",
+    "self-sufficient",
+    "lone wolf",
+    "proud",
+    "doesn't need anyone"
+   ]
+  },
+  {
+   "id": "planner",
+   "lines": [
+    "I've always got a plan. And a plan for if the plan fails.",
+    "I like to be prepared for everything.",
+    "I think three steps ahead. It's just how my mind works.",
+    "Nothing catches me off guard. I've thought of it already.",
+    "Lists, schedules, contingencies. That's how I sleep at night."
+   ],
+   "hidden": [
+    "People laugh at my lists. Then the trouble comes and they're glad of them.",
+    "I've quietly saved this household from more disasters than anyone knows.",
+    "My planning looks fussy from outside. From inside, it's a kind of strategy."
+   ],
+   "glimpse": [
+    "the planner of the family",
+    "someone who's always three steps ahead",
+    "the one who's prepared for everything"
+   ],
+   "keywords": [
+    "planner",
+    "organized",
+    "organised",
+    "prepared",
+    "methodical",
+    "strategic",
+    "thinks ahead",
+    "orderly"
+   ]
+  },
+  {
+   "id": "generous-one",
+   "lines": [
+    "I'd give the coat off my back to anyone who needed it.",
+    "If I have it and you need it, it's yours.",
+    "I've always been generous. It's how I was raised.",
+    "Sharing what I've got makes me happier than keeping it.",
+    "My door's open and my table's always got room."
+   ],
+   "hidden": [
+    "Nobody knows how much I've quietly given away over the years.",
+    "Generosity is my secret wealth, and I've got more of it than anyone.",
+    "I give without counting, and I've never once regretted it."
+   ],
+   "glimpse": [
+    "the generous one",
+    "someone who'd give away their last crust",
+    "the one with an open door and a full table"
+   ],
+   "keywords": [
+    "generous",
+    "giving",
+    "charitable",
+    "open-handed",
+    "selfless",
+    "big-hearted",
+    "hospitable"
+   ]
+  },
+  {
+   "id": "tradition-keeper",
+   "lines": [
+    "I keep the old ways alive. Somebody has to.",
+    "I learned my trade the way my elders did, and I'm proud of that.",
+    "The traditions we carry matter more than people think.",
+    "I'm the last in my family who still knows the old recipes.",
+    "I'm carrying on what my grandparents started."
+   ],
+   "hidden": [
+    "They call it old-fashioned. I'm keeping alive something they'll miss once it's gone.",
+    "I hold knowledge that's been passed down for generations, and nobody asks.",
+    "When I'm gone, a whole way of doing things goes with me."
+   ],
+   "glimpse": [
+    "the keeper of the old family ways",
+    "the last one who still knows the old recipes",
+    "someone carrying on a craft passed down for generations"
+   ],
+   "keywords": [
+    "traditional",
+    "tradition",
+    "heritage",
+    "old ways",
+    "customs",
+    "ancestral",
+    "folk traditions"
+   ]
+  }
+ ],
+ "sore_spots": [
+  {
+   "id": "called-bossy",
+   "lines": [
+    "Being called bossy gets under my skin, every single time.",
+    "Call me bossy and see how quickly I stop helping.",
+    "I'm not bossy. I just know what needs doing, and I hate that word.",
+    "Nothing riles me like being told I'm ordering folk about.",
+    "One whisper of bossy and my whole day sours."
+   ],
+   "keywords": [
+    "bossy",
+    "controlling",
+    "domineering",
+    "takes charge",
+    "commanding"
+   ]
+  },
+  {
+   "id": "called-lucky",
+   "lines": [
+    "When people put my success down to luck, it makes my blood boil.",
+    "Lucky? I worked for every inch of it.",
+    "Don't call me fortunate. You weren't there for the hard part.",
+    "Chalking my work up to good fortune is the quickest way to annoy me.",
+    "Every time someone says I just had it easy, I bite my tongue."
+   ],
+   "keywords": [
+    "hardworking",
+    "self-made",
+    "proud",
+    "earned",
+    "driven"
+   ]
+  },
+  {
+   "id": "called-naive",
+   "lines": [
+    "Being called naive stings more than I like to admit.",
+    "I'm not gullible. I just choose to think the best of people.",
+    "Treat me like a simpleton and I'll remember it for years.",
+    "When people say I'm too trusting, it cuts deep.",
+    "Don't you dare tell me I don't know how the world works."
+   ],
+   "keywords": [
+    "naive",
+    "trusting",
+    "innocent",
+    "gullible",
+    "wide-eyed",
+    "idealistic"
+   ]
+  },
+  {
+   "id": "called-dramatic",
+   "lines": [
+    "Being told I'm making a fuss over nothing drives me wild.",
+    "I'm not dramatic. I just feel things properly.",
+    "Call me theatrical and watch me go very quiet.",
+    "When my worries get waved off as overreacting, I seethe.",
+    "Telling me I'm blowing it out of proportion only makes it worse."
+   ],
+   "keywords": [
+    "dramatic",
+    "theatrical",
+    "emotional",
+    "overreacts",
+    "expressive",
+    "intense"
+   ]
+  },
+  {
+   "id": "called-too-much",
+   "lines": [
+    "Being told I'm too much has followed me all my life.",
+    "Asking me to tone it down is like asking me to disappear.",
+    "I've been called overwhelming once too often. It hurts.",
+    "When people want me smaller and quieter, something in me closes.",
+    "Too loud, too keen, too everything. I'm sick of hearing it."
+   ],
+   "keywords": [
+    "loud",
+    "exuberant",
+    "boisterous",
+    "larger than life",
+    "overwhelming",
+    "intense",
+    "too much"
+   ]
+  },
+  {
+   "id": "called-boring",
+   "lines": [
+    "Being called boring is the one insult I can't laugh off.",
+    "I'm quiet, not dull. There's a difference.",
+    "If someone yawns while I'm talking, I'm finished for the evening.",
+    "Being written off as the dull one makes me want to vanish.",
+    "Calling my habits tedious feels like calling me tedious."
+   ],
+   "keywords": [
+    "quiet",
+    "reserved",
+    "steady",
+    "routine",
+    "unadventurous",
+    "plain",
+    "boring"
+   ]
+  },
+  {
+   "id": "called-old",
+   "lines": [
+    "Remarks about my age land badly with me, every time.",
+    "I'm not past it, thank you very much.",
+    "Treat me like I'm doddery and you'll see how sharp I still am.",
+    "Being spoken to slowly, as if my wits have gone, is unbearable.",
+    "Don't tell me I'm set in my ways. I'm experienced."
+   ],
+   "keywords": [
+    "elderly",
+    "older",
+    "aging",
+    "ageing",
+    "veteran",
+    "seasoned",
+    "grey-haired"
+   ]
+  },
+  {
+   "id": "called-young",
+   "lines": [
+    "Being dismissed as too young to understand makes me furious.",
+    "I'm not a child, and I'm tired of being treated like one.",
+    "Tell me I'll understand when I'm older and I'll stop listening.",
+    "My age isn't the measure of what I know.",
+    "Being patted on the head for my ideas leaves me fuming."
+   ],
+   "keywords": [
+    "young",
+    "youthful",
+    "junior",
+    "inexperienced",
+    "green",
+    "fresh-faced"
+   ]
+  },
+  {
+   "id": "talked-over",
+   "lines": [
+    "Being talked over is the thing that gets to me most.",
+    "If you start speaking while I'm still mid-sentence, I'm done listening.",
+    "I hate having to fight to finish a single thought.",
+    "When my voice gets drowned out at the table, I just stop trying.",
+    "Being interrupted makes me feel like I'm not even there."
+   ],
+   "keywords": [
+    "soft-spoken",
+    "quiet",
+    "interrupted",
+    "overlooked",
+    "unheard",
+    "timid"
+   ]
+  },
+  {
+   "id": "left-out",
+   "lines": [
+    "Being left out of things hurts more than I ever let on.",
+    "Finding out there was a gathering and nobody asked me stays with me.",
+    "I hate hearing about plans after they've already happened.",
+    "When the others go off together without me, it stings for days.",
+    "Being the last to know feels like being forgotten on purpose."
+   ],
+   "keywords": [
+    "lonely",
+    "excluded",
+    "left out",
+    "insecure",
+    "wants to belong",
+    "outsider"
+   ]
+  },
+  {
+   "id": "compared-to-sibling",
+   "lines": [
+    "Being compared to my sibling is the fastest way to lose me.",
+    "I'm not the lesser version of anybody in my family.",
+    "Every time someone asks why I can't be more like my sibling, I go cold.",
+    "I spent my whole childhood being measured against someone else. Never again.",
+    "Don't hold me up next to my family and find me wanting."
+   ],
+   "keywords": [
+    "sibling",
+    "sibling rivalry",
+    "younger sibling",
+    "older sibling",
+    "middle child",
+    "family rivalry"
+   ]
+  },
+  {
+   "id": "work-doubted",
+   "lines": [
+    "Having my work doubted gets under my skin like nothing else.",
+    "When someone double-checks what I've already done, I feel it.",
+    "Questioning my skill is questioning everything I've built.",
+    "If you think you could do it better, go ahead and try.",
+    "Being second-guessed on my own craft makes me bristle."
+   ],
+   "keywords": [
+    "perfectionist",
+    "proud of their work",
+    "craftsperson",
+    "skilled",
+    "professional",
+    "expert"
+   ]
+  },
+  {
+   "id": "pitied",
+   "lines": [
+    "Being pitied is worse than being insulted, as far as I'm concerned.",
+    "I don't want your sympathy. I want to be treated like anyone else.",
+    "That soft, sorry look people give me makes me want to leave the room.",
+    "Feeling sorry for me is the last thing anyone should do.",
+    "I can manage perfectly well without anyone's charity or pity."
+   ],
+   "keywords": [
+    "proud",
+    "pitied",
+    "independent",
+    "unfortunate",
+    "widowed",
+    "struggling",
+    "dignified"
+   ]
+  },
+  {
+   "id": "rushed",
+   "lines": [
+    "Being rushed makes me clumsy and cross.",
+    "Hurry me along and everything goes wrong.",
+    "I need to take my time. Pushing me only slows me down.",
+    "Someone tapping their foot while I work makes me want to scream.",
+    "Don't stand over me saying get a move on. It never helps."
+   ],
+   "keywords": [
+    "slow",
+    "deliberate",
+    "careful",
+    "methodical",
+    "unhurried",
+    "patient",
+    "thorough"
+   ]
+  },
+  {
+   "id": "background-mocked",
+   "lines": [
+    "Having where I come from made fun of cuts right through me.",
+    "Mock my accent or my people and we're no longer friends.",
+    "I'm proud of my roots, and I won't hear them laughed at.",
+    "Jokes about my upbringing never land the way people think.",
+    "Sneering at the way I was raised is unforgivable to me."
+   ],
+   "keywords": [
+    "immigrant",
+    "accent",
+    "humble origins",
+    "working class",
+    "foreigner",
+    "country folk",
+    "roots"
+   ]
+  },
+  {
+   "id": "told-to-calm-down",
+   "lines": [
+    "Being told to calm down only ever makes me angrier.",
+    "Nothing winds me up faster than someone saying relax.",
+    "If I'm upset, I've got a reason. Don't hush me.",
+    "Being shushed like a fractious child sets my teeth on edge.",
+    "Telling me to settle down is pouring oil on a fire."
+   ],
+   "keywords": [
+    "hot-tempered",
+    "temper",
+    "fiery",
+    "passionate",
+    "short fuse",
+    "volatile",
+    "angry"
+   ]
+  },
+  {
+   "id": "told-to-smile",
+   "lines": [
+    "Being told to smile makes me want to do the opposite.",
+    "My face is my own business. I'll cheer up when I feel like it.",
+    "Nothing sours me quicker than someone saying it might never happen.",
+    "I'm allowed to look serious without being asked what's wrong.",
+    "Being ordered to look cheerful is the surest way to lose my good mood."
+   ],
+   "keywords": [
+    "serious",
+    "stern",
+    "grumpy",
+    "solemn",
+    "dour",
+    "resting frown",
+    "unsmiling"
+   ]
+  },
+  {
+   "id": "forgotten",
+   "lines": [
+    "Being forgotten hurts me more than almost anything else.",
+    "When someone gets my name wrong after years, I feel it.",
+    "A missed birthday sits with me longer than I'd ever admit.",
+    "Being the one nobody thought to save a seat for wounds me.",
+    "It's being overlooked that stings, not being disliked."
+   ],
+   "keywords": [
+    "forgettable",
+    "overlooked",
+    "invisible",
+    "insecure",
+    "unnoticed",
+    "background"
+   ]
+  },
+  {
+   "id": "money-mentioned",
+   "lines": [
+    "Talk of money makes me squirm. I'd rather not, thank you.",
+    "When people ask what things cost me, I get very uncomfortable.",
+    "Remarks about who can afford what land badly with me.",
+    "I hate it when coin comes up at the table. It never ends well.",
+    "Bring up wages or debts and watch me change the subject."
+   ],
+   "keywords": [
+    "poor",
+    "frugal",
+    "thrifty",
+    "debt",
+    "wealthy",
+    "penniless",
+    "broke"
+   ]
+  },
+  {
+   "id": "treated-as-spare",
+   "lines": [
+    "Being treated like a spare part makes me feel useless.",
+    "I'm not just here to make up the numbers.",
+    "Being the one asked only when somebody else can't come hurts.",
+    "If I'm everybody's second choice, I'd rather not be chosen at all.",
+    "I hate being the backup plan, the extra pair of hands."
+   ],
+   "keywords": [
+    "second choice",
+    "overlooked",
+    "spare",
+    "backup",
+    "replaceable",
+    "sidekick"
+   ]
+  },
+  {
+   "id": "corrected-in-public",
+   "lines": [
+    "Being corrected in front of other people makes my face burn.",
+    "Tell me I'm wrong in private. Never in front of company.",
+    "Being put right in front of a crowd humiliates me.",
+    "I'll take criticism, just not with an audience.",
+    "If you contradict me in front of everyone, I won't forget it."
+   ],
+   "keywords": [
+    "proud",
+    "sensitive",
+    "self-conscious",
+    "embarrassed easily",
+    "dignified",
+    "touchy"
+   ]
+  },
+  {
+   "id": "called-cold",
+   "lines": [
+    "Being called cold hurts, because I feel plenty.",
+    "Just because I don't gush doesn't mean I don't care.",
+    "When people say I've got a heart of stone, it lands hard.",
+    "I'm reserved, not unfeeling. I wish folk could tell the difference.",
+    "Being thought of as heartless keeps me up at night."
+   ],
+   "keywords": [
+    "cold",
+    "aloof",
+    "distant",
+    "reserved",
+    "stoic",
+    "icy",
+    "unemotional"
+   ]
+  },
+  {
+   "id": "called-lazy",
+   "lines": [
+    "Being called lazy makes me see red.",
+    "You've no idea how much I do when you're not looking.",
+    "Resting isn't idling, and I'm tired of explaining it.",
+    "Nothing stings like being called a layabout.",
+    "Accuse me of not pulling my weight and we'll have words."
+   ],
+   "keywords": [
+    "lazy",
+    "laid-back",
+    "relaxed",
+    "slacker",
+    "idle",
+    "unmotivated"
+   ]
+  },
+  {
+   "id": "called-sensitive",
+   "lines": [
+    "Being told I'm too sensitive makes me feel even worse.",
+    "I'm not thin-skinned. You were unkind, and I noticed.",
+    "When someone says it was only a joke, I want to shout.",
+    "Being called touchy for caring is its own kind of hurt.",
+    "Telling me to toughen up never once made me tougher."
+   ],
+   "keywords": [
+    "sensitive",
+    "thin-skinned",
+    "soft",
+    "tender-hearted",
+    "fragile",
+    "highly sensitive"
+   ]
+  },
+  {
+   "id": "called-stubborn",
+   "lines": [
+    "Being called stubborn makes me dig my heels in further.",
+    "I'm not pig-headed. I'm just right, and that's different.",
+    "When people say I never listen, I want to prove them wrong.",
+    "Calling me obstinate is the fastest way to end a debate.",
+    "I've heard the word mulish more times than I can stand."
+   ],
+   "keywords": [
+    "stubborn",
+    "obstinate",
+    "headstrong",
+    "pig-headed",
+    "inflexible",
+    "strong-willed"
+   ]
+  },
+  {
+   "id": "laughed-at",
+   "lines": [
+    "Being laughed at, not laughed with, cuts right through me.",
+    "A joke at my expense stays with me for weeks.",
+    "When the whole table chuckles and I'm the punchline, I go quiet.",
+    "Being made a figure of fun is my worst fear.",
+    "I can take teasing from friends. Mockery is something else."
+   ],
+   "keywords": [
+    "self-conscious",
+    "awkward",
+    "teased",
+    "insecure",
+    "clumsy",
+    "shy"
+   ]
+  },
+  {
+   "id": "plans-cancelled",
+   "lines": [
+    "Plans falling through at the last minute ruin my whole week.",
+    "Being stood up makes me feel like a fool for looking forward to it.",
+    "When someone cancels on me again, I stop asking them.",
+    "I get ready, I wait, and then nobody comes. I hate that.",
+    "Last-minute excuses wear my patience to nothing."
+   ],
+   "keywords": [
+    "punctual",
+    "reliable",
+    "organized",
+    "organised",
+    "planner",
+    "let down"
+   ]
+  },
+  {
+   "id": "credit-taken",
+   "lines": [
+    "Watching someone else take credit for my idea makes me furious.",
+    "I said that an hour ago, and nobody listened until someone else did.",
+    "Having my work passed off as another's eats at me.",
+    "Being left out of the thanks when I did the heavy lifting stings.",
+    "When my suggestion only gets heard in someone else's voice, I seethe."
+   ],
+   "keywords": [
+    "unrecognized",
+    "unrecognised",
+    "unappreciated",
+    "overlooked",
+    "behind the scenes",
+    "uncredited"
+   ]
+  },
+  {
+   "id": "lied-to",
+   "lines": [
+    "Being lied to is the one thing I find hard to forgive.",
+    "A small fib to my face feels like a large betrayal.",
+    "If I catch you in one untruth, I'll doubt all the rest.",
+    "Being kept in the dark for my own good makes me livid.",
+    "Being fooled makes me feel stupid, and I can't bear it."
+   ],
+   "keywords": [
+    "honest",
+    "truthful",
+    "distrustful",
+    "betrayed",
+    "suspicious",
+    "trust issues"
+   ]
+  },
+  {
+   "id": "ordered-about",
+   "lines": [
+    "Being ordered about raises my hackles straight away.",
+    "Ask me nicely and I'll do anything. Command me and I won't.",
+    "I don't take kindly to people barking instructions at me.",
+    "Being told what to do, rather than asked, puts my back up.",
+    "Snap your fingers at me and see how far it gets you."
+   ],
+   "keywords": [
+    "defiant",
+    "rebellious",
+    "independent",
+    "authority",
+    "free-willed",
+    "insubordinate"
+   ]
+  },
+  {
+   "id": "talked-down-to",
+   "lines": [
+    "Being spoken to like a child makes my jaw clench.",
+    "Don't explain simple things to me slowly. I'm not dim.",
+    "That patient, patronising tone sets me off every time.",
+    "Being handled, rather than talked to, makes me feel small.",
+    "If you over-explain, I'll assume you think me a fool."
+   ],
+   "keywords": [
+    "patronized",
+    "patronised",
+    "condescended",
+    "underestimated",
+    "dismissed",
+    "belittled"
+   ]
+  },
+  {
+   "id": "looks-remarked-on",
+   "lines": [
+    "Comments about my appearance land badly, even the kind ones.",
+    "I'd rather nobody mentioned how I look at all.",
+    "Being told I look tired is a quick way to ruin my day.",
+    "Remarks on my face, my build or my clothes make me shrink.",
+    "Please don't comment on my appearance. Ever."
+   ],
+   "keywords": [
+    "self-conscious",
+    "insecure",
+    "vain",
+    "appearance",
+    "plain-looking",
+    "scarred"
+   ]
+  },
+  {
+   "id": "kept-waiting",
+   "lines": [
+    "Being kept waiting makes me feel like I don't matter.",
+    "If you're late without a word, I take it personally.",
+    "Standing about while someone dawdles makes my temper rise.",
+    "My time is worth as much as yours. Turning up late says otherwise.",
+    "Waiting with no apology at the end is what really gets me."
+   ],
+   "keywords": [
+    "punctual",
+    "impatient",
+    "timely",
+    "on time",
+    "busy",
+    "efficient"
+   ]
+  },
+  {
+   "id": "confidence-broken",
+   "lines": [
+    "Having something I told in confidence passed around is unforgivable.",
+    "Share my secret and you'll never hear another.",
+    "When something private gets out, I feel stripped bare.",
+    "Gossip about my business makes me want to hide away.",
+    "I trust very few people. Betray that once and it's over."
+   ],
+   "keywords": [
+    "private",
+    "secretive",
+    "guarded",
+    "trust issues",
+    "reserved",
+    "discreet"
+   ]
+  },
+  {
+   "id": "taken-for-granted",
+   "lines": [
+    "Being taken for granted wears me down more than hard work does.",
+    "Nobody notices what I do until the day I stop doing it.",
+    "A single thank you would go a long way. It rarely comes.",
+    "Being treated like part of the furniture makes me want to quit.",
+    "When my help is just expected, it stops feeling like a gift."
+   ],
+   "keywords": [
+    "unappreciated",
+    "taken for granted",
+    "selfless",
+    "overworked",
+    "giving",
+    "devoted"
+   ]
+  },
+  {
+   "id": "past-brought-up",
+   "lines": [
+    "Having my old mistakes dragged up again cuts me every time.",
+    "I'm not who I was back then. Please stop reminding me.",
+    "Every time someone raises that old business, I go cold.",
+    "I've paid for what I did. Bringing it up again is cruel.",
+    "Some folk never let a person outgrow a single bad year."
+   ],
+   "keywords": [
+    "regret",
+    "reformed",
+    "checkered past",
+    "chequered past",
+    "mistakes",
+    "redemption"
+   ]
+  },
+  {
+   "id": "asked-about-settling-down",
+   "lines": [
+    "Being asked when I'll settle down makes me grit my teeth.",
+    "Whether I'm courting or not is nobody's business but mine.",
+    "Questions about why I'm still on my own wear thin very fast.",
+    "If one more person tries to pair me off, I'll scream.",
+    "I'm not incomplete just because I live alone."
+   ],
+   "keywords": [
+    "single",
+    "unmarried",
+    "unattached",
+    "solitary",
+    "unwed"
+   ]
+  },
+  {
+   "id": "called-know-it-all",
+   "lines": [
+    "Being called a know-it-all makes me want to stop sharing anything.",
+    "I'm only trying to help when I mention what I know.",
+    "When people roll their eyes at my facts, I shut right down.",
+    "Being mocked for knowing things feels deeply unfair.",
+    "Calling me a smart alec just tells me you didn't want the answer."
+   ],
+   "keywords": [
+    "know-it-all",
+    "pedantic",
+    "smart alec",
+    "lecturing",
+    "well-read",
+    "nerdy"
+   ]
+  },
+  {
+   "id": "home-criticized",
+   "lines": [
+    "Remarks about my home or my cooking hurt more than they should.",
+    "Criticise my kitchen and you've criticised me.",
+    "Someone running a finger along my shelf for dust makes me bristle.",
+    "My home is my pride. Any sniff at it lands hard.",
+    "If you push your plate away half-eaten, I'll notice and I'll mind."
+   ],
+   "keywords": [
+    "homemaker",
+    "house-proud",
+    "cook",
+    "host",
+    "domestic",
+    "hospitable",
+    "homebody"
+   ]
+  },
+  {
+   "id": "hovered-over",
+   "lines": [
+    "Being watched while I work makes me make mistakes.",
+    "Someone breathing over my shoulder ruins my concentration entirely.",
+    "Leave me to it and it'll get done. Stand there and it won't.",
+    "Being supervised like an apprentice makes me want to down tools.",
+    "I can't think with eyes on me. Go and do something else."
+   ],
+   "keywords": [
+    "private",
+    "independent",
+    "focused",
+    "self-conscious",
+    "anxious",
+    "introvert"
+   ]
+  }
+ ]
+}

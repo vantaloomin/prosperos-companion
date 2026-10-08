@@ -114,6 +114,9 @@ export interface CharacterDefinition {
   /** The closeness stage they start at (1 = Just met) and how the two of you know each other already. */
   starting_closeness?: number
   history_together?: string
+  /** How others see them and how they see themselves (companion/world/perception.py); empty fills itself in. */
+  seen_as?: string
+  sees_self?: string
   absence_reaction: string
   emotional_traits: EmotionalTrait[]
   timezone: string
@@ -1048,6 +1051,10 @@ export interface Townsperson {
   routine: string | null
   flaw: string | null
   desire: string | null
+  /** How they come across (companion/world/perception.py): the first impression, fuller from the second meeting. */
+  comes_across: string | null
+  /** From the third meeting: how they once described themselves. */
+  says_they_are: string | null
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
 }

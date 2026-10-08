@@ -49,6 +49,7 @@ from companion.models import (
     MessageEdit,
     NotificationCheck,
     NotificationSettingsUpdate,
+    PerceptionRequest,
     PromptUpdate,
     SettingsUpdate,
     SidecarRequest,
@@ -57,6 +58,7 @@ from companion.models import (
     TimelineUpdate,
     TownSeed,
 )
+from companion.world import perception
 
 router = APIRouter(prefix='/api')
 
@@ -142,6 +144,16 @@ async def draft_field(request: Request, body: FieldDraftRequest):
 async def split_character(request: Request, body: CharacterSplitRequest):
     """A whole pasted character split into the form's fields for review; nothing is saved."""
     return await character_helper.split(request.app.state, body)
+
+
+@router.post('/companion/perception')
+def perception_suggestions(request: Request, body: PerceptionRequest):
+    """Bank picks for "How others see them" and "How they see themselves" that fit the form's words, and, for a
+    saved companion, what an empty field uses. No model is involved."""
+    with request.app.state.database.connect() as connection:
+        companion = characters.current(connection)
+    found = perception.suggestions(body.definition, companion['id'] if companion else 'new')
+    return found if companion else {**found, 'automatic': None}
 
 
 @router.post('/companion/draft/card')
