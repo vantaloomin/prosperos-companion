@@ -103,11 +103,16 @@ echo 'Prospero Companion - dependency setup'
 # Privacy & Security. Opening this one was the user's choice; clear the mark on its siblings.
 xattr -d com.apple.quarantine "$MAC_FOLDER"/*.command "$COMPANION_ROOT"/scripts/macos/*.sh 2>/dev/null
 if [ "$CHECK_ONLY" = 0 ]; then
-    if [ -d .venv ]; then
-        python_ok "$venv_python" >/dev/null || fail "The existing .venv is broken or uses an older Python. Rename that folder and run install.command again. Your companion's data lives separately in ~/Library/Application Support/ProsperoCompanion."
-    else
-        run "$python" -m venv .venv
+    # .venv only holds installed packages, so a broken one is rebuilt. It breaks when the Python it was
+    # made from is upgraded or removed (Homebrew moving python3 from 3.12 to 3.13 leaves it without pip
+    # or its packages).
+    if [ -d .venv ] && ! { python_ok "$venv_python" >/dev/null && "$venv_python" -m pip --version >/dev/null 2>&1; }; then
+        say_warn 'The project environment (.venv) is broken or was made by a Python that has since changed. Rebuilding it.'
+        rm -rf .venv || fail "Could not remove $COMPANION_ROOT/.venv. Delete that folder and run install.command again."
+        python="$(find_python)"
+        [ -n "$python" ] || fail 'Python 3.12 or newer was not found. Install it from https://www.python.org/downloads/macos/ and run install.command again.'
     fi
+    [ -d .venv ] || run "$python" -m venv .venv
     run "$venv_python" -m pip install --disable-pip-version-check --no-input -r requirements.lock.txt
     run "$npm" ci --no-audit --no-fund
     run "$npm" run build
