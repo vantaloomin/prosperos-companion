@@ -573,6 +573,7 @@ each at most once per timeline:
 | `news` | An open thread in the companion's life settled in the last day | Yes |
 | `reminder` | An event committed in the last day shares a distinctive word with a user fact or shared experience | Yes |
 | `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
+| `usual_time` | The user usually starts a conversation around now (see below) and the companion is free, on a seeded 50% roll per day and stretch, at a seeded minute 0 to 25 minutes into it | No (template by time of the user's day, e.g. "Any lunch plans today?") |
 | `check_in` | A free moment, on a seeded roll per day and moment (lunch 50%, after work or class 70%, free evening 35%), at a seeded minute 5 to 50 minutes into it | No (template per moment) |
 
 A free moment is lunch (12:00 to 13:30 in the companion's timezone; a lunch break on a work or study
@@ -580,6 +581,15 @@ day, plain midday on a day off, with the same chance), the 90
 minutes after a work or study block ends (by the precomputed agenda, so a holiday or sick day is not
 work) unless they are in another busy or social block, or a free evening (19:00 to 21:30). Never
 while asleep.
+
+The user's usual hours (`companion/life/usual_hours.py`) are worked out on the fly, by rules, from
+the user's own messages of the last four weeks in the user's timezone, weekdays and weekends apart.
+Only messages that start an exchange count: nothing in that conversation for 45 minutes before, and
+not an answer to a text the companion started. A half hour is usual when the user started a
+conversation in it on at least 3 days and on 30% of the days they wrote; neighbouring half hours join
+into one stretch. Nothing is stored and nothing is shown in the app. The companion reaches out in such
+a stretch only when their own day leaves them free (a break, or not asleep, working, studying or out
+with people), and every gate below still applies.
 
 The model gets the normal chat context plus the reason and its facts, and is told not to add events,
 places or people. A reply that is empty, cut off or longer than 600 characters falls back to the

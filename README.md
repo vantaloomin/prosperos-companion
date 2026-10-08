@@ -31,7 +31,7 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 **People around them.** Family (who share their last name), friends, coworkers, friends of friends and ordinary townsfolk they meet on their street. Storylines play out with a drama slider from realistic to soap opera. A private Feed shows their posts and their friends', with likes and comments. You can even make someone they met the main character.
 
-**They text first.** Check-ins on their breaks, follow-ups on things they said they'd ask about, news and photos, within daily limits and quiet hours. The app never shows whether they're free: a busy companion answers later, or sends a quick "can't talk" and replies properly afterward.
+**They text first.** Check-ins on their breaks, a hello at the times you usually show up (a lunch question if you tend to write at lunch), follow-ups on things they said they'd ask about, news and photos, within daily limits and quiet hours. The app never shows whether they're free: a busy companion answers later, or sends a quick "can't talk" and replies properly afterward.
 
 **They stay in character.** No "as an AI" disclaimers. Start a message with `OOC:` or wrap it in ((double parentheses)) when you want a plain answer.
 
