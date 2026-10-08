@@ -43,6 +43,17 @@ A batch synthesizes fiction *now* for routine slots that ended while the user wa
 `created_at` is when it ran; each event's `starts_at`/`ends_at` is when the fictional moment
 happened. Never word this as the companion having been active while the app was closed.
 
+### Everyone keeps living
+
+The response describes the companion in focus, but every companion's life moves forward. Each reconcile and
+each background tick then takes a turn of the companions out of focus (`LifeEngine.reconcile_cast`), three at a
+time in a round that comes back to the start, so a large cast never makes one tick slow and nobody is skipped.
+They follow the same settings, catch-up limits and permissions as the one in focus, and their events belong to
+their own timeline, so switching to one of them (`POST /api/companion/cast/focus`) shows the day they had on
+Today and their Feed. To keep this free, their moments keep the template wording (no model call) and their
+posts don't raise desktop notices; only the companion in focus is phrased by the model and notifies. A return
+doesn't wait for the cast: their turn runs after the response.
+
 ### Preparing while the user types
 
 Call `POST /api/life/prepare` (no body) when the user starts typing or the window sits idle;

@@ -84,6 +84,11 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'Opens every reply in a group chat, before who is in the group and the chat so far. Each person still '
            "answers only from what they know, which the app decides; staying in character is enforced as in 1:1 chats.",
            constant('companion.groups', 'RULES')),
+    Prompt('group-first-texts', CHAT, 'Groups starting a conversation',
+           'Added when someone in a group chat starts a conversation on their own. The app picks who speaks and '
+           'what from their day they share; the others then answer as usual.',
+           constant('companion.group_openers', 'INSTRUCTION'),
+           {'name': "the member's name", 'news': 'what happened in their day, from the life sim'}),
     Prompt('character-rules.md', DRAFTING, 'What makes a character believable', 'Sent with every draft and rewrite.',
            drafting_file('character-rules.md')),
     Prompt('character-draft.md', DRAFTING, 'Drafting a whole character',

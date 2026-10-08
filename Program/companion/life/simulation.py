@@ -11,6 +11,10 @@ only finishes what it had not committed.
 Generation time (`created_at`), event time (`starts_at`/`ends_at`) and the window a batch covers
 are stored separately: a catch-up synthesizes missed fiction now and never claims it ran while
 the app was closed (T4).
+
+Everyone keeps living: the companions out of focus get the same batches, under the same settings and caps,
+a few of them at a time in turn (`cast_turn`), so switching to one shows the days she had. Their events use
+template wording only, so a long cast costs no model calls; the one in focus is phrased as before.
 """
 import asyncio
 import logging
@@ -18,7 +22,7 @@ import random
 from datetime import date, timedelta
 
 from companion import events, logs, notifications, troubleshoot
-from companion.characters import current
+from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -34,6 +38,8 @@ LOG = logging.getLogger(__name__)
 
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
+# Companions out of focus looked at per turn (each tick, and after each return to the app).
+CAST_PER_TURN = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
@@ -256,9 +262,10 @@ def blocked(workspace, life, mode) -> str | None:
     return None
 
 
-def decide(connection, owner, mode, now) -> dict:
-    """Claim an unfinished batch or plan a new one. Runs inside one write transaction."""
-    companion = current(connection)
+def decide(connection, owner, mode, now, companion_id=None) -> dict:
+    """Claim an unfinished batch or plan a new one, for the companion in focus or `companion_id`. Runs inside
+    one write transaction."""
+    companion = by_id(connection, companion_id) if companion_id else current(connection)
     if companion is None:
         return {'state': 'no_companion'}
     workspace, life = settings(connection), life_settings(connection)
@@ -343,6 +350,17 @@ def pauses(database) -> list[dict]:
         return rows
 
 
+def cast_turn(connection, offset: int, limit=CAST_PER_TURN) -> tuple[list[str], int]:
+    """The companions out of focus to look at this turn, in a fixed round, and where the next turn starts."""
+    rows = many(connection, 'SELECT id FROM companions WHERE slot IS NULL AND active_version_id IS NOT NULL '
+                'AND active_timeline_id IS NOT NULL ORDER BY created_at, id')
+    if not rows:
+        return [], 0
+    start = offset % len(rows)
+    chosen = (rows[start:] + rows[:start])[:limit]
+    return [row['id'] for row in chosen], (start + len(chosen)) % len(rows)
+
+
 def claim(connection, run_id, owner, now):
     connection.execute("UPDATE life_runs SET status='running', owner=?, lease_until=?, attempts=attempts+1, "
                        'started_at=COALESCE(started_at, ?) WHERE id=?',
@@ -364,9 +382,14 @@ class LifeEngine:
         self.owner = identifier()
         self.lock = asyncio.Lock()
         self.preparing = None
-        # Current-context lookups (companion/mcp) and first messages (companion/life/openers.py); set by the app.
+        # Where the next round of companions out of focus starts, and the round running after a return.
+        self.cast_offset = 0
+        self.casting = None
+        # Current-context lookups (companion/mcp), first messages (companion/life/openers.py) and group chats
+        # starting conversations (companion/groups.py); set by the app.
         self.lookups = None
         self.openers = None
+        self.groups = None
 
     def now(self):
         return self.database.clock.now()
@@ -374,12 +397,25 @@ class LifeEngine:
     # Database work and composition run on a worker thread (asyncio.to_thread), as chat context
     # building does, so a long catch-up never holds up a streaming reply. Only model calls stay on the loop.
 
-    async def reconcile(self, mode='return') -> dict:
+    async def reconcile(self, mode='return', companion_id=None) -> dict:
         async with self.lock:
-            decision = await asyncio.to_thread(self.decide, mode)
+            decision = await asyncio.to_thread(self.decide, mode, companion_id)
             if decision['state'] in {'started', 'resumed'}:
                 await self.execute(decision['run_id'])
             return await asyncio.to_thread(self.outcome, decision)
+
+    async def look_in(self, mode='return') -> dict:
+        """The user came back: the companion in focus first, then the rest of the cast's turn without waiting."""
+        outcome = await self.reconcile(mode)
+        if self.casting is None or self.casting.done():
+            self.casting = asyncio.get_running_loop().create_task(self.quietly_cast(mode))
+        return outcome
+
+    async def reconcile_cast(self, mode) -> list[dict]:
+        """One turn of the companions out of focus, under the same settings as the one in focus."""
+        with self.database.connect() as connection:
+            turn, self.cast_offset = cast_turn(connection, self.cast_offset)
+        return [await self.reconcile(mode, companion_id) for companion_id in turn]
 
     def extend_agenda(self, mode) -> None:
         """Precompute the agenda now, so a slot composed outside a run (a chat photo of the current
@@ -389,14 +425,14 @@ class LifeEngine:
             if companion and may_extend(settings(connection), mode):
                 agenda.extend(connection, companion, self.world, self.now())
 
-    def decide(self, mode) -> dict:
+    def decide(self, mode, companion_id=None) -> dict:
         with self.database.connect(write=True) as connection:
-            companion = current(connection)
-            if mode == 'return' and companion:
+            companion = by_id(connection, companion_id) if companion_id else current(connection)
+            if mode == 'return' and companion and not companion_id:
                 mood.note_return(connection, self.now())
             if companion and may_extend(settings(connection), mode):
                 agenda.extend(connection, companion, self.world, self.now())
-            return decide(connection, self.owner, mode, self.now())
+            return decide(connection, self.owner, mode, self.now(), companion_id)
 
     async def catch_up_pause(self, pause_id) -> dict:
         async with self.lock:
@@ -449,9 +485,12 @@ class LifeEngine:
                                'WHERE id=?', (encode(list(results.values())), status, error,
                                               stamp(self.now() + LEASE), finished, run_id))
             if status == 'completed':
-                posts = feed.publish_run(connection, one(connection, 'SELECT * FROM life_runs WHERE id=?',
-                                                         (run_id,)), list(results.values()), stamp(self.now()))
-                notifications.enqueue_posts(connection, posts, stamp(self.now()))
+                run = one(connection, 'SELECT * FROM life_runs WHERE id=?', (run_id,))
+                posts = feed.publish_run(connection, run, list(results.values()), stamp(self.now()))
+                focus = current(connection)
+                # Posts from a companion out of focus wait on her Feed; desktop notices are for the one in focus.
+                if focus and focus['active_timeline_id'] == run['timeline_id']:
+                    notifications.enqueue_posts(connection, posts, stamp(self.now()))
 
     async def simulate(self, run, slot) -> dict:
         """One routine slot: compose it, record it as a proposal, and commit it if permitted."""
@@ -466,9 +505,13 @@ class LifeEngine:
         """Everything before the model: either a finished result or what phrasing needs."""
         key = event_key(run['timeline_id'], slot['key'])
         with self.database.connect() as connection:
-            companion = current(connection)
+            companion = for_timeline(connection, run['timeline_id'])
+            if companion is None:
+                return {'result': {'slot': slot['key'], 'outcome': 'skipped',
+                                   'reason': 'The companion is no longer in this workspace.'}}
             workspace, life = settings(connection), life_settings(connection)
-            config = config_for(connection, 'life')
+            # Only the companion in focus is phrased by the model; the rest of the cast keeps template wording.
+            config = config_for(connection, 'life') if companion['slot'] == 1 else None
             existing = optional(connection, 'SELECT * FROM life_events WHERE idempotency_key=?', (key,))
             recent = events.committed(connection, run['timeline_id'])[-5:]
             plan = plan_for(connection, run['timeline_id'], slot['key'])
@@ -675,11 +718,11 @@ class LifeEngine:
         """Catch up once on open, then tick while the process runs. Ticks use the event loop's
         monotonic timer. Background batches always run, rule-built; model phrasing, lookups and preparation in
         the background need the user's permission (T4)."""
-        await self.quietly('return')
+        await self.quietly_life('return')
         while True:
             # A fast debug clock (companion/debug_time.py) ticks more often in real time to keep up.
             await asyncio.sleep(self.database.clock.wait(tick_seconds))
-            await self.quietly('background')
+            await self.quietly_life('background')
             with self.database.connect() as connection:
                 background = settings(connection)['background_activity']
             if background:
@@ -710,12 +753,19 @@ class LifeEngine:
             pass
 
     async def quietly_text(self):
-        if self.openers is None:
+        """A first message from one companion, or else a group starting a conversation: one a tick."""
+        sent = False
+        if self.openers is not None:
+            try:
+                sent = (await self.openers.check())['state'] == 'sent'
+            except Exception:  # noqa: BLE001 - a first message can wait for the next tick.
+                pass
+        if self.groups is None or sent:
             return
         try:
-            await self.openers.check()
-        except Exception:  # noqa: BLE001 - a first message can wait for the next tick.
-            pass
+            await self.groups.first_words()
+        except Exception:  # noqa: BLE001 - the group can start talking on a later tick.
+            LOG.exception('A group chat could not start a conversation.')
 
     async def quietly_prepare(self):
         try:
@@ -723,8 +773,19 @@ class LifeEngine:
         except Exception:  # noqa: BLE001 - preparation is optional work.
             pass
 
+    async def quietly_life(self, mode):
+        """The companion in focus, then this turn of everyone else."""
+        await self.quietly(mode)
+        await self.quietly_cast(mode)
+
     async def quietly(self, mode):
         try:
             await self.reconcile(mode)
         except Exception:  # noqa: BLE001 - one failed tick must not stop later ones.
             pass
+
+    async def quietly_cast(self, mode):
+        try:
+            await self.reconcile_cast(mode)
+        except Exception:  # noqa: BLE001 - the rest of the cast catches up on a later turn.
+            LOG.exception("A turn of the cast's lives failed.")

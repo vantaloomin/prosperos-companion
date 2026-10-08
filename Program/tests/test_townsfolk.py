@@ -202,7 +202,8 @@ def test_the_companion_runs_into_townsfolk_and_learns_more_each_time(client, clo
     recent = known[:encounters.CONTEXT_LIMIT]
     assert [key for key, _line in lines] == [person['key'] for person in recent]
     for (_key, line), person in zip(lines, recent, strict=True):
-        assert person['full'] in line and ('trying to' in line) == bool(person['goal'])
+        # "They are trying to": a random "how they come across" line can say "trying to" too.
+        assert person['full'] in line and ('They are trying to' in line) == bool(person['goal'])
 
 
 def test_no_townsfolk_when_off(client):

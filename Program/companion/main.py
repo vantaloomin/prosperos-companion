@@ -157,6 +157,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
 
     app.state.conversation.after_turn = after_turn
     app.state.groups = groups.GroupChats(app.state)
+    app.state.life.groups = app.state.groups
     app.state.training = lora_training.TrainingRunner(app.state.database, trainer_spawn)
     app.state.evaluations = lora_evaluation.EvaluationRunner(app.state.database, app.state.vault, app.state.images)
     app.state.generations = lora_generation.GenerationRunner(app.state.database, app.state.vault, app.state.images)

@@ -105,7 +105,7 @@ All rules, seeded by the user's message so a retry picks the same people (`group
    lightly, toward higher closeness with the user (`groups.weights`).
 3. A reply that names a member who hasn't spoken this round has them answer next; beyond the plan that happens
    once per round, so companions can banter without looping (`groups.banter`). Each member speaks at most once
-   per round, and nothing runs while the user is silent.
+   per round.
 
 Writing again while replies are being written lets the reply in progress finish and starts a round for the new
 message. Stop ends the round; Try again writes the replies that failed or were stopped.
@@ -116,6 +116,25 @@ would take has passed since the message before it showed: 1 to 4 s to read it (l
 0.5 to 2.5 s to think, and 5 to 8 characters a second to type, between 2.5 and 15 s in all and seeded per reply
 (`groups.pace_seconds`). Time spent writing it counts toward that wait. The line above the message box still
 describes only the app's work; nobody is shown typing.
+
+### Starting a conversation
+
+Groups don't only answer: now and then someone shares something from their own day and the others answer it
+the same way (`GroupChats.first_words`, rules in `companion/group_openers.py`). Rules decide all of it:
+
+- What: a finished moment from the member's own life in the last day (an ordinary event, committed), that this
+  group hasn't heard about and that gives away no secret someone there must not find out. The opening line is
+  also checked like any reply that could give a secret away.
+- Who: one of the members with such news who isn't asleep, seeded by the group and the day.
+- When: with the same holds as one-to-one first messages (Texting first on, not paused, outside quiet hours,
+  the shared away allowance, which the opening line draws from), never while the user wrote anywhere in the
+  last 15 minutes, never within the texting gap of the group's last message, at most once every two days per
+  group, and never twice in a row without the user answering. A check sends either one first message or one
+  group opening, not both.
+
+The opening line is written with the editable prompt "Groups starting a conversation"; then the others answer
+it as they answer the user (who answers, the pace, banter), and the round stops if the user writes. An opening
+line that fails isn't kept, and the same news isn't tried again until the app restarts.
 
 ### Building one speaker's prompt
 
