@@ -29,6 +29,10 @@ import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
 import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
+import { ChatsPanel } from '../chats/ChatsPanel'
+import { ChatSidebar } from '../chats/ChatSidebar'
+import { readThrough } from '../chats/chatText'
+import { useMarkRead } from '../chats/useChats'
 
 const PAGE = 100
 const JUMP_PAGE = 500
@@ -60,6 +64,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   useEffect(() => { sounds.current = chat.sounds })
 
   const timeline = useCurrentTimeline(draft, () => setNotice(null))
+  useMarkRead(companion.active_timeline_id, readThrough(messages, appNow()))
   const update = useCallback((change: (messages: Message[]) => Message[]) => {
     client.setQueryData<History>(HISTORY_KEY, (current) => current && { ...current, messages: change(current.messages) })
   }, [client])
@@ -197,41 +202,46 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const hasEarlier = !exhausted && messages.length >= PAGE
 
   return (
-    <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
-      <ConversationTop companion={companion} onGroups={() => go('groups')} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
-      {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
-      <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
-        <div className="reading-column">
-          {history.isPending && <Loading label="Loading the conversation" />}
-          {history.isError && <ErrorNotice error={history.error} />}
-          {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
-          {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
-          {turns.map((turn) => (
-            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
-          ))}
+    <div className={`chat-shell shell-${chat.style}`}>
+      <ChatSidebar style={chat.style} retroDark={chat.retroDark} go={go} />
+      <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
+        <ConversationTop companion={companion} go={go} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
+        {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
+        <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
+          <div className="reading-column">
+            {history.isPending && <Loading label="Loading the conversation" />}
+            {history.isError && <ErrorNotice error={history.error} />}
+            {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
+            {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
+            {turns.map((turn) => (
+              <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
+            ))}
+          </div>
+          {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
         </div>
-        {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
-      </div>
-      <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
-      <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
-      <ConversationNotice notice={notice} go={go} />
-      <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
-        onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
-      {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
-      <Composer name={name} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
-    </section>
+        <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
+        <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
+        <ConversationNotice notice={notice} go={go} />
+        <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
+          onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
+        {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
+        <Composer name={name} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
+      </section>
+    </div>
   )
 }
 
-function ConversationTop({ companion, onGroups, onJump, timeline, stage, photoId }: { companion: Companion; onGroups: () => void; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean; photoId: string | null }) {
-  const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
+function ConversationTop({ companion, go, onJump, timeline, stage, photoId }: { companion: Companion; go: (view: View) => void; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean; photoId: string | null }) {
+  const [open, setOpen] = useState<'chats' | 'search' | 'timelines' | null>(null)
+  const chatsButton = useReturnFocus<HTMLButtonElement>(open === 'chats')
   const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
   const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
   const pick = async (result: SearchResult) => { if (await onJump(result)) setOpen(null) }
-  const toggle = (panel: 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
+  const toggle = (panel: 'chats' | 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
-    <ConversationHeader companion={companion} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={onGroups} />
+    <ConversationHeader companion={companion} listing={open === 'chats'} chatsButton={chatsButton} onChats={() => toggle('chats')} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
+      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={() => go('groups')} />
+    {open === 'chats' && <ChatsPanel go={go} onClose={() => setOpen(null)} />}
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
     {stage && <NovelStage name={companion.version.name} photoId={photoId} />}

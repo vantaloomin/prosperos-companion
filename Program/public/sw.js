@@ -8,7 +8,7 @@ self.addEventListener('push', (event) => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { /* shown with the defaults below */ }
   event.waitUntil(self.registration.showNotification(data.title || 'Prospero Companion', {
-    body: data.body || '', tag: data.tag, icon: '/icon-192.png', data: { view: data.view },
+    body: data.body || '', tag: data.tag, icon: '/icon-192.png', data: { view: data.view, companion_id: data.companion_id },
   }))
 })
 
@@ -16,13 +16,15 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const view = event.notification.data?.view === 'feed' ? 'feed' : 'conversation'
+  // A message opens the chat of the companion who wrote it.
+  const companion = view === 'conversation' ? event.notification.data?.companion_id : undefined
   event.waitUntil((async () => {
     const [open] = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
     if (open) {
       await open.focus()
-      open.postMessage({ type: 'open-view', view })
+      open.postMessage({ type: 'open-view', view, companion_id: companion })
       return
     }
-    await self.clients.openWindow(`/#${view}`)
+    await self.clients.openWindow(companion ? `/#chat/${encodeURIComponent(companion)}` : `/#${view}`)
   })())
 })

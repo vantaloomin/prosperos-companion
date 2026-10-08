@@ -188,6 +188,11 @@ class CastFocus(Input):
     companion_id: str = Field(min_length=1, max_length=64)
 
 
+class ChatRead(Input):
+    thread_id: str = Field(min_length=1, max_length=64)
+    seq: int | None = Field(default=None, ge=0)
+
+
 class StartOverConfirm(Input):
     name: str = Field(max_length=200)
 
@@ -287,6 +292,8 @@ class LifeSettingsUpdate(Input):
     texts_first: bool | None = None
     texts_daily: int | None = Field(default=None, ge=1, le=6)
     texts_gap_hours: int | None = Field(default=None, ge=1, le=24)
+    # Messages sent while the user is away, from all companions together (companion/away.py); 0 for none.
+    away_daily: int | None = Field(default=None, ge=0, le=40)
     # 0 sizes the circle by how sociable the companion is (companion/life/circle.py).
     circle_size: int | None = Field(default=None, ge=0, le=12)
     # Storylines from quiet (0) through realistic and dramatic to soap opera (3).

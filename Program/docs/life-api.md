@@ -385,7 +385,8 @@ Companions who stepped back live in the same city by the townsfolk rules under t
 their old sheet if they came from town (under their current name), else a resident's sheet in their own
 neighborhood. Meetings count both ways, so the new main character already knows the companion they met,
 and the townsperson who took over never appears in town. Start over and delete then touch only the main
-character's rows (`companion/start_over.py`); deleting brings back whoever stepped back most recently.
+character's rows (`companion/start_over.py`); deleting brings back whoever stepped back most recently. They
+still text first and keep their chats (see First messages and Chats and unread messages).
 
 ```
 GET  /api/companion/cast                  # every companion: {id, name, main, from_town, stepped_back_at}
@@ -534,7 +535,8 @@ PUT /api/life/settings
 | `background_interval_minutes` | 60 | 15–1440 | Gap between background batches. |
 | `background_daily_events` | 3 | 0–8 | Most background events in 24 hours; one per batch. |
 | `texts_first` | `true` | | The companion may send the first message (see First messages). Workspaces from before it was on by default are switched on once. |
-| `texts_daily` | 2 | 1–6 | Most first messages in 24 hours. |
+| `texts_daily` | 2 | 1–6 | Most first messages in 24 hours, for each companion. |
+| `away_daily` | 6 | 0–40 | Most first messages in 24 hours from all companions together (`companion/away.py`); 0 stops them all. |
 | `texts_gap_hours` | 3 | 1–24 | Hours since the last message before the companion writes first. |
 
 Background batches also need `background_activity: true` in `PUT /api/settings`. Pausing
@@ -558,11 +560,17 @@ earlier batch). It is refused (409) while paused or for a pause that has not end
 ## First messages
 
 ```http
-POST /api/life/texts/check   → {state, kind?, message: Message | null}
+POST /api/life/texts/check   → {state, kind?, message: Message | null, companion_id?, focus?}
 ```
 
-With `texts_first` on (the default), the companion can start a conversation
-(`companion/life/openers.py`). The open app calls this about once a minute, and the server checks on
+With `texts_first` on (the default), every companion can start a conversation
+(`companion/life/openers.py`), the one in focus and the ones you switched away from alike. Each check
+sends at most one message: the companion in focus is considered first, then the others, whoever texted
+first least recently ahead. Every gate below applies to each companion on their own, and all of them
+share one allowance, `away_daily` messages in any 24 hours (`companion/away.py`), so a day with the app
+left running has a bounded model cost; group chats draw from the same allowance. A sent message carries
+`companion_id` and whether that companion is in `focus`. When nobody writes, `state` is the focus
+companion's. The open app calls this about once a minute, and the server checks on
 its own tick whether or not background activity is on. Fixed triggers decide when, in this order,
 each at most once per timeline:
 
@@ -598,10 +606,27 @@ message (the same words, or the same first 80 characters ignoring case and punct
 nothing was sent: `off`,
 `paused`, `quiet_hours` (the notification quiet hours, in the user's timezone), `asleep` (a sleep
 block in the companion's routine), `recent_conversation`, `waiting_for_answer` (their last first
-message is still unanswered; an `occasion` such as the user's birthday still goes out), `daily_cap`, `interrupted` or `nothing`. A sent message is an ordinary
+message is still unanswered; an `occasion` such as the user's birthday still goes out), `daily_cap`, `away_cap`
+(the shared allowance is used up), `interrupted` or `nothing`. A sent message is an ordinary
 companion message with `reply_to: null`; the chat shows it before the user's next message and the
 next reply sees it. With notifications on it is announced (kind `message`) before any waiting
-posts. A forked timeline keeps the triggers its parent already used.
+posts, titled with the name of the companion who wrote it; tapping it opens their chat. A forked timeline
+keeps the triggers its parent already used.
+
+## Chats and unread messages
+
+```http
+GET  /api/chats        → {chats: [{kind, id, thread_id, name, focus, unread, last: {role, text, at} | null, active_at}], unread}
+POST /api/chats/read   {thread_id, seq?} → the same list
+```
+
+Every chat, the most recently active first (`companion/chats.py`): one per companion now (`kind`
+`companion`, `id` the companion, `thread_id` their active timeline); group chats add entries of their
+own kind. `unread` counts their visible messages after both the last one the user saw (`chat_reads`) and
+the user's own last message there; a held reply counts once its time has come. The open chat marks itself
+read while the window is visible. The chat header's Chats button opens the list (full screen on a
+phone), with the count waiting in the other chats; the Profile tab shows the total. Nothing here says
+whether anyone is around: no presence, no read receipts.
 
 ## Texting rhythm
 

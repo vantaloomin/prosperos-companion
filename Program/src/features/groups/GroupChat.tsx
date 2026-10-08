@@ -10,7 +10,10 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Stamp } from '../../components/Stamp'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Composer } from '../conversation/Composer'
-import { ChatStyleSwitch } from '../conversation/ConversationHeader'
+import { ChatsButton, ChatStyleSwitch } from '../conversation/ConversationHeader'
+import { ChatSidebar } from '../chats/ChatSidebar'
+import { ChatsPanel } from '../chats/ChatsPanel'
+import { useMarkRead } from '../chats/useChats'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useDraft } from '../conversation/useDraft'
 import { useScrollAway } from '../conversation/useScrollAway'
@@ -71,7 +74,12 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
     if (await send(text, clientId)) { draft.clear(); follow() }
     draft.setSending(false)
   }
+  // What the members said, once finished, counts as read while the chat is on screen (chats.py group_chats).
+  const said = data.messages.filter((message) => message.kind === 'companion' && message.status === 'complete')
+  useMarkRead(id, said.length ? Math.max(...said.map((message) => message.seq)) : null)
   return (
+    <div className={`chat-shell shell-${style.style}`}>
+    <ChatSidebar style={style.style} retroDark={style.retroDark} go={go} current={{ kind: 'group', id }} />
     <section className={`conversation group-chat chat-${style.style}${style.retroDark ? ' retro-dark' : ''}`} aria-label={`Group chat: ${group.title}`}>
       <GroupHeader group={group} go={go} onChange={act} />
       <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
@@ -88,6 +96,7 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
           onStop={() => void act(() => api(`/groups/${id}/stop`, {}))} />
         : <GroupNotice notice={NOBODY} go={go} />}
     </section>
+    </div>
   )
 }
 
@@ -157,7 +166,10 @@ function GroupLine({ message }: { message: GroupMessage }) {
 function GroupHeader({ group, go, onChange }: { group: Group; go: (view: View) => void; onChange: Change }) {
   const [renaming, setRenaming] = useState(false)
   const [people, setPeople] = useState(false)
+  const [listing, setListing] = useState(false)
   const peopleButton = useReturnFocus<HTMLButtonElement>(people)
+  const chatsButton = useReturnFocus<HTMLButtonElement>(listing)
+  const current = { kind: 'group', id: group.id }
   return <>
     <header className="conversation-header">
       <button type="button" className="icon-button" aria-label="All groups" onClick={() => go('groups')}><ChevronLeft aria-hidden="true" /></button>
@@ -167,10 +179,12 @@ function GroupHeader({ group, go, onChange }: { group: Group; go: (view: View) =
           : <h1>{group.title} <button type="button" className="icon-button group-rename" aria-label="Rename the group" onClick={() => setRenaming(true)}><Pencil aria-hidden="true" /></button></h1>}
         <p className="subtle">{membersLine(group)}</p>
       </div>
+      <ChatsButton listing={listing} button={chatsButton} onChats={() => setListing(!listing)} current={current} />
       <ChatStyleSwitch />
       <button ref={peopleButton} type="button" className="icon-button" aria-label="People in this group" aria-expanded={people} onClick={() => setPeople(!people)}><UsersRound aria-hidden="true" /></button>
     </header>
     {people && <GroupPeople group={group} go={go} onChange={onChange} onClose={() => setPeople(false)} />}
+    {listing && <ChatsPanel go={go} onClose={() => setListing(false)} current={current} />}
   </>
 }
 

@@ -122,8 +122,10 @@ def subscribed(database, device_id: str) -> bool:
 
 def payload(notification: dict) -> bytes:
     view = 'conversation' if notification['kind'] == 'message' else 'feed'
-    return json.dumps({'title': notification['title'], 'body': notification['body'], 'tag': notification['id'],
-                       'view': view}).encode('utf-8')
+    shown = {'title': notification['title'], 'body': notification['body'], 'tag': notification['id'], 'view': view}
+    if notification.get('companion_id'):  # A tap opens that companion's chat.
+        shown['companion_id'] = notification['companion_id']
+    return json.dumps(shown).encode('utf-8')
 
 
 class Pusher:

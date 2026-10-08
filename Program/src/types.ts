@@ -332,6 +332,8 @@ export interface LifeSettings {
   /** The companion may send the first message (companion/life/openers.py). */
   texts_first: boolean
   texts_daily: number
+  /** First messages from all companions together in a day (companion/away.py); 0 for none. */
+  away_daily: number
   texts_gap_hours: number
   /** 0 sizes the circle by how sociable the companion is. */
   circle_size: number
@@ -821,9 +823,23 @@ export interface NotificationSettings {
   queued: number
 }
 
-export interface DesktopNotification { id: string; kind: 'post' | 'digest' | 'message'; post_ids: string[]; message_id?: string; title: string; body: string }
+export interface DesktopNotification { id: string; kind: 'post' | 'digest' | 'message'; post_ids: string[]; message_id?: string; companion_id?: string; title: string; body: string }
 
-export interface TextCheck { state: string; kind?: string; message: Message | null }
+export interface TextCheck { state: string; kind?: string; message: Message | null; companion_id?: string; focus?: boolean }
+
+/** One chat in the chat list (companion/chats.py): a companion's, and later group chats. Never says who is around. */
+export interface Chat {
+  kind: string
+  id: string
+  /** What its read position is kept by: a companion's active timeline. */
+  thread_id: string
+  name: string
+  focus: boolean
+  unread: number
+  last: { role: 'user' | 'companion'; text: string; at: string } | null
+  active_at: string
+}
+export interface ChatList { chats: Chat[]; unread: number }
 
 export interface NotificationCheck { notification: DesktopNotification | null; held: string | null }
 

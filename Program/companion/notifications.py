@@ -91,14 +91,17 @@ def enqueue_message(connection, message_id, timestamp):
 
 
 def ready_messages(connection, companion, now) -> list[dict]:
-    """Queued first messages on the active timeline that the user has not answered yet."""
+    """Queued first messages, from any companion's active timeline, that the user has not answered yet; each
+    names the companion who sent it."""
     ready = []
-    for item in many(connection, "SELECT openers.*, messages.text, messages.seq FROM openers JOIN messages ON "
-                     "messages.id=openers.message_id WHERE notify='queued' ORDER BY openers.created_at"):
+    for item in many(connection, "SELECT openers.*, messages.text, messages.seq, companions.id AS companion_id, "
+                     'character_versions.name AS name FROM openers JOIN messages ON messages.id=openers.message_id '
+                     'LEFT JOIN companions ON companions.active_timeline_id=openers.timeline_id LEFT JOIN '
+                     'character_versions ON character_versions.id=companions.active_version_id '
+                     "WHERE notify='queued' ORDER BY openers.created_at"):
         answered = optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='user' AND seq>?",
                             (item['timeline_id'], item['seq']))
-        if answered or item['timeline_id'] != companion['active_timeline_id'] or now - parse(
-                item['created_at']) > STALE:
+        if answered or item['companion_id'] is None or now - parse(item['created_at']) > STALE:
             connection.execute("UPDATE openers SET notify='dropped' WHERE id=?", (item['id'],))
         else:
             ready.append(item)
@@ -185,10 +188,14 @@ def ready_held(connection, companion, now) -> list[dict]:
                                                              stamp(now - STALE)))
 
 
-def message_notice(config, companion, text) -> dict:
-    name = companion['version']['name']
+def message_notice(config, name, ready) -> dict:
+    """One message, or several from one or more companions as a single notice."""
+    text, names = ready[-1]['text'], list(dict.fromkeys(item.get('name') or name for item in ready))
     if config['preview'] == 'private':
         return {'title': APP_TITLE, 'body': 'Something new is waiting.'}
+    if len(names) > 1:
+        return {'title': APP_TITLE, 'body': f"{len(ready)} new messages from {', '.join(names[:-1])} and {names[-1]}."}
+    name = names[0]
     if config['preview'] == 'name':
         return {'title': name, 'body': f'{name} sent you a message.'}
     return {'title': name, 'body': text if len(text) <= CAPTION_LIMIT else text[:CAPTION_LIMIT - 1].rstrip() + '…'}
@@ -204,7 +211,8 @@ def deliver_message(connection, config, companion, ready, timestamp) -> dict:
                            [(timestamp, item['message_id']) for item in ready if 'id' not in item])
     return {'notification': {'id': delivery_id, 'kind': 'message', 'post_ids': [],
                              'message_id': ready[-1]['message_id'],
-                             **message_notice(config, companion, ready[-1]['text'])}, 'held': None}
+                             'companion_id': ready[-1].get('companion_id') or companion['id'],
+                             **message_notice(config, companion['version']['name'], ready)}, 'held': None}
 
 
 def deliver(database, focused=False) -> dict:

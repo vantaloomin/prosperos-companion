@@ -921,7 +921,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* The companion's profile (src/features/profile): their card, then Messages, Posts and Character as tabs.
    It takes the chat style's look; the Character tab's form keeps the app's own look, since it sits outside their world. */
 .profile { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.profile > .conversation, .profile > .page { flex: 1; min-height: 0; }
+.profile > .conversation, .profile > .page, .profile > .chat-shell { flex: 1; min-height: 0; }
 .profile-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .profile-scroll > .page { overflow: visible; padding-top: 22px; }
 .profile-card { padding-bottom: 4px; }
@@ -1000,7 +1000,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-retro .profile-tabs { gap: 2px; margin: 6px 10px 0; padding: 4px 4px 0; border: 0; border-bottom: 2px solid #ffffff; background: var(--surface); }
 .profile-retro .profile-tabs button { padding: 4px 12px; border: 2px outset #f2f1ee; border-bottom: 0; border-radius: 3px 3px 0 0; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; }
 .profile-retro .profile-tabs button[aria-current='page'] { position: relative; top: 2px; padding-bottom: 6px; background: var(--surface); font-weight: 700; }
-.profile-retro > .conversation.chat-retro { margin-top: 0; border-top: 0; }
+.profile-retro > .conversation.chat-retro, .profile-retro > .chat-shell > .chat-retro { margin-top: 0; border-top: 0; }
 .profile-retro .feed { margin: 0 10px 10px; padding: 14px 16px; border: 2px outset #e8e6e1; border-top: 0; background: var(--surface); }
 .profile-retro .feed h2 { font-family: inherit; font-size: 1rem; font-weight: 700; }
 .profile-retro .post { gap: 8px; padding: 10px 12px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); }
@@ -1098,3 +1098,122 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .groups-list { padding: 0 8px 24px; }
   .group-people { padding: 12px 16px; }
 }
+
+/* Chats: every companion's chat with what is unread (src/features/chats). Works in every chat style. */
+.unread-badge, .app-nav .nav-count { display: inline-grid; place-items: center; min-width: 1.25rem; height: 1.25rem; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 0.6875rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.app-nav .nav-count { position: absolute; top: 3px; right: 10px; }
+.chats-button { position: relative; flex-shrink: 0; }
+.chats-button .unread-badge { position: absolute; top: -5px; right: -7px; }
+.chats-bar h2 { flex: 1; margin: 0; font-size: 1rem; }
+.chat-list { gap: 2px; }
+.chat-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 10px; border-radius: 10px; text-align: left; color: inherit; }
+.chat-row:hover:not(:disabled), .chat-row:focus-visible { background: var(--accent-tint); }
+.chat-row.current { background: var(--raised); }
+.chat-row .portrait { width: 40px; height: 40px; font-size: 1.05rem; object-fit: cover; }
+.chat-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.chat-row-top { display: flex; align-items: baseline; gap: 8px; }
+.chat-row-top strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.chat-row-time { flex-shrink: 0; color: var(--muted); font-size: 0.75rem; }
+.chat-row-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.8125rem; }
+.chat-row.unread .chat-row-top strong { font-weight: 700; }
+.chat-row.unread .chat-row-preview { color: var(--text); }
+.chat-row.unread .chat-row-time { color: var(--accent); }
+.chat-retro .chats-button .unread-badge { border: 1px solid #ffffff; }
+.chat-retro .chat-row { border-radius: 2px; }
+@media (max-width: 720px) {
+  /* On a phone the list covers the screen, the way a messaging app's chat list does. */
+  .chats-panel { position: fixed; inset: 0; z-index: 20; max-height: none; display: flex; flex-direction: column; border: 0;
+    background: var(--canvas); padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .chat-retro .chats-panel { margin: 0; }
+  .chats-panel .chats-bar { width: 100%; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .chats-panel .chats-bar h2 { font-size: 1.25rem; }
+  .chats-panel .search-results { flex: 1; width: 100%; overflow-y: auto; padding: 4px 8px 16px; }
+  .chat-row { min-height: 64px; }
+  .chat-row .portrait { width: 48px; height: 48px; }
+  .app-nav .nav-count { right: calc(50% - 22px); }
+}
+
+/* The chat list beside the chat on a wide screen (ChatSidebar), in each style's own look. No presence anywhere. */
+.chat-shell { flex: 1; display: flex; min-height: 0; min-width: 0; }
+.chat-shell > .conversation { min-width: 0; }
+.chat-side { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.chat-side ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.chat-shell:has(.chat-side) .chats-button { display: none; }
+/* Feed, Bubbles and Visual novel: a conversation list, as in a desktop messaging app. */
+.side-list { width: 280px; padding: 14px 8px; border-right: 1px solid var(--border); background: var(--surface); }
+.side-title { margin: 0 10px 10px; font-size: 1rem; }
+.side-list .chat-row { min-height: 60px; }
+.side-bubbles .side-title { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-weight: 600; }
+.side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
+.side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
+.side-bubbles .chat-row.current .unread-badge { background: var(--on-accent); color: var(--accent); }
+/* Community: a rail of round pictures, a pill beside the open chat and a short one beside chats with news. */
+.side-rail { width: 72px; padding: 12px 0; align-items: center; background: var(--canvas); border-right: 1px solid var(--border); }
+.side-rail ul { gap: 8px; }
+.side-rail li { position: relative; display: flex; justify-content: center; width: 72px; }
+.side-rail li::before { content: ''; position: absolute; left: 0; top: 50%; width: 4px; height: 0; border-radius: 0 4px 4px 0; background: var(--text); transform: translateY(-50%); transition: height .15s; }
+.side-rail li.unread::before { height: 8px; }
+.side-rail li.current::before { height: 40px; }
+.rail-button { position: relative; padding: 0; border-radius: 50%; }
+.rail-button .portrait { width: 48px; height: 48px; font-size: 1.15rem; object-fit: cover; transition: border-radius .15s; }
+.rail-button:hover .portrait, li.current .rail-button .portrait { border-radius: 16px; }
+.rail-button .unread-badge { position: absolute; right: -4px; bottom: -4px; border: 3px solid var(--canvas); height: 1.5rem; }
+/* Retro IM: a buddy list window beside the message window. */
+.side-buddies { order: 2; width: 190px; margin-left: 0; padding: 0 0 6px; }
+.buddy-titlebar { padding: 5px 8px; background: linear-gradient(90deg, #0a246a, #24508f); color: #ffffff; font-size: 0.8125rem; font-weight: 700; }
+.chat-retro.retro-dark .buddy-titlebar { background: linear-gradient(90deg, #0b1636, #1b2f5c); }
+.buddy-group { margin: 6px 8px 2px; font-family: inherit; font-size: 0.75rem; font-weight: 700; }
+.buddy-group::before { content: '▾ '; }
+.side-buddies ul { margin: 0 6px; padding: 2px 0; background: var(--canvas); border: 2px inset #e8e6e1; gap: 0; }
+.buddy { display: flex; gap: 4px; width: 100%; padding: 2px 8px 2px 18px; text-align: left; font-size: 0.8125rem; color: var(--text); }
+.buddy:hover:not(:disabled), .buddy:focus-visible { background: var(--accent-tint); }
+.buddy.current { background: var(--accent); color: var(--on-accent); }
+.buddy.unread .buddy-name { font-weight: 700; }
+.buddy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buddy-count { color: inherit; font-weight: 700; }
+@media (max-width: 720px) {
+  /* Phones keep the whole width for the chat; the Chats button opens the list. */
+  .chat-side { display: none; }
+  .chat-shell:has(.chat-side) .chats-button { display: inline-flex; }
+}
+/* Feed: a tray of ringed pictures across the top of the chat. */
+.shell-feed { flex-direction: column; }
+.side-tray { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 12px 24px 10px; border-bottom: 1px solid var(--border); }
+.side-tray ul { display: flex; gap: 18px; }
+.tray-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 72px; padding: 0; color: var(--muted); }
+.tray-ring { display: grid; place-items: center; padding: 3px; border-radius: 50%; border: 2px solid var(--border); }
+.tray-item.unread .tray-ring { border-color: transparent; background: conic-gradient(from 210deg, var(--accent), #e7c98f, var(--accent-hover), var(--accent)); }
+.tray-item.unread .tray-ring .portrait { border: 2px solid var(--canvas); }
+.tray-ring .portrait { width: 52px; height: 52px; font-size: 1.2rem; object-fit: cover; }
+.tray-item.current .tray-name { color: var(--text); font-weight: 600; }
+.tray-item.unread .tray-name { color: var(--text); }
+.tray-name { max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; }
+.tray-item .unread-badge { position: absolute; top: 0; right: 2px; border: 2px solid var(--canvas); }
+/* Visual novel: the cast as portrait cards. */
+.side-cast { width: 200px; padding: 14px 12px; border-right: 1px solid var(--border); background: radial-gradient(circle at 50% 0, var(--accent-tint), var(--canvas) 70%); }
+.side-cast .side-title { font-style: italic; font-weight: 400; letter-spacing: .04em; }
+.side-cast ul { gap: 12px; }
+.cast-card { position: relative; display: grid; justify-items: center; gap: 4px; width: 100%; padding: 12px 10px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); text-align: center; }
+.cast-card:hover:not(:disabled), .cast-card:focus-visible { border-color: var(--accent); }
+.cast-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cast-arch { display: grid; place-items: end center; width: 72px; height: 88px; overflow: hidden; border-radius: 36px 36px 6px 6px; background: linear-gradient(180deg, var(--raised), var(--accent-tint)); }
+.cast-arch .portrait { width: 72px; height: 88px; border: 0; border-radius: 0; background: transparent; font-size: 2.2rem; object-fit: cover; }
+.cast-name { font-family: 'Literata', Georgia, serif; font-size: 1rem; }
+.cast-line { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.75rem; font-style: italic; }
+.cast-ribbon { position: absolute; top: 10px; right: -6px; padding: 2px 8px; border-radius: 3px 0 0 3px; background: var(--accent); color: var(--on-accent); font-size: 0.6875rem; font-weight: 600; }
+.cast-card.unread .cast-name { font-weight: 600; }
+/* Hiding and resizing the chat list (src/features/chats/layout.ts). */
+.chat-side { position: relative; }
+.side-head { display: flex; align-items: center; gap: 6px; margin: 0 4px 10px 10px; }
+.side-head .side-title { flex: 1; margin: 0; }
+.side-collapse { flex-shrink: 0; }
+.side-collapse svg { width: 18px; height: 18px; }
+.side-rail .side-collapse, .side-tray .side-collapse { margin: auto auto 0; }
+.side-tray .side-collapse { margin: 0 0 0 auto; align-self: center; }
+.buddy-titlebar { display: flex; align-items: center; justify-content: space-between; }
+.buddy-titlebar .side-collapse { width: 22px; height: 22px; color: #ffffff; border-radius: 2px; }
+.side-resize { position: absolute; top: 0; bottom: 0; right: 0; width: 6px; cursor: col-resize; z-index: 2; touch-action: none; }
+.side-resize-right { right: auto; left: 0; }
+.side-resize:hover, .side-resize:focus-visible { background: var(--accent); opacity: .5; outline: none; }
+.side-list, .side-cast { flex-shrink: 0; }
+@media (max-width: 720px) { .side-expand { display: none; } }

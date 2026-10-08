@@ -9,6 +9,7 @@ from companion import (
     cast,
     character_helper,
     characters,
+    chats,
     conversation,
     data_folder,
     drafting,
@@ -38,6 +39,7 @@ from companion.models import (
     CharacterDraftRequest,
     CharacterRevision,
     CharacterSplitRequest,
+    ChatRead,
     ConnectionUpdate,
     EventCorrection,
     EventProposal,
@@ -208,6 +210,18 @@ def companion_town(request: Request, body: TownSeed):
 def cast_focus(request: Request, body: CastFocus):
     """Switch back to a companion who stepped back."""
     return cast.focus_on(db(request), body.companion_id)
+
+
+@router.get('/chats')
+def list_chats(request: Request):
+    """Every chat with its latest message and unread count, the most recent first."""
+    return chats.listed(db(request))
+
+
+@router.post('/chats/read')
+def read_chat(request: Request, body: ChatRead):
+    """The user has seen a chat up to a message (its latest when no seq is given)."""
+    return chats.read(db(request), body.thread_id, body.seq)
 
 
 @router.get('/prompts')

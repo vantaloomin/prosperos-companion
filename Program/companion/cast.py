@@ -5,7 +5,8 @@ townsperson the companion has met the main character instead: the townsperson ge
 definition, drafted from their rule sheet (or fleshed out by the text model), and from then on the model
 plays them. The companion who steps back keeps every chat, memory and timeline, and goes on living in
 the same city by the townsfolk's rules (companion/life/encounters.py), where the new main character can
-run into them. Switching back puts them in slot 1 again, history intact.
+run into them. They still text first and keep their chat (companion/chats.py), so switching is like opening
+another chat: it puts them in slot 1 again, history intact.
 
 A match on the dating app (companion/dating.py) becomes a companion the same way, with or without a main
 character to step back, and starts as a romance unless the match was for friendship.

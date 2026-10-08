@@ -11,9 +11,11 @@ character given an absence trait, a long silence. The facts come from that state
 phrases the message in the character's voice, and a trigger that needs phrasing waits when no model
 is connected.
 
-It is on by default and the user can turn it off. It never texts while the workspace is paused, during quiet
-hours, while the companion is asleep, soon after the last message, more often than the daily cap,
-or twice in a row without an answer. Each trigger fires once per timeline. The message is saved as
+Every companion does this, in focus or not, so a day with the app left running comes back to messages
+from several of them. It is on by default and the user can turn it off. It never texts while the workspace
+is paused, during quiet hours, while the companion is asleep, soon after the last message, more often than
+the daily cap, twice in a row without an answer, or once all companions together have used the shared
+allowance for messages while the user is away (companion/away.py). Each trigger fires once per timeline. The message is saved as
 an ordinary companion message with no `reply_to`, so the next reply sees it in the transcript.
 """
 import random
@@ -21,8 +23,8 @@ import re
 from dataclasses import dataclass
 from datetime import time, timedelta
 
-from companion import in_character, notifications, prompt_library, self_facts, texting
-from companion.characters import current
+from companion import away, in_character, notifications, prompt_library, self_facts, texting
+from companion.characters import by_id, current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
@@ -354,7 +356,19 @@ def held(connection, companion, life, now, occasion: bool = False) -> str | None
         return 'waiting_for_answer'
     sent = one(connection, 'SELECT COUNT(*) AS n FROM openers WHERE timeline_id=? AND created_at>?',
                (timeline_id, stamp(now - timedelta(days=1))))['n']
-    return 'daily_cap' if sent >= life['texts_daily'] else None
+    if sent >= life['texts_daily']:
+        return 'daily_cap'
+    return None if away.allowed(connection, now) else 'away_cap'
+
+
+def turns(connection) -> list[str]:
+    """Whose turn it is to be considered: the companion in focus, then whoever texted first least recently,
+    so a long list of companions shares the allowance instead of the first few using it up."""
+    rows = many(connection, 'SELECT c.id FROM companions c ORDER BY c.slot IS NULL, (SELECT MAX(o.created_at) '
+                'FROM openers o JOIN timelines t ON t.id=o.timeline_id WHERE t.companion_id=c.id) IS NOT NULL, '
+                '(SELECT MAX(o.created_at) FROM openers o JOIN timelines t ON t.id=o.timeline_id '
+                'WHERE t.companion_id=c.id), c.created_at')
+    return [row['id'] for row in rows]
 
 
 class Openers:
@@ -367,9 +381,24 @@ class Openers:
         self.scheduler = scheduler
 
     async def check(self) -> dict:
+        """At most one first message per check, from whichever companion has a reason and is free to send it.
+        The state reported when nobody texts is the focus companion's."""
         now = self.database.clock.now()
         with self.database.connect() as connection:
-            companion = current(connection)
+            order = turns(connection)
+        if not order:
+            return {'state': 'no_companion', 'message': None}
+        first = None
+        for companion_id in order:
+            result = await self.check_one(companion_id, now)
+            if result['state'] in {'sent', 'interrupted'}:
+                return result
+            first = first or result
+        return first
+
+    async def check_one(self, companion_id: str, now) -> dict:
+        with self.database.connect() as connection:
+            companion = by_id(connection, companion_id)
             if companion is None:
                 return {'state': 'no_companion', 'message': None}
             life = one(connection, 'SELECT * FROM life_settings WHERE id=1')
@@ -386,16 +415,16 @@ class Openers:
             if trigger.template is None and config is None:
                 continue
             try:
-                text, wording = await self.write(trigger, config, now)
+                text, wording = await self.write(companion_id, trigger, config, now)
             except BackgroundInterrupted:
                 return {'state': 'interrupted', 'message': None}
             if text:
                 return self.save(companion, trigger, text, wording, now)
         return {'state': 'nothing', 'message': None}
 
-    async def write(self, trigger, config, now) -> tuple[str | None, str]:
+    async def write(self, companion_id, trigger, config, now) -> tuple[str | None, str]:
         with self.database.connect() as connection:
-            companion = current(connection)
+            companion = by_id(connection, companion_id)
         fallback = voiced(trigger.template, companion['version']['definition'])
         if config is None:
             return fallback, 'template'
@@ -433,7 +462,9 @@ class Openers:
         from companion.conversation import message_view, next_seq
         timestamp = stamp(now)
         with self.database.connect(write=True) as connection:
-            latest = current(connection)
+            latest = by_id(connection, companion['id'])
+            if latest is None:
+                return {'state': 'superseded', 'message': None}
             timeline_id = latest['active_timeline_id']
             # The world moved on while the message was written: the user wrote, or the timeline or
             # character changed. Try again on the next check.
@@ -456,10 +487,13 @@ class Openers:
                                 encode({'reason': trigger.reason, 'sources': list(trigger.sources)}), message_id,
                                 wording, timestamp))
             notifications.enqueue_message(connection, message_id, timestamp)
+            away.record(connection, 'companion', timeline_id, message_id, timestamp)
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
             self_facts.note(connection, row, timestamp)
             own_plans.note(connection, row, latest, timestamp)
-        return {'state': 'sent', 'kind': trigger.kind, 'message': message_view(row)}
+            focus = current(connection)
+        return {'state': 'sent', 'kind': trigger.kind, 'message': message_view(row), 'companion_id': latest['id'],
+                'focus': bool(focus and focus['id'] == latest['id'])}
 
 
 def plain(text: str) -> str:

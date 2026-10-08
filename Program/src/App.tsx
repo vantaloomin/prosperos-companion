@@ -1,7 +1,7 @@
 import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { BookHeart, BookOpen, CalendarDays, Download, Heart, MessageSquareText, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
 import type { Companion } from './types'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import { useCompanion, useFollowPcTimezone, useWorkspaceSettings, type View } from './companion'
 import { Conversation } from './features/conversation/Conversation'
@@ -16,6 +16,9 @@ import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
 import { Welcome } from './features/character/Welcome'
 import { sidecar, useSidecarOpen } from './features/sidecar/store'
+import { useChats } from './features/chats/useChats'
+import { reach } from './features/notifications/useNotifications'
+import { badge, unreadOf } from './features/chats/chatText'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
@@ -45,7 +48,7 @@ const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') || id.startsWith('group/') ? id as View : 'conversation'
+  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') || id.startsWith('chat/') || id.startsWith('group/') ? id as View : 'conversation'
 }
 
 function isCurrent(id: View, view: View) {
@@ -67,6 +70,10 @@ export default function App() {
   const openTab = useCallback((tab: SettingsTab) => { window.history.replaceState(null, '', `#settings/${tab}`); setView(`settings/${tab}`) }, [])
   useNotifications(!!companion.data, go)
   useTexts(!!companion.data)
+  useChatLink(view, setView)
+  const chats = useChats(!!companion.data).data?.chats ?? []
+  // Unread one-to-one chats count on Profile, group chats on Groups.
+  const unread: Partial<Record<string, number>> = { conversation: unreadOf(chats, 'companion'), groups: unreadOf(chats, 'group') }
   useFocusOnViewChange(view)
   // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
   const storyOn = !!useWorkspaceSettings().data?.story_mode
@@ -84,7 +91,8 @@ export default function App() {
               <MessageSquareText aria-hidden="true" /><span>Sidecar</span>
             </button>}
             <button type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
-              <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}<span>{label}</span>
+              <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}
+              {!!unread[id] && <span className="nav-count" aria-label={`${unread[id]} unread`}>{badge(unread[id])}</span>}<span>{label}</span>
             </button>
           </Fragment>
         ))}
@@ -98,6 +106,17 @@ export default function App() {
       {sidecarOpen && <Suspense fallback={null}><Sidecar view={view} go={go} /></Suspense>}
     </div>
   )
+}
+
+/** #chat/<id>, from a notification tapped while the app was closed: open that companion's chat. */
+function useChatLink(view: View, setView: (view: View) => void) {
+  const client = useQueryClient()
+  useEffect(() => {
+    if (!view.startsWith('chat/')) return
+    // The chat takes this address's place, so Back does not open it again.
+    const open = (next: View) => { window.history.replaceState(null, '', `#${next}`); setView(next) }
+    void reach(client, open, 'conversation', decodeURIComponent(view.slice(5)))
+  }, [view, client, setView])
 }
 
 /**

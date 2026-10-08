@@ -25,6 +25,12 @@ def by_id(connection, companion_id: str) -> dict | None:
     return {**companion, 'version': view(version)}
 
 
+def for_timeline(connection, timeline_id: str) -> dict | None:
+    """The companion a timeline belongs to."""
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    return by_id(connection, row['companion_id']) if row else None
+
+
 def require_current(connection) -> dict:
     companion = current(connection)
     if companion is None:

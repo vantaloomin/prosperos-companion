@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { LifeSettings as Limits } from '../../types'
+import type { ChatList, LifeSettings as Limits } from '../../types'
+import { CHATS_KEY } from '../chats/useChats'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { DRAMA_LEVELS } from '../today/storyText'
 import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['life-settings']
-type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'texts_gap_hours' | 'circle_size'
+type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'away_daily' | 'texts_gap_hours' | 'circle_size'
 
 const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: string }[] = [
   { key: 'catch_up_max_events', label: 'Most events when you return', min: 0, max: 6, hint: 'However long you were away.' },
@@ -16,7 +17,8 @@ const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: s
   { key: 'return_gap_hours', label: 'Time away before catching up (hours)', min: 1, max: 48, hint: '' },
   { key: 'background_interval_minutes', label: 'Minutes between background updates', min: 15, max: 1440, hint: '' },
   { key: 'background_daily_events', label: 'Most background events a day', min: 0, max: 8, hint: '' },
-  { key: 'texts_daily', label: 'Most first messages a day', min: 1, max: 6, hint: '' },
+  { key: 'texts_daily', label: 'Most first messages a day, each', min: 1, max: 6, hint: '' },
+  { key: 'away_daily', label: 'Most first messages a day, all companions together', min: 0, max: 40, hint: 'Shared by every companion, so a day with the app left running stays within what you want to spend on your model. 0 to 40; 0 stops them all.' },
   { key: 'texts_gap_hours', label: 'Quiet hours after talking before they message first', min: 1, max: 24, hint: '' },
   { key: 'circle_size', label: 'People in their circle', min: 0, max: 12, hint: '0 decides by how sociable they are: 4 for a homebody, 5 usually, 10 for a social butterfly. Add people from Today.' },
 ]
@@ -24,6 +26,7 @@ const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: s
 export function LifeSettings({ name }: { name: string }) {
   const client = useQueryClient()
   const settings = useQuery({ queryKey: KEY, queryFn: () => api<Limits>('/life/settings') })
+  const others = (useQuery({ queryKey: CHATS_KEY, queryFn: () => api<ChatList>('/chats') }).data?.chats.length ?? 1) > 1
   const [pending, setPending] = useState<Partial<Limits>>({})
   const [draft, setDraft] = useState<Partial<Record<NumberKey, string>>>({})
   const [result, setResult] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
@@ -60,8 +63,8 @@ export function LifeSettings({ name }: { name: string }) {
         hint="Off: new events wait in Today for you to keep or discard. Big changes to who they are or your relationship always wait for you." />
       <Toggle label="Let the model word their days" checked={data.phrase_with_model} onChange={(value) => void save({ phrase_with_model: value })}
         hint="What happens is always built from their routine and city. With this on, your model rewrites it in their voice; off, plain wording is used and no model calls are made." />
-      <Toggle label={`Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
-        hint={`${name} may start a conversation: to check in on a break or after work, to ask about something they said they'd ask about, how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.`} />
+      <Toggle label={others ? `Let ${name} and your other companions message you first` : `Let ${name} message you first`} checked={data.texts_first} onChange={(value) => void save({ texts_first: value })}
+        hint={`${name} may start a conversation: to check in on a break or after work, to ask about something they said they'd ask about, how a plan of yours went, to share news from their day, or when something reminds them of you. Never during your quiet hours, while they sleep or twice without an answer.${others ? ' Your other companions do too, even while you are chatting with someone else.' : ''}`} />
       <Toggle label={`Reply at ${name}'s pace`} checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When ${name} is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
       <Toggle label={`Let ${name}'s days go off plan`} checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}

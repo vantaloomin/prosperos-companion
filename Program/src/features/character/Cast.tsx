@@ -13,12 +13,13 @@ export function Cast({ go }: { go: (view: View) => void }) {
   const members = useQuery({ queryKey: CAST_KEY, queryFn: () => api<{ members: CastMember[] }>('/companion/cast').then((data) => data.members) })
   const { switchTo, busy, error } = useSwitchBack(go)
   const others = (members.data ?? []).filter((member) => !member.main)
+  const main = (members.data ?? []).find((member) => member.main)?.name ?? 'your main companion'
   if (others.length === 0) return null
   return (
     <section className="settings-section form-stack" aria-labelledby="cast-heading">
       <div>
         <h2 id="cast-heading">Your other companions</h2>
-        <p className="subtle">They stepped back from being the main character and go on living around town by simple rules. Switching back picks up where you left off, with every chat and memory.</p>
+        <p className="subtle">They go on living their own lives in town and can message you first, just like {main}. Switching to one picks up where you left off, with every chat and memory. The Chats button at the top of a chat switches too, and shows who wrote.</p>
       </div>
       <ul className="network-list">
         {others.map((member) => (
