@@ -13,10 +13,11 @@ are stored separately: a catch-up synthesizes missed fiction now and never claim
 the app was closed (T4).
 """
 import asyncio
+import logging
 import random
 from datetime import date, timedelta
 
-from companion import events, notifications
+from companion import events, logs, notifications, troubleshoot
 from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -28,6 +29,8 @@ from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.text_models import config_for, key_for
 from companion.workspace import overlapping_pause
+
+LOG = logging.getLogger(__name__)
 
 LEASE = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
@@ -431,8 +434,10 @@ class LifeEngine:
             # A model outage leaves the batch resumable a few times before it is given up.
             await asyncio.to_thread(self.save, run_id, results,
                                     'interrupted' if run['attempts'] < MAX_ATTEMPTS else 'failed', error.message)
-        except Exception:  # noqa: BLE001 - a failed batch must still leave a visible state.
-            await asyncio.to_thread(self.save, run_id, results, 'failed', 'The batch failed unexpectedly.')
+        except Exception as error:  # noqa: BLE001 - a failed batch must still leave a visible state.
+            LOG.exception('A life batch failed unexpectedly.')
+            await asyncio.to_thread(self.save, run_id, results, 'failed', troubleshoot.describe(
+                "Couldn't finish", 'their day', error, str(logs.file_path())))
 
     def load_run(self, run_id):
         with self.database.connect() as connection:

@@ -12,7 +12,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-from companion import in_character, pictures, self_checks, self_facts, texting
+from companion import in_character, logs, pictures, self_checks, self_facts, texting, troubleshoot
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -367,9 +367,10 @@ class Conversation:
             status, error = 'cancelled', 'Stopped.'
         except DomainError as failure:
             status, error = ('incomplete' if ''.join(text) else 'failed'), failure.message
-        except Exception:  # noqa: BLE001 - an unexpected failure must still leave a visible state.
+        except Exception as failure:  # noqa: BLE001 - an unexpected failure must still leave a visible state.
             LOG.exception('A reply failed unexpectedly.')
-            status, error = ('incomplete' if ''.join(text) else 'failed'), 'The reply failed unexpectedly.'
+            status = 'incomplete' if ''.join(text) else 'failed'
+            error = troubleshoot.describe("Couldn't finish", 'the reply', failure, str(logs.file_path()))
         if status == 'complete' and not ''.join(text).strip():
             status, error = 'failed', error or 'The model returned no reply text.'
         self.finish(prepared['attempt_id'], ''.join(text), status, error)

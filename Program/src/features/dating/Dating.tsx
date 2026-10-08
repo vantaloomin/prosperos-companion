@@ -22,7 +22,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
   const [matched, setMatched] = useState<DatingCard | null>(null)
   const [error, setError] = useState('')
   if (dating.isPending) return <Loading label="Opening the app" />
-  if (dating.isError) return <ErrorNotice error={dating.error} />
+  if (dating.isError) return <ErrorNotice error={dating.error} action={<button type="button" className="text-button" onClick={() => void dating.refetch()}>Try again</button>} />
   const data = dating.data
   const run = async (request: () => Promise<DatingData>) => {
     setError('')

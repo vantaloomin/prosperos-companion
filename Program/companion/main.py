@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from companion import dating_routes, local_zone, logs, story_routes, workspace
+from companion import dating_routes, local_zone, logs, story_routes, troubleshoot, workspace
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.dating_photos import DatingPhotos
@@ -64,13 +64,13 @@ async def domain_error(_request: Request, error: DomainError):
     return JSONResponse({'detail': error.message, 'code': error.code}, status_code=error.status)
 
 
-async def unexpected_error(request: Request, _error: Exception):
-    """Anything else is a bug: the traceback goes to the log (companion/logs.py) and the page gets a message it
-    can show, rather than a bare "Internal Server Error" it cannot read."""
+async def unexpected_error(request: Request, error: Exception):
+    """Anything else: the traceback goes to the log (companion/logs.py) and the page gets a message it can show,
+    rather than a bare "Internal Server Error": what failed, the likely reason when it can be told, and a
+    one-line detail for a bug report (companion/troubleshoot.py)."""
     logging.getLogger('companion').error('%s %s failed', request.method, request.url.path)
     log = logs.file_path()
-    return JSONResponse({'detail': 'Something went wrong in the Companion. Please try again; if it keeps '
-                                   f'happening, the log at {log} says what failed.',
+    return JSONResponse({'detail': troubleshoot.for_request(request.method, request.url.path, error, str(log)),
                          'code': 'server_error', 'log': str(log)}, status_code=500)
 
 
