@@ -32,22 +32,35 @@ FIXED_SUBJECTS = {'team': 'team', 'works_at': 'workplace', 'grew_up': 'hometown'
 CATEGORIES = {'person', 'pet', 'team', 'works_at', 'grew_up', 'plays', 'favorite', 'likes', 'dislikes', 'allergy',
               'detail'}
 # Written for str.format: {name} is the companion's name, doubled braces are literal.
+# A list of short rules with whole examples: small local models copy an example's shape.
 RULES = (
-    'You help a companion app keep a fictional character, {name}, consistent. The user message is a JSON list of '
-    'numbered messages {name} sent, each with the message it answered ("answering"). Reply with JSON only: a list '
-    'of objects {{"message": number, "category": "person" | "pet" | "team" | "works_at" | "grew_up" | "plays" | '
-    '"favorite" | "likes" | "dislikes" | "allergy" | "detail", "subject": short label, "value": the fact in '
-    "{name}'s own words}}. Include only lasting facts {name} states plainly about their own life: the people in it "
-    'by name, with the subject saying who they are to {name} ("sister", "coworker", "best friend"); pets (subject '
-    'the animal, value its name); the team {name} is on (value the team name); the named place {name} works (not the '
-    'job itself, which the app knows) and where {name} grew up; what {name} plays; favorites (subject what kind, like "band"); clear likes, dislikes and allergies; and other details '
-    'that must stay the same later ("detail", subject like "car" or "tattoo"). "we\'re the Harbor Hellions" '
-    'answering "what\'s your derby team called?" is {{"message": 1, "category": "team", "subject": "team", '
-    '"value": "Harbor Hellions"}}; "my sister jo plays derby too" is {{"category": "person", "subject": "sister", '
-    '"value": "Jo"}}. Leave out anything about the person {name} is texting: when "answering" asks about their life, people '
-    'or pets ("what\'s my dog\'s name?", "who\'s due in december?"), the names in the answer are theirs, '
-    "not {name}'s. Also leave out compliments, moods, plans, jokes, "
-    'questions, hypotheticals and anything you would have to guess. Reply [] when there is nothing.'
+    'You help a companion app keep a fictional character, {name}, consistent.\n'
+    'Input: a JSON list of numbered messages {name} sent, each with the message it answered ("answering").\n'
+    'Output: JSON only, a list of facts, or [] when there is nothing. Each fact is {{"message": number, "category": '
+    '"person" | "pet" | "team" | "works_at" | "grew_up" | "plays" | "favorite" | "likes" | "dislikes" | "allergy" | '
+    '"detail", "subject": short label, "value": a few words, just the name or thing}}.\n'
+    'Keep only lasting facts {name} states plainly about their own life:\n'
+    '- person: someone in their life by name; the subject says who they are to {name} ("sister", "coworker", '
+    '"best friend").\n'
+    '- pet: the subject is the animal, the value its name.\n'
+    '- team: the team {name} is on; works_at: the named place {name} works (not the job itself, which the app '
+    'knows); grew_up: where {name} grew up; plays: what {name} plays.\n'
+    '- favorite (the subject says what kind, like "band"), clear likes, dislikes and allergies.\n'
+    '- detail: anything else that must stay the same later (subject like "car" or "tattoo").\n'
+    'Leave out:\n'
+    '- anything about the person {name} is texting: when "answering" asks about their life, people or pets '
+    '("what\'s my dog\'s name?", "who\'s due in december?"), the names in the answer are theirs, not {name}\'s;\n'
+    '- compliments, moods, plans, jokes, questions, hypotheticals and anything you would have to guess.\n'
+    'Examples:\n'
+    '"we\'re the Harbor Hellions" answering "what\'s your derby team called?" gives [{{"message": 1, "category": '
+    '"team", "subject": "team", "value": "Harbor Hellions"}}]\n'
+    '"my sister jo plays derby too" gives [{{"message": 1, "category": "person", "subject": "sister", "value": '
+    '"Jo"}}]\n'
+    '"olives are just salty sadness" gives [{{"message": 1, "category": "dislikes", "subject": "olives", "value": '
+    '"olives"}}]\n'
+    '"got a tiny moon tattoo on my wrist, my mom still hates it" gives [{{"message": 1, "category": "detail", '
+    '"subject": "tattoo", "value": "tiny moon on her wrist"}}]\n'
+    '"his name is Biscuit" answering "what\'s my puppy called again?" gives []'
 )
 
 

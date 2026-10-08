@@ -186,7 +186,7 @@ def test_chat_context_names_the_circle(client, baltimore, provider, clock):
     clock.advance(timedelta(days=1))
     reconcile(client)
     client.post('/api/conversation/messages', json={'text': 'How is everyone?', 'client_id': 'circle-0001'})
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'People in your life' in system
     for person in client.get('/api/life/circle').json():
         assert person['name'] in system
@@ -199,7 +199,7 @@ def test_wording_prepared_ahead_is_used_when_its_slot_is_simulated(client, balti
     set_life(client, catch_up_max_events=6, catch_up_lookback_hours=96)
     engine = client.app.state.life
     assert asyncio.run(engine.prepare_now(limit=50))['prepared'] > 0
-    phrasings = len([request for request in provider.requests if 'Rephrase one' in request['system']])
+    phrasings = len([request for request in provider.requests if 'Rephrase one' in request['prompt']])
     clock.advance(timedelta(days=2))
     results = reconcile(client)['run']['results']
     events = {event['id']: event for event in client.get('/api/events?history=true').json()}
@@ -207,7 +207,7 @@ def test_wording_prepared_ahead_is_used_when_its_slot_is_simulated(client, balti
     assert used and all(event['inputs'].get('prepared') for event in used)
     assert all(event['summary'].startswith('Phrased: ') for event in used)
     # Nothing was phrased again on return.
-    assert len([request for request in provider.requests if 'Rephrase one' in request['system']]) == phrasings
+    assert len([request for request in provider.requests if 'Rephrase one' in request['prompt']]) == phrasings
     assert asyncio.run(engine.prepare_now())['prepared'] == 2
 
 
@@ -276,7 +276,7 @@ def test_chat_knows_the_companions_likely_next_plans(client, baltimore, provider
                                         'api_key': 'secret-key'})
     reconcile(client)
     client.post('/api/conversation/messages', json={'text': 'What are you up to later?', 'client_id': 'plans-0001'})
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'likely to do next' in system
     upcoming = [row for row in rows(client, subject='companion', status='upcoming') if row['entry']
                 and parse(row['starts_at']) > clock.now()]
@@ -333,7 +333,7 @@ def test_chat_knows_todays_typical_weather(client, baltimore, provider, clock):
                                         'api_key': 'secret-key'})
     reconcile(client)
     client.post('/api/conversation/messages', json={'text': 'Nice out?', 'client_id': 'weather-0001'})
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'not a real forecast' in system
     assert '°F' in system and ('with rain.' in system or 'dry.' in system)
 
@@ -375,7 +375,7 @@ def test_the_companion_goes_out_for_a_city_festival(client, baltimore, provider,
     evening = decode(rows(client, subject='companion', slot_key='out@2026-10-17')[0]['entry'])
     assert evening['activity'] != 'festival'
     client.post('/api/conversation/messages', json={'text': 'Anything on today?', 'client_id': 'festival-01'})
-    assert 'Annual events in the city today: Fells Point Fun Festival' in provider.requests[-1]['system']
+    assert 'Annual events in the city today: Fells Point Fun Festival' in provider.requests[-1]['prompt']
 
 
 def test_the_companion_celebrates_a_friends_birthday(client, baltimore, provider, clock, monkeypatch):
@@ -393,7 +393,7 @@ def test_the_companion_celebrates_a_friends_birthday(client, baltimore, provider
     assert people[celebrations[0]['with']['id']]['name'] in celebrations[0]['summary']
     clock.instant = datetime.combine(tomorrow, datetime.min.time(), tzinfo=UTC) + timedelta(hours=16)
     client.post('/api/conversation/messages', json={'text': 'Any news?', 'client_id': 'birthday-01'})
-    assert 'Today is their birthday.' in provider.requests[-1]['system']
+    assert 'Today is their birthday.' in provider.requests[-1]['prompt']
 
 
 def test_a_relative_out_of_town_gets_a_call():

@@ -114,7 +114,7 @@ def test_answering_a_question_replies_in_chat(client, city, clock, provider, mon
     response = client.post(f"/api/feed/{question['id']}/answer", json={'option': option, 'client_id': 'answer-002'})
     assert response.status_code == 200, response.text
     assert next(post for post in feed(client)['posts'] if post['id'] == question['id'])['answer'] == option
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert question['text'] in system and f'The user picked: {option}.' in system
 
 

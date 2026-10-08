@@ -13,7 +13,7 @@ from companion.database import initialize
 from companion.errors import DomainError
 from companion.main import create_app
 from companion.providers.chat import ChatProvider, Chunk
-from companion.providers.requests import REQUESTS, headers_for, transcript
+from companion.providers.requests import CACHED, REQUESTS, headers_for, transcript
 from companion.providers.vault import MemoryVault
 
 LOCAL = {'provider': 'local', 'model': 'local-model'}
@@ -204,9 +204,24 @@ def config(provider, **extra):
             'context_tokens': 4000, 'timeout_seconds': 10, **extra}
 
 
+def test_claude_caches_the_system_prompt_and_the_conversation_before_the_latest_message():
+    _path, body = REQUESTS['anthropic'](config('anthropic'), 'sys', CONVERSATION)
+    assert body['messages'][1] == {'role': 'assistant', 'content': [{'type': 'text', 'text': 'Morning!',
+                                                                     'cache_control': CACHED}]}
+    assert 'cache_control' not in str(body['messages'][2]) and 'cache_control' not in str(body['messages'][0])
+    _path, body = REQUESTS['openrouter'](config('openrouter', model='anthropic/claude-sonnet-5.5'), 'sys', CONVERSATION)
+    assert body['messages'][0]['content'] == [{'type': 'text', 'text': 'sys', 'cache_control': CACHED}]
+    assert body['messages'][2]['content'] == [{'type': 'text', 'text': 'Hi', 'cache_control': CACHED}]
+    assert body['messages'][3] == {'role': 'user', 'content': 'Still there?'}
+    # Other models cache on their own, and a plain request suits every server.
+    for provider, model in [('openrouter', 'google/gemma-4-31b-it'), ('local', 'qwen3.6-27b')]:
+        _path, body = REQUESTS[provider](config(provider, model=model), 'sys', CONVERSATION)
+        assert 'cache_control' not in str(body) and body['messages'][0] == {'role': 'system', 'content': 'sys'}
+
+
 def test_anthropic_and_gemini_get_alternating_turns_that_open_with_the_user():
     path, body = REQUESTS['anthropic'](config('anthropic', thinking_mode='adaptive'), 'sys', CONVERSATION)
-    assert path == '/messages' and body['system'] == 'sys'
+    assert path == '/messages' and body['system'] == [{'type': 'text', 'text': 'sys', 'cache_control': CACHED}]
     assert [message['role'] for message in body['messages']] == ['user', 'assistant', 'user']
     assert body['messages'][-1]['content'] == 'Hi\n\nStill there?'
     assert body['thinking'] == {'type': 'adaptive'}

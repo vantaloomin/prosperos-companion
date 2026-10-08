@@ -110,7 +110,7 @@ def test_reactions_and_discussing_a_post_in_chat(client, life, clock, provider):
                                                                    'client_id': 'discuss-0001'})
     assert result.status_code == 200, result.text
     assert result.json()['reply']['status'] == 'complete'
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'feed post the user is replying to' in system and post['events'][0]['summary'] in system
 
 
@@ -170,4 +170,4 @@ def test_discussing_a_post_can_return_before_the_reply_finishes(client, life, cl
     reply = result.json()['reply']
     events = client.get(f"/api/conversation/replies/{reply['id']}/events").text
     assert '"status": "complete"' in events
-    assert 'feed post the user is replying to' in provider.requests[-1]['system']
+    assert 'feed post the user is replying to' in provider.requests[-1]['prompt']

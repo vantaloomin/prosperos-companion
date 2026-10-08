@@ -61,8 +61,8 @@ def test_near_repeats_wait_behind_different_items():
 def test_an_older_turn_comes_back_when_its_day_is_asked_about(client, connected, provider, clock):
     send(client, 'I finally finished the blue quilt', 'client-0000')
     clock.advance(timedelta(days=1))
-    for index in range(1, 14):
+    for index in range(1, 17):
         send(client, f'Small talk number {index}', f'client-{index:04d}')
     clock.advance(timedelta(days=6))
     send(client, 'What did I tell you last Monday?', 'client-0099')
-    assert 'finished the blue quilt' in provider.requests[-1]['system']
+    assert 'finished the blue quilt' in provider.requests[-1]['prompt']

@@ -103,7 +103,7 @@ def test_beats_stay_hidden_until_their_day_and_reach_the_context(client, social,
     listed = client.get('/api/life/storylines').json()
     assert len(listed) == 1 and len(listed[0]['beats']) == 1 and listed[0]['unfolding']
     first = listed[0]['beats'][0]['text']
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     assert "What is going on in your life and your people's lives" in system
     section = system.split('## What is going on')[1].split('\n## ')[0]
     # Mira is the companion; a relative's random name can contain it ("Miranda"), so match the whole word.
@@ -120,7 +120,7 @@ def test_ending_one_takes_it_out_of_today_and_the_context(client, social, monkey
     item = client.get('/api/life/storylines').json()[0]
     assert client.post(f"/api/life/storylines/{item['id']}/end").json() == []
     assert client.post(f"/api/life/storylines/{item['id']}/end").status_code == 409
-    assert item['beats'][0]['text'] not in client.get('/api/context/preview').json()['system']
+    assert item['beats'][0]['text'] not in client.get('/api/context/preview').json()['prompt']
 
 
 def test_removing_someone_ends_their_storylines(client, social, monkeypatch):
@@ -172,14 +172,14 @@ def test_a_settled_storyline_stays_by_its_outcome_then_goes_to_recall(client, so
     friend = item['cast'][0]['name']
     clock.advance(timedelta(days=30))
     reconcile(client)
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     section = system.split('## What is going on')[1].split('\n## ')[0]
     assert '- Settled on ' in section and friend in section
     assert 'keeps asking you' not in section and 'Still unfolding' not in section
 
     clock.advance(timedelta(days=40))
     reconcile(client)
-    assert '## What is going on' not in client.get('/api/context/preview').json()['system']
+    assert '## What is going on' not in client.get('/api/context/preview').json()['prompt']
     with client.app.state.database.connect(write=True) as connection:
         companion = require_current(connection)
         assert storylines.context_lines(connection, companion, clock.now()) == []
@@ -194,5 +194,5 @@ def test_a_settled_storyline_stays_by_its_outcome_then_goes_to_recall(client, so
     client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
                                         'api_key': 'secret-key'})
     send(client, f'Did {friend} ever take that job?', 'client-story-recall')
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'Something that happened in your life, settled on' in system and friend in system

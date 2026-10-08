@@ -38,7 +38,8 @@ function ReceiptBody({ preview, name, memories }: { preview: ContextPreview; nam
       <details className="receipt-raw">
         <summary>Exact instructions sent to the model</summary>
         <pre>{preview.system}</pre>
-        <p className="subtle">Followed by the last {preview.messages.length} messages of your conversation.</p>
+        <p className="subtle">Followed by the last {preview.history.length} messages of your conversation. These notes go with the latest one:</p>
+        <pre>{preview.note}</pre>
       </details>
     </div>
   )

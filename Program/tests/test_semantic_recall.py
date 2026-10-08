@@ -59,7 +59,7 @@ def configure(client, model='embed-small'):
 
 def history_with_old_fact(client, fact='I adopted a hound named Rex'):
     send(client, fact, 'semantic-0000')
-    for index in range(1, 14):
+    for index in range(1, 17):
         send(client, f'Small talk number {index}', f'semantic-{index:04d}')
 
 
@@ -68,7 +68,7 @@ def index(app):
 
 
 def recalled(provider):
-    match = re.search(r'## Possibly relevant memories\n(.*?)(?=\n## |\Z)', provider.requests[-1]['system'], re.S)
+    match = re.search(r'## Possibly relevant memories\n(.*?)(?=\n## |\Z)', provider.requests[-1]['prompt'], re.S)
     return match.group(1) if match else ''
 
 
@@ -85,6 +85,8 @@ def test_semantic_recall_finds_related_words(client, app, companion, provider):
     configure(client)
     history_with_old_fact(client)
     assert index(app) > 0
+    while index(app):  # Indexing goes in batches.
+        pass
     reply = send(client, 'How is my puppy doing?', 'semantic-0099')['reply']
     assert 'hound named Rex' in recalled(provider)
     assert reply['status'] == 'complete'

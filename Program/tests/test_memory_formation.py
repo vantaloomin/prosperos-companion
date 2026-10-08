@@ -129,7 +129,7 @@ def test_dont_remember_removes_what_was_extracted_automatically(client, connecte
     result = client.post(f"/api/conversation/messages/{message['id']}/decline-memory").json()
     assert result['removed_memory_ids'] == [memory['id']]
     assert memories(client, history=True) == []
-    assert 'Chicago' not in client.get('/api/context/preview').json()['system']
+    assert 'Chicago' not in client.get('/api/context/preview').json()['prompt']
 
 
 def test_remember_this_works_with_automatic_memory_off(client, connected):
@@ -194,11 +194,11 @@ def test_setting_a_date_answers_an_uncertain_one(client, connected):
     run(client)
     [plan] = memories(client)
     assert plan['dates_uncertain'] is True
-    assert 'dates uncertain' in client.get('/api/context/preview').json()['system']
+    assert 'dates uncertain' in client.get('/api/context/preview').json()['prompt']
     fixed = client.post(f"/api/memories/{plan['id']}/correct", json={
         'value': plan['value'], 'applies_from': '2026-11-12T15:00:00Z', 'expected_revision': plan['revision']}).json()
     assert fixed['dates_uncertain'] is False and fixed['applies_from'].startswith('2026-11-12')
-    assert 'dates uncertain' not in client.get('/api/context/preview').json()['system']
+    assert 'dates uncertain' not in client.get('/api/context/preview').json()['prompt']
 
 
 def test_a_contradiction_that_does_not_say_it_changed_waits_for_the_user(client, connected):

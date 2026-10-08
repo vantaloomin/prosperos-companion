@@ -204,7 +204,7 @@ def test_a_pasted_link_is_read_and_quoted(client, connected, provider, fake_read
     url = 'https://harbortimes.example/bridge'
     fake_reader.pages[url] = 'Page: Bridge reopens\n\nThe bridge reopened on Monday.'
     sent = send(client, f'Did you see this? {url}', 'l1')
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert f'The link the user sent ({url}), opened at' in system
     assert '«Page: Bridge reopens\n\nThe bridge reopened on Monday.»' in system
     [observation] = link_observations(client, sent['message']['id'])
@@ -216,7 +216,7 @@ def test_a_pasted_link_is_read_and_quoted(client, connected, provider, fake_read
 
 def test_an_unreadable_link_gets_an_in_character_reason(client, connected, provider, fake_reader):
     sent = send(client, 'lol https://www.reddit.com/r/baltimore/comments/abc/x/', 'l3')
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'The user sent a link (www.reddit.com) that would not open for you' in system
     assert 'HTTP 403' not in system
     [observation] = link_observations(client, sent['message']['id'])
@@ -229,7 +229,7 @@ def test_links_are_not_opened_when_turned_off(client, connected, provider, fake_
     assert client.get('/api/context').json()['location']['read_links'] is False
     send(client, 'https://harbortimes.example/bridge', 'l4')
     assert fake_reader.calls == []
-    assert 'The link the user sent' not in provider.requests[-1]['system']
+    assert 'The link the user sent' not in provider.requests[-1]['prompt']
 
 
 def test_a_fetch_service_reads_what_this_computer_cannot(client, connected, provider, fake_reader):
@@ -252,7 +252,7 @@ def test_a_fetch_service_reads_what_this_computer_cannot(client, connected, prov
     observations = link_observations(client, sent['message']['id'])
     assert [(item['service_name'], item['status'], item['arguments']) for item in observations] == [
         ('Fetcher', 'ok', {'urls': [url]})]
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert f'The link the user sent ({url}), opened through Fetcher at' in system
     assert 'The harbor bridge reopened on Monday after repairs.' in system
 

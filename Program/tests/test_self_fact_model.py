@@ -40,7 +40,7 @@ def test_a_team_named_in_an_answer_is_noted_and_kept_in_context(client, app, con
     [[sent]] = asked(provider)
     assert sent['answering'] == "wait what's your derby team called?" and sent['text'].startswith("we're the")
     assert facts(client) == [('Team', 'Harbor Hellions', 'noted')]
-    assert '- Team: Harbor Hellions.' in client.get('/api/context/preview').json()['system']
+    assert '- Team: Harbor Hellions.' in client.get('/api/context/preview').json()['prompt']
     assert read(app) == 0, 'a message is read once'
 
 
@@ -54,7 +54,7 @@ def test_a_new_team_name_later_waits_as_a_conflict(client, app, connected, provi
     send(client, 'How did the bout go?', 'self-model-03')
     read(app)
     assert facts(client) == [('Team', 'Harbor Hellions', 'noted'), ('Team', 'Hellcats', 'conflict')]
-    assert 'Hellcats' not in client.get('/api/context/preview').json()['system']
+    assert 'Hellcats' not in client.get('/api/context/preview').json()['prompt']
 
 
 def test_people_details_and_tastes_use_her_own_words(client, app, connected, provider):
@@ -69,7 +69,7 @@ def test_people_details_and_tastes_use_her_own_words(client, app, connected, pro
     send(client, 'Tell me about your family', 'self-model-04')
     read(app)
     assert facts(client) == [('Person', 'Jo', 'noted'), ('Detail', 'beat up blue civic', 'noted')]
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     assert '- Your sister is named Jo.' in system and '- Your car: beat up blue civic.' in system
 
 

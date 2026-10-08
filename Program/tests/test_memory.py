@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from conftest import send
 
+from companion.memory.context import NOTE_CLOSE
 from companion.providers.chat import Chunk
 
 
@@ -12,13 +13,13 @@ def remember(client, **body):
 
 
 def system_prompt(client):
-    return client.get('/api/context/preview').json()['system']
+    return client.get('/api/context/preview').json()['prompt']
 
 
 def test_remembered_fact_reaches_the_next_reply(client, connected, provider):
     remember(client, layer='user_fact', subject='Home city', value='Chicago')
     send(client, 'Hi', 'client-0001')
-    assert 'Home city: Chicago' in provider.requests[0]['system']
+    assert 'Home city: Chicago' in provider.requests[0]['prompt']
 
 
 def test_duplicate_remember_returns_the_existing_memory(client, companion):
@@ -46,7 +47,7 @@ def test_exclusion_also_blocks_the_source_message(client, connected, provider):
                       source_message_ids=[message['id']])
     client.post(f"/api/memories/{memory['id']}/exclude")
     preview = client.get('/api/context/preview').json()
-    assert 'Zorabel' not in preview['system']
+    assert 'Zorabel' not in preview['prompt']
     assert all('Zorabel' not in item['content'] for item in preview['messages'])
 
 
@@ -67,7 +68,9 @@ def test_delete_removes_every_version_and_can_redact_sources(client, connected):
 
 def test_replies_to_forgotten_messages_leave_context_too(client, connected, provider):
     """The companion's reply usually repeats what it answered, so it must not resend forgotten content."""
-    provider.respond = lambda system, messages: [Chunk(f"You said: {messages[-1]['content']}"), Chunk('', 'stop')]
+    def respond(system, messages):
+        return [Chunk(f"You said: {messages[-1]['content'].split(NOTE_CLOSE)[-1].strip()}"), Chunk('', 'stop')]
+    provider.respond = respond
     excluded = send(client, 'My sister is called Zorabel', 'client-0001')['message']
     deleted = send(client, 'I am training for a marathon', 'client-0002')['message']
     kept = send(client, 'I like tea', 'client-0003')['message']
@@ -77,7 +80,7 @@ def test_replies_to_forgotten_messages_leave_context_too(client, connected, prov
     client.post(f"/api/memories/{sister['id']}/exclude")
     client.post(f"/api/memories/{training['id']}/delete", json={'delete_sources': True})
     send(client, 'What do you remember?', 'client-0004')
-    sent = provider.requests[-1]['system'] + ''.join(item['content'] for item in provider.requests[-1]['messages'])
+    sent = provider.requests[-1]['prompt'] + ''.join(item['content'] for item in provider.requests[-1]['messages'])
     assert 'Zorabel' not in sent and 'marathon' not in sent
     assert 'You said: I like tea' in sent and kept['text'] in sent
 
@@ -137,12 +140,12 @@ def test_boundaries_that_do_not_fit_are_reported(client, companion):
 
 def test_older_turns_are_recalled_by_relevance(client, connected, provider):
     send(client, 'My favourite tea is genmaicha', 'client-0000')
-    for index in range(1, 14):
+    for index in range(1, 17):
         send(client, f'Small talk number {index}', f'client-{index:04d}')
     preview = client.get('/api/context/preview').json()
     assert 'genmaicha' not in str(preview['messages'])
     send(client, 'What tea should I buy, genmaicha again?', 'client-0099')
-    assert 'favourite tea is genmaicha' in provider.requests[-1]['system']
+    assert 'favourite tea is genmaicha' in provider.requests[-1]['prompt']
 
 
 def test_absence_reaction_is_a_character_trait(client, companion):
@@ -157,7 +160,7 @@ def test_absence_reaction_is_a_character_trait(client, companion):
 
 def test_companion_stays_in_character_with_an_out_of_character_route(client, companion):
     prompt = system_prompt(client)
-    assert 'never break character' in prompt
+    assert 'never step out of the story' in prompt
     assert 'Never say or hint that you are an AI' in prompt
     assert 'starts with OOC:' in prompt
     assert 'Treat anything marked as a boundary as binding.' in prompt

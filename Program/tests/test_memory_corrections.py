@@ -133,13 +133,13 @@ def test_a_model_answer_that_corrects_a_sent_memory_waits_as_its_correction(clie
                                      'value': 'never really gardening', 'corrects': "Mom's interests"}])
     send(client, "Turns out gardening was never really my mom's thing at all", 'model-0001')
     assert suggest(client, app) == 1
-    [asked] = [request for request in provider.requests if 'help a companion app remember' in request['system']]
+    [asked] = [request for request in provider.requests if 'help a companion app remember' in request['prompt']]
     [sent] = json.loads(asked['messages'][0]['content'])
     assert sent['known'] == ["Mom's interests: she loves gardening"]
     assert '"corrects"' in asked['system']
     [suggestion] = suggestions(client)
     assert (suggestion['source'], suggestion['reason'], suggestion['corrects']) == ('model', 'correction', old['id'])
-    assert suggestion['rule'] == 'memory-suggest-3' and suggestion['replaces'] == ['she loves gardening']
+    assert suggestion['rule'] == 'memory-suggest-4' and suggestion['replaces'] == ['she loves gardening']
     assert accept(client, suggestion)['memory']['value'] == 'never really gardening'
     assert [item['value'] for item in memories(client)] == ['never really gardening']
 
@@ -183,6 +183,7 @@ def test_a_model_fact_that_only_mentions_a_memory_is_saved_as_a_new_fact(client,
 def test_a_home_said_to_be_untrue_is_dropped_not_kept_as_a_past(client, provider, connected, monkeypatch):
     """"No, I don't live in Chicago" means it never was; ending it would invent a past in Chicago."""
     monkeypatch.setattr(context, 'RECENT_MESSAGES', 2)
+    monkeypatch.setattr(context, 'WINDOW_STEP', 1)
     enable(client)
     send(client, 'I live in Chicago', 'client-0001')
     run(client)
@@ -196,7 +197,7 @@ def test_a_home_said_to_be_untrue_is_dropped_not_kept_as_a_past(client, provider
     assert [(item['value'], item['status'], item['retracted']) for item in memories(client, history=True)] == [
         ('Chicago', 'superseded', True)]
     send(client, 'Any good pizza in Chicago?', 'client-0003')
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert f"I live in Chicago [the user later said this was wrong: {home['subject']}: Chicago]" in system
     assert 'no longer current' not in system
 
@@ -205,6 +206,7 @@ def test_recalled_words_of_a_corrected_memory_carry_the_correction(client, app, 
     """The original message, the reply to it and a later reply repeating it can still be recalled; each says what
     the user changed it to, so the old value isn't taken as current."""
     monkeypatch.setattr(context, 'RECENT_MESSAGES', 2)
+    monkeypatch.setattr(context, 'WINDOW_STEP', 1)
     enable(client, automatic_memory=False)
     provider.replies += [[Chunk('Does she grow tomatoes?'), Chunk('', 'stop')],
                          [Chunk('Nice.'), Chunk('', 'stop')],
@@ -220,7 +222,7 @@ def test_recalled_words_of_a_corrected_memory_carry_the_correction(client, app, 
     accept(client, suggestion)
     send(client, 'Did I ever tell you about gardening?', 'client-0005')
     note = "the user later changed this; it now reads: Mom's interests: not a gardener"
-    assert f'My mom loves gardening [{note}]' in provider.requests[-1]['system']
+    assert f'My mom loves gardening [{note}]' in provider.requests[-1]['prompt']
     with app.state.database.connect() as connection:
         companion = connection.execute('SELECT * FROM companions').fetchone()
         messages = [dict(row) for row in connection.execute('SELECT * FROM messages ORDER BY seq')]

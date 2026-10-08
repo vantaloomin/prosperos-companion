@@ -40,7 +40,7 @@ def ask(client, text='what are you up to?', client_id='ask-0001'):
 
 
 def photo_section(provider) -> str:
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     return system.split('## A picture you are sending', 1)[1].split('##', 1)[0] if \
         '## A picture you are sending' in system else ''
 

@@ -446,7 +446,7 @@ export interface FeedPage { posts: FeedPost[]; next_before: string | null; unrea
 export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string; era?: string }
 
 export interface ContextReceipt { budget_tokens: number; estimated_tokens: number; included: Record<string, string[]>; omitted: Record<string, string[]> }
-export interface ContextPreview { system: string; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
+export interface ContextPreview { system: string; note: string; history: { role: 'user' | 'assistant'; content: string }[]; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
 
 export interface DiaryEntry {
   subject: string

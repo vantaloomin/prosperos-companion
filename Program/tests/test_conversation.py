@@ -5,6 +5,7 @@ from conftest import send
 from companion.conversation import Conversation, recover
 from companion.errors import DomainError
 from companion.memory import records
+from companion.memory.context import NOTE_CLOSE
 from companion.models import MemoryCreate, MessageCreate
 from companion.providers.chat import Chunk
 
@@ -24,8 +25,9 @@ def test_reply_becomes_the_active_response(client, connected, provider):
     assert result['reply']['text'] == 'Hello again.'
     request = provider.requests[0]
     assert request['key'] == 'secret-key'
-    assert request['messages'][-1] == {'role': 'user', 'content': 'Hi Mira'}
-    assert 'You are Mira' in request['system']
+    assert request['messages'][-1]['role'] == 'user' and request['messages'][-1]['content'].endswith(
+        f'{NOTE_CLOSE}\nHi Mira')
+    assert 'You are Mira' in request['prompt']
 
 
 def test_saved_connection_never_exposes_the_key(client, connected):
@@ -74,7 +76,8 @@ def test_alternative_does_not_see_the_reply_it_replaces(client, connected, provi
     provider.replies = [[Chunk('First.')], [Chunk('Second.')]]
     first = send(client, 'Hi', 'client-0001')
     client.post(f"/api/conversation/messages/{first['message']['id']}/alternatives")
-    assert provider.requests[1]['messages'] == [{'role': 'user', 'content': 'Hi'}]
+    [only] = provider.requests[1]['messages']
+    assert only['role'] == 'user' and only['content'].endswith(f'{NOTE_CLOSE}\nHi')
 
 
 def test_alternatives_only_for_the_latest_message(client, connected):

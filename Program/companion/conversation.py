@@ -362,17 +362,17 @@ class Conversation:
                 packet = await self.assemble(prepared, step)
                 if prepared.get('instruction'):
                     # Busy: a quick note now, or the full reply after a holding text (companion/life/pacing.py).
-                    packet = {**packet, 'system': f"{packet['system']}\n\n{prepared['instruction']}"}
+                    packet = context.add_note(packet, prepared['instruction'])
                 if in_character.out_of_character(prepared['user']['text']):
                     note = in_character.OUT_OF_CHARACTER_NOTE.format(
                         name=definition.get('name', 'the character'), model=default_name(prepared['config']))
-                    packet = {**packet, 'system': f"{packet['system']}\n\n{note}"}
+                    packet = context.add_note(packet, note)
                 status, error, dropped = await self.write(prepared, key, packet, text, publish, active, step)
                 if dropped and not ''.join(text).strip():
                     # The reply only stepped out of character: written once more with a reminder.
                     reminder = in_character.REMINDER.format(name=definition.get('name', 'yourself'))
                     status, error, dropped = await self.write(
-                        prepared, key, {**packet, 'system': f"{packet['system']}\n\n{reminder}"}, text, publish, active, step)
+                        prepared, key, context.add_note(packet, reminder), text, publish, active, step)
                     if dropped and not ''.join(text).strip():
                         error = 'Every line of the reply stepped out of character, so it was hidden.'
         except asyncio.CancelledError:
@@ -447,4 +447,6 @@ def context_preview(database) -> dict:
     with database.connect() as connection:
         config = config_for(connection, CHAT)
         budget = (config['context_tokens'] - config['max_output_tokens']) if config else 16000
-        return context.build(connection, require_current(connection), database.clock.now(), budget)
+        packet = context.build(connection, require_current(connection), database.clock.now(), budget)
+    # `prompt` is everything the reply is told besides the conversation: the system prompt and this reply's notes.
+    return {**packet, 'prompt': f"{packet['system']}\n\n{packet['note']}"}

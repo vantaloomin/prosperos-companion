@@ -451,8 +451,16 @@ def prompt(connection, group: dict, companion: dict, stay: dict, now, config: di
         'lines': group_lines(connection, group, stay, now),
         'previous': earlier[-2]['created_at'] if len(earlier) > 1 else None})
     turn = TURN.format(name=stay['name'], group=title(connection, group))
-    return {'system': f"{shared}\n\n{private['system']}", 'shared': shared,
-            'messages': [{'role': 'user', 'content': turn}], 'receipt': private['receipt']}
+    # What changes with every message goes with the turn, so the system prompt stays cacheable.
+    return {'system': f"{shared}\n\n{private['system']}", 'shared': shared, 'note': private['note'],
+            'messages': [{'role': 'user', 'content': f"{context.NOTE_OPEN}\n{private['note']}\n\n{turn}"}],
+            'receipt': private['receipt']}
+
+
+def add_note(packet: dict, text: str) -> dict:
+    """An instruction for this reply only, added to the notes just before the turn."""
+    notes, _, turn = packet['messages'][-1]['content'].rpartition('\n\n')
+    return {**packet, 'messages': [{'role': 'user', 'content': f'{notes}\n\n{text}\n\n{turn}'}]}
 
 
 # Who answers ----------------------------------------------------------------------------------------
@@ -761,8 +769,7 @@ class GroupChats:
             reminder = secrets.reminder(given, stay['name'], present, connection, labels)
             allowed = secrets.slips_allowed(connection)
         text.clear()
-        status, error = await self.write(config, {**packet, 'system': f"{packet['system']}\n\n{reminder}"}, text,
-                                         running, active)
+        status, error = await self.write(config, add_note(packet, reminder), text, running, active)
         if status != 'complete' or not slipped():
             return status, error, 'redrafted'
         if allowed:
@@ -782,7 +789,7 @@ class GroupChats:
                             user['text'])
         if in_character.out_of_character(user['text']):
             reminder = in_character.OUT_OF_CHARACTER_NOTE.format(name=stay['name'], model=default_name(config))
-            packet = {**packet, 'system': f"{packet['system']}\n\n{reminder}"}
+            packet = add_note(packet, reminder)
         return packet
 
     async def write(self, config, packet, text: list, running: Round, active: bool) -> tuple[str, str | None]:

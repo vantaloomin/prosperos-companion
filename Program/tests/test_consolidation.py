@@ -45,7 +45,7 @@ def test_summaries_are_recalled_and_labelled_as_reminders(client, app, connected
     clock.advance(timedelta(days=1))
     consolidate(client)
     send(client, 'Tell me about that lighthouse keeper and the shipwrecks', 'query-0001')
-    assert 'a reminder, not confirmation' in provider.requests[-1]['system']
+    assert 'a reminder, not confirmation' in provider.requests[-1]['prompt']
 
 
 def test_deleting_or_excluding_a_source_drops_the_summary(client, app, connected, clock):

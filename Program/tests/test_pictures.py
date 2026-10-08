@@ -69,7 +69,7 @@ def test_a_picture_alone_can_be_sent(client, connected, provider):
     sees(provider)
     _picture, result = send_picture(client, text='')
     assert result['message']['text'] == ''
-    assert reply_request(provider)['messages'][-1]['content'] == f'[Photo: {DESCRIPTION}]'
+    assert reply_request(provider)['messages'][-1]['content'].endswith(f'\n[Photo: {DESCRIPTION}]')
     empty = client.post('/api/conversation/messages', json={'text': ' ', 'client_id': 'picture-0002'})
     assert empty.status_code == 422
 
@@ -81,7 +81,7 @@ def test_a_model_that_cannot_see_leaves_the_picture_unseen_with_a_reason(client,
     _picture, result = send_picture(client)
     [shown] = result['message']['pictures']
     assert shown['status'] == 'unseen' and 'cannot look at pictures' in shown['reason']
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'photo that would not open for you' in system
     assert pictures.UNSEEN in provider.requests[-1]['messages'][-1]['content']
 

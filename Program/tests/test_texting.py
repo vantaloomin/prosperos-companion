@@ -48,7 +48,7 @@ def test_the_style_reaches_the_model_and_the_saved_reply(client, office, provide
     says(provider, 'Hey! That sounds GREAT.\n\nTell me more about Theo.')
     reply = send(client, 'Guess what happened', 'client-text-01')['reply']
     assert reply['text'] == 'hey! that sounds great.\n\ntell me more about theo.'
-    assert 'How you text: send several short texts' in provider.requests[-1]['system']
+    assert 'How you text: send several short texts' in provider.requests[-1]['prompt']
     assert reply['held_until'] is None
 
 
@@ -61,7 +61,7 @@ def test_at_work_a_holding_text_stays_and_the_full_reply_follows(client, office,
     assert note['text'] in pacing.LINES['work'] and note['held_until'] is None
     assert note['reply_to'] == result['message']['id'] and note['status'] == 'complete'
     assert full['text'] == 'okay so here is my full answer.' and full['reply_to'] is None
-    assert full['seq'] > note['seq'] and f'"{note["text"]}"' in provider.requests[-1]['system']
+    assert full['seq'] > note['seq'] and f'"{note["text"]}"' in provider.requests[-1]['prompt']
     waits = parse(full['held_until']) - clock.now()
     assert timedelta(minutes=8) <= waits <= timedelta(minutes=45)
     clock.advance(waits)
@@ -81,7 +81,7 @@ def test_writing_again_after_a_holding_text_gets_one_full_reply_that_hears_it(cl
     assert second['dropped'] == [first['follow_up']['id']] and 'follow_up' not in second
     reply = second['reply']
     assert reply['reply_to'] == second['message']['id'] and reply['held_until'] == first['follow_up']['held_until']
-    assert 'answer everything they have said since' in provider.requests[-1]['system']
+    assert 'answer everything they have said since' in provider.requests[-1]['prompt']
     sent = [message['content'] for message in provider.requests[-1]['messages']]
     assert first['reply']['text'] in sent and 'Ok' in sent[-1] and not any('before your ok' in text for text in sent)
     clock.advance(timedelta(hours=1))
@@ -95,8 +95,8 @@ def test_at_work_a_reply_can_be_a_quick_note_now(client, office, provider, clock
     clock.instant = clock.now().replace(hour=10)
     says(provider, 'busy, tell you later!')
     reply = send(client, 'How is your day?', 'client-text-03')['reply']
-    assert reply['held_until'] is None and 'Reply with a quick short note' in provider.requests[-1]['system']
-    assert 'office' in provider.requests[-1]['system']
+    assert reply['held_until'] is None and 'Reply with a quick short note' in provider.requests[-1]['prompt']
+    assert 'office' in provider.requests[-1]['prompt']
 
 
 def test_asleep_it_waits_until_morning_and_later_replies_keep_their_order(client, office, provider, clock, monkeypatch):

@@ -106,7 +106,7 @@ def test_cancelled_plans_become_a_night_in_and_the_companion_knows(client, mira,
                                           clock.now())
     # Earlier slots today (work) still roll their own seeded shifts, so the evening's line is one of them.
     assert (evening['id'], f"- Today, evening out: you {evening['block']['shift']['text']}.") in lines
-    assert 'day_shifts' in context.HEADINGS
+    assert 'day_shifts' in context.NOW
 
 
 def test_turning_it_off_keeps_new_days_as_planned(client, mira, monkeypatch):
