@@ -3,6 +3,7 @@ import { memo, useEffect, useState, type ReactNode } from 'react'
 import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, MessageSquareText, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
+import { Stamp } from '../../components/Stamp'
 import { sidecar } from '../sidecar/store'
 import { isHeld } from './held'
 import { LinkNotes } from './LinkNotes'
@@ -76,6 +77,7 @@ function UserMessage({ message, name, found, settled, onRemember, onDecline, onE
     <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
       <Avatar name="You" />
       <header>
+        <Stamp value={message.created_at} clock className="stamp-lead" />
         <span className="speaker">You</span>
         <span className={classes('message-actions', { open })}
           onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
@@ -88,7 +90,7 @@ function UserMessage({ message, name, found, settled, onRemember, onDecline, onE
               <button type="button" className="text-button" onClick={act(onEdit)}><GitBranch aria-hidden="true" />Edit from here</button>
             </span>
           </>}
-          <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
+          <Stamp value={message.created_at} />
         </span>
       </header>
       <div className="prose">{message.redacted ? <p className="subtle">This message was deleted.</p> : <Paragraphs text={message.text} />}</div>
@@ -111,6 +113,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
     <article id={`message-${message.id}`} className={classes('message message-companion', { inactive: !message.active, found })} aria-label={name} aria-busy={streaming} tabIndex={found ? -1 : undefined}>
       <Avatar name={name} companion />
       <header>
+        <Stamp value={message.created_at} clock className="stamp-lead" />
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} />
       </header>
@@ -123,7 +126,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
 function ReplyTools({ message, position, streaming, onPage, onStop }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop'> & { streaming: boolean }) {
   return (
     <span className="reply-tools">
-      <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
+      <Stamp value={message.created_at} />
       {position && (
         <span className="pager" role="group" aria-label="Reply versions">
           <PageButton label="Previous version" step={-1} disabled={position[0] === 0} onPage={onPage}><ChevronLeft aria-hidden="true" /></PageButton>
@@ -181,11 +184,4 @@ function PageButton({ label, step, disabled, onPage, children }: { label: string
 
 function classes(base: string, flags: Record<string, boolean>) {
   return [base, ...Object.keys(flags).filter((flag) => flags[flag])].join(' ')
-}
-
-// One formatter for every message: making one per message cost more than the rest of a long transcript's render.
-const TIME = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-
-function formatTime(value: string) {
-  return TIME.format(new Date(value))
 }
