@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from companion.characters import current
 from companion.database import decode, encode, optional
 from companion.errors import DomainError, require
-from companion.world import catalog
+from companion.world import catalog, mend
 
 TEMPLATE_SOURCE = 'user'
 LOG = logging.getLogger(__name__)
@@ -27,15 +27,19 @@ def _invalid(error: Exception) -> DomainError:
 
 
 def check(definition: dict) -> dict:
-    """The prepared city, or a DomainError listing what is wrong."""
+    """The prepared city, small mistakes mended, or a DomainError listing what is still wrong."""
     try:
-        return catalog.prepare(definition)
+        return catalog.prepare(definition, mend=True)
     except (ValidationError, ValueError) as error:
-        raise _invalid(error) from None
+        failure = _invalid(error)
+        notes = mend.mend(definition)[1] if isinstance(definition, dict) else []
+        if notes:
+            failure.message += ' Mended on the way: ' + ' '.join(notes[:8])
+        raise failure from None
 
 
 def _view(row) -> dict:
-    data = catalog.prepare(decode(row['definition']))
+    data = catalog.prepare(decode(row['definition']), mend=True)
     return data | {'builtin': False, 'origin': 'user', 'revision': row['revision'], 'created_at': row['created_at'],
                    'updated_at': row['updated_at']}
 
@@ -80,7 +84,13 @@ def read(database) -> dict[str, dict]:
 
 def _definition(data: dict) -> dict:
     return {key: value for key, value in data.items()
-            if key not in {'data_version', 'builtin', 'origin', 'pack_file', 'revision', 'created_at', 'updated_at'}}
+            if key not in {'data_version', 'builtin', 'origin', 'pack_file', 'revision', 'created_at', 'updated_at',
+                           'import_notes'}}
+
+
+def _notes(data: dict) -> dict:
+    """What mending changed on the way in; the saved definition is already the mended one."""
+    return {'import_notes': data['import_notes']} if data.get('import_notes') else {}
 
 
 def create(database, definition: dict) -> dict:
@@ -93,7 +103,7 @@ def create(database, definition: dict) -> dict:
         now = database.now()
         connection.execute('INSERT INTO world_cities (id, definition, created_at, updated_at) VALUES (?, ?, ?, ?)',
                             (data['id'], encode(_definition(data)), now, now))
-        return all_cities(connection)[data['id']]
+        return all_cities(connection)[data['id']] | _notes(data)
 
 
 def _not_builtin(city_id: str) -> None:
@@ -112,7 +122,7 @@ def update(database, city_id: str, definition: dict, expected_revision: int) -> 
         require(row['revision'] == expected_revision, 'This city changed since you opened it. Reload it first.', 409)
         connection.execute('UPDATE world_cities SET definition=?, revision=revision+1, updated_at=? WHERE id=?',
                            (encode(_definition(data)), database.now(), city_id))
-        return all_cities(connection)[city_id]
+        return all_cities(connection)[city_id] | _notes(data)
 
 
 def delete(database, city_id: str) -> None:

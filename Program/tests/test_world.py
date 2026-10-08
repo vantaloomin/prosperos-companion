@@ -191,9 +191,8 @@ def test_the_catalog_answers_the_life_composer(app):
 def test_users_build_their_own_cities(client):
     template = client.get('/api/world/template').json()
     assert client.post('/api/world/validate', json=template).json()['valid']
-    broken = template | {'places': [template['places'][0] | {'neighborhood': 'nowhere'}]}
-    response = client.post('/api/world/validate', json=broken)
-    assert response.status_code == 422 and 'nowhere' in response.json()['detail']
+    response = client.post('/api/world/validate', json=template | {'places': []})
+    assert response.status_code == 422 and 'places' in response.json()['detail']
     city = template | {'id': 'port-calloway', 'name': 'Port Calloway', 'aliases': ['Calloway']}
     created = client.post('/api/world/cities', json=city)
     assert created.status_code == 200, created.text
@@ -227,13 +226,13 @@ def test_a_saved_city_that_no_longer_validates_leaves_the_others_listed(app, cli
     assert client.post('/api/world/cities', json=template | {'id': 'stale-town', 'name': 'Stale Town'}).status_code == 200
     with app.state.database.connect(write=True) as connection:
         connection.execute("UPDATE world_cities SET definition=? WHERE id='stale-town'",
-                           (json.dumps(template | {'id': 'stale-town', 'name': 'Stale Town', 'era': 'atlantean'}),))
+                           (json.dumps(template | {'id': 'stale-town', 'name': 'Stale Town', 'neighborhoods': []}),))
     listed = client.get('/api/world/cities')
     assert listed.status_code == 200
     assert 'baltimore' in {city['id'] for city in listed.json()} and 'stale-town' not in {city['id'] for city in listed.json()}
     broken = client.get('/api/world/broken-cities').json()
     assert [(item['id'], item['name']) for item in broken] == [('stale-town', 'Stale Town')]
-    assert 'era' in broken[0]['error'] and broken[0]['definition']['era'] == 'atlantean'
+    assert 'neighborhoods' in broken[0]['error'] and broken[0]['definition']['neighborhoods'] == []
     assert client.delete('/api/world/cities/stale-town').status_code == 200
     assert client.get('/api/world/broken-cities').json() == []
 

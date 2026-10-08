@@ -34,12 +34,14 @@ def warnings(data: dict) -> list[str]:
 
 
 def check_file(path: Path) -> dict:
+    # Built-in cities load exactly as written; packs and shared files are mended the way the app loads them.
+    builtin = path.resolve().parent == (catalog.DATA / 'cities').resolve()
     try:
-        data = catalog.prepare(path.read_bytes())
+        data = catalog.prepare(path.read_bytes(), mend=not builtin)
     except (OSError, ValueError) as error:
-        return {'file': str(path), 'ok': False, 'errors': [str(error)[:4000]], 'warnings': []}
+        return {'file': str(path), 'ok': False, 'errors': [str(error)[:4000]], 'warnings': [], 'adjusted': []}
     return {'file': str(path), 'ok': True, 'id': data['id'], 'name': data['name'], 'errors': [],
-            'warnings': warnings(data), 'distribution': data['distribution'],
+            'warnings': warnings(data), 'adjusted': data.get('import_notes', []), 'distribution': data['distribution'],
             'counts': {key: len(data[key]) for key in ('neighborhoods', 'places', 'employers')}}
 
 
@@ -75,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f'ERROR {result["file"]}')
             for line in result['errors']:
                 print(f'      {line}')
+            for line in result.get('adjusted', []):
+                print(f'      adjusted: {line}')
             for line in result['warnings']:
                 print(f'      warning: {line}')
         if not results:
