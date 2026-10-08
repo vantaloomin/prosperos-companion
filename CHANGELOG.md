@@ -35,6 +35,8 @@
   the app.
 - **Hardware check:** reads the graphics card and memory, says what local models fit, and warns about
   setups that will run badly (Settings, welcome screen, installer).
+- **Chat status:** a line above the message box says what the reply is waiting on; failed or
+  timed-out replies show at once with Retry; photos load with a blurry preview and Try again.
 - **Timestamps** on messages and posts in every chat style.
 - **NanoGPT** for chat models and pictures; image backends get an editable Connection panel.
 - **Forgiving city import:** shared city files load despite small mistakes and keep new kinds of
