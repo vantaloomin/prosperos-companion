@@ -31,7 +31,7 @@ PER_MESSAGE = 4
 UNATTACHED_SECONDS = 24 * 3600
 JOB = 'vision'
 # Providers whose API takes pictures with the text. Kobold and Codex CLI do not here.
-VISION_PROVIDERS = {'openai', 'anthropic', 'google', 'openrouter', 'local', 'compatible'}
+VISION_PROVIDERS = {'openai', 'anthropic', 'google', 'openrouter', 'nanogpt', 'local', 'compatible'}
 DESCRIBE = (
     'Someone sent this picture in a private chat. Describe it for a friend who cannot see it, in two to five '
     'plain sentences: the people (look, expression, clothes, what they are doing; never guess who they are), '

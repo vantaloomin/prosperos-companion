@@ -63,7 +63,7 @@ class EmbeddingProvider:
         """One vector per text, in order."""
         limit = timeout or config['timeout_seconds']
         provider = provider_of(config)
-        require(provider in EMBEDDING_PROVIDERS, 'Embeddings need an OpenAI, local or OpenAI-compatible profile.', 409)
+        require(provider in EMBEDDING_PROVIDERS, 'Embeddings need an OpenAI, NanoGPT, local or OpenAI-compatible profile.', 409)
         validate_key(provider, key)
         headers = headers_for({'provider': provider}, key)
         base_url = config['base_url']

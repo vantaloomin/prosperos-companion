@@ -109,7 +109,7 @@ def chat_request(config: dict, system: str, messages: list[dict]) -> tuple[str, 
         body['reasoning_effort'] = config['reasoning_effort']
     if config.get('compatible_thinking') is not None:
         body['chat_template_kwargs'] = {'enable_thinking': config['compatible_thinking']}
-    if config['provider'] in {'openrouter', 'local', 'compatible'}:
+    if config['provider'] in {'openrouter', 'nanogpt', 'local', 'compatible'}:
         body['stream_options'] = {'include_usage': True}
     return '/chat/completions', body
 
@@ -141,7 +141,8 @@ def google_request(config: dict, system: str, messages: list[dict]) -> tuple[str
 
 
 REQUESTS = {'openai': openai_request, 'anthropic': anthropic_request, 'openrouter': chat_request,
-            'local': chat_request, 'compatible': chat_request, 'kobold': kobold_request, 'google': google_request}
+            'nanogpt': chat_request, 'local': chat_request, 'compatible': chat_request,
+            'kobold': kobold_request, 'google': google_request}
 
 
 def validate_key(provider: str, key: str | None):

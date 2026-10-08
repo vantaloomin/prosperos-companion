@@ -83,7 +83,9 @@ backend is off until the user sets it up, and text never waits for an image. The
   (`images` style), the OpenAI API or NanoGPT (`https://nano-gpt.com/api/v1`, `images` style;
   **Check** reads its image list at `/images/models`, since its `/models` lists text models only,
   also for a NanoGPT address entered as another API). A base URL saved with a request path on the
-  end (`/images/generations`, `/chat/completions`, `/models`, `/images`) is trimmed to the base. Keys are stored in the OS vault as `image-backend:<id>`.
+  end (`/images/generations`, `/chat/completions`, `/models`, `/images`) is trimmed to the base.
+  Each backend's **Connection** panel edits its name, model, API key and address (another API's
+  base URL or a ComfyUI address) in place; saving a new address accepts its disclosure again. Keys are stored in the OS vault as `image-backend:<id>`.
   Enabling a hosted backend, a Codex backend or a remote ComfyUI server requires accepting a
   disclosure of what each request sends. Requests carry the prompt only. Provider-reported
   `usage` is stored as given. The tested request shapes are the two above; a model behind an

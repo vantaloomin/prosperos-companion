@@ -29,7 +29,7 @@ FAILURES = {
     'unrecognized': 'The provider reported an unsupported completion reason. Check its model and settings.',
 }
 PARSERS = {'openai': openai_event, 'anthropic': anthropic_event, 'google': google_event,
-           'openrouter': chat_event, 'local': chat_event, 'compatible': chat_event}
+           'openrouter': chat_event, 'nanogpt': chat_event, 'local': chat_event, 'compatible': chat_event}
 
 
 def provider_of(config: dict) -> str:

@@ -1,5 +1,5 @@
 // Provider presets and profile shapes adapted from prosperos-study src/features/models/types.ts at bbcbde4.
-export type Provider = 'openai' | 'anthropic' | 'openrouter' | 'google' | 'compatible' | 'local' | 'kobold' | 'codex'
+export type Provider = 'openai' | 'anthropic' | 'openrouter' | 'google' | 'nanogpt' | 'compatible' | 'local' | 'kobold' | 'codex'
 export interface ReportedCapabilities { model_id: string; context_tokens?: number | null; max_output_tokens?: number | null; supported_parameters?: string[] | null; supported_efforts?: string[] | null }
 export interface ProfileConfig {
   provider: Provider
@@ -38,7 +38,8 @@ export const providers: Record<Provider, { name: string; url: string; descriptio
   anthropic: { name: 'Anthropic', url: 'https://api.anthropic.com/v1', description: 'Connect with an Anthropic API key.' },
   openrouter: { name: 'OpenRouter', url: 'https://openrouter.ai/api/v1', description: 'Choose a model through your OpenRouter account.' },
   google: { name: 'Google / Gemini', url: 'https://generativelanguage.googleapis.com/v1beta', description: 'Connect directly with a Google AI Studio / Gemini API key.' },
-  compatible: { name: 'OpenAI-compatible API', url: '', description: 'Any OpenAI-compatible Chat Completions API, such as NanoGPT, DeepSeek or NVIDIA NIM. Enter its API base URL.' },
+  nanogpt: { name: 'NanoGPT', url: 'https://nano-gpt.com/api/v1', description: 'Choose a model through your NanoGPT account.' },
+  compatible: { name: 'OpenAI-compatible API', url: '', description: 'Any OpenAI-compatible Chat Completions API, such as DeepSeek or NVIDIA NIM. Enter its API base URL.' },
   local: { name: 'Local / LM Studio', url: 'http://127.0.0.1:1234/v1', description: 'LM Studio, Ollama or another server on this computer.' },
   kobold: { name: 'Kobold', url: 'http://127.0.0.1:5001/api/v1', description: 'The native KoboldCpp generation API on this computer.' },
   codex: { name: 'Codex / ChatGPT', url: '', description: 'Your installed Codex CLI and its existing login. Sign in with codex login in a terminal.' },
@@ -48,4 +49,4 @@ export const initialConfig: ProfileConfig = { provider: 'local', model: '', base
 export const configFor = (provider: Provider): ProfileConfig => ({ ...initialConfig, provider, base_url: providers[provider].url })
 export const recallConfigFor = (provider: Provider): ProfileConfig => ({ ...configFor(provider), purpose: 'recall', embedding_model: '' })
 export const isRecall = (config: ProfileConfig) => config.purpose === 'recall'
-export const embeddingProviders: Provider[] = ['openai', 'compatible', 'local']
+export const embeddingProviders: Provider[] = ['openai', 'nanogpt', 'compatible', 'local']

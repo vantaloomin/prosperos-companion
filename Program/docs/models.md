@@ -18,6 +18,7 @@ contacts the service.
 | Anthropic | official | `ANTHROPIC_API_KEY` or saved | Messages API |
 | OpenRouter | official | `OPENROUTER_API_KEY` or saved | Chat Completions, provider fallbacks off |
 | Google / Gemini | official | `GEMINI_API_KEY` or saved | `streamGenerateContent` |
+| NanoGPT | official (`https://nano-gpt.com/api/v1`) | `NANOGPT_API_KEY` or saved | Chat Completions; also embeddings for a recall profile |
 | OpenAI-compatible API | any HTTPS, or HTTP on loopback | optional; `COMPANION_API_KEY` | Chat Completions |
 | Local / LM Studio | loopback only | optional; `COMPANION_API_KEY` | Chat Completions |
 | Kobold | loopback only | none | native `/generate` |
@@ -45,9 +46,9 @@ chunks through the scheduler), versioned profiles and exact retries, and usage a
 | Life phrasing | Wording the companion's day in the background (`phrase_with_model`). |
 | Memory suggestions | Model memory suggestions in the background. |
 | Character drafting | Quick start and Help me write. |
-| Seeing pictures | Describes each picture you send in chat, once, before the reply (OpenAI, Anthropic, Google, OpenRouter, local or compatible profiles with a vision model; Kobold and Codex cannot look at pictures here). |
+| Seeing pictures | Describes each picture you send in chat, once, before the reply (OpenAI, Anthropic, Google, OpenRouter, NanoGPT, local or compatible profiles with a vision model; Kobold and Codex cannot look at pictures here). |
 | Story narrator | Replies in the Story tab ([story.md](story.md)). |
-| Semantic recall | Embeddings, from a recall profile, or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). Recall profiles (`purpose: recall`) have their own section, Settings > Models > Recall: an OpenAI, local or compatible service and an `embedding_model`, with no text model. They do this job and no other, text profiles never do it, and the first one saved takes the job when recall has none. Without one, recall matches keywords only. |
+| Semantic recall | Embeddings, from a recall profile, or from built-in recall when it is on ([architecture](architecture.md#built-in-recall)). Recall profiles (`purpose: recall`) have their own section, Settings > Models > Recall: an OpenAI, NanoGPT, local or compatible service and an `embedding_model`, with no text model. They do this job and no other, text profiles never do it, and the first one saved takes the job when recall has none. Without one, recall matches keywords only. |
 
 There is no automatic fallback to another profile when a request fails; like the Study, a failed
 request reports its error, and OpenRouter requests forbid OpenRouter's own provider fallbacks. The one

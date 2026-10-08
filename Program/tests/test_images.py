@@ -1191,3 +1191,14 @@ def test_a_saved_base_url_with_a_request_path_still_generates():
                                      'api_style': 'images'}, provider='other', key='k')
     asyncio.run(adapter.generate(request))
     assert seen == ['https://nano-gpt.com/api/v1/images/generations']
+
+
+def test_an_image_api_connection_can_be_edited_in_place(client):
+    backend = add_backend(client, kind='hosted', provider='other', model='m', api_key='k',
+                          base_url='https://images.example.com/v1')
+    edited = ok(client.put(f"/api/images/backends/{backend['id']}", json={
+        'label': 'NanoGPT', 'model': 'hidream-o1-image', 'api_key': 'new',
+        'base_url': 'https://nano-gpt.com/api/v1/images/generations', 'accept_disclosure': True}))
+    assert (edited['label'], edited['model'], edited['base_url']) == \
+        ('NanoGPT', 'hidream-o1-image', 'https://nano-gpt.com/api/v1')
+    assert edited['enabled'] and edited['has_key']
