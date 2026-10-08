@@ -99,6 +99,22 @@ backend is off until the user sets it up, and text never waits for an image. The
   Prohibited requests are refused everywhere regardless. NovelAI's own image API is not an
   OpenAI-style endpoint, so it cannot be added as "Other" yet.
 
+## One graphics card or two
+
+The Companion never loads or unloads models: KoboldCPP, LM Studio or Ollama hold the text model and
+ComfyUI holds the picture model, each in its own graphics memory. Local ComfyUI jobs wait while a reply
+is being written and while a LoRA trains, so they never start at the same moment, but both models stay
+loaded. When they don't both fit on one card, ComfyUI runs very slowly from system memory or fails.
+
+- **Two cards:** start ComfyUI with `--cuda-device 1` (the second card) and keep the text model on the
+  bigger one.
+- **One card:** a smaller text model leaves room (Krea 2 in an NVFP4 file needs about 11 GB with its
+  text encoder; an FP8 file about 16 GB), or use a hosted image service for pictures.
+- **Small cards (under about 12 GB):** a hosted image service.
+
+Settings > Models > This computer checks this for you (see [models.md](models.md#this-computer)), and
+Settings > Images repeats any picture warnings.
+
 ## Content routing (F6)
 
 `content.py` classifies the whole request (prompt, negatives, the events and captions it was

@@ -171,6 +171,11 @@ try {
     }
     Write-Host 'Ready. Double-click launch.bat in the Windows folder to open Prospero Companion.' -ForegroundColor Green
     Write-Host 'Connect a model in Settings inside the app. Nothing is downloaded until you choose to.'
+    # What this computer can run locally (companion/hardware.py). Advice only: it never fails setup.
+    try {
+        Write-Host ''
+        & (Join-Path $CompanionRoot '.venv\Scripts\python.exe') -m companion.hardware
+    } catch { }
 } catch {
     Write-Host "Setup failed: $($_.Exception.Message)" -ForegroundColor Red
     $result = 1

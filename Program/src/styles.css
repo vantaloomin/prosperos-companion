@@ -52,6 +52,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .notice > svg { margin-top: 3px; }
 .notice > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .notice-error { color: var(--danger); border-color: #98655866; background: var(--danger-tint); }
+.notice-warning { border-color: #c5a46d66; background: var(--accent-tint); }
+.notice-warning > svg { color: var(--accent); }
+.hardware-summary { margin: 0; }
 
 .page { flex: 1; overflow-y: auto; padding: 32px 40px 48px; }
 /* Each block after the first starts at least --stack-gap below the one above. Margins collapse, so a block's own larger margin still wins; set only margin-bottom on page-level blocks so this top margin stays. Settings sections already part with a rule and padding. */
@@ -68,6 +71,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .welcome-steps .step-label { font-weight: 600; }
 .welcome-steps .button, .welcome-steps .text-button { margin-top: 8px; }
 .welcome-steps .text-button { padding-left: 0; }
+.welcome-hardware { text-align: left; width: 100%; }
+.welcome-hardware p { margin: 0 0 6px; }
 .settings > .notice:first-of-type { margin-bottom: 16px; }
 .lede { color: var(--muted); line-height: 1.8; }
 

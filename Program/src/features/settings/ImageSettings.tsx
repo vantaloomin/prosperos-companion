@@ -7,6 +7,8 @@ import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
+import { HardwareWarnings } from './models/HardwareCheck'
+import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 
 const SETTINGS_KEY = ['image-settings']
@@ -22,6 +24,7 @@ export function ImageSettings() {
   const [result, setResult] = useState<Result>(null)
   const [adding, setAdding] = useState(false)
   const addButton = useReturnFocus<HTMLButtonElement>(adding)
+  const hardware = useHardware()
   const save = async (change: Partial<Limits>, done?: string) => {
     try {
       client.setQueryData(SETTINGS_KEY, await api<Limits>('/images/settings', change, 'PUT'))
@@ -29,7 +32,7 @@ export function ImageSettings() {
       return true
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not saved.') }); return false }
   }
-  const refresh = () => client.invalidateQueries({ queryKey: BACKENDS_KEY })
+  const refresh = () => Promise.all([client.invalidateQueries({ queryKey: BACKENDS_KEY }), client.invalidateQueries({ queryKey: HARDWARE_KEY })])
   if (!settings.data || !backends.data) return null
   const data = settings.data
   const list = backends.data.backends
@@ -45,6 +48,7 @@ export function ImageSettings() {
       <ol className="backend-list">
         {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
       </ol>
+      {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
       {adding ? <AddBackend onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
         : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
       <ImageControls data={data} save={save} />
