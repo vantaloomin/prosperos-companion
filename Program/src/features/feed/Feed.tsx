@@ -81,7 +81,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
         <Toggle label="Show hidden posts" checked={hidden} onChange={setHidden} />
       </div>
       {error && <Notice tone="error">{error}</Notice>}
-      <FeedStatus pending={feed.isPending} error={feed.error} empty={feed.isSuccess && posts.length === 0} name={name} />
+      <FeedStatus pending={feed.isPending} error={feed.isError ? feed.error : null} retrying={feed.isFetching} retry={() => void feed.refetch()} empty={feed.isSuccess && posts.length === 0} name={name} />
       <div className="post-list">{posts.map((post) => <PostCard key={post.id} post={post} name={name} actions={actions} />)}</div>
       {feed.hasNextPage && <button type="button" className="button load-more" disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>Show older posts</button>}
     </section>
@@ -99,9 +99,12 @@ function SourcePicker({ source, name, onChange }: { source: FeedSource; name: st
 
 const unreadText = (count: number) => count ? `. ${count} new` : ''
 
-function FeedStatus({ pending, error, empty, name }: { pending: boolean; error: Error | null; empty: boolean; name: string }) {
+function FeedStatus({ pending, error, retrying, retry, empty, name }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; name: string }) {
+  if (error) {
+    const again = <button type="button" className="text-button" disabled={retrying} onClick={retry}>{retrying ? 'Trying again…' : 'Try again'}</button>
+    return <Notice tone="error" action={again}>The posts could not load. {error.message}</Notice>
+  }
   if (pending) return <Loading label="Loading the feed" />
-  if (error) return <Notice tone="error">{error.message}</Notice>
   return empty ? <p className="subtle">No posts yet. When something happens in {name}'s life or their friends', it shows up here.</p> : null
 }
 

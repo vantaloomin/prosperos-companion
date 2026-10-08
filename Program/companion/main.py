@@ -1,5 +1,6 @@
 """FastAPI application. Middleware and error handlers follow prosperos-study server/main.py at bbcbde4."""
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -59,6 +60,15 @@ async def guard_writes(request: Request, call_next):
 
 async def domain_error(_request: Request, error: DomainError):
     return JSONResponse({'detail': error.message, 'code': error.code}, status_code=error.status)
+
+
+async def unexpected_error(request: Request, _error: Exception):
+    """Anything else is a bug: the traceback goes to the log (companion/logs.py) and the page gets a message it
+    can show, rather than a bare "Internal Server Error" it cannot read."""
+    logging.getLogger('companion').error('%s %s failed', request.method, request.url.path)
+    return JSONResponse({'detail': 'Something went wrong in the Companion. Please try again; if it keeps '
+                                   'happening, logs/companion.log in the data folder says what failed.',
+                         'code': 'server_error'}, status_code=500)
 
 
 async def invalid_request(_request: Request, error: RequestValidationError):
@@ -142,6 +152,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.middleware('http')(app.state.phone)
     app.add_exception_handler(DomainError, domain_error)
     app.add_exception_handler(RequestValidationError, invalid_request)
+    app.add_exception_handler(Exception, unexpected_error)
     app.include_router(router)
     app.include_router(model_router)
     app.include_router(recall_router)

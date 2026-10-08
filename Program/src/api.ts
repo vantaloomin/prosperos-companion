@@ -3,10 +3,10 @@ export class ApiError extends Error {
   constructor(message: string, public status: number, public code?: string) { super(message) }
 }
 
-function errorMessage(data: { detail?: unknown }): string {
+function errorMessage(status: number, data: { detail?: unknown }): string {
   if (typeof data.detail === 'string') return data.detail
   if (Array.isArray(data.detail)) return data.detail.map((item) => item.msg).join('; ')
-  return 'The request could not be completed. Please try again.'
+  return `The Companion could not finish that (error ${status}). Please try again.`
 }
 
 export async function api<T>(path: string, body?: unknown, method?: string): Promise<T> {
@@ -28,7 +28,7 @@ export async function api<T>(path: string, body?: unknown, method?: string): Pro
 /** A phone whose pairing was removed on the PC goes back to the pairing screen (src/features/phone). */
 function failure(status: number, data: { detail?: unknown; code?: string }): ApiError {
   if (data.code === 'phone_unpaired') window.dispatchEvent(new Event('companion:unpaired'))
-  return new ApiError(errorMessage(data), status, data.code)
+  return new ApiError(errorMessage(status, data), status, data.code)
 }
 
 export const newId = () => crypto.randomUUID()

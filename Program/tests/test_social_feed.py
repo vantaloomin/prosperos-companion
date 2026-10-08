@@ -3,9 +3,12 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from conftest import life_reply, reconcile, set_life
+from fastapi.testclient import TestClient
 
-from companion.clock import zone
+from companion.clock import stamp, zone
+from companion.identity import CLIENT_HEADER
 from companion.life import body, circle, composer, social
+from companion.life import feed as feed_module
 
 
 @pytest.fixture
@@ -203,3 +206,25 @@ def test_an_interest_reads_naturally_mid_sentence():
     assert social.interest_text('Roller derby matches') == 'roller derby matches'
     assert social.interest_text('Baltimore Orioles games') == 'Baltimore Orioles games'
     assert social.interest_text('a good thriller') == 'good thriller'
+
+
+def test_a_timeline_that_starts_after_now_still_opens_the_feed(client, city, clock):
+    """After Debug time's "keep what happened", a companion met during the jump has a timeline that starts later
+    than real time. Posts and Today still open instead of failing (a tester's Posts tab showed only an error)."""
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE timelines SET created_at=?', (stamp(clock.now() + timedelta(days=3)),))
+    assert feed(client)['posts'] == []
+    assert client.get('/api/today').status_code == 200
+
+
+def test_new_posts_that_cannot_be_written_leave_the_feed_readable(app, client, city, clock, monkeypatch):
+    live_days(client, clock, 2)
+    shown = feed(client)['posts']
+    monkeypatch.setattr(social, 'write', lambda *_args: 1 / 0)
+    assert feed(client)['posts'] == shown
+    # Any other failure reaches the page as a message it can show, not a bare "Internal Server Error".
+    monkeypatch.setattr(feed_module, 'listing', lambda *_args: 1 / 0)
+    with TestClient(app, headers={CLIENT_HEADER: 'workspace'}, raise_server_exceptions=False) as failing:
+        response = failing.get('/api/feed')
+    assert response.status_code == 500 and response.json()['code'] == 'server_error'
+    assert 'logs/companion.log' in response.json()['detail']

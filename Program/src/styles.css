@@ -859,6 +859,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-name { min-width: 0; padding-bottom: 6px; }
 .profile-name h1 { font-size: 1.6rem; overflow-wrap: anywhere; }
 .profile-handle { color: var(--faint); font-size: 0.8125rem; }
+.profile-message { flex: none; margin: 0 0 6px auto; }
 .profile-bio { max-width: 680px; margin: 14px 40px 0; font-size: 0.9375rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .profile-facts, .profile-interests { list-style: none; display: flex; flex-wrap: wrap; margin: 12px 40px 0; padding: 0; }
 .profile-facts { gap: 6px 18px; color: var(--muted); font-size: 0.8125rem; }
@@ -877,6 +878,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-bubbles .profile-who { flex-direction: column; align-items: center; gap: 8px; margin-top: -56px; text-align: center; }
 .profile-bubbles .profile-avatar { width: 112px; height: 112px; }
 .profile-bubbles .profile-name { padding: 0; }
+.profile-bubbles .profile-message { margin: 0; border-radius: 999px; }
 .profile-bubbles .profile-name h1 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-weight: 500; }
 .profile-bubbles .profile-bio { margin: 10px auto 0; padding: 0 24px; text-align: center; }
 .profile-bubbles :is(.profile-facts, .profile-interests) { justify-content: center; margin-inline: 24px; }
@@ -917,6 +919,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-retro .profile-avatar { width: 72px; height: 72px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); color: var(--accent); font-family: inherit; font-size: 2rem; }
 .profile-retro .profile-name h1 { font-family: inherit; font-size: 1rem; font-weight: 700; }
 .profile-retro .profile-handle { color: var(--muted); }
+.profile-retro .profile-message { margin: 0 0 0 auto; min-height: 30px; padding: 4px 12px; border: 2px outset #f2f1ee; border-radius: 0; background: var(--raised); color: var(--text); font-weight: 400; }
 .profile-retro .profile-bio { max-width: none; margin: 10px 10px 0; padding: 6px 8px; border: 2px inset #e8e6e1; background: var(--canvas); font-size: 0.8125rem; -webkit-line-clamp: 4; }
 .profile-retro :is(.profile-facts, .profile-interests) { margin: 8px 10px 0; }
 .profile-retro .profile-facts { color: var(--text); font-size: 0.75rem; }
@@ -964,4 +967,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .profile-retro .profile-card, .profile-retro .profile-tabs { margin-inline: 4px; }
   .profile-retro .feed { margin: 0 4px 4px; padding: 12px; }
   .profile-retro .profile-tabs { padding: 4px 4px 0; }
+  /* The icon alone, so a long name keeps its width; the button is still named "Message". */
+  .profile-message { min-width: 40px; padding-inline: 10px; }
+  .profile-message span { display: none; }
 }
