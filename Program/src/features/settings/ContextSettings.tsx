@@ -9,6 +9,7 @@ import { BuiltinPulse } from './BuiltinPulse'
 import { BuiltinWeather } from './BuiltinWeather'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SEARCH_PRESETS, SOURCE_LABELS, canSave, canTry, purposeLabel, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
+import { SectionPending } from '../../components/SectionPending'
 
 type Result = { tone: 'info' | 'error'; text: string } | null
 type Overview = ContextOverview
@@ -21,7 +22,7 @@ export function ContextSettings({ name }: { name: string }) {
   const [adding, setAdding] = useState(false)
   const [result, setResult] = useState<Result>(null)
   const refresh = () => client.invalidateQueries({ queryKey: CONTEXT_KEY })
-  if (!overview.data) return null
+  if (!overview.data) return <SectionPending queries={[overview]} heading="context-heading" title="Real-world lookups" />
   const data = overview.data
   return (
     <section className="settings-section form-stack" aria-labelledby="context-heading">

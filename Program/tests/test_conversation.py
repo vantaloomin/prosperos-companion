@@ -47,6 +47,9 @@ def test_unreachable_model_keeps_the_users_text(client, connected, provider):
     assert result['message']['text'] == 'Are you there?'
     assert result['reply']['status'] == 'failed'
     assert result['reply']['active'] is False
+    # It names the profile that made the call and where to test it.
+    assert result['reply']['error'].endswith('Cannot reach the model service. Test connection in Settings > Models '
+                                             'checks this profile.')
 
 
 def test_token_limit_reply_stays_visibly_incomplete(client, connected, provider):

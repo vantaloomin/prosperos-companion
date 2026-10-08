@@ -17,7 +17,7 @@ from companion.images import content, prompts
 from companion.images.adapters.base import AdapterError, ImageRequest, ImageResult
 from companion.images.adapters.codex import CodexAdapter
 from companion.images.adapters.comfyui import ComfyAdapter
-from companion.images.adapters.hosted import HostedAdapter
+from companion.images.adapters.hosted import HostedAdapter, image_models
 from companion.main import create_app
 from companion.providers.vault import MemoryVault
 
@@ -1203,3 +1203,55 @@ def test_an_image_api_connection_can_be_edited_in_place(client):
     assert (edited['label'], edited['model'], edited['base_url']) == \
         ('NanoGPT', 'hidream-o1-image', 'https://nano-gpt.com/api/v1')
     assert edited['enabled'] and edited['has_key']
+
+
+def test_openrouter_lists_only_its_image_models():
+    body = {'data': [{'id': 'google/gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image',
+                      'architecture': {'output_modalities': ['image', 'text']}},
+                     {'id': 'openai/gpt-5', 'name': 'GPT-5', 'architecture': {'output_modalities': ['text']}}]}
+    seen = []
+
+    def server(request):
+        seen.append(request)
+        return httpx.Response(200, json=body)
+    models = asyncio.run(HostedAdapter(httpx.MockTransport(server)).models(
+        'openrouter', {'base_url': 'https://openrouter.ai/api/v1'}))
+    assert models == [{'id': 'google/gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image'}]
+    assert 'authorization' not in seen[0].headers
+
+
+@pytest.mark.parametrize('body,provider,expected', [
+    ({'data': [{'id': 'gpt-image-1'}, {'id': 'gpt-4o'}, {'id': 'dall-e-3'}]}, 'openai', ['dall-e-3', 'gpt-image-1']),
+    ({'data': [{'id': 'models/imagen-4.0-generate-001'}, {'id': 'models/gemini-2.5-pro'}]}, 'google',
+     ['imagen-4.0-generate-001']),
+    ({'models': {'hidream-o1-image': {'name': 'HiDream'}, 'flux-dev': {}}}, 'nanogpt', ['flux-dev', 'hidream-o1-image']),
+    (['sdxl', 'flux'], 'other', ['flux', 'sdxl']),
+])
+def test_image_model_lists_in_each_shape(body, provider, expected):
+    assert sorted(row['id'] for row in image_models(body, provider)) == expected
+
+
+def test_listing_models_for_the_form_and_a_saved_backend(app, client):
+    seen = []
+
+    def server(request):
+        seen.append((str(request.url), request.headers.get('authorization')))
+        return httpx.Response(200, json={'data': [{'id': 'gpt-image-1'}, {'id': 'gpt-4o'}]})
+    app.state.images.adapters['hosted'] = HostedAdapter(httpx.MockTransport(server))
+    listed = ok(client.post('/api/images/models', json={'provider': 'openai', 'api_key': 'typed'}))
+    assert listed == {'ok': True, 'error': None, 'models': [{'id': 'gpt-image-1', 'name': 'gpt-image-1'}]}
+    assert seen[-1] == ('https://api.openai.com/v1/models', 'Bearer typed')
+    backend = add_backend(client, kind='hosted', provider='other', model='m', api_key='saved',
+                          base_url='https://images.example.com/v1')
+    ok(client.post('/api/images/models', json={'provider': 'other', 'backend_id': backend['id']}))
+    assert seen[-1] == ('https://images.example.com/v1/models', 'Bearer saved')
+    # The saved key never goes to an address it was not saved for.
+    ok(client.post('/api/images/models', json={'provider': 'other', 'backend_id': backend['id'],
+                                               'base_url': 'https://elsewhere.example.com/v1'}))
+    assert seen[-1] == ('https://elsewhere.example.com/v1/models', None)
+
+
+def test_a_model_list_that_cannot_be_read_says_to_type_the_name(app, client):
+    app.state.images.adapters['hosted'] = HostedAdapter(httpx.MockTransport(lambda request: httpx.Response(404)))
+    listed = ok(client.post('/api/images/models', json={'provider': 'other', 'base_url': 'https://images.example.com/v1'}))
+    assert not listed['ok'] and 'Type the model name' in listed['error'] and listed['models'] == []

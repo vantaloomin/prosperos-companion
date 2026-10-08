@@ -130,3 +130,19 @@ def test_a_messy_pack_loads_with_notes(client, tmp_path, monkeypatch):
     finally:
         monkeypatch.delenv(catalog.PACKS_ENV)
         catalog.reload()
+
+
+@pytest.mark.parametrize('sources', ['curated', 5, True, [1], []])
+def test_sources_that_are_not_a_table_never_crash_the_city_list(sources):
+    """A saved city whose `sources` was not a table crashed mending, and with it every city list and Settings >
+    Real-world lookups. It now cites a source written by the user instead."""
+    data = catalog.prepare(template('2026-10-08') | {'sources': sources}, mend=True)
+    assert list(data['sources']) == ['user']
+
+
+def test_sources_written_as_a_list_keep_their_ids():
+    city = template('2026-10-08')
+    city['sources'] = [{'id': key, **value} for key, value in city['sources'].items()]
+    data = catalog.prepare(city, mend=True)
+    assert list(data['sources']) == list(template('2026-10-08')['sources'])
+    assert any('sources list' in note for note in data['import_notes'])

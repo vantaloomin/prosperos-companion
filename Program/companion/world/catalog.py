@@ -1,6 +1,7 @@
 """Loading and querying the shipped city data. Everything here is read-only and needs no network."""
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -15,6 +16,8 @@ from companion.world import mend as mending
 from companion.world.schema import Career, Careers, City, Holidays, Names
 
 DATA = Path(__file__).parent / 'data'
+LOG = logging.getLogger(__name__)
+BUILTIN_CITIES = DATA / 'cities'
 
 
 @cache
@@ -151,25 +154,46 @@ def city_files(folder: Path) -> list[Path]:
     return sorted(path for path in folder.glob('*.json') if not path.name.startswith('.')) if folder.is_dir() else []
 
 
+def _add_pack(path: Path, result: dict, errors: list) -> None:
+    """Load one city file leniently, as a pack, or say why it did not load."""
+    try:
+        data = prepare(path.read_bytes(), mend=True)
+    except Exception as error:  # reported, never raised
+        if not isinstance(error, (ValidationError, ValueError, OSError)):
+            LOG.exception('Skipped the city file %s', path)
+        errors.append({'file': str(path), 'error': str(error)[:2000]})
+        return
+    if data['id'] in result:
+        errors.append({'file': str(path), 'error': f'City id {data["id"]!r} is already loaded.'})
+        return
+    result[data['id']] = data | {'builtin': False, 'origin': 'pack', 'pack_file': str(path)}
+
+
 @cache
 def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
-    result, errors = {}, []
-    for path in city_files(DATA / 'cities'):
-        data = prepare(path.read_bytes())
+    """Every city that loads, and what went wrong with each file that did not. One bad file must never take every
+    city list, and everything built on them (lookups, Matchlight, the life sim), down with it.
+
+    The shipped cities load strictly. A file that is not one of them, such as a city a tester dropped among the
+    built-in ones, loads like a pack, mended, and anything that still fails is reported (Settings > Cities >
+    Pack folders)."""
+    result, errors, strays = {}, [], []
+    for path in city_files(BUILTIN_CITIES):
+        try:
+            data = prepare(path.read_bytes())
+        except (ValidationError, ValueError, OSError):
+            strays.append(path)
+            continue
         if data['id'] != path.stem:
-            raise ValueError(f'{path.name} holds city {data["id"]}.')
+            strays.append(path)
+            continue
         result[data['id']] = data | {'builtin': True, 'origin': 'builtin'}
+    for path in strays:
+        LOG.warning('%s is not a valid built-in city, so it loads like a city pack', path)
+        _add_pack(path, result, errors)
     for folder in pack_dirs():
         for path in city_files(folder):
-            try:
-                data = prepare(path.read_bytes(), mend=True)
-            except (ValidationError, ValueError, OSError) as error:
-                errors.append({'file': str(path), 'error': str(error)[:2000]})
-                continue
-            if data['id'] in result:
-                errors.append({'file': str(path), 'error': f'City id {data["id"]!r} is already loaded.'})
-                continue
-            result[data['id']] = data | {'builtin': False, 'origin': 'pack', 'pack_file': str(path)}
+            _add_pack(path, result, errors)
     return result, tuple(errors)
 
 

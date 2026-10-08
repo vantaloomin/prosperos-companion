@@ -54,6 +54,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .notice-error { color: var(--danger); border-color: #98655866; background: var(--danger-tint); }
 .notice-warning { border-color: #c5a46d66; background: var(--accent-tint); }
 .notice-warning > svg { color: var(--accent); }
+.error-details { display: block; margin-top: 4px; font-size: 0.8rem; opacity: 0.85; }
 .hardware-summary { margin: 0; }
 
 .page { flex: 1; overflow-y: auto; padding: 32px 40px 48px; }

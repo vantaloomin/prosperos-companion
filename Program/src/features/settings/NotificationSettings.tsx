@@ -7,6 +7,7 @@ import { Field, TextInput, Toggle } from '../../components/Fields'
 import { currentPermission, permissionNote } from '../notifications/permission'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { PhonePush } from './PhonePush'
+import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['notification-settings']
 type Draft = Partial<Record<'quiet_start' | 'quiet_end' | 'daily_cap' | 'min_gap_minutes', string>>
@@ -41,7 +42,7 @@ export function NotificationSettings() {
     setPermission(state)
     if (state === 'granted') await save({ enabled: true })
   }
-  if (!settings.data) return null
+  if (!settings.data) return <SectionPending queries={[settings]} heading="notifications-heading" title="Notifications" />
   const data = settings.data
   const note = permissionNote(permission)
   return (

@@ -237,6 +237,72 @@ def test_a_saved_city_that_no_longer_validates_leaves_the_others_listed(app, cli
     assert client.get('/api/world/broken-cities').json() == []
 
 
+
+def test_a_saved_city_that_crashes_while_loading_leaves_the_others_listed(app, client, monkeypatch):
+    """A tester's Settings > Life & cities said "Something went wrong" and Real-world lookups stayed blank: any
+    error loading one saved city, not only a validation error, failed the city list and every lookup with it."""
+    template = client.get('/api/world/template').json()
+    assert client.post('/api/world/cities', json=template | {'id': 'odd-town', 'name': 'Odd Town'}).status_code == 200
+    real = catalog.mending.mend
+
+    def mend(definition):
+        if definition.get('id') == 'odd-town':
+            raise AttributeError("'NoneType' object has no attribute 'get'")
+        return real(definition)
+    monkeypatch.setattr(catalog.mending, 'mend', mend)
+    listed = client.get('/api/world/cities')
+    assert listed.status_code == 200 and 'odd-town' not in {city['id'] for city in listed.json()}
+    assert [item['id'] for item in client.get('/api/world/broken-cities').json()] == ['odd-town']
+    assert client.get('/api/context').status_code == 200
+
+
+def test_a_city_dropped_among_the_built_in_ones_loads_like_a_pack(client, tmp_path, monkeypatch):
+    """A Mac tester put a Los Angeles file among the built-in cities. Loaded strictly, its one job the app lacked
+    failed every city list, so Real-world lookups went blank and Matchlight and Life & cities showed errors.
+    Such a file now loads like a pack, mended, and one that still cannot load is left out and named."""
+    folder = tmp_path / 'cities'
+    folder.mkdir()
+    for path in catalog.city_files(catalog.BUILTIN_CITIES):
+        (folder / path.name).write_bytes(path.read_bytes())
+    stray = plain(baltimore()) | {'id': 'harbor-town', 'name': 'Harbor Town', 'aliases': [], 'setting': 'fictional'}
+    stray['employers'][0]['careers'].append('aerospace-engineer')
+    (folder / 'Harbor Town.json').write_text(json.dumps(stray), encoding='utf-8')
+    (folder / 'notes.json').write_text('[1, 2]', encoding='utf-8')
+    monkeypatch.setattr(catalog, 'BUILTIN_CITIES', folder)
+    monkeypatch.setenv(catalog.PACKS_ENV, str(tmp_path / 'no-packs'))
+    try:
+        report = catalog.reload()
+        assert [Path(item['file']).name for item in report['errors']] == ['notes.json']
+        assert [item['id'] for item in report['loaded']] == ['harbor-town']
+        listed = client.get('/api/world/cities')
+        assert listed.status_code == 200 and {'baltimore', 'harbor-town'} <= {city['id'] for city in listed.json()}
+        assert client.get('/api/context').status_code == 200
+        assert client.get('/api/dating').status_code == 200
+    finally:
+        monkeypatch.undo()
+        catalog.reload()
+
+
+def test_a_saved_copy_of_a_city_that_is_now_built_in_is_not_listed_twice(app, client):
+    """Los Angeles became a built-in city after testers had imported their own copy of it."""
+    with app.state.database.connect(write=True) as connection:
+        connection.execute('INSERT INTO world_cities (id, definition, created_at, updated_at) VALUES (?, ?, ?, ?)',
+                           ('los-angeles', json.dumps(plain(catalog.city('los-angeles'))), '2026-10-01', '2026-10-01'))
+    listed = [city for city in client.get('/api/world/cities').json() if city['id'] == 'los-angeles']
+    assert [city['origin'] for city in listed] == ['builtin']
+    assert client.get('/api/world/broken-cities').json() == []
+    assert client.delete('/api/world/cities/los-angeles').status_code == 200
+    assert 'los-angeles' in catalog.cities()
+    assert client.delete('/api/world/cities/los-angeles').status_code == 409
+
+
+def test_every_shipped_city_loads_strictly():
+    assert catalog.reload()['errors'] == []
+    assert all(data['origin'] == 'builtin' for data in catalog.cities().values() if not data.get('pack_file'))
+    assert {path.stem for path in catalog.city_files(catalog.BUILTIN_CITIES)} == \
+        {key for key, data in catalog.cities().items() if data['origin'] == 'builtin'}
+
+
 def test_copying_a_built_in_city_and_living_in_a_user_city(app, client):
     copied = client.post('/api/world/cities/baltimore/copy', json={'id': 'my-baltimore', 'name': 'My Baltimore'})
     assert copied.status_code == 200, copied.text

@@ -10,6 +10,8 @@ import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed
 import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { SectionPending } from '../../components/SectionPending'
+import { ImageModelField } from './ImageModelField'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -33,7 +35,7 @@ export function ImageSettings() {
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not saved.') }); return false }
   }
   const refresh = () => Promise.all([client.invalidateQueries({ queryKey: BACKENDS_KEY }), client.invalidateQueries({ queryKey: HARDWARE_KEY })])
-  if (!settings.data || !backends.data) return null
+  if (!settings.data || !backends.data) return <SectionPending queries={[settings, backends]} heading="images-heading" title="Images" />
   const data = settings.data
   const list = backends.data.backends
   const hasLocal = list.some((backend) => backend.enabled && backend.accepts_nsfw)
@@ -156,16 +158,15 @@ function BackendConnection({ backend, save }: { backend: ImageBackend; save: (bo
   const [draft, setDraft] = useState(() => connectionDraft(backend))
   const set = (key: keyof ConnectionDraft) => (value: string) => setDraft((current) => ({ ...current, [key]: value }))
   const hosted = backend.kind === 'hosted'
-  const moveHint = movesAddress(backend, draft) && backend.disclosure ? `Saving sends requests to the new address. ${backend.disclosure}` : undefined
   const store = async () => { if (await save(connectionBody(backend, draft))) setDraft((current) => ({ ...current, apiKey: '' })) }
   return (
     <details>
       <summary className="subtle">Connection</summary>
       <div className="form-stack">
         <TextInput label="Name" value={draft.label} onChange={set('label')} />
-        {hosted && <TextInput label="Image model" value={draft.model} required onChange={set('model')} hint="The model's exact name from the provider's documentation." />}
         {hosted && <TextInput label="API key" type="password" value={draft.apiKey} onChange={set('apiKey')} placeholder={backend.has_key ? 'Saved; type a new one to replace it' : ''} hint="Saved in your system's credential store." />}
-        {editsAddress(backend) && <TextInput label={hosted ? 'API base URL' : 'ComfyUI address'} value={draft.baseUrl} required onChange={set('baseUrl')} hint={moveHint} />}
+        <AddressField backend={backend} draft={draft} onChange={set('baseUrl')} />
+        {hosted && <ImageModelField provider={backend.provider} baseUrl={draft.baseUrl} apiKey={draft.apiKey} backendId={backend.id} value={draft.model} onChange={set('model')} />}
         {backend.kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={draft.cliPath} onChange={set('cliPath')} hint="Found on PATH when empty." />}
         {connectionChanged(backend, draft) && <div className="form-actions">
           <button type="button" className="button primary" onClick={() => void store()}>Save connection</button>
@@ -174,6 +175,13 @@ function BackendConnection({ backend, save }: { backend: ImageBackend; save: (bo
       </div>
     </details>
   )
+}
+
+/** A ComfyUI server's address, or another image API's base URL; the providers named in the list keep their own. */
+function AddressField({ backend, draft, onChange }: { backend: ImageBackend; draft: ConnectionDraft; onChange: (value: string) => void }) {
+  if (!editsAddress(backend)) return null
+  const moveHint = movesAddress(backend, draft) && backend.disclosure ? `Saving sends requests to the new address. ${backend.disclosure}` : undefined
+  return <TextInput label={backend.kind === 'hosted' ? 'API base URL' : 'ComfyUI address'} value={draft.baseUrl} required onChange={onChange} hint={moveHint} />
 }
 
 /** The style line that starts this backend's prompts, since each model wants its own (a photo line for
@@ -457,10 +465,9 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
             {PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
-        <TextInput label="Image model" value={model} required onChange={setModel} placeholder={MODEL_EXAMPLES[provider]}
-          hint="The model's exact name from the provider's documentation." />
         <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />
         {provider === 'other' && <TextInput label="API base URL" value={baseUrl} required onChange={setBaseUrl} hint="For an OpenAI-compatible image service, usually ending in /v1." />}
+        <ImageModelField provider={provider} baseUrl={baseUrl} apiKey={apiKey} value={model} placeholder={MODEL_EXAMPLES[provider]} onChange={setModel} />
         <NsfwChoice provider={provider} checked={nsfw} onChange={(value) => { setNsfw(value); setAccepted(false) }} />
       </>}
       {disclosure && <Toggle label="I understand what it receives" checked={accepted} onChange={setAccepted} hint={disclosure} />}

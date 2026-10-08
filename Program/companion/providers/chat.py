@@ -49,14 +49,54 @@ def retry_delay(response: httpx.Response) -> float:
     return min(max(wanted, shortest), longest)
 
 
-def check_status(response: httpx.Response):
-    descriptions = {401: "Authentication failed. Check the model profile's API key.",
-                    403: 'This account cannot access the selected service or model.',
-                    404: 'The service did not recognize this model or address.',
-                    429: 'The service reached a rate or usage limit. Retry when it is available.'}
+def provider_message(response: httpx.Response) -> str:
+    """The service's own short explanation from an error reply, when it gave one (OpenAI-style
+    `{"error": {"message": ...}}`, or a plain `message` or `detail`)."""
+    try:
+        data = json.loads(response.text)
+    except (httpx.ResponseNotRead, ValueError):
+        return ''
+    if not isinstance(data, dict):
+        return ''
+    error = data.get('error')
+    for value in (error.get('message') if isinstance(error, dict) else error, data.get('message'), data.get('detail')):
+        if isinstance(value, str) and value.strip():
+            text = ' '.join(value.split())
+            return text if len(text) <= 200 else text[:199] + '…'
+    return ''
+
+
+def check_status(response: httpx.Response, model: str | None = None):
+    """A failed answer from the model service, said in plain words with the service's own reason when it gave one.
+    Streamed replies are read first (`raise_for_status`), so that reason is there to quote."""
+    if response.is_success:
+        return
+    code, said = response.status_code, provider_message(response)
+    named = f' "{model}"' if model else ''
+    descriptions = {
+        401: "The service rejected the API key. Check the model profile's key.",
+        403: 'This account cannot use the selected service or model.',
+        404: f'The service did not recognize the model{named} or the address. Check the model name, and that the '
+             'address ends where the service\'s docs say (usually /v1).',
+        # NVIDIA NIM answers 410 for a model past its end of life.
+        410: f'The service no longer offers the model{named}. Choose another one in the model profile.',
+        429: 'The service reached a rate or usage limit. Try again when it is available.',
+    }
+    if code in descriptions:
+        text = descriptions[code]
+    elif code in (400, 422):
+        text = f'The service turned down the request (HTTP {code}).'
+    elif code >= 500:
+        text = f'The service had a problem on its side (HTTP {code}). Try again in a moment.'
+    else:
+        text = f'The service rejected this request (HTTP {code}).'
+    raise DomainError(f'{text} It said: "{said}"' if said else text, 502, 'provider')
+
+
+async def raise_for_status(response: httpx.Response, model: str | None = None):
     if not response.is_success:
-        raise DomainError(descriptions.get(response.status_code,
-                          f'The service rejected this request (HTTP {response.status_code}).'), 502, 'provider')
+        await response.aread()
+    check_status(response, model)
 
 
 async def sse_data(response: httpx.Response) -> AsyncIterator[dict]:
@@ -139,7 +179,7 @@ class ChatProvider:
         url = config['base_url'] + path
         if config['provider'] == 'kobold':
             response = await client.post(url, headers=headers_for(config, key), json=body)
-            check_status(response)
+            check_status(response, body.get('model'))
             yield kobold_result(response)
             return
         model = (config['provider'], body.get('model'))
@@ -180,7 +220,7 @@ class ChatProvider:
                     # Hosted models answer 429 for a few seconds at busy times; one short wait usually clears it.
                     await asyncio.sleep(retry_delay(response))
                     continue
-                check_status(response)
+                await raise_for_status(response, body.get('model'))
                 async for data in sse_data(response):
                     chunk = Chunk(done=True) if data.get('_done') else parser(data)
                     completion.observe(chunk)

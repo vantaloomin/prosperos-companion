@@ -10,7 +10,17 @@ import { Notice } from './Feedback'
  */
 export function ErrorNotice({ error, children, action }: { error: Error; children?: ReactNode; action?: ReactNode }) {
   const bug = error instanceof ApiError && error.code === 'server_error'
-  return <Notice tone="error" action={<>{action}{bug && <LogFolderButton />}</>}>{children}{error.message}</Notice>
+  const { message, details } = splitDetails(error.message)
+  return <Notice tone="error" action={<>{action}{bug && <LogFolderButton />}</>}>
+    {children}{message}{details && <small className="error-details">Details: {details}</small>}
+  </Notice>
+}
+
+/** The Companion ends an unexpected failure's message with "Details: …" for a bug report (companion/troubleshoot.py),
+ * shown on its own smaller line so the plain explanation reads first. */
+function splitDetails(text: string): { message: string; details: string } {
+  const at = text.lastIndexOf(' Details: ')
+  return at < 0 ? { message: text, details: '' } : { message: text.slice(0, at), details: text.slice(at + ' Details: '.length) }
 }
 
 function LogFolderButton() {

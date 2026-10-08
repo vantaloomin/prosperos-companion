@@ -22,6 +22,8 @@ from companion.images.adapters.base import AdapterError, Check, ImageResult, med
 REFUSAL_SIGNS = ('content_policy', 'content policy', 'safety', 'moderation', 'prohibited', 'blocked', 'nsfw')
 TIMEOUT_SECONDS = 180
 # Request paths people paste with the base URL from a provider's docs; the adapter adds them itself.
+# How Google's and OpenAI's image models are named, since their model lists do not say what each outputs.
+IMAGE_WORDS = ('image', 'imagen', 'dall-e')
 ENDPOINT_SUFFIXES = ('/images/generations', '/images/edits', '/images/edit', '/chat/completions', '/models', '/images')
 
 
@@ -55,6 +57,45 @@ def models_url(config, provider) -> str:
     if provider == 'nanogpt' or host == 'nano-gpt.com' or host.endswith('.nano-gpt.com'):
         return config['base_url'] + '/images/models'
     return config['base_url'] + '/models'
+
+
+def model_entries(data) -> list[dict]:
+    """The models a provider lists, in the shapes seen: OpenAI's `{"data": [...]}`, a `{"models": [...]}` list or
+    `{"models": {id: {...}}}` table, or a bare list, of records with an `id` (or `model`) or of plain names."""
+    if isinstance(data, dict):
+        data = data.get('data', data.get('models', []))
+    if isinstance(data, dict):
+        data = [{'id': key, **(value if isinstance(value, dict) else {})} for key, value in data.items()]
+    entries = []
+    for item in data if isinstance(data, list) else []:
+        item = {'id': item} if isinstance(item, str) else item
+        if isinstance(item, dict) and isinstance(item.get('id') or item.get('model'), str):
+            entries.append(item)
+    return entries
+
+
+def makes_images(entry: dict) -> bool | None:
+    """Whether a listed model answers with images, when the list says (OpenRouter's output modalities)."""
+    architecture = entry.get('architecture') if isinstance(entry.get('architecture'), dict) else {}
+    modalities = architecture.get('output_modalities') or entry.get('output_modalities')
+    return 'image' in modalities if isinstance(modalities, list) else None
+
+
+def image_models(data, provider) -> list[dict]:
+    """The image models in a provider's list, by id. Where the list says what each model outputs, only image
+    models; Google's and OpenAI's lists mix text and image models without saying, so their names decide."""
+    entries = model_entries(data)
+    said = [makes_images(entry) for entry in entries]
+    if any(value is not None for value in said):
+        entries = [entry for entry, value in zip(entries, said) if value]
+    rows = {}
+    for entry in entries:
+        model_id = str(entry.get('id') or entry.get('model')).removeprefix('models/')
+        name = entry.get('name') if isinstance(entry.get('name'), str) and entry['name'].strip() else model_id
+        rows.setdefault(model_id, {'id': model_id, 'name': name})
+    if provider in ('openai', 'google') and not any(value is not None for value in said):
+        rows = {key: row for key, row in rows.items() if any(word in key.lower() for word in IMAGE_WORDS)}
+    return sorted(rows.values(), key=lambda row: row['name'].lower())
 
 
 def takes_reference(config, provider) -> bool:
@@ -165,6 +206,28 @@ class HostedAdapter:
             if response.is_success:
                 return response.content
         raise AdapterError('invalid_output', 'The provider answered without an image.')
+
+    async def models(self, provider, config, key=None) -> list[dict]:
+        """The provider's image models, listed with the key when there is one. Sends no prompt and spends
+        nothing; OpenRouter lists its models without a key."""
+        config = {**config, 'base_url': api_base(config['base_url'])}
+        url = models_url(config, provider)
+        try:
+            async with self.client() as client:
+                response = await client.get(url, headers={'Authorization': f'Bearer {key}'} if key else {})
+        except httpx.RequestError as error:
+            raise AdapterError('unavailable', 'Cannot reach the provider at this address.') from error
+        if response.status_code in (401, 403):
+            raise AdapterError('auth', 'The provider rejected the API key.' if key else
+                               'The provider lists its models only with an API key. Enter the key first.')
+        if response.status_code in (404, 405):
+            raise AdapterError('failed', f'Nothing lists models at {url}. Type the model name instead.')
+        if not response.is_success:
+            raise AdapterError('failed', f'The provider answered HTTP {response.status_code} when listing models.')
+        try:
+            return image_models(response.json(), provider)
+        except ValueError as error:
+            raise AdapterError('invalid_output', 'The provider returned an unreadable model list.') from error
 
     async def check(self, backend, config, key=None) -> Check:
         """Lists the provider's models with the key; sends no prompt and spends no image quota."""

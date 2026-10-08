@@ -50,7 +50,9 @@ def _load(connection) -> tuple[dict[str, dict], list[dict]]:
     for row in connection.execute('SELECT * FROM world_cities ORDER BY id').fetchall():
         try:
             cities[row['id']] = _view(row)
-        except (ValidationError, ValueError, KeyError, TypeError) as error:
+        except Exception as error:  # one city that no longer loads must not empty every list
+            if not isinstance(error, (ValidationError, ValueError, KeyError, TypeError)):
+                LOG.exception('Your city %r crashed while loading', row['id'])
             try:
                 definition = decode(row['definition'])
             except ValueError:
@@ -58,7 +60,10 @@ def _load(connection) -> tuple[dict[str, dict], list[dict]]:
             name = definition.get('name') if isinstance(definition, dict) else None
             broken.append({'id': row['id'], 'name': name if isinstance(name, str) and name else row['id'],
                            'error': _invalid(error).message, 'definition': definition})
-    return cities, broken
+    # A city the app now ships, or a pack now holds, wins over the user's own copy of it (a Los Angeles the user
+    # imported before it became built-in), so no list shows it twice. The saved copy stays, and can be deleted.
+    shipped = catalog.cities()
+    return {key: value for key, value in cities.items() if key not in shipped}, broken
 
 
 def all_cities(connection) -> dict[str, dict]:
@@ -126,10 +131,14 @@ def update(database, city_id: str, definition: dict, expected_revision: int) -> 
 
 
 def delete(database, city_id: str) -> None:
-    _not_builtin(city_id)
     with database.connect(write=True) as connection:
         if optional(connection, 'SELECT id FROM world_cities WHERE id=?', (city_id,)) is None:
+            _not_builtin(city_id)
             raise DomainError(_missing(city_id), 404, 'unknown_city')
+        if city_id in catalog.cities():
+            # Only the user's saved copy of a city that is now built in goes; the built-in one stays.
+            connection.execute('DELETE FROM world_cities WHERE id=?', (city_id,))
+            return
         companion = current(connection)
         home = companion['version']['definition'].get('home_city') if companion else None
         require(home != city_id, 'Your companion lives in this city. Move them to another city first.', 409)

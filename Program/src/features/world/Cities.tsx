@@ -211,7 +211,8 @@ function Packs({ onReloaded }: { onReloaded: () => void }) {
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'The packs were not reloaded.') } finally { setBusy(false) }
   }
   if (!packs.data) return null
-  return (
+  return (<>
+    {packs.data.errors.map((item) => <Notice key={item.file} tone="error">{fileProblem(item.file)} {item.error} The other cities are unaffected. Fix or remove the file, then Reload packs under Pack folders.</Notice>)}
     <details className="city-packs">
       <summary>Pack folders</summary>
       <p className="subtle">City files dropped in these folders load as read-only packs. Packs marked private are for your own use and are never shared from here.</p>
@@ -220,9 +221,17 @@ function Packs({ onReloaded }: { onReloaded: () => void }) {
       {packs.data.loaded.filter((item) => item.import_notes?.length).map((item) => (
         <FeedbackNotice key={item.file} feedback={{ tone: 'info', text: `${item.file.split(/[\\/]/).pop()} loaded.`, notes: item.import_notes }} />
       ))}
-      {packs.data.errors.map((item) => <Notice key={item.file} tone="error">{item.file}: {item.error}</Notice>)}
       {error && <Notice tone="error">{error}</Notice>}
       <div className="form-actions"><button type="button" className="button" disabled={busy} onClick={() => void reload()}><FolderSync aria-hidden="true" />Reload packs</button></div>
     </details>
-  )
+  </>)
+}
+
+/** Names a city file that did not load, and which folder it is in, since a file can be dropped in the wrong one. */
+function fileProblem(path: string): string {
+  const parts = path.split(/[\\/]/)
+  const name = parts.pop() ?? path
+  const folder = path.slice(0, Math.max(0, path.length - name.length - 1))
+  const builtIn = parts.slice(-3).join('/') === 'world/data/cities'
+  return `The city file ${name} ${builtIn ? 'in the built-in cities folder' : `in ${folder || 'a pack folder'}`} could not be read.`
 }

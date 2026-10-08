@@ -39,7 +39,7 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 **Pictures.** Selfies, photos of what they're doing, views and memes, through the Codex CLI, a local ComfyUI or a hosted image API. Every request is classified on your PC first: NSFW only goes to a local ComfyUI, and prohibited content is refused everywhere.
 
-**Cities.** Built-in real cities (Baltimore, New York, Miami, San Diego, Las Vegas), public-domain ones (Victorian London, Camelot, Oz) and originals (steampunk Calderwick, frontier Whitlock). Build your own, including fantasy settings with their own currency. Cities change month to month as places open and close.
+**Cities.** Built-in real cities (Baltimore, New York, Miami, San Diego, Los Angeles, Las Vegas), public-domain ones (Victorian London, Camelot, Oz) and originals (steampunk Calderwick, frontier Whitlock). Build your own, including fantasy settings with their own currency. Cities change month to month as places open and close.
 
 **The real world, if you want it.** Weather where you both live, holidays and sports seasons, and optional built-in lookups for local headlines, scores, movies, TV and music, so they can bring up what's actually going on.
 
@@ -101,6 +101,22 @@ Your companion's data normally lives outside the program folder, so updating or 
 
 Each script has a Mac twin in `Mac` with the same name ending in `.command`.
 
+## Adding your own cities
+
+The easy way: in the app, open **Settings > Cities > Open a city file** and choose the file. The city is saved with your data, so backups and updates keep it.
+
+To drop city files in by hand instead, put them in the `city-packs` folder inside your data folder (create it if it isn't there), then press **Reload packs** under Settings > Cities > Pack folders, which also lists the folders it reads:
+
+| Where your data lives | City packs folder |
+| --- | --- |
+| Windows | `%LOCALAPPDATA%\ProsperoCompanion\city-packs` |
+| Mac | `~/Library/Application Support/ProsperoCompanion/city-packs` |
+| A `Data` folder inside the app folder (portable mode, Settings > Backups) | `Data/city-packs` next to the `Windows`, `Mac` and `Program` folders |
+
+Don't put city files in `Program/companion/world/data/cities`. That folder holds the built-in cities, and every update replaces it.
+
+Writing a city of your own, or asking a chatbot to write one? [Making a city](Program/docs/making-a-city.md) says what a city file needs and what makes one feel alive, with a ready-to-paste prompt.
+
 ## Privacy
 
 The Companion only listens on your own computer (127.0.0.1); phone access goes through your own Tailscale network, never the open internet. Conversations, memories and pictures stay in your data folder. The only things that leave your PC are requests to the model and image services you set up, and lookups you switch on, each of which asks before it shares anything. API keys are kept in your operating system's credential store and never written to logs.
@@ -121,6 +137,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [Character drafting](Program/docs/character-drafting.md)
 - [Image generation](Program/docs/images.md)
 - [World data and building cities](Program/docs/world-data.md)
+- [Making a city](Program/docs/making-a-city.md): what a city file needs, for players
 - [Current context tools (MCP)](Program/docs/context-tools.md)
 - [Phone access](Program/docs/phone-access.md)
 - [Importing from Prospero's Study](Program/docs/study-import.md)

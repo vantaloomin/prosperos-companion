@@ -32,3 +32,20 @@ def test_log_file_masks_messages_and_tracebacks(tmp_path):
             handler.close()
             configured.removeHandler(handler)
         configured.propagate = True
+
+
+def test_unexpected_failures_say_what_failed_and_why_in_plain_words():
+    """Testers saw only "Something went wrong in the Companion. Please try again" and could not tell what broke."""
+    import sqlite3
+
+    from companion import troubleshoot
+    said = troubleshoot.for_request('GET', '/api/dating', ValueError('jpl names careers this city does not offer'), '/x/companion.log')
+    assert said.startswith("Couldn't load Matchlight. This looks like a bug")
+    assert said.endswith('Details: ValueError: jpl names careers this city does not offer')
+    assert '/x/companion.log' in said and 'Traceback' not in said
+    assert troubleshoot.area('/api/life/home/rooms') == 'their home' and troubleshoot.area('/api/lifeline') == 'the Companion'
+    locked = troubleshoot.for_request('POST', '/api/conversation/messages', sqlite3.OperationalError('database is locked'))
+    assert locked.startswith("Couldn't finish that in the chat. Its data file was busy")
+    assert 'read-only' in troubleshoot.reason(sqlite3.OperationalError('attempt to write a readonly database'))
+    assert troubleshoot.reason(KeyError('x')) is None
+    assert len(troubleshoot.detail(ValueError('x' * 1000))) == troubleshoot.DETAIL_LIMIT

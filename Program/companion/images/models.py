@@ -56,6 +56,15 @@ class BackendCreate(BackendFields):
     provider: Provider | None = None
 
 
+class ModelProbe(Input):
+    """An image API's connection, saved or not, whose model list is wanted. With `backend_id` and no key typed,
+    the backend's saved key is used, but only for the address it was saved for."""
+    provider: Provider
+    base_url: str = Field(default='', max_length=500)
+    api_key: str = Field(default='', max_length=500)
+    backend_id: str | None = Field(default=None, max_length=64)
+
+
 class BackendMove(Input):
     position: int = Field(ge=0, le=50)
 

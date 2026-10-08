@@ -5,6 +5,7 @@ import type { LifeSettings as Limits } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { DRAMA_LEVELS } from '../today/storyText'
+import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['life-settings']
 type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'texts_gap_hours' | 'circle_size'
@@ -41,7 +42,7 @@ export function LifeSettings({ name }: { name: string }) {
       return false
     }
   }
-  if (!settings.data) return null
+  if (!settings.data) return <SectionPending queries={[settings]} heading="life-heading" title={`${name}'s life`} />
   const data = { ...settings.data, ...pending }
   const changed = Object.entries(draft).filter(([key, value]) => value !== undefined && Number(value) !== data[key as NumberKey])
   const saveLimits = async () => {
