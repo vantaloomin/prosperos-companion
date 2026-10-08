@@ -914,7 +914,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* The companion's profile (src/features/profile): their card, then Messages, Posts and Character as tabs.
    It takes the chat style's look; the Character tab's form keeps the app's own look, since it sits outside their world. */
 .profile { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.profile > .conversation, .profile > .page { flex: 1; min-height: 0; }
+.profile > .conversation, .profile > .page, .profile > .chat-shell { flex: 1; min-height: 0; }
 .profile-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .profile-scroll > .page { overflow: visible; padding-top: 22px; }
 .profile-card { padding-bottom: 4px; }
@@ -993,7 +993,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-retro .profile-tabs { gap: 2px; margin: 6px 10px 0; padding: 4px 4px 0; border: 0; border-bottom: 2px solid #ffffff; background: var(--surface); }
 .profile-retro .profile-tabs button { padding: 4px 12px; border: 2px outset #f2f1ee; border-bottom: 0; border-radius: 3px 3px 0 0; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; }
 .profile-retro .profile-tabs button[aria-current='page'] { position: relative; top: 2px; padding-bottom: 6px; background: var(--surface); font-weight: 700; }
-.profile-retro > .conversation.chat-retro { margin-top: 0; border-top: 0; }
+.profile-retro > .conversation.chat-retro, .profile-retro > .chat-shell > .chat-retro { margin-top: 0; border-top: 0; }
 .profile-retro .feed { margin: 0 10px 10px; padding: 14px 16px; border: 2px outset #e8e6e1; border-top: 0; background: var(--surface); }
 .profile-retro .feed h2 { font-family: inherit; font-size: 1rem; font-weight: 700; }
 .profile-retro .post { gap: 8px; padding: 10px 12px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); }
@@ -1077,4 +1077,51 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .chat-row { min-height: 64px; }
   .chat-row .portrait { width: 48px; height: 48px; }
   .app-nav .nav-count { right: calc(50% - 22px); }
+}
+
+/* The chat list beside the chat on a wide screen (ChatSidebar), in each style's own look. No presence anywhere. */
+.chat-shell { flex: 1; display: flex; min-height: 0; min-width: 0; }
+.chat-shell > .conversation { min-width: 0; }
+.chat-side { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.chat-side ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.chat-shell:has(.chat-side) .chats-button { display: none; }
+/* Feed, Bubbles and Visual novel: a conversation list, as in a desktop messaging app. */
+.side-list { width: 280px; padding: 14px 8px; border-right: 1px solid var(--border); background: var(--surface); }
+.side-title { margin: 0 10px 10px; font-size: 1rem; }
+.side-list .chat-row { min-height: 60px; }
+.side-bubbles .side-title { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-weight: 600; }
+.side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
+.side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
+.side-bubbles .chat-row.current .unread-badge { background: var(--on-accent); color: var(--accent); }
+.side-novel .side-title { font-style: italic; }
+.side-novel .chat-row { border-left: 3px solid transparent; border-radius: 0 10px 10px 0; }
+.side-novel .chat-row.current { border-left-color: var(--accent); }
+/* Community: a rail of round pictures, a pill beside the open chat and a short one beside chats with news. */
+.side-rail { width: 72px; padding: 12px 0; align-items: center; background: var(--canvas); border-right: 1px solid var(--border); }
+.side-rail ul { gap: 8px; }
+.side-rail li { position: relative; display: flex; justify-content: center; width: 72px; }
+.side-rail li::before { content: ''; position: absolute; left: 0; top: 50%; width: 4px; height: 0; border-radius: 0 4px 4px 0; background: var(--text); transform: translateY(-50%); transition: height .15s; }
+.side-rail li.unread::before { height: 8px; }
+.side-rail li.current::before { height: 40px; }
+.rail-button { position: relative; padding: 0; border-radius: 50%; }
+.rail-button .portrait { width: 48px; height: 48px; font-size: 1.15rem; object-fit: cover; transition: border-radius .15s; }
+.rail-button:hover .portrait, li.current .rail-button .portrait { border-radius: 16px; }
+.rail-button .unread-badge { position: absolute; right: -4px; bottom: -4px; border: 3px solid var(--canvas); height: 1.5rem; }
+/* Retro IM: a buddy list window beside the message window. */
+.side-buddies { order: 2; width: 190px; margin-left: 0; padding: 0 0 6px; }
+.buddy-titlebar { padding: 5px 8px; background: linear-gradient(90deg, #0a246a, #24508f); color: #ffffff; font-size: 0.8125rem; font-weight: 700; }
+.chat-retro.retro-dark .buddy-titlebar { background: linear-gradient(90deg, #0b1636, #1b2f5c); }
+.buddy-group { margin: 6px 8px 2px; font-family: inherit; font-size: 0.75rem; font-weight: 700; }
+.buddy-group::before { content: '▾ '; }
+.side-buddies ul { margin: 0 6px; padding: 2px 0; background: var(--canvas); border: 2px inset #e8e6e1; gap: 0; }
+.buddy { display: flex; gap: 4px; width: 100%; padding: 2px 8px 2px 18px; text-align: left; font-size: 0.8125rem; color: var(--text); }
+.buddy:hover:not(:disabled), .buddy:focus-visible { background: var(--accent-tint); }
+.buddy.current { background: var(--accent); color: var(--on-accent); }
+.buddy.unread .buddy-name { font-weight: 700; }
+.buddy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buddy-count { color: inherit; font-weight: 700; }
+@media (max-width: 720px) {
+  /* Phones keep the whole width for the chat; the Chats button opens the list. */
+  .chat-side { display: none; }
+  .chat-shell:has(.chat-side) .chats-button { display: inline-flex; }
 }

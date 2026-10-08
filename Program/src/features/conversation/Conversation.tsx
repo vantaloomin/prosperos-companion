@@ -30,6 +30,7 @@ import { playCue } from './imSounds'
 import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
 import { ChatsPanel } from '../chats/ChatsPanel'
+import { ChatSidebar } from '../chats/ChatSidebar'
 import { useMarkRead } from '../chats/useChats'
 
 const PAGE = 100
@@ -200,29 +201,32 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const hasEarlier = !exhausted && messages.length >= PAGE
 
   return (
-    <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
-      <ConversationTop companion={companion} go={go} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
-      {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
-      <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
-        <div className="reading-column">
-          {history.isPending && <Loading label="Loading the conversation" />}
-          {history.isError && <ErrorNotice error={history.error} />}
-          {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
-          {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
-          {turns.map((turn) => (
-            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
-          ))}
+    <div className={`chat-shell shell-${chat.style}`}>
+      <ChatSidebar style={chat.style} retroDark={chat.retroDark} go={go} />
+      <section className={`conversation chat-${chat.style}${chat.retroDark ? ' retro-dark' : ''}`} aria-label={`Conversation with ${name}`}>
+        <ConversationTop companion={companion} go={go} onJump={jumpTo} timeline={timeline} stage={chat.style === 'novel'} photoId={latestPhotoId(messages)} />
+        {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
+        <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
+          <div className="reading-column">
+            {history.isPending && <Loading label="Loading the conversation" />}
+            {history.isError && <ErrorNotice error={history.error} />}
+            {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
+            {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
+            {turns.map((turn) => (
+              <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
+            ))}
+          </div>
+          {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
         </div>
-        {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
-      </div>
-      <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
-      <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
-      <ConversationNotice notice={notice} go={go} />
-      <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
-        onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
-      {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
-      <Composer name={name} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
-    </section>
+        <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
+        <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
+        <ConversationNotice notice={notice} go={go} />
+        <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
+          onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
+        {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
+        <Composer name={name} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
+      </section>
+    </div>
   )
 }
 

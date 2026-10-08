@@ -46,7 +46,7 @@ export function ChatsPanel({ go, onClose }: { go: (view: View) => void; onClose:
   )
 }
 
-function ChatAvatar({ chat }: { chat: Chat }) {
+export function ChatAvatar({ chat }: { chat: Chat }) {
   const portrait = usePortrait()
   // Only the companion in focus has their picture loaded; the others show their initial.
   if (chat.focus && portrait) return <img className="portrait" src={portrait} alt="" aria-hidden="true" />
