@@ -21,19 +21,34 @@ export function basisText(state: Closeness): string {
   return `You have talked on ${plural(state.days_talked, 'day', 'days')}${since}, with ${moments}.`
 }
 
-/** Why the stage is what it is: a hold the user set wins over shared history. */
+/** Why the stage is what it is: a hold wins, then a ceiling and gentle cooling, then history from where it started or was set. */
 export function stageText(state: Closeness, name: string): string {
   if (state.held_level) {
     const grown = state.stages[state.grown_level - 1]
     return state.held_level === state.grown_level
-      ? `You are holding ${name} at ${state.name}. Shared history alone puts you here too.`
-      : `You are holding ${name} at ${state.name}. From shared history alone it would be ${grown}.`
+      ? `You are keeping ${name} at ${state.name}. Without that it would be here too.`
+      : `You are keeping ${name} at ${state.name}. Without that it would be ${grown}.`
   }
+  if (state.cooled_steps) return cooledText(state)
+  const capped = state.ceiling_level && state.ceiling_level < state.earned_level
+  if (capped) return `${state.name}, the closest you let it get. From your shared history alone it would be ${state.stages[state.earned_level - 1]}.`
+  if (state.set_on) return `${state.name}. You set it on ${dayText(state.set_on)} and it grows from there.`
+  if (state.starting_level > 1) return `${state.name}. You started at ${state.stages[state.starting_level - 1]} and it grows from there.`
   return `${state.name}, from your shared history.`
 }
 
+/** Gentle cooling the user turned on: how far it cooled from, and how soon talking brings it back. */
+function cooledText(state: Closeness): string {
+  const from = state.stages[Math.min(state.earned_level, state.ceiling_level ?? state.earned_level) - 1]
+  const back = state.warm_days_left ? ` Talking on ${plural(state.warm_days_left, 'more day', 'more days')} brings a step back.` : ''
+  return `${state.name}: it has cooled ${state.cooled_steps === 1 ? 'a step' : 'two steps'} from ${from} after a long time apart.${back}`
+}
+
 export function milestoneText(milestone: ClosenessMilestone, stages: string[]): string {
-  return `${stages[milestone.level - 1]} on ${dayText(milestone.on)}, after ${plural(milestone.days, 'day', 'days')} talking and ${plural(milestone.moments, 'shared moment', 'shared moments')}.`
+  const stage = stages[milestone.level - 1]
+  if (milestone.kind === 'start') return `Started at ${stage}.`
+  if (milestone.kind === 'set') return `You set it to ${stage} on ${dayText(milestone.on ?? '')}.`
+  return `${stage} on ${dayText(milestone.on ?? '')}, after ${plural(milestone.days ?? 0, 'day', 'days')} talking and ${plural(milestone.moments ?? 0, 'shared moment', 'shared moments')}.`
 }
 
 export const OPENNESS = [

@@ -172,6 +172,15 @@ def relationship(found: dict) -> str:
     return 'romance' if found['match'] and found['match']['details']['looking'] != 'friends' else 'friendship'
 
 
+def starting_closeness(found: dict) -> int:
+    """A match is a stranger. A townsperson starts as close as the times they have crossed paths make them:
+    with the companion around town, or with the user in their own story."""
+    if found['match']:
+        return 1
+    met = len(found['meetings']) + (found['in_story']['meetings'] if found['in_story'] else 0)
+    return next(stage for stage, least in ((3, 6), (2, 3), (1, 0)) if met >= least)
+
+
 def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     """A full character definition from a townsperson's sheet, with no model involved."""
     name, career = sheet['name'], career_for(data, sheet)
@@ -199,6 +208,7 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
         'home_city': data['id'],
         'timezone': data['timezone'],
         'relationship': relationship(found),
+        'starting_closeness': starting_closeness(found),
         'schedule': schedule(data, sheet, career),
         'life_themes': list(career['themes'][:5]) if career else [sheet['place']['name']],
         'money': {'career': career['id'] if career else ''},
@@ -240,7 +250,8 @@ async def fleshed(state, key: str) -> dict:
     written = (await drafting.draft(state, body))['definition']
     found_at = [at for at in (base['background'].rfind(start) for start in SHARED) if at >= 0]
     shared = base['background'][min(found_at):] if found_at else ''
-    written |= {field: base[field] for field in ('name', 'location', 'home_city', 'timezone', 'relationship')}
+    written |= {field: base[field] for field in ('name', 'location', 'home_city', 'timezone', 'relationship',
+                                                 'starting_closeness')}
     written['background'] = f"{written['background'].rstrip()} {shared}".strip()[:12000]
     return {**found, 'definition': written}
 

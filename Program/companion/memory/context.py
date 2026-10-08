@@ -202,6 +202,8 @@ def character_text(version, connection=None) -> str:
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
+    if definition.get('history_together'):
+        lines.append(f"How you and the user know each other: {definition['history_together']}")
     if definition.get('skills'):
         lines.append('Skills: ' + '; '.join(definition['skills']))
     if definition.get('flaws'):

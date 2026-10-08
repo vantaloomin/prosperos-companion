@@ -3,7 +3,9 @@ import type { CharacterDefinition, Relationship } from '../../types'
 import type { ListTexts } from './definition.ts'
 import type { RoutineBlock } from './schedule.ts'
 
-export interface DraftRequest { idea: string; name: string; relationship: Relationship; age: string; vibe: string; home_city: string; timezone: string; emotional_edges: boolean }
+export interface DraftRequest { idea: string; name: string; relationship: Relationship; age: string; vibe: string; home_city: string; timezone: string; emotional_edges: boolean
+  /** Kept for the drafted sheet; the model drafts the same either way. */
+  starting_closeness: number }
 export interface DraftResult { definition: CharacterDefinition; career: { id: string; name: string } | null; prompt_version: string }
 
 export type DraftField = 'identity' | 'personality' | 'voice' | 'skills' | 'flaws' | 'interests' | 'background' | 'appearance' | 'routine' | 'life_themes' | 'schedule'
@@ -21,7 +23,7 @@ export const AGES = [
 export const VIBES = ['Dry humour', 'Warm and chatty', 'Quiet homebody', 'Outdoorsy', 'Blunt', 'Overthinker', 'Nerdy', 'Easygoing', 'Ambitious', 'Chaotic']
 
 export function emptyRequest(timezone: string): DraftRequest {
-  return { idea: '', name: '', relationship: 'friendship', age: '', vibe: '', home_city: '', timezone, emotional_edges: false }
+  return { idea: '', name: '', relationship: 'friendship', age: '', vibe: '', home_city: '', timezone, emotional_edges: false, starting_closeness: 1 }
 }
 
 export function vibeList(vibe: string): string[] {

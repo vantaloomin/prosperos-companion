@@ -91,7 +91,9 @@ export function rememberedText(name: string, memories: { subject: string; value:
 
 export const REMEMBER_KEY = 'companion:remember'
 
-export interface RememberRequest { messageId: string; text: string }
+/** A message to remember from the chat. A shared moment (Keep as a shared moment) opens the form on that kind,
+ * and `from` names who wrote the message when it was the companion. */
+export interface RememberRequest { messageId: string; text: string; layer?: Layer; from?: string }
 
 /** Plain lines for the delete dialog: what goes with the messages, and what stays. */
 export function deletePreviewText(preview: DeletePreview, withSources: boolean): string[] {

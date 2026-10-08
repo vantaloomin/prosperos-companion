@@ -6,7 +6,7 @@ import type { View } from '../../companion'
 import type { CharacterDefinition, CitySummary, Connection, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
-import { RELATIONSHIPS, guessTimezone } from './definition'
+import { RELATIONSHIPS, guessTimezone, stageNames } from './definition'
 import { PasteCharacter } from './PasteCharacter'
 import type { SplitResult } from './helper'
 import { placeGroups } from './places'
@@ -30,7 +30,8 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
     setBusy(true)
     setError('')
     try {
-      onDraft((await api<DraftResult>('/companion/draft', request)).definition)
+      const { starting_closeness, ...body } = request
+      onDraft({ ...(await api<DraftResult>('/companion/draft', body)).definition, starting_closeness })
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'The draft could not be written.')
     } finally { setBusy(false) }
@@ -54,6 +55,13 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
               {(id, hint) => (
                 <select id={id} aria-describedby={hint} value={request.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
                   {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              )}
+            </Field>
+            <Field label="How close you start" hint="Just met unless you pick otherwise. It grows from here as you talk.">
+              {(id, hint) => (
+                <select id={id} aria-describedby={hint} value={request.starting_closeness} onChange={(event) => set({ starting_closeness: Number(event.target.value) })}>
+                  {stageNames(request.relationship).map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
                 </select>
               )}
             </Field>
