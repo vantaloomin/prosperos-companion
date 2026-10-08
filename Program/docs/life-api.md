@@ -18,8 +18,8 @@ with `user_timezone_source: "detected"`, which is ignored once the user has chos
 Call `POST /api/life/reconcile` when the interface opens and when it becomes visible again after
 being hidden. It is cheap when nothing is due and safe to call repeatedly, from several windows or
 after a restart: at most one batch runs per return, and a repeated call returns `not_due`. The
-server also reconciles once on start and, only when the user enabled background activity, about
-once a minute while it runs.
+server also reconciles once on start and about once a minute while it runs. Those background batches are
+rule-built with no model calls unless the user enabled background activity, which adds model wording.
 
 ```http
 POST /api/life/reconcile

@@ -244,16 +244,13 @@ PREPARE_AHEAD = 2
 
 
 def may_extend(workspace, mode) -> bool:
-    """Precomputing the agenda is cheap and needs no model, but still respects pause and, while the
-    app is only running in the background, the background permission (T4, T6)."""
-    return workspace['paused_at'] is None and (mode == 'return' or bool(workspace['background_activity']))
+    """Precomputing the agenda is cheap and needs no model, so only a pause stops it (T6)."""
+    return workspace['paused_at'] is None
 
 
 def blocked(workspace, life, mode) -> str | None:
     if workspace['paused_at'] is not None:
         return 'paused'
-    if mode == 'background' and not workspace['background_activity']:
-        return 'not_permitted'
     if mode == 'return' and not life['catch_up_on_return']:
         return 'disabled'
     return None
@@ -484,6 +481,11 @@ class LifeEngine:
         if companion['active_timeline_id'] != run['timeline_id']:
             return {'result': {'slot': slot['key'], 'outcome': 'skipped',
                                'reason': 'The timeline is no longer active.'}}
+        if run['mode'] == 'background' and not workspace['background_activity']:
+            # Life goes on while the app is open either way; only background model use needs the permission,
+            # so without it a background batch keeps the rule-built wording and makes no model calls (Vanta,
+            # 2026-10-08).
+            config = None
         version = companion['version']
         composed, slot, prepared = self.compose_slot(slot, version, key, plan, precomputed, recent)
         if composed is None:
@@ -671,7 +673,8 @@ class LifeEngine:
 
     async def run_forever(self, tick_seconds=60):
         """Catch up once on open, then tick while the process runs. Ticks use the event loop's
-        monotonic timer; background batches only start when the user enabled them (T4)."""
+        monotonic timer. Background batches always run, rule-built; model phrasing, lookups and preparation in
+        the background need the user's permission (T4)."""
         await self.quietly('return')
         while True:
             # A fast debug clock (companion/debug_time.py) ticks more often in real time to keep up.

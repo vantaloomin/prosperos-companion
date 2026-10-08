@@ -547,9 +547,11 @@ never replaces the post's chosen image. See [image generation](images.md).
 ## Backups
 
 `POST /api/backups` writes a zip with a manifest and a consistent SQLite snapshot beside the
-workspace. Restore only targets a new path, checks the format marker and digest, and leaves the
-restored workspace paused with automatic memory and background activity off and its saved key
-reference cleared. Enabling memory or background activity requires marking the review complete.
+workspace. Restore only targets a new path and checks the format marker and digest. Replacing a workspace keeps
+its settings (`restore.keep_settings`: settings, model connections, image backends, lookups, paired phones and
+prompt edits carry over, so nothing is switched off or paused). A restore with no workspace to replace (a new
+computer) leaves it paused with automatic memory and background activity off and its saved key reference
+cleared; enabling memory or background activity there requires marking the review complete.
 
 ### Starting over and deleting
 

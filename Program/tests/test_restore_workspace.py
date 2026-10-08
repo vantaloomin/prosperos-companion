@@ -18,6 +18,8 @@ def test_restore_sets_the_current_workspace_aside_and_keeps_later_deletions(clie
     forgotten = remember(client, 'Old job', 'Night shifts at the bakery')
     archive = Path(client.post('/api/backups').json()['path'])
     assert client.post(f"/api/memories/{forgotten['id']}/delete", json={}).status_code == 200
+    # A setting changed after the backup is kept, not rolled back.
+    assert client.put('/api/life/settings', json={'texts_first': False}).status_code == 200
     path = app.state.database.path
     client.close()
 
@@ -31,10 +33,13 @@ def test_restore_sets_the_current_workspace_aside_and_keeps_later_deletions(clie
         ids = {row[0] for row in connection.execute('SELECT id FROM memories')}
         marker = connection.execute('SELECT kind FROM deletion_markers WHERE target_id=?',
                                     (forgotten['id'],)).fetchone()
-        review = connection.execute('SELECT review_required, paused_at FROM workspace_settings').fetchone()
+        review = connection.execute('SELECT review_required, paused_at, automatic_memory FROM workspace_settings').fetchone()
+        texts_first = connection.execute('SELECT texts_first FROM life_settings').fetchone()[0]
+        open_pauses = connection.execute('SELECT COUNT(*) FROM pauses WHERE ended_at IS NULL').fetchone()[0]
     assert kept['id'] in ids and forgotten['id'] not in ids
     assert marker[0] == 'memory'
-    assert review[0] == 1 and review[1]
+    # The current settings carry over: nothing is switched off, paused or held for review.
+    assert tuple(review) == (0, None, 1) and texts_first == 0 and open_pauses == 0
 
 
 def test_a_refused_restore_leaves_the_current_workspace_in_place(client, app, companion, tmp_path, clock):

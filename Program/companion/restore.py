@@ -3,8 +3,11 @@
 The current workspace is never overwritten: its database, images and adapters move to
 `replaced-<time>/` beside it first, and move back if the restore fails. A backup can be older
 than deletions made since, so the deletion records the current workspace keeps are applied to
-the restored one: deleted memories stay deleted and redacted messages stay redacted. The restored
-workspace then waits for the user's review like any restore (backup.hold_for_review).
+the restored one: deleted memories stay deleted and redacted messages stay redacted. Settings are not rolled
+back either (Vanta, 2026-10-08): the current workspace's settings, model connections, image backends, lookups and
+paired phones carry over, so nothing is switched off or paused. Restoring with no current workspace (a new
+computer) still holds the restored one for review, since its connections belonged to another machine
+(backup.hold_for_review).
 """
 import json
 import re
@@ -20,6 +23,11 @@ from companion.errors import DomainError, require
 from companion.memory import records
 
 MOVED = ('images', 'lora')
+# What "settings" means for a restore, parents before the tables that refer to them.
+KEPT_SETTINGS = ('workspace_settings', 'connection', 'model_profiles', 'model_routes', 'life_settings',
+                 'image_settings', 'image_backends', 'context_settings', 'context_services', 'context_tools',
+                 'lora_settings', 'notification_settings', 'phone_settings', 'phone_devices', 'phone_push',
+                 'builtin_recall', 'prompt_overrides', 'debug_time')
 
 
 def database_files(path: Path) -> list[Path]:
@@ -89,6 +97,31 @@ def apply_deletions(database: Database, retained: dict) -> dict:
     return {'memories_deleted': len(set(deleted)), 'messages_redacted': len(redacted)}
 
 
+def keep_settings(database: Database, previous: Path):
+    """The settings of the workspace being replaced, instead of the backup's (or the hold a restore starts with)."""
+    connection = sqlite3.connect(database.path, isolation_level=None)
+    try:
+        connection.execute('ATTACH DATABASE ? AS kept', (f'{previous.resolve().as_uri()}?mode=ro',))
+        connection.execute('BEGIN IMMEDIATE')
+        for table in reversed(KEPT_SETTINGS):
+            connection.execute(f'DELETE FROM main.{table}')
+        for table in KEPT_SETTINGS:
+            ours = {row[1] for row in connection.execute(f'PRAGMA main.table_info({table})')}
+            columns = ', '.join(row[1] for row in connection.execute(f'PRAGMA kept.table_info({table})')
+                                if row[1] in ours)
+            if columns:
+                connection.execute(f'INSERT INTO main.{table} ({columns}) SELECT {columns} FROM kept.{table}')
+        if connection.execute('SELECT paused_at FROM main.workspace_settings').fetchone()[0] is None:
+            connection.execute('UPDATE main.pauses SET ended_at=? WHERE ended_at IS NULL', (database.now(),))
+        connection.execute('COMMIT')
+    except BaseException:
+        if connection.in_transaction:
+            connection.execute('ROLLBACK')
+        raise
+    finally:
+        connection.close()
+
+
 def replace_workspace(archive: Path, database_path: Path, clock=None) -> dict:
     backup.inspect(archive)  # Refuse a damaged or foreign archive before anything moves.
     previous = None
@@ -109,6 +142,8 @@ def replace_workspace(archive: Path, database_path: Path, clock=None) -> dict:
         raise
     applied = apply_deletions(restored, retained_deletions(previous)) if previous else \
         {'memories_deleted': 0, 'messages_redacted': 0}
+    if previous:
+        keep_settings(restored, previous)
     return {'restored': str(database_path), 'previous': str(previous.parent) if previous else None,
             'assets': restored.restored_assets, 'deletions': applied}
 

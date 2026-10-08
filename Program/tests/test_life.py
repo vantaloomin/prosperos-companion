@@ -301,9 +301,21 @@ def test_places_come_from_the_world_source(tmp_path, clock, provider, monkeypatc
             assert event['inputs']['world'] == 'static'
 
 
-def test_background_needs_permission_and_respects_the_daily_cap(app, client, life, clock):
+def test_background_life_goes_on_by_rules_and_uses_the_model_only_with_permission(app, client, life, clock, provider):
     engine = app.state.life
-    assert asyncio.run(engine.reconcile('background'))['state'] == 'not_permitted'
+    set_life(client, background_daily_events=2)
+    clock.advance(timedelta(hours=20))
+    first = asyncio.run(engine.reconcile('background'))
+    assert first['state'] == 'started' and [item['outcome'] for item in first['run']['results']] == ['committed']
+    assert provider.requests == [] and all_events(client)[-1]['inputs']['wording'] == 'template'
+    client.put('/api/settings', json={'background_activity': True})
+    clock.advance(timedelta(hours=5))
+    second = asyncio.run(engine.reconcile('background'))
+    assert second['state'] == 'started' and all_events(client)[-1]['inputs']['wording'] == 'model'
+
+
+def test_background_respects_the_daily_cap(app, client, life, clock):
+    engine = app.state.life
     client.put('/api/settings', json={'background_activity': True})
     set_life(client, background_daily_events=1, automatic_events=True)
     clock.advance(timedelta(hours=20))
