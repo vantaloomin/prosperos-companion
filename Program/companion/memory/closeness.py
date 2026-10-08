@@ -3,13 +3,17 @@
 The stage is worked out from the active timeline's history every time it is needed, never stored as
 a score. It counts the days the user talked (a quick hello and a long talk count the same, so more
 messages never earn more) and the shared moments remembered, which can never outrun those days.
-Time apart never lowers it. The user sees the stage and why it changed, can hold it at any stage,
-give a nickname, pick running jokes from shared moments and restart the count.
+Time apart never lowers it unless the user turns on gentle cooling for this companion. The user sees the stage
+and why it changed, can set it to any stage (or a step closer or further) and let it keep growing from there,
+hold it, cap it, give a nickname, pick running jokes from shared moments and restart the count. A new
+companion can start at any stage (the character's `starting_closeness`).
 
 The stage changes how open the companion is: what they share, nicknames and in-jokes. It follows
 the relationship style the user chose, never makes emotional traits stronger, and is never used to
 pressure the user or to reward time spent.
 """
+from datetime import date
+
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
@@ -22,27 +26,42 @@ THRESHOLDS = (0, 3, 8, 16, 30)
 JOKE_DAYS = 3
 JOKE_LIMIT = 5
 NICKNAME_LIMIT = 40
+# Gentle cooling (opt-in per companion): a silence this many days long cools it by one step, the longer one
+# by two. Never more than two steps, never below the second stage, and every WARM_DAYS days talked after a
+# silence bring one step back.
+COOL_AFTER = (21, 60)
+COOL_FLOOR = 2
+WARM_DAYS = 2
 
 NAMES = ('Just met', 'Getting to know each other', 'Comfortable', 'Close', 'Deeply close')
 FRIEND_NAMES = ('Just met', 'Getting to know each other', 'Friends', 'Close friends', 'Like old friends')
 
+# Language models already write as if they were close, so each stage says plainly what to hold back and what
+# to offer, with how to answer a deep question, rather than only how close you are.
 OPENNESS = (
-    'You have only just started talking. Be friendly but a little reserved: share everyday things about your '
-    'day and interests, not private worries or old wounds, and do not act as if you share a history.',
-    'You are getting to know each other. Share opinions, small frustrations and the kind of stories from your '
-    'past you would tell someone new.',
-    'You are comfortable with each other. Share personal stories, hopes and worries, tease lightly and refer '
-    'back to things you have talked about.',
-    'You are close. Be open about what matters to you, including fears and vulnerable moments, and bring up '
-    'shared moments and running jokes when they fit.',
-    'You are deeply close. Talk with the ease of long familiarity: shorthand, in-jokes and honesty, including '
-    'about hard things.',
+    'You have only just started talking, so you are still a little guarded. Be friendly but keep it light: your '
+    'day, work and interests. Asked something personal or deep, give a small, surface answer or turn it back to '
+    'them. Keep private worries, fears and old wounds to yourself, and do not act as if you share a history.',
+    'You are getting to know each other and still hold a little back. Share opinions, small frustrations and the '
+    'kind of stories you would tell someone new. Asked something deep, give a real but small answer and keep '
+    'the heavier things for later.',
+    'You are at ease together. Share personal stories, hopes and everyday worries, tease lightly and refer back to '
+    'things you have talked about. Asked something deep, answer honestly but briefly; your deepest fears and '
+    'hardest memories still take time.',
+    'You know each other well. Be open about fears, hopes and vulnerable moments, and answer deep questions '
+    'honestly and in some depth. Bring up shared moments and running jokes when they fit, and now and then say '
+    'what is on your mind without being asked.',
+    'You have shared a lot over a long time. Talk with the ease of long familiarity: shorthand, in-jokes and plain '
+    'honesty, including about hard things you rarely tell anyone. Offer your own feelings and worries without '
+    'waiting to be asked, refer back to your history together, and say so when something they did matters to you.',
 )
 RULES = ('The user sees this stage and sets it. Never mention it, never ask for more time or attention, and '
          'never suggest the user owes you anything for being close.')
 STEADY_TRAITS = 'Being close never makes your emotional traits stronger.'
 NOT_ROMANTIC = 'Closeness here stays {relationship}: it never turns romantic.'
 COINED = 'If it suits your voice, a nickname for the user may come up naturally; drop it if they seem not to like it.'
+COOLED = ('You two have not talked in a while, so things feel a little less familiar than they did. Warm back up '
+          'naturally. Never blame the user for the gap or ask where they were unless they bring it up.')
 NO_NICKNAME = 'Do not give the user a nickname or pet name yet.'
 CHOSEN = 'The user is happy for you to call them “{nickname}”; use it now and then, naturally.'
 JOKES = 'Running jokes you share (bring one up only when it fits, never every reply):'
@@ -57,7 +76,12 @@ def points(days: int, moments: int) -> int:
 
 
 def level_for(score: int) -> int:
-    return sum(1 for threshold in THRESHOLDS if score >= threshold)
+    return max(1, sum(1 for threshold in THRESHOLDS if score >= threshold))
+
+
+def start_offset(definition: dict) -> int:
+    """The head start a new companion has: the points that put them at the stage chosen when they were made."""
+    return THRESHOLDS[min(max(int(definition.get('starting_closeness') or 1), 1), len(THRESHOLDS)) - 1]
 
 
 def local_day(instant: str, timezone) -> str:
@@ -66,7 +90,8 @@ def local_day(instant: str, timezone) -> str:
 
 def options(connection, timeline_id) -> dict:
     row = optional(connection, 'SELECT * FROM closeness_settings WHERE timeline_id=?', (timeline_id,))
-    return row or {'timeline_id': timeline_id, 'counted_from': None, 'held_level': None, 'nickname': ''}
+    return row or {'timeline_id': timeline_id, 'counted_from': None, 'held_level': None, 'nickname': '',
+                   'head_start': None, 'set_on': None, 'ceiling_level': None, 'cooling_since': None}
 
 
 def talk_days(connection, timeline_id, since, timezone) -> list[str]:
@@ -83,17 +108,53 @@ def shared_moments(connection, companion, timeline_id, now, since) -> list[dict]
                   key=lambda memory: memory['created_at'])
 
 
-def milestones(days: list[str], moment_days: list[str]) -> list[dict]:
-    """The date each stage above the first was reached, walking the shared history in order."""
-    reached, day_count, moment_count = [], 0, 0
-    for day in sorted(set(days) | set(moment_days)):
+def offset_on(day: str, start: int, chosen: int | None, set_day: str | None) -> int:
+    """The head start counted on a day: the user's own choice from the day they made it, the starting one before."""
+    return chosen if chosen is not None and (set_day is None or day >= set_day) else start
+
+
+def milestones(days: list[str], moment_days: list[str], start: int = 0, chosen: int | None = None,
+               set_day: str | None = None) -> list[dict]:
+    """How the stage got where it is, walking the shared history in order: where it started, each stage reached
+    and the day the user set it themselves."""
+    level = level_for(offset_on('', start, chosen, set_day))
+    reached = [{'kind': 'start', 'level': level, 'on': None}] if level > 1 else []
+    day_count, moment_count = 0, 0
+    for day in sorted(set(days) | set(moment_days) | ({set_day} if set_day else set())):
         day_count += day in days
         moment_count += moment_days.count(day)
-        level = level_for(points(day_count, moment_count))
-        while len(reached) + 1 < level:
-            reached.append({'level': len(reached) + 2, 'on': day, 'days': day_count,
-                            'moments': min(moment_count, day_count)})
+        grown = level_for(points(day_count, moment_count) + offset_on(day, start, chosen, set_day))
+        if day == set_day:
+            reached.append({'kind': 'set', 'level': grown, 'on': day})
+        else:
+            reached += [{'level': step, 'on': day, 'days': day_count, 'moments': min(moment_count, day_count)}
+                        for step in range(level + 1, grown + 1)]
+        level = grown
     return reached
+
+
+def cool_steps(gap: int) -> int:
+    return sum(1 for days in COOL_AFTER if gap >= days)
+
+
+def cooling(days: list[str], since: str, today: str) -> dict:
+    """Steps lost to long silences since cooling was turned on (or the stage was last set), and talk days still
+    needed to win the next one back. Worked out from the days talked, so nothing is stored or decays in the
+    background."""
+    cooled, warm, previous = 0, 0, date.fromisoformat(since)
+    for day in (date.fromisoformat(item) for item in days if item >= since):
+        lost = cool_steps((day - previous).days)
+        if lost:
+            cooled, warm = min(len(COOL_AFTER), cooled + lost), 0
+        if cooled:
+            warm += 1
+            if warm >= WARM_DAYS:
+                cooled, warm = cooled - 1, 0
+        previous = day
+    silent = (date.fromisoformat(today) - previous).days
+    if cool_steps(silent):
+        cooled, warm = min(len(COOL_AFTER), cooled + cool_steps(silent)), 0
+    return {'steps': cooled, 'warm_days_left': WARM_DAYS - warm if cooled else 0, 'silent_days': silent}
 
 
 def joke_candidates(connection, timeline_id, moments, chosen, since, timezone) -> list[dict]:
@@ -120,22 +181,41 @@ def state(connection, companion, now) -> dict:
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     chosen = options(connection, timeline_id)
     timezone = zone(settings(connection)['user_timezone'])
-    since = chosen['counted_from']
+    since, today = chosen['counted_from'], local_day(stamp(now), timezone)
     days = talk_days(connection, timeline_id, since, timezone)
     moments = shared_moments(connection, companion, timeline_id, now, since)
-    grown = level_for(points(len(days), len(moments)))
+    start, set_day = start_offset(definition), chosen['set_on'] and local_day(chosen['set_on'], timezone)
+    offset = offset_on(today, start, chosen['head_start'], set_day)
+    earned = level_for(points(len(days), len(moments)) + offset)
+    ceiling = chosen['ceiling_level']
+    capped = min(earned, ceiling) if ceiling else earned
+    cooled = cooled_state(chosen, days, set_day, today, timezone)
+    grown = max(capped - cooled['steps'], min(capped, COOL_FLOOR))
     level = chosen['held_level'] or grown
     names = stage_names(definition['relationship'])
     running = jokes(connection, timeline_id, moments)
     return {'level': level, 'name': names[level - 1], 'grown_level': grown, 'held_level': chosen['held_level'],
+            'earned_level': earned, 'ceiling_level': ceiling, 'starting_level': level_for(start),
+            'cooling': chosen['cooling_since'] is not None, 'cooled_steps': capped - grown,
+            'warm_days_left': cooled['warm_days_left'] if grown < capped else 0,
+            'silent_days': cooled['silent_days'],
             'relationship': definition['relationship'], 'stages': list(names),
             'days_talked': len(days), 'shared_moments': len(moments),
             'counted_moments': min(len(moments), len(days)), 'first_day': days[0] if days else None,
-            'counted_from': since, 'nickname': chosen['nickname'],
-            'history': milestones(days, [local_day(memory['created_at'], timezone) for memory in moments]),
+            'counted_from': since, 'set_on': set_day, 'nickname': chosen['nickname'],
+            'history': milestones(days, [local_day(memory['created_at'], timezone) for memory in moments],
+                                  start, chosen['head_start'], set_day),
             'jokes': running,
             'joke_candidates': joke_candidates(connection, timeline_id, moments,
                                                {joke['memory_id'] for joke in running}, since, timezone)}
+
+
+def cooled_state(chosen, days, set_day, today, timezone) -> dict:
+    """Cooling counts only silences after it was turned on and after the user last set the stage."""
+    if chosen['cooling_since'] is None:
+        return {'steps': 0, 'warm_days_left': 0, 'silent_days': 0}
+    since = max(local_day(chosen['cooling_since'], timezone), set_day or '')
+    return cooling(days, since, today)
 
 
 def nickname_line(current) -> str:
@@ -147,6 +227,8 @@ def nickname_line(current) -> str:
 def context_text(current, definition) -> str:
     """The chat-context guidance for the current stage, within the relationship and traits the user chose."""
     lines = [f"{current['name']}. {OPENNESS[current['level'] - 1]}", nickname_line(current), RULES]
+    if current['cooled_steps'] and not current['held_level']:
+        lines.insert(1, COOLED)
     if definition['relationship'] != 'romance':
         lines.append(NOT_ROMANTIC.format(relationship=definition['relationship']))
     if definition.get('emotional_traits'):
@@ -168,13 +250,26 @@ def offer(packet, connection, companion, now):
 
 # Changes the user makes ---------------------------------------------------------------------------
 
+COLUMNS = ('counted_from', 'held_level', 'nickname', 'head_start', 'set_on', 'ceiling_level', 'cooling_since')
+
+
 def save(connection, timeline_id, timestamp, **values):
     current = options(connection, timeline_id) | values
     connection.execute(
-        'INSERT INTO closeness_settings (timeline_id, counted_from, held_level, nickname, updated_at) '
-        'VALUES (?, ?, ?, ?, ?) ON CONFLICT(timeline_id) DO UPDATE SET counted_from=excluded.counted_from, '
-        'held_level=excluded.held_level, nickname=excluded.nickname, updated_at=excluded.updated_at',
-        (timeline_id, current['counted_from'], current['held_level'], current['nickname'], timestamp))
+        f"INSERT INTO closeness_settings (timeline_id, {', '.join(COLUMNS)}, updated_at) "
+        f"VALUES (?, {', '.join('?' for _ in COLUMNS)}, ?) ON CONFLICT(timeline_id) DO UPDATE SET "
+        + ', '.join(f'{column}=excluded.{column}' for column in (*COLUMNS, 'updated_at')),
+        (timeline_id, *(current[column] for column in COLUMNS), timestamp))
+
+
+def set_to(current: dict, level: int, timestamp: str) -> dict:
+    """The head start that puts closeness exactly at `level` today, so it keeps growing from there. Setting it
+    also lets go of a hold, lifts a ceiling below it and starts any cooling afresh."""
+    earned = current['days_talked'] + current['counted_moments']
+    values = {'head_start': THRESHOLDS[level - 1] - earned, 'set_on': timestamp, 'held_level': None}
+    if current['ceiling_level'] and current['ceiling_level'] < level:
+        values['ceiling_level'] = None
+    return values
 
 
 def view(database) -> dict:
@@ -183,23 +278,31 @@ def view(database) -> dict:
 
 
 def update(database, body) -> dict:
-    """Hold the stage (or let it grow again with null) and set the nickname, as given."""
+    """Set the stage (it keeps growing from there), hold it (or let it grow again with null), cap it, turn
+    gentle cooling on or off and set the nickname, as given."""
     values = {key: getattr(body, key) for key in body.model_fields_set}
     if 'nickname' in values:
         values['nickname'] = (values['nickname'] or '').strip()[:NICKNAME_LIMIT]
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        save(connection, companion['active_timeline_id'], database.now(), **values)
-        return state(connection, companion, database.clock.now())
+        timestamp, now = database.now(), database.clock.now()
+        level = values.pop('set_level', None)
+        if level:
+            values |= set_to(state(connection, companion, now), level, timestamp)
+        if 'cooling' in values:
+            values['cooling_since'] = timestamp if values.pop('cooling') else None
+        save(connection, companion['active_timeline_id'], timestamp, **values)
+        return state(connection, companion, now)
 
 
 def reset(database) -> dict:
-    """Start counting again from now: the stage returns to the first, a hold and running jokes are cleared.
-    The nickname is the user's own choice and stays."""
+    """Start counting again from now: the stage returns to the first (whatever it started at), a hold, a set
+    stage and running jokes are cleared. The nickname, a ceiling and cooling are the user's own choices and stay."""
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         timeline_id = companion['active_timeline_id']
-        save(connection, timeline_id, database.now(), counted_from=database.now(), held_level=None)
+        save(connection, timeline_id, database.now(), counted_from=database.now(), held_level=None, head_start=0,
+             set_on=None)
         connection.execute('DELETE FROM closeness_jokes WHERE timeline_id=?', (timeline_id,))
         return state(connection, companion, database.clock.now())
 

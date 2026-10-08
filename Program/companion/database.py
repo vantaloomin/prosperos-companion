@@ -131,6 +131,11 @@ ADDED_COLUMNS = (
     ('prompt_overrides', 'default_text', 'TEXT'),
     # The user switched an image API backend to take NSFW requests too (images/backends.py).
     ('image_backends', 'allows_nsfw', 'INTEGER NOT NULL DEFAULT 0 CHECK (allows_nsfw IN (0, 1))'),
+    # A closeness stage the user set, a ceiling and opt-in gentle cooling (memory/closeness.py).
+    ('closeness_settings', 'head_start', 'INTEGER'),
+    ('closeness_settings', 'set_on', 'TEXT'),
+    ('closeness_settings', 'ceiling_level', 'INTEGER CHECK (ceiling_level BETWEEN 1 AND 5)'),
+    ('closeness_settings', 'cooling_since', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

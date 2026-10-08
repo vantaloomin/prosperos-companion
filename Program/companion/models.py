@@ -76,6 +76,9 @@ class CharacterDefinition(Input):
     # City id in the installed world data (for example "baltimore"); events use its real places.
     home_city: str = Field(default='', max_length=60)
     relationship: Relationship = 'friendship'
+    # How close they start (a closeness stage, 1 = Just met) and how the two of them know each other already.
+    starting_closeness: int = Field(default=1, ge=1, le=5)
+    history_together: str = Field(default='', max_length=2000)
     # Empty means neutral about absence. Jealousy, guilt or missing the user are opt-in traits.
     absence_reaction: str = Field(default='', max_length=2000)
     emotional_traits: list[EmotionalTrait] = Field(default_factory=list, max_length=12)

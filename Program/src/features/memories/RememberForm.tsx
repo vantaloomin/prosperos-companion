@@ -17,7 +17,7 @@ export interface NewMemory {
 }
 
 export function RememberForm({ name, request, onSave, onCancel }: { name: string; request: RememberRequest | null; onSave: (memory: NewMemory) => Promise<Memory | string>; onCancel: () => void }) {
-  const [layer, setLayer] = useState<Layer>('user_fact')
+  const [layer, setLayer] = useState<Layer>(request?.layer ?? 'user_fact')
   const [subject, setSubject] = useState('')
   const [value, setValue] = useState(request?.text.slice(0, 4000) ?? '')
   const [boundary, setBoundary] = useState(false)
@@ -39,7 +39,7 @@ export function RememberForm({ name, request, onSave, onCancel }: { name: string
   return (
     <form className="remember-form form-stack" onSubmit={submit} aria-label="Remember something">
       <h2>Remember something</h2>
-      {request && <p className="subtle">From your message: <q>{request.text.length > 200 ? `${request.text.slice(0, 200)}…` : request.text}</q>. Write it the way it should be remembered.</p>}
+      {request && <FromMessage request={request} />}
       <div className="form-grid">
         <Field label="Kind" hint={LAYERS.find((item) => item.id === layer)?.hint}>
           {(id, hint) => <select id={id} aria-describedby={hint} value={layer} autoFocus onChange={(event) => setLayer(event.target.value as Layer)}>{LAYERS.map((item) => <option key={item.id} value={item.id}>{item.title(name)}</option>)}</select>}
@@ -82,4 +82,9 @@ function TimingFields({ layer, planStatus, setPlanStatus, until, setUntil }: { l
     )}
     <TextInput label="Applies until (optional)" type="date" value={until} onChange={setUntil} hint="After this day it is no longer treated as current. It stays in Memories." />
   </>
+}
+
+function FromMessage({ request }: { request: RememberRequest }) {
+  const text = request.text.length > 200 ? `${request.text.slice(0, 200)}…` : request.text
+  return <p className="subtle">From {request.from ? `${request.from}'s` : 'your'} message: <q>{text}</q>. Write it the way it should be remembered.</p>
 }

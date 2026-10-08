@@ -1,4 +1,4 @@
-"""Closeness stages API: see, hold, nickname, running jokes and reset (PRD M3, M4)."""
+"""Closeness stages API: see, set, hold, cap, cooling, nickname, running jokes and reset (PRD M3, M4)."""
 from fastapi import APIRouter, Request
 from pydantic import Field
 
@@ -9,8 +9,13 @@ router = APIRouter(prefix='/api/closeness')
 
 
 class ClosenessUpdate(Input):
-    """Only the fields sent change; held_level null lets the stage grow from shared history again."""
+    """Only the fields sent change. set_level puts it at a stage and lets it keep growing; held_level keeps it
+    there (null lets it grow again); ceiling_level caps it (null removes the cap); cooling turns gentle cooling
+    after long silences on or off."""
     held_level: int | None = Field(default=None, ge=1, le=len(closeness.THRESHOLDS))
+    set_level: int | None = Field(default=None, ge=1, le=len(closeness.THRESHOLDS))
+    ceiling_level: int | None = Field(default=None, ge=1, le=len(closeness.THRESHOLDS))
+    cooling: bool | None = None
     nickname: str | None = Field(default=None, max_length=closeness.NICKNAME_LIMIT)
 
 

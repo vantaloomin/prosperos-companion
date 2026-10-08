@@ -140,6 +140,12 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     try { sessionStorage.setItem(REMEMBER_KEY, JSON.stringify({ messageId: message.id, text: message.text })) } catch { /* The form opens empty. */ }
     go('memories')
   }
+  // A shared moment is written in the user's own words, so the form opens on that kind with the message in it.
+  const moment = (message: Message) => {
+    const request = { messageId: message.id, text: message.text, layer: 'shared_experience', from: message.role === 'companion' ? name : undefined }
+    try { sessionStorage.setItem(REMEMBER_KEY, JSON.stringify(request)) } catch { /* The form opens empty. */ }
+    go('memories')
+  }
   const decline = async (message: Message) => {
     setDeclining(null)
     try {
@@ -171,12 +177,13 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   }
 
   // Stable handlers and turns, so a streaming reply re-renders its own turn rather than the whole transcript.
-  const handlers = useRef({ retry, stop, remember })
-  useEffect(() => { handlers.current = { retry, stop, remember } })
+  const handlers = useRef({ retry, stop, remember, moment })
+  useEffect(() => { handlers.current = { retry, stop, remember, moment } })
   const turnActions = useMemo(() => ({
     retry: (id: string) => void handlers.current.retry(id),
     stop: (id: string) => void handlers.current.stop(id),
     remember: (message: Message) => void handlers.current.remember(message),
+    moment: (message: Message) => handlers.current.moment(message),
     decline: setDeclining,
     edit: setEditing,
     branch: setBranching,
@@ -201,7 +208,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (
-            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
+            <TurnView key={turnKey(turn)} turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} />
           ))}
         </div>
       </div>

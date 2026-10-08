@@ -245,6 +245,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .closeness-history summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .closeness-history ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.875rem; color: var(--muted); }
 .closeness-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px; }
+.closeness-steps { display: flex; flex-wrap: wrap; gap: 10px; flex-basis: 100%; }
 .closeness-nickname, .closeness-pick { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 .closeness-jokes h3 { margin: 6px 0 2px; font-size: 1rem; }
 @media (max-width: 720px) { .closeness-stages li { grid-template-columns: 1fr; gap: 2px; } }
