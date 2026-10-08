@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Download, FilePlus2, FolderSync, Pencil, Trash2, Upload } from 'lucide-react'
 import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { TextInput } from '../../components/Fields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { cityFacts, definitionOf, exportName, groupCities, GROUPS, parseDefinition, slugify, type BrokenCity, type CityListing, type PackReport } from './cityText'
@@ -79,7 +80,7 @@ export function Cities() {
       {editing && <CityEditor editing={editing} onClose={() => setEditing(null)}
         onSaved={(name) => { setEditing(null); setFeedback({ tone: 'info', text: `Saved ${name}.` }); void refresh() }} />}
       {cities.isPending && <Loading label="Loading cities" />}
-      {cities.isError && <Notice tone="error">{cities.error.message}</Notice>}
+      {cities.isError && <ErrorNotice error={cities.error} />}
       {broken.data?.map((city) => (
         <Notice key={city.id} tone="error" action={<span className="person-actions">
           <button type="button" className="text-button" onClick={() => saveFile(city.id, city.definition)}><Download aria-hidden="true" />Save as file</button>

@@ -6,6 +6,7 @@ import { useWorkspaceSettings, type View } from '../../companion'
 import type { StartOverPreview, StartOverResult } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { TextInput } from '../../components/Fields'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { nameMatches, othersStay, removedSummary, type StartOverMode } from './startOverText'
@@ -43,7 +44,7 @@ function ConfirmStartOver({ mode, onClose, go }: { mode: StartOverMode; onClose:
       <button type="button" className="button" onClick={onClose}>Cancel</button>
       <button type="button" className="button danger" aria-disabled={busy || !state.ready} onClick={() => void confirm()}>{busy ? 'Backing up…' : state.action}</button>
     </>}>
-      {preview.isError && <Notice tone="error">{preview.error.message}</Notice>}
+      {preview.isError && <ErrorNotice error={preview.error} />}
       {preview.data && <Removed preview={preview.data} mode={mode} />}
       <p>A full backup is saved first. To undo this, restore it in Settings, Backups.</p>
       {state.blocked && <Notice tone="error">An adapter is training for {state.name}. Stop it first.</Notice>}

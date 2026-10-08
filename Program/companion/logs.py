@@ -6,7 +6,10 @@ include message bodies or keys: request logging is off, because a URL can carry 
 and anything shaped like a credential is masked before a line is written.
 """
 import logging
+import os
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 from companion.identity import data_dir
@@ -55,3 +58,20 @@ def config(directory: Path | None = None) -> dict:
         'loggers': {'uvicorn': logger, 'uvicorn.error': {**logger, 'propagate': False},
                     'companion': logger},
     }
+
+
+def file_path() -> Path:
+    """Where the log is being written: the file the running app's handler opened, else the default place."""
+    for handler in logging.getLogger('companion').handlers:
+        if isinstance(handler, logging.FileHandler):
+            return Path(handler.baseFilename)
+    return data_dir() / 'logs' / 'companion.log'
+
+
+def open_folder(folder: Path) -> None:
+    """Show a folder on the PC in Explorer, Finder or the desktop's file manager."""
+    folder.mkdir(parents=True, exist_ok=True)
+    if sys.platform == 'win32':
+        os.startfile(folder)  # noqa: S606 - opens the user's own folder in Explorer.
+    else:
+        subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', str(folder)])

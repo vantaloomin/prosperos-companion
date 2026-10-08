@@ -5,6 +5,7 @@ import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CitySummary, Dating as DatingData, DatingCard, DatingMatch, DatingProfile } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
@@ -21,7 +22,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
   const [matched, setMatched] = useState<DatingCard | null>(null)
   const [error, setError] = useState('')
   if (dating.isPending) return <Loading label="Opening the app" />
-  if (dating.isError) return <Notice tone="error">{dating.error.message}</Notice>
+  if (dating.isError) return <ErrorNotice error={dating.error} />
   const data = dating.data
   const run = async (request: () => Promise<DatingData>) => {
     setError('')

@@ -5,6 +5,7 @@ import { api, ApiError } from '../../api'
 import type { Companion, DeclineResult, History, Message, RememberResult, SearchResult, SendResult } from '../../types'
 import { HISTORY_KEY, MEMORIES_KEY, type View } from '../../companion'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useReturnFocus } from '../../components/returnFocus'
 import { REMEMBER_KEY, rememberedText } from '../memories/memoryGroups'
@@ -185,7 +186,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       <div className="transcript" ref={transcript} onScroll={onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
           {history.isPending && <Loading label="Loading the conversation" />}
-          {history.isError && <Notice tone="error">{history.error.message}</Notice>}
+          {history.isError && <ErrorNotice error={history.error} />}
           {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
           {history.isSuccess && turns.length === 0 && <GettingStarted companion={companion} go={go} />}
           {turns.map((turn) => (

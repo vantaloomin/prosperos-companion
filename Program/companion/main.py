@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from companion import dating_routes, local_zone, story_routes, workspace
+from companion import dating_routes, local_zone, logs, story_routes, workspace
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.dating_photos import DatingPhotos
@@ -66,9 +66,10 @@ async def unexpected_error(request: Request, _error: Exception):
     """Anything else is a bug: the traceback goes to the log (companion/logs.py) and the page gets a message it
     can show, rather than a bare "Internal Server Error" it cannot read."""
     logging.getLogger('companion').error('%s %s failed', request.method, request.url.path)
+    log = logs.file_path()
     return JSONResponse({'detail': 'Something went wrong in the Companion. Please try again; if it keeps '
-                                   'happening, logs/companion.log in the data folder says what failed.',
-                         'code': 'server_error'}, status_code=500)
+                                   f'happening, the log at {log} says what failed.',
+                         'code': 'server_error', 'log': str(log)}, status_code=500)
 
 
 async def invalid_request(_request: Request, error: RequestValidationError):

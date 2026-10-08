@@ -4,6 +4,7 @@ import { QrCode, RefreshCw, Smartphone } from 'lucide-react'
 import { api } from '../../api'
 import { useWorkspaceSettings } from '../../companion'
 import { Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { linkParts } from '../phone/pairing'
 import { PHONE_ACCESS_KEY, PHONE_STATUS_KEY, usePhoneStatus, type PhoneAccess, type PhonePairing } from '../phone/phoneAccess'
 
@@ -69,7 +70,7 @@ function OnThePc() {
     client.setQueryData<PhoneAccess>(PHONE_ACCESS_KEY, (old) => old && { ...old, devices })
   })
   if (access.isPending) return <p className="subtle">Checking Tailscale…</p>
-  if (access.isError) return <Notice tone="error">{access.error.message}</Notice>
+  if (access.isError) return <ErrorNotice error={access.error} />
   const { enabled, devices, tailscale } = access.data
   return (
     <div className="form-stack">

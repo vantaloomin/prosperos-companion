@@ -119,16 +119,22 @@ def pack_dirs() -> list[Path]:
     return [CHECKOUT_PACKS, data_dir() / 'city-packs']
 
 
+def city_files(folder: Path) -> list[Path]:
+    """The city files in a folder, without hidden files: macOS writes a `._<name>.json` beside each file it copies
+    to a drive formatted for Windows (exFAT, FAT32), and those hold Finder data, not a city."""
+    return sorted(path for path in folder.glob('*.json') if not path.name.startswith('.')) if folder.is_dir() else []
+
+
 @cache
 def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
     result, errors = {}, []
-    for path in sorted((DATA / 'cities').glob('*.json')):
+    for path in city_files(DATA / 'cities'):
         data = prepare(path.read_bytes())
         if data['id'] != path.stem:
             raise ValueError(f'{path.name} holds city {data["id"]}.')
         result[data['id']] = data | {'builtin': True, 'origin': 'builtin'}
     for folder in pack_dirs():
-        for path in sorted(folder.glob('*.json')) if folder.is_dir() else []:
+        for path in city_files(folder):
             try:
                 data = prepare(path.read_bytes())
             except (ValidationError, ValueError, OSError) as error:

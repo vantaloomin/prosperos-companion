@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { useWorkspaceSettings } from '../../companion'
 import type { BackupList, BackupResult } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { backupLabel } from './backupText'
 
@@ -57,7 +58,7 @@ export function Backups() {
         hint={loraMaker ? 'The pictures you collected to train a character adapter. Leave this off to keep them out of the backup; the adapters themselves are always included.'
           : 'The profile pictures you kept for your companion. Leave this off to keep them out of the backup.'} />
       <div className="form-actions"><button type="button" className="button" aria-disabled={busy} onClick={() => void backup()}><Archive aria-hidden="true" />Back up now</button></div>
-      {list.isError && <Notice tone="error">{list.error.message}</Notice>}
+      {list.isError && <ErrorNotice error={list.error} />}
       {list.data && list.data.backups.length > 0 && (
         <div className="form-stack">
           <h3>Restore a backup</h3>

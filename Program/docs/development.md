@@ -226,7 +226,8 @@ never changes media.
 (1 MB, three older files kept). Request logging is off, since a URL can carry a search query, and
 `companion/logs.py` masks anything shaped like a credential (bearer tokens, `api_key=` values,
 `sk-`/`hf_`-style keys) in messages and tracebacks before a line is written. The app itself never
-logs message text.
+logs message text. An unexpected error returns `{"code": "server_error"}` with a message naming the log's
+full path, and the page shows "Open the log folder" under it on the PC (`POST /api/logs/open-folder`).
 
 ## Code reused from Prospero's Study
 

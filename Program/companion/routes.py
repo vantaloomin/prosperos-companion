@@ -12,6 +12,7 @@ from companion import (
     conversation,
     drafting,
     events,
+    logs,
     message_edits,
     notifications,
     pictures,
@@ -66,6 +67,14 @@ def db(request: Request):
 @router.get('/health')
 def health():
     return {'app_id': APP_ID, 'version': VERSION}
+
+
+@router.post('/logs/open-folder')
+def open_log_folder():
+    """Show the folder holding the log on the PC, for "Open the log folder" under an error."""
+    folder = logs.file_path().parent
+    logs.open_folder(folder)
+    return {'folder': str(folder)}
 
 
 @router.get('/settings')

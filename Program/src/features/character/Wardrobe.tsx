@@ -4,6 +4,7 @@ import { Pencil, Plus, RotateCcw, Star, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { WardrobeCategory, WardrobeItem, WardrobeView } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { sentence } from './homeText'
 import { grouped, pieceSince, pieceTitle, wearingText } from './wardrobeText'
@@ -39,7 +40,7 @@ export function Wardrobe({ name }: { name: string }) {
       <p className="subtle">Sized and styled from their pay, job and personality, and changing slowly as they shop and wear things out. Replies and pictures dress them from these. Edits apply to upcoming days.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {wardrobe.isPending && <Loading label="Loading their wardrobe" />}
-      {wardrobe.isError && <Notice tone="error">{wardrobe.error.message}</Notice>}
+      {wardrobe.isError && <ErrorNotice error={wardrobe.error} />}
       {view && <>
         <p>{view.profile.summary}</p>
         {wearing && <p className="subtle">{wearing}</p>}

@@ -10,6 +10,7 @@ import { useReconcile } from './features/today/useReconcile'
 import { useNotifications } from './features/notifications/useNotifications'
 import { useTexts } from './features/conversation/useTexts'
 import { Loading, Notice } from './components/Feedback'
+import { ErrorNotice } from './components/ErrorNotice'
 import { DebugBanner } from './features/settings/DebugBanner'
 import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
@@ -88,7 +89,7 @@ export default function App() {
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/debug')} />
         {companion.isPending ? <Loading label="Opening your companion" />
-          : companion.isError ? <Notice tone="error">{companion.error.message}</Notice>
+          : companion.isError ? <ErrorNotice error={companion.error} />
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
       </main>
       {sidecarOpen && <Suspense fallback={null}><Sidecar view={view} go={go} /></Suspense>}

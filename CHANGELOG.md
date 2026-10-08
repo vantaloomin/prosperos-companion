@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Running from an external drive on a Mac:** macOS leaves a hidden `._` file beside every file copied
+  to a drive formatted for Windows, and the app read those as cities. Matchlight, the city pickers and
+  Today's local news then failed with "Something went wrong". Those files are skipped now.
+- **Easier to report a problem:** when something goes wrong, the message gives the log file's full
+  path, and on the PC an "Open the log folder" button shows it.
 - **Posts opens again after Debug time:** keeping what happened in Debug time could leave the Posts tab
   (and Today) failing with "The request could not be completed". It opens now, a failed load says what
   went wrong with a Try again button, and the profile card has a Message button back to the chat.

@@ -5,6 +5,7 @@ import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CastDraft, CharacterDefinition, Companion, Connection } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { CharacterForm, type Start } from './Character'
 import { givenName } from './castText'
 import { refocus } from './refocus'
@@ -21,7 +22,7 @@ export function SwitchTo({ townKey, go }: Props) {
   if (draft.isError) {
     return (
       <section className="page">
-        <Notice tone="error" action={<button type="button" className="text-button" onClick={() => window.history.back()}>Go back</button>}>{draft.error.message}</Notice>
+        <ErrorNotice error={draft.error} action={<button type="button" className="text-button" onClick={() => window.history.back()}>Go back</button>} />
       </section>
     )
   }

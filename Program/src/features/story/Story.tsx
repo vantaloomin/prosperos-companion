@@ -5,6 +5,7 @@ import { api, newId } from '../../api'
 import type { View } from '../../companion'
 import type { CitySummary, Story as StoryData, StoryMessage, StoryScene } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
 import { aroundText, placeGroups, sceneTime, whereText } from './storyText'
@@ -20,7 +21,7 @@ export function Story({ go }: { go: (view: View) => void }) {
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState('')
   if (story.isPending) return <Loading label="Opening your story" />
-  if (story.isError) return <Notice tone="error">{story.error.message}</Notice>
+  if (story.isError) return <ErrorNotice error={story.error} />
   const update = (data: StoryData) => client.setQueryData(STORY_KEY, data)
   const run = async (text: string | null, request: () => Promise<unknown>) => {
     setPending(text)

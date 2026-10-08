@@ -142,7 +142,8 @@ def listing(workspace: Path) -> dict:
     """Backups in the workspace's folder, newest first, read from their manifests only."""
     items = []
     folder = backups_folder(workspace)
-    for path in sorted(folder.glob('*.zip') if folder.is_dir() else (), key=lambda item: item.name, reverse=True):
+    found = [path for path in folder.glob('*.zip') if not path.name.startswith('.')] if folder.is_dir() else []
+    for path in sorted(found, key=lambda item: item.name, reverse=True):  # Not macOS's `._` Finder files.
         entry = {'name': path.name, 'bytes': path.stat().st_size, 'kind': kind(path.name), 'readable': False}
         try:
             with zipfile.ZipFile(path) as handle:

@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { MoneyView } from '../../types'
-import { Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { cycleText, goalText, moodOfMoney, paydayText, rentText, shortDate, workText } from './moneyText'
 
 /** The companion's budget this pay period: worked out from their pay and city, never from a model. */
 export function MoneyPanel({ name, go }: { name: string; go: () => void }) {
   const money = useQuery({ queryKey: ['today', 'money'], queryFn: () => api<MoneyView>('/today/money') })
   if (money.isPending) return null
-  if (money.isError) return <section className="today-section" aria-labelledby="money-heading"><h2 id="money-heading">Money</h2><Notice tone="error">{money.error.message}</Notice></section>
+  if (money.isError) return <section className="today-section" aria-labelledby="money-heading"><h2 id="money-heading">Money</h2><ErrorNotice error={money.error} /></section>
   const view = money.data
   return (
     <section className="today-section" aria-labelledby="money-heading">

@@ -5,7 +5,7 @@ import { api } from '../../api'
 import type { Closeness as ClosenessState, Memory } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Field, TextInput } from '../../components/Fields'
-import { Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { CLOSENESS_KEY, OPENNESS, basisText, milestoneText, stageText } from './closenessText'
 
 type Run = <T>(action: () => Promise<T>, done: string) => Promise<T | null>
@@ -20,7 +20,7 @@ export function Closeness({ name, memories, run }: { name: string; memories: Mem
     if (result) client.setQueryData(CLOSENESS_KEY, result)
     else void client.invalidateQueries({ queryKey: CLOSENESS_KEY })
   }
-  if (closeness.isError) return <Notice tone="error">{closeness.error.message}</Notice>
+  if (closeness.isError) return <ErrorNotice error={closeness.error} />
   if (!closeness.data) return null
   const state = closeness.data
   return (

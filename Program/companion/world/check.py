@@ -45,11 +45,11 @@ def check_file(path: Path) -> dict:
 
 def targets(paths: list[str]) -> list[Path]:
     if not paths:
-        return sorted((catalog.DATA / 'cities').glob('*.json')) + [
-            file for folder in catalog.pack_dirs() if folder.is_dir() for file in sorted(folder.glob('*.json'))]
+        return catalog.city_files(catalog.DATA / 'cities') + [
+            file for folder in catalog.pack_dirs() for file in catalog.city_files(folder)]
     found = []
     for item in map(Path, paths):
-        found += sorted(item.glob('*.json')) if item.is_dir() else [item]
+        found += catalog.city_files(item) if item.is_dir() else [item]
     return found
 
 

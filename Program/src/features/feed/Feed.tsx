@@ -5,6 +5,7 @@ import { api, newId } from '../../api'
 import { HISTORY_KEY, type View } from '../../companion'
 import type { Companion, FeedPage, FeedPost, FeedSource } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
+import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { PostCard, type PostActions } from './PostCard'
 import { ReadBatcher, joinPages, nextReaction } from './feedState'
@@ -102,7 +103,7 @@ const unreadText = (count: number) => count ? `. ${count} new` : ''
 function FeedStatus({ pending, error, retrying, retry, empty, name }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; name: string }) {
   if (error) {
     const again = <button type="button" className="text-button" disabled={retrying} onClick={retry}>{retrying ? 'Trying again…' : 'Try again'}</button>
-    return <Notice tone="error" action={again}>The posts could not load. {error.message}</Notice>
+    return <ErrorNotice error={error} action={again}>The posts could not load. </ErrorNotice>
   }
   if (pending) return <Loading label="Loading the feed" />
   return empty ? <p className="subtle">No posts yet. When something happens in {name}'s life or their friends', it shows up here.</p> : null
