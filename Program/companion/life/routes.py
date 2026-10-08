@@ -74,7 +74,7 @@ def update_settings(request: Request, body: LifeSettingsUpdate):
 
 @router.post('/reconcile')
 async def reconcile(request: Request, body: Reconcile | None = None):
-    return await request.app.state.life.reconcile((body or Reconcile()).mode)
+    return await request.app.state.life.look_in((body or Reconcile()).mode)
 
 
 @router.get('/storylines')
