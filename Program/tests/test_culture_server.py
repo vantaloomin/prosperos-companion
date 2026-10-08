@@ -169,7 +169,7 @@ def test_built_in_culture_in_the_app_and_in_chat(client, connected, provider, se
     [observation] = client.get(f"/api/context/messages/{sent['message']['id']}/observations").json()['observations']
     assert observation['status'] == 'ok', observation
     assert observation['arguments'] == {'topic': 'movies'}
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert "- Movies, shows, games and what's trending for movies from Built-in culture pulse" in system
     assert 'Big Movie' in system
     # A saved TMDB key reaches only this server, as TMDB_API_KEY, and asks for the lookup to be confirmed again.
@@ -224,7 +224,7 @@ def test_a_daily_digest_gives_a_sense_of_whats_out(client, app, connected, provi
     assert observation['status'] == 'ok', observation
     assert observation['arguments'] == {}  # nothing about the user, not even a topic
     client.post('/api/conversation/messages', json={'text': 'Hey, how was work?', 'client_id': 'ambient-1'})
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert "## What's out and trending right now" in system
     assert 'you have not watched, played, read or heard any of them' in system
     assert 'Top movies on iTunes (new home releases): Big Movie, Small Movie' in system

@@ -119,7 +119,7 @@ def test_branching_from_the_newest_message_keeps_memories_until_now(client, conn
     clock.advance(timedelta(minutes=1))
     created = branch(client, sent['reply']['id'])
     activate(client, created['id'])
-    assert 'meteor shower together' in client.get('/api/context/preview').json()['system']
+    assert 'meteor shower together' in client.get('/api/context/preview').json()['prompt']
 
 
 def test_branching_from_another_version_of_a_reply_shows_that_version(client, connected, clock, provider):
@@ -182,7 +182,7 @@ def test_committed_history_before_the_edit_carries_over(client, companion, clock
     assert carried[0]['id'] != event['id'] and carried[0]['timeline_id'] == created['id']
     posts = client.get('/api/feed').json()['posts']
     assert len(posts) == 1 and posts[0]['events'][0]['id'] == carried[0]['id']
-    preview = client.get('/api/context/preview').json()['system']
+    preview = client.get('/api/context/preview').json()['prompt']
     assert 'lighthouse' in preview and 'kite' not in preview
 
 
@@ -195,7 +195,7 @@ def test_relationship_memories_before_the_edit_carry_over_and_later_ones_do_not(
     remember(client, subject='Map argument', value='Argued about the map')
     created = fork(client, second['id'])
     activate(client, created['id'])
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     assert 'meteor shower together' in system
     assert 'Argued about the map' not in system
     assert first['id'] in client.get('/api/conversation').json()['messages'][0]['origin_id']
@@ -207,11 +207,11 @@ def test_profile_sharing_across_timelines_is_a_visible_setting(client, connected
     remember(client, layer='user_fact', subject='Favourite tea', value='Oolong')
     activate(client, created['id'])
     assert client.get('/api/settings').json()['share_profile_across_timelines'] is True
-    assert 'Oolong' in client.get('/api/context/preview').json()['system']
+    assert 'Oolong' in client.get('/api/context/preview').json()['prompt']
     before = client.get('/api/settings').json()['memory_revision']
     updated = client.put('/api/settings', json={'share_profile_across_timelines': False}).json()
     assert updated['memory_revision'] == before + 1
-    assert 'Oolong' not in client.get('/api/context/preview').json()['system']
+    assert 'Oolong' not in client.get('/api/context/preview').json()['prompt']
 
 
 def test_excluding_a_memory_blocks_every_copy_of_its_source(client, connected, clock, provider):
@@ -225,7 +225,7 @@ def test_excluding_a_memory_blocks_every_copy_of_its_source(client, connected, c
     assert '4417' in str(client.get('/api/context/preview').json()['messages'])
     client.post(f"/api/memories/{memory['id']}/exclude")
     preview = client.get('/api/context/preview').json()
-    assert '4417' not in str(preview['messages']) and '4417' not in preview['system']
+    assert '4417' not in str(preview['messages']) and '4417' not in preview['prompt']
 
 
 def test_deleting_a_source_message_redacts_its_copies(client, connected, clock):

@@ -57,6 +57,18 @@ seconds at busy times, so the same request is sent once more after its `Retry-Af
 Image prompts are assembled without a model, and image backends (and their NSFW routing) have
 their own settings under Images.
 
+## Prompt caching
+
+Chat requests are laid out so that the start of each one matches the one before it
+([how a chat prompt is laid out](prompts.md#how-a-chat-replys-prompt-is-laid-out)), which local servers and
+providers reuse instead of reading it again. With a local server this matters most: on a mid-size model a
+reused prompt answers in a moment, where reading it fresh can take many seconds.
+
+Background jobs (memory suggestions, life phrasing) send different prompts between chat replies. A local server
+that keeps only one prompt in memory then drops the chat's cached prompt each time. Give it room for two or more
+at once (llama.cpp `--parallel`, Ollama `OLLAMA_NUM_PARALLEL`, LM Studio's parallel requests), or point the
+background jobs at a different profile.
+
 ## This computer
 
 `companion/hardware.py` reads the graphics cards (NVIDIA through `nvidia-smi`; Apple silicon as shared

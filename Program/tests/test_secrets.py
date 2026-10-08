@@ -47,7 +47,7 @@ def billy_says(text, times=2):
 
     def respond(system, history):
         if speaker(history) == 'Billy' and len(said) < times:
-            said.append(system)
+            said.append(f"{system}\n\n{history[-1]['content']}")
             return [Chunk(text), Chunk('', 'stop')]
         return by_speaker(system, history)
     respond.said = said
@@ -63,11 +63,11 @@ def test_sallys_prompt_never_holds_a_secret_kept_from_her(client, cast, provider
     say(client, group['id'], 'Billy, Sally, what are you two up to this weekend?', 'group-0001')
 
     billy, sally = requests_of(provider, 'Billy')[0], requests_of(provider, 'Sally')[0]
-    assert f'- You know: {SECRET}. Sally doesn\'t know and must not find out' in billy['system']
+    assert f'- You know: {SECRET}. Sally doesn\'t know and must not find out' in billy['prompt']
     for word in ('secretly seeing', 'Katie', 'must not find out'):
-        assert word not in sally['system']
+        assert word not in sally['prompt']
     # The secret rides in Billy's private part, below the shared transcript, so the cache stays shared.
-    assert billy['system'].index('## The group chat so far') < billy['system'].index(SECRET)
+    assert billy['prompt'].index('## The group chat so far') < billy['prompt'].index(SECRET)
     # Billy's 1:1 chat knows it too; Sally's doesn't.
     with client.app.state.database.connect() as connection:
         assert secrets.context_lines(connection, by_id(connection, cast['Billy']))[0][1].startswith(f'- {SECRET}')
@@ -88,7 +88,7 @@ def test_a_slip_below_soap_opera_is_redrafted_then_held_back(client, cast, provi
     # What Billy nearly said never reaches anyone's transcript.
     provider.requests.clear()
     say(client, group['id'], 'Sally?', 'group-0002')
-    assert all('secretly seeing' not in request['system'] for request in requests_of(provider, 'Sally'))
+    assert all('secretly seeing' not in request['prompt'] for request in requests_of(provider, 'Sally'))
 
 
 def test_a_redraft_that_keeps_the_secret_is_sent(client, cast, provider):
@@ -113,7 +113,7 @@ def test_at_soap_opera_a_slip_stays_and_everyone_there_learns_it(client, cast, p
     provider.requests.clear()
     say(client, group['id'], 'Sally?', 'group-0002')
     sally = requests_of(provider, 'Sally')[0]
-    assert f'- You know: {SECRET}.' in sally['system']
+    assert f'- You know: {SECRET}.' in sally['prompt']
 
 
 def test_the_user_can_tell_them_or_let_them_find_out(client, cast, provider):
@@ -135,7 +135,7 @@ def test_the_user_can_tell_them_or_let_them_find_out(client, cast, provider):
     provider.requests.clear()
     trio = start(client, list(cast.values()))
     say(client, trio['id'], 'Billy, how is the packing going?', 'group-0002')
-    billy = requests_of(provider, 'Billy')[0]['system']
+    billy = requests_of(provider, 'Billy')[0]['prompt']
     assert '- You know: Billy is moving to Denver in May. Sally doesn\'t know and must not find out' in billy
     with client.app.state.database.connect() as connection:
         mira = secrets.context_lines(connection, by_id(connection, cast['Mira']))
@@ -154,7 +154,7 @@ def test_a_gossip_would_tell_only_someone_close_it_is_not_kept_from(client, cast
     group = start(client, list(cast.values()))
     provider.requests.clear()
     say(client, group['id'], 'Billy, any news?', 'group-0001')
-    prompt = requests_of(provider, 'Billy')[0]['system']
+    prompt = requests_of(provider, 'Billy')[0]['prompt']
     # Sally is closer still, but it's kept from her: she never appears as someone he'd tell.
     assert "Sally doesn't know and must not find out" in prompt
     assert "close enough to Sally" not in prompt
@@ -181,7 +181,7 @@ def test_a_gossip_line_names_who_they_would_tell(client, cast, provider, monkeyp
     group = start(client, list(cast.values()))
     provider.requests.clear()
     say(client, group['id'], 'Billy, any news?', 'group-0001')
-    prompt = requests_of(provider, 'Billy')[0]['system']
+    prompt = requests_of(provider, 'Billy')[0]['prompt']
     assert "You're close enough to Mira that you'd happily tell them." in prompt
 
 
@@ -213,8 +213,8 @@ def test_a_secret_line_in_a_description_is_known_only_to_them(client, cast, prov
     provider.requests.clear()
     say(client, group['id'], 'Billy and Sally, plans?', 'group-0001')
     assert "- You know: He is secretly training for a marathon. Sally doesn't know" in \
-        requests_of(provider, 'Billy')[0]['system']
-    assert 'marathon' not in requests_of(provider, 'Sally')[0]['system']
+        requests_of(provider, 'Billy')[0]['prompt']
+    assert 'marathon' not in requests_of(provider, 'Sally')[0]['prompt']
     # Billy talking about it gives it away; talking about Ohio doesn't.
     with database.connect() as connection:
         secret = secrets.active(connection)[0]
@@ -254,7 +254,7 @@ def test_a_secret_storyline_registers_itself_and_ends_when_it_goes_public(client
     provider.requests.clear()
     say(client, group['id'], 'Hi all!', 'group-0001')
     for request in provider.requests:
-        holds = 'secretly seeing' in request['system']
+        holds = 'secretly seeing' in request['prompt']
         assert holds == (speaker(request['messages']) == 'Mira')
     with database.connect(write=True) as connection:
         stages[1]['on'] = '2000-01-05'

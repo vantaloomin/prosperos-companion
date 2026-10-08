@@ -142,7 +142,7 @@ def test_send_without_waiting_returns_before_recall_and_lookups(app, client, com
 
     reply = asyncio.run(scenario())
     # Built after the memory was added, so it uses it and is not withheld for it.
-    assert reply['status'] == 'complete' and 'Home city: Lisbon' in provider.requests[0]['system']
+    assert reply['status'] == 'complete' and 'Home city: Lisbon' in provider.requests[0]['prompt']
 
 
 def test_context_build_does_not_hold_the_event_loop(app, client, companion, provider, monkeypatch):

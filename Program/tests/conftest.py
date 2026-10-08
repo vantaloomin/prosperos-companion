@@ -9,6 +9,7 @@ from companion.clock import FixedClock
 from companion.identity import CLIENT_HEADER
 from companion.life import composer
 from companion.main import create_app
+from companion.memory.context import NOTE_CLOSE, NOTE_OPEN
 from companion.providers.chat import Chunk
 from companion.providers.vault import MemoryVault
 
@@ -27,7 +28,11 @@ class FakeProvider:
         self.delay = 0
 
     async def stream(self, config, key, system, messages):
-        self.requests.append({'config': config, 'key': key, 'system': system, 'messages': messages})
+        # `prompt` is what the reply is told besides the conversation: the system prompt and this reply's notes.
+        latest = messages[-1]['content'] if messages and isinstance(messages[-1]['content'], str) else ''
+        notes = latest.split(NOTE_CLOSE)[0] if latest.startswith(NOTE_OPEN) else ''
+        self.requests.append({'config': config, 'key': key, 'system': system, 'messages': messages,
+                              'prompt': f'{system}\n\n{notes}'})
         if self.delay:
             await asyncio.sleep(self.delay)
         if self.error:

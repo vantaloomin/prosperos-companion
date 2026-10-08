@@ -77,7 +77,7 @@ def test_a_second_team_is_a_contradiction(client, connected, provider):
     assert (old['label'], old['value'], old['status']) == ('Team', 'Baltimore Crabshells', 'noted')
     assert new['value'] == 'Charm City Furies' and new['status'] == 'conflict' and new['conflicts_with'] == old['id']
     assert ('Plays', 'blocker', 'noted') in [(fact['label'], fact['value'], fact['status']) for fact in rest]
-    assert '- Team: Baltimore Crabshells.' in client.get('/api/context/preview').json()['system']
+    assert '- Team: Baltimore Crabshells.' in client.get('/api/context/preview').json()['prompt']
 
 
 def test_said_facts_reach_the_context_and_the_list(client, connected, provider):
@@ -86,7 +86,7 @@ def test_said_facts_reach_the_context_and_the_list(client, connected, provider):
     facts = client.get('/api/self-facts').json()['facts']
     assert [(fact['label'], fact['value'], fact['status']) for fact in facts] == [('Dislikes', 'cilantro', 'noted'),
                                                                                  ('Person', 'Ana', 'noted')]
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     assert 'What you have said about yourself before' in system
     assert '- Dislikes: cilantro.' in system and '- Your sister is named Ana.' in system
 
@@ -99,10 +99,10 @@ def test_a_contradiction_waits_and_keeping_it_removes_the_old_one(client, connec
     facts = client.get('/api/self-facts').json()['facts']
     old, new = facts
     assert old['status'] == 'noted' and new['status'] == 'conflict' and new['conflicts_with'] == old['id']
-    assert 'Likes: cilantro' not in client.get('/api/context/preview').json()['system']
+    assert 'Likes: cilantro' not in client.get('/api/context/preview').json()['prompt']
     facts = client.post(f"/api/self-facts/{new['id']}/keep").json()['facts']
     assert [(fact['category'], fact['status']) for fact in facts] == [('likes', 'kept')]
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     assert '- Likes: cilantro (confirmed).' in system and 'Dislikes: cilantro' not in system
 
 
@@ -175,7 +175,7 @@ def test_a_relative_named_unlike_the_circle_waits_as_a_conflict(client, app, con
     linda, cathy = facts['Linda'], facts['Cathy']
     assert (linda['value'], linda['status'], linda['circle_person']) == ('Linda', 'conflict', 'mom Cathy')
     assert (cathy['value'], cathy['status']) == ('Cathy', 'noted') and 'circle_person' not in cathy
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     assert 'named Linda' not in system and '- Your mom is named Cathy.' in system
     facts = client.post(f"/api/self-facts/{linda['id']}/keep").json()['facts']
     assert ('Linda', 'kept') in [(fact['value'], fact['status']) for fact in facts]
@@ -187,7 +187,7 @@ def test_the_user_correcting_them_in_chat_holds_what_they_said(client, connected
     send(client, 'Family?', 'client-self-13')
     says(provider, 'Oh right, sorry!')
     sent = send(client, "Your sister is Ashley, not Jo. And you didn't grow up in Ohio.", 'client-self-14')['message']
-    request = provider.requests[-1]['system']
+    request = provider.requests[-1]['prompt']
     assert 'named Jo' not in request and 'Ohio' not in request.split('What you have said about yourself before')[-1]
     facts = {fact['value']: fact for fact in client.get('/api/self-facts').json()['facts']}
     assert facts['Jo']['status'] == facts['Ohio']['status'] == 'conflict'

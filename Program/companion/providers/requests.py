@@ -46,6 +46,29 @@ def content_for(api: str, content):
     return content if isinstance(content, str) else [PARTS[api](part) for part in content]
 
 
+# Anthropic caches only what a request marks: the system prompt, and the conversation up to the message being
+# answered, which the next reply starts with too (the app sends what changes per reply with that message).
+CACHED = {'type': 'ephemeral'}
+
+
+def marked(content, api: str) -> list:
+    parts = [PARTS[api]({'type': 'text', 'text': content})] if isinstance(content, str) else list(content)
+    return [*parts[:-1], {**parts[-1], 'cache_control': CACHED}] if parts else parts
+
+
+def cache_marks(turns: list[dict], api: str) -> list[dict]:
+    """The turn before the latest one marked as the end of the cacheable part."""
+    if len(turns) < 2:
+        return turns
+    return [*turns[:-2], {**turns[-2], 'content': marked(turns[-2]['content'], api)}, turns[-1]]
+
+
+def explicit_cache(config: dict) -> bool:
+    """Claude needs marks to cache; other models on OpenRouter cache on their own."""
+    return config['provider'] == 'anthropic' or (config['provider'] == 'openrouter'
+                                                 and str(config.get('model', '')).startswith('anthropic/'))
+
+
 def sampling(config: dict) -> dict:
     return {key: config[key] for key in SAMPLING[config['provider']] if config.get(key) is not None}
 
@@ -84,7 +107,8 @@ def openai_request(config: dict, system: str, messages: list[dict]) -> tuple[str
 
 def anthropic_request(config: dict, system: str, messages: list[dict]) -> tuple[str, dict]:
     turns = [{**turn, 'content': content_for('anthropic', turn['content'])} for turn in alternating(messages)]
-    body = {'model': config['model'], 'system': system, 'messages': turns,
+    body = {'model': config['model'], 'system': marked(system, 'anthropic'),
+            'messages': cache_marks(turns, 'anthropic'),
             'max_tokens': config['max_output_tokens'], 'stream': True, **sampling(config)}
     mode = config.get('thinking_mode')
     if mode:
@@ -98,7 +122,10 @@ def anthropic_request(config: dict, system: str, messages: list[dict]) -> tuple[
 
 def chat_request(config: dict, system: str, messages: list[dict]) -> tuple[str, dict]:
     turns = [{**message, 'content': content_for('chat', message['content'])} for message in messages]
-    body = {'model': config['model'], 'messages': [{'role': 'system', 'content': system}, *turns],
+    opening = {'role': 'system', 'content': system}
+    if explicit_cache(config):
+        turns, opening = cache_marks(turns, 'chat'), {**opening, 'content': marked(system, 'chat')}
+    body = {'model': config['model'], 'messages': [opening, *turns],
             config.get('output_token_parameter', 'max_tokens'): config['max_output_tokens'],
             'stream': True, **sampling(config)}
     if config['provider'] == 'openrouter':

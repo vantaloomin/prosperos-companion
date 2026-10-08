@@ -230,7 +230,8 @@ def asked(connection, timeline_id, now) -> tuple[bool, dict]:
                 'AND receipt IS NOT NULL ORDER BY seq DESC LIMIT ?', (timeline_id, RECEIPT_WINDOW))
     recent, when = False, {}
     for index, row in enumerate(rows):
-        for identity in (decode(row['receipt']).get('included') or {}).get('people', []):
+        included = decode(row['receipt']).get('included') or {}
+        for identity in included.get('people', []) + included.get('ask', []):
             if identity.startswith('ask:'):
                 when.setdefault(identity, row['created_at'])
                 recent = recent or index < ASK_GAP_REPLIES or parse(row['created_at']) > now - ASK_GAP
@@ -289,15 +290,20 @@ def pick(connection, companion, people, facts_by, boundaries, now) -> tuple[str,
     return None
 
 
-def offer(packet, connection, companion, memories, boundaries, now):
-    """One line per person the user told you about, then at most one question."""
+def offer(packet, connection, companion, memories, boundaries, now, since=None):
+    """One line per person the user told you about, then at most one question. Facts saved since `since` (the start
+    of the conversation sent with the reply) go in a line of their own with the reply's notes."""
     facts_by = {}
     for memory in memories:
         facts_by.setdefault(memory['person_id'], []).append(memory)
     people = [person for person in known(connection, companion['id']) if person['id'] in facts_by]
-    people.sort(key=lambda person: person['last_mentioned_at'] or person['created_at'], reverse=True)
     for person in people:
-        packet.offer('people', person['id'], person_text(person, facts_by[person['id']]))
+        facts = facts_by[person['id']]
+        new = [memory for memory in facts if since and memory['created_at'] >= since]
+        if len(new) < len(facts) or not new:
+            packet.offer('people', person['id'], person_text(person, [memory for memory in facts if memory not in new]))
+        if new:
+            packet.offer('people+', f"{person['id']}:new", person_text(person, new))
+    people.sort(key=lambda person: person['last_mentioned_at'] or person['created_at'], reverse=True)
     if choice := pick(connection, companion, people, facts_by, boundaries, now):
-        packet.offer('people', choice[0], ASK + choice[1])
-
+        packet.offer('ask', choice[0], ASK + choice[1])

@@ -65,9 +65,11 @@ def say(client, text, counter=[0]):
 
 
 def people_section(client) -> str:
-    system = client.get('/api/context/preview').json()['system']
-    start = system.find("## People in the user's real life")
-    return '' if start < 0 else system[start:].split('\n## ', 1)[0]
+    """Everything the reply is told about the user's people: what was known before this conversation, what is new in
+    it, and a question to ask."""
+    prompt = client.get('/api/context/preview').json()['prompt']
+    starts = ("## People in the user's real life", '## A question you could ask')
+    return '\n'.join(part for part in prompt.split('\n\n') if part.startswith(starts))
 
 
 def test_nothing_about_people_is_kept_without_automatic_memory(client, connected):
@@ -89,8 +91,8 @@ def test_people_are_remembered_and_shown_to_the_companion(client, connected):
     text = people_section(client)
     assert "- Jo (the user's sister): work: nurse; likes: climbing; news (told you 2026-10-05): got engaged" in text
     assert "The user's mum (name not known yet): home city: Cork" in text
-    assert 'Jo' not in client.get('/api/context/preview').json()['system'].split("## What you know about the user")[-1] \
-        .split('## ')[0]
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert 'Jo' not in prompt.split("## What you know about the user")[-1].split('## ')[0]
 
 
 def test_a_name_learned_later_joins_the_same_person(client, connected):
@@ -150,13 +152,13 @@ def test_a_follow_up_question_is_offered_rarely_and_once(client, connected, cloc
     clock.advance(timedelta(days=1))
     assert 'Jo got engaged (the user told you on 2026-10-05)' in people_section(client)
     say(client, 'Morning!')
-    assert 'A question you could ask' in provider.requests[-1]['system']
+    assert 'A question you could ask' in provider.requests[-1]['prompt']
     # Offered once: not again in the next replies, and never the same question twice.
     say(client, 'How are you?')
-    assert 'A question you could ask' not in provider.requests[-1]['system']
+    assert 'A question you could ask' not in provider.requests[-1]['prompt']
     clock.advance(timedelta(days=2))
     say(client, 'Hello again')
-    assert 'got engaged (the user told you' not in provider.requests[-1]['system']
+    assert 'got engaged (the user told you' not in provider.requests[-1]['prompt']
 
 
 def test_no_questions_after_a_loss_behind_a_boundary_or_when_turned_off(client, connected, clock):

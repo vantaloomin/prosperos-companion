@@ -34,12 +34,12 @@ def test_a_reworded_chat_prompt_is_what_the_model_is_told(client, connected, pro
     provider.replies = [[Chunk('Evening.'), Chunk('', 'stop')]]
     send(client, 'Hi there', 'client-0001')
     system = provider.requests[0]['system']
-    assert 'a retired lighthouse keeper at heart' in system and 'award-winning method actor' not in system
+    assert 'a retired lighthouse keeper at heart' in system and 'the way a method actor disappears' not in system
     assert '{{name}}' not in system and '{{relationship}}' not in system
     client.delete('/api/prompts/chat-character')
     provider.replies = [[Chunk('Hey.'), Chunk('', 'stop')]]
     send(client, 'Hi again', 'client-0002')
-    assert 'award-winning method actor' in provider.requests[1]['system']
+    assert 'the way a method actor disappears' in provider.requests[1]['system']
 
 
 def test_rewording_the_chat_prompt_never_switches_off_the_in_character_filter(client, connected, provider):

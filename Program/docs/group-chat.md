@@ -149,10 +149,12 @@ start is the same for every speaker, and local servers and providers reuse it:
    lines in square brackets). It takes up to 40% of the reply's context; when it outgrows that, the oldest lines
    drop 20 at a time (`groups.window`), so the prefix stays the same for many turns. Dropped lines stay
    recallable in the speaker's private part.
-4. **The speaker's own part**: their usual 1:1 sections (`memory/context.build` with `group=`), minus the 1:1
-   turns, which stay recallable, plus one `group` section ("This group chat (only you know this part)") naming
-   the group and its members, and saying when they joined late.
-5. **The turn**: "Write Billy's next message in the group chat "Friday crew"…"
+4. **The speaker's own part**: their usual 1:1 system prompt (`memory/context.build` with `group=`), minus the
+   1:1 turns, which stay recallable.
+5. **The turn**: the speaker's notes for this reply, as in a 1:1 chat ([prompts](prompts.md#how-a-chat-replys-prompt-is-laid-out)):
+   the time, recalled memories and one `group` section ("This group chat (only you know this part)") naming the
+   group and its members and saying when they joined late; then "Write Billy's next message in the group chat
+   "Friday crew"…"
 
 Another member's 1:1 chat, memories, self facts, circle, storylines and mood never enter a speaker's prompt.
 Replies pass the same in-character filter as 1:1 replies; a leading "Billy:" is removed, and a reply that starts

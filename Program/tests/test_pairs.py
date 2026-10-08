@@ -144,7 +144,7 @@ def test_the_group_section_names_each_stage_and_close_people_share_how_they_see_
     ok(client.patch(f"/api/groups/{group['id']}", json={'reply_cap': 2}))
     provider.requests.clear()
     ok(client.post(f"/api/groups/{group['id']}/messages", json={'text': 'Hi you two', 'client_id': 'group-pairs-1'}))
-    billy = next(request['system'] for request in provider.requests if speaker(request['messages']) == 'Billy')
+    billy = next(request['prompt'] for request in provider.requests if speaker(request['messages']) == 'Billy')
     private = billy[billy.index('## This group chat (only you know this part)'):]
     assert groups.FEELS[3].format(name='Sally') in private
     assert 'How you know Sally: Neighbours for ten years.' in private
@@ -160,7 +160,7 @@ def test_strangers_dont_see_how_someone_sees_themselves(client, cast, provider):
     group = start(client, [cast['Billy'], cast['Sally']])
     provider.requests.clear()
     ok(client.post(f"/api/groups/{group['id']}/messages", json={'text': 'Billy?', 'client_id': 'group-pairs-2'}))
-    billy = next(request['system'] for request in provider.requests if speaker(request['messages']) == 'Billy')
+    billy = next(request['prompt'] for request in provider.requests if speaker(request['messages']) == 'Billy')
     assert groups.FEELS[0].format(name='Sally') in billy and 'how they see themselves' not in billy
 
 

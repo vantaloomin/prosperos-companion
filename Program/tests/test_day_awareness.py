@@ -17,8 +17,8 @@ def office_worker(client):
 
 
 def time_section(client):
-    system = client.get('/api/context/preview').json()['system']
-    return system[system.index('## Time'):].split('\n## ')[0]
+    system = client.get('/api/context/preview').json()['prompt']
+    return system[system.index('## Right now'):].split('\n## ')[0]
 
 
 def test_a_work_day_says_where_she_is_now(client, companion, clock):
@@ -46,7 +46,7 @@ def test_recent_life_reads_in_her_own_time(client, companion, clock):
     set_life(client, automatic_events=True, catch_up_max_events=6, phrase_with_model=False)
     clock.advance(timedelta(days=5))
     reconcile(client)
-    system = client.get('/api/context/preview').json()['system']
+    system = client.get('/api/context/preview').json()['prompt']
     section = system[system.index('## Your recent life'):].split('\n## ')[0]
     lines = section.splitlines()[1:]
     assert lines and all(re.match(r'- \w+day \d\d October, \d\d:\d\d: ', line) for line in lines)

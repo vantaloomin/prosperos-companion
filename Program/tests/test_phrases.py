@@ -37,7 +37,7 @@ def test_the_nudge_reaches_the_context(client, connected, provider):
     provider.respond = lambda system, messages: [Chunk('Honestly that sounds like total chaos.'), Chunk('', 'stop')]
     for index in range(3):
         send(client, f'Guess what happened {index}', f'client-words-{index}')
-    assert 'You keep repeating' not in provider.requests[-1]['system']
+    assert 'You keep repeating' not in provider.requests[-1]['prompt']
     send(client, 'And then?', 'client-words-last')
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'You keep repeating: "honestly that sounds like total chaos" (3 of your last 3 messages).' in system

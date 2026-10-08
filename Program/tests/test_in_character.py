@@ -46,7 +46,7 @@ def test_a_reply_that_only_denies_is_written_again(client, connected, provider):
                         [Chunk('Real enough to beat you at cards.'), Chunk('', 'stop')]]
     reply = send(client, 'Are you even real?', 'client-0001')['reply']
     assert reply['text'] == 'Real enough to beat you at cards.'
-    assert 'stepped out of the story' in provider.requests[1]['system']
+    assert 'stepped out of the story' in provider.requests[1]['prompt']
 
 
 def test_a_reply_that_keeps_denying_is_hidden(client, connected, provider):
@@ -61,10 +61,10 @@ def test_out_of_character_messages_get_a_plain_answer(client, connected, provide
     reply = send(client, 'OOC: are you an AI?', 'client-0001')['reply']
     assert reply['text'] == "I'm an AI language model playing Mira."
     # The persona prompt forbids admitting to being an AI, so the OOC turn says plainly that it may.
-    assert 'say you are an AI and which model you are' in provider.requests[0]['system']
+    assert 'say you are an AI and which model you are' in provider.requests[0]['prompt']
 
 
 def test_in_character_messages_get_no_out_of_character_note(client, connected, provider):
     provider.replies = [[Chunk('Real enough.'), Chunk('', 'stop')]]
     send(client, 'Are you even real?', 'client-0001')
-    assert 'is out of character' not in provider.requests[0]['system']
+    assert 'is out of character' not in provider.requests[0]['prompt']

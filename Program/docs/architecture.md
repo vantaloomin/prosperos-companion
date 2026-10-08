@@ -315,7 +315,7 @@ place or month, with what the rules kept listed as `already_saved`. The model is
 ("Sam", not "I'm Sam"), with a subject that says whose fact it is. Each message also goes with up to six of
 the user's current facts its words touch, as `known` ("Mom's interests: she loves gardening"; never a sensitive
 memory or a boundary), and the model marks an answer that says one of them is wrong or no longer true with
-`corrects`, naming that subject as sent (prompt `memory-suggest-3`). Each answer must name a message in the batch and take most of its
+`corrects`, naming that subject as sent (prompt `memory-suggest-4`). Each answer must name a message in the batch and take most of its
 words from that message, or it is dropped; so is one whose `corrects` names anything that was not sent. An
 answer marked `corrects`, or one that negates the one current memory with its layer and subject ("Mom's
 interests: not a gardener"), corrects that memory (below); a new value for a single-valued subject replaces the

@@ -73,7 +73,7 @@ def test_searching_from_chat_sends_only_the_request(client, connected, provider)
     assert observation['arguments'] == {'objective': 'bridge opinions on Reddit',
                                         'search_queries': ['bridge opinions on Reddit']}
     assert observation['location']['label'] == 'bridge opinions on Reddit'
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert '- Web search for bridge opinions on Reddit from Searcher, tool web_search' in system
     assert 'Most people like the new bridge, per r/baltimore.' in system
     assert 'Towson' not in observation['content']

@@ -28,14 +28,15 @@ def say(client, text, counter=[0]):
 
 
 def section(system: str, heading: str) -> str:
-    match = re.search(rf'## {re.escape(heading)}\n(.*?)(?=\n## |\Z)', system, re.S)
-    return match.group(1) if match else ''
+    """A section's lines, with those new in this conversation (in the reply's notes)."""
+    found = re.findall(rf'## {re.escape(heading)}(?: \(new in this conversation\))?\n(.*?)(?=\n## |\Z)', system, re.S)
+    return '\n'.join(found)
 
 
 def preview(client) -> str:
     response = client.get('/api/context/preview')
     assert response.status_code == 200, response.text
-    return response.json()['system']
+    return response.json()['prompt']
 
 
 def current(client, subject) -> list[str]:
@@ -182,8 +183,8 @@ def test_immediate_correction(client, app, connected, provider):
 
     # The next reply uses the corrected value.
     send(client, 'Hello again', 'correction-0003')
-    assert 'Home city: Boston' in provider.requests[-1]['system']
-    assert 'Chicago' not in provider.requests[-1]['system']
+    assert 'Home city: Boston' in provider.requests[-1]['prompt']
+    assert 'Chicago' not in provider.requests[-1]['prompt']
 
     # The original wording remains as labelled history.
     history = {item['value']: item['status'] for item in client.get('/api/memories?history=true').json()}
@@ -209,7 +210,7 @@ def test_forgetting_and_restore(client, app, connected, tmp_path, clock):
     client.post(f"/api/memories/{sister['id']}/exclude")
     say(client, 'What is my sister called again, Ottoline?')
     request = client.get('/api/context/preview').json()
-    assert 'Ottoline' not in request['system']
+    assert 'Ottoline' not in request['prompt']
     assert 'My sister is called Ottoline' not in str(request)
 
     # A backup taken now still holds what is about to be deleted.

@@ -35,7 +35,7 @@ def companion_named(client, name: str, personality='Easygoing.') -> str:
 
 
 def speaker(messages) -> str | None:
-    found = re.match(r"Write (.+?)'s next message", messages[-1]['content'])
+    found = re.search(r"Write (.+?)'s next message", messages[-1]['content'])
     return found and found[1]
 
 
@@ -102,7 +102,7 @@ def test_every_speaker_shares_the_cast_and_transcript_and_sees_only_their_own_li
     say(client, group['id'], 'Hi everyone, how was your week?', 'group-0001')
     requests = provider.requests
     assert sorted(speaker(request['messages']) for request in requests) == ['Billy', 'Mira', 'Sally']
-    prefixes = [shared(request['system']) for request in requests]
+    prefixes = [shared(request['prompt']) for request in requests]
     # Each speaker's shared part is the one before plus the replies written since: the cache keeps it all.
     assert all(later.startswith(earlier) for earlier, later in zip(prefixes, prefixes[1:]))
     assert prefixes[0].startswith(groups.RULES)
@@ -116,17 +116,17 @@ def test_every_speaker_shares_the_cast_and_transcript_and_sees_only_their_own_li
     first = speaker(requests[0]['messages'])
     assert f'{first}: {first} here.' in prefixes[1]
     for request in requests:
-        private = request['system'][len(shared(request['system'])):]
+        private = request['prompt'][len(shared(request['prompt'])):]
         assert f"You are {speaker(request['messages'])} in the group chat \"Everyone!\" with the user," in private
         assert '## This group chat (only you know this part)' in private
     mira = next(request for request in requests if speaker(request['messages']) == 'Mira')
     others = [request for request in requests if request is not mira]
-    assert 'Quince' in mira['system'] and all('Quince' not in request['system'] for request in others)
-    assert all(line in mira['system'] for line in lines['Mira']['private'])
+    assert 'Quince' in mira['prompt'] and all('Quince' not in request['prompt'] for request in others)
+    assert all(line in mira['prompt'] for line in lines['Mira']['private'])
     # Two people can draw the same bank phrase for themselves; only Mira's own lines must stay out of the others'.
     mine = set(lines['Mira']['private']) - {line for name in ('Billy', 'Sally') for line in lines[name]['private']}
-    assert all(line not in request['system'] for request in others for line in mine)
-    assert all('plum' not in request['system'] for request in others)
+    assert all(line not in request['prompt'] for request in others for line in mine)
+    assert all('plum' not in request['prompt'] for request in others)
 
     # At one moment, every speaker who sees the same messages gets byte-identical shared text.
     database = client.app.state.database
@@ -151,9 +151,9 @@ def test_someone_added_from_now_on_sees_nothing_from_before_and_everything_shows
     # The whole line, not just "surprise": a random self-story can have the word too.
     sally = provider.requests[0]
     assert speaker(sally['messages']) == 'Sally'
-    assert 'party is a surprise' not in sally['system'] and '[The user added Sally.]' in sally['system']
-    assert 'have seen only what was said since you joined' in sally['system']
-    assert all('party is a surprise' in request['system'] for request in provider.requests[1:])
+    assert 'party is a surprise' not in sally['prompt'] and '[The user added Sally.]' in sally['prompt']
+    assert 'have seen only what was said since you joined' in sally['prompt']
+    assert all('party is a surprise' in request['prompt'] for request in provider.requests[1:])
 
     # Shown everything so far, someone added later reads it all.
     other = start(client, [cast['Billy'], cast['Mira']])
@@ -161,8 +161,8 @@ def test_someone_added_from_now_on_sees_nothing_from_before_and_everything_shows
     ok(client.post(f"/api/groups/{other['id']}/members", json={'companion_id': cast['Sally'], 'history': 'everything'}))
     provider.requests.clear()
     say(client, other['id'], 'Sally, thoughts?', 'group-0004')
-    assert 'party is a surprise' in provider.requests[0]['system']
-    assert 'since you joined' not in provider.requests[0]['system']
+    assert 'party is a surprise' in provider.requests[0]['prompt']
+    assert 'since you joined' not in provider.requests[0]['prompt']
 
 
 def test_the_witness_rule_records_who_was_there_and_removal_ends_what_they_see(client, cast, provider):

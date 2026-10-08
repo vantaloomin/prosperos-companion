@@ -22,26 +22,38 @@ from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
 from companion.text_models import config_for
 
-PROMPT_VERSION = 'memory-suggest-3'
+PROMPT_VERSION = 'memory-suggest-4'
 BATCH = 8
 MIN_WORDS = 6
 NAMED = re.compile(r"\b[A-Z][a-z']+")
 MONTHS = re.compile(r'\b(january|february|march|april|june|july|august|september|october|november|december)\b')
 SUPPORT = 0.6
 LAYERS = {'user_fact', 'plan', 'temporary', 'shared_experience', 'relationship'}
+# A list of short rules with whole examples: small local models copy an example's shape, so every example names
+# every field.
 RULES = (
-    'You help a companion app remember what the user said about their real life. The user message is a JSON '
-    'list of the user\'s messages, numbered. Reply with JSON only: a list of objects {"message": number, '
-    '"layer": "user_fact" | "plan" | "temporary" | "shared_experience" | "relationship", "subject": short '
-    'label, "value": just the fact, in a few of the user\'s own words, without "I", "I\'m" or "my" in front}. '
-    'For "I\'m Sam, I teach 8th grade science" that is {"subject": "Name", "value": "Sam"} and {"subject": '
-    '"Work", "value": "teaches 8th grade science"}; for "my mom lives in Towson" it is {"subject": "Mom\'s home", '
-    '"value": "Towson"}. The subject says whose fact it is when it is about someone else. Include only lasting '
-    'facts the user states plainly about themselves or their people. Leave out questions, hypotheticals, jokes, '
-    'roleplay, quotes of other people, moments that will not matter tomorrow ("my dog is snoring"), facts listed '
-    'under a message\'s "already_saved" and anything you would have to guess. A message may list "known": what is '
-    'already remembered. When it says one of those is wrong or no longer true, add "corrects": that subject exactly '
-    'as listed, with the corrected fact as the value ("not a gardener"). Reply [] when there is nothing.'
+    'You help a companion app remember what the user said about their real life.\n'
+    "Input: a JSON list of the user's messages, numbered.\n"
+    'Output: JSON only, a list of facts, or [] when there is nothing. Each fact is {"message": number, "layer": '
+    '"user_fact" | "plan" | "temporary" | "shared_experience" | "relationship", "subject": short label, "value": '
+    'just the fact}.\n'
+    'Rules:\n'
+    '- Keep only lasting facts the user states plainly about themselves or their people.\n'
+    '- "value" is the fact in a few of the user\'s own words, without "I", "I\'m" or "my" in front.\n'
+    '- "subject" says whose fact it is when it is about someone else ("Mom\'s home", "Sister\'s job").\n'
+    '- Leave out questions, hypotheticals, jokes, roleplay, quotes of other people, moments that will not matter '
+    'tomorrow ("my dog is snoring"), someone the message does not name ("she\'s a lawyer"), facts listed under a '
+    'message\'s "already_saved", and anything you would have to guess.\n'
+    '- A message may list "known": what is already remembered. When the message says one of those is wrong or no '
+    'longer true, add "corrects": that subject exactly as listed, with the corrected fact as the value.\n'
+    'Examples:\n'
+    '"I\'m Sam, I teach 8th grade science" gives [{"message": 1, "layer": "user_fact", "subject": "Name", "value": '
+    '"Sam"}, {"message": 1, "layer": "user_fact", "subject": "Work", "value": "teaches 8th grade science"}]\n'
+    '"my mom lives in Towson" gives [{"message": 1, "layer": "user_fact", "subject": "Mom\'s home", "value": '
+    '"Towson"}]\n'
+    '"I don\'t garden anymore" with "known": ["Hobby: gardening"] gives [{"message": 1, "layer": "user_fact", '
+    '"subject": "Hobby", "value": "no longer gardens", "corrects": "Hobby"}]\n'
+    '"my dog is snoring lol" gives []'
 )
 
 

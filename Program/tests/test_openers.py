@@ -68,7 +68,7 @@ def test_a_plan_whose_day_passed_gets_a_follow_up_without_a_model(client, compan
     # Never twice in a row without an answer, and each trigger only once.
     clock.advance(timedelta(hours=5))
     assert check(client)['state'] == 'waiting_for_answer'
-    assert client.get('/api/context/preview').json()['messages'][-1]['content'] == message['text']
+    assert client.get('/api/context/preview').json()['history'][-1]['content'] == message['text']
 
 
 def test_the_model_phrases_it_from_the_trigger(client, connected, provider, clock):
@@ -78,7 +78,7 @@ def test_the_model_phrases_it_from_the_trigger(client, connected, provider, cloc
     message = check(client)['message']
     assert message['text'] == 'So?? How did the bank interview go?'
     request = provider.requests[-1]
-    assert 'Mira' in request['system']
+    assert 'Mira' in request['prompt']
     assert 'Job interview: Interview at the bank on Sunday' in request['messages'][-1]['content']
     assert 'never claim to know what the user did' in request['messages'][-1]['content']
 

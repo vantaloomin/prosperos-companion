@@ -26,6 +26,30 @@ for comparison.
 so changing one in code is the new default at once. The constants are written for `str.format`;
 the library shows and fills them in the `{{placeholder}}` form the drafting files already use.
 
+## How a chat reply's prompt is laid out
+
+Every chat reply, first text and group chat reply is built so that most of it is the same as the request
+before it. Local servers (llama.cpp, LM Studio, Ollama, KoboldCpp) and hosted providers can then reuse the work
+they already did on that part (prompt caching), so a reply starts sooner and costs less. It is also easier on
+small local models, which follow facts best when they sit right next to the message they answer.
+
+1. **The system prompt**: who the companion is (the prompt above), then the sections that change rarely, in
+   `HEADINGS` in `companion/memory/context.py`: home, the circle, today's calendar, weather and money, then what
+   grows during a chat (memories, what they have said about themselves, plans, recent life).
+2. **The conversation**: at least the last 20 messages. Its first message moves forward 12 messages at a time,
+   not one, so the start of the conversation stays the same for several replies; older messages stay recallable.
+3. **The notes for this reply**, in front of the latest message (`NOW` in `context.py`), between two lines in
+   square brackets: the time and what the companion is doing right now, what the people in their life are up
+   to, what they have on, the "you keep repeating" nudge, recalled memories, lookups, and anything saved since
+   the conversation's first message (marked "new in this conversation"; it joins the system prompt when that
+   first message moves on). A busy note, an out-of-character note or a reminder for a redraft is added here too.
+
+The notes are never saved with the message. A new section belongs in the system prompt only if it stays the same
+from one reply to the next; anything that changes with the time of day or with the message goes in `NOW`.
+
+Claude (Anthropic, or `anthropic/` models on OpenRouter) caches only what a request marks, so those requests mark
+the system prompt and the message before the latest one. Other providers cache on their own.
+
 ## Storage and updates
 
 A rewording is kept in `prompt_overrides` (name, text, the default it replaced, time), so it
