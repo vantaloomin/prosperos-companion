@@ -143,6 +143,18 @@ class LiveReply:
                 queue.put_nowait(('phase', {'phase': phase}))
 
 
+# Failures that come from the model service, which Settings > Models can test.
+MODEL_FAILURES = {'provider', 'timeout', 'connection'}
+
+
+def model_failure(config: dict, failure: DomainError) -> str:
+    """A model service's failure names the profile that made the call and where to test it."""
+    if failure.code not in MODEL_FAILURES:
+        return failure.message
+    name = config.get('profile_name') or default_name(config)
+    return f'{name}: {failure.message} Test connection in Settings > Models checks this profile.'
+
+
 class Conversation:
     def __init__(self, database, vault, provider=None, scheduler=None, after_turn=lambda: None, embedder=None,
                  lookups=None):
@@ -366,7 +378,7 @@ class Conversation:
         except asyncio.CancelledError:
             status, error = 'cancelled', 'Stopped.'
         except DomainError as failure:
-            status, error = ('incomplete' if ''.join(text) else 'failed'), failure.message
+            status, error = ('incomplete' if ''.join(text) else 'failed'), model_failure(prepared['config'], failure)
         except Exception as failure:  # noqa: BLE001 - an unexpected failure must still leave a visible state.
             LOG.exception('A reply failed unexpectedly.')
             status = 'incomplete' if ''.join(text) else 'failed'

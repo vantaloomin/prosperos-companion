@@ -61,7 +61,7 @@ def test_authentication_failure_is_reported():
     provider = ChatProvider(httpx.MockTransport(lambda request: httpx.Response(401)))
     with pytest.raises(DomainError) as error:
         collect(provider)
-    assert 'Authentication failed' in error.value.message
+    assert 'rejected the API key' in error.value.message
 
 
 def test_unreachable_service_is_a_connection_error():
@@ -132,3 +132,20 @@ def test_a_reply_cut_off_with_text_is_not_asked_again():
 
     chunks = collect(ChatProvider(httpx.MockTransport(handler)))
     assert len(calls) == 1 and chunks[-1].finish_reason == 'length'
+
+
+@pytest.mark.parametrize('status,body,expected', [
+    (404, {'detail': 'Function not found for account'}, 'did not recognize the model "m"'),
+    (400, {'error': {'message': 'max_tokens must be at most 4096'}}, 'turned down the request (HTTP 400)'),
+    (503, {'message': 'Model is overloaded'}, 'a problem on its side (HTTP 503)'),
+    # NVIDIA NIM's answer for a retired model, as it gives it.
+    (410, {'type': 'about:blank', 'title': 'Gone', 'status': 410,
+           'detail': "The model 'm' has reached its end of life and is no longer available."}, 'no longer offers the model "m"'),
+])
+def test_a_failed_reply_says_what_the_service_answered(status, body, expected):
+    """A tester on NVIDIA NIM saw only "The reply failed unexpectedly"; the service's own reason is now quoted."""
+    provider = ChatProvider(httpx.MockTransport(lambda request: httpx.Response(status, json=body)))
+    with pytest.raises(DomainError) as error:
+        collect(provider)
+    said = body.get('detail') or body.get('message') or body['error']['message']
+    assert expected in error.value.message and f'It said: "{said}"' in error.value.message
