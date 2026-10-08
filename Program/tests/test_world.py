@@ -220,6 +220,24 @@ def test_users_build_their_own_cities(client):
                       ).status_code == 409
 
 
+def test_a_saved_city_that_no_longer_validates_leaves_the_others_listed(app, client):
+    """A city saved under an older app's rules, or edited by hand, once made every city list fail, so the
+    home city pickers offered only "None"."""
+    template = client.get('/api/world/template').json()
+    assert client.post('/api/world/cities', json=template | {'id': 'stale-town', 'name': 'Stale Town'}).status_code == 200
+    with app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE world_cities SET definition=? WHERE id='stale-town'",
+                           (json.dumps(template | {'id': 'stale-town', 'name': 'Stale Town', 'era': 'atlantean'}),))
+    listed = client.get('/api/world/cities')
+    assert listed.status_code == 200
+    assert 'baltimore' in {city['id'] for city in listed.json()} and 'stale-town' not in {city['id'] for city in listed.json()}
+    broken = client.get('/api/world/broken-cities').json()
+    assert [(item['id'], item['name']) for item in broken] == [('stale-town', 'Stale Town')]
+    assert 'era' in broken[0]['error'] and broken[0]['definition']['era'] == 'atlantean'
+    assert client.delete('/api/world/cities/stale-town').status_code == 200
+    assert client.get('/api/world/broken-cities').json() == []
+
+
 def test_copying_a_built_in_city_and_living_in_a_user_city(app, client):
     copied = client.post('/api/world/cities/baltimore/copy', json={'id': 'my-baltimore', 'name': 'My Baltimore'})
     assert copied.status_code == 200, copied.text

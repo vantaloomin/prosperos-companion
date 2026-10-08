@@ -6,6 +6,7 @@ import { Field, TextInput } from '../../components/Fields'
 import { MoneyFields } from './MoneyFields'
 import { ScheduleEditor } from './ScheduleEditor'
 import type { DraftField } from './drafting'
+import { CitiesUnavailable } from '../world/CitiesUnavailable'
 
 interface Props { definition: CharacterDefinition; set: (change: Partial<CharacterDefinition>) => void; themes: string; setThemes: (value: string) => void; help?: (field: DraftField, label: string) => ReactNode }
 
@@ -26,6 +27,7 @@ export function LifeFields({ definition, set, themes, setThemes, help }: Props) 
           </select>
         )}
       </Field>
+      <CitiesUnavailable cities={cities} />
       <ScheduleEditor blocks={definition.schedule} onChange={(schedule) => set({ schedule })} timezone={definition.timezone} />
       {help?.('schedule', 'their week')}
       <TextInput label="What their life tends to involve" value={themes} onChange={setThemes} hint="Themes for everyday events, separated by commas, such as cycling, the harbour, their sister." />

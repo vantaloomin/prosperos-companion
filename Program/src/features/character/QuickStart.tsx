@@ -11,6 +11,7 @@ import { PasteCharacter } from './PasteCharacter'
 import type { SplitResult } from './helper'
 import { placeGroups } from './places'
 import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
+import { CitiesUnavailable } from '../world/CitiesUnavailable'
 
 interface Props { onDraft: (definition: CharacterDefinition) => void; onSplit: (result: SplitResult) => void; onManual: () => void; go: (view: View) => void }
 
@@ -75,7 +76,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
 
 function Picks({ request, set }: { request: DraftRequest; set: (change: Partial<DraftRequest>) => void }) {
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
-  return (
+  return (<>
     <div className="form-grid three">
       <TextInput label="Name" value={request.name} onChange={(name) => set({ name })} maxLength={120} hint="Optional. Left empty, they get one that fits." />
       <Field label="Age" hint="Companions are always adults.">
@@ -98,7 +99,8 @@ function Picks({ request, set }: { request: DraftRequest; set: (change: Partial<
         )}
       </Field>
     </div>
-  )
+    <CitiesUnavailable cities={cities} />
+  </>)
 }
 
 function Vibes({ vibe, onChange }: { vibe: string; onChange: (vibe: string) => void }) {
