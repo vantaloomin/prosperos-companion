@@ -335,3 +335,93 @@ def test_a_first_message_copied_from_an_earlier_one_is_not_sent(client, connecte
 def test_rarely_using_capitals_is_a_lowercase_voice():
     voice = {'voice': 'She texts in short sentences and rarely uses capital letters except for emphasis.'}
     assert openers.voiced('Finally done with work for today.', voice) == 'finally done with work for today.'
+
+
+def wrote_at(client, *moments, answering=False):
+    """The user started a conversation at each moment (UTC, which is the test user's timezone), or, answering,
+    replied to a text the companion started a minute before."""
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        timeline_id, version_id = connection.execute(
+            'SELECT active_timeline_id, active_version_id FROM companions').fetchone()
+        seq = connection.execute('SELECT COALESCE(MAX(seq), 0) FROM messages WHERE timeline_id=?',
+                                 (timeline_id,)).fetchone()[0]
+        for moment in sorted(moments):
+            rows = [('user', moment)]
+            if answering:
+                rows.insert(0, ('companion', moment - timedelta(minutes=1)))
+            for role, at in rows:
+                seq += 1
+                at = at.isoformat(timespec='microseconds')
+                connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, "
+                                   "character_version_id, memory_revision, created_at, completed_at) "
+                                   "VALUES (?, ?, ?, ?, 'Hey', 'complete', 1, ?, 0, ?, ?)",
+                                   (f'usual-{seq}', timeline_id, seq, role, version_id, at, at))
+                if role == 'companion':
+                    connection.execute("INSERT INTO openers (id, timeline_id, trigger_key, kind, facts, message_id, "
+                                       "wording, created_at) VALUES (?, ?, ?, 'check_in', '{}', ?, 'template', ?)",
+                                       (f'opener-{seq}', timeline_id, f'test:{seq}', f'usual-{seq}', at))
+
+
+def weekdays_at(clock, hour, minute, weeks=3):
+    """Weekdays of the weeks before the test's Monday, at about the same time each day."""
+    start = clock.now().replace(hour=hour, minute=minute, second=0, microsecond=0) - timedelta(weeks=weeks)
+    return [start + timedelta(days=day, minutes=day % 7) for day in range(weeks * 7)
+            if (start + timedelta(days=day)).weekday() < 5]
+
+
+def test_the_user_usual_hours_are_learned_from_when_they_start_talking(client, companion, clock):
+    from companion.life import usual_hours
+    wrote_at(client, *weekdays_at(clock, 11, 10))
+    wrote_at(client, clock.now().replace(day=3, hour=21, minute=0))  # One Saturday night is no habit.
+    with client.app.state.database.connect() as connection:
+        weekday = usual_hours.stretches(connection, clock.now(), on_weekend=False)
+        assert [(stretch.start.strftime('%H:%M'), stretch.end.strftime('%H:%M')) for stretch in weekday] == [
+            ('11:00', '11:30')]
+        assert usual_hours.stretches(connection, clock.now(), on_weekend=True) == []
+        tuesday = clock.now().replace(day=6)
+        assert usual_hours.around_now(connection, tuesday.replace(hour=11, minute=20)) is not None
+        assert usual_hours.around_now(connection, tuesday.replace(hour=11, minute=40)) is None
+        assert usual_hours.around_now(connection, tuesday.replace(day=10, hour=11, minute=20)) is None
+
+
+def test_answers_to_her_own_texts_do_not_teach_the_hours(client, companion, clock):
+    from companion.life import usual_hours
+    wrote_at(client, *weekdays_at(clock, 15, 0), answering=True)
+    with client.app.state.database.connect() as connection:
+        assert usual_hours.stretches(connection, clock.now(), on_weekend=False) == []
+
+
+def test_she_asks_about_lunch_when_the_user_usually_writes_at_lunch(client, companion, clock, monkeypatch):
+    monkeypatch.setattr(openers, 'CHECK_INS', True)
+    monkeypatch.setattr(openers, 'USUAL_CHANCE', 1.0)
+    monkeypatch.setattr(openers, 'CHANCE', dict.fromkeys(openers.CHANCE, 0.0))
+    office_worker(client)
+    wrote_at(client, *weekdays_at(clock, 11, 10))
+    # Tuesday 6 October, every five minutes from 10:30 UTC (11:30 in Lisbon, at her desk).
+    clock.instant = clock.now().replace(day=6, hour=10, minute=30)
+    sent = []
+    while clock.now() < clock.now().replace(hour=12, minute=0) and not sent:
+        clock.advance(timedelta(minutes=5))
+        result = check(client)
+        if result['state'] == 'sent':
+            sent.append((clock.now().strftime('%H:%M'), result))
+    assert sent and '11:00' <= sent[0][0] < '11:30'
+    result = sent[0][1]
+    assert result['kind'] == 'usual_time' and 'lunch' in result['message']['text'].lower()
+
+
+def test_she_does_not_reach_out_at_the_user_usual_time_while_she_is_busy(client, companion, clock, monkeypatch):
+    monkeypatch.setattr(openers, 'CHECK_INS', True)
+    monkeypatch.setattr(openers, 'USUAL_CHANCE', 1.0)
+    monkeypatch.setattr(openers, 'CHANCE', dict.fromkeys(openers.CHANCE, 0.0))
+    office_worker(client)
+    wrote_at(client, *weekdays_at(clock, 14, 40))  # 15:40 in Lisbon: she is at the office.
+    clock.instant = clock.now().replace(day=6, hour=14, minute=30)
+    while clock.now().hour < 16:
+        clock.advance(timedelta(minutes=5))
+        assert check(client)['state'] == 'nothing'
+    with client.app.state.database.connect() as connection:
+        assert openers.usual_hours.around_now(connection, clock.now().replace(hour=14, minute=50)) is not None
+        found = openers.usual_time(connection, openers.current(connection), clock.now().replace(hour=14, minute=50))
+        assert found == []

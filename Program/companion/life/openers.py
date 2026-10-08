@@ -4,7 +4,9 @@ Fixed triggers decide when the companion opens a conversation, from saved state 
 user mentioned whose day has passed, news from the companion's own committed life, an event that
 touches something the user told them, a follow-up the companion promised ("tell me how the search
 is going later") once they have a free moment, an ordinary check-in at a break in their day (lunch,
-after work or class, a free evening; rolled with seeded dice, so not every day), or, only for a
+after work or class, a free evening; rolled with seeded dice, so not every day), a message at a time the user is
+usually around (learned from when they start conversations, see usual_hours.py: a lunch question when they often
+write at lunch), or, only for a
 character given an absence trait, a long silence. The facts come from that state; a model only
 phrases the message in the character's voice, and a trigger that needs phrasing waits when no model
 is connected.
@@ -24,7 +26,7 @@ from companion.characters import current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import occasions, own_plans, pacing, recommendations, routine, storylines
+from companion.life import occasions, own_plans, pacing, recommendations, routine, storylines, usual_hours
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -70,6 +72,22 @@ CHECK_IN = {'lunch': ("Lunch break, finally. How's your day going?", 'Escaped my
             'after': ("Finally done with {done} for today. How's your day been?", 'Okay, out of {done}. How was your day?'),
             'evening': ("Hey you. How's your evening going?", 'Hi :) how was your day?')}
 DONE = {'work': 'work', 'study': 'class'}
+# Reaching out when the user is usually around (usual_hours.py): a seeded roll per day and stretch, at a
+# seeded minute in its first half hour. Picked by where the stretch starts in the user's day.
+USUAL_CHANCE = 0.5
+USUAL = [  # (from, until, moment, what to ask, templates)
+    (time(5, 0), time(11, 0), 'their morning', 'ask what their day looks like',
+     ("Morning! What's on for you today?", 'Hey, good morning. Big day ahead?')),
+    (time(11, 0), time(14, 30), 'around their lunchtime', 'ask what they are doing for lunch or whether they have '
+     'lunch plans', ('Hey! Any lunch plans today?', 'Lunchtime question: what are you eating today?')),
+    (time(14, 30), time(17, 0), 'their afternoon', "ask how their afternoon is going",
+     ("How's your afternoon going?", 'Afternoon slump yet? How are you doing?')),
+    (time(17, 0), time(19, 0), 'the end of their day', 'ask how their day went',
+     ("Hey you. How'd your day go?", 'Day done yet? How was it?')),
+    (time(19, 0), time(23, 59, 59), 'their evening', 'ask what they are up to tonight',
+     ('What are you up to tonight?', "Hey :) how's your evening?")),
+]
+LATE = ('late at night for them', 'ask how they are doing', ('Hey, you still up?', "Can't sleep either?"))
 LATER = re.compile(r"\b(?:later|tonight|after work|after class|this evening|when i'?m (?:free|off|home|done|out)"
                    r'|on my (?:lunch|break))\b', re.IGNORECASE)
 ASK = re.compile(r"\b(?:hear|tell me|fill me in|catch me up|ask you|check (?:in|on|back)|update me|know how|talk about)\b",
@@ -265,8 +283,42 @@ def check_in(connection, companion, now) -> list[Trigger]:
                     rng.choice(CHECK_IN[moment]).format(done=done))]
 
 
+def at_liberty(connection, companion, now) -> bool:
+    """The companion could pick up their phone: on a break (free_moment), or simply not asleep, working,
+    studying or out with people. Their own day decides, not the user's."""
+    if free_moment(connection, companion, now):
+        return True
+    found = pacing.block_now(connection, companion, now)
+    block = found[0] if found else None
+    return not (block and (block['kind'] in routine.RESTING or block['kind'] == 'social' or busy(block)))
+
+
+def usual_time(connection, companion, now) -> list[Trigger]:
+    """The user is usually around about now (they keep starting conversations at this time of day), so the
+    companion sometimes reaches out first, when they are free themselves: a lunch question at the user's
+    usual lunchtime. On seeded days, at a seeded minute."""
+    if not CHECK_INS or not (found := usual_hours.around_now(connection, now)):
+        return []
+    stretch, began = found
+    key = f'usual:{began.date().isoformat()}:{stretch.start.strftime("%H:%M")}'
+    rng = random.Random(f"{companion['id']}:{key}")
+    if rng.random() >= USUAL_CHANCE or now < began + timedelta(minutes=rng.randint(0, 25)):
+        return []
+    if not at_liberty(connection, companion, now):
+        return []
+    moment, ask, templates = next(((moment, ask, templates) for start, until, moment, ask, templates in USUAL
+                                   if start <= stretch.start < until), LATE)
+    return [Trigger(key, 'usual_time',
+                    f"It is {moment} ({began.strftime('%H:%M')} where they are), a time when the user often writes "
+                    f'to you, and you have a free minute. Reach out first and {ask}, the way someone who knows their '
+                    'rhythm would. Do not say you noticed or keep track of when they are around, never claim to '
+                    'know what they are doing, and do not invent events, places or people.',
+                    rng.choice(templates))]
+
+
 # In priority order; later features add their own.
-FINDERS = [occasion, plan_follow_ups, promises, finished, storyline_news, news, reminders, silence, check_in]
+FINDERS = [occasion, plan_follow_ups, promises, finished, storyline_news, news, reminders, silence, usual_time,
+           check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
