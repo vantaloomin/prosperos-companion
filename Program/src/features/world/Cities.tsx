@@ -10,11 +10,24 @@ import { cityFacts, definitionOf, exportName, groupCities, GROUPS, parseDefiniti
 
 const CITIES_KEY = ['cities']
 const BROKEN_KEY = ['broken-cities']
-type Feedback = { tone: 'info' | 'error'; text: string } | null
+// `notes` lists what the server mended or added when it loaded a city (companion/world/mend.py).
+type Feedback = { tone: 'info' | 'error'; text: string; notes?: string[] } | null
 // What the editor is working on: a new city (from the template, a file or a copy) or one of the user's own.
 type Editing = { mode: 'create'; text: string } | { mode: 'update'; id: string; revision: number; text: string }
 
 const pretty = (value: unknown) => JSON.stringify(value, null, 1)
+
+function FeedbackNotice({ feedback }: { feedback: NonNullable<Feedback> }) {
+  return (
+    <Notice tone={feedback.tone}>
+      {feedback.text}
+      {feedback.notes && feedback.notes.length > 0 && <>
+        {' '}Along the way:
+        <ul className="city-notes">{feedback.notes.map((note) => <li key={note}>{note}</li>)}</ul>
+      </>}
+    </Notice>
+  )
+}
 
 function saveFile(id: string, definition: unknown) {
   const link = document.createElement('a')
@@ -76,9 +89,9 @@ export function Cities() {
         <button type="button" className="button" onClick={() => file.current?.click()}><Upload aria-hidden="true" />Open a city file</button>
         <input ref={file} type="file" accept=".json,application/json" hidden onChange={(event) => void importFile(event.target.files?.[0])} />
       </div>
-      <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
+      <div aria-live="polite">{feedback && <FeedbackNotice feedback={feedback} />}</div>
       {editing && <CityEditor editing={editing} onClose={() => setEditing(null)}
-        onSaved={(name) => { setEditing(null); setFeedback({ tone: 'info', text: `Saved ${name}.` }); void refresh() }} />}
+        onSaved={(saved) => { setEditing(null); setFeedback({ tone: 'info', text: `Saved ${saved.name}.`, notes: saved.import_notes }); void refresh() }} />}
       {cities.isPending && <Loading label="Loading cities" />}
       {cities.isError && <ErrorNotice error={cities.error} />}
       {broken.data?.map((city) => (
@@ -127,7 +140,7 @@ export function Cities() {
   )
 }
 
-function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: () => void; onSaved: (name: string) => void }) {
+function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: () => void; onSaved: (city: CityListing) => void }) {
   const [text, setText] = useState(editing.text)
   const [result, setResult] = useState<Feedback>(null)
   const [busy, setBusy] = useState(false)
@@ -138,11 +151,11 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
     try {
       if (!save) {
         const checked = await api<{ summary: CityListing }>('/world/validate', parsed.value)
-        setResult({ tone: 'info', text: `Looks good: ${checked.summary.name}, ${cityFacts(checked.summary)}.` })
+        setResult({ tone: 'info', text: `Looks good: ${checked.summary.name}, ${cityFacts(checked.summary)}.`, notes: checked.summary.import_notes })
       } else if (editing.mode === 'create') {
-        onSaved((await api<CityListing>('/world/cities', parsed.value)).name)
+        onSaved(await api<CityListing>('/world/cities', parsed.value))
       } else {
-        onSaved((await api<CityListing>(`/world/cities/${editing.id}`, { definition: parsed.value, expected_revision: editing.revision }, 'PUT')).name)
+        onSaved(await api<CityListing>(`/world/cities/${editing.id}`, { definition: parsed.value, expected_revision: editing.revision }, 'PUT'))
       }
     } catch (error) {
       setResult({ tone: 'error', text: error instanceof Error ? error.message : 'Not saved.' })
@@ -151,10 +164,10 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
   return (
     <div className="city-editor form-stack">
       <h3>{editing.mode === 'create' ? 'New city' : `Editing ${editing.id}`}</h3>
-      <p className="subtle" id="city-json-hint">A city is a JSON file. Every place, college and employer names its neighbourhood, and every record names a source. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+      <p className="subtle" id="city-json-hint">A city is a JSON file. Every place, college and employer names its neighbourhood. New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
       <label htmlFor="city-json" className="visually-hidden">City definition</label>
       <textarea id="city-json" aria-describedby="city-json-hint" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
-      <div aria-live="polite">{result && <Notice tone={result.tone}>{result.text}</Notice>}</div>
+      <div aria-live="polite">{result && <FeedbackNotice feedback={result} />}</div>
       <div className="form-actions">
         <button type="button" className="button primary" disabled={busy} onClick={() => void run(true)}>Save</button>
         <button type="button" className="button" disabled={busy} onClick={() => void run(false)}>Check</button>
@@ -204,6 +217,9 @@ function Packs({ onReloaded }: { onReloaded: () => void }) {
       <p className="subtle">City files dropped in these folders load as read-only packs. Packs marked private are for your own use and are never shared from here.</p>
       <ul>{packs.data.folders.map((folder) => <li key={folder}><code>{folder}</code></li>)}</ul>
       {packs.data.loaded.length > 0 && <p className="subtle">Loaded: {packs.data.loaded.map((item) => item.file.split(/[\\/]/).pop()).join(', ')}</p>}
+      {packs.data.loaded.filter((item) => item.import_notes?.length).map((item) => (
+        <FeedbackNotice key={item.file} feedback={{ tone: 'info', text: `${item.file.split(/[\\/]/).pop()} loaded.`, notes: item.import_notes }} />
+      ))}
       {packs.data.errors.map((item) => <Notice key={item.file} tone="error">{item.file}: {item.error}</Notice>)}
       {error && <Notice tone="error">{error}</Notice>}
       <div className="form-actions"><button type="button" className="button" disabled={busy} onClick={() => void reload()}><FolderSync aria-hidden="true" />Reload packs</button></div>

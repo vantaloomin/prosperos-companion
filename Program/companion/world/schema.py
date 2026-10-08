@@ -14,20 +14,25 @@ Cost = Literal['free', '$', '$$', '$$$', '$$$$']
 Season = Literal['winter', 'spring', 'summer', 'fall']
 Company = Literal['solo', 'friends', 'date', 'family', 'coworkers']
 DayPart = Literal['morning', 'afternoon', 'evening', 'late']
-PlaceKind = Literal['attraction', 'museum', 'park', 'beach', 'landmark', 'venue', 'stadium', 'market', 'shopping',
+# Kinds the generators reason about. Place kinds, college types, transit kinds and local colour kinds are open:
+# a city may add its own (a bowling alley, a film school), which work everywhere a specific kind is not asked for.
+PLACE_KINDS = ('attraction', 'museum', 'park', 'beach', 'landmark', 'venue', 'stadium', 'market', 'shopping',
                     'restaurant', 'cafe', 'bar', 'nightlife', 'fitness', 'library', 'trail',
                     # Kinds for historical, fictional and original settings.
-                    'tavern', 'inn', 'temple', 'guildhall', 'workshop', 'square', 'docks', 'garden']
+                    'tavern', 'inn', 'temple', 'guildhall', 'workshop', 'square', 'docks', 'garden')
+PlaceKind = Id
 Exposure = Literal['indoor', 'outdoor', 'mixed']
 Tier = Literal['low', 'mid', 'high', 'very-high']
 Level = Literal['low', 'medium', 'high']
-CollegeType = Literal['research-university', 'public-university', 'private-university', 'liberal-arts-college',
+COLLEGE_TYPES = ('research-university', 'public-university', 'private-university', 'liberal-arts-college',
                       'community-college', 'art-school', 'medical-school', 'technical-institute', 'music-school',
-                      'academy', 'seminary', 'guild-school']
+                      'academy', 'seminary', 'guild-school')
+CollegeType = Id
 Size = Literal['small', 'medium', 'large']
-TransitKind = Literal['subway', 'light-rail', 'commuter-rail', 'bus', 'ferry', 'water-taxi', 'monorail',
+TRANSIT_KINDS = ('subway', 'light-rail', 'commuter-rail', 'bus', 'ferry', 'water-taxi', 'monorail',
                       'streetcar', 'bike-share', 'car', 'rideshare', 'walk',
-                      'carriage', 'horse', 'tram', 'airship', 'boat', 'stagecoach']
+                      'carriage', 'horse', 'tram', 'airship', 'boat', 'stagecoach')
+TransitKind = Id
 # What a city is: a real place, a well-known fictional setting, or an original one (built in or the user's own).
 Setting = Literal['real', 'fictional', 'original']
 Era = Literal['modern', 'victorian', 'medieval', 'fantasy', 'steampunk', 'frontier', 'future', 'other']
@@ -39,7 +44,7 @@ class Record(BaseModel):
 
 
 class Source(Record):
-    kind: Literal['curated', 'wikidata', 'openstreetmap', 'government', 'user', 'other']
+    kind: Id  # curated, wikidata, openstreetmap, government, user or other, or a city's own
     title: Text
     license: Text
     retrieved: Annotated[str, Field(pattern=r'^\d{4}-\d{2}-\d{2}$')]
@@ -239,11 +244,15 @@ class Holiday(Record):
         return self
 
 
+LOCAL_COLOR_KINDS = ('dish', 'drink', 'saying', 'custom', 'team', 'shop', 'other')
+SOURCE_KINDS = ('curated', 'wikidata', 'openstreetmap', 'government', 'user', 'other')
+
+
 class LocalColor(Record):
     """Something locals eat, drink, say, root for or do, so the model can mention it without inventing it."""
     id: Id
     name: Text
-    kind: Literal['dish', 'drink', 'saying', 'custom', 'team', 'shop', 'other']
+    kind: Id  # LOCAL_COLOR_KINDS, or a city's own
     summary: Text
     # Where it is easiest to find, when it is a thing found in particular places.
     places: list[Id] = Field(default_factory=list, max_length=6)

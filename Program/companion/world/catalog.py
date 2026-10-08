@@ -11,7 +11,8 @@ from pydantic import ValidationError
 
 from companion.errors import DomainError
 from companion.identity import data_dir
-from companion.world.schema import Careers, City, Holidays, Names
+from companion.world import mend as mending
+from companion.world.schema import Career, Careers, City, Holidays, Names
 
 DATA = Path(__file__).parent / 'data'
 
@@ -87,24 +88,49 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
-def prepare(raw: bytes | str | dict) -> dict:
-    """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError."""
+def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
+    """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError.
+
+    With `mend` (user cities and packs), small mistakes are mended first (companion/world/mend.py), careers an
+    employer names that the app lacks are added as the city's own, and `import_notes` says what changed."""
+    notes = []
+    if mend:
+        raw, notes = mending.mend(raw if isinstance(raw, dict) else json.loads(raw))
     model = City.model_validate(raw) if isinstance(raw, dict) else City.model_validate_json(raw)
     data = model.model_dump(mode='json')
     known = careers_for(data)
     for employer in data['employers']:
         unknown = set(employer['careers']) - set(known)
-        if unknown:
+        if unknown and mend:
+            for career_id in sorted(unknown):
+                data['careers'].append(new_career(career_id, employer))
+                notes.append(f'Added the job "{data["careers"][-1]["name"]}", which {employer["name"]} hires for.')
+            known = careers_for(data)
+        elif unknown:
             raise ValueError(f'{employer["id"]} names careers this city does not offer: {sorted(unknown)}.')
     own = data.get('names') or {}
     if own.get('bank') and own['bank'] not in names()['banks']:
-        raise ValueError(f'Unknown name bank {own["bank"]!r}; the banks are {sorted(names()["banks"])}.')
+        if not mend:
+            raise ValueError(f'Unknown name bank {own["bank"]!r}; the banks are {sorted(names()["banks"])}.')
+        notes.append(f'There is no name bank "{own["bank"]}", so names come from the era\'s usual one.')
+        own['bank'] = None
     if data.get('calendar') not in (None, 'none', *holiday_calendars()):
-        raise ValueError(f'Unknown calendar {data["calendar"]!r}; the calendars are {sorted(holiday_calendars())}.')
+        if not mend:
+            raise ValueError(f'Unknown calendar {data["calendar"]!r}; the calendars are {sorted(holiday_calendars())}.')
+        notes.append(f'There is no holiday calendar "{data["calendar"]}", so the usual one for the era is used.')
+        data['calendar'] = None
     # Identifies the exact data a generator used, so a recorded event can name its inputs (PRD T7).
     canonical = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     data['data_version'] = hashlib.sha256(canonical.encode()).hexdigest()[:12]
-    return data
+    return data | ({'import_notes': notes} if notes else {})
+
+
+def new_career(career_id: str, employer: dict) -> dict:
+    """A career a city's employer names that the app lacks, made from its id so the employer can hire for it."""
+    name = career_id.replace('-', ' ').capitalize()
+    return Career(id=career_id, name=name, sector=employer['sector'], schedule='office', pay='$$',
+                  summary=f'{name} work, as at {employer["name"]}.'[:400], themes=['work', employer['sector']]
+                  ).model_dump(mode='json')
 
 
 PACKS_ENV = 'COMPANION_CITY_PACKS'
@@ -136,7 +162,7 @@ def _library() -> tuple[dict[str, dict], tuple[dict, ...]]:
     for folder in pack_dirs():
         for path in city_files(folder):
             try:
-                data = prepare(path.read_bytes())
+                data = prepare(path.read_bytes(), mend=True)
             except (ValidationError, ValueError, OSError) as error:
                 errors.append({'file': str(path), 'error': str(error)[:2000]})
                 continue
@@ -177,7 +203,8 @@ def summary(data: dict) -> dict:
     return {key: data[key] for key in keys} | {
         'counts': {key: len(data[key]) for key in ('neighborhoods', 'places', 'colleges', 'employers',
                                                    'annual_events')}, 'builtin': data.get('builtin', False),
-        'origin': data.get('origin', 'user'), 'distribution': data['distribution']}
+        'origin': data.get('origin', 'user'), 'distribution': data['distribution'],
+        'import_notes': data.get('import_notes', [])}
 
 
 def neighborhood(data: dict, hood_id: str) -> dict:

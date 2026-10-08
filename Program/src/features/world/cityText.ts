@@ -13,15 +13,17 @@ export interface CityListing {
   builtin: boolean
   origin: 'builtin' | 'pack' | 'user'
   distribution: 'public' | 'private'
+  /** What the server mended or added when it loaded the city; empty when it loaded as written. */
+  import_notes?: string[]
 }
 
 /** One of the user's own cities that no longer loads, with its saved definition. */
 export interface BrokenCity { id: string; name: string; error: string; definition: unknown }
 
-export interface PackReport { folders: string[]; loaded: { id: string; file: string }[]; errors: { file: string; error: string }[] }
+export interface PackReport { folders: string[]; loaded: { id: string; file: string; import_notes?: string[] }[]; errors: { file: string; error: string }[] }
 
 /** Keys the server adds when it loads a city; they are not part of a definition. */
-const DERIVED = ['data_version', 'builtin', 'origin', 'pack_file', 'revision', 'created_at', 'updated_at']
+const DERIVED = ['data_version', 'builtin', 'origin', 'pack_file', 'revision', 'created_at', 'updated_at', 'import_notes']
 
 export function definitionOf(city: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(city).filter(([key]) => !DERIVED.includes(key)))

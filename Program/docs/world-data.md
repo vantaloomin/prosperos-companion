@@ -265,6 +265,28 @@ new city from the template, open a city file someone shared, copy any city, edit
 | `PUT /api/world/cities/{id}` `{"definition", "expected_revision"}` | Replaces a user city; 409 when the revision is stale |
 | `DELETE /api/world/cities/{id}` | Deletes a user city; 409 while the companion's `home_city` is that city |
 
+**Forgiving loading.** User cities and packs are mended before validation (`companion/world/mend.py`)
+so one slightly wrong word never stops a city loading; built-in cities are not, and their tests keep
+them exact. What it does:
+
+- Place kinds, college types, transit kinds, local colour kinds and source kinds are open lists. A new
+  one (`bowling-alley`, `film-school`) is kept as written in id form. A place of a new kind turns up
+  in general outings, townsfolk and dates but not where a specific kind is asked for (meals look for
+  restaurants and cafes), so words that plainly mean a known kind are read as it: `diner` is a
+  `restaurant`, `pub` a `bar`, `Metro` a `subway`.
+- A career an employer names that the app lacks is added as the city's own career, named from its id.
+- Words for the closed lists the generators reason about (cost, day parts, seasons, who a place is good
+  for, setting, era, schedule, size) are read as the nearest known word (`cheap` is `$`, `Autumn` is
+  `fall`, `night` is `late`, `all` is every value), and left out of a list when nothing is near.
+- Ids are put in id form (`Echo Park` → `echo-park`), fields the app does not use are ignored, missing
+  fields get defaults, unknown sources cite the first source, references to missing transit lines or
+  places are dropped, and a place whose neighbourhood is not in the city (by id or name) is left out.
+
+Each change is a sentence in `import_notes` on the save, check and pack responses (and in
+`python -m companion.world.check` output as `adjusted:`), and Settings shows them after a save. The
+saved definition is the mended one. Only a file that is not JSON or lacks a neighbourhood, a place or
+an id still fails.
+
 Built-in cities cannot be changed or deleted, only copied. A user city's `data_version` is a hash
 of its content, so editing it changes the version later events record.
 
@@ -289,7 +311,7 @@ database) is left out of every list rather than failing them all, and is logged 
 Cities shows them with Save as file and Delete.
 
 **Checking a city file.** `python -m companion.world.check [FILE_OR_FOLDER ...]` validates files
-exactly as the app loads them, and with no arguments checks the built-in cities and every pack
+exactly as the app loads them (mending all but the built-in cities), and with no arguments checks the built-in cities and every pack
 folder. Errors mean the file will not load. Warnings point out thin spots that make days there
 repetitive: neighbourhoods with fewer than two places or nowhere to eat, no employers or career
 hubs, or no climate. `--json` prints the results for tools. It exits 1 when any file has errors,
