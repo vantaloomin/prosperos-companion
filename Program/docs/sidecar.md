@@ -47,8 +47,9 @@ The relationship, home city and emotional traits are never changed from the side
 form is still empty, a long paste is split into every field at once ([character-drafting.md](character-drafting.md)).
 
 **Only the companion's replies can be edited.** The user's own messages stay as written, because
-memories are drawn from the user's words; to change what was said, use **Edit from here** in the
-conversation, which starts a new branch.
+memories are drawn from the user's words; to change what was said, use **Edit** on the message in
+the conversation, which starts a new branch. **Edit** on a reply in the conversation uses the same
+in-place edit as the sidecar.
 
 ## Editing a reply
 

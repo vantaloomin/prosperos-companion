@@ -356,8 +356,9 @@ class ContextLookup(Input):
 
 
 class TimelineFork(Input):
+    """Branch from here without text; Edit from here (the user's own messages) with the edited words."""
     message_id: str = Field(min_length=1, max_length=64)
-    text: str = Field(min_length=1, max_length=40000)
+    text: str | None = Field(default=None, min_length=1, max_length=40000)
     label: str = Field(default='', max_length=80)
 
 

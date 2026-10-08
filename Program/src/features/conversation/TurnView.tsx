@@ -1,6 +1,6 @@
 import { appNow, realDelay } from '../../appTime.ts'
 import { memo, useEffect, useState, type ReactNode } from 'react'
-import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, MessageSquareText, RotateCcw, Square } from 'lucide-react'
+import { BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, MessageSquareText, Pencil, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { Stamp } from '../../components/Stamp'
@@ -21,7 +21,10 @@ interface Props {
   onStop: (replyId: string) => void
   onRemember: (message: Message) => void
   onDecline: (message: Message) => void
+  /** Your message: Edit from here (a new timeline). Their reply: new wording in place. */
   onEdit: (message: Message) => void
+  /** A new timeline with everything up to and including this message, yours or theirs. */
+  onBranch: (message: Message) => void
   /** Their texting style sends short bursts: each paragraph is its own bubble. */
   bursts: boolean
   /** A message found by search: shown even when it is not the default attempt, and marked. */
@@ -35,17 +38,17 @@ function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
-export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, bursts, highlight, followUpOf }: Props) {
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onStop, onRemember, onDecline, onEdit, onBranch, bursts, highlight, followUpOf }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} bursts={bursts} />
-      <TurnUser turn={turn} name={name} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
+      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} onEdit={onEdit} onBranch={onBranch} bursts={bursts} />
+      <TurnUser turn={turn} name={name} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} onBranch={onBranch} />
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
-          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} bursts={bursts} />
+          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onEdit={onEdit} onBranch={onBranch} bursts={bursts} />
       )}
       {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onRetry={(id) => { setChosen(null); onRetry(id) }} />}
     </>
@@ -73,39 +76,50 @@ function RetryAction({ label, onRetry }: { label: string; onRetry: () => void })
 }
 
 /** Messages the companion sent first: shown like replies, with no versions to page through. */
-function Leads({ messages, name, highlight, onStop, bursts }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void; bursts: boolean }) {
-  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} bursts={bursts} />)}</>
+type Act = (message: Message) => void
+
+function Leads({ messages, name, highlight, onStop, onEdit, onBranch, bursts }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void; onEdit: Act; onBranch: Act; bursts: boolean }) {
+  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} onEdit={onEdit} onBranch={onBranch} bursts={bursts} />)}</>
 }
 
-function TurnUser({ turn, name, highlight, onRemember, onDecline, onEdit }: { turn: Turn; name: string; highlight?: string | null; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
+function TurnUser({ turn, name, highlight, onRemember, onDecline, onEdit, onBranch }: { turn: Turn; name: string; highlight?: string | null; onRemember: Act; onDecline: Act; onEdit: Act; onBranch: Act }) {
   if (!turn.user) return null
-  return <UserMessage message={turn.user} name={name} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} />
+  return <UserMessage message={turn.user} name={name} found={highlight === turn.user.id} settled={turn.attempts.map((item) => item.status).join()} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} onBranch={onBranch} />
 }
 
-function UserMessage({ message, name, found, settled, onRemember, onDecline, onEdit }: { message: Message; name: string; found: boolean; settled: string; onRemember: (message: Message) => void; onDecline: (message: Message) => void; onEdit: (message: Message) => void }) {
-  // On a touch screen the actions wait behind a button, so each message is not followed by a row of them.
-  // Opened, they float over the messages below (styles.css) and close once one is used or focus leaves.
+/** A message's actions. On a touch screen they wait behind a button, so each message is not followed by a row of them.
+ * Opened, they float over the messages below (styles.css) and close once one is used or focus leaves. */
+function MessageActions({ message, actions, children }: { message: Message; actions: [string, ReactNode, Act][]; children?: ReactNode }) {
   const [open, setOpen] = useState(false)
-  const act = (action: (message: Message) => void) => () => { setOpen(false); action(message) }
+  return (
+    <span className={classes('message-actions', { open })}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
+      onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
+      {actions.length > 0 && <>
+        <button type="button" className="text-button message-more" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /><span className="visually-hidden">Message actions</span></button>
+        <span className="message-tools">
+          {actions.map(([label, icon, action]) => <button key={label} type="button" className="text-button" onClick={() => { setOpen(false); action(message) }}>{icon}{label}</button>)}
+        </span>
+      </>}
+      {children}
+    </span>
+  )
+}
+
+function UserMessage({ message, name, found, settled, onRemember, onDecline, onEdit, onBranch }: { message: Message; name: string; found: boolean; settled: string; onRemember: Act; onDecline: Act; onEdit: Act; onBranch: Act }) {
+  const actions: [string, ReactNode, Act][] = message.redacted ? [] : [
+    ['Remember this', <BookmarkPlus key="icon" aria-hidden="true" />, onRemember],
+    ["Don't remember this", <BookmarkX key="icon" aria-hidden="true" />, onDecline],
+    ['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit],
+    ['Branch from here', <GitBranch key="icon" aria-hidden="true" />, onBranch],
+  ]
   return (
     <article id={`message-${message.id}`} className={classes('message message-user', { found })} aria-label="You" tabIndex={found ? -1 : undefined}>
       <Avatar name="You" />
       <header>
         <Stamp value={message.created_at} clock className="stamp-lead" />
         <span className="speaker">You</span>
-        <span className={classes('message-actions', { open })}
-          onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
-          onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
-          {!message.redacted && <>
-            <button type="button" className="text-button message-more" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /><span className="visually-hidden">Message actions</span></button>
-            <span className="message-tools">
-              <button type="button" className="text-button" onClick={act(onRemember)}><BookmarkPlus aria-hidden="true" />Remember this</button>
-              <button type="button" className="text-button" onClick={act(onDecline)}><BookmarkX aria-hidden="true" />Don't remember this</button>
-              <button type="button" className="text-button" onClick={act(onEdit)}><GitBranch aria-hidden="true" />Edit from here</button>
-            </span>
-          </>}
-          <Stamp value={message.created_at} />
-        </span>
+        <MessageActions message={message} actions={actions}><Stamp value={message.created_at} /></MessageActions>
       </header>
       <div className="prose">{message.redacted ? <p className="subtle">This message was deleted.</p> : <Paragraphs text={message.text} />}</div>
       {!message.redacted && <SentPictures message={message} name={name} />}
@@ -114,9 +128,9 @@ function UserMessage({ message, name, found, settled, onRemember, onDecline, onE
   )
 }
 
-interface ReplyProps { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void; bursts: boolean }
+interface ReplyProps { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void; onEdit: Act; onBranch: Act; bursts: boolean }
 
-function Reply({ message, found, name, text, position, onPage, onStop, bursts }: ReplyProps) {
+function Reply({ message, found, name, text, position, onPage, onStop, onEdit, onBranch, bursts }: ReplyProps) {
   const note = statusDetail(message)
   const held = useHeld(message)
   // A reply being written while they are away stays out of sight: no typing dots, no Stop.
@@ -129,7 +143,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
       <header>
         <Stamp value={message.created_at} clock className="stamp-lead" />
         <span className="speaker">{name}</span>
-        <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} />
+        <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} onEdit={onEdit} onBranch={onBranch} />
       </header>
       <ReplyBody text={text} streaming={streaming} bursts={bursts} />
       <ReplyExtras message={message} name={name} note={note} />
@@ -137,7 +151,8 @@ function Reply({ message, found, name, text, position, onPage, onStop, bursts }:
   )
 }
 
-function ReplyTools({ message, position, streaming, onPage, onStop }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop'> & { streaming: boolean }) {
+function ReplyTools({ message, position, streaming, onPage, onStop, onEdit, onBranch }: Pick<ReplyProps, 'message' | 'position' | 'onPage' | 'onStop' | 'onEdit' | 'onBranch'> & { streaming: boolean }) {
+  const actions = replyActions(message, streaming, onEdit, onBranch)
   return (
     <span className="reply-tools">
       <Stamp value={message.created_at} />
@@ -150,8 +165,16 @@ function ReplyTools({ message, position, streaming, onPage, onStop }: Pick<Reply
       )}
       {streaming && <button type="button" className="text-button" onClick={() => onStop(message.id)}><Square aria-hidden="true" />Stop</button>}
       {message.status === 'complete' && !message.redacted && <button type="button" className="text-button reply-sidecar" aria-label="Ask the sidecar about this reply" title="Ask the sidecar about this reply" onClick={() => sidecar.ask(message)}><MessageSquareText aria-hidden="true" /></button>}
+      <MessageActions message={message} actions={actions} />
     </span>
   )
+}
+
+/** Only a finished reply can be reworded; one that stopped or failed can still be a branch point. */
+function replyActions(message: Message, streaming: boolean, onEdit: Act, onBranch: Act): [string, ReactNode, Act][] {
+  if (message.redacted || streaming || message.status === 'withheld') return []
+  const branch: [string, ReactNode, Act] = ['Branch from here', <GitBranch key="icon" aria-hidden="true" />, onBranch]
+  return message.status === 'complete' ? [['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit], branch] : [branch]
 }
 
 /** What follows a reply once it shows: the picture it sent and a note on how it ended. */

@@ -96,9 +96,13 @@ them; backups carry them.
 
 ## Timelines (C4)
 
-`companion/timelines.py` handles historical edits. Editing one of the user's earlier messages
-(`POST /api/timelines` with `message_id` and the new `text`) never rewrites the live relationship:
-it creates a separate, inactive timeline holding a copy of everything before that message. The
+`companion/timelines.py` handles branches and historical edits. Neither rewrites the live
+relationship: each creates a separate, inactive timeline. **Branch from here** on any message, the
+user's or the companion's (`POST /api/timelines` with `message_id` and no `text`), keeps everything up
+to and including that message; its fork point (`forked_at`) is when the next message was written, or
+now at the newest one, so memories and life in between carry over. Branching at one version of a
+reply makes that version the one shown. Editing one of the user's earlier messages (with the new
+`text`) keeps everything before that message instead. The
 conversation, the companion's committed events (and plans made before the edit), the posts showing
 them, the circle and the circle's diary are copied with new identities; the edited words wait as
 the timeline's `draft` until they are sent there. Copied messages record the message they were
@@ -114,8 +118,11 @@ moment it is chosen: the time it spent frozen, or before a fork was first chosen
 simulated, and switching is not an absence for the absence mood. `GET /api/timelines` lists them
 (the first is labelled "Original"); `PATCH /api/timelines/{id}` renames one or clears its draft.
 
-In the interface, each of your messages has **Edit from here**, which opens the edit with a choice
-to switch now or keep the new timeline for later. The branch button in the conversation header
+In the interface, every message's actions (shown on hover or focus, behind ⋯ on touch screens) have
+**Branch from here** and **Edit**. Edit on your own message is the historical edit above; on the
+companion's reply it changes the wording in place (`companion/message_edits.py`, see
+[sidecar.md](sidecar.md#editing-a-reply)). Branch and edit open with a choice to switch now or keep
+the new timeline for later. The branch button in the conversation header
 lists timelines and switches between them after a confirmation. After switching to an edit, its
 words wait in the message box; switching away again takes them out unsent.
 

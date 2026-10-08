@@ -254,7 +254,8 @@ def list_timelines(request: Request):
 
 @router.post('/timelines')
 def fork_timeline(request: Request, body: TimelineFork):
-    """Edit from here: a new inactive timeline; the live one is untouched until the user switches."""
+    """Branch from here, or Edit from here on your own message: a new inactive timeline; the live one is
+    untouched until the user switches."""
     return timelines.fork(db(request), body)
 
 

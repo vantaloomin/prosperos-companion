@@ -1,5 +1,5 @@
 """Editing a companion reply in place, from the sidecar. The user's own messages are not edited here:
-memories come from the user's words, so changing those is "Edit from here" (a new timeline) instead.
+memories come from the user's words, so changing those is Edit on the message (a new timeline) instead.
 
 An edited reply is what every later reply and recall sees. What the old wording said about her goes with
 it, the way it does when a reply is replaced (docs/architecture.md): self-facts the user has not decided

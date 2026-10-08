@@ -171,3 +171,10 @@ export function personLine(person: Person): string {
   if (person.relation) return 'Name not known yet'
   return 'Relation not known yet'
 }
+
+/** "Likes to be called Q by friends" becomes "Likes to be called Q by…". */
+export function titleFrom(value: string): string {
+  const words = value.trim().split(/\s+/)
+  const title = words.slice(0, 6).join(' ').slice(0, 60)
+  return words.length > 6 || title.length < words.slice(0, 6).join(' ').length ? `${title}…` : title
+}

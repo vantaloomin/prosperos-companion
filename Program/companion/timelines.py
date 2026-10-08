@@ -1,7 +1,8 @@
 """Alternative timelines: historical edits, switching and freezing (PRD C4, T7, M6).
 
-Editing an earlier message never rewrites the live relationship. It creates a separate, inactive
-timeline holding a copy of everything before that message: the conversation, the companion's
+Branching from a message, or editing one of the user's earlier messages, never rewrites the live
+relationship. It creates a separate, inactive timeline holding a copy of everything up to that
+message (before it, for an edit): the conversation, the companion's
 committed events and the posts showing them, the circle and the circle's diary. The edited words
 wait on the new timeline as its draft until they are sent there. Memories are not copied; a
 timeline sees what its ancestors remembered before the fork (companion/lineage.py).
@@ -69,24 +70,54 @@ def update(database, timeline_id, body) -> dict:
 # Forking ----------------------------------------------------------------------------------------
 
 def fork(database, body) -> dict:
-    """Edit from here: a new inactive timeline with everything before `message_id`, and the edited
-    words as its draft. The timeline the message is on is left exactly as it was."""
+    """A new inactive timeline branching off at `message_id`. The timeline the message is on is left
+    exactly as it was.
+
+    Branch from here (no text) keeps everything up to and including the message, the user's or the
+    companion's. Edit (text, the user's own messages only) keeps everything before the message and
+    waits with the edited words as its draft; the companion's replies are edited in place instead
+    (companion/message_edits.py)."""
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         message = optional(connection, 'SELECT * FROM messages WHERE id=?', (body.message_id,))
         require(message is not None, 'That message could not be found.', 404)
         parent = timeline(connection, companion, message['timeline_id'])
-        require(message['role'] == 'user', 'Only your own messages can be edited.', 422)
         require(message['redacted_at'] is None, 'This message was deleted.', 409)
+        editing = body.text is not None
+        require(not editing or message['role'] == 'user',
+                "Only your own messages are edited in a new timeline. Edit a reply in place instead.", 422)
+        require(message['status'] != 'streaming', 'Wait for this reply to finish, or stop it, before branching from it.', 409)
         timestamp, new_id = database.now(), identifier()
+        if editing:
+            through, cutoff = message['seq'] - 1, message['created_at']
+        else:
+            through, cutoff = message['seq'], branch_cutoff(connection, message, timestamp)
         count = one(connection, 'SELECT COUNT(*) AS n FROM timelines WHERE companion_id=?', (companion['id'],))['n']
         connection.execute(
             'INSERT INTO timelines (id, companion_id, parent_id, forked_after_seq, status, created_at, label, '
             "fork_message_id, forked_at, draft) VALUES (?, ?, ?, ?, 'frozen', ?, ?, ?, ?, ?)",
-            (new_id, companion['id'], parent['id'], message['seq'] - 1, timestamp,
-             body.label.strip() or f'Timeline {count + 1}', message['id'], message['created_at'], body.text))
-        copy_history(connection, parent['id'], new_id, message)
+            (new_id, companion['id'], parent['id'], through, timestamp,
+             body.label.strip() or f'Timeline {count + 1}', message['id'], cutoff, body.text))
+        ids = copy_history(connection, parent['id'], new_id, through, cutoff)
+        if not editing and message['role'] == 'companion':
+            show_chosen_reply(connection, ids[message['id']], message['reply_to'])
         return view(connection, timeline(connection, companion, new_id), companion['active_timeline_id'])
+
+
+def branch_cutoff(connection, message, timestamp) -> str:
+    """Branching at a message keeps what happened until the next one was written: the memories and life
+    in between belong to the branch. At the newest message that is everything until now."""
+    following = optional(connection, 'SELECT created_at FROM messages WHERE timeline_id=? AND seq>? '
+                         'ORDER BY seq LIMIT 1', (message['timeline_id'], message['seq']))
+    return following['created_at'] if following else timestamp
+
+
+def show_chosen_reply(connection, copy_id, reply_to):
+    """Branching at one version of a reply makes that version the one shown in the branch."""
+    if reply_to:
+        connection.execute('UPDATE messages SET active=0 WHERE timeline_id=(SELECT timeline_id FROM messages '
+                           'WHERE id=?) AND reply_to=(SELECT reply_to FROM messages WHERE id=?)', (copy_id, copy_id))
+    connection.execute('UPDATE messages SET active=1 WHERE id=?', (copy_id,))
 
 
 def columns(connection, table) -> list[str]:
@@ -114,12 +145,12 @@ def copied_key(key: str, ids: dict, new_id: str) -> str:
     return changed if changed != key else f'fork:{new_id}:{key}'
 
 
-def copy_history(connection, parent_id, new_id, message):
-    """Copy the parent's history before the edited message into the new timeline."""
-    cutoff = message['created_at']
+def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
+    """Copy the parent's history into the new timeline: messages up to `through_seq`, and life up to
+    `cutoff`. Returns the copies' ids by original id."""
     ids = {parent_id: new_id}
-    messages = many(connection, 'SELECT * FROM messages WHERE timeline_id=? AND seq<? ORDER BY seq',
-                    (parent_id, message['seq']))
+    messages = many(connection, 'SELECT * FROM messages WHERE timeline_id=? AND seq<=? ORDER BY seq',
+                    (parent_id, through_seq))
     events = many(connection, "SELECT * FROM life_events WHERE timeline_id=? AND status='committed' "
                   "AND (ends_at<=? OR (kind='plan' AND created_at<=?)) ORDER BY starts_at", (parent_id, cutoff, cutoff))
     people = many(connection, 'SELECT * FROM circle_people WHERE timeline_id=? ORDER BY ordinal', (parent_id,))
@@ -164,6 +195,7 @@ def copy_history(connection, parent_id, new_id, message):
     insert(connection, 'life_agenda', [{
         **row, 'id': identifier(), 'timeline_id': new_id, 'subject': ids.get(row['subject'], row['subject']),
         'entry': remap(row['entry'], ids), 'prepared': None} for row in agenda])
+    return ids
 
 
 def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
