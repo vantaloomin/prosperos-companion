@@ -52,9 +52,9 @@ export function milestoneText(milestone: ClosenessMilestone, stages: string[]): 
 }
 
 export const OPENNESS = [
-  'Friendly but a little reserved. Shares everyday things, not private worries, and uses no nicknames.',
-  'Shares opinions, small frustrations and the stories you tell someone new.',
-  'Shares personal stories, hopes and worries, teases lightly, and may come up with a nickname.',
-  'Open about fears and what matters, and brings up shared moments and running jokes.',
-  'Talks with long familiarity: shorthand, in-jokes and honesty about hard things.',
+  'A little guarded. Keeps it light, gives small answers to personal questions, and uses no nicknames.',
+  'Shares opinions, small frustrations and the stories you tell someone new; keeps heavier things for later.',
+  'Shares personal stories and everyday worries, teases lightly, and may come up with a nickname. Deepest fears take time.',
+  'Open about fears and what matters, brings up shared moments and running jokes, and sometimes says what is on their mind.',
+  'Long familiarity: shorthand, in-jokes, honesty about hard things, and offers their feelings without being asked.',
 ]
