@@ -10,6 +10,7 @@ from companion.characters import by_id, insert_version
 from companion.database import identifier
 from companion.models import CharacterDefinition
 from companion.providers.chat import Chunk
+from companion.world import perception
 
 
 def ok(response):
@@ -104,7 +105,13 @@ def test_every_speaker_shares_the_cast_and_transcript_and_sees_only_their_own_li
     prefixes = [shared(request['system']) for request in requests]
     # Each speaker's shared part is the one before plus the replies written since: the cache keeps it all.
     assert all(later.startswith(earlier) for earlier, later in zip(prefixes, prefixes[1:]))
-    assert prefixes[0].startswith(groups.RULES) and '- Billy\n- Sally' in prefixes[0]
+    assert prefixes[0].startswith(groups.RULES)
+    # The cast has everyone's "Others see" line; "I see myself" stays in each speaker's own part.
+    with client.app.state.database.connect() as connection:
+        lines = {name: perception.companion_lines(connection, value) for name, value in cast.items()}
+    for name, found in lines.items():
+        assert found['public'] and found['private'] and f"- {name}: {found['public']}" in prefixes[0]
+        assert all(line not in prefixes[0] for line in found['private'])
     assert prefixes[0].endswith('User: Hi everyone, how was your week?')
     first = speaker(requests[0]['messages'])
     assert f'{first}: {first} here.' in prefixes[1]
@@ -115,6 +122,8 @@ def test_every_speaker_shares_the_cast_and_transcript_and_sees_only_their_own_li
     mira = next(request for request in requests if speaker(request['messages']) == 'Mira')
     others = [request for request in requests if request is not mira]
     assert 'Quince' in mira['system'] and all('Quince' not in request['system'] for request in others)
+    assert all(line in mira['system'] for line in lines['Mira']['private'])
+    assert all(line not in request['system'] for request in others for line in lines['Mira']['private'])
     assert all('plum' not in request['system'] for request in others)
 
     # At one moment, every speaker who sees the same messages gets byte-identical shared text.

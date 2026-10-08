@@ -123,8 +123,9 @@ Each reply is one model call for one companion, with the conversation's text mod
 start is the same for every speaker, and local servers and providers reuse it:
 
 1. **Group rules** ("Group chats" in Settings > Advanced, `RULES` in `companion/groups.py`).
-2. **The cast**: each member's chat name, in join order, with their public line (`groups.public_line`). Nothing
-   volatile goes here.
+2. **The cast**: each member's chat name, in join order, with their "Others see" line (`groups.public_line`, from
+   `perception.companion_lines`). Nothing volatile goes here, and no "I see myself" line: those ride only in the
+   speaker's own character section.
 3. **The transcript**: "Name: message" lines for everyone, the speaker's own included ("User:" for the user, app
    lines in square brackets). It takes up to 40% of the reply's context; when it outgrows that, the oldest lines
    drop 20 at a time (`groups.window`), so the prefix stays the same for many turns. Dropped lines stay
@@ -155,7 +156,8 @@ writing someone else's line is cut there (`groups.tidy`).
 
 ### Seams for the later PRs
 
-- `public_line(connection, member)`: the cast's "Others see" line.
+- `public_line(connection, member)`: the cast's "Others see" line; a guest from the town would use
+  `perception.sheet_lines`.
 - `group_lines(connection, group, stay, now)`: secrets the speaker knows, closeness to each member, who they're
   not speaking to.
 - `weights` and `plan`: closeness between members and ignoring someone.

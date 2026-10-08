@@ -16,7 +16,7 @@ The app decides everything here by rules: who is in a group, who sees which mess
 `left_seq` on each stay), who answers and in what order. The model only writes the chosen speaker's line.
 
 Seams the later group chat PRs build on:
-- `public_line`: a member's "Others see" line in the cast block (perception lines).
+- `public_line`: a member's "Others see" line in the cast block (world/perception.py).
 - `group_lines`: the speaker's private group section (secrets, closeness between members, mood).
 - `plan` and `weights`: who answers whom (closeness between members, ignoring someone).
 - Members are person keys (`companion:<id>`), so guests from a circle or the town can join as another kind.
@@ -38,6 +38,7 @@ from companion.memory.budget import token_estimate
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import CHAT, config_for, default_name, key_for
+from companion.world import perception
 
 LOG = logging.getLogger(__name__)
 
@@ -327,9 +328,11 @@ def window(rows: list[dict], budget: int) -> int:
 
 
 def public_line(connection, member: str) -> str:
-    """How others see this member, for the cast block. Filled by the perception lines ("Others see"); until
-    then, the name alone. Must not depend on who is speaking, or the shared prefix would differ."""
-    return ''
+    """How others see this member ("Others see", world/perception.py), for the cast block. Only the public line:
+    their private "I see myself" lines ride in their own character section. Must not depend on who is speaking,
+    or the shared prefix would differ."""
+    companion_id = companion_of(member)
+    return perception.companion_lines(connection, companion_id)['public'] if companion_id else ''
 
 
 def cast_text(connection, group_id: str) -> str:
