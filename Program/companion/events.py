@@ -4,7 +4,7 @@ A proposal records the character version, timeline and permission revision it wa
 Commit revalidates all three, so work that finishes after a pause, correction or timeline switch
 cannot affect the active companion. The idempotency key makes a repeated commit a no-op.
 """
-from companion.characters import require_current
+from companion.characters import for_timeline, require_current
 from companion.clock import parse, stamp
 from companion.database import bump_memory_revision, decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
@@ -15,17 +15,23 @@ def view(row: dict) -> dict:
     return {**row, 'details': decode(row['details']), 'inputs': decode(row['inputs'])}
 
 
+def owner(connection, timeline_id=None) -> dict:
+    """The companion whose life the event is part of: the timeline's own, in focus or not, else the one in focus."""
+    found = for_timeline(connection, timeline_id) if timeline_id else None
+    return found or require_current(connection)
+
+
 def propose(database, body, timeline_id=None) -> dict:
     """Background work names the timeline it was planned for, so a proposal finishing after a
     switch lands on that (now frozen) timeline and fails its commit check instead of joining the
-    newly active one (T7)."""
+    newly active one (T7). Every companion's life is simulated, so the timeline also says whose event it is."""
     starts_at, ends_at = stamp(parse(body.starts_at)), stamp(parse(body.ends_at))
     require(starts_at <= ends_at, 'An event must end after it starts.', 422)
     with database.connect(write=True) as connection:
         existing = optional(connection, 'SELECT * FROM life_events WHERE idempotency_key=?', (body.idempotency_key,))
         if existing:
             return view(existing)
-        companion = require_current(connection)
+        companion = owner(connection, timeline_id)
         event_id = identifier()
         connection.execute(
             'INSERT INTO life_events (id, companion_id, timeline_id, idempotency_key, kind, status, summary, details, '
@@ -60,7 +66,7 @@ def commit(database, event_id) -> dict:
             require(event['status'] in {'committed', 'superseded'}, 'This event was rejected.', 409)
             return view(event)
         timestamp = database.now()
-        reason = stale_reason(connection, event, require_current(connection), timestamp)
+        reason = stale_reason(connection, event, owner(connection, event['timeline_id']), timestamp)
         status = 'rejected' if reason else 'committed'
         connection.execute('UPDATE life_events SET status=?, rejection=?, decided_at=? WHERE id=?',
                            (status, reason, timestamp, event_id))
