@@ -148,11 +148,12 @@ def test_someone_added_from_now_on_sees_nothing_from_before_and_everything_shows
     assert client.post(f"/api/groups/{group['id']}/members", json={'companion_id': cast['Sally']}).status_code == 409
     provider.requests.clear()
     say(client, group['id'], 'Sally, welcome!', 'group-0002')
+    # The whole line, not just "surprise": a random self-story can have the word too.
     sally = provider.requests[0]
     assert speaker(sally['messages']) == 'Sally'
-    assert 'surprise' not in sally['prompt'] and '[The user added Sally.]' in sally['prompt']
+    assert 'party is a surprise' not in sally['prompt'] and '[The user added Sally.]' in sally['prompt']
     assert 'have seen only what was said since you joined' in sally['prompt']
-    assert all('surprise' in request['prompt'] for request in provider.requests[1:])
+    assert all('party is a surprise' in request['prompt'] for request in provider.requests[1:])
 
     # Shown everything so far, someone added later reads it all.
     other = start(client, [cast['Billy'], cast['Mira']])
@@ -160,7 +161,7 @@ def test_someone_added_from_now_on_sees_nothing_from_before_and_everything_shows
     ok(client.post(f"/api/groups/{other['id']}/members", json={'companion_id': cast['Sally'], 'history': 'everything'}))
     provider.requests.clear()
     say(client, other['id'], 'Sally, thoughts?', 'group-0004')
-    assert 'surprise' in provider.requests[0]['prompt']
+    assert 'party is a surprise' in provider.requests[0]['prompt']
     assert 'since you joined' not in provider.requests[0]['prompt']
 
 

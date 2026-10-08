@@ -122,9 +122,9 @@ async def walk(database: Database, life, landing: datetime, progress: dict):
         while clock.now() < landing:
             clock.shift(min(clock.now() + STEP, landing))
             progress['done'] = min(1.0, (clock.now() - start_at).total_seconds() / total)
-            await life.quietly('background')
+            await life.quietly_life('background')
             await life.quietly_text()
-        await life.quietly('return')
+        await life.quietly_life('return')
     finally:
         save(database)
 

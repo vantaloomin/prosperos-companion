@@ -20,6 +20,9 @@ Seams the later group chat PRs build on:
 - `group_lines`: the speaker's private group section (secrets, closeness between members, mood).
 - `plan`, `weights` and `chime_in`: who answers whom (closeness between members, later ignoring someone).
 - Members are person keys (`companion:<id>`), so guests from a circle or the town can join as another kind.
+
+Groups also start conversations on their own: a member shares something from their day and the others answer
+it as they answer the user (`GroupChats.first_words`; the rules are in companion/group_openers.py).
 """
 import asyncio
 import json
@@ -29,7 +32,7 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from companion import in_character, prompt_library, secrets, texting
+from companion import away, group_openers, in_character, prompt_library, secrets, texting
 from companion.characters import by_id
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
@@ -441,8 +444,9 @@ def recall_rows(rows: list[dict], group: dict, title_text: str) -> list[dict]:
 
 
 def prompt(connection, group: dict, companion: dict, stay: dict, now, config: dict, until_seq: int,
-           query: str) -> dict:
-    """One speaker's request: the shared part, then their private sections, then the turn."""
+           query: str, turn: str | None = None) -> dict:
+    """One speaker's request: the shared part, then their private sections, then the turn (by default, their
+    next message; a group starting a conversation passes its own)."""
     budget = config['context_tokens'] - config['max_output_tokens']
     shared, trimmed = shared_part(connection, group, stay['member'], budget, until_seq)
     earlier = visible(connection, group['id'], stay['member'], until_seq)
@@ -450,17 +454,17 @@ def prompt(connection, group: dict, companion: dict, stay: dict, now, config: di
         'older': recall_rows(trimmed, group, title(connection, group)), 'query': query,
         'lines': group_lines(connection, group, stay, now),
         'previous': earlier[-2]['created_at'] if len(earlier) > 1 else None})
-    turn = TURN.format(name=stay['name'], group=title(connection, group))
+    turn = turn or TURN.format(name=stay['name'], group=title(connection, group))
     # What changes with every message goes with the turn, so the system prompt stays cacheable.
-    return {'system': f"{shared}\n\n{private['system']}", 'shared': shared, 'note': private['note'],
+    return {'system': f"{shared}\n\n{private['system']}", 'shared': shared, 'note': private['note'], 'turn': turn,
             'messages': [{'role': 'user', 'content': f"{context.NOTE_OPEN}\n{private['note']}\n\n{turn}"}],
             'receipt': private['receipt']}
 
 
 def add_note(packet: dict, text: str) -> dict:
     """An instruction for this reply only, added to the notes just before the turn."""
-    notes, _, turn = packet['messages'][-1]['content'].rpartition('\n\n')
-    return {**packet, 'messages': [{'role': 'user', 'content': f'{notes}\n\n{text}\n\n{turn}'}]}
+    notes = packet['messages'][-1]['content'].removesuffix(packet['turn'])
+    return {**packet, 'messages': [{'role': 'user', 'content': f"{notes}{text}\n\n{packet['turn']}"}]}
 
 
 # Who answers ----------------------------------------------------------------------------------------
@@ -604,6 +608,7 @@ class GroupChats:
         self.state = state
         self.rounds: dict[str, Round] = {}
         self.locks: dict[str, asyncio.Lock] = {}
+        self.tried: set[str] = set()
 
     @property
     def database(self):
@@ -674,18 +679,67 @@ class GroupChats:
                 if not running.task.done():
                     raise
 
+    async def first_words(self, wait: bool = True) -> dict | None:
+        """Let one group whose turn it is start a conversation (companion/group_openers.py). Returns what was
+        chosen, or None."""
+        with self.database.connect() as connection:
+            found = group_openers.due(connection, self.database.clock.now(), frozenset(self.tried))
+        if not found:
+            return None
+        group_id, chosen = found[0]
+        # Tried once per run of the app: a model that keeps failing must not be asked again every minute.
+        self.tried.add(group_openers.news_key(group_id, chosen['event']['id']))
+        running = Round('', before='')
+        running.task = asyncio.create_task(self.open_up(group_id, chosen, running))
+        if wait:
+            await asyncio.shield(running.task)
+        return {'group_id': group_id, 'member': chosen['stay']['member'], 'event_id': chosen['event']['id']}
+
+    async def open_up(self, group_id: str, chosen: dict, running: Round):
+        """The chosen member's opening line, then the others answering it. Nothing is written if the group
+        stopped being free while it waited its turn (the user wrote, or replies were running)."""
+        stay, event = chosen['stay'], chosen['event']
+        async with self.locks.setdefault(group_id, asyncio.Lock()):
+            with self.database.connect() as connection:
+                life = one(connection, 'SELECT * FROM life_settings WHERE id=1')
+                if group_openers.group_held(connection, group_id, life, self.database.clock.now()):
+                    return
+                turn = prompt_library.text(connection, 'group-first-texts', name=stay['name'], news=event['summary'])
+            self.rounds[group_id] = running
+            try:
+                line_row = await self.speak(group_id, {'id': None, 'text': '', 'turn': turn}, stay, running)
+                if line_row and self.opened(line_row, group_id, event):
+                    await self.round(group_id, line_row, running, frozenset({stay['member']}))
+            finally:
+                if self.rounds.get(group_id) is running:
+                    del self.rounds[group_id]
+                self.state.conversation.after_turn()
+
+    def opened(self, row: dict, group_id: str, event: dict) -> bool:
+        """Keep a finished opening line, marked with the news it shared and drawn from the away allowance;
+        one that failed or was held back goes, as if never started."""
+        with self.database.connect(write=True) as connection:
+            if row['status'] != 'complete':
+                connection.execute('DELETE FROM group_messages WHERE id=?', (row['id'],))
+                return False
+            connection.execute('UPDATE group_messages SET client_id=? WHERE id=?',
+                               (group_openers.news_key(group_id, event['id']), row['id']))
+            away.record(connection, 'group', group_id, row['id'], row['completed_at'] or self.database.now())
+        return True
+
     def newer(self, connection, group_id: str, user: dict) -> bool:
         return optional(connection, "SELECT id FROM group_messages WHERE group_id=? AND author='user' AND seq>?",
                         (group_id, user['seq'])) is not None
 
-    async def round(self, group_id: str, user: dict, running: Round):
-        """Speakers in turn, each seeing the replies before theirs; it ends early if the user writes again."""
+    async def round(self, group_id: str, user: dict, running: Round, opener: frozenset = frozenset()):
+        """Speakers in turn, each seeing the replies before theirs; it ends early if the user writes again.
+        `user` may be a member's opening line instead, with its writer in `opener`."""
         with self.database.connect(write=True) as connection:
             secrets.sync(connection, self.database.clock.now())
         with self.database.connect() as connection:
             group = require_group(connection, group_id)
             members = current_members(connection, group_id)
-            done = frozenset(row['author'] for row in many(
+            done = opener | frozenset(row['author'] for row in many(
                 connection, "SELECT author FROM group_messages WHERE reply_to=? AND status='complete'", (user['id'],)))
             queue = plan(members, user['text'], user['id'], group['reply_cap'],
                          weights(connection, group_id, members, self.database.clock.now()), done)
@@ -786,7 +840,7 @@ class GroupChats:
     def packet(self, group, companion, stay, config, until_seq, user) -> dict:
         with self.database.connect() as connection:
             packet = prompt(connection, group, companion, stay, self.database.clock.now(), config, until_seq,
-                            user['text'])
+                            user['text'], user.get('turn'))
         if in_character.out_of_character(user['text']):
             reminder = in_character.OUT_OF_CHARACTER_NOTE.format(name=stay['name'], model=default_name(config))
             packet = add_note(packet, reminder)
