@@ -1,4 +1,6 @@
 """One focal companion per workspace, with versioned definitions (PRD C1)."""
+import re
+
 from companion.clock import zone
 from companion.database import decode, encode, identifier, one, optional
 from companion.errors import DomainError, require
@@ -44,9 +46,10 @@ def create(database, definition) -> dict:
 
 
 def create_in(connection, timestamp, definition, note='') -> dict:
-    """The first companion, inside the caller's write transaction."""
+    """The first companion, inside the caller's write transaction. One made without a name gets one that fits."""
     zone(definition.timezone)
     require(current(connection) is None, 'This workspace already has a companion.', 409)
+    definition = named(connection, definition)
     companion_id, timeline_id = identifier(), identifier()
     connection.execute('INSERT INTO companions (id, created_at) VALUES (?, ?)', (companion_id, timestamp))
     version_id = insert_version(connection, companion_id, 1, definition, note, timestamp)
@@ -57,9 +60,23 @@ def create_in(connection, timestamp, definition, note='') -> dict:
     return current(connection)
 
 
+def named(connection, definition):
+    """The definition with a name: theirs, or one from their home city's names (the default city without one),
+    matching the pronouns their description uses ("the world exists outside of User", Vanta 2026-10-08)."""
+    if definition.name.strip():
+        return definition
+    from companion.world import generators, newcomers
+    words = re.findall(r"[a-z]+", f'{definition.identity} {definition.personality} {definition.background}'.lower())
+    she, he = sum(word in ('she', 'her', 'hers') for word in words), sum(word in ('he', 'him', 'his') for word in words)
+    pronouns = 'she' if she > he else 'he' if he > she else None
+    found = generators.name(newcomers.city_for(connection, definition.model_dump()), seed=identifier(), pronouns=pronouns)
+    return definition.model_copy(update={'name': found['full']})
+
+
 def revise(database, body) -> dict:
     """A new version applies from now on; earlier messages keep the version they used."""
     zone(body.definition.timezone)
+    require(body.definition.name.strip(), 'Give them a name.', 422)
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         require(companion['active_version_id'] == body.expected_version_id,

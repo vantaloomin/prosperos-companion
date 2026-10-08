@@ -206,10 +206,11 @@ never included; a chosen checkpoint is already copied into `lora/adapters/`.
 Restoring checks the marker, the schema version and every digest before writing anything, refuses
 any path outside those folders, and then checks each record's file: completed images, reference
 pictures and adapters (with their digests), and whether the selected appearance version's adapter
-came back. The restored workspace is paused for review: automatic memory, background activity and
-automatic images are off, saved keys and context tool approvals are dropped, queued or running
-images and evaluations become interrupted, and a running training job becomes interrupted without
-its old process id. Nothing resumes until the user reviews it.
+came back. Queued or running images and evaluations become interrupted, and a running training job
+becomes interrupted without its old process id. Replacing a workspace keeps its current settings,
+connections and paired phones instead of the backup's. With no workspace to replace (a new computer), the
+restored one is paused for review: automatic memory, background activity and automatic images are off,
+saved keys and context tool approvals are dropped, and nothing resumes until the user reviews it.
 
 In the app, Settings > Backups lists the archives in `backups/` (`GET /api/backups`, read from
 their manifests) and **Restore…** chooses one (`POST /api/backups/{name}/restore`, which verifies

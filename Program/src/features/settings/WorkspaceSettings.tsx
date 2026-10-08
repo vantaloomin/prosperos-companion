@@ -96,8 +96,8 @@ export function BackgroundSettings() {
     <section className="settings-section form-stack" aria-labelledby="background-heading">
       <h2 id="background-heading">Background activity</h2>
       <SectionError problem={problem} />
-      <Toggle label="Let their life continue while the app is open in the background" checked={data.background_activity} onChange={(value) => void save({ background_activity: value })}
-        hint="Uses your model connection now and then while the Companion is running. Nothing runs while the app is closed." />
+      <Toggle label="Use your model while the app is open in the background" checked={data.background_activity} onChange={(value) => void save({ background_activity: value })}
+        hint="Their life goes on either way while the Companion is running, built by rules with no model calls. On: your model also words those moments, prepares upcoming ones and looks up the weather and what's on. Nothing runs while the app is closed." />
     </section>
   )
 }

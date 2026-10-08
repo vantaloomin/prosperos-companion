@@ -125,6 +125,12 @@ def tell_all(connection, ties, timestamp: str):
         tell(connection, key_of(item['a']), key_of(item['b']), item.get('level'), item.get('how') or '', timestamp)
 
 
+def tell_rest(connection, companion_ids: list[str], now, timestamp: str):
+    """Pairs among these companions that nobody told about get the backstory the app works out for them."""
+    for pair in untold(connection, companion_ids, now):
+        tell(connection, companion_key(pair['a']), companion_key(pair['b']), None, pair['how'], timestamp)
+
+
 def key_of(value: str) -> str:
     return value if ':' in (value or '') else companion_key(value or '')
 
@@ -418,10 +424,25 @@ def untold(connection, companion_ids: list[str], now) -> list[dict]:
             first, second = by_id(connection, companion_id(a)), by_id(connection, companion_id(b))
             if first is None or second is None:
                 continue
-            level = meeting_stage(len(town_meetings(connection, first, b, now)))
+            met = len(town_meetings(connection, first, b, now))
             result.append({'a': first['id'], 'b': second['id'], 'a_name': first['version']['name'],
-                           'b_name': second['version']['name'], 'level': level})
+                           'b_name': second['version']['name'], 'level': meeting_stage(met),
+                           'how': suggested_how(connection, first, second, met)})
     return result
+
+
+def suggested_how(connection, first: dict, second: dict, met: int) -> str:
+    """How two companions know each other, worked out from where they live and whether they have met in town, so
+    the form starts filled in ("the world exists outside of User", Vanta 2026-10-08); the user can change it."""
+    from companion.world import changes, custom
+    cities = custom.all_cities(connection)
+    homes = [changes.resolve(item['version']['definition'].get('home_city') or '', cities) if
+             item['version']['definition'].get('home_city') else None for item in (first, second)]
+    shared = homes[0]['name'] if homes[0] and homes[1] and homes[0]['id'] == homes[1]['id'] else ''
+    if met:
+        return f'Have run into each other around {shared}' if shared else 'Have run into each other around town'
+    return f'Both live in {shared}, but only know each other through the user' if shared else \
+        'Only know each other through the user'
 
 
 def shown(found: dict | None) -> dict | None:

@@ -138,7 +138,7 @@ function RunningJokes({ name, state, memories, change }: { name: string; state: 
   return (
     <div className="closeness-jokes">
       <h3>Running jokes</h3>
-      <p className="subtle">Shared moments {name} may bring back now and then. Only the ones you pick are used.</p>
+      <p className="subtle">Shared moments {name} may bring back now and then. A moment that keeps coming up becomes one on its own; remove any you would rather they let go.</p>
       {state.jokes.length > 0 && (
         <ul className="memory-list">
           {state.jokes.map((joke) => (

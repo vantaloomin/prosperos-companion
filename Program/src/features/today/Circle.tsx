@@ -44,7 +44,7 @@ export function Circle({ name }: { name: string }) {
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {circle.isPending && <Loading label="Loading the people in their life" />}
       {circle.isError && <ErrorNotice error={circle.error} />}
-      {circle.isSuccess && circle.data.length === 0 && <p className="subtle">No one yet. People appear once {name} has a home city.</p>}
+      {circle.isSuccess && circle.data.length === 0 && <p className="subtle">No one yet. People join {name}'s life as their days begin.</p>}
       {circle.isSuccess && circle.data.length > 0 && (
         <ul className="person-list">{circle.data.map((person) => <PersonCard key={person.id} person={person} companion={name} act={act} />)}</ul>
       )}
@@ -54,15 +54,14 @@ export function Circle({ name }: { name: string }) {
   )
 }
 
-/** Offered when the circle is smaller than it should be: a sociable companion, or a bigger size in Settings. */
+/** The circle fills itself to its size; after people were removed, new ones can take their places. */
 function MorePeople({ name, act }: { name: string; act: Act }) {
   const room = useQuery({ queryKey: [...CIRCLE_KEY, 'room'], queryFn: () => api<CircleRoom>('/life/circle/room') })
   if (!room.data || room.data.people >= room.data.target) return null
   const missing = room.data.target - room.data.people
-  const why = room.data.sociability === 'social' ? `${name} is the sociable type` : `Their circle size in Settings is ${room.data.target}`
   return (
     <div className="person-actions">
-      <p className="subtle">{why}, so there is room for {missing} more {missing === 1 ? 'person' : 'people'}: coworkers, old and new friends, family. Nobody already here changes.</p>
+      <p className="subtle">Since you removed {missing === 1 ? 'someone' : 'some people'}, there is room for {missing} more in {name}'s life: coworkers, old and new friends, family. Nobody already here changes.</p>
       <button type="button" className="button" onClick={() => void act(() => api('/life/circle/grow', {}), `${missing === 1 ? 'Someone new is' : `${missing} new people are`} now part of ${name}'s life.`)}><UserPlus aria-hidden="true" />Add {missing === 1 ? 'one person' : `${missing} people`}</button>
     </div>
   )

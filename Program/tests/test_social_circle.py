@@ -72,15 +72,15 @@ def test_who_knows_whom_is_stable_and_reaches_the_context(client):
     assert 'Knows ' in system
 
 
-def test_an_existing_circle_grows_without_changing_anyone(client):
+def test_an_existing_circle_grows_on_its_own_without_changing_anyone(client):
     make(client, 'Warm and curious.')
     before = client.get('/api/life/circle').json()
     assert len(before) == circle.CIRCLE_SIZE
     assert client.get('/api/life/circle/room').json() == {'people': 5, 'target': 5, 'sociability': 'usual'}
     assert client.post('/api/life/circle/grow').status_code == 409
     set_life(client, circle_size=9)
-    grown = client.post('/api/life/circle/grow').json()
-    assert len(grown) == 9
+    grown = client.get('/api/life/circle').json()
+    assert len(grown) == 9 and client.post('/api/life/circle/grow').status_code == 409
     assert [(person['id'], person['name']) for person in grown[:5]] == [(person['id'], person['name'])
                                                                        for person in before]
     added = {circle.role_kind(person['role']) for person in grown[5:]}
@@ -92,3 +92,11 @@ def test_an_existing_circle_grows_without_changing_anyone(client):
 def test_a_quiet_companion_keeps_a_small_circle(client):
     make(client, 'Shy and reserved, a homebody.')
     assert len(client.get('/api/life/circle').json()) == 4
+
+
+def test_someone_removed_is_not_replaced_until_the_user_asks(client):
+    make(client, 'Warm and curious.')
+    [first, *_rest] = client.get('/api/life/circle').json()
+    client.post(f"/api/life/circle/{first['id']}/remove")
+    assert len(client.get('/api/life/circle').json()) == circle.CIRCLE_SIZE - 1
+    assert len(client.post('/api/life/circle/grow').json()) == circle.CIRCLE_SIZE

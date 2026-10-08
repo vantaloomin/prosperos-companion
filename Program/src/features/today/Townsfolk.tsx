@@ -6,7 +6,7 @@ import type { View } from '../../companion'
 import type { Townsperson, TownspersonNow } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { useSwitchBack } from '../character/useSwitchBack'
+import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { stageText } from '../memories/pairText'
 import { townMet, townNow, townRole } from './townText'
 
@@ -59,12 +59,20 @@ function ComesAcross({ person }: { person: Townsperson }) {
   return <p>{person.comes_across}{person.says_they_are ? ` Once said they're ${person.says_they_are}.` : ''}</p>
 }
 
-/** Another companion goes back to being the main character; anyone else gets a profile to review first. */
+/** Another companion goes back to being the main character; anyone else becomes one from the town's profile of
+ * them, which can be read and changed first. */
 function TownSwitch({ person, go }: { person: Townsperson; go: (view: View) => void }) {
   const { switchTo, busy, error } = useSwitchBack(go)
+  const starting = useStartWith(go)
   const companionId = person.cast
   if (!companionId) {
-    return <p><button type="button" className="text-button" onClick={() => go(`cast/${encodeURIComponent(person.key)}`)}>Make {person.name} the main character…</button></p>
+    return (<>
+      <p>
+        <button type="button" className="text-button" disabled={starting.busy !== null} onClick={() => void starting.startWith(person.key)}>{starting.busy ? 'Switching…' : `Make ${person.name} the main character`}</button>{' '}
+        <button type="button" className="text-button" onClick={() => go(`cast/${encodeURIComponent(person.key)}`)}>Read their profile first</button>
+      </p>
+      {starting.error && <Notice tone="error">{starting.error}</Notice>}
+    </>)
   }
   return (<>
     <p><button type="button" className="text-button" disabled={busy !== null} onClick={() => void switchTo(companionId)}>{busy ? 'Switching…' : `Switch back to ${person.name}`}</button></p>

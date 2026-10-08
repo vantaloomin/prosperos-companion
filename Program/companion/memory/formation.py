@@ -5,10 +5,10 @@ revision. A job runs after the reply, never in front of it, and commits only if 
 revision is unchanged at commit time, so turning automatic memory off stops queued work.
 Explicitly stated ordinary facts commit directly; sensitive ones wait as suggestions unless the
 user allowed sensitive memory. A new value that contradicts a current one without saying it changed
-("I live in Denver" while Chicago is current) also waits, so two ambiguous statements stay
-unresolved until the user says which holds (M8). A sentence that says a current memory is wrong ("my mom is not
-a gardener") waits as a correction of that memory (`corrections.py`). Remember this on a message is deliberate, so
-it commits what it finds, sensitive or not; corrections still wait. Every step leaves an activity record of
+("I live in Denver" while Chicago is current) commits too: the newest statement wins and the old value ends as
+history, which Memories can change back (M8; "the world exists outside of User", Vanta 2026-10-08). A sentence that
+says a current memory is wrong ("my mom is not a gardener") corrects that memory straight away (`corrections.py`).
+Remember this on a message is deliberate, so it commits what it finds, sensitive or not. Every step leaves an activity record of
 identities and reason codes.
 """
 import hashlib
@@ -118,24 +118,11 @@ def resolve(connection, candidate_id, status, memory=None, reason=None, timestam
                        (status, memory and memory['id'], reason, timestamp, candidate_id))
 
 
-def contradicts(connection, companion, candidate, fields, timestamp) -> bool:
-    """A different current value for a single-valued subject, with nothing saying it changed."""
-    if candidate.layer != 'user_fact' or candidate.signals_change or not extraction.single_valued(fields['subject_key']):
-        return False
-    if records.ended(fields, timestamp):
-        return False
-    rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer='user_fact' "
-                'AND subject_key=?', (companion['id'], fields['subject_key']))
-    value = candidate.value.casefold()
-    return any(row['value'].casefold() != value and not records.ended(row, timestamp) for row in rows)
-
-
-def hold_reason(connection, companion, candidate, fields, timestamp, *, deliberate, allowed_sensitive) -> str | None:
-    """Why a candidate waits for the user instead of committing; deliberate Remember this never waits."""
+def hold_reason(fields, *, allowed_sensitive) -> str | None:
+    """Why a candidate waits for the user instead of committing: only a sensitive fact while sensitive memory is off.
+    A new value for a single-valued subject commits too, and the newest statement wins (the old one ends as history)."""
     if fields['sensitive'] and not allowed_sensitive:
         return 'sensitive'
-    if not deliberate and contradicts(connection, companion, candidate, fields, timestamp):
-        return 'conflict'
     return None
 
 
@@ -151,8 +138,7 @@ def form(connection, companion, message, timestamp, *, deliberate: bool) -> list
         fields = people.bind_existing(connection, companion['id'], fields)
         log(connection, timestamp, 'extracted', candidate_id=candidate_id, message_id=message['id'],
             detail=candidate.rule)
-        reason = hold_reason(connection, companion, candidate, fields, timestamp, deliberate=deliberate,
-                             allowed_sensitive=allowed_sensitive)
+        reason = hold_reason(fields, allowed_sensitive=allowed_sensitive)
         if reason:
             resolve(connection, candidate_id, 'pending', reason=reason, timestamp=None)
             log(connection, timestamp, 'suggested', candidate_id=candidate_id, message_id=message['id'], detail=reason)
@@ -165,8 +151,7 @@ def form(connection, companion, message, timestamp, *, deliberate: bool) -> list
         if memory:
             written.append(memory)
     for fields in corrections.found(connection, companion, message, timestamp):
-        if corrections.record(connection, companion, message, fields, 'rule', corrections.RULE, timestamp):
-            log(connection, timestamp, 'suggested', message_id=message['id'], detail=corrections.RULE)
+        corrections.record(connection, companion, message, fields, 'rule', corrections.RULE, timestamp)
     return written
 
 

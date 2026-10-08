@@ -40,6 +40,7 @@ def revise_character(client, **changes):
 
 
 def test_return_after_a_day_proposes_capped_events_for_review(client, life, clock):
+    set_life(client, automatic_events=False)
     clock.advance(timedelta(days=1))
     result = reconcile(client)
     assert result['state'] == 'started'
@@ -57,9 +58,12 @@ def test_return_after_a_day_proposes_capped_events_for_review(client, life, cloc
 
 
 def test_automatic_events_commit_and_become_the_shared_account(client, life, clock):
+    # On by default ("the world exists outside of User"); turning it off and on advances the permission revision.
+    assert client.get('/api/life/settings').json()['automatic_events'] is True
     assert client.get('/api/settings').json()['permission_revision'] == 1
+    set_life(client, automatic_events=False)
     set_life(client, automatic_events=True)
-    assert client.get('/api/settings').json()['permission_revision'] == 2
+    assert client.get('/api/settings').json()['permission_revision'] == 3
     clock.advance(timedelta(days=1))
     run = reconcile(client)['run']
     assert [item['outcome'] for item in run['results']] == ['committed'] * 3
@@ -157,7 +161,7 @@ def test_fourteen_day_absence_is_one_capped_batch(client, life, clock, provider)
 
 def test_catch_up_limits_are_user_visible_and_bounded(client, life, clock):
     limits = client.get('/api/life/settings').json()
-    assert limits['catch_up_max_events'] == 3 and limits['automatic_events'] is False
+    assert limits['catch_up_max_events'] == 3 and limits['automatic_events'] is True
     assert client.put('/api/life/settings', json={'catch_up_max_events': 50}).status_code == 422
     set_life(client, catch_up_max_events=1)
     clock.advance(timedelta(days=2))
@@ -242,7 +246,7 @@ def test_without_a_model_events_use_template_wording(client, companion, clock, p
     monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
     clock.advance(timedelta(days=1))
     run = reconcile(client)['run']
-    assert [item['outcome'] for item in run['results']] == ['proposed'] * 3
+    assert [item['outcome'] for item in run['results']] == ['committed'] * 3
     assert provider.requests == []
     for event in all_events(client):
         assert event['inputs']['wording'] == 'template' and event['summary'] == event['inputs']['template']['summary']
@@ -297,9 +301,21 @@ def test_places_come_from_the_world_source(tmp_path, clock, provider, monkeypatc
             assert event['inputs']['world'] == 'static'
 
 
-def test_background_needs_permission_and_respects_the_daily_cap(app, client, life, clock):
+def test_background_life_goes_on_by_rules_and_uses_the_model_only_with_permission(app, client, life, clock, provider):
     engine = app.state.life
-    assert asyncio.run(engine.reconcile('background'))['state'] == 'not_permitted'
+    set_life(client, background_daily_events=2)
+    clock.advance(timedelta(hours=20))
+    first = asyncio.run(engine.reconcile('background'))
+    assert first['state'] == 'started' and [item['outcome'] for item in first['run']['results']] == ['committed']
+    assert provider.requests == [] and all_events(client)[-1]['inputs']['wording'] == 'template'
+    client.put('/api/settings', json={'background_activity': True})
+    clock.advance(timedelta(hours=5))
+    second = asyncio.run(engine.reconcile('background'))
+    assert second['state'] == 'started' and all_events(client)[-1]['inputs']['wording'] == 'model'
+
+
+def test_background_respects_the_daily_cap(app, client, life, clock):
+    engine = app.state.life
     client.put('/api/settings', json={'background_activity': True})
     set_life(client, background_daily_events=1, automatic_events=True)
     clock.advance(timedelta(hours=20))
@@ -393,7 +409,7 @@ def test_the_shipped_city_data_is_the_default_world(tmp_path, clock, provider, m
 
 def test_an_open_thread_settles_a_few_days_later(client, life, clock, monkeypatch):
     monkeypatch.setattr(composer, 'THREAD_SHARE', 1)
-    set_life(client, catch_up_max_events=1)
+    set_life(client, catch_up_max_events=1, automatic_events=False)
     clock.advance(timedelta(days=1))
     result = reconcile(client)['run']['results'][0]
     opened = next(event for event in all_events(client) if event['id'] == result['thread_event_id'])
@@ -497,3 +513,20 @@ def test_a_thread_is_not_opened_again_for_months(client, life, clock, monkeypatc
               if event['kind'] == 'thread' and event['details']['state'] == 'open']
     assert len(opened) >= 6
     assert len(opened) == len(set(opened))
+
+
+def test_an_older_workspace_gets_automatic_events_once(tmp_path, clock):
+    import sqlite3
+
+    from companion.database import Database
+    path = tmp_path / 'older.sqlite3'
+    Database(path, clock)
+    connection = sqlite3.connect(path)
+    connection.execute('UPDATE life_settings SET automatic_events=0, events_on_by_default=0')
+    connection.commit()
+    connection.close()
+    with Database(path, clock).connect(write=True) as connection:
+        assert connection.execute('SELECT automatic_events FROM life_settings').fetchone()[0] == 1
+        connection.execute('UPDATE life_settings SET automatic_events=0')
+    with Database(path, clock).connect() as connection:
+        assert connection.execute('SELECT automatic_events FROM life_settings').fetchone()[0] == 0

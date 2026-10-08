@@ -201,16 +201,13 @@ def test_setting_a_date_answers_an_uncertain_one(client, connected):
     assert 'dates uncertain' not in client.get('/api/context/preview').json()['system']
 
 
-def test_a_contradiction_that_does_not_say_it_changed_waits_for_the_user(client, connected):
+def test_the_newest_statement_wins_and_the_old_one_is_kept_as_history(client, connected):
     enable(client)
     send(client, 'I live in Chicago', 'client-0001')
     run(client)
     send(client, 'I live in Denver', 'client-0002')
     run(client)
-    assert values(client) == {('Home city', 'Chicago')}, 'Chicago stays current until the user says which holds'
-    [suggestion] = client.get('/api/memory/suggestions').json()
-    assert (suggestion['reason'], suggestion['value'], suggestion['replaces']) == ('conflict', 'Denver', ['Chicago'])
-    client.post(f"/api/memory/suggestions/{suggestion['id']}/accept")
+    assert client.get('/api/memory/suggestions').json() == [], 'nothing waits for the user'
     homes = {item['value']: item for item in memories(client)}
     assert homes['Denver']['current'] is True and homes['Chicago']['ended_by_id'] == homes['Denver']['id']
 

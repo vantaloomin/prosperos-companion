@@ -41,7 +41,7 @@ opens on the phone** walks through the rest:
 **Use on home Wi-Fi** in Settings > Phone access is off by default. Turned on, it opens a second listener on port
 8776 (or `COMPANION_LAN_PORT`) on every network the PC is on, so a phone on the same Wi-Fi can open
 `http://<the PC's address>:8776`; the app's own port stays on this PC only. It stays on across restarts until
-turned off, and restoring a backup turns it off. Windows or macOS may ask once whether to let the Companion accept
+turned off; restoring a backup keeps it as it is (only a restore onto a new computer turns it off). Windows or macOS may ask once whether to let the Companion accept
 connections; allow it on private networks.
 
 Every request through that listener counts as a phone's, whatever headers it carries: it needs the switch on and a
