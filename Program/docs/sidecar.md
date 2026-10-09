@@ -18,6 +18,20 @@ It uses the **Sidecar** job in Settings > Models, which falls back to the chat m
 profile is assigned. Its instructions are `companion/prompts/sidecar.md`, editable in Settings >
 Advanced with the other prompts ([prompts.md](prompts.md)).
 
+## Its own window
+
+On a desktop layout, the box-with-an-arrow button in the panel's header ("Open in its own window") pops the sidecar
+out into a browser window of its own (`src/features/sidecar/popout.ts`, `SidecarWindow.tsx`). The main app renders
+the same sidecar into it with a React portal, so the conversation, the form it edits, replies it was pointed at and
+out-of-character asides all carry on with no syncing. The window copies the app's styles and theme and follows
+changes to them, says what the main window shows ("Looking at: Maya's chat"), and remembers its size and place
+(`companion:sidecar-window`). "Put back" docks it again. Closing the window closes the sidecar. While the window is
+open, the Sidecar button brings it forward; next time it opens in a window again (`companion:sidecar-mode`), but
+never by itself on page load, which browsers block. It closes with the main tab, and its conversation was never kept
+across reloads anyway. If the browser blocks the window, the sidecar opens docked with a one-time note about allowing
+pop-ups. An aside that lands while the window is in the background puts a dot on the Sidecar button and "(1)" in the
+window's title.
+
 ## Out-of-character messages
 
 A message to a companion or a group that starts with `OOC:` goes to the sidecar instead, and so does any part of a

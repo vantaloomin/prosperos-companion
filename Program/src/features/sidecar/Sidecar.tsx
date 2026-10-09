@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowUp, MessageSquareText, RotateCcw, Undo2, X } from 'lucide-react'
+import { ArrowUp, MessageSquareText, RotateCcw, SquareArrowOutUpRight, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Connection } from '../../types'
@@ -8,13 +8,15 @@ import { Notice } from '../../components/Feedback'
 import { TextComparison } from '../../components/TextComparison'
 import { CardButton } from '../character/CardButton'
 import { after, effect, title, type Proposal } from './proposals'
-import { sidecar } from './store'
+import { lookingAt } from './context'
+import { sidecar, useSidecar } from './store'
 import { useSidecarChat, type SidecarChat } from './useSidecarChat'
 
 /** The sidecar, after the Collaborator in Prospero's Study: an out-of-context chat beside the app that sees the
  * character, the conversation and the memories, and proposes changes the user applies one by one. */
-export function Sidecar({ view, go }: { view: View; go: (view: View) => void }) {
+export function Sidecar({ view, go, windowed = false }: { view: View; go: (view: View) => void; windowed?: boolean }) {
   const chat = useSidecarChat(view)
+  const { blocked } = useSidecar()
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   return (
     <aside className="sidecar" aria-labelledby="sidecar-title">
@@ -22,18 +24,30 @@ export function Sidecar({ view, go }: { view: View; go: (view: View) => void }) 
         <div>
           <h2 id="sidecar-title"><MessageSquareText aria-hidden="true" />Sidecar</h2>
           <p className="subtle">Only you see this. Nothing here reaches {chat.name}.</p>
+          {windowed && <p className="sidecar-context subtle">{lookingAt(view, chat.name)}</p>}
         </div>
         <div className="sidecar-header-actions">
           {chat.turns.length > 0 && <button type="button" className="icon-button" aria-label="Start a new sidecar chat" onClick={chat.clear}><RotateCcw aria-hidden="true" /></button>}
-          <button type="button" className="icon-button" aria-label="Close the sidecar" onClick={() => sidecar.setOpen(false)}><X aria-hidden="true" /></button>
+          <WhereButtons windowed={windowed} />
         </div>
       </header>
       <Transcript chat={chat}>
+        {blocked && !windowed && <Notice>Your browser blocked the sidecar window, so it opened here instead. Allowing pop-ups for this app lets it open in its own window.</Notice>}
         {connection.isSuccess && !connection.data && <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button>}>The sidecar uses your text model, and none is connected yet.</Notice>}
       </Transcript>
       <Composer chat={chat} connected={!!connection.data} />
     </aside>
   )
+}
+
+/** Pop out (desktop only) and close beside the app; Put back in its own window, whose own close button closes it. */
+function WhereButtons({ windowed }: { windowed: boolean }) {
+  if (windowed) return <button type="button" className="text-button" onClick={() => sidecar.putBack()}>Put back</button>
+  const wide = !!window.matchMedia?.('(min-width: 721px)').matches
+  return (<>
+    {wide && <button type="button" className="icon-button" aria-label="Open in its own window" title="Open in its own window" onClick={() => sidecar.popOut()}><SquareArrowOutUpRight aria-hidden="true" /></button>}
+    <button type="button" className="icon-button" aria-label="Close the sidecar" onClick={() => sidecar.setOpen(false)}><X aria-hidden="true" /></button>
+  </>)
 }
 
 function Transcript({ chat, children }: { chat: SidecarChat; children: ReactNode }) {

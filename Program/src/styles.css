@@ -633,6 +633,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .sidecar h2 svg { width: 17px; height: 17px; color: var(--accent); }
 .sidecar > header .subtle { margin: 4px 0 0; font-size: 0.75rem; }
 .sidecar-header-actions { display: flex; gap: 2px; }
+.sidecar-window { display: flex; height: 100vh; }
+.sidecar-window .sidecar { position: static; width: 100%; flex: 1 1 auto; border-left: 0; }
+.sidecar-context { margin: 2px 0 0; font-size: 0.75rem; }
 .sidecar .icon-button svg { width: 17px; height: 17px; }
 .sidecar-transcript { flex: 1; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; padding: 16px; display: flex; flex-direction: column; gap: 22px; }
 .sidecar-welcome p { margin: 0 0 10px; font-size: 0.875rem; line-height: 1.65; }

@@ -27,5 +27,5 @@ export function ActivityLine({ messages, phases, sending, aside = null }: { mess
 /** Where an out-of-character aside went (useOoc), with a way to open the sidecar when it stayed closed. */
 export function AsideText({ note }: { note: AsideNote | null }) {
   if (!note) return null
-  return <>{note.text}{note.open && <> · <button type="button" className="text-button" onClick={() => sidecar.setOpen(true)}>Open</button></>}</>
+  return <>{note.text}{note.open && <> · <button type="button" className="text-button" onClick={() => sidecar.show()}>Open</button></>}</>
 }
