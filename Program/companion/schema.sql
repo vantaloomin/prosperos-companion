@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   -- unless the user turns them on, so the default keeps some mystique. They still shape every reply.
   show_moods INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1)),
   show_news INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1)),
+  -- "Why it went this way": the odds behind how a turning went (companion/consequences.py).
+  show_odds INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,

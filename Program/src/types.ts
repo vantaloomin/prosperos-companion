@@ -214,6 +214,8 @@ export interface WorkspaceSettings {
   show_moods?: boolean
   /** Hidden values: who has heard a companion's news (Today); off unless turned on. */
   show_news?: boolean
+  /** Hidden values: "Why it went this way" and its odds under storylines, chapters and reactions; off unless turned on. */
+  show_odds?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
   ai_notice_confirmed?: boolean
   share_profile_across_timelines: boolean

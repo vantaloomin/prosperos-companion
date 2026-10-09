@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 import pytest
-from conftest import reconcile, send
+from conftest import reconcile, send, show
 from test_groups import companion_named, ok, say, start
 from test_secrets import declare
 
@@ -11,6 +11,12 @@ from companion.characters import by_id, insert_version
 from companion.database import identifier
 from companion.life import reactions
 from companion.models import CharacterDefinition
+
+
+@pytest.fixture(autouse=True)
+def shown(client):
+    """How they took it shows on Today only with Hidden values > Show how they're feeling on."""
+    show(client, show_moods=True)
 
 
 def likeliest(monkeypatch):

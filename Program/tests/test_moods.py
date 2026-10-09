@@ -187,7 +187,9 @@ def test_words_that_sting_cool_her_a_little_but_jokes_do_not(client, cast, provi
 
 def test_how_she_feels_shows_on_today_only_when_turned_on(client, cast, clock, monkeypatch):
     bad_day(monkeypatch, clock)
-    assert ok(client.get('/api/today'))['feeling'] is None
+    today = ok(client.get('/api/today'))
+    assert today['feeling'] is None and today['day']['body'] is None
+    assert ok(client.get('/api/life/reactions')) == []
     show(client, show_moods=True)
     feeling = ok(client.get('/api/today'))['feeling']
     assert (feeling['text'], feeling['reason']) == ('Seems sad', 'Mira lost the promotion to Dana')

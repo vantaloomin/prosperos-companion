@@ -245,7 +245,7 @@ from the secret itself, one when it is about two or more people and two otherwis
 with a private reminder. If the rewrite still gives it away:
 
 - at the **Soap opera** drama setting it stays: everyone there finds out, and a note under the reply says so
-  (Settings > General > "Say when a secret slips out", workspace `show_secret_slips`, on by default, hides the note
+  (Settings > Life > Hidden values > "Say when a secret slips out", workspace `show_secret_slips`, on by default, hides the note
   only);
 - otherwise the reply isn't sent ("Billy nearly let a secret slip, so this reply wasn't sent."), and Try again can
   write it once more.

@@ -911,7 +911,7 @@ emotional trait the character was not given is ever implied.
 The wording is a fixed template. With background activity and `phrase_with_model` both on, the life model polishes
 one thought a tick at background priority; a polish that drops their name, names a clock time or runs long is
 thrown away and the template stays. Thoughts never reach the chat context, so the companion never knows they were
-read. The Life setting `on_her_mind` (on by default) hides them and stops new ones being written.
+read. The Life setting `on_her_mind` (Settings > Life > Hidden values, on by default) hides them and stops new ones being written.
 
 ### Money
 

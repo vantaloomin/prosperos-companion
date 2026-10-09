@@ -69,8 +69,6 @@ export function LifeSettings({ name }: { name: string }) {
         hint={`When ${name} is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
       <Toggle label={`Let ${name}'s days go off plan`} checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
         hint={`Now and then ${name} runs late, stays late, has plans fall through, has something come up or gets a surprise visit. Rolled with fixed dice, so a day never changes after the fact.`} />
-      <Toggle label={`Show what's on ${name}'s mind`} checked={data.on_her_mind} onChange={(value) => void save({ on_her_mind: value })}
-        hint={`Each evening Today gets one private thought, worked out from what happened in ${name}'s day. Folded until you open it, never part of the chat, and never anything ${name} keeps secret.`} />
       <BirthdayField saved={data.user_birthday} onSave={(value) => save({ user_birthday: value }, value ? 'Birthday saved.' : 'Birthday forgotten.')} name={name} />
       <DramaSlider name={name} value={data.drama} onChange={(value) => void save({ drama: value })} />
       <div className="form-grid">

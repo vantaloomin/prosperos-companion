@@ -101,6 +101,8 @@ def view(database) -> dict:
                          'next': upcoming.view() if upcoming else None}
     result['availability'] = availability(current)
     result['mind'] = thoughts.view(database)
+    if not workspace['show_moods']:
+        result['day']['body'] = None  # Hidden values: "Mira is tired" shows only with moods shown.
     return result
 
 
