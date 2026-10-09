@@ -58,3 +58,29 @@ def test_the_persona_text_is_theirs_to_change(client, met):
     persona = after['persona']
     changed = ok(client.patch(f"/api/worlds/personas/{persona['id']}", json={'about': 'Just me.'}))
     assert changed['persona']['about'] == 'Just me.' and changed['persona']['townsfolk_key'] == person['key']
+
+
+def test_nobody_anywhere_in_town_is_them(client, met):
+    """Townsfolk are worked out from the seed, never stored, so every list of them must leave the user out."""
+    from companion import dating
+    from companion.world import paper
+    _mira, person, _town = met
+    ok(client.post('/api/worlds/become', json={'key': person['key']}))
+    with client.app.state.database.connect() as connection:
+        data = network.city(connection, require_current(connection))
+    hoods = [hood['id'] for hood in data['neighborhoods']]
+    everyone = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])]
+    everyone += [sheet for hood in hoods for sheet in townsfolk.residents(data, hood)]
+    everyone += [sheet for place in data['places'] for sheet in townsfolk.reaching(data, place['id'])]
+    everyone += [sheet for sheet, _details in dating.pool(data)] + paper.sample(data)
+    assert everyone and person['key'] not in {sheet['key'] for sheet in everyone}
+    shown = ok(client.get(f"/api/world/cities/{data['id']}/places/{person['place']['id']}/people"))
+    assert person['key'] not in {sheet['key'] for sheet in shown}
+    # A resident the user became is left out of their street the same way.
+    resident = townsfolk.residents(data, hoods[0])[0]
+    assert resident['key'] not in {sheet['key'] for sheet in townsfolk.residents(data | {'you': resident['key']}, hoods[0])}
+
+
+def test_a_new_life_is_always_a_grown_up(client, met):
+    _mira, person, _town = met
+    assert ok(client.post('/api/worlds/become', json={'key': person['key']}))['persona']['age'] >= 18

@@ -1721,6 +1721,7 @@ CREATE TABLE IF NOT EXISTS life_moments (
 CREATE TABLE IF NOT EXISTS dreams (
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   night TEXT NOT NULL,
+  template TEXT,
   text TEXT,
   told TEXT,
   share TEXT,

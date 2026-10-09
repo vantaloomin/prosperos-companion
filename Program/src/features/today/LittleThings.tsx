@@ -30,9 +30,8 @@ export function LittleThings({ moments, dreams, name }: { moments: Moment[] | un
   )
 }
 
-function chanceText(odds: number): string {
-  if (odds >= 1) return 'Certain'
-  return odds > 0 ? `About 1 in ${Math.max(2, Math.round(1 / odds))}` : 'Very unlikely'
+function percent(odds: number): string {
+  return odds < 0.01 ? 'Under 1%' : `${Math.round(odds * 100)}%`
 }
 
 function MomentOdds({ item }: { item: Moment }) {
@@ -51,12 +50,14 @@ function MomentOdds({ item }: { item: Moment }) {
   return (
     <details className="why-it-went">
       <summary>Why it went this way</summary>
-      <p className="subtle">
-        {item.picked_by === 'user' ? 'You picked another way. ' : ''}
-        Drawn from {item.source === 'Life deck' ? 'the Life deck' : `the ${item.source} table`}: “{item.title}”, {chanceText(item.odds ?? 0).toLowerCase()} that day.
-      </p>
+      <p className="subtle">{item.picked_by === 'user' ? 'You drew another card. ' : ''}{item.source === 'Life deck' ? 'Drawn from the Life deck' : `From the ${item.source} table`}</p>
+      <div className="deck-card">
+        <strong>{item.title}</strong>
+        <span>{item.text}</span>
+        <span className="subtle">{percent(item.odds ?? 0)} today</span>
+      </div>
       <div className="form-actions">
-        <button type="button" className="text-button" onClick={() => void change('another')}>Something else happens</button>
+        <button type="button" className="text-button" onClick={() => void change('another')}>Draw another card</button>
         <button type="button" className="text-button" onClick={() => void change('nothing')}>Nothing happens</button>
       </div>
       {failed && <p className="subtle" role="alert">{failed}</p>}

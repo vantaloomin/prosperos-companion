@@ -955,8 +955,10 @@ Some nights (30 in 100, at most three a week) `companion/life/dreams.py` turns t
 people the companion spent time with, places they went, the day's small moment and, from closeness stage 3 when
 you talked that day, the user, mixed by a fixed template with an odd touch from `world/data/dreams.json`. Money
 pressure or a plan to look forward to adds a last line. Rarely, someone they live with says they talked in their
-sleep. A night is decided once (`dreams`); a dream that could give away a secret is dropped, and there are no
-nightmares. The morning after, the companion is told about it in the chat context (as a dream, never as something
+sleep. A night is decided once (`dreams`, with the template used). People and places a secret they know is about
+never become fragments, and a dream that could still give one away is dropped. There are no nightmares, nothing
+romantic or sexual (whoever is in the dream), and a template is not dreamed again within 21 days (`repeat_days`,
+30 templates). The morning after, the companion is told about it in the chat context (as a dream, never as something
 that happened), and from closeness stage 2 it can become a morning text before noon their time; with model
 phrasing off, the template text is used as written.
 

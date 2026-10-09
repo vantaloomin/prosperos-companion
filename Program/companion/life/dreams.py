@@ -10,17 +10,19 @@ talked in their sleep.
 No model decides anything. The dream is told to the companion the morning after (it may come up, as a dream),
 listed on Today, and can become a morning text (companion/life/openers.py) phrased by the model only when model
 phrasing is allowed; otherwise the template text is used as written. A dream never gives away a secret they keep,
-is never a nightmare, and uses no emotional trait they weren't given. A night is decided once (`dreams`).
+is never a nightmare or sexual (whoever is in it), and uses no emotional trait they weren't given. A template is
+not dreamed again within `repeat_days`. A night is decided once (`dreams`).
 """
 import json
 import random
 from datetime import date, datetime, time, timedelta
 from functools import cache
 
+from companion import secrets
 from companion.clock import stamp, zone
 from companion.database import decode, many, optional
 from companion.life import circle, deck, money, storylines
-from companion.memory import closeness
+from companion.memory import closeness, pairs
 from companion.world import catalog
 
 # Off in tests unless a test turns it on: a seeded dream would add context lines and first messages.
@@ -58,7 +60,8 @@ def person_name(connection, found: dict) -> str | None:
 
 
 def fragments(connection, companion, day: date, now) -> dict:
-    """{people: [first names], places: [names], user: bool} from the companion's day."""
+    """{people: [first names], places: [names], user: bool} from the companion's day, leaving out anyone and
+    anywhere a secret they keep is about: even an odd dream about them could hint at it."""
     timeline_id, people, places = companion['active_timeline_id'], [], []
     for entry in day_entries(connection, timeline_id, day):
         if entry.get('place') and entry['place'].get('name') and entry['place']['name'] not in places:
@@ -69,7 +72,27 @@ def fragments(connection, companion, day: date, now) -> dict:
     friend = person_name(connection, {'id': moment['friend_id']}) if moment and moment.get('friend_id') else None
     if friend and friend not in people:
         people.append(friend)
-    return {'people': people, 'places': places, 'user': with_user(connection, companion, day, now)}
+    hidden = secret_words(connection, companion)
+    return {'people': [name for name in people if not touches(name, hidden)],
+            'places': [name for name in places if not touches(name, hidden)],
+            'user': with_user(connection, companion, day, now)}
+
+
+def secret_words(connection, companion) -> set[str]:
+    """The names and key words of every secret the companion knows."""
+    key = pairs.companion_key(companion['id'])
+    found = set()
+    for secret in secrets.active(connection):
+        if key in secret['knowers']:
+            found |= {subject['name'].casefold() for subject in secret['subjects'] if subject.get('name')}
+            found |= {word.casefold() for word in secret['keys']}
+    return found
+
+
+def touches(fragment: str, hidden: set[str]) -> bool:
+    words = set(fragment.casefold().split())
+    return any(item in words or item == fragment.casefold() or (' ' in item and item in fragment.casefold())
+               for item in hidden)
 
 
 def with_user(connection, companion, day: date, now) -> bool:
@@ -96,12 +119,20 @@ def mood_line(connection, companion, day: date, chooser: random.Random) -> str:
 
 # Weaving a dream ---------------------------------------------------------------------------------------------
 
-def fitting(found: dict) -> list[dict]:
-    """The templates the day's fragments can fill; the user counts as a second person only."""
+def fitting(found: dict, used: set[str] = frozenset()) -> list[dict]:
+    """The templates the day's fragments can fill, but for ones dreamed lately; the user counts as a second person
+    only."""
     people = len(found['people'])
     return [item for item in data()['templates']
-            if (not item['place'] or found['places']) and
+            if item['id'] not in used and (not item['place'] or found['places']) and
             (people >= item['people'] or (item['people'] == 2 and people == 1 and found['user']))]
+
+
+def recent_templates(connection, timeline_id: str, day: date) -> set[str]:
+    since = (day - timedelta(days=data()['repeat_days'])).isoformat()
+    return {row['template'] for row in many(connection, 'SELECT template FROM dreams WHERE timeline_id=? AND '
+                                            'night>=? AND night<? AND template IS NOT NULL',
+                                            (timeline_id, since, day.isoformat()))}
 
 
 def fill(template: dict, found: dict, first: str, chooser: random.Random) -> dict:
@@ -124,11 +155,12 @@ def weave(connection, companion, day: date, now) -> dict | None:
             data()['per_week']:
         return None
     found = fragments(connection, companion, day, now)
-    templates = fitting(found)
+    templates = fitting(found, recent_templates(connection, timeline_id, day))
     if not templates:
         return None
     first = first_name(companion['version']['definition']['name'])
-    dream = fill(chooser.choice(templates), found, first, chooser)
+    template = chooser.choice(templates)
+    dream = fill(template, found, first, chooser) | {'template': template['id']}
     if tail := mood_line(connection, companion, day, chooser):
         dream['text'] += ' ' + tail.format(first=first)
     if deck.kept_quiet(connection, companion, dream['told']):
@@ -161,10 +193,10 @@ def catch_up(connection, companion, now) -> int:
     while day < today:
         if day.isoformat() not in kept:
             dream = weave(connection, companion, day, now) or {}
-            connection.execute('INSERT OR IGNORE INTO dreams (timeline_id, night, text, told, share, sleep_talk, '
-                               'created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                               (timeline_id, day.isoformat(), dream.get('text'), dream.get('told'), dream.get('share'),
-                                dream.get('sleep_talk'), stamp(now)))
+            connection.execute('INSERT OR IGNORE INTO dreams (timeline_id, night, template, text, told, share, '
+                               'sleep_talk, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                               (timeline_id, day.isoformat(), dream.get('template'), dream.get('text'),
+                                dream.get('told'), dream.get('share'), dream.get('sleep_talk'), stamp(now)))
             written += 1
         day += timedelta(days=1)
     return written

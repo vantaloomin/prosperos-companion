@@ -122,7 +122,7 @@ def pool(data: dict) -> list[tuple[dict, dict]]:
     """Everyone in the city who is on the app, with their dating details: people at its places, its residents and
     the neighbors who only turn up on the app (townsfolk.APP_MEMBERS). Several thousand people, so it is worked
     out once per city and town; only those looking are named."""
-    key = (data['id'], data.get('town', ''), tuple(data.get('kin', ())), tuple(place['id'] for place in data['places']),
+    key = (data['id'], data.get('town', ''), data.get('you', ''), tuple(data.get('kin', ())), tuple(place['id'] for place in data['places']),
            tuple(hood['id'] for hood in data['neighborhoods']))
     if key not in _POOLS:
         found = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])
@@ -130,8 +130,9 @@ def pool(data: dict) -> list[tuple[dict, dict]]:
         for hood in data['neighborhoods']:
             where = townsfolk.area(data, hood['id'])
             total = townsfolk.resident_count(data, hood['id']) + townsfolk.APP_MEMBERS
-            found += [townsfolk.resident(data, hood['id'], index, where) for index in range(total)
-                      if dating.on_app(townsfolk.resident(data, hood['id'], index, where, named=False), data)]
+            found += townsfolk.not_you(data, [
+                townsfolk.resident(data, hood['id'], index, where) for index in range(total)
+                if dating.on_app(townsfolk.resident(data, hood['id'], index, where, named=False), data)])
         if len(_POOLS) > 16:
             _POOLS.clear()
         _POOLS[key] = [(sheet, dating.details(sheet, data)) for sheet in found]

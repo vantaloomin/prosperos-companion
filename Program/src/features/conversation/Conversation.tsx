@@ -35,8 +35,14 @@ import { ChatsPanel } from '../chats/ChatsPanel'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { readThrough } from '../chats/chatText'
 import { useMarkRead } from '../chats/useChats'
+import { takeArrival } from '../worlds/arrival'
 
 const PAGE = 100
+
+function arrival() {
+  const text = takeArrival()
+  return text ? { tone: 'info' as const, text } : null
+}
 const JUMP_PAGE = 500
 
 function ReplyFollower({ id, onText, onPhase, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onPhase: (id: string, phase: Phase) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
@@ -51,7 +57,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [live, setLive] = useState<Record<string, string>>({})
   const [phases, setPhases] = useState<Record<string, Phase>>({})
   const [announcement, setAnnouncement] = useState('')
-  const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string; settings?: boolean } | null>(null)
+  const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string; settings?: boolean } | null>(arrival)
   const [exhausted, setExhausted] = useState(false)
   const [declining, setDeclining] = useState<Message | null>(null)
   const [editing, setEditing] = useState<Message | null>(null)

@@ -144,13 +144,19 @@ def modern(data: dict) -> bool:
 
 
 def at_place(data: dict, place_id: str) -> list[dict]:
-    """Everyone seeded at this place, the same every time for the same city, but for the townsperson the user became
-    in this world (`data['you']`, companion/worlds.py)."""
+    """Everyone seeded at this place, the same every time for the same city, but for the user (`not_you`)."""
     place = catalog.find(data, place_id)
     if not place or place not in data['places']:
         return []
-    found = [person(data, place, index) for index in range(count(data, place))]
-    return [sheet for sheet in found if sheet['key'] != data.get('you')] if data.get('you') else found
+    return not_you(data, [person(data, place, index) for index in range(count(data, place))])
+
+
+def not_you(data: dict, sheets: list[dict]) -> list[dict]:
+    """Everyone but the townsperson the user became in this world (`data['you']`, companion/worlds.py). Every list
+    of townsfolk goes through here (places, residents, the Matchlight pool), so the user never meets themselves;
+    `find` still names them, for their own persona."""
+    you = data.get('you')
+    return [sheet for sheet in sheets if sheet['key'] != you] if you else sheets
 
 
 def seed_for(data: dict, key: str) -> str:
@@ -469,7 +475,7 @@ def area(data: dict, hood_id: str) -> dict:
 def residents(data: dict, hood_id: str, named: bool = True) -> list[dict]:
     """A neighborhood's residents; `named=False` skips their names, for quickly checking where they are."""
     where = area(data, hood_id)
-    return [resident(data, hood_id, index, where, named) for index in range(resident_count(data, hood_id))]
+    return not_you(data, [resident(data, hood_id, index, where, named) for index in range(resident_count(data, hood_id))])
 
 
 def resident(data: dict, hood_id: str, index: int, where: dict | None = None, named: bool = True,

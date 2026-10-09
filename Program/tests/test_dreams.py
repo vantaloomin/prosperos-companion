@@ -99,3 +99,32 @@ def test_a_secret_never_turns_up_in_a_dream(client, dreamer, clock, monkeypatch)
     monkeypatch.setattr(dreams.deck, 'kept_quiet', lambda *_args: True)
     morning(clock)
     assert today(client) == []
+
+
+def test_a_dream_is_not_dreamed_again_for_weeks(client, dreamer, clock, monkeypatch):
+    monkeypatch.setitem(dreams.data(), 'per_week', 7)
+    for _night in range(20):
+        morning(clock)
+        today(client)
+    with client.app.state.database.connect() as connection:
+        used = [row[0] for row in connection.execute('SELECT template FROM dreams WHERE template IS NOT NULL')]
+    assert len(used) >= 15 and len(used) == len(set(used))
+
+
+def test_people_and_places_a_secret_is_about_are_left_out(client, companion, monkeypatch):
+    from companion.memory import pairs
+    secret = {'knowers': [pairs.companion_key(companion['id'])], 'subjects': [{'name': 'Ana Silva'}],
+              'keys': ['Harbor Cafe', 'ring']}
+    monkeypatch.setattr(dreams.secrets, 'active', lambda _connection: [secret])
+    with client.app.state.database.connect() as connection:
+        hidden = dreams.secret_words(connection, companion)
+    assert dreams.touches('Ana', {'ana'}) and dreams.touches('Harbor Cafe', hidden)
+    assert dreams.touches('Ana Silva', hidden) and not dreams.touches('Theo', hidden)
+    assert not dreams.touches('Riverside Park', hidden)
+
+
+def test_dreams_are_never_romantic_or_sexual():
+    banned = {'kiss', 'kissed', 'kissing', 'bed', 'naked', 'date', 'romantic', 'lover', 'sex', 'sexy', 'married'}
+    texts = [template[field] for template in dreams.data()['templates'] for field in ('text', 'told', 'share')]
+    texts += dreams.data()['odd'] + dreams.data()['object']
+    assert not {word.strip('.,!?') for text in texts for word in text.lower().split()} & banned

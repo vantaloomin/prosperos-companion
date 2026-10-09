@@ -332,6 +332,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .why-it-went { margin: 0 0 6px; }
 .why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .why-it-went ul { margin-top: 6px; }
+.deck-card { display: grid; gap: 2px; max-width: 32rem; margin: 6px 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
 .event-list, .plain-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 10px; }
 .plain-list li { line-height: 1.6; }
 .event { padding: 14px 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
