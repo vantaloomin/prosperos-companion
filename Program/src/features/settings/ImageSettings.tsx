@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
+import { useRefetchOnFocus } from '../../paths'
 import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
@@ -294,7 +295,10 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
 
 /** The server's file lists, asked once the panel is opened and shared by the file and LoRA pickers. */
 function useBackendFiles(id: string, open: boolean) {
-  return useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  const files = useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  // A model dropped in ComfyUI's folders shows up when the user comes back to the app.
+  useRefetchOnFocus(files.refetch, open)
+  return files
 }
 
 /** A dropdown of the server's files (only `krea` when given), or a text box when it listed none. */
