@@ -402,6 +402,9 @@ def witness(connection, message: dict) -> list[str]:
             hold(connection, secret['id'], member, 'knows', message['created_at'], via, message['id'])
             if via in ('slip', 'reveal'):
                 slipped.append(secret['id'])
+            if via == 'reveal':
+                from companion.life import reactions  # reactions reads secrets
+                reactions.told_secret(connection, secret, member, parse(message['created_at']))
     return list(dict.fromkeys(slipped))
 
 

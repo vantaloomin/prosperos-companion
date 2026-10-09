@@ -18,6 +18,7 @@ from companion.life import (
     money,
     mood,
     network,
+    reactions,
     recommendations,
     routine,
     simulation,
@@ -312,7 +313,17 @@ def read_consequence(request: Request, consequence_id: str):
 @router.post('/consequences/{consequence_id}/change')
 def change_consequence(request: Request, consequence_id: str, body: OutcomeChange):
     """The user makes it go another way instead."""
-    return storylines.change_outcome(db(request), consequence_id, body.option)
+    with db(request).connect() as connection:
+        subject = consequences.by_id(connection, consequence_id)['subject']
+    if subject.startswith('storyline:'):
+        return storylines.change_outcome(db(request), consequence_id, body.option)
+    return reactions.change(db(request), consequence_id, body.option)
+
+
+@router.get('/reactions')
+def read_reactions(request: Request):
+    """How the companion took what the user did lately (companion/life/reactions.py), newest first."""
+    return reactions.listing(db(request))
 
 
 @today_router.get('')

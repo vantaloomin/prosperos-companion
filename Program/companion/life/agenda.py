@@ -25,6 +25,7 @@ from companion.life import (
     network,
     occasions,
     own_plans,
+    reactions,
     recommendations,
     routine,
     storylines,
@@ -83,6 +84,7 @@ def extend(connection, companion, world, now) -> dict:
         written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
+    reactions.daily(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
 

@@ -511,15 +511,30 @@ def change_outcome(database, consequence_id: str, option: int) -> dict:
         require(row is not None and row['timeline_id'] == companion['active_timeline_id'],
                 'That outcome is not on this timeline.', 404)
         now = database.clock.now()
-        outcome = consequences.change(connection, consequence_id, option, stamp(now))
-        consequences.clear_marks(connection, consequence_id)
-        consequences.leave_marks(connection, outcome, holders(companion, row),
-                                 cast_names(connection, row, companion['version']['definition']), stamp(now), now,
-                                 since=local_today(companion, now))
-        outcome = consequences.by_id(connection, consequence_id)
+        outcome = consequences.redo(connection, consequence_id, option, now, local_today(companion, now),
+                                    holders(companion, row), cast_names(connection, row, companion['version']['definition']))
         stages = decode(row['stages'])
         index = next(index for index, stage in enumerate(stages) if stage.get('consequence') == consequence_id)
         chosen = find_story(row['story']).stages[index][option]
         stages[index] = outcome_stage(stages[index]['on'], chosen, consequence_id)
         connection.execute('UPDATE storylines SET stages=? WHERE id=?', (encode(stages), row['id']))
         return outcome
+
+
+def upcoming_odds(connection, companion, now) -> list[dict]:
+    """Turnings not decided yet in running storylines, with the odds as things stand now (nothing is rolled):
+    {label, on, options: [{label, odds, reasons}]}, for out-of-character "what if" answers."""
+    from companion import consequences
+    definition, found = companion['version']['definition'], []
+    for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running'",
+                    (companion['active_timeline_id'],)):
+        story, names = find_story(row['story']), cast_names(connection, row, definition)
+        for index, stage in enumerate(decode(row['stages'])):
+            if not stage.get('pending'):
+                continue
+            options = consequences.odds(stage['pending'], facts(connection, companion, row, now), names)
+            for item, beat in zip(options, story.stages[index], strict=True):
+                item['label'] = fill(beat.text, row, names_by_id(connection, row), definition)
+            found.append({'label': consequences.tables()[stage['pending']]['label'].format(**names), 'on': stage['on'],
+                          'options': options})
+    return found

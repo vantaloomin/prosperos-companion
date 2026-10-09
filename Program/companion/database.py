@@ -147,6 +147,11 @@ ADDED_COLUMNS = (
     ('life_settings', 'events_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
     # A moment that keeps coming up becomes a running joke on its own; one the user removed stays out.
     ('closeness_jokes', 'removed', 'INTEGER NOT NULL DEFAULT 0 CHECK (removed IN (0, 1))'),
+    # How a companion carries a mark about something the user did, told to them as "you" (companion/consequences.py).
+    ('marks', 'told', 'TEXT'),
+    # The names and mark holders an outcome was decided with, so changing how it went can redo its marks.
+    ('consequences', 'names', 'TEXT'),
+    ('consequences', 'holders', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

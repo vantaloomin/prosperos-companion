@@ -13,7 +13,7 @@ export function WhyItWent({ id }: { id: string }) {
   const outcome = useQuery({ queryKey: key, queryFn: () => api<Consequence>(`/life/consequences/${id}`), enabled: open })
   const change = async (option: number) => {
     client.setQueryData(key, await api<Consequence>(`/life/consequences/${id}/change`, { option }))
-    await client.invalidateQueries({ queryKey: ['storylines'] })
+    await Promise.all([client.invalidateQueries({ queryKey: ['storylines'] }), client.invalidateQueries({ queryKey: ['reactions'] })])
   }
   return (
     <details className="why-it-went" onToggle={(event) => setOpen(event.currentTarget.open)}>

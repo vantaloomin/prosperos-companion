@@ -570,6 +570,29 @@ companion (backstories, groups and Small world meetings), as a lighter mood mark
 Changing how it went redoes the marks from that day. The note lists what an outcome left and whom it reached
 (`marks: [{kind, amount, note, until, ripple, holder, who}]` in the outcome).
 
+#### What the user does
+
+`companion/life/reactions.py` puts four things the user does through the engine, only ones the app can tell
+happened without guessing: telling someone a secret in a group chat that was kept from them (each companion who
+held it from the start reacts), an agreed plan with a sure date passing with no message from the user that day,
+chatting on the companion's birthday or a first-talk anniversary without mentioning it, and adding someone to a
+group with "show everything" (members who had spoken there react). Each is a `user:*` choice: whether it stings
+comes only from an emotional trait the user built into the character whose name speaks to it (`minds`, 0 to 3
+from its intensity; without one the companion lets it go, about 33%, 50% or 60% for mild, moderate or strong).
+A sting leaves a mood mark for a few days whose `told` line goes into the chat context's "How you are taking
+something the user did lately" section, so the companion can bring it up once in their own words; it never
+cools closeness. Today lists these under "How {name} took things lately" with the same "Why it went this way"
+note and button.
+
+```http
+GET /api/life/reactions                   # the last 30 days, newest first, as outcomes
+```
+
+Out of character, "what if?" questions get the engine's odds without rolling anything: an OOC message's
+note lists the turnings still to come in running storylines with their odds as things stand, and the odds for
+the user's own choices the app would notice (telling someone a secret this companion holds, a plan or occasion
+in the next week). The model answers from them in plain words; the companion never sees them in character.
+
 Secrets use the engine too: whether a gossip would pass a secret on to someone in a group chat is the
 choice `secret:pass_on`, from how close they feel (about 86% at Close or closer, 20% a step below, never
 to someone they hardly know), seeded by the secret, the two of them and that closeness. Only a companion

@@ -172,13 +172,14 @@ def test_the_companion_runs_into_townsfolk_and_learns_more_each_time(client, clo
     assert met and 'got talking with ' in met[0]['entry']['summary'].lower()
     assert len({row['local_date'] for row in met}) == len(met)
     assert client.get('/api/life/townsfolk').json() == []
-    # Who is where depends on the seeded city, so from here on the first person met is always around.
+    # Who is where depends on the seeded city, so from here on the first person met is the one around: with others
+    # there too, who gets talked to is seeded by the companion's id and the first one could be met only twice.
     first = met[0]['entry']['townsfolk']['key']
     seeded = encounters.present
 
     def around(data, place_id, times_of_day, history, cast=None, plans=None):
         found = seeded(data, place_id, times_of_day, history, cast, plans)
-        return (found[0] if found else times_of_day[0]), {**(found[1] if found else {}), first: {'doing': ''}}
+        return (found[0] if found else times_of_day[0]), {first: {'doing': ''}}
 
     monkeypatch.setattr(encounters, 'present', around)
     for _week in range(2):

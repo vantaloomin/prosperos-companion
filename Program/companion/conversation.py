@@ -366,7 +366,7 @@ class Conversation:
                 if in_character.out_of_character(prepared['user']['text']):
                     note = in_character.OUT_OF_CHARACTER_NOTE.format(
                         name=definition.get('name', 'the character'), model=default_name(prepared['config']))
-                    packet = context.add_note(packet, note)
+                    packet = context.add_note(packet, '\n\n'.join(filter(None, (note, self.what_if()))))
                 status, error, dropped = await self.write(prepared, key, packet, text, publish, active, step)
                 if dropped and not ''.join(text).strip():
                     # The reply only stepped out of character: written once more with a reminder.
@@ -412,6 +412,12 @@ class Conversation:
         finally:
             keep(guard.flush())  # A stopped or failed reply keeps the text it had, still checked.
         return status, error, guard.dropped
+
+    def what_if(self) -> str:
+        """The odds the consequence engine sees for what could happen, for an out-of-character answer."""
+        from companion.life import reactions
+        with self.database.connect() as connection:
+            return reactions.what_if_note(connection, require_current(connection), self.database.clock.now())
 
     def finish(self, attempt_id, text, status, error):
         with self.database.connect(write=True) as connection:

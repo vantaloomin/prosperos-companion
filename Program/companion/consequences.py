@@ -17,6 +17,7 @@ import re
 from datetime import date, timedelta
 from functools import cache
 
+from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.world import catalog
@@ -115,9 +116,9 @@ def decide(connection, *, timeline_id: str, choice: str, subject: str, facts: di
     row_id = identifier()
     connection.execute(
         'INSERT INTO consequences (id, timeline_id, choice, subject, label, decided_on, options, picked, '
-        "picked_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'dice', ?)",
+        "picked_by, created_at, names, holders) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'dice', ?, ?, ?)",
         (row_id, timeline_id, choice, subject, tables()[choice]['label'].format(**names), day, encode(options), picked,
-         timestamp))
+         timestamp, encode(names), encode(holders or {})))
     if holders:
         leave_marks(connection, recorded(connection, subject, choice), holders, names, timestamp, now)
     return recorded(connection, subject, choice)
@@ -151,6 +152,24 @@ def change(connection, consequence_id: str, option: int, timestamp: str) -> dict
                        (option, 'dice' if option == found['picked'] and found['picked_by'] == 'dice' else 'user',
                         timestamp, consequence_id))
     return by_id(connection, consequence_id)
+
+
+def redo(connection, consequence_id: str, option: int, now, since: date, holders=None, names=None) -> dict:
+    """Change how it went and redo the marks it left, from `since` (the day it was changed). `holders` and `names`
+    stand in for an outcome recorded before they were kept."""
+    outcome = change(connection, consequence_id, option, stamp(now))
+    row = optional(connection, 'SELECT names, holders FROM consequences WHERE id=?', (consequence_id,))
+    clear_marks(connection, consequence_id)
+    leave_marks(connection, outcome, decode(row['holders']) or holders or {}, decode(row['names']) or names or {},
+                stamp(now), now, since=since)
+    return by_id(connection, consequence_id)
+
+
+def recent(connection, timeline_id: str, prefix: str, since: str) -> list[dict]:
+    """Outcomes whose choice starts with `prefix`, decided on or after `since`, newest first."""
+    rows = many(connection, 'SELECT * FROM consequences WHERE timeline_id=? AND choice LIKE ? AND decided_on>=? '
+                'ORDER BY decided_on DESC, created_at DESC', (timeline_id, f'{prefix}%', since))
+    return [view(row, connection) for row in rows]
 
 
 def copy(connection, consequence_id: str, timeline_id: str, subject: str) -> str:
@@ -193,7 +212,8 @@ def leave_marks(connection, outcome: dict, holders: dict, names: dict, timestamp
             continue
         row = {'timeline_id': outcome['timeline_id'], 'consequence_id': outcome['id'], 'holder': holder,
                'kind': mark['kind'], 'amount': mark.get('amount', 0), 'about': holders.get(mark.get('about')),
-               'note': mark['note'].format(**names), 'starts_on': start.isoformat(),
+               'note': mark['note'].format(**names), 'told': mark['told'].format(**names) if 'told' in mark else None,
+               'starts_on': start.isoformat(),
                'ends_on': (start + timedelta(days=mark['days'])).isoformat()}
         add_mark(connection, row, timestamp)
         if mark.get('ripple') and now is not None:
@@ -216,7 +236,7 @@ def ripple(connection, row: dict, timestamp: str, now):
         if (pairs.closeness(connection, key, row['holder'], now) or 0) >= RIPPLE_LEVEL:
             add_mark(connection, {**row, 'timeline_id': other['active_timeline_id'], 'holder': key,
                                   'kind': 'mood', 'amount': (row['amount'] > 0) - (row['amount'] < 0),
-                                  'about': row['holder']}, timestamp, ripple_of=True)
+                                  'about': row['holder'], 'told': None}, timestamp, ripple_of=True)
 
 
 def clear_marks(connection, consequence_id: str):
@@ -263,3 +283,9 @@ def money_line(connection, timeline_id: str, holder: str, day: str) -> list[tupl
     if amount > 0:
         return [(f'marks:money:{day}', '- You have a little more room in your budget lately.')]
     return []
+
+
+def lately_lines(connection, timeline_id: str, holder: str, day: str) -> list[tuple[str, str]]:
+    """How the companion is carrying something the user did, while its mark lasts, for the chat context."""
+    return [(f"mark:{row['id']}", f"- {row['told']}") for row in active(connection, timeline_id, day, 'mood', holder)
+            if row['told']]

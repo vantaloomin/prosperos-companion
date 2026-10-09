@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* choices name each option's `label`. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -419,6 +419,206 @@
         {
           "weight": 4,
           "rules": []
+        }
+      ]
+    },
+    "user:told_secret": {
+      "label": "How {name} takes the user telling {a} a secret",
+      "options": [
+        {
+          "label": "{name} lets it go",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} is hurt the secret got out",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 7,
+              "note": "{name} is hurt the user told {a} a secret {name} was keeping",
+              "told": "You're still a little hurt that the user told {a} something you were keeping secret."
+            }
+          ]
+        }
+      ]
+    },
+    "user:missed_plan": {
+      "label": "How {name} takes the plan passing without a word",
+      "options": [
+        {
+          "label": "{name} shrugs it off",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} is let down",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 4,
+              "note": "{name} is let down the plan ({plan}) passed without a word",
+              "told": "You're a little let down that the plan ({plan}) came and went without a word from the user."
+            }
+          ]
+        }
+      ]
+    },
+    "user:forgot_occasion": {
+      "label": "How {name} takes the user not mentioning {occasion}",
+      "options": [
+        {
+          "label": "{name} doesn't mind",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} is hurt it went unmentioned",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 5,
+              "note": "{name} is hurt the user chatted on {occasion} without mentioning it",
+              "told": "You're a little hurt that the user chatted with you on {occasion} without mentioning it."
+            }
+          ]
+        }
+      ]
+    },
+    "user:showed_everything": {
+      "label": "How {name} takes {a} seeing everything said in {group}",
+      "options": [
+        {
+          "label": "{name} doesn't mind",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} feels exposed",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 5,
+              "note": "{name} feels exposed that {a} can read everything said in {group}",
+              "told": "You feel a little exposed that the user let {a} read everything said in {group} before they joined."
+            }
+          ]
         }
       ]
     }

@@ -26,6 +26,7 @@ from companion.life import (
     occasions,
     own_plans,
     pacing,
+    reactions,
     recommendations,
     storylines,
     wardrobe,
@@ -122,6 +123,9 @@ HEADINGS = {
             'own_plans': 'Plans you have made in chat for a day (yours; keep to them, and when the day comes they '
                          'happen as you said)',
             'relationship_mood': 'Your current mood about time apart',
+            'lately': 'How you are taking something the user did lately (from your own character; bring it up once '
+                      'in your own words if it fits, never as a number or a rule, and let it go when it is no '
+                      'longer listed)',
             'companion_life': 'Your recent life (committed fictional events)',
             'storylines': "What is going on in your life and your people's lives (these happened to you and your "
                           'people, never to the user; decided: bring it up the way a friend would, never contradict '
@@ -579,6 +583,8 @@ def offer_life(packet, connection, companion, now):
         packet.offer('money', identity, text)
     for identity, text in consequences.money_line(connection, timeline_id, f"companion:{companion['id']}", today):
         packet.offer('money', identity, text)
+    for identity, text in reactions.lately_lines(connection, companion, now):
+        packet.offer('lately', identity, text)
     for item in recommendations.progress(connection, timeline_id):
         packet.offer('recommendations', item['id'], recommendations.context_text(item))
     offer_home(packet, connection, timeline_id, today)
