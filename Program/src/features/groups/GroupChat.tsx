@@ -268,7 +268,7 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
   )
 }
 
-/** How someone seems right now, read-only, with why (companion/group_moods.py). Nothing while they seem calm. */
+/** How someone seems right now, read-only, with why (companion/moods.py). Nothing while they seem calm. */
 function MoodLine({ mood }: { mood?: GroupMood | null }) {
   if (!mood || mood.feeling === 'calm') return null
   const why = mood.reason ? `: ${mood.reason}` : ''

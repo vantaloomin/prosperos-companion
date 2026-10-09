@@ -4,6 +4,7 @@ import type { Companion } from '../../types'
 import { useAdvancedSettings } from './advanced'
 import { StoryModeSetting } from './StoryModeSetting'
 import { SecretSlipSetting } from './SecretSlipSetting'
+import { HiddenValues } from './HiddenValues'
 import { Backups } from './Backups'
 import { DataFolder } from './DataFolder'
 import { DebugSettings } from './DebugSettings'
@@ -92,7 +93,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><SecretSlipSetting /><PauseSettings /><BackgroundSettings /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <BuiltinRecall />}<VoiceSettings /></>,
-    life: <><LifeSettings name={name} /><Cities /></>,
+    life: <><LifeSettings name={name} /><HiddenValues name={name} /><Cities /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,
     images: <ImageSettings />,

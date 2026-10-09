@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
 from companion import consequences, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
@@ -165,6 +166,9 @@ NOW = {
                       'of them unless your recent life above says so',
        # Each person's line says what they are doing right now.
        'circle_now': 'What the people in your life are up to',
+       # How they feel right now, from their own day and how the user talks to them (companion/moods.py).
+       'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
+                  'never explain it unless asked)',
        'day_shifts': 'How today has gone off plan so far (decided: mention it the way a person would, never '
                      'contradict it)',
        'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
@@ -657,8 +661,9 @@ def offer_own(packet, connection, timeline_id, version, now, since=None):
 
 
 def offer_secrets(packet, connection, companion, group: dict | None, now: datetime):
-    """A group reply's own group section; in a 1:1 chat, the secrets they learned from others instead (in a group,
-    the group section says what they know and who there must not find out)."""
+    """A group reply's own group section; in a 1:1 chat, the secrets and news they learned from others and how they
+    feel right now instead (in a group, the group section says what they know, who there must not find out and
+    their mood)."""
     for identity, text in (group or {}).get('lines', ()):
         packet.offer('group', identity, text)
     if group is None:
@@ -666,6 +671,8 @@ def offer_secrets(packet, connection, companion, group: dict | None, now: dateti
             packet.offer('knowledge', identity, text)
         for identity, text in news.context_lines(connection, companion, now):
             packet.offer('news', identity, text)
+        for identity, text in feelings.chat_lines(connection, companion, now):
+            packet.offer('feeling', identity, text)
 
 
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,

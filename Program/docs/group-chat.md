@@ -281,8 +281,9 @@ never quietly undone.
 
 ## Moods
 
-Each member has at most one current mood (`companion/group_moods.py`, table `group_moods`): a feeling (calm, happy,
-excited, annoyed, hurt, angry, anxious, sad), an intensity from 1 to 3 and, for some, who it's about. All rules:
+Every companion has at most one current mood (`companion/moods.py`, table `moods`), in group chats and in their
+own chat with the user: a feeling (calm, happy, excited, annoyed, hurt, angry, anxious, sad), an intensity from 1
+to 3 and, for some, who it's about. All rules, no model calls:
 
 - **Events lead.** Finding out a secret that was kept from them (it slipped, the user said it in front of them, or
   "Let them find out") leaves them hurt (2) toward whoever it's about, or furious (angry 3) with a temper. With
@@ -292,6 +293,15 @@ excited, annoyed, hurt, angry, anxious, sad), an intensity from 1 to 3 and, for 
   with Sally") moves that feeling toward them a step, never past 2, at most one step a reply. Negations ("not mad"),
   quotes, "lol", "jk" and "haha" don't count. Angry replies alone never reach furious, so two members can't talk
   each other into walking out.
+- **Their own day sets it** when nothing else has: a storyline beat today that turned out badly leaves them sad
+  (2, "a bit sullen"), a good one a bit happy; an outcome the consequence engine marked as a mood (not one about the
+  user) a bit sad or happy; their day going off plan (plans cancelled: a bit sad; ran late or stayed late: a bit
+  annoyed; something came up: a bit on edge; a surprise visit: a bit happy). Everyday moods stay mild.
+- **The user's words move it, one step a message.** Care ("sorry", "that sucks", "here for you", "proud of you",
+  "how are you") lifts a low mood a step, and from 1 it becomes calm for the rest of the day ("you cheered them
+  up"). Words that sting ("shut up", "you're so boring", "whatever", "leave me alone") leave them a little hurt by
+  the user (1), or angry up to 2 with a temper; without a temper they never sulk or ignore the user. Jokes ("lol",
+  quotes) and negations don't count.
 - **It fades** a step every three hours and resets overnight, their time.
 - **Only a temper gets angry**: one the user wrote into their character ("hot-tempered", "short temper", "quick to
   anger"), or the temper flaw a townsperson came with. Anyone else is hurt instead, at most 2. There is no
@@ -306,9 +316,15 @@ What it does:
 | furious toward someone here | After three replies while furious, they walk out: "Billy left the group." Two people furious at each other qualify at once, and the one with the stronger temper (more temper words) leaves; a tie goes to seeded dice. Only when the group's "People can walk out" switch is on (`walk_out`, off by default). |
 
 Someone who walked out can be added back once they're no longer angry at anyone in the group; until then Add
-answers "Billy is still angry at Sally." The people panel shows each member's mood read-only with its reason
+answers "Billy is still angry at Sally." With moods shown (below), the people panel shows each member's mood read-only with its reason
 ("Seems hurt by Sally: found out …"), and who they're not speaking to. The speaker's own mood is in their group
-section with the reason ("why: …"); nobody else's mood reaches their prompt. Start over or Delete clears the
+section with the reason ("why: …"); nobody else's mood reaches their prompt. In their own chat, the per-reply
+notes carry "How you feel right now" ("You're subdued and a bit sullen: shorter, quieter replies … (why: …). Let
+it color your tone; never say it as a rule."), so the user notices it from how they talk.
+
+Moods are hidden values: the people panel's mood line, the "Seems a bit sad" line on Today (`feeling` in `GET
+/api/today`, and the absence mood) show only with Settings > Life > Hidden values > "Show how they're feeling" on
+(workspace `show_moods`, off by default). Hidden, they still shape every reply. Start over or Delete clears the
 companion's mood and anyone's mood about them.
 
 ```http

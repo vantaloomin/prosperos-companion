@@ -210,6 +210,10 @@ export interface WorkspaceSettings {
   story_mode?: boolean
   /** The note under a group message when someone lets a secret slip; on unless turned off. */
   show_secret_slips?: boolean
+  /** Hidden values: how companions feel (Today, group members); off unless turned on. */
+  show_moods?: boolean
+  /** Hidden values: who has heard a companion's news (Today); off unless turned on. */
+  show_news?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
   ai_notice_confirmed?: boolean
   share_profile_across_timelines: boolean
@@ -411,6 +415,8 @@ export interface Today {
   paused_at: string | null
   clock_behind: boolean
   mood: AbsenceMood | null
+  /** How they feel right now (companion/moods.py); only with Hidden values > Show how they're feeling on. */
+  feeling?: GroupMood | null
   last_seen_at: string | null
   day: { date: string; body: BodyState | null }
   /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
@@ -1248,7 +1254,7 @@ export interface GroupMember {
   joined_at: string
   /** The first message they can see: 1 when added with everything so far. */
   sees_from: number
-  /** How they seem right now (companion/group_moods.py), read-only; only in a chat's own view. */
+  /** How they seem right now (companion/moods.py), read-only; only in a chat's own view. */
   mood?: GroupMood | null
 }
 

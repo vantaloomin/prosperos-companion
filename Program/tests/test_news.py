@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 import pytest
-from conftest import reconcile
+from conftest import reconcile, show
 from test_groups import by_speaker, companion_named, ok, say, start
 
 from companion import consequences, news, secrets
@@ -98,6 +98,8 @@ def test_it_stops_travelling_after_a_few_days(client, cast, clock, monkeypatch):
 def test_who_heard_shows_on_today_and_in_their_chats(client, cast, clock, monkeypatch):
     monkeypatch.setattr(news, 'passes', lambda *_args: True)
     evening(clock)
+    assert ok(client.get('/api/life/news')) == []  # Hidden values: unseen unless turned on; word still travels.
+    show(client, show_news=True)
     listed = ok(client.get('/api/life/news'))
     assert listed[0]['text'] == TEXT
     billy = next(item for item in listed[0]['heard'] if item['companion_id'] == cast['Billy'])

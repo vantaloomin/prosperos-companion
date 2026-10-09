@@ -36,7 +36,7 @@ class Moment(Input):
 class GroupChange(Input):
     name: str | None = Field(None, max_length=200)
     reply_cap: int | None = Field(None, ge=1, le=groups.MAX_CAP)
-    # Someone furious may walk out (companion/group_moods.py); off by default.
+    # Someone furious may walk out (companion/moods.py); off by default.
     walk_out: bool | None = None
 
 

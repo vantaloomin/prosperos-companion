@@ -22,7 +22,7 @@ from datetime import date, time, timedelta
 from companion import consequences, secrets
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
-from companion.database import decode, identifier, many
+from companion.database import decode, identifier, many, settings
 from companion.life import circle, storylines
 from companion.memory import pairs
 
@@ -279,4 +279,5 @@ def read(database) -> list[dict]:
     now = database.clock.now()
     with database.connect(write=True) as connection:
         sync(connection, now)
-        return listing(connection, require_current(connection), now)
+        # Hidden values: who has heard stays unseen unless the user turns it on; word still gets around.
+        return listing(connection, require_current(connection), now) if settings(connection)['show_news'] else []

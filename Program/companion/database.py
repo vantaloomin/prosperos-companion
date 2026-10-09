@@ -101,7 +101,7 @@ ADDED_COLUMNS = (
     # On her mind (companion/life/thoughts.py): one private thought a day, shown folded on Today.
     # Who passed a secret on (companion/secrets.py): a person key or 'user'; NULL for those it started with.
     ('knowledge_holders', 'told_by', 'TEXT'),
-    # Group chat moods (companion/group_moods.py): whether someone furious may walk out of this group.
+    # Group chat moods (companion/moods.py): whether someone furious may walk out of this group.
     ('group_chats', 'walk_out', 'INTEGER NOT NULL DEFAULT 0 CHECK (walk_out IN (0, 1))'),
     ('life_settings', 'on_her_mind', 'INTEGER NOT NULL DEFAULT 1 CHECK (on_her_mind IN (0, 1))'),
     ('messages', 'held_until', 'TEXT'),
@@ -148,6 +148,9 @@ ADDED_COLUMNS = (
     # A group reply a secret check touched (companion/secrets.py): 'redrafted', 'revealed' or 'held'.
     ('group_messages', 'guard', 'TEXT'),
     ('workspace_settings', 'show_secret_slips', 'INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1))'),
+    # Hidden values: moods and who heard the news stay unseen unless the user turns them on.
+    ('workspace_settings', 'show_moods', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1))'),
+    ('workspace_settings', 'show_news', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
     # from before that is switched on once (see initialize), and turning it off afterwards sticks.
     ('life_settings', 'events_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),

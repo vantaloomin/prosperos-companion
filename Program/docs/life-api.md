@@ -648,10 +648,12 @@ companion heard today or yesterday can open a conversation ("Did you hear about 
 that companion has told the user. Only life events travel, never anything from the user's chats, and the prompt
 says they don't know whether the user has heard, so no companion seems to have read the user's other chats.
 Group chats: see docs/group-chat.md. Today shows "Word getting around": the companion's recent news and who has
-heard it, from whom, once anyone has.
+heard it, from whom, once anyone has, only with Settings > Life > Hidden values > "Show who has heard their news"
+on (workspace `show_news`, off by default; `GET /api/life/news` returns `[]` while it is off). Word travels either
+way.
 
 ```http
-GET  /api/life/news                       # the companion's recent news and who heard it: [{id, text, happened_on, heard}]
+GET  /api/life/news                       # the companion's recent news and who heard it: [{id, text, happened_on, heard}]; [] while hidden
 ```
 
 ### Birthdays and anniversaries

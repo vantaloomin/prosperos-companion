@@ -120,6 +120,7 @@ function Feeling({ data, name }: { data: TodayData; name: string }) {
   const text = bodyText(data.day?.body, name)
   return <>
     {text && <p className="subtle">{text}</p>}
+    {data.feeling && data.feeling.feeling !== 'calm' && <p className="subtle">{data.feeling.text}{data.feeling.reason ? `: ${data.feeling.reason}` : ''}.</p>}
     {(data.occasions ?? []).map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
   </>
 }

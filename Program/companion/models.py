@@ -221,6 +221,8 @@ class SettingsUpdate(Input):
     ask_about_people: bool | None = None
     story_mode: bool | None = None
     show_secret_slips: bool | None = None
+    show_moods: bool | None = None
+    show_news: bool | None = None
     review_complete: bool | None = None
     # The first-run notice: the characters are AI, and the user is 18 or older. Only ever confirmed.
     ai_notice_confirmed: Literal[True] | None = None

@@ -156,6 +156,13 @@ def reconcile(client):
     return response.json()
 
 
+def show(client, **values):
+    """Turn on Hidden values (show_moods, show_news); they are off by default."""
+    response = client.put('/api/settings', json=values)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
 def set_life(client, **values):
     response = client.put('/api/life/settings', json=values)
     assert response.status_code == 200, response.text

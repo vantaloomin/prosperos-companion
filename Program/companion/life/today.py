@@ -1,4 +1,5 @@
 """The Today view: the companion's routine, plans and what changed since the last visit (PRD Today, C5)."""
+from companion import moods as feelings
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
@@ -87,7 +88,10 @@ def view(database) -> dict:
             'simulated_through': position['simulated_through'],
             'clock_behind': now < parse(position['simulated_through']),
             'limits': simulation.settings_view(life),
-            'mood': mood.active(connection, companion, now),
+            # Hidden values: how they feel stays unseen unless the user turns it on (companion/moods.py).
+            'mood': mood.active(connection, companion, now) if workspace['show_moods'] else None,
+            'feeling': feelings.view(connection, f"companion:{companion['id']}", {feelings.USER: 'you'}, now)
+            if workspace['show_moods'] else None,
             'day': day(connection, timeline_id, now.astimezone(zone(version['timezone'])).date().isoformat()),
             'occasions': occasions.occasions(connection, companion, now),
         }

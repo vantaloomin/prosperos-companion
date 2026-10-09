@@ -12,7 +12,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-from companion import in_character, logs, pictures, safety, self_checks, self_facts, texting, troubleshoot
+from companion import in_character, logs, moods, pictures, safety, self_checks, self_facts, texting, troubleshoot
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -57,6 +57,7 @@ def record_user(database, body) -> dict:
         recommendations.note(connection, message, database.now())
         occasions.note(connection, message, database.now())
         self_checks.heed(connection, message, database.now())
+        moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
         return message
 
 

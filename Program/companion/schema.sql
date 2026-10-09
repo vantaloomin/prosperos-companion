@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).
   show_secret_slips INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1)),
+  -- Hidden values (Settings > Hidden values): how companions feel and who has heard their news stay unseen
+  -- unless the user turns them on, so the default keeps some mystique. They still shape every reply.
+  show_moods INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1)),
+  show_news INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,
@@ -1617,9 +1621,9 @@ CREATE TABLE IF NOT EXISTS news_holders (
 );
 CREATE INDEX IF NOT EXISTS news_holders_holder ON news_holders(holder, heard_on);
 
--- Group chat moods (companion/group_moods.py): each member's one current mood, by rules. `day` is their local day
+-- Group chat moods (companion/moods.py): each member's one current mood, by rules. `day` is their local day
 -- when it last changed (it resets overnight); `furious_replies` counts replies sent while furious, for walking out.
-CREATE TABLE IF NOT EXISTS group_moods (
+CREATE TABLE IF NOT EXISTS moods (
   holder TEXT PRIMARY KEY,
   feeling TEXT NOT NULL CHECK (feeling IN ('calm', 'happy', 'excited', 'annoyed', 'hurt', 'angry', 'anxious', 'sad')),
   intensity INTEGER NOT NULL CHECK (intensity BETWEEN 1 AND 3),

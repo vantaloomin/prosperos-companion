@@ -1,10 +1,13 @@
-"""Group chat moods (companion/group_moods.py): moods by rules, ignoring someone, and walking out."""
+"""Moods (companion/moods.py): how a companion's day and the user's words leave them, ignoring someone in a group,
+and walking out."""
 from datetime import timedelta
+from types import SimpleNamespace
 
 import pytest
+from conftest import send, show
 from test_groups import by_speaker, companion_named, messages, ok, say, speaker, start
 
-from companion import group_moods
+from companion import moods
 from companion.memory import pairs
 from companion.providers.chat import Chunk
 
@@ -24,14 +27,14 @@ def key(companion_id):
 def mood_of(client, companion_id):
     database = client.app.state.database
     with database.connect() as connection:
-        return group_moods.current(connection, key(companion_id), database.clock.now())
+        return moods.current(connection, key(companion_id), database.clock.now())
 
 
 def set_mood(client, companion_id, feeling, intensity, target=None, reason='testing'):
     database = client.app.state.database
     with database.connect(write=True) as connection:
-        group_moods.save(connection, key(companion_id), feeling, intensity, target and key(target), reason,
-                         database.clock.now())
+        moods.save(connection, key(companion_id), feeling, intensity, target and key(target), reason,
+                   database.clock.now())
 
 
 def scripted(lines: dict[str, list[str]]):
@@ -51,12 +54,12 @@ def requests_of(provider, name):
 def test_only_someone_with_a_temper_gets_angry(client, cast):
     database = client.app.state.database
     with database.connect() as connection:
-        assert group_moods.temper(connection, key(cast['Billy'])) > 0
-        assert group_moods.temper(connection, key(cast['Sally'])) == 0
+        assert moods.temper(connection, key(cast['Billy'])) > 0
+        assert moods.temper(connection, key(cast['Sally'])) == 0
     set_mood(client, cast['Sally'], 'angry', 3, cast['Billy'])
     assert (mood_of(client, cast['Sally'])['feeling'], mood_of(client, cast['Sally'])['intensity']) == ('hurt', 2)
     set_mood(client, cast['Billy'], 'angry', 3, cast['Sally'])
-    assert group_moods.furious(mood_of(client, cast['Billy']))
+    assert moods.furious(mood_of(client, cast['Billy']))
 
 
 def test_a_reply_nudges_a_feeling_one_step_but_never_to_furious(client, cast, provider):
@@ -65,7 +68,7 @@ def test_a_reply_nudges_a_feeling_one_step_but_never_to_furious(client, cast, pr
 
     def nudge(text):
         with database.connect(write=True) as connection:
-            return group_moods.nudge(connection, key(cast['Billy']), text, members, database.clock.now())
+            return moods.nudge(connection, key(cast['Billy']), text, members, database.clock.now())
     assert not nudge('lol I am so mad at Sally')
     assert not nudge("I'm not mad at Sally.")
     assert nudge('Honestly I am so mad at Sally right now.')
@@ -77,9 +80,9 @@ def test_a_reply_nudges_a_feeling_one_step_but_never_to_furious(client, cast, pr
 
 def test_moods_fade_and_reset_overnight(client, cast, clock):
     set_mood(client, cast['Sally'], 'hurt', 2, cast['Billy'])
-    clock.advance(group_moods.FADE)
+    clock.advance(moods.FADE)
     assert mood_of(client, cast['Sally'])['intensity'] == 1
-    clock.advance(group_moods.FADE)
+    clock.advance(moods.FADE)
     assert mood_of(client, cast['Sally']) is None
     set_mood(client, cast['Sally'], 'sad', 3)
     clock.advance(timedelta(hours=14))  # The next morning in New York.
@@ -101,6 +104,9 @@ def test_hurt_means_not_speaking_to_them(client, cast, provider):
     # His first draft named Sally, so it was written once more without her.
     assert len(billy) == 2 and "Billy isn't speaking to Sally right now" in billy[1]['messages'][-1]['content']
     view = ok(client.get(f"/api/groups/{group['id']}"))['group']['members']
+    assert all(item['mood'] is None for item in view)  # Hidden values: unseen unless turned on.
+    show(client, show_moods=True)
+    view = ok(client.get(f"/api/groups/{group['id']}"))['group']['members']
     assert next(item['mood'] for item in view if item['label'] == 'Billy')['text'] == 'Seems hurt by Sally'
 
 
@@ -117,7 +123,7 @@ def test_finding_out_a_secret_hurts(client, cast, provider):
 def test_someone_furious_walks_out_only_when_the_group_allows_it(client, cast, provider):
     group = start(client, [cast['Billy'], cast['Sally']])
     set_mood(client, cast['Billy'], 'angry', 3, cast['Sally'])
-    for number in range(group_moods.WALK_OUT_REPLIES + 1):
+    for number in range(moods.WALK_OUT_REPLIES + 1):
         say(client, group['id'], f'Billy, talk to me {number}', f'mood-walk-{number}')
     assert 'Billy left the group.' not in [line['text'] for line in messages(client, group['id'])]
 
@@ -139,3 +145,49 @@ def test_two_furious_at_each_other_means_the_stronger_temper_leaves_at_once(clie
     set_mood(client, katie, 'angry', 3, cast['Billy'])
     say(client, group['id'], 'Hey both', 'mood-pair-1')
     assert 'Katie left the group.' in [line['text'] for line in messages(client, group['id'])]
+
+
+def mira_prompt(provider) -> str:
+    return next(request['prompt'] for request in reversed(provider.requests) if not speaker(request['messages']))
+
+
+def bad_day(monkeypatch, clock):
+    today = clock.now().date().isoformat()
+    beat = {'on': today, 'tone': 'bad', 'text': 'Mira lost the promotion to Dana.'}
+    monkeypatch.setattr(moods, 'storylines', SimpleNamespace(  # A storyline's bad turn today, as moods sees it.
+        local_today=moods.storylines.local_today, visible=lambda *_args: [{'story': 'rivalry', 'beats': [beat]}]))
+
+
+def test_a_bad_day_leaves_her_sullen_in_her_own_chat_and_kind_words_lift_it(client, cast, provider, clock,
+                                                                            monkeypatch):
+    bad_day(monkeypatch, clock)
+    send(client, 'Hey, what are you up to?', 'mood-one-1')
+    prompt = mira_prompt(provider)
+    assert ("- You're subdued and a bit sullen: shorter, quieter replies, less joking, though you still answer and "
+            'still care (why: Mira lost the promotion to Dana). Let it color your tone; never say it as a rule.') in prompt
+    assert '## How you feel right now' in prompt
+
+    send(client, "Oh no, I'm so sorry. I'm here for you.", 'mood-one-2')
+    assert "- You're a little low today (why: Mira lost the promotion to Dana)" in mira_prompt(provider)
+    send(client, 'Proud of you for trying anyway.', 'mood-one-3')
+    assert mood_of(client, cast['Mira'])['feeling'] == 'calm'  # Cheered up for the rest of the day.
+    assert "You're " not in mira_prompt(provider).split('## How you feel right now')[-1][:20]
+
+
+def test_words_that_sting_cool_her_a_little_but_jokes_do_not(client, cast, provider):
+    send(client, "You're so boring lol", 'mood-one-4')
+    assert mood_of(client, cast['Mira']) is None
+    send(client, "You're so boring.", 'mood-one-5')
+    send(client, 'Whatever.', 'mood-one-6')
+    mood = mood_of(client, cast['Mira'])
+    # No temper: a little hurt, never more, never angry, never ignoring.
+    assert (mood['feeling'], mood['intensity'], mood['target']) == ('hurt', 1, moods.USER)
+    assert "- You're a little hurt with the user (why: something you said stung)" in mira_prompt(provider)
+
+
+def test_how_she_feels_shows_on_today_only_when_turned_on(client, cast, clock, monkeypatch):
+    bad_day(monkeypatch, clock)
+    assert ok(client.get('/api/today'))['feeling'] is None
+    show(client, show_moods=True)
+    feeling = ok(client.get('/api/today'))['feeling']
+    assert (feeling['text'], feeling['reason']) == ('Seems sad', 'Mira lost the promotion to Dana')
