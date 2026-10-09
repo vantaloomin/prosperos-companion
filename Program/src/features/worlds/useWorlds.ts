@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../../api'
+import { api, openedIn } from '../../api'
 import type { Worlds } from '../../types'
 
 export const WORLDS_KEY = ['worlds']
@@ -23,7 +23,7 @@ export function useFollowWorld() {
   const active = worlds.data?.active_world_id
   useEffect(() => {
     if (!active) return
-    if (opened.current === null) opened.current = active
+    if (opened.current === null) { opened.current = active; openedIn(active) }
     else if (opened.current !== active) enter()
   }, [active])
   return worlds

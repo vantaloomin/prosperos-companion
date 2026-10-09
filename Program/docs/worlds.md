@@ -28,6 +28,13 @@ database, points the app's one `Database` at the other file (`Database.use`), ca
 forward, writes the persona, and recovers half-finished work as a start does. The interface reloads into the chat.
 Only the active world runs in the background; the others catch up when the user returns, as after any break.
 
+Work already under way stays in its own world. Each request, each background tick (life, pictures, phone
+notifications) and each memory drain is pinned to the world open when it began (`Database.pin`, a context variable
+that every task it starts inherits), so a picture or a phrased message that comes back from a model after the switch
+is stored where it was asked for, never in the world now open. Pages send the world they show
+(`X-Companion-World`); a phone still showing the old world gets `409 world_changed` for anything it asks and
+reloads into the new one, rather than writing into it.
+
 ## Defaults ("the world exists outside of User")
 
 - Upgrading: the existing workspace becomes the first world, named after its city, with a persona made from the

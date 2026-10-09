@@ -722,22 +722,27 @@ class LifeEngine:
         """Catch up once on open, then tick while the process runs. Ticks use the event loop's
         monotonic timer. Background batches always run, rule-built; model phrasing, lookups and preparation in
         the background need the user's permission (T4)."""
-        await self.quietly_life('return')
+        with self.database.pin():
+            await self.quietly_life('return')
         while True:
             # A fast debug clock (companion/debug_time.py) ticks more often in real time to keep up.
             await asyncio.sleep(self.database.clock.wait(tick_seconds))
-            await self.quietly_life('background')
-            await self.quietly_spread()
-            with self.database.connect() as connection:
-                background = settings(connection)['background_activity']
-            if background:
-                if not self.database.clock.shifted:  # Real weather and events would not match a spoofed day.
-                    await self.quietly_observe()
-                await self.quietly_prepare()
-                await self.quietly_think()
-            # First messages have their own setting (texts_first), so the companion can text while the
-            # app is closed even when background activity is off; the open app also asks each minute.
-            await self.quietly_text()
+            with self.database.pin():  # A tick finishes in the world it began in, even across a switch.
+                await self.tick()
+
+    async def tick(self):
+        await self.quietly_life('background')
+        await self.quietly_spread()
+        with self.database.connect() as connection:
+            background = settings(connection)['background_activity']
+        if background:
+            if not self.database.clock.shifted:  # Real weather and events would not match a spoofed day.
+                await self.quietly_observe()
+            await self.quietly_prepare()
+            await self.quietly_think()
+        # First messages have their own setting (texts_first), so the companion can text while the
+        # app is closed even when background activity is off; the open app also asks each minute.
+        await self.quietly_text()
 
     async def quietly_observe(self):
         """Real weather and local events for the companion's city, when the user allowed lookups for their

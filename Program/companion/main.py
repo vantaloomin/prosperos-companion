@@ -30,7 +30,7 @@ from companion.debug_time import DebugTime
 from companion.errors import DomainError
 from companion.hardware import Hardware
 from companion.hardware_routes import router as hardware_router
-from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
+from companion.identity import APP_NAME, CLIENT_HEADER, VERSION, WORLD_HEADER
 from companion.images import jobs as image_jobs
 from companion.images import routes as image_routes
 from companion.images.photos import ChatPhotos
@@ -74,6 +74,19 @@ async def guard_writes(request: Request, call_next):
     if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} and request.headers.get(CLIENT_HEADER) != 'workspace':
         return JSONResponse({'detail': 'Use the local Companion app to make changes.'}, status_code=403)
     return await call_next(request)
+
+
+async def stay_in_world(request: Request, call_next):
+    """A request, and everything it starts, reads and writes the world open when it arrived
+    (companion/database.py PINNED). A page opened in another world (a phone, when the PC switched) is told
+    so instead of changing this one; it reloads into the world now open (src/api.ts)."""
+    database = request.app.state.database
+    opened = request.headers.get(WORLD_HEADER)
+    if opened and database.world and opened != database.world:
+        return JSONResponse({'detail': 'You moved to another world on another screen. Opening it here too.',
+                             'code': 'world_changed'}, status_code=409)
+    with database.pin():
+        return await call_next(request)
 
 
 async def domain_error(_request: Request, error: DomainError):
@@ -199,6 +212,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.life_tasks = life_tasks
     # The LoRA creator is hidden unless switched on; profile pictures and an adopted adapter keep working.
     app.state.lora_maker = lora_maker_enabled() if lora_maker is None else lora_maker
+    app.middleware('http')(stay_in_world)
     app.middleware('http')(guard_writes)
     # Outermost: only this PC, or a paired phone through Tailscale, gets further (companion/phone/access.py).
     app.state.phone = phone_access.Gate(app.state.database)

@@ -130,3 +130,14 @@ def test_a_damaged_registry_is_not_trusted(tmp_path):
 def test_a_world_needs_a_name(client, companion, name):
     world = listing(client)['world']
     assert client.patch(f"/api/worlds/{world['id']}", json={'name': name}).status_code == 422
+
+
+def test_a_page_left_open_in_another_world_is_told_to_reload(client, companion):
+    made = ok(client.post('/api/worlds', json={}))
+    first = ok(client.get('/api/worlds'))['active_world_id']
+    assert client.get('/api/companion', headers={'X-Companion-World': first}).status_code == 200
+    ok(client.post(f"/api/worlds/{made['id']}/switch", headers={'X-Companion-World': first}))
+    # The phone still shows the first world: it changes nothing here and is told to open this one.
+    stale = client.post('/api/conversation/recap/read', json={'since': 'x'}, headers={'X-Companion-World': first})
+    assert stale.status_code == 409 and stale.json()['code'] == 'world_changed'
+    assert client.get('/api/companion', headers={'X-Companion-World': made['id']}).status_code == 200

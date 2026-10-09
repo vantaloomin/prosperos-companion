@@ -135,7 +135,7 @@ def start(database: Database):
     if not path.exists():  # A world folder removed by hand: back to the first world.
         world = next(item for item in data['worlds'] if not item['folder'])
         path = database.home
-    data['active'] = world['id']
+    data['active'] = database.world = world['id']
     save(database.root, data)
     if path != database.path:
         database.use(path)
@@ -256,6 +256,7 @@ def switch(state, world_id: str) -> dict:
     database.use(target)
     carry_settings(target, previous, database.now())
     data['active'], world['used_at'] = world['id'], database.now()
+    database.world = world['id']
     save(database.root, data)
     with database.connect(write=True) as connection:
         write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now())

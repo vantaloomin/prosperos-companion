@@ -67,14 +67,15 @@ def settle(client, clock, ids):
     """Go on until the last meeting so far is over, and bring the agenda up to then, so the meetings counted
     have happened rather than still being ahead (the week ahead can hold the only ones)."""
     database = client.app.state.database
-    with database.connect(write=True) as connection:
-        last = connection.execute("SELECT MAX(a.ends_at) AS at FROM townsfolk_encounters met JOIN life_agenda a ON "
-                                  "a.timeline_id=met.timeline_id AND a.slot_key=met.slot_key AND a.subject='companion' "
-                                  "WHERE met.key LIKE 'cast:%'").fetchone()['at']
-        if last and parse(last) > clock.now():
-            clock.instant = parse(last)
-        for companion_id in ids:
-            agenda.extend(connection, by_id(connection, companion_id), client.app.state.life.world, clock.now())
+    for _round in range(2):  # The first round can write the week ahead's meetings; the second lives through them.
+        with database.connect(write=True) as connection:
+            last = connection.execute("SELECT MAX(a.ends_at) AS at FROM townsfolk_encounters met JOIN life_agenda a "
+                                      "ON a.timeline_id=met.timeline_id AND a.slot_key=met.slot_key "
+                                      "AND a.subject='companion' WHERE met.key LIKE 'cast:%'").fetchone()['at']
+            if last and parse(last) > clock.now():
+                clock.instant = parse(last)
+            for companion_id in ids:
+                agenda.extend(connection, by_id(connection, companion_id), client.app.state.life.world, clock.now())
 
 
 def cast_meetings(connection) -> list[dict]:
