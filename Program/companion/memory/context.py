@@ -20,6 +20,7 @@ from companion.life import (
     body,
     chapters,
     circle,
+    deck,
     disruptions,
     encounters,
     home,
@@ -115,6 +116,9 @@ HEADINGS = {
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
+    # The Life deck (companion/life/deck.py): the day's small moment, drawn once a day.
+    'moments': 'Something small from your day today (decided: it happened to you; bring it up only if it fits, the '
+               'way a person would, and never contradict it)',
             'wardrobe': 'Your clothes (fictional, yours; when you describe what you wear, pick from these and keep '
                         'it consistent with what you have on now)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
@@ -567,8 +571,8 @@ def fit_conversation(packet, recent) -> list[dict]:
 
 def offer_day(packet, connection, timeline_id, version, now, today):
     """Today's weather, the city's happenings, how the companion feels and the day's occasions."""
-    for item in occasions.occasions(connection, {'id': version['companion_id'], 'active_timeline_id': timeline_id,
-                                                 'version': version}, now):
+    companion = {'id': version['companion_id'], 'active_timeline_id': timeline_id, 'version': version}
+    for item in occasions.occasions(connection, companion, now):
         packet.offer('occasions', item['key'], item['text'])
     day = agenda.day_on(connection, timeline_id, today)
     if day['weather'] and day['weather'].get('observed'):
@@ -582,6 +586,8 @@ def offer_day(packet, connection, timeline_id, version, now, today):
         packet.offer('body', today, body.text(day['body']))
     for identity, text in disruptions.context_lines(connection, timeline_id, agenda.COMPANION, today, now):
         packet.offer('day_shifts', identity, text)
+    for identity, text in deck.context_lines(connection, companion, now):
+        packet.offer('moments', identity, text)
 
 
 def offer_people(packet, connection, companion, now, today):

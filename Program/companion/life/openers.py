@@ -31,6 +31,7 @@ from companion.database import decode, encode, identifier, many, one, optional, 
 from companion.errors import DomainError
 from companion.life import (
     chapters,
+    deck,
     encounters,
     occasions,
     own_plans,
@@ -218,6 +219,13 @@ def chapter_news(connection, companion, now) -> list[Trigger]:
             for row in chapters.fresh(connection, companion, now)]
 
 
+def little_news(connection, companion, now) -> list[Trigger]:
+    """Today's small moment from the Life deck (companion/life/deck.py), when its card has something to share."""
+    return [Trigger(item['key'], 'storyline', f"Something small happened today: {item['told']} Tell the user, the way "
+                    'you would text a friend, briefly. Do not add to what happened.', item['share'])
+            for item in deck.fresh(connection, companion, now)]
+
+
 def crossed_paths(connection, companion, now) -> list[Trigger]:
     """Another companion met around town for the first time today or yesterday (companion/life/encounters.py):
     the user knows them both, so it's news worth a text."""
@@ -380,8 +388,8 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 
 
 # In priority order; later features add their own.
-FINDERS = [occasion, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence, usual_time,
-           check_in]
+FINDERS = [occasion, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+           little_news, usual_time, check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:

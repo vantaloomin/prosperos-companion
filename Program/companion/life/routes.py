@@ -14,6 +14,7 @@ from companion.life import (
     agenda,
     chapters,
     circle,
+    deck,
     encounters,
     feed,
     money,
@@ -321,6 +322,18 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
     if subject.startswith('chapter:'):
         return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
     return reactions.change(db(request), consequence_id, body.option)
+
+
+class MomentChange(Input):
+    way: Literal['another', 'nothing']
+
+
+@router.post('/moments/{day}/change')
+def change_moment(request: Request, day: date, body: MomentChange):
+    """Make a day's small moment from the Life deck go another way: another card, or nothing at all."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        return deck.change(connection, require_current(connection), day, body.way, database.clock.now())
 
 
 @router.get('/chapters')
