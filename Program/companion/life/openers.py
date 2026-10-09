@@ -28,7 +28,7 @@ from companion.characters import by_id, current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import occasions, own_plans, pacing, recommendations, routine, storylines, usual_hours
+from companion.life import encounters, occasions, own_plans, pacing, recommendations, routine, storylines, usual_hours
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -199,6 +199,26 @@ def storyline_news(connection, companion, now) -> list[Trigger]:
             for key, beat in storylines.fresh_beats(connection, companion, now)]
 
 
+def crossed_paths(connection, companion, now) -> list[Trigger]:
+    """Another companion met around town for the first time today or yesterday (companion/life/encounters.py):
+    the user knows them both, so it's news worth a text."""
+    result = []
+    for met in encounters.crossed_paths(connection, companion, now, NEWS_WITHIN):
+        other = by_id(connection, met['companion_id'])
+        if other is None:
+            continue
+        name = other['version']['name'].strip()
+        first = name.split()[0]
+        result.append(Trigger(
+            f"crossed:{met['key']}", 'news',
+            f"Earlier you ran into {name} at {met['place']} and got talking for the first time. You know the user "
+            f"knows {first} well. Tell the user about it, the way you would text a friend; you know only what you "
+            'saw and talked about there, nothing about how the user knows them.',
+            f"You'll never guess who I ran into at {met['place']}. {first}! We ended up talking for ages.",
+            (met['key'],)))
+    return result
+
+
 def occasion(connection, companion, now) -> list[Trigger]:
     """The user's birthday, the companion's own, or a milestone in how long they have talked: on the day.
     A circle member's birthday stays in the chat context only."""
@@ -319,7 +339,7 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 
 
 # In priority order; later features add their own.
-FINDERS = [occasion, plan_follow_ups, promises, finished, storyline_news, news, reminders, silence, usual_time,
+FINDERS = [occasion, plan_follow_ups, promises, finished, storyline_news, news, crossed_paths, reminders, silence, usual_time,
            check_in]
 
 

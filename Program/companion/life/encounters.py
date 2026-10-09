@@ -12,14 +12,17 @@ leave a stale one behind. The person themself is rebuilt from their key each tim
 """
 from datetime import date, datetime, timedelta
 
+from companion.characters import for_timeline
 from companion.clock import stamp, zone
-from companion.database import decode, many
+from companion.database import decode, encode, many, optional
 from companion.life import money, network
 from companion.world import generators, newcomers, perception, townsfolk
 
 ACTIVE = True
 CHANCE = 0.15
 FAMILIAR_CHANCE = 0.35
+# Another companion there by their own day stands out from a crowd of strangers (small world).
+FELLOW_CHANCE = 0.5
 KINDS = {'leisure', 'errand', 'social'}
 # On the way out to a morning shift or class, the companion may meet neighbors on their street.
 COMMUTE_KINDS = {'work', 'study'}
@@ -82,8 +85,8 @@ def meet(connection, companion: dict | None, entry: dict | None, view: dict, blo
     data = network.city(connection, companion)
     cast = town_cast(connection, companion, data)
     history = history_for(connection, companion, cast, None, before=view['starts_at'])
-    lucky = roll(seed, 'stranger') < CHANCE
-    if (not lucky and not history) or many(
+    lucky, fellow = roll(seed, 'stranger') < CHANCE, roll(seed, 'fellow') < FELLOW_CHANCE
+    if (not lucky and not fellow and not history) or many(
             connection, 'SELECT 1 FROM townsfolk_encounters WHERE timeline_id=? AND local_date=? AND slot_key!=?',
             (timeline_id, view['local_date'], view['key'])):
         return entry
@@ -91,18 +94,12 @@ def meet(connection, companion: dict | None, entry: dict | None, view: dict, blo
     if not found:
         return entry
     place, times_of_day, on_the_way = found
-    seen = present(data, place['id'], times_of_day, history, cast)
-    if not seen:
+    plans = cast_plans(connection, cast, times_of_day)
+    seen = present(data, place['id'], times_of_day, history, cast, plans)
+    key = seen and pick(seen[1], history, lucky, seed, fellow and plans)
+    if not key:
         return entry
     moment, here = seen
-    familiar = sorted(key for key in here if key in history)
-    strangers = sorted(key for key in here if key not in history)
-    if familiar and roll(seed, 'familiar') < FAMILIAR_CHANCE:
-        key = familiar[int(roll(seed, 'familiar-who') * len(familiar))]
-    elif lucky and strangers:
-        key = strangers[int(roll(seed, 'stranger-who') * len(strangers))]
-    else:
-        return entry
     sheet, times = resolve(data, key, cast), len(history.get(key, ()))
     home = home_hood(data, companion['version']['definition'])
     last = date.fromisoformat(history[key][-1]['local_date']) if times else None
@@ -111,15 +108,33 @@ def meet(connection, companion: dict | None, entry: dict | None, view: dict, blo
     connection.execute('INSERT OR REPLACE INTO townsfolk_encounters (timeline_id, key, slot_key, place, local_date, '
                        'met_at) VALUES (?, ?, ?, ?, ?, ?)',
                        (timeline_id, key, view['key'], place.get('name', ''), view['local_date'], view['ends_at']))
+    if key in plans:
+        mirror(connection, companion, data, plans[key], place, moment, times, last)
     return {**entry, 'summary': f"{entry['summary']} {told}", 'townsfolk': {'key': key, 'times': times + 1}}
 
 
+def pick(here: dict, history: dict, lucky: bool, seed: str, fellows: dict | None = None) -> str | None:
+    """Who of the people here the companion talks to: another companion out on their own day when `fellows`
+    (cast_plans) has them here, else someone familiar now and then, else a stranger on a lucky day."""
+    among = sorted(key for key in here if key in (fellows or {}))
+    if among:
+        return among[int(roll(seed, 'fellow-who') * len(among))]
+    familiar = sorted(key for key in here if key in history)
+    strangers = sorted(key for key in here if key not in history)
+    if familiar and roll(seed, 'familiar') < FAMILIAR_CHANCE:
+        return familiar[int(roll(seed, 'familiar-who') * len(familiar))]
+    if lucky and strangers:
+        return strangers[int(roll(seed, 'stranger-who') * len(strangers))]
+    return None
+
+
 def present(data: dict, place_id: str, times_of_day: list[datetime], history: dict,
-            cast: dict | None = None) -> tuple[datetime, dict] | None:
+            cast: dict | None = None, plans: dict | None = None) -> tuple[datetime, dict] | None:
     """The first of these moments when someone is at the place, with what each is doing: the people seeded
     there, residents whose rules bring them there, anyone already met whose rules bring them by, and other
-    companions living in the town by rules. Never the companion themself."""
-    cast = cast or NO_CAST
+    companions in the town, where their own day puts them (`plans`, from cast_plans) or else by the town's rules.
+    Never the companion themself."""
+    cast, plans = cast or NO_CAST, plans or {}
     seeded = [] if place_id.startswith('~') else townsfolk.at_place(data, place_id)
     locals_ = townsfolk.reaching(data, place_id)
     met = [sheet for key in history if (sheet := resolve(data, key, cast))]
@@ -128,7 +143,8 @@ def present(data: dict, place_id: str, times_of_day: list[datetime], history: di
     for moment in times_of_day:
         here = {}
         for sheet in people:
-            found = townsfolk.whereabouts(sheet, data, moment)
+            found = planned(plans[sheet['key']], moment) if sheet['key'] in plans else \
+                townsfolk.whereabouts(sheet, data, moment)
             if found['place'] and found['place']['id'] == place_id:
                 here[sheet['key']] = {'doing': found['doing']}
         if here:
@@ -348,15 +364,114 @@ def resolve(data: dict, key: str, cast: dict) -> dict | None:
 
 def history_for(connection, companion: dict, cast: dict, now, before: str | None = None) -> dict[str, list[dict]]:
     """Each person's meetings with this companion: their own diary's, under the keys the town uses now, plus
-    every other companion's meetings with them while that companion was the main character."""
+    every other companion's meetings with them. Every companion keeps living (#216), so either diary can hold a
+    meeting, and both may hold the same one (`mirror`): a day counts once."""
     merged: dict[str, list[dict]] = {}
     for key, meetings in counts(connection, companion['active_timeline_id'], now, before).items():
         if key not in cast['own']:
             merged.setdefault(cast['aliases'].get(key, key), []).extend(meetings)
     for row in cast['others']:
         theirs = counts(connection, row['active_timeline_id'], now, before)
-        shared = [meeting for key, meetings in theirs.items() if key in cast['own'] for meeting in meetings
-                  if not row['stepped_back_at'] or meeting['met_at'] <= row['stepped_back_at']]
+        shared = [meeting for key, meetings in theirs.items() if key in cast['own'] for meeting in meetings]
         if shared and f"cast:{row['id']}" in cast['sheets']:
             merged.setdefault(f"cast:{row['id']}", []).extend(shared)
-    return {key: sorted(meetings, key=lambda meeting: meeting['met_at']) for key, meetings in merged.items()}
+    return {key: once_a_day(meetings) for key, meetings in merged.items()}
+
+
+def once_a_day(meetings: list[dict]) -> list[dict]:
+    """Meetings oldest first, one a day: two companions' diaries can tell the same meeting."""
+    days, result = set(), []
+    for meeting in sorted(meetings, key=lambda meeting: meeting['met_at']):
+        if meeting['local_date'] not in days:
+            days.add(meeting['local_date'])
+            result.append(meeting)
+    return result
+
+
+
+# Small world: companions crossing paths ------------------------------------------------------------
+#
+# Every companion lives their own days (companion/life/simulation.py, #216), so another companion is wherever
+# their own agenda puts them, not where the town's rules would: two companions who both go to the same gym on
+# Thursday evenings can run into each other there. A meeting goes in both diaries, and the first one is news
+# worth texting the user about (crossed_paths, used by companion/life/openers.py).
+
+def cast_plans(connection, cast: dict, times_of_day: list[datetime]) -> dict[str, list[dict]]:
+    """Where the other companions in town are on the days of these moments, from their own agendas:
+    {cast key: [spot]}. A day their agenda doesn't reach yet finds them nowhere: whichever of the two plans that
+    day later sees where the other is. Only a companion who has never lived a day is left out, and the town's
+    rules place them instead."""
+    days = sorted({day.isoformat() for moment in times_of_day for day in (moment.date(), moment.date() - timedelta(days=1))})
+    if not days or not cast['others']:
+        return {}
+    result = {}
+    for row in cast['others']:
+        key = f"cast:{row['id']}"
+        if key not in cast['sheets'] or not row['active_timeline_id']:
+            continue
+        rows = many(connection, 'SELECT id, local_date, block, entry, status FROM life_agenda WHERE timeline_id=? '
+                    f"AND subject='companion' AND local_date IN ({','.join('?' * len(days))})",
+                    (row['active_timeline_id'], *days))
+        if rows or optional(connection, "SELECT 1 FROM life_agenda WHERE timeline_id=? AND subject='companion' LIMIT 1",
+                            (row['active_timeline_id'],)):
+            result[key] = [spot(found) for found in rows]
+    return result
+
+
+def spot(row) -> dict:
+    """One slot of another companion's day, as local times, where they are and what they are doing there."""
+    block, entry = decode(row['block']), decode(row['entry']) if row['entry'] else None
+    day = date.fromisoformat(row['local_date'])
+    start = datetime.combine(day, datetime.strptime(block['start'], '%H:%M').time())
+    end = datetime.combine(day, datetime.strptime(block['end'], '%H:%M').time())
+    place = (entry or {}).get('place')
+    return {'id': row['id'], 'start': start, 'end': end if end > start else end + timedelta(days=1),
+            'place': place if isinstance(place, dict) and place.get('id') else None, 'entry': entry,
+            'status': row['status'], 'doing': (entry or {}).get('activity', '')}
+
+
+def planned(spots: list[dict], moment: datetime) -> dict:
+    """Where another companion's own day has them at this moment (no place: at home, asleep or travelling)."""
+    found = next((item for item in spots if item['start'] <= moment < item['end']), None)
+    return {'place': found and found['place'], 'doing': ''}
+
+
+def mirror(connection, companion: dict, data: dict, spots: list[dict], place: dict, moment: datetime, times: int,
+           last: date | None):
+    """The other companion's diary tells the same meeting, when their slot there is still to come and has no
+    meeting of its own yet."""
+    found = next((item for item in spots if item['start'] <= moment < item['end']), None)
+    entry = found and found['entry']
+    if not entry or found['status'] != 'upcoming' or entry.get('townsfolk') or entry.get('ran_into') \
+            or entry.get('gathering'):
+        return
+    row = optional(connection, 'SELECT * FROM life_agenda WHERE id=?', (found['id'],))
+    other = for_timeline(connection, row['timeline_id'])
+    sheet = other and stand_in(data, companion['id'], companion.get('townsfolk_key'), companion['version']['definition'])
+    if not sheet or many(connection, 'SELECT 1 FROM townsfolk_encounters WHERE timeline_id=? AND local_date=?',
+                         (row['timeline_id'], row['local_date'])):
+        return
+    told = line(sheet, data, times, place, moment.date(), home_hood(data, other['version']['definition']), '', last)
+    changed = {**entry, 'summary': f"{entry['summary']} {told}", 'townsfolk': {'key': sheet['key'], 'times': times + 1}}
+    connection.execute('UPDATE life_agenda SET entry=?, prepared=NULL WHERE id=?', (encode(changed), row['id']))
+    connection.execute('INSERT OR REPLACE INTO townsfolk_encounters (timeline_id, key, slot_key, place, local_date, '
+                       'met_at) VALUES (?, ?, ?, ?, ?, ?)',
+                       (row['timeline_id'], sheet['key'], row['slot_key'], place.get('name', ''), row['local_date'],
+                        row['ends_at']))
+
+
+def crossed_paths(connection, companion: dict, now, within: timedelta) -> list[dict]:
+    """Other companions this one met for the first time in the last `within`, by their own diary:
+    [{key, companion_id, place, met_at}]."""
+    rows = many(connection, 'SELECT met.key, met.place, met.met_at, agenda.entry FROM townsfolk_encounters met '
+                'JOIN life_agenda agenda ON agenda.timeline_id=met.timeline_id AND agenda.slot_key=met.slot_key '
+                "AND agenda.subject='companion' WHERE met.timeline_id=? AND met.key LIKE 'cast:%' "
+                "AND agenda.status='happened' AND met.met_at>? AND met.met_at<=? ORDER BY met.met_at",
+                (companion['active_timeline_id'], stamp(now - within), stamp(now)))
+    result = []
+    for row in rows:
+        recorded = (decode(row['entry']) or {}).get('townsfolk') or {} if row['entry'] else {}
+        if recorded.get('key') == row['key'] and recorded.get('times') == 1:
+            result.append({'key': row['key'], 'companion_id': row['key'][5:], 'place': row['place'],
+                           'met_at': row['met_at']})
+    return result

@@ -393,10 +393,20 @@ sheet, and the user reviews it before switching. The new main character gets the
 character versions and timeline; the one who steps back keeps all of theirs, with no slot
 (`companions.slot` is 1 only for the main character, `stepped_back_at` says when they left it).
 
-Companions who stepped back live in the same city by the townsfolk rules under the key `cast:<companion id>`:
-their old sheet if they came from town (under their current name), else a resident's sheet in their own
-neighborhood. Meetings count both ways, so the new main character already knows the companion they met,
-and the townsperson who took over never appears in town. Start over and delete then touch only the main
+Companions who stepped back live in the same city under the key `cast:<companion id>`: their old sheet if they
+came from town (under their current name), else a resident's sheet in their own neighborhood. Meetings count
+both ways, so the new main character already knows the companion they met, and the townsperson who took over
+never appears in town.
+
+Small world: since every companion lives their own days (Everyone keeps living), another companion is where
+their own agenda puts them, not where the townsfolk rules would. Two companions whose evenings take them to
+the same bar or gym can run into each other there, and another companion there is talked to before strangers
+half the time (`encounters.FELLOW_CHANCE`). Whoever plans that day second sees the other there; a day the
+other's agenda doesn't reach yet finds them nowhere, and only a companion who has never lived a day is still
+placed by the townsfolk rules. The meeting goes in both diaries when the other's slot is still to come and
+holds no meeting of its own (`encounters.mirror`), and a day counts once however many diaries tell it. Their
+closeness with each other follows from these meetings (see Group chat, two-way closeness). The first meeting
+is news: each of them may text the user about it (`crossed_paths` in First messages), with the usual holds. Start over and delete then touch only the main
 character's rows (`companion/start_over.py`); deleting brings back whoever stepped back most recently. They
 still text first and keep their chats (see First messages and Chats and unread messages).
 
@@ -406,6 +416,28 @@ GET  /api/companion/cast/draft?key=<key>  # {definition, person, stepping_back};
 POST /api/companion/cast/draft {key}      # the same, written out by the text model
 POST /api/companion/cast/switch {key, definition}
 POST /api/companion/cast/focus {companion_id}   # switch back
+```
+
+### The town paper
+
+Every Sunday the companion's city has a short local paper (`companion/world/paper.py`), shown on Today: "The
+Baltimore Weekly", or a gazette for a period or fantasy city. It is written only from what the world already
+holds, with no model call, so an issue reads the same every time it is opened:
+
+- city news: changes announced, starting or ending that week (see `companion/world/changes.py`);
+- townsfolk who reached a goal that week, from the first residents of each neighborhood;
+- "Seen around town": one public outing that week per companion in the city (a show, a game, a museum);
+- "Overheard": companions who crossed paths that week (Small world), with no names, and never at an outing
+  "Seen around town" names;
+- "Coming up": the next week's annual events and holidays, and the typical weather.
+
+Nothing private goes in: no storylines, circle, chats or secrets, and companions appear only where anyone
+could have seen them.
+
+```
+GET /api/life/paper[?day=YYYY-MM-DD]   # the issue out on or before day (this week's when left out):
+                                        # {title, city, date, news, townsfolk, seen, gossip,
+                                        #  ahead: {events, holidays, weather}, previous, next (null on this week's)}
 ```
 
 ## Precomputed agenda
@@ -591,6 +623,7 @@ each at most once per timeline:
 | `follow_up` | A plan the user mentioned ended between an hour and three days ago without an outcome | No (template: "Hey! How did the … go?") |
 | `follow_up` | One of the last four messages, from the companion in the last 18 hours, says they want to hear about something later ("I'd like to hear how the search is going later"), and they now have a free moment (below) | No (template: "Okay, free for a minute. How's … going?") |
 | `news` | An open thread in the companion's life settled in the last day | Yes |
+| `news` | They met another companion around town for the first time in the last day (Small world, above) | No (template: "You'll never guess who I ran into at …") |
 | `reminder` | An event committed in the last day shares a distinctive word with a user fact or shared experience | Yes |
 | `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
 | `usual_time` | The user usually starts a conversation around now (see below) and the companion is free, on a seeded 50% roll per day and stretch, at a seeded minute 0 to 25 minutes into it | No (template by time of the user's day, e.g. "Any lunch plans today?") |
