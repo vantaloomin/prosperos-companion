@@ -418,6 +418,28 @@ POST /api/companion/cast/switch {key, definition}
 POST /api/companion/cast/focus {companion_id}   # switch back
 ```
 
+### The town paper
+
+Every Sunday the companion's city has a short local paper (`companion/world/paper.py`), shown on Today: "The
+Baltimore Weekly", or a gazette for a period or fantasy city. It is written only from what the world already
+holds, with no model call, so an issue reads the same every time it is opened:
+
+- city news: changes announced, starting or ending that week (see `companion/world/changes.py`);
+- townsfolk who reached a goal that week, from the first residents of each neighborhood;
+- "Seen around town": one public outing that week per companion in the city (a show, a game, a museum);
+- "Overheard": companions who crossed paths that week (Small world), with no names, and never at an outing
+  "Seen around town" names;
+- "Coming up": the next week's annual events and holidays, and the typical weather.
+
+Nothing private goes in: no storylines, circle, chats or secrets, and companions appear only where anyone
+could have seen them.
+
+```
+GET /api/life/paper[?day=YYYY-MM-DD]   # the issue out on or before day (this week's when left out):
+                                        # {title, city, date, news, townsfolk, seen, gossip,
+                                        #  ahead: {events, holidays, weather}, previous, next (null on this week's)}
+```
+
 ## Precomputed agenda
 
 Every reconcile also brings a hidden agenda up to date, without a model (PRD T9). The agenda holds

@@ -1,4 +1,5 @@
 """Life simulation, Today and Feed API (PRD T1–T7, F1, F2, F4)."""
+from datetime import date, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Request
@@ -8,7 +9,7 @@ from companion import conversation
 from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
-from companion.errors import require
+from companion.errors import DomainError, require
 from companion.life import (
     agenda,
     circle,
@@ -26,6 +27,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
+from companion.world import newcomers, paper
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -266,6 +268,30 @@ def read_townsperson(request: Request, key: str):
                      None)
         require(found is not None, 'The companion has not met that person.', 404)
         return {**found, 'now': encounters.whereabouts_now(connection, companion, key, now)}
+
+
+@router.get('/paper')
+def read_paper(request: Request, day: str | None = None):
+    """The town paper for the companion's city (companion/world/paper.py): this week's issue, or the one out on or
+    before `day` (YYYY-MM-DD), with the dates of the issues either side."""
+    database = db(request)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        current = paper.issue_date(storylines.local_today(companion, database.clock.now()))
+        asked = paper.issue_date(require_date(day)) if day else current
+        shown = min(asked, current)
+        data = newcomers.city_for(connection, companion['version']['definition'])
+        require(bool(data.get('neighborhoods')), 'Pick a home city for the companion to get its paper.', 404)
+        return {**paper.issue(connection, data, request.app.state.life.world, shown),
+                'previous': (shown - timedelta(days=7)).isoformat(),
+                'next': (shown + timedelta(days=7)).isoformat() if shown < current else None}
+
+
+def require_date(value: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise DomainError('Give the date as YYYY-MM-DD.', 422) from None
 
 
 @today_router.get('')

@@ -1283,3 +1283,22 @@ export interface SecretsData {
   /** Drama is at soap opera: a slip that gets past the rewrite stays. */
   slips: boolean
 }
+
+/** The town paper for the companion's city (companion/world/paper.py): one Sunday's issue, written from what
+ * happened in the world. `next` is null on this week's issue. */
+export interface TownPaper {
+  title: string
+  city: string
+  date: string
+  news: { id: string; headline: string; text: string }[]
+  townsfolk: { key: string; headline: string; text: string }[]
+  seen: { companion_id: string; text: string }[]
+  gossip: { text: string }[]
+  ahead: {
+    events: { date: string; name: string; text: string }[]
+    holidays: { date: string; name: string }[]
+    weather: string | null
+  }
+  previous: string
+  next: string | null
+}
