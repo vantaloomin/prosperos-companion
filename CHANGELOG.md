@@ -9,8 +9,11 @@
   a window still showing a chat goes to that chat.
 - **Edit a reply you stopped:** a reply you stopped (or one the model cut short) now has Edit. Finish it or keep
   it as it is, and the conversation goes on from it.
-- **Image backends on a phone:** Settings > Images on a paired phone lists the image backends and says they
-  are added and changed on your PC, instead of offering a form that could not be saved there.
+- **Add image APIs from your phone:** on a paired phone, Settings > Images can now add OpenRouter, Google, the
+  OpenAI API or NanoGPT with a key typed on the phone, and turn backends on or off, reorder or remove them. A
+  ComfyUI server, Codex, or an image API at an address of your own is still added on the PC, since those name
+  addresses and programs on it, and the phone says so. Keys are only typed over Tailscale, never over the
+  unencrypted home Wi-Fi option.
 
 - **Phone access that tells you why it isn't loading:** Settings > Phone access now shows which phones are
   signed in to your Tailscale account and warns when there are none, or when Tailscale is switched off on

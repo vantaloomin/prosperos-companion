@@ -123,7 +123,7 @@ function HomeWifi({ lan, busy, onChange }: { lan: PhoneAccess['lan']; busy: bool
 
 /** What only the PC can change; LoRA training is named only while the LoRA creator is switched on. */
 function pcOnly(loraMaker?: boolean) {
-  return `Models, backups, imports, image backends${loraMaker ? ', real-world lookup tools and LoRA training' : ' and real-world lookup tools'}`
+  return `Models, backups, imports, ComfyUI and Codex image backends${loraMaker ? ', real-world lookup tools and LoRA training' : ' and real-world lookup tools'}`
 }
 
 function Explanation({ access: { enabled, address, tailscale } }: { access: PhoneAccess }) {

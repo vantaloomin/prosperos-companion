@@ -46,13 +46,13 @@ PC_ONLY = ('/api/phone', '/api/backups', '/api/import/study', '/api/companion/st
            '/api/models/builtin-recall', '/api/logs', '/api/model-calls')
 # Changes here name programs, folders or addresses on the PC, or where a saved key is sent; debug time
 # backs up and can replace the workspace.
-PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/images/backends',
-                   '/api/lora/settings', '/api/lora/runs', '/api/lora/adapters', '/api/debug-time')
+# Image backends are not here: a phone may add an image API at its provider's own address, and
+# companion/images/routes.py refuses the rest.
+PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/lora/settings', '/api/lora/runs',
+                   '/api/lora/adapters', '/api/debug-time')
 
 # Where on the PC each refused change is made, so a phone says where to go instead of only "no".
 PC_PLACES = (
-    (('/api/images/backends',), 'Image backends are added and changed on your PC, in Settings > Images. They hold '
-     'API keys and addresses on the PC, so a phone can use them but not change them.'),
     (('/api/connection', '/api/models'), 'Models are set up on your PC, in Settings > Models. They hold API keys '
      'and programs on the PC, so a phone can use them but not change them.'),
     (('/api/context/services',), 'Real-world lookup tools are set up on your PC, in Settings > Real-world lookups.'),

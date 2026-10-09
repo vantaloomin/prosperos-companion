@@ -49,7 +49,7 @@ export function ImageSettings() {
       </div>
       {list.length === 0 && <p className="subtle">No image backend is set up yet. Posts stay text-only until you add one.</p>}
       {list.length > 0 && !hasLocal && <p className="subtle">No enabled backend takes NSFW requests, so they will be refused.</p>}
-      {onPhone ? <PhoneBackends list={list} /> : <Backends list={list} refresh={refresh} setResult={setResult} />}
+      <Backends list={list} refresh={refresh} setResult={setResult} phone={onPhone} />
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
@@ -57,28 +57,18 @@ export function ImageSettings() {
 }
 
 /** The backends in the order they are tried, each with its controls, and adding another. */
-function Backends({ list, refresh, setResult }: { list: ImageBackend[]; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+function Backends({ list, refresh, setResult, phone }: { list: ImageBackend[]; refresh: () => Promise<unknown>; setResult: (result: Result) => void; phone: boolean }) {
   const [adding, setAdding] = useState(false)
   const addButton = useReturnFocus<HTMLButtonElement>(adding)
   const hardware = useHardware()
   return <>
     <ol className="backend-list">
-      {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
+      {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} phone={phone} />)}
     </ol>
     {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
-    {adding ? <AddBackend onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
+    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API or NanoGPT. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
+    {adding ? <AddBackend phone={phone} onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
-  </>
-}
-
-/** On a paired phone the backends are listed, not changed: they hold API keys and addresses on the PC
- * (companion/phone/access.py), so adding or changing one happens there. The controls below still work. */
-function PhoneBackends({ list }: { list: ImageBackend[] }) {
-  return <>
-    <Notice tone="info">Image backends are added and changed on your PC, in Settings &gt; Images. They keep API keys and addresses on the PC, so this phone can use them but not change them.</Notice>
-    {list.length > 0 && <ol className="backend-list">
-      {list.map((backend) => <li key={backend.id} className="backend-row"><BackendSummary backend={backend} />{!backend.enabled && <p className="subtle">Turned off</p>}</li>)}
-    </ol>}
   </>
 }
 
@@ -115,7 +105,20 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
   </>
 }
 
-function BackendRow({ backend, index, count, refresh, setResult }: { backend: ImageBackend; index: number; count: number; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+/** A paired phone changes an image API's name, key and model, never an address or program (companion/images/routes.py). */
+const phoneEdits = (backend: ImageBackend) => backend.kind === 'hosted' && !editsAddress(backend)
+
+/** Where a backend connects and how it draws. A phone sees only what it may change. */
+function BackendSetup({ backend, phone, put }: { backend: ImageBackend; phone: boolean; put: (body: object) => Promise<boolean> }) {
+  return <>
+    {(!phone || phoneEdits(backend)) && <BackendConnection backend={backend} save={put} />}
+    <BackendStyle backend={backend} save={(style) => put({ style })} />
+    <ComfyFiles backend={backend} put={put} />
+    {backend.kind === 'comfyui' && !phone && <ReferenceWorkflow backend={backend} save={(value) => put({ reference_workflow: value })} />}
+  </>
+}
+
+function BackendRow({ backend, index, count, refresh, setResult, phone }: { backend: ImageBackend; index: number; count: number; refresh: () => Promise<unknown>; setResult: (result: Result) => void; phone: boolean }) {
   const [check, setCheck] = useState<BackendCheck | null>(null)
   const [busy, setBusy] = useState(false)
   // Busy controls are marked, not disabled: disabling the focused control would drop keyboard focus.
@@ -140,10 +143,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
         hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
-      <BackendConnection backend={backend} save={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
-      <BackendStyle backend={backend} save={(style) => act(() => api(`/images/backends/${backend.id}`, { style }, 'PUT'))} />
-      <ComfyFiles backend={backend} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
-      {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
+      <BackendSetup backend={backend} phone={phone} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
       <div className="post-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
@@ -443,10 +443,11 @@ function NsfwChoice({ provider, checked, onChange }: { provider: HostedProvider;
     hint="Off: safe images only. On: NSFW requests can go to this provider too, so only turn it on if its terms allow them. Every request is still checked on this computer first, and prohibited ones are never sent." />
 }
 
-function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (result: Result) => void }) {
-  const [kind, setKind] = useState<BackendKind>('comfyui')
+function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () => void; setResult: (result: Result) => void }) {
+  // A phone adds image APIs at their providers' own addresses only.
+  const [kind, setKind] = useState<BackendKind>(phone ? 'hosted' : 'comfyui')
   const [provider, setProvider] = useState<HostedProvider>('openrouter')
-  const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:8188')
+  const [baseUrl, setBaseUrl] = useState(phone ? '' : 'http://127.0.0.1:8188')
   const [model, setModel] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [cliPath, setCliPath] = useState('')
@@ -473,11 +474,11 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
   }
   return (
     <form className="form-stack backend-form" onSubmit={submit}>
-      <Field label="Kind" hint={BACKEND_KINDS.find((item) => item.id === kind)?.hint}>{(id, describedBy) => (
+      {!phone && <Field label="Kind" hint={BACKEND_KINDS.find((item) => item.id === kind)?.hint}>{(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={kind} autoFocus onChange={(event) => chooseKind(event.target.value as BackendKind)}>
           {BACKEND_KINDS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
-      )}</Field>
+      )}</Field>}
       {kind === 'comfyui' && <>
         <TextInput label="ComfyUI address" value={baseUrl} required onChange={setBaseUrl} hint="The app connects to this server only. It never starts or stops ComfyUI." />
         <Toggle label="This address is a machine I control" checked={controlled} onChange={setControlled} hint="Only for your own computer on your network. A rented or shared GPU service is not." />
@@ -488,7 +489,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
       {kind === 'hosted' && <>
         <Field label="Provider" hint="The image service your API key is for.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>
-            {PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+            {PROVIDERS.filter((item) => !phone || item.id !== 'other').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
         <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />

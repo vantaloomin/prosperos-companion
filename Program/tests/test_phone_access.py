@@ -96,7 +96,7 @@ def test_a_paired_phone_uses_the_companion(client, phone, companion, enabled):
 @pytest.mark.parametrize(('method', 'path'), [
     ('get', '/api/phone'), ('post', '/api/phone/pairings'), ('get', '/api/backups'), ('post', '/api/backups'),
     ('post', '/api/import/study/inspect'), ('put', '/api/connection'), ('post', '/api/models/profiles'),
-    ('post', '/api/context/services'), ('post', '/api/images/backends'), ('put', '/api/lora/settings'),
+    ('post', '/api/context/services'), ('put', '/api/lora/settings'),
     ('post', '/api/lora/runs'), ('post', '/api/lora/adapters/import'), ('get', '/api/companion/start-over'),
     ('post', '/api/companion/start-over'), ('post', '/api/companion/delete'),
 ])
@@ -106,12 +106,19 @@ def test_a_paired_phone_cannot_change_what_runs_on_the_pc(client, phone, compani
     assert response.status_code == 403 and response.json()['code'] == 'pc_only'
 
 
-def test_a_phone_is_told_where_on_the_pc_to_add_an_image_backend(client, phone, companion, enabled):
+def test_a_phone_can_add_an_image_api_but_not_an_address_or_program(client, phone, companion, enabled):
     pair(client, phone)
-    response = phone.post('/api/images/backends', json={})
-    assert response.status_code == 403
-    assert 'on your PC, in Settings > Images' in response.json()['detail']
-    assert phone.get('/api/images/backends').status_code == 200, 'the phone still sees them'
+    added = phone.post('/api/images/backends', json={'kind': 'hosted', 'provider': 'openrouter', 'model': 'm',
+                                                     'api_key': 'typed-on-the-phone', 'accept_disclosure': True})
+    assert added.status_code == 200, added.text
+    backend_id = added.json()['id']
+    assert phone.put(f'/api/images/backends/{backend_id}', json={'enabled': False}).status_code == 200
+    for refused in (phone.post('/api/images/backends', json={'kind': 'comfyui', 'base_url': 'http://10.0.0.5:8188'}),
+                    phone.post('/api/images/backends', json={'kind': 'codex', 'cli_path': '/tmp/anything'}),
+                    phone.post('/api/images/backends', json={'kind': 'hosted', 'provider': 'other', 'model': 'm',
+                                                             'base_url': 'https://example.com/v1'}),
+                    phone.put(f'/api/images/backends/{backend_id}', json={'base_url': 'https://example.com/v1'})):
+        assert refused.status_code == 403 and 'Settings > Images' in refused.json()['detail']
 
 
 def test_a_paired_phone_can_still_read_those_settings(client, phone, connected, enabled):
@@ -291,6 +298,9 @@ def test_home_wifi_is_off_by_default_and_pairs_like_tailscale(client, home, comp
     assert response.status_code == 200 and 'Secure' not in response.headers['set-cookie']
     assert home.get('/api/companion').status_code == 200
     assert home.get('/api/backups').json()['code'] == 'pc_only'
+    keyed = home.post('/api/images/backends', json={'kind': 'hosted', 'provider': 'openrouter', 'model': 'm',
+                                                    'api_key': 'sent-in-the-clear'})
+    assert keyed.status_code == 403 and 'not encrypted' in keyed.json()['detail']
     off = client.post('/api/phone/lan/disable').json()['lan']
     assert not off['enabled'] and not off['running']
     assert home.get('/api/companion').json()['code'] == 'lan_off'
