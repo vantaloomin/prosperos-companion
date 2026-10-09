@@ -43,7 +43,7 @@ OPEN = {('GET', '/api/health'), ('GET', '/api/phone/status'), ('POST', '/api/pho
 PHONE_SELF = OPEN | {('POST', '/api/phone/sign-out'), ('GET', '/api/phone/push'), ('PUT', '/api/phone/push'),
                      ('DELETE', '/api/phone/push')}
 PC_ONLY = ('/api/phone', '/api/backups', '/api/import/study', '/api/companion/start-over', '/api/companion/delete',
-           '/api/models/builtin-recall', '/api/logs')
+           '/api/models/builtin-recall', '/api/logs', '/api/model-calls')
 # Changes here name programs, folders or addresses on the PC, or where a saved key is sent; debug time
 # backs up and can replace the workspace.
 PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/images/backends',

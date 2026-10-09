@@ -234,6 +234,15 @@ never changes media.
 logs message text. An unexpected error returns `{"code": "server_error"}` with a message naming the log's
 full path, and the page shows "Open the log folder" under it on the PC (`POST /api/logs/open-folder`).
 
+**Record model calls** (Settings > Debug, PC only, off by default; `companion/model_calls.py`) is the one
+exception: while it is on, every chat model call (one-on-one, groups, Story, first messages, life wording, memory
+suggestions, picture descriptions, the character helper) is appended in full to
+`logs/model-calls/YYYY-MM-DD.jsonl`: which part of the app asked, provider, model, address without its query
+string, the system prompt, messages and exact request body, and the streamed text, thinking, finish reason, usage
+or error, with timing. Keys travel in headers and are never written. Files older than seven days are deleted.
+"Save for support" downloads them as a zip (`GET /api/model-calls/download`); `PUT /api/model-calls`
+`{"recording": true}` turns it on and `DELETE /api/model-calls` clears the files. Embedding calls are not recorded.
+
 ## Code reused from Prospero's Study
 
 Modules were copied from [prosperos-study](https://github.com/vantaloomin/prosperos-study) at
