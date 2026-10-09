@@ -97,6 +97,11 @@ export function statusNote(message: Message): string | null {
 }
 
 /** The note shown under an unfinished reply, with its error unless that only repeats that it was stopped. */
+/** A reply the user stopped, or one the model cut short: Edit finishes it by hand (companion/message_edits.py). */
+export function unfinished(message: Message): boolean {
+  return (message.status === 'cancelled' || message.status === 'incomplete') && !message.superseded_at
+}
+
 export function statusDetail(message: Message): string | null {
   const note = statusNote(message)
   return note && `${note}${message.error && message.error !== 'Stopped.' ? ` ${message.error}` : ''}`

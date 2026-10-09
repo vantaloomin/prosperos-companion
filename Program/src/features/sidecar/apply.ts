@@ -13,7 +13,7 @@ import type { FormBridge } from './store'
 interface Edited { id: string; text: string; previous_text: string }
 
 /** Applies a proposal and returns what Undo needs. */
-export async function apply(proposal: Proposal, bridge: FormBridge | null, client: QueryClient): Promise<unknown> {
+export async function apply(proposal: Proposal, bridge: FormBridge | null, client: QueryClient, companionId: string | null = null): Promise<unknown> {
   const { change } = proposal
   if (change.kind === 'whole') {
     if (!bridge) throw new Error('Open the character form to fill it in.')
@@ -28,7 +28,7 @@ export async function apply(proposal: Proposal, bridge: FormBridge | null, clien
     return null
   }
   if (change.kind === 'memory') return (await memoryCall(client, `/memories/${change.memory_id}/correct`, { value: change.value, expected_revision: change.revision }))
-  if (change.kind === 'new_memory') return (await memoryCall(client, '/memories', { layer: change.layer, subject: change.subject, value: change.value }))
+  if (change.kind === 'new_memory') return (await memoryCall(client, '/memories', { layer: change.layer, subject: change.subject, value: change.value, companion_id: companionId }))
   await memoryCall(client, `/memories/${change.memory_id}/exclude`, {})
   return null
 }

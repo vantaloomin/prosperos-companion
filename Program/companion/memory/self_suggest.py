@@ -11,7 +11,7 @@ import json
 import re
 
 from companion import in_character, prompt_library, self_facts
-from companion.characters import require_current
+from companion.characters import for_timeline, require_current
 from companion.database import many, optional, settings
 from companion.memory.suggest import SuggestionsInvalid, parse, supported
 from companion.providers.chat import INCOMPLETE
@@ -171,17 +171,18 @@ def record(database, batch, items) -> int:
         if not on(settings(connection)):
             mark(connection, batch, 'stale')
             return 0
-        companion, timestamp, added = require_current(connection), database.now(), 0
-        theirs = user_names(connection, companion['id'])
+        timestamp, added = database.now(), 0
         found = {}
         for message, new in filter(None, (fact(item, batch) for item in items)):
-            if new.category in {'person', 'pet'} and new.value.casefold() in theirs:
-                continue
             found.setdefault(message['id'], (message, []))[1].append(new)
         for message, facts in found.values():
             current = optional(connection, 'SELECT * FROM messages WHERE id=?', (message['id'],))
-            if current is not None:
-                added += len(self_facts.record(connection, companion, current, facts, timestamp))
+            # Her facts go to the companion whose chat the message is in, even if focus moved while the model read.
+            companion = current and for_timeline(connection, current['timeline_id'])
+            if companion:
+                theirs = user_names(connection, companion['id'])
+                kept = [new for new in facts if not (new.category in {'person', 'pet'} and new.value.casefold() in theirs)]
+                added += len(self_facts.record(connection, companion, current, kept, timestamp)) if kept else 0
         mark(connection, batch, 'done')
         return added
 

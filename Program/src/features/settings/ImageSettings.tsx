@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { useRefetchOnFocus } from '../../paths'
+import { usePhoneStatus } from '../phone/phoneAccess'
 import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
@@ -27,9 +28,7 @@ export function ImageSettings() {
   const settings = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') })
   const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<{ backends: ImageBackend[] }>('/images/backends') })
   const [result, setResult] = useState<Result>(null)
-  const [adding, setAdding] = useState(false)
-  const addButton = useReturnFocus<HTMLButtonElement>(adding)
-  const hardware = useHardware()
+  const onPhone = !!usePhoneStatus().data?.remote
   const save = async (change: Partial<Limits>, done?: string) => {
     try {
       client.setQueryData(SETTINGS_KEY, await api<Limits>('/images/settings', change, 'PUT'))
@@ -50,16 +49,37 @@ export function ImageSettings() {
       </div>
       {list.length === 0 && <p className="subtle">No image backend is set up yet. Posts stay text-only until you add one.</p>}
       {list.length > 0 && !hasLocal && <p className="subtle">No enabled backend takes NSFW requests, so they will be refused.</p>}
-      <ol className="backend-list">
-        {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
-      </ol>
-      {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
-      {adding ? <AddBackend onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-        : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
+      {onPhone ? <PhoneBackends list={list} /> : <Backends list={list} refresh={refresh} setResult={setResult} />}
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
+}
+
+/** The backends in the order they are tried, each with its controls, and adding another. */
+function Backends({ list, refresh, setResult }: { list: ImageBackend[]; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+  const [adding, setAdding] = useState(false)
+  const addButton = useReturnFocus<HTMLButtonElement>(adding)
+  const hardware = useHardware()
+  return <>
+    <ol className="backend-list">
+      {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
+    </ol>
+    {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
+    {adding ? <AddBackend onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
+      : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
+  </>
+}
+
+/** On a paired phone the backends are listed, not changed: they hold API keys and addresses on the PC
+ * (companion/phone/access.py), so adding or changing one happens there. The controls below still work. */
+function PhoneBackends({ list }: { list: ImageBackend[] }) {
+  return <>
+    <Notice tone="info">Image backends are added and changed on your PC, in Settings &gt; Images. They keep API keys and addresses on the PC, so this phone can use them but not change them.</Notice>
+    {list.length > 0 && <ol className="backend-list">
+      {list.map((backend) => <li key={backend.id} className="backend-row"><BackendSummary backend={backend} />{!backend.enabled && <p className="subtle">Turned off</p>}</li>)}
+    </ol>}
+  </>
 }
 
 function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Limits>, done?: string) => Promise<boolean> }) {

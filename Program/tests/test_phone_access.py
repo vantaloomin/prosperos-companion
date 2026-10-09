@@ -106,6 +106,14 @@ def test_a_paired_phone_cannot_change_what_runs_on_the_pc(client, phone, compani
     assert response.status_code == 403 and response.json()['code'] == 'pc_only'
 
 
+def test_a_phone_is_told_where_on_the_pc_to_add_an_image_backend(client, phone, companion, enabled):
+    pair(client, phone)
+    response = phone.post('/api/images/backends', json={})
+    assert response.status_code == 403
+    assert 'on your PC, in Settings > Images' in response.json()['detail']
+    assert phone.get('/api/images/backends').status_code == 200, 'the phone still sees them'
+
+
 def test_a_paired_phone_can_still_read_those_settings(client, phone, connected, enabled):
     pair(client, phone)
     assert phone.get('/api/connection').status_code == 200
