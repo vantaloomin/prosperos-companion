@@ -20,6 +20,8 @@ export interface SidecarState {
 
 /** The companion the sidecar's conversation is about; another one coming into focus starts it over. */
 let about: string | null = null
+/** Set by putBack until the docked panel's composer has taken focus. */
+let returning = false
 
 const OPEN_KEY = 'companion:sidecar'
 const MODE_KEY = 'companion:sidecar-mode'
@@ -77,6 +79,7 @@ export const sidecar = {
   },
   /** Back beside the app from its window. */
   putBack() {
+    returning = true
     saveMode('docked')
     set({ mode: 'docked' })
     closeWindow()
@@ -84,6 +87,8 @@ export const sidecar = {
   },
   /** Its window was closed (the window's own close button): the sidecar is closed, and opens there next time. */
   windowClosed() { if (state.mode === 'window' && state.open) sidecar.setOpen(false) },
+  /** Whether the docked panel just came back from its window, so its composer takes focus (once). */
+  takeReturning(): boolean { const was = returning; returning = false; return was },
   setWaiting(waiting: boolean) { if (state.waiting !== waiting) set({ waiting }) },
   /** Open the sidecar on one of the companion's replies. */
   ask(message: Pick<Message, 'id' | 'text'>) { set({ focus: { id: message.id, text: message.text } }); sidecar.show() },

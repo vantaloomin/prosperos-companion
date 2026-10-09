@@ -72,6 +72,9 @@ function Transcript({ chat, children }: { chat: SidecarChat; children: ReactNode
 
 function Composer({ chat, connected }: { chat: SidecarChat; connected: boolean }) {
   const [message, setMessage] = useState('')
+  const box = useRef<HTMLTextAreaElement>(null)
+  // Back from its own window: the keyboard carries on here, not on the page body.
+  useEffect(() => { if (sidecar.takeReturning()) box.current?.focus() }, [])
   const send = async (event?: FormEvent) => {
     event?.preventDefault()
     const text = message.trim()
@@ -85,7 +88,7 @@ function Composer({ chat, connected }: { chat: SidecarChat; connected: boolean }
     <form className="sidecar-composer" onSubmit={(event) => void send(event)}>
       {focus && <p className="sidecar-focus"><span>About {chat.name}&rsquo;s reply: &ldquo;{focus.text.length > 90 ? `${focus.text.slice(0, 90)}…` : focus.text}&rdquo;</span><button type="button" className="icon-button" aria-label="Stop asking about this reply" onClick={() => sidecar.clearFocus()}><X aria-hidden="true" /></button></p>}
       {chat.error && <Notice tone="error">{chat.error}</Notice>}
-      <textarea aria-label="Message to the sidecar" placeholder={chat.formOpen ? 'Paste a character or ask for a change' : 'Ask about a reply, a memory or the character'} rows={3} maxLength={40000}
+      <textarea ref={box} aria-label="Message to the sidecar" placeholder={chat.formOpen ? 'Paste a character or ask for a change' : 'Ask about a reply, a memory or the character'} rows={3} maxLength={40000}
         value={message} disabled={chat.busy} onChange={(event) => setMessage(event.target.value)} onKeyDown={keyDown} />
       <div className="sidecar-send">
         {chat.formOpen ? <CardButton onText={setMessage} onError={chat.setError} disabled={chat.busy} /> : <span className="subtle">Ctrl+Enter sends</span>}
