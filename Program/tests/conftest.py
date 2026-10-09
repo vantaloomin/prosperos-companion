@@ -54,6 +54,12 @@ def no_pc_timezone(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_hold_after_replies(monkeypatch):
+    """Background work would wait for the user to pause after each reply; tests/test_scheduling.py checks that."""
+    monkeypatch.setattr('companion.providers.scheduling.HOLD_AFTER_REPLY', 0)
+
+
+@pytest.fixture(autouse=True)
 def no_storylines(monkeypatch):
     """Storylines start on seeded days (companion/life/storylines.py) and would add context lines and first
     messages to unrelated tests; tests/test_storylines.py turns them back on."""

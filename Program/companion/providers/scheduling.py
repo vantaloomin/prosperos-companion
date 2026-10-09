@@ -27,6 +27,9 @@ CONVERSATION = Work(0, 'conversation')
 LIFE_SYNTHESIS = Work(20, 'life synthesis', True)
 MAINTENANCE = Work(30, 'memory maintenance', True)
 CURRENT_WORK = ContextVar('provider_work', default=Work())
+# A model server running one request at a time keeps only the last prompt it read. Background work right after a
+# reply would replace the chat's prompt, so the next reply would start from scratch: it waits until the user pauses.
+HOLD_AFTER_REPLY = 90
 
 
 @contextmanager
@@ -68,6 +71,7 @@ class RequestScheduler:
         self.sequence = 0
         self.foreground = 0
         self.quiet_until = 0.0
+        self.held_until = {}
         self.blocked = {}
         self.wakeup = None
 
@@ -105,7 +109,7 @@ class RequestScheduler:
             self.wakeup = None
         for lease in sorted(self.waiting, key=lambda item: (item.work.priority, item.sequence)):
             self.admit(lease)
-        delay = self.quiet_until - time.monotonic()
+        delay = max([self.quiet_until, *self.held_until.values()]) - time.monotonic()
         if self.waiting and delay > 0:
             self.wakeup = asyncio.get_running_loop().call_later(delay, self.dispatch)
 
@@ -117,7 +121,8 @@ class RequestScheduler:
             self.waiting.remove(lease)
             lease.ready.set_exception(DomainError(self.blocked[lease.resource], 409))
             return
-        if lease.work.background and (self.foreground or time.monotonic() < self.quiet_until):
+        if lease.work.background and (self.foreground or time.monotonic() < max(
+                self.quiet_until, self.held_until.get(lease.resource, 0.0))):
             return
         occupied = sum(item.resource == lease.resource for item in self.active)
         if occupied >= self.limits[lease.resource]:
@@ -152,6 +157,8 @@ class RequestScheduler:
                 self.waiting.remove(lease)
             if lease in self.active:
                 self.active.remove(lease)
+            if lease.work is CONVERSATION and self.limits[resource] == 1 and resource != 'codex-cli':
+                self.held_until[resource] = time.monotonic() + HOLD_AFTER_REPLY
             self.dispatch()
 
 
