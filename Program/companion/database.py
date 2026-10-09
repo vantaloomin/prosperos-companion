@@ -175,7 +175,7 @@ def initialize(connection, timestamp: str):
     adopt_legacy(connection, timestamp)
     split_recall(connection, timestamp)
     for table in ('workspace_settings', 'life_settings', 'image_settings', 'context_settings', 'lora_settings',
-                  'notification_settings', 'phone_settings', 'builtin_recall'):
+                  'notification_settings', 'phone_settings', 'builtin_recall', 'voice_settings'):
         connection.execute(f'INSERT OR IGNORE INTO {table} (id, updated_at) VALUES (1, ?)', (timestamp,))
     connection.execute('UPDATE life_settings SET texts_first=1, texts_first_on_by_default=1 '
                        'WHERE texts_first_on_by_default=0')

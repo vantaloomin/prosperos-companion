@@ -18,6 +18,7 @@ import { Toggle } from '../../components/Fields'
 import { BackgroundSettings, MemorySettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
 import { Cities } from '../world/Cities'
 import { BuiltinRecall } from './models/BuiltinRecall'
+import { VoiceSettings } from './models/VoiceSettings'
 import { HardwareCheck } from './models/HardwareCheck'
 import { ModelSettings } from './models/ModelSettings'
 import { usePhoneStatus } from '../phone/phoneAccess'
@@ -90,7 +91,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><SecretSlipSetting /><PauseSettings /><BackgroundSettings /></>,
-    models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <BuiltinRecall />}</>,
+    models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <BuiltinRecall />}<VoiceSettings /></>,
     life: <><LifeSettings name={name} /><Cities /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,

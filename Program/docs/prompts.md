@@ -12,6 +12,7 @@ for comparison.
 | --- | --- | --- |
 | Who the companion is | The opening of every chat reply and first text, before the character sheet | `GUIDANCE` in `companion/memory/context.py` |
 | Texting first | Added when the companion writes first | `INSTRUCTION` in `companion/life/openers.py` |
+| Voice notes | Added to a first text the app sends as a voice note ([voice-notes.md](voice-notes.md)) | `INSTRUCTION` in `companion/voice/notes.py` |
 | Phrasing life events | Life sim moments into a sentence and a caption | `RULES` in `companion/life/synthesis.py` |
 | Suggesting memories | The memory model's fact suggestions | `RULES` in `companion/memory/suggest.py` |
 | Noting the companion's own facts | The memory model reading her replies for her people, team, work | `RULES` in `companion/memory/self_suggest.py` |

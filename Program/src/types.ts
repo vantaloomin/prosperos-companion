@@ -30,7 +30,11 @@ export interface Message {
   photo?: ChatPhoto | null
   /** Pictures the user sent with this message (companion/pictures.py). */
   pictures?: SentPicture[]
+  /** Sent as a voice note: the audio, with the text as its transcript (companion/voice/notes.py). */
+  voice?: VoiceNote | null
 }
+
+export interface VoiceNote { url: string; duration_ms: number | null; engine: string }
 
 export interface SentPicture { id: string; width: number; height: number; status: 'pending' | 'seen' | 'unseen'; reason: string | null }
 

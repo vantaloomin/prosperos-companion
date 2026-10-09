@@ -1476,3 +1476,34 @@ CREATE TABLE IF NOT EXISTS knowledge_holders (
 );
 CREATE INDEX IF NOT EXISTS knowledge_holders_knowledge ON knowledge_holders(knowledge_id);
 CREATE INDEX IF NOT EXISTS knowledge_holders_holder ON knowledge_holders(holder);
+
+-- Voice notes (Settings > Models > Voice notes, companion/voice/): whether companions sometimes send one instead of
+-- a text, and which engine reads them aloud. Keys for the hosted engines live in the OS credential vault.
+CREATE TABLE IF NOT EXISTS voice_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  voice_notes INTEGER NOT NULL DEFAULT 1 CHECK (voice_notes IN (0, 1)),
+  engine TEXT NOT NULL DEFAULT 'builtin' CHECK (engine IN ('builtin', 'openai', 'elevenlabs', 'google')),
+  daily_limit INTEGER NOT NULL DEFAULT 3 CHECK (daily_limit BETWEEN 1 AND 20),
+  updated_at TEXT NOT NULL
+);
+
+-- A voice the user picked for a companion on one engine. Without a row the app picks one that suits them.
+CREATE TABLE IF NOT EXISTS companion_voices (
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  engine TEXT NOT NULL,
+  voice TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (companion_id, engine)
+);
+
+-- A companion message sent as a voice note: the audio file in the workspace's voice-notes folder. A forked
+-- timeline's copy of the message shares the file.
+CREATE TABLE IF NOT EXISTS voice_notes (
+  message_id TEXT PRIMARY KEY REFERENCES messages(id),
+  file TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  duration_ms INTEGER,
+  engine TEXT NOT NULL,
+  voice TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

@@ -31,12 +31,13 @@ from companion import backup, groups, pictures, secrets
 from companion.characters import require_current
 from companion.database import identifier, many
 from companion.errors import require
+from companion.voice.notes import files_of as voice_files
 
 WORKSPACE = (
     'app_identity', 'workspace_settings', 'pauses', 'pause_catch_ups', 'connection', 'model_profiles',
     'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'image_settings',
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
-    'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
+    'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
     'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge',
     'knowledge_holders',
     'sqlite_sequence',
@@ -44,7 +45,7 @@ WORKSPACE = (
 # Children before parents, so the order also reads as what depends on what.
 CHARACTER = (
     'lora_eval_images', 'lora_evaluations', 'lora_gen_images', 'lora_generations', 'appearance_current',
-    'appearance_versions', 'lora_adapters', 'lora_references', 'lora_runs', 'study_imports', 'character_versions',
+    'appearance_versions', 'lora_adapters', 'lora_references', 'lora_runs', 'study_imports', 'companion_voices', 'character_versions',
     'companions',
 )
 # Lookups were made for the companion's replies and city, so they go with the history. City news
@@ -57,7 +58,7 @@ HISTORY = (
     'closeness_jokes', 'closeness_settings', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'recommendations', 'storylines',
     'storyline_days', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
-    'user_people', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'timelines',
+    'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'timelines',
 )
 # LoRA folders the backup does not carry: training runs and the test and prepared pictures.
 UNBACKED_LORA = ('runs', 'evaluations', 'generated')
@@ -88,6 +89,7 @@ OWN = {
     'memory_sources': 'message_id IN gone_messages OR memory_id IN gone_memories',
     'memory_declines': 'message_id IN gone_messages',
     'message_pictures': 'message_id IN gone_messages',
+    'voice_notes': 'message_id IN gone_messages',
     'message_edits': 'message_id IN gone_messages',
     'memory_jobs': 'message_id IN gone_messages',
     'self_fact_jobs': 'message_id IN gone_messages',
@@ -179,7 +181,8 @@ def image_files(connection, companion_id: str | None = None) -> list[str]:
     mine = ' WHERE timeline_id IN (SELECT id FROM timelines WHERE companion_id=?)' if companion_id else ''
     rows = many(connection, f'SELECT output_file, raw_file FROM image_jobs{mine}', (companion_id,) if companion_id else ())
     return [f'images/{row["output_file"]}' for row in rows if row['output_file']] + \
-        [f'images/raw/{row["raw_file"]}' for row in rows if row['raw_file']] + pictures.files_of(connection, companion_id)
+        [f'images/raw/{row["raw_file"]}' for row in rows if row['raw_file']] + pictures.files_of(connection, companion_id) + \
+        voice_files(connection, companion_id)
 
 
 def lora_files(connection, companion_id: str) -> tuple[list[str], list[str]]:
@@ -291,7 +294,7 @@ def delete(database, typed: str) -> dict:
     made = take_backup(database, 'delete')
     streaming, files, folders = wipe(database, keep_character=False)
     if folders is None:
-        remove_files(database.path.parent, [], ('images', pictures.FOLDER, *(f'lora/{name}' for name in
+        remove_files(database.path.parent, [], ('images', pictures.FOLDER, 'voice-notes', *(f'lora/{name}' for name in
                                                             ('adapters', 'references', *UNBACKED_LORA))))
     else:
         remove_files(database.path.parent, files, tuple(folders))

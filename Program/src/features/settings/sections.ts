@@ -36,6 +36,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'models-heading', title: 'Models', keywords: 'model connection provider api key openai anthropic openrouter google local kobold codex profile chat life memory drafting recall temperature' },
       { heading: 'recall-profiles-heading', title: 'Recall', keywords: 'recall embedding embeddings semantic memory search ollama lm studio openai nomic qwen gemma profile' },
       { heading: 'recall-heading', title: 'Built-in recall', keywords: 'recall embedding embeddings semantic llama.cpp llama-server gguf gemma embeddinggemma qwen local memory search' },
+      { heading: 'voice-heading', title: 'Voice notes', keywords: 'voice voices voice notes audio speech tts text to speech kokoro sherpa openai elevenlabs google accent preview' },
     ],
   },
   {
