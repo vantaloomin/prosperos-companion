@@ -1672,3 +1672,31 @@ CREATE TABLE IF NOT EXISTS away_recaps (
   since TEXT NOT NULL,
   dismissed_at TEXT NOT NULL
 );
+
+-- Lore from imported lorebooks (companion/lore.py, companion/imports/characters.py): a book belongs to one
+-- companion, or to the whole world when companion_id is NULL. An entry joins the prompt when one of its keywords
+-- is in the conversation, or always when `always` is set; `pattern` marks entries whose search patterns the app
+-- cannot match, which stay off.
+CREATE TABLE IF NOT EXISTS lore_books (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT REFERENCES companions(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  source_format TEXT NOT NULL DEFAULT '',
+  source_file TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS lore_entries (
+  id TEXT PRIMARY KEY,
+  book_id TEXT NOT NULL REFERENCES lore_books(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  text TEXT NOT NULL,
+  keywords TEXT NOT NULL DEFAULT '[]',
+  always INTEGER NOT NULL DEFAULT 0 CHECK (always IN (0, 1)),
+  pattern INTEGER NOT NULL DEFAULT 0 CHECK (pattern IN (0, 1)),
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1))
+);
+CREATE INDEX IF NOT EXISTS lore_entries_book ON lore_entries(book_id, position);

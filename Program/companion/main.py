@@ -36,6 +36,7 @@ from companion.images import jobs as image_jobs
 from companion.images import routes as image_routes
 from companion.images.photos import ChatPhotos
 from companion.images.runner import ImageRunner
+from companion.imports import file_routes
 from companion.imports import routes as import_routes
 from companion.launcher import Launcher
 from companion.launcher_routes import router as launcher_router
@@ -250,6 +251,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     if app.state.lora_maker:
         app.include_router(lora_routes.maker_router)
     app.include_router(import_routes.router)
+    app.include_router(file_routes.router)
     app.include_router(closeness_routes.router)
     app.include_router(phone_routes.router)
     app.include_router(people_routes.router)

@@ -26,6 +26,8 @@ import { SelfFacts } from './SelfFacts'
 import { StartOver } from './StartOver'
 import { Cast } from './Cast'
 import { TownSeed } from './TownSeed'
+import { BringCharacter } from './BringCharacter'
+import { Lore } from './Lore'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
 
@@ -43,6 +45,7 @@ export function Character({ companion, go }: { companion: Companion | null; go: 
       <section className="page">
         <CharacterHeading companion={null} go={go} />
         <QuickStart onDraft={(definition) => begin(definition, true)} onSplit={(result) => begin(result.definition, true, { filledIn: result.filled_in, homeCity: result.home_city })} onManual={() => begin(emptyDefinition(guessTimezone()), false)} go={go} />
+        <BringCharacter />
         <StudyImport />
       </section>
     )
@@ -161,9 +164,11 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <Wardrobe name={name} />
       <SelfFacts name={name} />
     </>}
+    <Lore />
     <TownSeed companion={companion} />
     <Versions current={companion.active_version_id} />
     <Cast go={go} />
+    <BringCharacter />
     <StartOver name={name} go={go} />
   </>)
 }
