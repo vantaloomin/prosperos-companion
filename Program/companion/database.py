@@ -185,6 +185,8 @@ ADDED_COLUMNS = (
     # Automatic backups of every world (companion/auto_backup.py): on by default, once a day.
     ('workspace_settings', 'auto_backups',
      "TEXT NOT NULL DEFAULT 'daily' CHECK (auto_backups IN ('off', 'daily', 'weekly'))"),
+    # While you were away (companion/recap.py): days without a message before a catch-up shows; 0 is off.
+    ('life_settings', 'recap_after_days', 'INTEGER NOT NULL DEFAULT 3'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

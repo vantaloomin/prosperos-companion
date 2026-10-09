@@ -320,6 +320,8 @@ class LifeSettingsUpdate(Input):
     paced_replies: bool | None = None
     day_shifts: bool | None = None
     on_her_mind: bool | None = None
+    # While you were away (companion/recap.py): days away before a catch-up shows; 0 turns it off.
+    recap_after_days: int | None = Field(default=None, ge=0, le=60)
     user_birthday: str | None = Field(default=None, pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
 
 
@@ -440,3 +442,8 @@ class NewWorld(Input):
     persona_id: str | None = Field(None, min_length=1, max_length=100)
     name: str | None = Field(None, max_length=80)
     city_id: str | None = Field(None, min_length=1, max_length=120)
+
+
+class RecapRead(Input):
+    """The catch-up the user read, by the message it followed (companion/recap.py)."""
+    since: str = Field(min_length=1, max_length=40)

@@ -20,6 +20,7 @@ from companion import (
     notifications,
     pictures,
     prompt_library,
+    recap,
     restore,
     self_facts,
     sidecar,
@@ -54,6 +55,7 @@ from companion.models import (
     NotificationSettingsUpdate,
     PerceptionRequest,
     PromptUpdate,
+    RecapRead,
     SettingsUpdate,
     SidecarRequest,
     StartOverConfirm,
@@ -311,6 +313,17 @@ def activate_timeline(request: Request, timeline_id: str):
 @router.get('/conversation')
 def read_conversation(request: Request, before_seq: int | None = None, limit: int = 100):
     return conversation.history(db(request), before_seq, min(max(limit, 1), 500))
+
+
+@router.get('/conversation/recap')
+def read_recap(request: Request):
+    """While you were away: a catch-up after a few days without a message, or null (companion/recap.py)."""
+    return recap.read(db(request))
+
+
+@router.post('/conversation/recap/read')
+def dismiss_recap(request: Request, body: RecapRead):
+    return recap.dismiss(db(request), body.since)
 
 
 @router.get('/conversation/search')

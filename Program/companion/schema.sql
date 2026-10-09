@@ -1647,3 +1647,10 @@ CREATE TABLE IF NOT EXISTS persona (
   about TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL
 );
+
+-- While you were away (companion/recap.py): the catch-up the user has read, by the last message it followed.
+CREATE TABLE IF NOT EXISTS away_recaps (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  since TEXT NOT NULL,
+  dismissed_at TEXT NOT NULL
+);

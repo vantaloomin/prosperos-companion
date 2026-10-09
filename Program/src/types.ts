@@ -351,6 +351,7 @@ export interface LifeSettings {
   texts_daily: number
   /** First messages from all companions together in a day (companion/away.py); 0 for none. */
   away_daily: number
+  recap_after_days: number
   texts_gap_hours: number
   /** 0 sizes the circle by how sociable the companion is. */
   circle_size: number
@@ -1403,3 +1404,6 @@ export interface Persona {
 export interface Worlds {
   active_world_id: string; active_persona_id: string; world: World; persona: Persona; personas: Persona[]
 }
+
+/** While you were away (companion/recap.py): a catch-up after a few days without a message. */
+export interface AwayRecap { since: string; days: number; items: string[] }

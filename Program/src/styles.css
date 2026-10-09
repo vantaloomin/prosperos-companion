@@ -1309,3 +1309,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @media (max-width: 720px) {
   .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
 }
+
+/* While you were away (src/features/conversation/AwayRecap.tsx): a quiet catch-up above the composer. */
+.away-recap { max-width: 760px; width: calc(100% - 32px); margin: 0 auto 8px; padding: 12px 16px; border: 1px dashed var(--border); border-radius: 10px; background: var(--surface); font-family: system-ui, sans-serif; font-size: 0.875rem; }
+.away-recap h2 { font-size: 0.95rem; margin: 0 0 6px; }
+.away-recap ul { margin: 0 0 4px; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 2px; }
+.away-recap .text-button { padding-left: 0; }
