@@ -81,7 +81,7 @@ export function Memories({ companion }: { companion: Companion }) {
   // A refusal is shown on the form itself, next to what needs changing, rather than further down the page.
   const remember = async (memory: NewMemory): Promise<Memory | string> => {
     try {
-      const saved = await api<Memory>('/memories', memory)
+      const saved = await api<Memory>('/memories', { ...memory, companion_id: companion.id })
       setFeedback({ tone: 'info', text: `${name} will remember “${memory.subject}”.` })
       void client.invalidateQueries({ queryKey: PREVIEW_KEY })
       void client.invalidateQueries({ queryKey: CLOSENESS_KEY })

@@ -13,7 +13,7 @@ identities and reason codes.
 """
 import hashlib
 
-from companion.characters import require_current
+from companion.characters import by_id, for_timeline, require_current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
@@ -158,10 +158,11 @@ def form(connection, companion, message, timestamp, *, deliberate: bool) -> list
 def run_job(connection, job, timestamp):
     row = settings(connection)
     message = one(connection, 'SELECT * FROM messages WHERE id=?', (job['message_id'],))
-    companion = require_current(connection)
+    # Whose chat the message is in, even when another companion came into focus before the job ran.
+    companion = for_timeline(connection, message['timeline_id'])
     if not row['automatic_memory'] or row['permission_revision'] != job['permission_revision']:
         status, reason = 'stale', 'permission_changed'
-    elif message['timeline_id'] != companion['active_timeline_id']:
+    elif companion is None or message['timeline_id'] != companion['active_timeline_id']:
         status, reason = 'skipped', 'inactive_timeline'
     else:
         reason = blocked(connection, message)
@@ -203,9 +204,10 @@ def remember_message(database, message_id) -> dict:
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         require(message['role'] == 'user', 'Only your own messages can be remembered this way.', 422)
         require(message['redacted_at'] is None, 'This message was deleted.', 409)
-        companion = require_current(connection)
-        require(message['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
-                409)
+        # The chat the message is in decides whose memory it is, not the companion in focus right now.
+        companion = for_timeline(connection, message['timeline_id'])
+        require(companion is not None and message['timeline_id'] == companion['active_timeline_id'],
+                'This message is on an inactive timeline.', 409)
         timestamp = database.now()
         copies = sorted(related(connection, [message_id]))
         marks = ','.join('?' * len(copies))
@@ -280,7 +282,7 @@ def accept(database, candidate_id) -> dict:
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (row['message_id'],))
         require(blocked(connection, message) is None, 'The message behind this suggestion was deleted or declined.',
                 409)
-        companion = require_current(connection)
+        companion = by_id(connection, row['companion_id']) or require_current(connection)
         timestamp = database.now()
         fields = decode(row['proposal'])
         authority = 'confirmed' if row['source'] == 'model' else 'stated'

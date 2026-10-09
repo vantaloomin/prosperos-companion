@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { InfoTip } from './InfoTip'
+import { bounded } from './numberBounds'
 
 /** Help for a control: `hint` shows under it, `tip` sits behind a "?" next to its label. Both are read out with it. */
 interface Help { hint?: ReactNode; tip?: string }
@@ -29,10 +30,12 @@ export function TextArea({ label, hint, tip, value, onChange, rows = 3, maxLengt
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <textarea id={id} rows={rows} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
 }
 
-interface TextInputProps extends Help { label: string; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; list?: string; type?: string; placeholder?: string }
+interface TextInputProps extends Help { label: string; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; list?: string; type?: string; placeholder?: string; min?: number; max?: number; step?: number }
 
-export function TextInput({ label, hint, tip, value, onChange, required, maxLength, list, type = 'text', placeholder }: TextInputProps) {
-  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} required={required} maxLength={maxLength} list={list} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />}</Field>
+/** With `min` or `max`, a number box keeps what is typed inside that range. */
+export function TextInput({ label, hint, tip, value, onChange, required, maxLength, list, type = 'text', placeholder, min, max, step }: TextInputProps) {
+  const leave = () => { const fixed = bounded(value, min, max, true); if (fixed !== value) onChange(fixed) }
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} required={required} maxLength={maxLength} list={list} placeholder={placeholder} min={min} max={max} step={step} aria-describedby={describedBy} onChange={(event) => onChange(bounded(event.target.value, min, max))} onBlur={leave} />}</Field>
 }
 
 interface ToggleProps extends Help { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }

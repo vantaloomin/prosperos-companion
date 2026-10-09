@@ -24,7 +24,7 @@ from companion import (
     texting,
     troubleshoot,
 )
-from companion.characters import require_current
+from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
@@ -53,7 +53,7 @@ def record_user(database, body) -> dict:
         existing = optional(connection, 'SELECT * FROM messages WHERE client_id=?', (body.client_id,))
         if existing:
             return existing
-        companion = require_current(connection)
+        companion = in_focus(connection, body.companion_id, database.now())
         timeline_id, message_id = companion['active_timeline_id'], identifier()
         connection.execute(
             'INSERT INTO messages (id, timeline_id, seq, role, text, client_id, status, character_version_id, '
@@ -70,6 +70,21 @@ def record_user(database, body) -> dict:
         self_checks.heed(connection, message, database.now())
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
         return message
+
+
+def in_focus(connection, companion_id: str | None, timestamp: str) -> dict:
+    """The companion a new message is for. A window still showing another companion's chat (focus moved in a
+    second window or on a phone) brings that companion back into focus, so the message lands in the chat on screen
+    and never in someone else's."""
+    companion = require_current(connection)
+    if companion_id and companion_id != companion['id']:
+        require(by_id(connection, companion_id) is not None,
+                'That companion is no longer in this workspace, so the message was not sent. Pick a chat in Chats.',
+                404)
+        from companion.cast import step_back
+        step_back(connection, timestamp, companion_id)
+        companion = require_current(connection)
+    return companion
 
 
 def active_reply(connection, user_message_id) -> dict | None:
@@ -309,9 +324,7 @@ class Conversation:
             config = config_for(connection, CHAT)
             if config is None:
                 return {'connection': 'not_configured'}
-            companion = require_current(connection)
-            require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
-                    409)
+            companion = chat_owner(connection, user['timeline_id'])
             attempt_id, now = identifier(), self.database.now()
             held, dropped = pacing.take_over(connection, user['timeline_id'],
                                              pacing.hold(connection, companion, self.database.clock.now(), attempt_id),
@@ -356,9 +369,7 @@ class Conversation:
         is the one the packet reflects; a change committed after it withholds the reply."""
         user, config = prepared['user'], prepared['config']
         with self.database.connect() as connection:
-            companion = require_current(connection)
-            require(user['timeline_id'] == companion['active_timeline_id'], 'This message is on an inactive timeline.',
-                    409)
+            companion = chat_owner(connection, user['timeline_id'])
             packet = context.build(connection, companion, self.database.clock.now(),
                                    config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic,
                                    outside, photo)
@@ -383,7 +394,8 @@ class Conversation:
                 if in_character.out_of_character(prepared['user']['text']):
                     note = in_character.OUT_OF_CHARACTER_NOTE.format(
                         name=definition.get('name', 'the character'), model=default_name(prepared['config']))
-                    packet = context.add_note(packet, '\n\n'.join(filter(None, (note, self.what_if()))))
+                    what_if = self.what_if(prepared['user']['timeline_id'])
+                    packet = context.add_note(packet, '\n\n'.join(filter(None, (note, what_if))))
                 status, error, dropped = await self.write(prepared, key, packet, text, publish, active, step)
                 if dropped and not ''.join(text).strip():
                     # The reply only stepped out of character: written once more with a reminder.
@@ -430,16 +442,17 @@ class Conversation:
             keep(guard.flush())  # A stopped or failed reply keeps the text it had, still checked.
         return status, error, guard.dropped
 
-    def what_if(self) -> str:
+    def what_if(self, timeline_id) -> str:
         """The odds the consequence engine sees for what could happen, for an out-of-character answer."""
         from companion.life import reactions
         with self.database.connect() as connection:
-            return reactions.what_if_note(connection, require_current(connection), self.database.clock.now())
+            return reactions.what_if_note(connection, chat_owner(connection, timeline_id), self.database.clock.now())
 
     def finish(self, attempt_id, text, status, error):
         with self.database.connect(write=True) as connection:
             attempt = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
-            companion = require_current(connection)
+            # The companion whose chat this is: switching to another chat meanwhile doesn't withhold the reply.
+            companion = for_timeline(connection, attempt['timeline_id']) or require_current(connection)
             if attempt['superseded_at']:
                 # The user wrote again first and a newer reply took its place (companion/life/pacing.py).
                 connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
@@ -457,6 +470,15 @@ class Conversation:
                 finished = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())
+
+
+def chat_owner(connection, timeline_id) -> dict:
+    """The companion a reply is for. The reply keeps being written when the user opens another chat meanwhile,
+    but not once its chat moved to another timeline (an edit or a branch)."""
+    companion = for_timeline(connection, timeline_id)
+    require(companion is not None and timeline_id == companion['active_timeline_id'],
+            'This message is on an inactive timeline.', 409)
+    return companion
 
 
 def still_current(connection, attempt, companion) -> bool:

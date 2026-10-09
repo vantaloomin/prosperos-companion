@@ -4,6 +4,13 @@
   --accent: #c5a46d; --accent-hover: #d7b984; --accent-tint: #302a20; --on-accent: #211c14; --danger: #e9b8aa; --danger-tint: #98655822;
   /* The least space between blocks stacked down a page, so panels never sit flush. */
   --stack-gap: 16px; }
+/* Color schemes from prosperos-study src/styles.css; Ink is :root above. A custom scheme is set inline on the root (settings/palette.ts). */
+:root[data-theme='slate'], [data-palette='slate'] { --canvas: #15181c; --surface: #1c2026; --raised: #242a32; --border: #323b45; --accent-tint: #302e29; }
+:root[data-theme='umber'], [data-palette='umber'] { --canvas: #1c1714; --surface: #231e19; --raised: #2c251f; --border: #3b3129; --accent-tint: #342c21; }
+:root[data-theme='moss'], [data-palette='moss'] { --canvas: #171b17; --surface: #1e241d; --raised: #252c24; --border: #333c30; --accent-tint: #2e3025; }
+:root[data-theme='wine'], [data-palette='wine'] { --canvas: #1c1518; --surface: #251c20; --raised: #2e2429; --border: #41313b; --accent-tint: #362b29; }
+:root[data-theme='ash'], [data-palette='ash'] { --canvas: #1b1b1b; --surface: #242424; --raised: #2c2c2c; --border: #3c3c3c; }
+:root { background: var(--canvas); color: var(--text); }
 * { box-sizing: border-box; }
 body { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -95,7 +102,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .prose { font-family: 'Literata', Georgia, serif; font-size: 1.0625rem; line-height: 1.75; overflow-wrap: anywhere; }
 .prose p { white-space: pre-wrap; margin-bottom: 1em; }
 .prose p:last-child { margin-bottom: 0; }
-.message-user .prose { color: #cfc9bd; }
+.message-user .prose { color: var(--user-text, #cfc9bd); }
 .link-notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; list-style: none; padding: 0; }
 .link-note { padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--border); background: var(--raised); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.75rem; color: var(--muted); }
 .link-note.failed { color: var(--danger); border-color: #98655888; }
@@ -187,7 +194,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
 .form-grid.three { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .field { display: flex; flex-direction: column; gap: 7px; }
-.field > label, .traits legend { font-size: 0.875rem; font-weight: 500; color: #d6d0c4; }
+.field > label, .traits legend { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 .field small, .toggle small { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
 .form-actions { display: flex; gap: 12px; align-items: center; }
 .preset-list { display: grid; gap: 10px; list-style: none; padding: 0; margin: 0; }
@@ -203,7 +210,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .toggle label { font-size: 0.9375rem; }
 .label-row { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .label-row > label { font-size: inherit; }
-.field > .label-row > label { font-size: 0.875rem; font-weight: 500; color: #d6d0c4; }
+.field > .label-row > label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 .info-tip { position: relative; display: inline-flex; }
 .info-tip-button { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: var(--muted); }
 .info-tip-button:hover, .info-tip-button[aria-expanded='true'] { color: var(--accent); background: var(--accent-tint); }
@@ -695,6 +702,22 @@ textarea { resize: vertical; line-height: 1.6; }
 /* Chat styles: presentation only. Each lays out the same message markup; Feed is the base rules above. */
 .avatar { display: none; }
 .chat-style-switch { padding: 5px 8px; font-size: 0.8125rem; border-radius: 7px; max-width: 132px; }
+.number-stepper { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; min-height: 44px; border: 1px solid var(--border); border-radius: 7px; background: var(--canvas); overflow: hidden; }
+.number-stepper output { text-align: center; padding: 0 8px; font-variant-numeric: tabular-nums; }
+.stepper-button { display: grid; place-items: center; height: 100%; min-height: 42px; color: var(--text); }
+.stepper-button:hover:not([aria-disabled='true']) { background: var(--raised); }
+.stepper-button[aria-disabled='true'] { opacity: .35; cursor: default; }
+.slider-number { display: grid; grid-template-columns: 1fr 84px; gap: 10px; align-items: center; }
+.slider-number input[type='range'] { padding: 0; border: 0; background: none; accent-color: var(--accent); }
+.palette-options { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.palette-option { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.palette-option:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
+.palette-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+.palette-option .swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border); flex-shrink: 0; }
+.custom-palette > summary { cursor: pointer; padding-block: 6px; }
+.color-control { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: end; }
+.color-control input[type='color'] { width: 64px; height: 42px; padding: 3px; }
+.palette-preview { display: grid; gap: 12px; padding: 16px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
 .chat-style-options { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
 .chat-style-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); cursor: pointer; }
 .chat-style-option:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
@@ -894,7 +917,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .debug-banner { display: flex; flex: none; align-items: center; gap: 10px; max-width: 760px; margin: 12px 24px 0; padding: 9px 13px; border: 1px dashed var(--accent); border-radius: 8px; font-size: 0.875rem; background: var(--surface); }
 .debug-banner > span { flex: 1; min-width: 0; }
 .form-actions.wrap { flex-wrap: wrap; }
-.field-label { font-size: 0.875rem; font-weight: 500; color: #d6d0c4; }
+.field-label { font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
 #debug-progress { width: 100%; accent-color: var(--accent); }
 .info-tip.above .info-tip-text { top: auto; bottom: calc(100% + 6px); left: auto; right: -4px; }
 .composer > .info-tip { align-self: center; }

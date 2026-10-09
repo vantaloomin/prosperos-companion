@@ -206,6 +206,17 @@ class StartOverConfirm(Input):
     name: str = Field(max_length=200)
 
 
+HEX = r'^#[0-9a-fA-F]{6}$'
+
+
+class Palette(Input):
+    """A custom color scheme, as Prospero's Study's custom palette."""
+    accent: str = Field(pattern=HEX)
+    background: str = Field(pattern=HEX)
+    surface: str = Field(pattern=HEX)
+    text: str = Field(pattern=HEX)
+
+
 class SettingsUpdate(Input):
     user_timezone: str | None = Field(default=None, max_length=64)
     # 'detected': the interface reporting this PC's zone; 'pc': Use this PC's timezone; otherwise chosen.
@@ -218,6 +229,8 @@ class SettingsUpdate(Input):
     chat_style: Literal['feed', 'bubbles', 'community', 'retro', 'novel'] | None = None
     chat_sounds: bool | None = None
     chat_retro_dark: bool | None = None
+    color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
+    custom_palette: Palette | None = None
     ask_about_people: bool | None = None
     story_mode: bool | None = None
     show_secret_slips: bool | None = None
@@ -245,6 +258,8 @@ class MessageCreate(Input):
     client_id: str = Field(min_length=8, max_length=100)
     # Pictures uploaded for this message (companion/pictures.py).
     picture_ids: list[str] = Field(default_factory=list, max_length=4)
+    # The companion whose chat the window shows (conversation.in_focus).
+    companion_id: str | None = Field(default=None, max_length=100)
 
     @model_validator(mode='after')
     def something_to_send(self):
@@ -265,6 +280,8 @@ class MemoryCreate(Input):
     applies_until: str | None = None
     source_message_ids: list[str] = Field(default_factory=list, max_length=20)
     tentative: bool = False
+    # The companion whose Memories or chat the window shows, when no source message says it.
+    companion_id: str | None = Field(default=None, max_length=100)
 
 
 class MemoryCorrection(Input):

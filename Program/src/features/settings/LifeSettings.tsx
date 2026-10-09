@@ -5,22 +5,31 @@ import type { ChatList, LifeSettings as Limits } from '../../types'
 import { CHATS_KEY } from '../chats/useChats'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
+import { PresetSelect, SliderField, Stepper } from '../../components/NumberFields'
+import { countText, hoursText, minutesText } from '../../components/numberBounds'
 import { DRAMA_LEVELS } from '../today/storyText'
 import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['life-settings']
 type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'away_daily' | 'texts_gap_hours' | 'circle_size'
 
-const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: string }[] = [
-  { key: 'catch_up_max_events', label: 'Most events when you return', min: 0, max: 6, hint: 'However long you were away.' },
-  { key: 'catch_up_lookback_hours', label: 'How far back to fill in (hours)', min: 6, max: 336, hint: 'Older time away stays quiet.' },
-  { key: 'return_gap_hours', label: 'Time away before catching up (hours)', min: 1, max: 48, hint: '' },
-  { key: 'background_interval_minutes', label: 'Minutes between background updates', min: 15, max: 1440, hint: '' },
-  { key: 'background_daily_events', label: 'Most background events a day', min: 0, max: 8, hint: '' },
-  { key: 'texts_daily', label: 'Most first messages a day, each', min: 1, max: 6, hint: '' },
-  { key: 'away_daily', label: 'Most first messages a day, all companions together', min: 0, max: 40, hint: 'Shared by every companion, so a day with the app left running stays within what you want to spend on your model. 0 to 40; 0 stops them all.' },
-  { key: 'texts_gap_hours', label: 'Quiet hours after talking before they message first', min: 1, max: 24, hint: '' },
-  { key: 'circle_size', label: 'People in their circle', min: 0, max: 12, hint: '0 decides by how sociable they are: 4 for a homebody, 5 usually, 10 for a social butterfly. Add people from Today.' },
+type Format = (value: number) => string
+const counted = (one: string, many: string, zero?: string): Format => (value) => countText(value, one, many, zero)
+const every: Format = (minutes) => ({ 60: 'Every hour', 1440: 'Once a day' })[minutes] ?? `Every ${minutesText(minutes)}`
+
+// Iris's number controls (/mnt/project-files/companion-design/number-controls.md): steppers for small counts,
+// a slider for a wide one, friendly presets for time spans. Each saves on change; the server still checks the range.
+const STEPPERS: { name: NumberKey; label: string; min: number; max: number; format: Format; hint?: string }[] = [
+  { name: 'catch_up_max_events', label: 'Most events when you return', min: 0, max: 6, format: counted('event', 'events', 'None'), hint: 'However long you were away.' },
+  { name: 'background_daily_events', label: 'Most background events a day', min: 0, max: 8, format: counted('event', 'events', 'None') },
+  { name: 'texts_daily', label: 'Most first messages a day, each', min: 1, max: 6, format: counted('message', 'messages') },
+  { name: 'circle_size', label: 'People in their circle', min: 0, max: 12, format: counted('person', 'people', 'Automatic'), hint: 'Automatic decides by how sociable they are: 4 for a homebody, 5 usually, 10 for a social butterfly. Add people from Today.' },
+]
+const PRESETS: { name: NumberKey; label: string; presets: number[]; format: Format; hint?: string }[] = [
+  { name: 'catch_up_lookback_hours', label: 'How far back to fill in', presets: [6, 12, 24, 48, 72, 168, 336], format: hoursText, hint: 'Older time away stays quiet.' },
+  { name: 'return_gap_hours', label: 'Time away before catching up', presets: [1, 2, 4, 8, 12, 24, 48], format: hoursText },
+  { name: 'background_interval_minutes', label: 'Background updates', presets: [15, 30, 60, 120, 240, 480, 1440], format: every },
+  { name: 'texts_gap_hours', label: 'Quiet hours after talking before they message first', presets: [1, 2, 3, 4, 6, 8, 12, 24], format: hoursText },
 ]
 
 export function LifeSettings({ name }: { name: string }) {
@@ -28,7 +37,6 @@ export function LifeSettings({ name }: { name: string }) {
   const settings = useQuery({ queryKey: KEY, queryFn: () => api<Limits>('/life/settings') })
   const others = (useQuery({ queryKey: CHATS_KEY, queryFn: () => api<ChatList>('/chats') }).data?.chats.length ?? 1) > 1
   const [pending, setPending] = useState<Partial<Limits>>({})
-  const [draft, setDraft] = useState<Partial<Record<NumberKey, string>>>({})
   const [result, setResult] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const save = async (change: Partial<Limits>, done?: string) => {
     setPending((current) => ({ ...current, ...change }))
@@ -47,10 +55,7 @@ export function LifeSettings({ name }: { name: string }) {
   }
   if (!settings.data) return <SectionPending queries={[settings]} heading="life-heading" title={`${name}'s life`} />
   const data = { ...settings.data, ...pending }
-  const changed = Object.entries(draft).filter(([key, value]) => value !== undefined && Number(value) !== data[key as NumberKey])
-  const saveLimits = async () => {
-    if (await save(Object.fromEntries(changed.map(([key, value]) => [key, Number(value)])), 'Limits saved.')) setDraft({})
-  }
+  const saveNumber = (key: NumberKey, value: number) => void save({ [key]: value }, 'Saved.')
   return (
     <section className="settings-section form-stack" aria-labelledby="life-heading">
       <div>
@@ -72,13 +77,12 @@ export function LifeSettings({ name }: { name: string }) {
       <BirthdayField saved={data.user_birthday} onSave={(value) => save({ user_birthday: value }, value ? 'Birthday saved.' : 'Birthday forgotten.')} name={name} />
       <DramaSlider name={name} value={data.drama} onChange={(value) => void save({ drama: value })} />
       <div className="form-grid">
-        {LIMITS.map((limit) => (
-          <TextInput key={limit.key} label={limit.label} type="number" value={draft[limit.key] ?? String(data[limit.key])} hint={limit.hint || `${limit.min} to ${limit.max}.`}
-            onChange={(value) => setDraft((current) => ({ ...current, [limit.key]: value }))} />
-        ))}
+        {STEPPERS.map((item) => <Stepper key={item.name} {...item} value={data[item.name]} onChange={(value) => saveNumber(item.name, value)} />)}
+        <SliderField label="Most first messages a day, all companions together" value={data.away_daily} min={0} max={40} format={counted('message', 'messages', 'Off')}
+          hint="Shared by every companion, so a day with the app left running stays within what you want to spend on your model." onChange={(value) => saveNumber('away_daily', value)} />
+        {PRESETS.map((item) => <PresetSelect key={item.name} {...item} value={data[item.name]} onChange={(value) => saveNumber(item.name, value)} />)}
       </div>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
-      {changed.length > 0 && <div className="form-actions"><button type="button" className="button primary" onClick={() => void saveLimits()}>Save limits</button><button type="button" className="button" onClick={() => setDraft({})}>Cancel</button></div>}
     </section>
   )
 }

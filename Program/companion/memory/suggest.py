@@ -13,8 +13,8 @@ import json
 import re
 
 from companion import prompt_library
-from companion.characters import require_current
-from companion.database import encode, identifier, many, optional, settings
+from companion.characters import for_timeline
+from companion.database import encode, identifier, many, one, optional, settings
 from companion.memory import corrections, formation
 from companion.memory.extraction import Candidate, sentences, subject_key
 from companion.memory.retrieval import terms
@@ -59,6 +59,10 @@ RULES = (
 
 class SuggestionsInvalid(Exception):
     pass
+
+
+def owner_id(connection, message) -> str:
+    return one(connection, 'SELECT companion_id FROM timelines WHERE id=?', (message['timeline_id'],))['companion_id']
 
 
 def pending(connection, limit=BATCH) -> list[dict]:
@@ -172,9 +176,9 @@ def record(database, batch, items, revision) -> int:
         if not (row['automatic_memory'] and row['model_memory_suggestions']) or row['permission_revision'] != revision:
             mark(connection, batch, 'stale')
             return 0
-        companion, added = require_current(connection), 0
+        added = 0
         for found in filter(None, (candidate(item, batch) for item in items)):
-            added += store(connection, companion, *found, timestamp)
+            added += store(connection, *found, timestamp)
         mark(connection, batch, 'done')
         return added
 
@@ -189,9 +193,13 @@ def correction(connection, companion, found, corrected, timestamp) -> dict | Non
     return corrections.same_subject(connection, companion['id'], found.layer, found.subject_key, timestamp)
 
 
-def store(connection, companion, message, found, corrected, timestamp) -> int:
+def store(connection, message, found, corrected, timestamp) -> int:
     current = optional(connection, 'SELECT * FROM messages WHERE id=?', (message['id'],))
     if current is None or formation.blocked(connection, current):
+        return 0
+    # The companion whose chat it is: a batch can hold several chats, and focus may have moved while the model read.
+    companion = for_timeline(connection, current['timeline_id'])
+    if companion is None or current['timeline_id'] != companion['active_timeline_id']:
         return 0
     if target := correction(connection, companion, found, corrected, timestamp):
         fields = corrections.fields_for(target, found.value, current, found.excerpt,
@@ -236,8 +244,9 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
         batch = pending(connection)
         skipped = [message for message in batch if not eligible(message)]
         mark(connection, skipped, 'skipped')
-        companion, now = require_current(connection), database.now()
-        batch = [{**message, 'known': corrections.relevant(connection, companion['id'], message['text'], now)}
+        now = database.now()
+        batch = [{**message, 'known': corrections.relevant(connection, owner_id(connection, message), message['text'],
+                                                          now)}
                  for message in batch if eligible(message)]
         revision = row['permission_revision']
         rules = prompt_library.text(connection, 'memory-suggestions')

@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
+import { useRefetchOnFocus } from '../../paths'
+import { usePhoneStatus } from '../phone/phoneAccess'
 import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
@@ -12,6 +14,8 @@ import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
+import { SliderField, SliderNumber } from '../../components/NumberFields'
+import { countText } from '../../components/numberBounds'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -24,9 +28,7 @@ export function ImageSettings() {
   const settings = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') })
   const backends = useQuery({ queryKey: BACKENDS_KEY, queryFn: () => api<{ backends: ImageBackend[] }>('/images/backends') })
   const [result, setResult] = useState<Result>(null)
-  const [adding, setAdding] = useState(false)
-  const addButton = useReturnFocus<HTMLButtonElement>(adding)
-  const hardware = useHardware()
+  const onPhone = !!usePhoneStatus().data?.remote
   const save = async (change: Partial<Limits>, done?: string) => {
     try {
       client.setQueryData(SETTINGS_KEY, await api<Limits>('/images/settings', change, 'PUT'))
@@ -47,23 +49,33 @@ export function ImageSettings() {
       </div>
       {list.length === 0 && <p className="subtle">No image backend is set up yet. Posts stay text-only until you add one.</p>}
       {list.length > 0 && !hasLocal && <p className="subtle">No enabled backend takes NSFW requests, so they will be refused.</p>}
-      <ol className="backend-list">
-        {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} />)}
-      </ol>
-      {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
-      {adding ? <AddBackend onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-        : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
+      <Backends list={list} refresh={refresh} setResult={setResult} phone={onPhone} />
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
 }
 
+/** The backends in the order they are tried, each with its controls, and adding another. */
+function Backends({ list, refresh, setResult, phone }: { list: ImageBackend[]; refresh: () => Promise<unknown>; setResult: (result: Result) => void; phone: boolean }) {
+  const [adding, setAdding] = useState(false)
+  const addButton = useReturnFocus<HTMLButtonElement>(adding)
+  const hardware = useHardware()
+  return <>
+    <ol className="backend-list">
+      {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} phone={phone} />)}
+    </ol>
+    {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
+    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API or NanoGPT. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
+    {adding ? <AddBackend phone={phone} onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
+      : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
+  </>
+}
+
 function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Limits>, done?: string) => Promise<boolean> }) {
-  const [limit, setLimit] = useState<string | null>(null)
   const [style, setStyle] = useState<string | null>(null)
   const saveDrafts = async () => {
-    if (await save({ ...(limit !== null ? { daily_limit: Number(limit) } : {}), ...(style !== null ? { style } : {}) }, 'Saved.')) { setLimit(null); setStyle(null) }
+    if (style !== null && await save({ style }, 'Saved.')) setStyle(null)
   }
   return <>
       <Toggle label="Make images for new posts automatically" checked={data.automatic_images} onChange={(value) => void save({ automatic_images: value })}
@@ -75,7 +87,8 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
         hint="Only to a backend allowed to receive that request." />
       <div className="form-grid">
-        <TextInput label="Most automatic images a day" type="number" value={limit ?? String(data.daily_limit)} hint="0 to 24." onChange={setLimit} />
+        <SliderField label="Most automatic images a day" value={data.daily_limit} min={0} max={24} format={(value) => countText(value, 'image', 'images', 'None')}
+          onChange={(value) => void save({ daily_limit: value }, 'Saved.')} />
         <Field label="Shape" hint="For post pictures and photos in chat. Memes are always square.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={data.aspect} onChange={(event) => void save({ aspect: event.target.value as Limits['aspect'] })}>
             <option value="landscape">Landscape</option><option value="square">Square</option><option value="portrait">Portrait</option>
@@ -83,16 +96,29 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
         )}</Field>
       </div>
       <TextInput label="Style" value={style ?? data.style} maxLength={500} placeholder="Candid, natural-light photograph" hint="Starts every image prompt, unless a backend below has its own style." onChange={setStyle} />
-      {(limit !== null || style !== null) && (
+      {style !== null && (
         <div className="form-actions">
           <button type="button" className="button primary" onClick={() => void saveDrafts()}>Save</button>
-          <button type="button" className="button" onClick={() => { setLimit(null); setStyle(null) }}>Cancel</button>
+          <button type="button" className="button" onClick={() => setStyle(null)}>Cancel</button>
         </div>
       )}
   </>
 }
 
-function BackendRow({ backend, index, count, refresh, setResult }: { backend: ImageBackend; index: number; count: number; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+/** A paired phone changes an image API's name, key and model, never an address or program (companion/images/routes.py). */
+const phoneEdits = (backend: ImageBackend) => backend.kind === 'hosted' && !editsAddress(backend)
+
+/** Where a backend connects and how it draws. A phone sees only what it may change. */
+function BackendSetup({ backend, phone, put }: { backend: ImageBackend; phone: boolean; put: (body: object) => Promise<boolean> }) {
+  return <>
+    {(!phone || phoneEdits(backend)) && <BackendConnection backend={backend} save={put} />}
+    <BackendStyle backend={backend} save={(style) => put({ style })} />
+    <ComfyFiles backend={backend} put={put} />
+    {backend.kind === 'comfyui' && !phone && <ReferenceWorkflow backend={backend} save={(value) => put({ reference_workflow: value })} />}
+  </>
+}
+
+function BackendRow({ backend, index, count, refresh, setResult, phone }: { backend: ImageBackend; index: number; count: number; refresh: () => Promise<unknown>; setResult: (result: Result) => void; phone: boolean }) {
   const [check, setCheck] = useState<BackendCheck | null>(null)
   const [busy, setBusy] = useState(false)
   // Busy controls are marked, not disabled: disabling the focused control would drop keyboard focus.
@@ -117,10 +143,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
       {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
         hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
-      <BackendConnection backend={backend} save={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
-      <BackendStyle backend={backend} save={(style) => act(() => api(`/images/backends/${backend.id}`, { style }, 'PUT'))} />
-      <ComfyFiles backend={backend} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
-      {backend.kind === 'comfyui' && <ReferenceWorkflow backend={backend} save={(value) => act(() => api(`/images/backends/${backend.id}`, { reference_workflow: value }, 'PUT'))} />}
+      <BackendSetup backend={backend} phone={phone} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
       <div className="post-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
@@ -280,8 +303,8 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
       <div className="form-stack">
         <p className="subtle">Starts on Krea 2 Turbo's settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
         <div className="form-grid">
-          <TextInput label="Steps" type="number" value={String(shown.steps)} hint="1 to 100. Turbo models need few." onChange={(value) => setDraft({ ...draft, steps: Number(value) })} />
-          <TextInput label="CFG" type="number" value={String(shown.cfg)} hint="At 1 the negative prompt is ignored." onChange={(value) => setDraft({ ...draft, cfg: Number(value) })} />
+          <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} hint="Turbo models need few." onChange={(steps) => setDraft({ ...draft, steps })} />
+          <SliderNumber label="CFG" value={shown.cfg} min={0} max={30} step={0.5} hint="At 1 the negative prompt is ignored." onChange={(cfg) => setDraft({ ...draft, cfg })} />
           <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} krea={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
           <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} krea={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
         </div>
@@ -294,7 +317,10 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
 
 /** The server's file lists, asked once the panel is opened and shared by the file and LoRA pickers. */
 function useBackendFiles(id: string, open: boolean) {
-  return useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  const files = useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  // A model dropped in ComfyUI's folders shows up when the user comes back to the app.
+  useRefetchOnFocus(files.refetch, open)
+  return files
 }
 
 /** A dropdown of the server's files (only `krea` when given), or a text box when it listed none. */
@@ -339,7 +365,7 @@ function StyleLoraRows({ rows, options, krea, setRows }: { rows: StyleLora[]; op
     {krea.length > 0 && <Toggle label="Only Krea 2 LoRAs" checked={kreaOnly} onChange={setKreaOnly} hint="LoRAs whose name or folder says Krea 2. Turn off to see every LoRA." />}
     {rows.map((row, index) => <div key={index} className="form-grid">
       <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} krea={kreaOnly ? krea : []} value={row.name} fallback="" onChange={(name) => edit(index, { name })} />
-      <TextInput label="Strength" type="number" value={String(row.strength)} hint="0.6 to 0.8 suits most style LoRAs." onChange={(value) => edit(index, { strength: Number(value) })} />
+      <SliderNumber label="Strength" value={row.strength} min={-2} max={2} step={0.05} hint="0.6 to 0.8 suits most style LoRAs." onChange={(strength) => edit(index, { strength })} />
       <TextInput label="Trigger words" value={row.trigger} maxLength={200} hint="Put in front of the prompt when the LoRA needs them." onChange={(trigger) => edit(index, { trigger })} />
       <button type="button" className="text-button" onClick={() => setRows(rows.filter((_, at) => at !== index))}><Trash2 aria-hidden="true" />Remove</button>
     </div>)}
@@ -417,10 +443,11 @@ function NsfwChoice({ provider, checked, onChange }: { provider: HostedProvider;
     hint="Off: safe images only. On: NSFW requests can go to this provider too, so only turn it on if its terms allow them. Every request is still checked on this computer first, and prohibited ones are never sent." />
 }
 
-function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (result: Result) => void }) {
-  const [kind, setKind] = useState<BackendKind>('comfyui')
+function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () => void; setResult: (result: Result) => void }) {
+  // A phone adds image APIs at their providers' own addresses only.
+  const [kind, setKind] = useState<BackendKind>(phone ? 'hosted' : 'comfyui')
   const [provider, setProvider] = useState<HostedProvider>('openrouter')
-  const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:8188')
+  const [baseUrl, setBaseUrl] = useState(phone ? '' : 'http://127.0.0.1:8188')
   const [model, setModel] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [cliPath, setCliPath] = useState('')
@@ -447,11 +474,11 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
   }
   return (
     <form className="form-stack backend-form" onSubmit={submit}>
-      <Field label="Kind" hint={BACKEND_KINDS.find((item) => item.id === kind)?.hint}>{(id, describedBy) => (
+      {!phone && <Field label="Kind" hint={BACKEND_KINDS.find((item) => item.id === kind)?.hint}>{(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={kind} autoFocus onChange={(event) => chooseKind(event.target.value as BackendKind)}>
           {BACKEND_KINDS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
-      )}</Field>
+      )}</Field>}
       {kind === 'comfyui' && <>
         <TextInput label="ComfyUI address" value={baseUrl} required onChange={setBaseUrl} hint="The app connects to this server only. It never starts or stops ComfyUI." />
         <Toggle label="This address is a machine I control" checked={controlled} onChange={setControlled} hint="Only for your own computer on your network. A rented or shared GPU service is not." />
@@ -462,7 +489,7 @@ function AddBackend({ onDone, setResult }: { onDone: () => void; setResult: (res
       {kind === 'hosted' && <>
         <Field label="Provider" hint="The image service your API key is for.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={provider} onChange={(event) => { setProvider(event.target.value as HostedProvider); setAccepted(false) }}>
-            {PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+            {PROVIDERS.filter((item) => !phone || item.id !== 'other').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         )}</Field>
         <TextInput label="API key" type="password" value={apiKey} onChange={setApiKey} hint="Saved in your system's credential store." />

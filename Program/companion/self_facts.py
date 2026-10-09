@@ -347,7 +347,7 @@ def record(connection, companion: dict, message: dict, facts: list[Fact], timest
         if inserted:
             added.append(one(connection, 'SELECT * FROM self_facts WHERE id=?', (row_id,)))
     if any(row['category'] in {'likes', 'dislikes'} and row['status'] == 'noted' for row in added):
-        stamp_change(connection, timestamp)
+        stamp_change(connection, timestamp, companion)
     return added
 
 
@@ -395,9 +395,9 @@ def decide(database, fact_id: str, keep: bool) -> dict:
     return listing(database)
 
 
-def stamp_change(connection, timestamp):
+def stamp_change(connection, timestamp, companion=None):
     """Tastes shape upcoming plans: the companion's precomputed week is rebuilt from now."""
-    companion = require_current(connection)
+    companion = companion or require_current(connection)
     connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject='companion' AND status='upcoming' "
                        'AND starts_at>?', (companion['active_timeline_id'], timestamp))
     connection.execute("UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND subject='companion'",
