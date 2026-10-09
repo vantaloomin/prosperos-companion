@@ -1,4 +1,4 @@
-"""She can ask to remember more (companion/memory/look_back.py): a wider search, and one hidden recall request."""
+"""They can ask to remember more (companion/memory/look_back.py): a wider search, and one hidden recall request."""
 import json
 
 import pytest

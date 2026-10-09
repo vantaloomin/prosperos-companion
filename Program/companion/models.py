@@ -248,7 +248,7 @@ class SettingsUpdate(Input):
     show_moods: bool | None = None
     show_news: bool | None = None
     show_odds: bool | None = None
-    # She can ask to remember more (companion/memory/look_back.py).
+    # They can ask to remember more (companion/memory/look_back.py).
     recall_more: bool | None = None
     # Out-of-character messages go to the helper (Settings > Chat).
     ooc_to_helper: bool | None = None

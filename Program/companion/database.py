@@ -224,7 +224,7 @@ ADDED_COLUMNS = (
     # Become a townsperson (companion/worlds.py): the townsperson the user is in this world, and their town.
     ('persona', 'townsfolk_key', "TEXT NOT NULL DEFAULT ''"),
     ('persona', 'town_seed', "TEXT NOT NULL DEFAULT ''"),
-    # She can ask to remember more (companion/memory/look_back.py).
+    # They can ask to remember more (companion/memory/look_back.py).
     ('workspace_settings', 'recall_more', 'INTEGER NOT NULL DEFAULT 1 CHECK (recall_more IN (0, 1))'),
     # Out-of-character messages go to the helper (the composer and Settings > General): the switch and the markers.
     ('workspace_settings', 'ooc_to_helper', 'INTEGER NOT NULL DEFAULT 1 CHECK (ooc_to_helper IN (0, 1))'),

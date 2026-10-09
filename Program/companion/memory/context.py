@@ -787,7 +787,7 @@ def offer_recalled(packet, connection, companion, now, recallable, turns, query,
     found = recalled(recallable, older, query, ranking, summaries, surfaced, (span, timezone) if span else None,
                      stories, notes)
     if thin(found, recallable) and look_back.points_back(query):
-        # She can ask to remember more (memory/look_back.py): first, with no model call, a wider search.
+        # They can ask to remember more (memory/look_back.py): first, with no model call, a wider search.
         wider = ' '.join([query, *widening(messages)])
         found += [item for item in recalled(recallable, older, wider, ranking, summaries, frozenset(),
                                             (span, timezone) if span else None, stories, notes)

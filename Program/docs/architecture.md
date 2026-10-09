@@ -186,7 +186,7 @@ vectors are never ranked. The receipt records whether semantic recall took part.
 
 ### Looking back
 
-`memory/look_back.py` (She can ask to remember more). When the user's message points at the past ("remember when",
+`memory/look_back.py` (They can ask to remember more). When the user's message points at the past ("remember when",
 "last summer", "you told me") and the first recall finds fewer than two items, the app widens it with no model call:
 the user's last few messages are added to the search words and nothing is held back for having come up lately (the
 receipt's `widened_recall`). With the Memory setting `recall_more` on (the default), the prompt for such a message

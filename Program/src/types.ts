@@ -212,7 +212,7 @@ export interface WorkspaceSettings {
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */
   custom_palette?: Palette | null
-  /** She can ask to remember more: one hidden extra look through memory when a reply needs it. On unless turned off. */
+  /** They can ask to remember more: one hidden extra look through memory when a reply needs it. On unless turned off. */
   recall_more?: boolean
   /** Out-of-character asides go to the helper instead of the companion (src/features/conversation/ooc.ts). */
   ooc_to_helper?: boolean

@@ -1,4 +1,4 @@
-"""She can ask to remember more (Feature Hit List #39): one extra look through memory when a reply needs it.
+"""They can ask to remember more (Feature Hit List #39): one extra look through memory when a reply needs it.
 
 Recall runs once before a reply (companion/memory/context.py, "Possibly relevant memories"). When the user's message
 points at the past ("remember when", "last summer", "you told me") two things can add to it:
@@ -9,7 +9,7 @@ points at the past ("remember when", "last summer", "you told me") two things ca
   app catches it before any text is shown (`Lookout`), looks again with those words, adds what it found as a note
   at the end of the prompt (so prompt caching still works) and asks once more, without the option to ask again. So
   the worst case is two model calls for that reply. A text marker, not tool calling, because many local models
-  handle tools poorly. The request never shows in chat; if nothing more turns up, she answers with what she has.
+  handle tools poorly. The request never shows in chat; if nothing more turns up, they answer with what they have.
 
 The Memory setting `recall_more` (on by default) turns the second part off; the widened search always runs. A model
 that asks in more than a quarter of the replies it is offered this stops being offered it until the app restarts
