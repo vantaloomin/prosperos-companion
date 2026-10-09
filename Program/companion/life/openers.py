@@ -28,7 +28,17 @@ from companion.characters import by_id, current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError
-from companion.life import encounters, occasions, own_plans, pacing, recommendations, routine, storylines, usual_hours
+from companion.life import (
+    chapters,
+    encounters,
+    occasions,
+    own_plans,
+    pacing,
+    recommendations,
+    routine,
+    storylines,
+    usual_hours,
+)
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context
 from companion.memory.records import OPEN_PLANS, eligible
@@ -200,6 +210,13 @@ def storyline_news(connection, companion, now) -> list[Trigger]:
             for key, beat in storylines.fresh_beats(connection, companion, now)]
 
 
+def chapter_news(connection, companion, now) -> list[Trigger]:
+    """A new chapter of their life that began today or yesterday (companion/life/chapters.py)."""
+    return [Trigger(f"chapter:{row['id']}", 'storyline', f"Something big just changed in your life: {row['told']} Tell "
+                    'the user, the way you would text a friend.', row['share'])
+            for row in chapters.fresh(connection, companion, now)]
+
+
 def crossed_paths(connection, companion, now) -> list[Trigger]:
     """Another companion met around town for the first time today or yesterday (companion/life/encounters.py):
     the user knows them both, so it's news worth a text."""
@@ -340,7 +357,7 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 
 
 # In priority order; later features add their own.
-FINDERS = [occasion, plan_follow_ups, promises, finished, storyline_news, news, crossed_paths, reminders, silence, usual_time,
+FINDERS = [occasion, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, reminders, silence, usual_time,
            check_in]
 
 

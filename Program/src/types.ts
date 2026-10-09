@@ -973,7 +973,32 @@ export interface Recommendation {
   finished_at: string | null
 }
 
-export interface StoryBeat { on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed' }
+export interface StoryBeat {
+  on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed'
+  /** The consequence engine's outcome this beat came from, when it could have gone more than one way. */
+  consequence: string | null
+}
+/** A lasting change to the companion's life (companion/life/chapters.py). */
+export interface LifeChapter {
+  id: string
+  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves'
+  started_on: string
+  title: string
+  consequence: string | null
+  undone: boolean
+}
+
+/** How a turning in the world went and why (companion/consequences.py). */
+export interface Consequence {
+  id: string
+  label: string
+  decided_on: string
+  options: { option: number; label: string; odds: number; reasons: string[] }[]
+  picked: number
+  picked_by: 'dice' | 'user'
+  /** What it left behind for a while, tilting later odds; a ripple reached a companion close to them. */
+  marks: { kind: 'mood' | 'money' | 'avoid'; amount: number; note: string; until: string; ripple: boolean; holder: string; who: string | null }[]
+}
 /** Something unfolding in the companion's or their circle's lives (companion/life/storylines.py). */
 export interface Storyline {
   id: string

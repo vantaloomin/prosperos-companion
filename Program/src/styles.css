@@ -322,6 +322,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .today > .notice, .today > div > .notice { max-width: 760px; margin-bottom: 12px; }
 .today-section { max-width: 760px; margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
 .today-section h3 { font-size: 1rem; margin-top: 10px; color: var(--muted); }
+.why-it-went { margin: 0 0 6px; }
+.why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
+.why-it-went ul { margin-top: 6px; }
 .event-list, .plain-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 10px; }
 .plain-list li { line-height: 1.6; }
 .event { padding: 14px 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }

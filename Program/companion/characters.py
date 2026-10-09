@@ -2,7 +2,7 @@
 import re
 
 from companion.clock import zone
-from companion.database import decode, encode, identifier, one, optional
+from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import DomainError, require
 
 
@@ -15,7 +15,7 @@ def current(connection) -> dict | None:
     if companion is None:
         return None
     version = one(connection, 'SELECT * FROM character_versions WHERE id=?', (companion['active_version_id'],))
-    return {**companion, 'version': view(version)}
+    return with_chapters(connection, {**companion, 'version': view(version)})
 
 
 def by_id(connection, companion_id: str) -> dict | None:
@@ -24,7 +24,30 @@ def by_id(connection, companion_id: str) -> dict | None:
     if companion is None or companion['active_version_id'] is None:
         return None
     version = one(connection, 'SELECT * FROM character_versions WHERE id=?', (companion['active_version_id'],))
-    return {**companion, 'version': view(version)}
+    return with_chapters(connection, {**companion, 'version': view(version)})
+
+
+def with_chapters(connection, companion: dict) -> dict:
+    """The companion with their life chapters on the active timeline applied to the definition (a new job, a move,
+    a hobby: companion/life/chapters.py), so everything that reads their life sees how it is now. The saved
+    version itself is never rewritten, so a fork without the chapter or an undo brings the old life back."""
+    rows = many(connection, 'SELECT changes FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL '
+                'ORDER BY started_on, created_at', (companion.get('active_timeline_id') or '',))
+    definition = companion['version']['definition']
+    for row in rows:
+        definition = apply_changes(definition, decode(row['changes']))
+    return {**companion, 'version': {**companion['version'], 'definition': definition}} if rows else companion
+
+
+def apply_changes(definition: dict, changes: dict) -> dict:
+    found = dict(definition)
+    if 'career' in changes:
+        found['money'] = {**(found.get('money') or {}), 'career': changes['career']}
+    if 'location' in changes:
+        found['location'], found['near'] = changes['location'], ''
+    if 'interest' in changes and changes['interest'] not in (found.get('interests') or []):
+        found['interests'] = [*(found.get('interests') or []), changes['interest']]
+    return found
 
 
 def for_timeline(connection, timeline_id: str) -> dict | None:

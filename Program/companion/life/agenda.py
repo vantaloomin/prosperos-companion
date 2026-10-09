@@ -12,11 +12,13 @@ members' happened entries are their visible diary.
 """
 from datetime import timedelta
 
-from companion import self_facts
+from companion import consequences, self_facts
+from companion.characters import by_id
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     body,
+    chapters,
     circle,
     composer,
     disruptions,
@@ -25,11 +27,13 @@ from companion.life import (
     network,
     occasions,
     own_plans,
+    reactions,
     recommendations,
     routine,
     storylines,
     wardrobe,
 )
+from companion.memory import pairs
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -70,6 +74,8 @@ def seed_for(timeline_id, subject, slot_key) -> str:
 
 def extend(connection, companion, world, now) -> dict:
     """Bring every subject's agenda up to a week ahead and settle what has ended. Cheap: no model."""
+    if chapters.advance(connection, companion, world, now):
+        companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
@@ -82,6 +88,7 @@ def extend(connection, companion, world, now) -> dict:
         written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
     settled = settle(connection, timeline_id, now)
     started = storylines.advance(connection, companion, now)
+    reactions.daily(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
 
 
@@ -143,7 +150,9 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         block['plans'] = sorted(plan['id'] for plan in facts['plans'])
     company = free_people(connection, timeline_id, slot) if subject == COMPANION and not resting else []
     if scope['shifting'] and not resting and slot.block.key not in pinned:
-        shift = disruptions.roll(f'{seed}:shift', block, company)
+        tilt = disruptions.tilts(connection, timeline_id, pairs.companion_key(scope['companion']['id']),
+                                 slot.local_date.isoformat()) if subject == COMPANION else None
+        shift = disruptions.roll(f'{seed}:shift', block, company, tilt)
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
     if shift and shift['friend']:
@@ -240,10 +249,11 @@ def recent_activities(connection, timeline_id, subject, before) -> list[str]:
 
 
 def free_people(connection, timeline_id, slot) -> list[dict]:
-    """Circle members with nothing busy overlapping the slot, in circle order."""
-    result = []
+    """Circle members with nothing busy overlapping the slot, in circle order, leaving out anyone the companion is
+    keeping away from for now (companion/consequences.py marks)."""
+    result, avoided = [], consequences.avoided(connection, timeline_id, slot.local_date.isoformat())
     for person in circle.people(connection, timeline_id):
-        if not decode(person['schedule']):
+        if not decode(person['schedule']) or person['id'] in avoided:
             continue
         overlapping = many(connection, 'SELECT block FROM life_agenda WHERE timeline_id=? AND subject=? '
                            'AND starts_at<? AND ends_at>?', (timeline_id, person['id'], stamp(slot.ends_at),

@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import pictures, prompt_library, secrets, self_facts, texting
+from companion import consequences, pictures, prompt_library, secrets, self_facts, texting
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
@@ -17,6 +17,7 @@ from companion.events import committed
 from companion.life import (
     agenda,
     body,
+    chapters,
     circle,
     disruptions,
     encounters,
@@ -26,6 +27,7 @@ from companion.life import (
     occasions,
     own_plans,
     pacing,
+    reactions,
     recommendations,
     storylines,
     wardrobe,
@@ -122,6 +124,9 @@ HEADINGS = {
             'own_plans': 'Plans you have made in chat for a day (yours; keep to them, and when the day comes they '
                          'happen as you said)',
             'relationship_mood': 'Your current mood about time apart',
+            'lately': 'How you are taking something the user did lately (from your own character; bring it up once '
+                      'in your own words if it fits, never as a number or a rule, and let it go when it is no '
+                      'longer listed)',
             'companion_life': 'Your recent life (committed fictional events)',
             'storylines': "What is going on in your life and your people's lives (these happened to you and your "
                           'people, never to the user; decided: bring it up the way a friend would, never contradict '
@@ -564,7 +569,8 @@ def offer_people(packet, connection, companion, now, today):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):
         packet.offer('townsfolk', identity, text)
-    for identity, text in storylines.context_lines(connection, companion, now):
+    for identity, text in [*chapters.context_lines(connection, companion, now),
+                           *storylines.context_lines(connection, companion, now)]:
         packet.offer('storylines', identity, text)
 
 
@@ -577,6 +583,10 @@ def offer_life(packet, connection, companion, now):
     budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
     for identity, text in money.context_lines(version['definition'], today, budget_home):
         packet.offer('money', identity, text)
+    for identity, text in consequences.money_line(connection, timeline_id, f"companion:{companion['id']}", today):
+        packet.offer('money', identity, text)
+    for identity, text in reactions.lately_lines(connection, companion, now):
+        packet.offer('lately', identity, text)
     for item in recommendations.progress(connection, timeline_id):
         packet.offer('recommendations', item['id'], recommendations.context_text(item))
     offer_home(packet, connection, timeline_id, today)

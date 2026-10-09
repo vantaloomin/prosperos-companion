@@ -15,11 +15,11 @@ A timeline's life resumes from the moment it is chosen; time spent frozen is nev
 """
 import re
 
-from companion import pictures
+from companion import consequences, pictures
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import encounters, feed, home, network, social, wardrobe
+from companion.life import encounters, feed, home, network, social, storylines, wardrobe
 from companion.voice import notes as voice_notes
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
@@ -189,6 +189,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
+    copy_chapters(connection, parent_id, new_id, ids, cutoff[:10])
     network.copy(connection, parent_id, new_id, cutoff)
     encounters.copy(connection, parent_id, new_id, cutoff)
     agenda = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND status IN ('happened','skipped') "
@@ -204,11 +205,26 @@ def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
     rows = [row for row in many(connection, 'SELECT * FROM storylines WHERE timeline_id=? AND started_on<=?',
                                 (parent_id, cutoff_date))
             if all(person in ids for person in decode(row['cast_ids']))]
-    insert(connection, 'storylines', [{**row, 'id': identifier(), 'timeline_id': new_id,
-                                       'cast_ids': encode([ids[person] for person in decode(row['cast_ids'])])}
-                                      for row in rows])
+    copies = []
+    for row in rows:
+        copy_id = identifier()
+        copies.append({**row, 'id': copy_id, 'timeline_id': new_id,
+                       'cast_ids': encode([ids[person] for person in decode(row['cast_ids'])]),
+                       'stages': encode(storylines.fork_stages(connection, row, copy_id, new_id, cutoff_date))})
+    insert(connection, 'storylines', copies)
     if optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (parent_id,)):
         connection.execute('INSERT INTO storyline_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
+
+
+def copy_chapters(connection, parent_id, new_id, ids, cutoff_date):
+    """Life chapters begun by the fork carry over with how they went; later ones are the copy's own."""
+    rows = many(connection, 'SELECT * FROM life_chapters WHERE timeline_id=? AND started_on<=?', (parent_id, cutoff_date))
+    insert(connection, 'life_chapters', [{
+        **row, 'id': identifier(), 'timeline_id': new_id, 'undo': remap(row['undo'], ids),
+        'consequence_id': row['consequence_id'] and consequences.copy(
+            connection, row['consequence_id'], new_id, f"chapter:{new_id}:{row['started_on']}")} for row in rows])
+    if optional(connection, 'SELECT through FROM chapter_days WHERE timeline_id=?', (parent_id,)):
+        connection.execute('INSERT INTO chapter_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
 
 
 def post_links(connection, post_id) -> list[dict]:

@@ -5,7 +5,7 @@ import pytest
 from conftest import send, set_life
 from test_groups import by_speaker, companion_named, messages, ok, say, speaker, start
 
-from companion import secrets
+from companion import consequences, secrets
 from companion.characters import by_id, insert_version
 from companion.database import identifier
 from companion.memory import pairs
@@ -148,6 +148,7 @@ def test_the_user_can_tell_them_or_let_them_find_out(client, cast, provider):
 def test_a_gossip_would_tell_only_someone_close_it_is_not_kept_from(client, cast, provider, monkeypatch):
     declare(client, cast)
     billy = f"companion:{cast['Billy']}"
+    likeliest(monkeypatch)
     monkeypatch.setattr(secrets, 'gossips', lambda connection, key: key == billy)
     closeness = {f"companion:{cast['Mira']}": 4, f"companion:{cast['Sally']}": 5}
     monkeypatch.setattr(pairs, 'closeness', lambda connection, a, b, now: closeness[b] if a == billy else 2)
@@ -176,6 +177,7 @@ def test_a_gossip_line_names_who_they_would_tell(client, cast, provider, monkeyp
     ok(client.post('/api/secrets', json={'statement': statement, 'about': ['Billy'], 'knows': [cast['Billy']],
                                          'kept_from': []}))
     billy = f"companion:{cast['Billy']}"
+    likeliest(monkeypatch)
     monkeypatch.setattr(secrets, 'gossips', lambda connection, key: key == billy)
     monkeypatch.setattr(pairs, 'closeness', lambda connection, a, b, now: 4 if b.endswith(cast['Mira']) else 2)
     group = start(client, list(cast.values()))
@@ -354,3 +356,8 @@ def test_a_memory_that_reads_like_a_secret_becomes_one_on_its_own(client, cast):
 def test_the_slip_note_can_be_turned_off(client):
     assert ok(client.get('/api/settings'))['show_secret_slips'] is True
     assert ok(client.put('/api/settings', json={'show_secret_slips': False}))['show_secret_slips'] is False
+
+
+def likeliest(monkeypatch):
+    """The consequence engine's dice land on the likeliest outcome, so a test doesn't hang on a seed."""
+    monkeypatch.setattr(consequences, 'roll', lambda _seed, found: max(found, key=lambda item: item['odds'])['option'])

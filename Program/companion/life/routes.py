@@ -5,19 +5,21 @@ from typing import Literal
 from fastapi import APIRouter, Request
 from pydantic import Field
 
-from companion import conversation
+from companion import consequences, conversation
 from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    chapters,
     circle,
     encounters,
     feed,
     money,
     mood,
     network,
+    reactions,
     recommendations,
     routine,
     simulation,
@@ -292,6 +294,51 @@ def require_date(value: str) -> date:
         return date.fromisoformat(value)
     except ValueError:
         raise DomainError('Give the date as YYYY-MM-DD.', 422) from None
+
+
+class OutcomeChange(Input):
+    option: int = Field(ge=0, le=9)
+
+
+@router.get('/consequences/{consequence_id}')
+def read_consequence(request: Request, consequence_id: str):
+    """How a turning in the world went and why (companion/consequences.py): each way it could have gone, with
+    its odds and reasons, and the one it took."""
+    with db(request).connect() as connection:
+        found = consequences.by_id(connection, consequence_id)
+        require(found['timeline_id'] == require_current(connection)['active_timeline_id'],
+                'That outcome is not on this timeline.', 404)
+        return found
+
+
+@router.post('/consequences/{consequence_id}/change')
+def change_consequence(request: Request, consequence_id: str, body: OutcomeChange):
+    """The user makes it go another way instead."""
+    with db(request).connect() as connection:
+        subject = consequences.by_id(connection, consequence_id)['subject']
+    if subject.startswith('storyline:'):
+        return storylines.change_outcome(db(request), consequence_id, body.option)
+    if subject.startswith('chapter:'):
+        return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
+    return reactions.change(db(request), consequence_id, body.option)
+
+
+@router.get('/chapters')
+def read_chapters(request: Request):
+    """The life chapters in place on this timeline (companion/life/chapters.py), newest first."""
+    return chapters.listing(db(request))
+
+
+@router.post('/chapters/{chapter_id}/undo')
+def undo_chapter(request: Request, chapter_id: str):
+    """Take a chapter back; returns the chapters still in place."""
+    return chapters.undo(db(request), chapter_id)
+
+
+@router.get('/reactions')
+def read_reactions(request: Request):
+    """How the companion took what the user did lately (companion/life/reactions.py), newest first."""
+    return reactions.listing(db(request))
 
 
 @today_router.get('')

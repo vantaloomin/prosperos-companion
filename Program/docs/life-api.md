@@ -511,9 +511,9 @@ name. A finished one can open a conversation. `GET /api/life/recommendations` li
 Things unfold over days in the companion's life and their circle's (`companion/life/storylines.py`):
 "my dad just got a promotion", "the new guy at work keeps hitting on me", "I got drunk and kissed my
 best friend". Each is a fixed template with a cast from the circle (or the companion's own work) and
-one to three beats a few days apart. Whether one starts on a day, which template, who is in it and
-how each beat turns out are decided by a seed when it starts, never by a model; later beats stay
-hidden until their local date. The Life setting `drama` (0 quiet, 1 realistic, 2 dramatic, 3 soap
+one to three beats a few days apart. Whether one starts on a day, which template and who is in it
+are decided by a seed when it starts, never by a model; a beat that can turn out more than one way is
+left to the consequence engine on its day (below). Later beats stay hidden until their local date. The Life setting `drama` (0 quiet, 1 realistic, 2 dramatic, 3 soap
 opera; default 1) sets how often one starts (about 4%, 8%, 15% or 28% of days), how many run at once
 (1 to 4) and which templates can happen: quiet keeps to good news; realistic adds everyday trouble
 (a creepy new coworker, a friend's breakup, layoff rumors); dramatic adds health scares, feuds and
@@ -527,7 +527,7 @@ POST /api/life/storylines/{id}/end        # it leaves Today and the context; lat
 ```
 
 A storyline is `{id, story, level, started_on, status, cast: [{id, name, role}], beats: [{on, text,
-share, tone}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
+share, tone, consequence}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
 named now; removing someone ends the storylines they are in. The chat context lists the last three
 weeks' storylines and says when one is still unfolding, so the companion never guesses the ending.
 There the beats are told to the companion as "you" ("You got the promotion", "Cathy, your mom, got a
@@ -537,6 +537,97 @@ the user; Today keeps the third person. A settled storyline stays in the context
 still bring the outcome back (embedded like memories when semantic recall is on).
 A beat from today or yesterday can open a conversation, using its `share` line when no model is
 connected. Days are decided as the agenda extends, up to 14 days back after time away.
+
+#### The consequence engine
+
+Whether two feuding friends make up, whether the companion gets the promotion: a beat with more than
+one way to go is decided on its day by `companion/consequences.py`, not by a coin flipped when the
+storyline started. The engine reads the state that bears on it (the drama level, how close the
+companion is to each person in the story, how the two of them know each other, the first person's age,
+and words in the companion's own description such as "driven" or "stubborn", skipping "not shy"),
+turns it into odds from a small table per turning (`world/data/consequences.json`), rolls seeded dice
+and records the outcome in `consequences` with every option's odds and the reasons that moved them.
+The same world and seed always give the same result. The model never sees odds or reasons: the
+companion only hears what happened. A fork keeps outcomes decided by its point and decides later ones
+itself.
+
+```http
+GET  /api/life/consequences/{id}          # {id, label, decided_on, options: [{option, label, odds, reasons}], picked, picked_by}
+POST /api/life/consequences/{id}/change   # {"option": 1}: make it go that way instead (picked_by becomes "user")
+```
+
+A decided beat carries its outcome's id as `consequence`. Today shows it under "Why it went this way"
+with each way it could have gone, its odds and reasons, and a button to make it go another way.
+
+An outcome can leave **marks** for a while (the option's `marks` in the table, stored in `marks`):
+`mood` or `money` with an amount, which add up per person and are read back as the `mood` and `money`
+readers (a companion low after a missed promotion is likelier to stay cold after a fight), or `avoid`,
+which keeps the companion away from someone (they are left out of company, drop-ins and gatherings). Marks
+also tilt the day (`disruptions.tilts`): low spirits make a quiet night in likelier, tight money makes plans
+fall through and things come up more often, and the chat context's money section says money has felt
+tight (or easier) lately. A mark with `ripple` also reaches each companion who feels Close or closer to the
+companion (backstories, groups and Small world meetings), as a lighter mood mark on their own timeline.
+Changing how it went redoes the marks from that day. The note lists what an outcome left and whom it reached
+(`marks: [{kind, amount, note, until, ripple, holder, who}]` in the outcome).
+
+#### What the user does
+
+`companion/life/reactions.py` puts four things the user does through the engine, only ones the app can tell
+happened without guessing: telling someone a secret in a group chat that was kept from them (each companion who
+held it from the start reacts), an agreed plan with a sure date passing with no message from the user that day,
+chatting on the companion's birthday or a first-talk anniversary without mentioning it, and adding someone to a
+group with "show everything" (members who had spoken there react). Each is a `user:*` choice: whether it stings
+comes only from an emotional trait the user built into the character whose name speaks to it (`minds`, 0 to 3
+from its intensity; without one the companion lets it go, about 33%, 50% or 60% for mild, moderate or strong).
+A sting leaves a mood mark for a few days whose `told` line goes into the chat context's "How you are taking
+something the user did lately" section, so the companion can bring it up once in their own words; it never
+cools closeness. Today lists these under "How {name} took things lately" with the same "Why it went this way"
+note and button.
+
+```http
+GET /api/life/reactions                   # the last 30 days, newest first, as outcomes
+```
+
+Out of character, "what if?" questions get the engine's odds without rolling anything: an OOC message's
+note lists the turnings still to come in running storylines with their odds as things stand, and the odds for
+the user's own choices the app would notice (telling someone a secret this companion holds, a plan or occasion
+in the next week). The model answers from them in plain words; the companion never sees them in character.
+
+Secrets use the engine too: whether a gossip would pass a secret on to someone in a group chat is the
+choice `secret:pass_on`, from how close they feel (about 86% at Close or closer, 20% a step below, never
+to someone they hardly know), seeded by the secret, the two of them and that closeness. Only a companion
+with the gossip flaw passes anything on, and never to someone it is kept from.
+
+#### Life chapters
+
+`companion/life/chapters.py` gives the companion a lasting change every few months, picked by the engine. Once
+a month, on a day seeded by the timeline, a chapter may begin: about 12%, 20%, 30% or 40% a month from the
+quiet to the soap-opera drama level, never within 45 days of the timeline starting or 75 days of the last one.
+The choice `chapter:next` picks which, from the marks earlier outcomes left (tight money makes a new job likelier,
+money coming in makes a move likelier), the companion's own description (driven, restless, a homebody) and what
+is possible at all (`can_<kind>`):
+
+- `new_job`: another career the city offers on the same kind of schedule, paying the same or more (more when
+  money has been tight); the budget follows.
+- `move`: another neighbourhood of the city whose rents fit their pay; the old home ends and a new one starts.
+- `pet`: a pet comes home, when they have none.
+- `hobby`: a pastime they take up for real joins their interests.
+- `friend_moves`: a friend in the circle who isn't in a running storyline moves to another city and leaves
+  the circle.
+
+A career, location or interest is an overlay on the character for that timeline (`characters.with_chapters`),
+so everything reading their life sees how it is now while the saved character stays as written; a fork made
+before the chapter keeps the old life. A chapter never touches personality, emotional traits or a romance
+companion's love life. The chat context's storylines section tells the companion for 90 days ("This is how your
+life is now"), and a chapter from today or yesterday can open a conversation. Today lists them under "New
+chapters in {name}'s life" with "Why it went this way"; "Make it go this way" swaps in another chapter that
+is possible from the same day, and Undo takes it back (a new home or pet goes and the old home returns, a
+friend who moved comes back; what happened meanwhile stays).
+
+```http
+GET  /api/life/chapters                   # the chapters in place, newest first
+POST /api/life/chapters/{id}/undo         # take one back; returns the rest
+```
 
 ### Birthdays and anniversaries
 

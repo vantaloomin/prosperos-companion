@@ -1,0 +1,775 @@
+{
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
+  "choices": {
+    "storyline:friend_new_job:1": {
+      "label": "Whether {a} takes the new job",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and keeps telling them to go for it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 55,
+              "times": 1.5,
+              "why": "{a} is past starting over somewhere new"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:promotion_chance:1": {
+      "label": "Whether {name} gets the promotion",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.8,
+              "why": "{name} is driven and it shows at work"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.8,
+              "why": "{name} has had a rough few weeks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 60,
+              "note": "{name} has a bigger paycheck",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.8,
+              "why": "{name} is easily distracted at work"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is low after missing out on the promotion",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_creep:1": {
+      "label": "How the trouble with the new guy ends",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.8,
+              "why": "{name} doesn't take nonsense from anyone"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} is shy and would rather a manager handle it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level makes it go further"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is worn down after reporting the new guy",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:layoff_rumors:1": {
+      "label": "How the layoff rumors end",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level means somebody gets hurt"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "note": "{name} is being careful with money after the layoff scare",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:parent_health:1": {
+      "label": "What {a}'s test results say",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 1,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 65,
+              "times": 1.5,
+              "why": "{a} is in their late sixties or older"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{name} is worried about {a}'s treatment",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_feud:1": {
+      "label": "Whether {a} and {b} make up",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 2,
+              "why": "{a} and {b} go way back"
+            },
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and can talk them round"
+            },
+            {
+              "reader": "closeness_b",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {b} and can talk them round"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "coworkers",
+              "times": 1.5,
+              "why": "{a} and {b} only know each other from work"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:secret_couple:1": {
+      "label": "How it goes for {a} and {b}",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.5,
+              "why": "{a} and {b} have known each other for years"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_fight:1": {
+      "label": "Whether {name} and {a} make up",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 2,
+              "why": "{name} and {a} are close, and it's worth fixing"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "{name} and {a} weren't that close to begin with"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} is stubborn about apologising"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has had a rough few weeks and has less patience"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is keeping some distance from {a}",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:drunk_kiss:2": {
+      "label": "What {name} and {a} decide",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 3,
+              "times": 1.3,
+              "why": "{name} and {a} are friends more than anything"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 7,
+              "note": "{name} is giving {a} a little space",
+              "about": "a"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "{name} and {a} are as close as two people get"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:love_triangle:1": {
+      "label": "Who the person picks",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level wants someone hurt"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.3,
+              "why": "{a} and {b} go way back"
+            }
+          ]
+        }
+      ]
+    },
+    "secret:pass_on": {
+      "label": "Whether {name} passes the secret on to {a}",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 24,
+              "why": "they feel close to {a}"
+            },
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 0,
+              "why": "they hardly know {a}"
+            }
+          ]
+        },
+        {
+          "weight": 4,
+          "rules": []
+        }
+      ]
+    },
+    "user:told_secret": {
+      "label": "How {name} takes the user telling {a} a secret",
+      "options": [
+        {
+          "label": "{name} lets it go",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} is hurt the secret got out",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 7,
+              "note": "{name} is hurt the user told {a} a secret {name} was keeping",
+              "told": "You're still a little hurt that the user told {a} something you were keeping secret."
+            }
+          ]
+        }
+      ]
+    },
+    "user:missed_plan": {
+      "label": "How {name} takes the plan passing without a word",
+      "options": [
+        {
+          "label": "{name} shrugs it off",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} is let down",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 4,
+              "note": "{name} is let down the plan ({plan}) passed without a word",
+              "told": "You're a little let down that the plan ({plan}) came and went without a word from the user."
+            }
+          ]
+        }
+      ]
+    },
+    "user:forgot_occasion": {
+      "label": "How {name} takes the user not mentioning {occasion}",
+      "options": [
+        {
+          "label": "{name} doesn't mind",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} is hurt it went unmentioned",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 5,
+              "note": "{name} is hurt the user chatted on {occasion} without mentioning it",
+              "told": "You're a little hurt that the user chatted with you on {occasion} without mentioning it."
+            }
+          ]
+        }
+      ]
+    },
+    "user:showed_everything": {
+      "label": "How {name} takes {a} seeing everything said in {group}",
+      "options": [
+        {
+          "label": "{name} doesn't mind",
+          "weight": 2,
+          "rules": []
+        },
+        {
+          "label": "{name} feels exposed",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "minds",
+              "at_most": 0,
+              "times": 0,
+              "why": "nothing in {name}'s character says this would bother them"
+            },
+            {
+              "reader": "minds",
+              "at_least": 1,
+              "times": 1,
+              "why": "{name}'s character includes \"{trait}\""
+            },
+            {
+              "reader": "minds",
+              "at_least": 2,
+              "times": 2,
+              "why": "strongly so"
+            },
+            {
+              "reader": "minds",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "very strongly so"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "amount": -1,
+              "days": 5,
+              "note": "{name} feels exposed that {a} can read everything said in {group}",
+              "told": "You feel a little exposed that the user let {a} read everything said in {group} before they joined."
+            }
+          ]
+        }
+      ]
+    },
+    "chapter:next": {
+      "label": "What changes next in {name}'s life",
+      "options": [
+        {
+          "label": "{name} starts a new job",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_new_job",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name}'s city has no other job that fits"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 2.5,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 0.5,
+              "why": "{name} has been doing well at work"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} moves to a new place",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_move",
+              "at_most": 0,
+              "times": 0,
+              "why": "there is nowhere else in the city that fits their budget"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 2,
+              "why": "{name} has more money coming in"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.5,
+              "why": "money has been tight, so a cheaper place makes sense"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 0.5,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        },
+        {
+          "label": "{name} adopts a pet",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_pet",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} already has a pet"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has been low and wants company at home"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        },
+        {
+          "label": "{name} takes up a new hobby",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "can_hobby",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} already does every pastime there is to take up"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.5,
+              "why": "{name} has been low and needs something of their own"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "A friend of {name} moves away",
+          "weight": 0.6,
+          "rules": [
+            {
+              "reader": "can_friend_moves",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no friend in their circle who could move"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "friends",
+              "at_most": 2,
+              "times": 0.5,
+              "why": "{name} has few friends nearby"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

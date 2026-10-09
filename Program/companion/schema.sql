@@ -1477,6 +1477,71 @@ CREATE TABLE IF NOT EXISTS knowledge_holders (
 CREATE INDEX IF NOT EXISTS knowledge_holders_knowledge ON knowledge_holders(knowledge_id);
 CREATE INDEX IF NOT EXISTS knowledge_holders_holder ON knowledge_holders(holder);
 
+-- The consequence engine (companion/consequences.py): how a choice in the world turned out. `options` holds each
+-- way it could have gone with its odds and the reasons that moved them; `picked` is the option the seeded dice
+-- landed on, or the one the user chose instead (`picked_by`). `subject` names what it is about, such as
+-- `storyline:<id>`.
+CREATE TABLE IF NOT EXISTS consequences (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  choice TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  label TEXT NOT NULL,
+  decided_on TEXT NOT NULL,
+  options TEXT NOT NULL,
+  picked INTEGER NOT NULL,
+  picked_by TEXT NOT NULL DEFAULT 'dice' CHECK (picked_by IN ('dice', 'user')),
+  changed_at TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (subject, choice)
+);
+CREATE INDEX IF NOT EXISTS consequences_timeline ON consequences(timeline_id, decided_on);
+
+-- Marks an outcome leaves (companion/consequences.py): hidden state that tilts later odds, from `starts_on` up to
+-- `ends_on`. `holder` is whom it is on (`companion:<id>` or a circle person's id); kinds are 'mood', 'money' and
+-- 'avoid' (the holder keeps away from `about`). A ripple is a mark another companion took from one close to them.
+CREATE TABLE IF NOT EXISTS marks (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  consequence_id TEXT NOT NULL,
+  holder TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('mood', 'money', 'avoid')),
+  amount INTEGER NOT NULL DEFAULT 0,
+  about TEXT,
+  note TEXT NOT NULL,
+  ripple INTEGER NOT NULL DEFAULT 0,
+  starts_on TEXT NOT NULL,
+  ends_on TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS marks_holder ON marks(timeline_id, holder, kind, starts_on);
+CREATE INDEX IF NOT EXISTS marks_consequence ON marks(consequence_id);
+
+-- Life chapters (companion/life/chapters.py): lasting changes to a companion's life (a new job, a move, a pet, a
+-- hobby, a friend moving away), picked by the consequence engine. `changes` is the overlay on the character for this
+-- timeline (career, location, interest); `undo` is what taking it back reverses (home items, circle people);
+-- `told` goes into the chat context and `share` can open a conversation.
+CREATE TABLE IF NOT EXISTS life_chapters (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  title TEXT NOT NULL,
+  told TEXT NOT NULL,
+  share TEXT NOT NULL,
+  changes TEXT NOT NULL DEFAULT '{}',
+  undo TEXT NOT NULL DEFAULT '{}',
+  consequence_id TEXT,
+  undone_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS life_chapters_timeline ON life_chapters(timeline_id, started_on);
+
+-- The last local date each timeline was checked for a new life chapter.
+CREATE TABLE IF NOT EXISTS chapter_days (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  through TEXT NOT NULL
+);
 -- Voice notes (Settings > Models > Voice notes, companion/voice/): whether companions sometimes send one instead of
 -- a text, and which engine reads them aloud. Keys for the hosted engines live in the OS credential vault.
 CREATE TABLE IF NOT EXISTS voice_settings (

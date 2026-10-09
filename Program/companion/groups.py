@@ -36,6 +36,7 @@ from companion import away, group_openers, in_character, prompt_library, secrets
 from companion.characters import by_id
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
+from companion.life import reactions
 from companion.memory import closeness, context, pairs
 from companion.memory.budget import token_estimate
 from companion.providers.chat import INCOMPLETE
@@ -219,7 +220,7 @@ def add(database, group_id: str, companion_id: str, everything: bool = False, ti
     for create."""
     timestamp = database.now()
     with database.connect(write=True) as connection:
-        require_group(connection, group_id)
+        group = require_group(connection, group_id)
         key = member_key(companion_id)
         require(all(stay['member'] != key for stay in current_members(connection, group_id)),
                 'They are already in this group.', 409)
@@ -229,6 +230,7 @@ def add(database, group_id: str, companion_id: str, everything: bool = False, ti
         stay = join(connection, group_id, companion_id, timestamp, sees_from=1 if everything else None)
         if everything:
             secrets.history(connection, group_id, key, timestamp)
+            reactions.showed_everything(connection, group, key, database.clock.now())
         note(connection, group_id, timestamp, f"You added {stay['name']}.")
         return group_view(connection, group_id)
 
