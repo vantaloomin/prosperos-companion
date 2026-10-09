@@ -80,6 +80,10 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.openers.CHECK_INS', False)
     # And new clothes woven into the companion's day (companion/life/wardrobe.py), on seeded days.
     monkeypatch.setattr('companion.life.wardrobe.WEAVE', False)
+    # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
+    monkeypatch.setattr('companion.life.deck.ACTIVE', False)
+    # And dreams (companion/life/dreams.py), on seeded nights.
+    monkeypatch.setattr('companion.life.dreams.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)

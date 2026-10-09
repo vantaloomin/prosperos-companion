@@ -4,7 +4,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
 from companion.events import view as event_view
-from companion.life import agenda, circle, feed, mood, occasions, routine, simulation, thoughts
+from companion.life import agenda, circle, deck, dreams, feed, mood, occasions, routine, simulation, thoughts
 from companion.memory.records import OPEN_PLANS, eligible
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
@@ -101,6 +101,8 @@ def view(database) -> dict:
                          'next': upcoming.view() if upcoming else None}
     result['availability'] = availability(current)
     result['mind'] = thoughts.view(database)
+    result['moments'] = deck.view(database)
+    result['dreams'] = dreams.view(database)
     if not workspace['show_moods']:
         result['day']['body'] = None  # Hidden values: "Mira is tired" shows only with moods shown.
     return result

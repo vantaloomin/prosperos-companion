@@ -1700,3 +1700,32 @@ CREATE TABLE IF NOT EXISTS lore_entries (
   enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1))
 );
 CREATE INDEX IF NOT EXISTS lore_entries_book ON lore_entries(book_id, position);
+
+-- The Life deck and random tables (companion/life/deck.py): the small moment drawn into each day of a companion's
+-- life, once. `card_id` is NULL on a day nothing happened; `friend_id` is the circle member a card names;
+-- `picked_by` is 'user' once the user made it go another way, and `attempts` counts those changes.
+CREATE TABLE IF NOT EXISTS life_moments (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  day TEXT NOT NULL,
+  card_id TEXT,
+  friend_id TEXT,
+  odds REAL NOT NULL DEFAULT 0,
+  picked_by TEXT NOT NULL DEFAULT 'dice' CHECK (picked_by IN ('dice', 'user')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, day)
+);
+
+-- Dreams (companion/life/dreams.py): one row per night, named by the day before it, decided once. `text` is NULL on
+-- a night without a dream; `sleep_talk` is the circle member who says they talked in their sleep.
+CREATE TABLE IF NOT EXISTS dreams (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  night TEXT NOT NULL,
+  template TEXT,
+  text TEXT,
+  told TEXT,
+  share TEXT,
+  sleep_talk TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, night)
+);

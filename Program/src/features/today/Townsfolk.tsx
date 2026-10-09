@@ -9,6 +9,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { stageText } from '../memories/pairText'
 import { townMet, townNow, townRole } from './townText'
+import { BecomeThem } from './BecomeThem'
 
 /** Background people the companion keeps running into around town. Hidden until there is someone. */
 export function Townsfolk({ name, go }: { name: string; go: (view: View) => void }) {
@@ -72,6 +73,7 @@ function TownSwitch({ person, go }: { person: Townsperson; go: (view: View) => v
         <button type="button" className="text-button" onClick={() => go(`cast/${encodeURIComponent(person.key)}`)}>Read their profile first</button>
       </p>
       {starting.error && <Notice tone="error">{starting.error}</Notice>}
+      <BecomeThem person={person} />
     </>)
   }
   return (<>

@@ -905,6 +905,8 @@ POST /api/today/seen
 | `last_seen_at` | When the user last marked Today as seen |
 | `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
 | `mind` | On her mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
+| `moments` | Little things: the Life deck's moments of the last week, newest first: `{day, title, text, source, picked_by}`, plus `odds` with Hidden values > odds on (see below) |
+| `dreams` | Dreams of the last week, newest first: `{day, text, sleep_talk}`, `day` being the morning after (see below) |
 
 Call `POST /api/today/seen` once the user has looked at Today, so the next visit's `changes`
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
@@ -926,6 +928,39 @@ The wording is a fixed template. With background activity and `phrase_with_model
 one thought a tick at background priority; a polish that drops their name, names a clock time or runs long is
 thrown away and the template stays. Thoughts never reach the chat context, so the companion never knows they were
 read. The Life setting `on_her_mind` (Settings > Life > Hidden values, on by default) hides them and stops new ones being written.
+
+### Little things: the Life deck and random tables
+
+```http
+POST /api/life/moments/{day}/change   {"way": "another" | "nothing"}
+```
+
+Each day of the companion's, `companion/life/deck.py` decides with the seeded dice (`life/chance.py`) whether
+something small happens and which card it is: a changed habit, an old joke coming back, a late bus. The cards come
+from the Life deck (`world/data/life_deck.json`) and from Prospero's Study's d100 random tables reworded for
+everyday life (`world/data/random_tables.json`), whose rows join the deck as extra cards weighted by their dice
+ranges, so one picker covers both. The drama level sets how often a moment turns up (30, 40, 50 or 60 days in 100)
+and which cards can; cards that need someone in the circle or a job wait for one; a card drawn in the last 45 days
+steps aside; a card that could give away a secret the companion keeps is never drawn. A day is drawn once, when
+Today is opened or in the background, and kept in `life_moments`.
+
+The companion is told today's moment in the chat context ("Something small from your day today"), On her mind can
+pick it, and a card with a `share` line can become a first message. With Hidden values > odds on, Today shows each
+card's source and odds, and the change endpoint makes it go another way: `another` draws a different card, and
+`nothing` makes the day a quiet one. Either returns the week as in `moments`.
+
+### Dreams
+
+Some nights (30 in 100, at most three a week) `companion/life/dreams.py` turns the day before into a short dream:
+people the companion spent time with, places they went, the day's small moment and, from closeness stage 3 when
+you talked that day, the user, mixed by a fixed template with an odd touch from `world/data/dreams.json`. Money
+pressure or a plan to look forward to adds a last line. Rarely, someone they live with says they talked in their
+sleep. A night is decided once (`dreams`, with the template used). People and places a secret they know is about
+never become fragments, and a dream that could still give one away is dropped. There are no nightmares, nothing
+romantic or sexual (whoever is in the dream), and a template is not dreamed again within 21 days (`repeat_days`,
+30 templates). The morning after, the companion is told about it in the chat context (as a dream, never as something
+that happened), and from closeness stage 2 it can become a morning text before noon their time; with model
+phrasing off, the template text is used as written.
 
 ### Money
 

@@ -459,6 +459,11 @@ class WorldChange(Input):
     persona_id: str | None = Field(None, min_length=1, max_length=100)
 
 
+class Become(Input):
+    """Become a townsperson (companion/worlds.py): the key of someone met around town."""
+    key: str = Field(min_length=1, max_length=200)
+
+
 class NewWorld(Input):
     """A new world: for the active persona and in the current city unless these say otherwise."""
     persona_id: str | None = Field(None, min_length=1, max_length=100)

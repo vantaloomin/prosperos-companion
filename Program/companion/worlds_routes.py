@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request
 
 from companion import worlds
-from companion.models import NewWorld, PersonaInput, WorldChange
+from companion.models import Become, NewWorld, PersonaInput, WorldChange
 
 router = APIRouter(prefix='/api/worlds')
 
@@ -21,6 +21,13 @@ def listing(request: Request):
 def create_world(request: Request, body: NewWorld):
     """A new world, ready at once: fresh townsfolk and a starter companion. It does not switch to it."""
     return worlds.create_world(db(request), body.persona_id, body.name, body.city_id)
+
+
+@router.post('/become')
+async def become(request: Request, body: Become):
+    """Start a new life as a townsperson the user or their companion has met: a new world in the same town with
+    them as the persona, and switch to it. Runs on the event loop, like a switch."""
+    return worlds.become(request.app.state, body.key)
 
 
 @router.patch('/{world_id}')

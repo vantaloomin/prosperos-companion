@@ -441,10 +441,16 @@ export interface Today {
   occasions?: Occasion[]
   /** On her mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
   mind?: { thoughts: Thought[] } | null
+  moments: Moment[]
+  dreams: Dream[]
 }
 
 /** One day's thought on the companion's mind. */
 export interface Thought { day: string; text: string }
+/** A small moment the Life deck drew into a day (companion/life/deck.py); `odds` only with Hidden values > odds on. */
+/** A dream the night before `day` (companion/life/dreams.py). */
+export interface Dream { day: string; text: string; sleep_talk: string | null }
+export interface Moment { day: string; title: string; text: string; source: string; picked_by: 'dice' | 'user'; odds?: number }
 
 /** How the companion feels physically today, carried over from the day before. */
 export interface BodyState { state: 'sick' | 'hungover' | 'tired' | 'worn out' | 'sore'; because: string }
