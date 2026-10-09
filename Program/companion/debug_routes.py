@@ -1,11 +1,14 @@
-"""Debug time API (companion/debug_time.py): move the app clock ahead or run it faster, then go back."""
+"""Debug API: Debug time (companion/debug_time.py) moves the app clock ahead or runs it faster, then goes back;
+Record model calls (companion/model_calls.py) writes every model request and response down. Both PC only."""
 from fastapi import APIRouter, Request
+from fastapi.responses import Response
 from pydantic import Field
 
-from companion import debug_time
+from companion import debug_time, model_calls
 from companion.models import Input
 
 router = APIRouter(prefix='/api/debug-time')
+calls_router = APIRouter(prefix='/api/model-calls')
 
 
 class SpeedChange(Input):
@@ -48,3 +51,36 @@ async def jump(request: Request, body: Jump):
 @router.post('/finish')
 async def finish(request: Request, body: Finish):
     return await request.app.state.debug_time.finish(body.keep)
+
+
+class Recording(Input):
+    recording: bool
+
+
+@calls_router.get('')
+def calls(request: Request):
+    """Whether model calls are being recorded, and how much is kept."""
+    return model_calls.summary(request.app.state.database)
+
+
+@calls_router.put('')
+def record_calls(request: Request, body: Recording):
+    database = request.app.state.database
+    with database.connect(write=True) as connection:
+        connection.execute('UPDATE workspace_settings SET record_model_calls=?, updated_at=? WHERE id=1',
+                           (int(body.recording), database.now()))
+    return model_calls.summary(database)
+
+
+@calls_router.get('/download')
+def download_calls(request: Request):
+    """The recorded days as a zip, to send to whoever is helping."""
+    name = f'model-calls-{request.app.state.database.clock.now().date().isoformat()}.zip'
+    return Response(model_calls.bundle(request.app.state.database), media_type='application/zip',
+                    headers={'Content-Disposition': f'attachment; filename="{name}"'})
+
+
+@calls_router.delete('')
+def clear_calls(request: Request):
+    model_calls.clear(request.app.state.database)
+    return model_calls.summary(request.app.state.database)

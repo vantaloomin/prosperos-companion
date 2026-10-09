@@ -221,6 +221,8 @@ export interface WorkspaceSettings {
   show_news?: boolean
   /** Hidden values: "Why it went this way" and its odds under storylines, chapters and reactions; off unless turned on. */
   show_odds?: boolean
+  /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
+  record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
   ai_notice_confirmed?: boolean
   share_profile_across_timelines: boolean
@@ -1264,6 +1266,9 @@ export interface GroupMember {
   /** How they seem right now (companion/moods.py), read-only; only in a chat's own view. */
   mood?: GroupMood | null
 }
+
+/** Record model calls (companion/model_calls.py), Settings > Debug. */
+export interface ModelCallLog { recording: boolean; folder: string; keep_days: number; files: number; bytes: number }
 
 export interface GroupMood {
   feeling: 'calm' | 'happy' | 'excited' | 'annoyed' | 'hurt' | 'angry' | 'anxious' | 'sad'

@@ -14,7 +14,7 @@ AREAS = (
     ('/api/story', 'story mode'), ('/api/models', 'model settings'), ('/api/connection', 'model settings'),
     ('/api/builtin-recall', 'built-in recall'), ('/api/hardware', 'the hardware check'),
     ('/api/backups', 'backups'), ('/api/phone', 'phone access'), ('/api/notifications', 'notifications'),
-    ('/api/debug-time', 'Debug time'), ('/api/lora', 'the LoRA maker'), ('/api/import', 'the import'),
+    ('/api/debug-time', 'Debug time'), ('/api/model-calls', 'Record model calls'), ('/api/lora', 'the LoRA maker'), ('/api/import', 'the import'),
     ('/api/companion', 'the character'), ('/api/profile', 'the profile'), ('/api/prompts', 'prompts'),
     ('/api/sidecar', 'the sidecar'),
 )

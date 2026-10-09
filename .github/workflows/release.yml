@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       version: ${{ steps.version.outputs.version }}
+      title: ${{ steps.version.outputs.title }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,10 +47,14 @@ jobs:
               sys.exit(f'Version mismatch: package.json {version}, pyproject.toml {project}, identity.py {identity}')
           PY
           test -f "Program/docs/releases/v$version.md" || { echo "Missing Program/docs/releases/v$version.md" >&2; exit 1; }
+          # Every release in a minor version shares its title, from Program/docs/releases/titles.json.
+          title=$(jq -r --arg minor "${version%.*}" '.[$minor] // empty' Program/docs/releases/titles.json)
+          test -n "$title" || { echo "Add a title for ${version%.*} to Program/docs/releases/titles.json" >&2; exit 1; }
           if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "v$version is already released." >&2; exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "title=v$version: $title" >> "$GITHUB_OUTPUT"
 
   package:
     needs: check
@@ -74,6 +79,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check.outputs.version }}
+          TITLE: ${{ needs.check.outputs.title }}
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
           cd release
@@ -81,5 +87,5 @@ jobs:
           flags=()
           if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
           gh release create "v$VERSION" ./* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Prospero's Companion v$VERSION" \
+            --title "$TITLE" \
             --notes-file "../Program/docs/releases/v$VERSION.md" "${flags[@]}"

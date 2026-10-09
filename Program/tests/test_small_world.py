@@ -79,7 +79,11 @@ def slot(connection, timeline_id, slot_key) -> dict:
 def test_companions_meet_where_their_own_days_take_them(client, clock, fellows, one_haunt):
     mira = make(client, 'Warm and curious.', home_city='baltimore')
     sam = neighbor(client, 'Sam Ortiz')
-    live(client, clock, [mira['id'], sam], 3)
+    live(client, clock, [mira['id'], sam], 4)
+    with client.app.state.database.connect(write=True) as connection:
+        # The last week has ended too; without this, meetings only in that week would all still be upcoming.
+        for companion_id in (mira['id'], sam):
+            agenda.settle(connection, by_id(connection, companion_id)['active_timeline_id'], clock.now())
     with client.app.state.database.connect() as connection:
         met = cast_meetings(connection)
         assert met, 'Two companions with the same evenings in Fells Point never crossed paths in six weeks.'
@@ -124,7 +128,7 @@ def test_another_companion_is_only_where_their_own_days_put_them(client, clock):
 def test_meeting_another_companion_is_news_for_the_user(client, clock, fellows, one_haunt):
     mira = make(client, 'Warm and curious.', home_city='baltimore')
     sam = neighbor(client, 'Sam Ortiz')
-    live(client, clock, [mira['id'], sam], 3)
+    live(client, clock, [mira['id'], sam], 4)
     database = client.app.state.database
     with database.connect(write=True) as connection:
         first = next(meeting for meeting in cast_meetings(connection) if meeting['companion_id'] == mira['id'])

@@ -2,7 +2,7 @@
 from datetime import date, timedelta
 
 import pytest
-from conftest import reconcile
+from conftest import reconcile, show
 
 from companion.clock import parse
 from companion.database import decode, encode
@@ -92,6 +92,8 @@ def test_the_agenda_carries_the_state_into_the_day_and_the_chat(client, baltimor
         previous = [decode(other['entry'])['activity'] for other in rows
                     if other['local_date'] == (date.fromisoformat(row['local_date']) - timedelta(days=1)).isoformat()]
         assert set(previous) & set(body.AFTER)
+    assert client.get('/api/today').json()['day']['body'] is None  # Hidden values: off by default.
+    show(client, show_moods=True)
     today = client.get('/api/today').json()
     with client.app.state.database.connect() as connection:
         expected = agenda.day_on(connection, baltimore['active_timeline_id'], today['day']['date'])['body']
