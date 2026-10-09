@@ -49,6 +49,17 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.6.0 (2026-10-09)
+
+- **Worlds and personas:** each persona has worlds of their own, each with its own companions, town, chats
+  and memories; existing data becomes the first world.
+- **Bring your characters:** character cards (V1-V3 JSON/PNG, CHARX, Backyard, Pygmalion) and lorebooks
+  (card, SillyTavern, NovelAI, Agnai, RisuAI) become a companion and keyword lore.
+- **While you were away:** a rule-based catch-up after a few days away.
+- **Launch your local models:** LM Studio, Ollama, KoboldCpp and ComfyUI from Settings, optionally at start.
+- **Instant local replies** with llama-server slot saving; **automatic backups** of every world.
+- **Remember this** on companion replies keeps what they said about themselves.
+
 ## v0.5.1 (2026-10-09)
 
 - **Color schemes** from Prospero's Study (Ink, Slate, Umber, Moss, Wine, Ash) and a custom palette.
