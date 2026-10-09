@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { conflictText, orderFacts, selfFactText } from '../../src/features/character/selfFactText.ts'
+import { conflictText, keptSaying, orderFacts, selfFactText } from '../../src/features/character/selfFactText.ts'
 import type { SelfFact } from '../../src/types.ts'
 
 const fact = (category: SelfFact['category'], subject: string, value: string, status: SelfFact['status'] = 'noted'): SelfFact => ({
@@ -28,4 +28,11 @@ test('a conflict says what it is with', () => {
   assert.equal(conflictText({ ...waiting, definition_says: 'Mercy Hospital' }), 'their character says Mercy Hospital')
   assert.equal(conflictText({ ...waiting, circle_person: 'sister Ashley' }), 'their circle has sister Ashley')
   assert.equal(conflictText(waiting), 'contradicts something they said earlier')
+})
+
+test('Remember this on her reply says what she keeps and where to remove it', () => {
+  assert.equal(keptSaying('Mira', [fact('said', 'message', 'Tuesdays are for the record shop.')]),
+    "Mira will stay consistent with what they said there. You can remove it on Mira's Character page.")
+  assert.equal(keptSaying('Mira', [fact('grew_up', 'hometown', 'Duluth')]),
+    "Mira will stay consistent with this: grew_up: Duluth. You can remove it on Mira's Character page.")
 })

@@ -108,7 +108,7 @@ LOWERCASE_RULES = {'person': re.compile(kin_lowercase(RELATIVES), re.IGNORECASE)
 SINGLE = {'favorite', 'grew_up', 'person', 'team', 'works_at'}
 LABELS = {'likes': 'Likes', 'dislikes': 'Dislikes', 'favorite': 'Favorite', 'person': 'Person', 'pet': 'Pet',
           'never': 'Never', 'grew_up': 'Grew up', 'allergy': 'Allergic to', 'team': 'Team', 'plays': 'Plays',
-          'works_at': 'Works at', 'detail': 'Detail'}
+          'works_at': 'Works at', 'detail': 'Detail', 'said': 'Said'}
 STATUSES = ('noted', 'kept', 'rejected', 'conflict')
 IN_FORCE = ('noted', 'kept')
 # Objects that are the conversation, not a taste ("I love that", "I like talking to you").
@@ -351,6 +351,41 @@ def record(connection, companion: dict, message: dict, facts: list[Fact], timest
     return added
 
 
+def remember(connection, companion: dict, message: dict, timestamp: str) -> list[dict]:
+    """Remember this on a companion message: what the rules find in it is kept, and contradicts nothing any more,
+    because the user chose it. When the rules find nothing the message itself is kept as something they said."""
+    facts = extract(message['text'], texting.style(companion['version']['definition'])['lowercase'])
+    record(connection, companion, message, facts, timestamp)
+    rows = many(connection, "SELECT * FROM self_facts WHERE message_id=? AND status<>'rejected' ORDER BY created_at",
+                (message['id'],))
+    if not rows:
+        rows = [said(connection, companion, message, timestamp)]
+    for row in rows:
+        keep(connection, row, timestamp)
+    stamp_change(connection, timestamp, companion)
+    return [view(one(connection, 'SELECT * FROM self_facts WHERE id=?', (row['id'],))) for row in rows]
+
+
+def said(connection, companion: dict, message: dict, timestamp: str) -> dict:
+    """The whole message as one thing they said, for when no rule recognises it."""
+    text = ' '.join(QUOTED.sub(' ', ACTIONS.sub(' ', message['text'])).split()) or ' '.join(message['text'].split())
+    text = text if len(text) <= 300 else f'{text[:299].rstrip()}…'
+    row_id = identifier()
+    connection.execute('INSERT OR IGNORE INTO self_facts (id, companion_id, message_id, key, category, subject, value, '
+                       "statement, status, created_at) VALUES (?, ?, ?, 'said:message', 'said', 'message', ?, ?, "
+                       "'noted', ?)", (row_id, companion['id'], message['id'], text, text, timestamp))
+    return one(connection, "SELECT * FROM self_facts WHERE message_id=? AND key='said:message'", (message['id'],))
+
+
+def keep(connection, row: dict, timestamp: str) -> None:
+    """Keep one fact; what it contradicted is removed (decide, below)."""
+    connection.execute("UPDATE self_facts SET status='kept', conflicts_with=NULL, decided_at=? WHERE id=?",
+                       (timestamp, row['id']))
+    if row['conflicts_with'] and not row['conflicts_with'].startswith(CIRCLE):
+        connection.execute("UPDATE self_facts SET status='rejected', decided_at=? WHERE id=?",
+                           (timestamp, row['conflicts_with']))
+
+
 def view(row: dict, connection=None) -> dict:
     result = {key: row[key] for key in ('id', 'message_id', 'category', 'subject', 'value', 'statement', 'status',
                                         'conflicts_with', 'created_at', 'decided_at')} | {'label': LABELS[row['category']]}
@@ -423,6 +458,8 @@ def context_line(row: dict) -> str:
         return f"- You have never {row['subject']}{confirmed}."
     if row['category'] == 'detail':
         return f"- Your {row['subject']}: {row['value']}{confirmed}."
+    if row['category'] == 'said':
+        return f'- You said this and it stays true: "{row["value"]}".'
     return f"- {LABELS[row['category']]}: {row['value']}{confirmed}."
 
 

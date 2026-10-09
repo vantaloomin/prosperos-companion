@@ -136,7 +136,7 @@ def test_memory_formation_and_authority(client, connected, provider):
     provider.replies = [[Chunk('I bet you love jazz and live in Paris.'), Chunk('', 'stop')]]
     guess = say(client, 'Guess something about me')['reply']
     assert client.get('/api/memories').json() == []
-    assert client.post(f"/api/conversation/messages/{guess['id']}/remember").status_code == 422
+    assert guess['role'] == 'companion', 'Remember this on it keeps what she said (tests/test_memory_formation.py)'
 
     # A model interpretation stays tentative and out of context until confirmed.
     tentative = client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Music',

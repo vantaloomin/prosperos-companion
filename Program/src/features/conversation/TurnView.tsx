@@ -49,12 +49,12 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
   const index = shown ? turn.attempts.indexOf(shown) : -1
   return (
     <>
-      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
+      <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
       <TurnUser turn={turn} name={name} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} />
       {turn.user?.crisis_help && <CrisisNote />}
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
-          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
+          onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
       )}
       {!busy && <TurnRetry turn={turn} isLatest={isLatest} shown={shown} followUpOf={followUpOf} onRetry={(id) => { setChosen(null); onRetry(id) }} />}
     </>
@@ -83,8 +83,8 @@ function RetryAction({ label, onRetry }: { label: string; onRetry: () => void })
 
 /** Messages the companion sent first: shown like replies, with no versions to page through. */
 
-function Leads({ messages, name, highlight, onStop, onEdit, onBranch, onMoment, bursts }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void; onEdit: Act; onBranch: Act; onMoment: Act; bursts: boolean }) {
-  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />)}</>
+function Leads({ messages, name, highlight, onStop, onRemember, onEdit, onBranch, onMoment, bursts }: { messages: Message[]; name: string; highlight?: string | null; onStop: (id: string) => void; onRemember: Act; onEdit: Act; onBranch: Act; onMoment: Act; bursts: boolean }) {
+  return <>{messages.map((lead) => <Reply key={lead.id} message={lead} found={highlight === lead.id} name={name} text={lead.text} position={null} onPage={() => undefined} onStop={onStop} onRemember={onRemember} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />)}</>
 }
 
 function TurnUser({ turn, name, highlight, onRemember, onDecline, onEdit, onBranch, onMoment }: { turn: Turn; name: string; highlight?: string | null; onRemember: Act; onDecline: Act; onEdit: Act; onBranch: Act; onMoment: Act }) {
@@ -133,14 +133,14 @@ function UserMessage({ message, name, found, settled, onRemember, onDecline, onE
   )
 }
 
-interface ReplyProps { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void; onEdit: Act; onBranch: Act; onMoment: Act; bursts: boolean }
+interface ReplyProps { message: Message; found: boolean; name: string; text: string; position: [number, number] | null; onPage: (step: number) => void; onStop: (id: string) => void; onRemember: Act; onEdit: Act; onBranch: Act; onMoment: Act; bursts: boolean }
 
-function Reply({ message, found, name, text, position, onPage, onStop, onEdit, onBranch, onMoment, bursts }: ReplyProps) {
+function Reply({ message, found, name, text, position, onPage, onStop, onRemember, onEdit, onBranch, onMoment, bursts }: ReplyProps) {
   const note = statusDetail(message)
   const held = useHeld(message)
   // A reply being written while they are away stays out of sight: no typing dots, no Stop.
   const streaming = message.status === 'streaming' && !held
-  const actions = replyActions(message, streaming, onEdit, onBranch, onMoment)
+  const actions = replyActions(message, streaming, { onRemember, onEdit, onBranch, onMoment })
   // On a phone the sidecar is one more entry in the sheet rather than a small icon on every reply.
   const sheet = useMessageSheet(message, message.status === 'complete' && actions.length
     ? [...actions, ['Ask the sidecar', <MessageSquareText key="icon" aria-hidden="true" />, (item) => sidecar.ask(item)]] : actions)
@@ -181,13 +181,14 @@ function ReplyTools({ message, position, streaming, onPage, onStop, actions, onS
 
 const MOMENT = 'Keep as a shared moment'
 
-/** A finished reply can be reworded or kept as a shared moment. One the user stopped, or the model cut short, can be
- * finished by hand with Edit; one that failed can still be a branch point. */
-function replyActions(message: Message, streaming: boolean, onEdit: Act, onBranch: Act, onMoment: Act): Action[] {
+/** A finished reply can be reworded, remembered (what they said about themselves, companion/self_facts.py) or kept
+ * as a shared moment. One the user stopped, or the model cut short, can be finished by hand with Edit; one that
+ * failed can still be a branch point. */
+function replyActions(message: Message, streaming: boolean, { onRemember, onEdit, onBranch, onMoment }: Record<'onRemember' | 'onEdit' | 'onBranch' | 'onMoment', Act>): Action[] {
   if (message.redacted || streaming || message.status === 'withheld') return []
   const branch: Action = ['Branch from here', <GitBranch key="icon" aria-hidden="true" />, onBranch]
   const edit: Action = ['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit]
-  if (message.status === 'complete') return [edit, [MOMENT, <HeartHandshake key="icon" aria-hidden="true" />, onMoment], branch]
+  if (message.status === 'complete') return [['Remember this', <BookmarkPlus key="icon" aria-hidden="true" />, onRemember], edit, [MOMENT, <HeartHandshake key="icon" aria-hidden="true" />, onMoment], branch]
   return unfinished(message) ? [edit, branch] : [branch]
 }
 

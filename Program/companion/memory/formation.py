@@ -13,6 +13,7 @@ identities and reason codes.
 """
 import hashlib
 
+from companion import self_facts
 from companion.characters import by_id, for_timeline, require_current
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -199,16 +200,20 @@ def run_pending(database, limit=JOB_BATCH) -> dict:
 
 
 def remember_message(database, message_id) -> dict:
-    """Remember this on a user message: commit what the rules find, or offer a draft to fill in."""
+    """Remember this on a user message: commit what the rules find, or offer a draft to fill in. On a companion
+    message it keeps what they said about themselves (companion/self_facts.py), never a fact about the user."""
     with database.connect(write=True) as connection:
         message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
-        require(message['role'] == 'user', 'Only your own messages can be remembered this way.', 422)
+        require(message['role'] in {'user', 'companion'}, 'This message cannot be remembered.', 422)
         require(message['redacted_at'] is None, 'This message was deleted.', 409)
         # The chat the message is in decides whose memory it is, not the companion in focus right now.
         companion = for_timeline(connection, message['timeline_id'])
         require(companion is not None and message['timeline_id'] == companion['active_timeline_id'],
                 'This message is on an inactive timeline.', 409)
         timestamp = database.now()
+        if message['role'] == 'companion':
+            require(message['status'] == 'complete' and message['active'], 'Only a finished reply can be remembered.', 409)
+            return {'memories': [], 'draft': None, 'self_facts': self_facts.remember(connection, companion, message, timestamp)}
         copies = sorted(related(connection, [message_id]))
         marks = ','.join('?' * len(copies))
         if connection.execute(f'DELETE FROM memory_declines WHERE message_id IN ({marks})', copies).rowcount:

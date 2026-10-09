@@ -309,7 +309,10 @@ the user's timezone (`companion/memory/dates.py`); an ambiguous one is kept but 
 - **Suggestions.** Accepting one is deliberate permission. A declined suggestion's fingerprint is
   never suggested again, from that message or a later one.
 - **Per message.** Remember this commits what the rules find in one of the user's messages (with
-  automatic memory off too), or returns a draft for the Remember form. Don't remember this blocks
+  automatic memory off too), or returns a draft for the Remember form. On a companion reply it never
+  saves a user memory: it keeps what the self-fact rules find in the reply (settling any contradiction
+  in its favor), or the reply's words as one `said` fact when they find nothing (companion/self_facts.py
+  `remember`), always for the chat's own companion. Don't remember this blocks
   extraction from the message and deletes memories extracted from it automatically; the transcript
   stays.
 
