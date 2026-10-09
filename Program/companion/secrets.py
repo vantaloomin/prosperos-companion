@@ -408,6 +408,8 @@ def witness(connection, message: dict) -> list[str]:
             hold(connection, secret['id'], member, 'knows', message['created_at'], via, message['id'], message['author'])
             if via in ('slip', 'reveal'):
                 slipped.append(secret['id'])
+                from companion import group_moods  # group_moods reads characters, which reads nothing here
+                group_moods.found_out(connection, secret, member, parse(message['created_at']))
             if via == 'reveal':
                 from companion.life import reactions  # reactions reads secrets
                 reactions.told_secret(connection, secret, member, parse(message['created_at']))
@@ -689,9 +691,13 @@ def reveal(database, knowledge_id: str, companion_id: str) -> dict:
     """Let them find out: they know it from now on, recorded as the user's doing."""
     timestamp = database.now()
     with database.connect(write=True) as connection:
-        require_secret(connection, knowledge_id)
+        row = require_secret(connection, knowledge_id)
         key = require_companion(connection, companion_id)
-        hold(connection, knowledge_id, key, 'knows', timestamp, 'reveal')
+        secret = view(connection, row)
+        if hold(connection, knowledge_id, key, 'knows', timestamp, 'reveal', told_by='user') and secret \
+                and kept_from(secret, key):
+            from companion import group_moods
+            group_moods.found_out(connection, secret, key, database.clock.now())
     return listing(database)
 
 

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ChevronLeft, HeartHandshake, Pencil, RotateCcw, UsersRound } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import { useWorkspaceSettings, type View } from '../../companion'
-import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage } from '../../types'
+import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage, GroupMood } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -241,7 +241,7 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
       <ul>
         {group.members.map((member) => (
           <li key={member.companion_id ?? member.label}>
-            <span>{member.name}{member.main && <span className="subtle"> · main character</span>}</span>
+            <span>{member.name}{member.main && <span className="subtle"> · main character</span>}<MoodLine mood={member.mood} /></span>
             <button type="button" className="text-button" onClick={() => setRemoving(member)}>Remove from group</button>
           </li>
         ))}
@@ -253,6 +253,8 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
         </select>
       </label>
       <p className="subtle">Anyone you name answers first.</p>
+      <label className="group-walk-out"><input type="checkbox" checked={group.walk_out ?? false} onChange={(event) => void onChange(() => api(`/groups/${group.id}`, { walk_out: event.target.checked }, 'PATCH'))} /> People can walk out</label>
+      <p className="subtle">When someone stays furious with someone here, they leave the group. You can add them back once they calm down.</p>
       <div className="form-actions">
         <button type="button" className="text-button" onClick={() => setCopying(true)}>New group with these people</button>
         <button type="button" className="text-button danger" onClick={() => setDeleting(true)}>Delete this group…</button>
@@ -264,6 +266,13 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
         onMade={(made) => { setCopying(false); go(`group/${made.id}`) }} />}
     </div>
   )
+}
+
+/** How someone seems right now, read-only, with why (companion/group_moods.py). Nothing while they seem calm. */
+function MoodLine({ mood }: { mood?: GroupMood | null }) {
+  if (!mood || mood.feeling === 'calm') return null
+  const why = mood.reason ? `: ${mood.reason}` : ''
+  return <span className="group-mood subtle"> · {mood.text}{why}{mood.ignoring ? `. Not speaking to ${mood.ignoring}.` : ''}</span>
 }
 
 function AddSomeone({ group, outside, onChange }: { group: Group; outside: CastMember[]; onChange: Change }) {

@@ -101,6 +101,8 @@ ADDED_COLUMNS = (
     # On her mind (companion/life/thoughts.py): one private thought a day, shown folded on Today.
     # Who passed a secret on (companion/secrets.py): a person key or 'user'; NULL for those it started with.
     ('knowledge_holders', 'told_by', 'TEXT'),
+    # Group chat moods (companion/group_moods.py): whether someone furious may walk out of this group.
+    ('group_chats', 'walk_out', 'INTEGER NOT NULL DEFAULT 0 CHECK (walk_out IN (0, 1))'),
     ('life_settings', 'on_her_mind', 'INTEGER NOT NULL DEFAULT 1 CHECK (on_her_mind IN (0, 1))'),
     ('messages', 'held_until', 'TEXT'),
     ('messages', 'held_line', 'TEXT'),

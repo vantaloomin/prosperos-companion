@@ -1248,6 +1248,18 @@ export interface GroupMember {
   joined_at: string
   /** The first message they can see: 1 when added with everything so far. */
   sees_from: number
+  /** How they seem right now (companion/group_moods.py), read-only; only in a chat's own view. */
+  mood?: GroupMood | null
+}
+
+export interface GroupMood {
+  feeling: 'calm' | 'happy' | 'excited' | 'annoyed' | 'hurt' | 'angry' | 'anxious' | 'sad'
+  intensity: number
+  /** "Seems angry at Sally". */
+  text: string
+  reason: string | null
+  /** Who they aren't speaking to right now, by the chat's name for them. */
+  ignoring: string | null
 }
 
 export interface GroupMessage {
@@ -1276,6 +1288,8 @@ export interface Group {
   /** The name, or who is in it when it has none. */
   title: string
   reply_cap: number
+  /** Someone furious may walk out (off by default). */
+  walk_out?: boolean
   created_at: string
   updated_at: string
   members: GroupMember[]

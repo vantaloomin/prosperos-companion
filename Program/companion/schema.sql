@@ -1616,3 +1616,16 @@ CREATE TABLE IF NOT EXISTS news_holders (
   PRIMARY KEY (news_id, holder)
 );
 CREATE INDEX IF NOT EXISTS news_holders_holder ON news_holders(holder, heard_on);
+
+-- Group chat moods (companion/group_moods.py): each member's one current mood, by rules. `day` is their local day
+-- when it last changed (it resets overnight); `furious_replies` counts replies sent while furious, for walking out.
+CREATE TABLE IF NOT EXISTS group_moods (
+  holder TEXT PRIMARY KEY,
+  feeling TEXT NOT NULL CHECK (feeling IN ('calm', 'happy', 'excited', 'annoyed', 'hurt', 'angry', 'anxious', 'sad')),
+  intensity INTEGER NOT NULL CHECK (intensity BETWEEN 1 AND 3),
+  target TEXT,
+  reason TEXT NOT NULL,
+  day TEXT NOT NULL,
+  furious_replies INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);

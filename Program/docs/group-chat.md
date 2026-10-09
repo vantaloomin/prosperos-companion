@@ -277,11 +277,44 @@ never quietly undone.
 
 - `public_line(connection, member)`: the cast's "Others see" line; a guest from the town would use
   `perception.sheet_lines`.
-- `group_lines(connection, group, stay, now)`: who they're not speaking to (secrets and closeness to each member
-  are in).
-- `weights`, `plan` and `chime_in`: ignoring someone.
-- `pairs.closeness(connection, a, b, now)`: how close `a` feels to `b` (1 to 5), for mood (gossip uses it already).
-- Members are person keys (`companion:<id>`), so guests can be another kind.
+- Members are person keys (`companion:<id>`), so guests (wave F, not built yet) can be another kind.
+
+## Moods
+
+Each member has at most one current mood (`companion/group_moods.py`, table `group_moods`): a feeling (calm, happy,
+excited, annoyed, hurt, angry, anxious, sad), an intensity from 1 to 3 and, for some, who it's about. All rules:
+
+- **Events lead.** Finding out a secret that was kept from them (it slipped, the user said it in front of them, or
+  "Let them find out") leaves them hurt (2) toward whoever it's about, or furious (angry 3) with a temper. With
+  nothing else going on, a storyline beat of their own that turned out badly today leaves them a bit sad, a good
+  one a bit happy.
+- **Replies nudge it.** A sentence of their own that names a feeling and another member ("honestly I'm so annoyed
+  with Sally") moves that feeling toward them a step, never past 2, at most one step a reply. Negations ("not mad"),
+  quotes, "lol", "jk" and "haha" don't count. Angry replies alone never reach furious, so two members can't talk
+  each other into walking out.
+- **It fades** a step every three hours and resets overnight, their time.
+- **Only a temper gets angry**: one the user wrote into their character ("hot-tempered", "short temper", "quick to
+  anger"), or the temper flaw a townsperson came with. Anyone else is hurt instead, at most 2. There is no
+  built-in anger.
+
+What it does:
+
+| Mood | Effect |
+| --- | --- |
+| annoyed | "Keep your messages short" in their group section |
+| hurt or angry 2+ toward someone here | They ignore them: never picked to answer them (the plan, banter and chiming in all skip them), their section says "You're not speaking to Sally right now; talk to the others, not to Sally.", and a reply that still names Sally is written once more with a private reminder (not shown live while it might be) |
+| furious toward someone here | After three replies while furious, they walk out: "Billy left the group." Two people furious at each other qualify at once, and the one with the stronger temper (more temper words) leaves; a tie goes to seeded dice. Only when the group's "People can walk out" switch is on (`walk_out`, off by default). |
+
+Someone who walked out can be added back once they're no longer angry at anyone in the group; until then Add
+answers "Billy is still angry at Sally." The people panel shows each member's mood read-only with its reason
+("Seems hurt by Sally: found out …"), and who they're not speaking to. The speaker's own mood is in their group
+section with the reason ("why: …"); nobody else's mood reaches their prompt. Start over or Delete clears the
+companion's mood and anyone's mood about them.
+
+```http
+PATCH /api/groups/{id}   {"walk_out": true}          # let someone furious walk out
+GET   /api/groups/{id}   -> group.members[].mood {feeling, intensity, text, reason, ignoring}
+```
 
 ## Closeness between them
 

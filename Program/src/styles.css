@@ -1283,3 +1283,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .on-her-mind summary svg { width: 15px; height: 15px; }
 .on-her-mind ul { margin-top: 8px; gap: 6px; }
 .on-her-mind time { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
+
+/* Group chat moods (features/groups/GroupChat.tsx): read-only, under each person in the people panel. */
+.group-mood { display: block; font-size: 0.85rem; }
+.group-walk-out { display: flex; align-items: center; gap: 8px; }
