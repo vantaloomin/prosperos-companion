@@ -12,7 +12,18 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-from companion import in_character, logs, moods, pictures, safety, self_checks, self_facts, texting, troubleshoot
+from companion import (
+    in_character,
+    logs,
+    model_calls,
+    moods,
+    pictures,
+    safety,
+    self_checks,
+    self_facts,
+    texting,
+    troubleshoot,
+)
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -165,7 +176,8 @@ class Conversation:
                  lookups=None):
         self.database = database
         self.vault = vault
-        self.provider = provider or ChatProvider()
+        # Every chat model call goes through here, written down in full while Record model calls is on.
+        self.provider = model_calls.Recording(provider or ChatProvider(), database)
         self.embedder = embedder or EmbeddingProvider()
         self.scheduler = scheduler or RequestScheduler()
         # Current-context lookups the user enabled (PRD X1-X3); the app, not the model, decides when they run.

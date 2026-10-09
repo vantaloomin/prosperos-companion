@@ -4,6 +4,7 @@ import type { Companion } from '../../types'
 import { useAdvancedSettings } from './advanced'
 import { StoryModeSetting } from './StoryModeSetting'
 import { HiddenValues } from './HiddenValues'
+import { ModelCalls } from './ModelCalls'
 import { Backups } from './Backups'
 import { DataFolder } from './DataFolder'
 import { DebugSettings } from './DebugSettings'
@@ -100,7 +101,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     notifications: <NotificationSettings />,
     phone: <PhoneSettings />,
     data: <>{!remote && <DataFolder />}<Backups /></>,
-    debug: <DebugSettings name={name} />,
+    debug: <><DebugSettings name={name} />{!remote && <ModelCalls />}</>,
     advanced: <><StoryModeSetting /><PromptSettings /></>,
   }
   return content[tab]

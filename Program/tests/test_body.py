@@ -2,7 +2,7 @@
 from datetime import date, timedelta
 
 import pytest
-from conftest import reconcile
+from conftest import reconcile, show
 
 from companion.clock import parse
 from companion.database import decode, encode
@@ -79,8 +79,6 @@ def test_a_sick_day_stays_home_and_a_low_evening_stays_small():
 def test_the_agenda_carries_the_state_into_the_day_and_the_chat(client, baltimore, clock, monkeypatch):
     monkeypatch.setattr(body, 'AFTER', {key: (('tired', 1.0),) for key in body.AFTER})
     monkeypatch.setattr(body, 'COLD_CHANCE', {'winter': 0, 'other': 0})
-    # How they feel is a hidden value; Today shows it only with moods shown.
-    assert client.put('/api/settings', json={'show_moods': True}).status_code == 200
     clock.advance(timedelta(days=3))
     reconcile(client)
     with client.app.state.database.connect() as connection:
@@ -92,6 +90,8 @@ def test_the_agenda_carries_the_state_into_the_day_and_the_chat(client, baltimor
         previous = [decode(other['entry'])['activity'] for other in rows
                     if other['local_date'] == (date.fromisoformat(row['local_date']) - timedelta(days=1)).isoformat()]
         assert set(previous) & set(body.AFTER)
+    assert client.get('/api/today').json()['day']['body'] is None  # Hidden values: off by default.
+    show(client, show_moods=True)
     today = client.get('/api/today').json()
     with client.app.state.database.connect() as connection:
         expected = agenda.day_on(connection, baltimore['active_timeline_id'], today['day']['date'])['body']
