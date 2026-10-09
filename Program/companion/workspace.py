@@ -1,4 +1,6 @@
 """Workspace settings, permission revisions and pause (PRD T6, M7)."""
+import json
+
 from companion import local_zone, notifications
 from companion.clock import zone
 from companion.database import identifier, optional, settings
@@ -16,6 +18,7 @@ def view(row: dict) -> dict:
     return {**row, **{flag: bool(row[flag]) for flag in FLAGS},
             'paused': row['paused_at'] is not None, 'review_required': bool(row['review_required']),
             'ai_notice_confirmed': row['ai_notice_at'] is not None,
+            'custom_palette': json.loads(row['custom_palette']) if row['custom_palette'] else None,
             'system_timezone': local_zone.detect()}
 
 
@@ -59,6 +62,8 @@ def update(database, body) -> dict:
     with database.connect(write=True) as connection:
         row = settings(connection)
         timezone_change(row, changes)
+        if 'custom_palette' in changes:
+            changes['custom_palette'] = json.dumps(changes['custom_palette'], sort_keys=True)
         review_done = changes.pop('review_complete', False)
         # The first-run notice is confirmed once and stays confirmed.
         if changes.pop('ai_notice_confirmed', False) and row['ai_notice_at'] is None:

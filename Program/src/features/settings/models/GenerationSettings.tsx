@@ -2,6 +2,7 @@
 // at bbcbde4: no LM Studio native protocol and no context safety margin.
 import { useId } from 'react'
 import { Field } from '../../../components/Fields'
+import { bounded } from '../../../components/numberBounds'
 import type { DiscoveredModel } from './discovery'
 import type { ProfileConfig } from './types'
 
@@ -113,7 +114,8 @@ function SamplingControls({ config, patch }: Props) {
 }
 
 function NumberInput({ label, value, onChange, hint, tip, min, max, step, placeholder, type = 'number' }: { label: string; value: number | string; onChange: (value: string) => void; hint?: string; tip?: string; min?: number; max?: number; step?: number; placeholder?: string; type?: string }) {
-  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} min={min} max={max} step={step} placeholder={placeholder} aria-describedby={describedBy} onChange={event => onChange(event.target.value)} />}</Field>
+  const leave = () => { const fixed = bounded(String(value), min, max, true); if (fixed !== String(value)) onChange(fixed) }
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} min={min} max={max} step={step} placeholder={placeholder} aria-describedby={describedBy} onChange={event => onChange(type === 'number' ? bounded(event.target.value, min, max) : event.target.value)} onBlur={type === 'number' ? leave : undefined} />}</Field>
 }
 
 function Choice({ label, value, options, onChange, hint, noDefault }: { label: string; value?: string | null; options: string[]; onChange: (value: string | null) => void; hint?: string; noDefault?: boolean }) {

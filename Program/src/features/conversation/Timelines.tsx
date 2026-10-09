@@ -9,6 +9,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { TextArea, TextInput } from '../../components/Fields'
 import { forkNote, timelineSummary } from './timelineText'
+import { unfinished } from './turns'
 import { useSwitchTimeline, useTimelines } from './useTimelines'
 
 export function TimelinePanel({ name, onClose }: { name: string; onClose: () => void }) {
@@ -114,7 +115,9 @@ export function ReplyEditDialog({ message, name, onClose, onDone }: { message: M
   const [text, setText] = useState(message.text)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const changed = !!text.trim() && text.trim() !== message.text.trim()
+  // A stopped reply can be kept as it is: saving makes it the finished reply.
+  const stopped = unfinished(message)
+  const changed = !!text.trim() && (stopped || text.trim() !== message.text.trim())
   const save = async () => {
     if (!changed) return
     setBusy(true)
@@ -131,7 +134,7 @@ export function ReplyEditDialog({ message, name, onClose, onDone }: { message: M
       <button type="button" className="button" onClick={onClose} disabled={busy}>Cancel</button>
       <button type="button" className="button primary" onClick={() => void save()} disabled={busy || !changed}>Save</button>
     </>}>
-      <p>Every later reply sees the new wording. What the old wording said about {name} is noted again from the new one.</p>
+      <p>{stopped ? `This reply was stopped before it finished. Saving keeps it as ${name}'s reply, and the conversation goes on from it.` : `Every later reply sees the new wording. What the old wording said about ${name} is noted again from the new one.`}</p>
       <TextArea label={`${name}'s reply`} value={text} onChange={setText} rows={6} maxLength={8000} />
       {error && <Notice tone="error">{error}</Notice>}
     </ConfirmDialog>

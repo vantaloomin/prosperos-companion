@@ -1,4 +1,5 @@
 import type { RoutineBlock } from './features/character/schedule'
+import type { ColorScheme, Palette } from './features/settings/palette'
 
 export type Relationship = 'friendship' | 'romance' | 'mentor' | 'family' | 'other'
 export type ChatStyle = 'feed' | 'bubbles' | 'community' | 'retro' | 'novel'
@@ -207,6 +208,10 @@ export interface WorkspaceSettings {
   /** Retro IM message sounds; off unless turned on. */
   chat_sounds?: boolean
   chat_retro_dark?: boolean
+  /** The app's colors (Prospero's Study's palettes); Retro IM keeps its own. */
+  color_scheme?: ColorScheme
+  /** The four colors of the custom scheme, or null before one is made. */
+  custom_palette?: Palette | null
   /** Story mode (src/features/story) is opt-in, in Settings > Advanced. */
   story_mode?: boolean
   /** The note under a group message when someone lets a secret slip; on unless turned off. */

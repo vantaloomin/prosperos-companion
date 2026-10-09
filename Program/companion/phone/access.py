@@ -46,8 +46,24 @@ PC_ONLY = ('/api/phone', '/api/backups', '/api/import/study', '/api/companion/st
            '/api/models/builtin-recall', '/api/models/launcher', '/api/logs', '/api/model-calls')
 # Changes here name programs, folders or addresses on the PC, or where a saved key is sent; debug time
 # backs up and can replace the workspace.
-PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/images/backends',
-                   '/api/lora/settings', '/api/lora/runs', '/api/lora/adapters', '/api/debug-time')
+# Image backends are not here: a phone may add an image API at its provider's own address, and
+# companion/images/routes.py refuses the rest.
+PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/lora/settings', '/api/lora/runs',
+                   '/api/lora/adapters', '/api/debug-time')
+
+# Where on the PC each refused change is made, so a phone says where to go instead of only "no".
+PC_PLACES = (
+    (('/api/connection', '/api/models'), 'Models are set up on your PC, in Settings > Models. They hold API keys '
+     'and programs on the PC, so a phone can use them but not change them.'),
+    (('/api/context/services',), 'Real-world lookup tools are set up on your PC, in Settings > Real-world lookups.'),
+    (('/api/lora',), 'LoRA training is set up on your PC, in Appearance.'),
+    (('/api/backups',), 'Backups are made and restored on your PC, in Settings > Backups.'),
+)
+
+
+def pc_only_reason(path: str) -> str:
+    return next((reason for prefixes, reason in PC_PLACES if under(path, prefixes)),
+                'This can only be changed on your PC.')
 
 
 def host_name(request: Request) -> str:
@@ -143,7 +159,7 @@ class Gate:
             request.state.device = device
             self.mark_seen(device['id'])
             if pc_only(method, path):
-                return refuse(403, 'This can only be changed on your PC.', 'pc_only')
+                return refuse(403, pc_only_reason(path), 'pc_only')
             return None
         if path.startswith('/api') and (method, path) not in OPEN:
             return refuse(401, 'Pair this phone first: scan the code in Settings > Phone access on your PC.',

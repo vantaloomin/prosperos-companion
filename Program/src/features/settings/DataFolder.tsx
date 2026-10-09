@@ -4,6 +4,7 @@ import { FolderInput, FolderOpen } from 'lucide-react'
 import { api } from '../../api'
 import type { DataFolderStatus } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { shownPath } from '../../paths'
 
 const DATA_FOLDER_KEY = ['data-folder']
 
@@ -44,13 +45,13 @@ export function DataFolder() {
         <>
           <div className="form-actions">
             <button type="button" className="button" aria-disabled={busy} onClick={() => void open()}><FolderOpen size={15} aria-hidden="true" />Open data folder</button>
-            <small>{data.path}</small>
+            <small>{shownPath(data.path)}</small>
           </div>
           {data.portable && <p className="subtle">Your data is inside the app folder, so it goes wherever the app folder goes. Copy or move the whole app folder together, and keep its Data folder with it.</p>}
           {data.notes.map((note) => <Notice key={note}>{note}</Notice>)}
           {data.pending && (
             <Notice action={<button type="button" className="text-button" aria-disabled={busy} onClick={() => void cancel()}>Cancel</button>}>
-              Your data will move to {data.target} the next time the Companion starts. Close it and start it again to finish.
+              Your data will move to {shownPath(data.target)} the next time the Companion starts. Close it and start it again to finish.
             </Notice>
           )}
           {!data.portable && !data.pending && (
@@ -64,7 +65,7 @@ export function DataFolder() {
                       <button type="button" className="button" aria-disabled={busy} onClick={() => void move()}>Move on next start</button>
                       <button type="button" className="text-button" onClick={() => setConfirming(false)}>Keep it here</button>
                     </div>
-                  : <div className="form-actions"><button type="button" className="button" onClick={() => setConfirming(true)}><FolderInput size={15} aria-hidden="true" />Move into the app folder…</button><small>{data.target}</small></div>}
+                  : <div className="form-actions"><button type="button" className="button" onClick={() => setConfirming(true)}><FolderInput size={15} aria-hidden="true" />Move into the app folder…</button><small>{shownPath(data.target)}</small></div>}
             </div>
           )}
         </>

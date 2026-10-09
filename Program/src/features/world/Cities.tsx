@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { TextInput } from '../../components/Fields'
+import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { cityFacts, definitionOf, exportName, groupCities, GROUPS, parseDefinition, slugify, type BrokenCity, type CityListing, type PackReport } from './cityText'
 
@@ -216,7 +217,7 @@ function Packs({ onReloaded }: { onReloaded: () => void }) {
     <details className="city-packs">
       <summary>Pack folders</summary>
       <p className="subtle">City files dropped in these folders load as read-only packs. Packs marked private are for your own use and are never shared from here.</p>
-      <ul>{packs.data.folders.map((folder) => <li key={folder}><code>{folder}</code></li>)}</ul>
+      <ul>{packs.data.folders.map((folder) => <li key={folder}><code>{shownPath(folder)}</code></li>)}</ul>
       {packs.data.loaded.length > 0 && <p className="subtle">Loaded: {packs.data.loaded.map((item) => item.file.split(/[\\/]/).pop()).join(', ')}</p>}
       {packs.data.loaded.filter((item) => item.import_notes?.length).map((item) => (
         <FeedbackNotice key={item.file} feedback={{ tone: 'info', text: `${item.file.split(/[\\/]/).pop()} loaded.`, notes: item.import_notes }} />
@@ -233,5 +234,5 @@ function fileProblem(path: string): string {
   const name = parts.pop() ?? path
   const folder = path.slice(0, Math.max(0, path.length - name.length - 1))
   const builtIn = parts.slice(-3).join('/') === 'world/data/cities'
-  return `The city file ${name} ${builtIn ? 'in the built-in cities folder' : `in ${folder || 'a pack folder'}`} could not be read.`
+  return `The city file ${name} ${builtIn ? 'in the built-in cities folder' : `in ${shownPath(folder) || 'a pack folder'}`} could not be read.`
 }

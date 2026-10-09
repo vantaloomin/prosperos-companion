@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
   -- Start the local programs in use when the Companion starts (companion/launcher.py); off until turned on.
   auto_launch INTEGER NOT NULL DEFAULT 0 CHECK (auto_launch IN (0, 1)),
+  -- The app's colors, Prospero's Study's palettes; Retro IM keeps its own. custom_palette is JSON hex colors.
+  color_scheme TEXT NOT NULL DEFAULT 'ink' CHECK (color_scheme IN ('ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom')),
+  custom_palette TEXT NOT NULL DEFAULT '',
   -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).
