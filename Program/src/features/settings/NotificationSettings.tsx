@@ -4,13 +4,15 @@ import { api } from '../../api'
 import type { NotificationPreview, NotificationSettings as Values } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
+import { PresetSelect, Stepper } from '../../components/NumberFields'
+import { countText, minutesText } from '../../components/numberBounds'
 import { currentPermission, permissionNote } from '../notifications/permission'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { PhonePush } from './PhonePush'
 import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['notification-settings']
-type Draft = Partial<Record<'quiet_start' | 'quiet_end' | 'daily_cap' | 'min_gap_minutes', string>>
+type Draft = Partial<Record<'quiet_start' | 'quiet_end', string>>
 
 const PREVIEWS: { value: NotificationPreview; label: string }[] = [
   { value: 'name', label: 'Name only' },
@@ -75,7 +77,7 @@ function Limits({ data, save }: { data: Values; save: (change: Partial<Values>, 
   const [draft, setDraft] = useState<Draft>({})
   const changed = Object.entries(draft).filter(([key, value]) => value !== undefined && value !== String(data[key as keyof Draft]))
   const saveLimits = async () => {
-    const change = Object.fromEntries(changed.map(([key, value]) => [key, key === 'daily_cap' || key === 'min_gap_minutes' ? Number(value) : value]))
+    const change = Object.fromEntries(changed)
     if (await save(change, 'Notification settings saved.')) setDraft({})
   }
   return (
@@ -85,10 +87,10 @@ function Limits({ data, save }: { data: Values; save: (change: Partial<Values>, 
           onChange={(value) => setDraft((current) => ({ ...current, quiet_start: value }))} />
         <TextInput label="Quiet hours end" type="time" value={draft.quiet_end ?? data.quiet_end} hint="In your timezone. Quiet hours can run past midnight."
           onChange={(value) => setDraft((current) => ({ ...current, quiet_end: value }))} />
-        <TextInput label="Most notifications a day" type="number" value={draft.daily_cap ?? String(data.daily_cap)} hint="1 to 6." min={1} max={6}
-          onChange={(value) => setDraft((current) => ({ ...current, daily_cap: value }))} />
-        <TextInput label="Minutes between notifications" type="number" value={draft.min_gap_minutes ?? String(data.min_gap_minutes)} hint="30 to 720." min={30} max={720}
-          onChange={(value) => setDraft((current) => ({ ...current, min_gap_minutes: value }))} />
+        <Stepper label="Most notifications a day" value={data.daily_cap} min={1} max={6} format={(value) => countText(value, 'notification', 'notifications')}
+          onChange={(value) => void save({ daily_cap: value }, 'Saved.')} />
+        <PresetSelect label="Time between notifications" value={data.min_gap_minutes} presets={[30, 60, 120, 180, 240, 360, 720]} format={minutesText}
+          onChange={(value) => void save({ min_gap_minutes: value }, 'Saved.')} />
       </div>
       {changed.length > 0 && <div className="form-actions"><button type="button" className="button primary" onClick={() => void saveLimits()}>Save</button><button type="button" className="button" onClick={() => setDraft({})}>Cancel</button></div>}
     </>
