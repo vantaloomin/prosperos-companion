@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { api } from '../../api'
 import type { Storyline } from '../../types'
 import { storyDate } from './storyText'
+import { WhyItWent } from './WhyItWent'
 
 const KEY = ['storylines']
 
@@ -21,7 +22,12 @@ export function Storylines({ name }: { name: string }) {
       <ul className="plain-list">
         {list.data.map((item) => (
           <li key={item.id}>
-            {item.beats.map((beat) => <p key={beat.on + beat.text}><time dateTime={beat.on}>{storyDate(beat.on)}</time> {beat.text}</p>)}
+            {item.beats.map((beat) => (
+              <div key={beat.on + beat.text}>
+                <p><time dateTime={beat.on}>{storyDate(beat.on)}</time> {beat.text}</p>
+                {beat.consequence && <WhyItWent id={beat.consequence} />}
+              </div>
+            ))}
             {item.unfolding && <p className="subtle">Still unfolding.</p>}
             <button type="button" className="text-button" onClick={() => void end(item)}><X aria-hidden="true" />End this storyline</button>
           </li>

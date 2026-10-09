@@ -969,7 +969,20 @@ export interface Recommendation {
   finished_at: string | null
 }
 
-export interface StoryBeat { on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed' }
+export interface StoryBeat {
+  on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed'
+  /** The consequence engine's outcome this beat came from, when it could have gone more than one way. */
+  consequence: string | null
+}
+/** How a turning in the world went and why (companion/consequences.py). */
+export interface Consequence {
+  id: string
+  label: string
+  decided_on: string
+  options: { option: number; label: string; odds: number; reasons: string[] }[]
+  picked: number
+  picked_by: 'dice' | 'user'
+}
 /** Something unfolding in the companion's or their circle's lives (companion/life/storylines.py). */
 export interface Storyline {
   id: string

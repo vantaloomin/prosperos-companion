@@ -248,9 +248,97 @@ def start(connection, companion, people, day: date, level: int) -> dict | None:
     for index, alternatives in enumerate(story.stages):
         if index:
             on += timedelta(days=rng.randint(*story.gap))
-        chosen = rng.choice(alternatives)
+        if len(alternatives) > 1:
+            # How it turns out is left to the consequence engine on the day (settle).
+            stages.append({'on': on.isoformat(), 'text': '', 'share': '', 'tone': '', 'pending': choice_key(story, index)})
+            continue
+        chosen = alternatives[0]
         stages.append({'on': on.isoformat(), 'text': chosen.text, 'share': chosen.share, 'tone': chosen.tone})
     return {'story': story.key, 'level': story.level, 'cast_ids': list(cast), 'stages': stages}
+
+
+def choice_key(story: Story, index: int) -> str:
+    return f'storyline:{story.key}:{index}'
+
+
+def settle(connection, companion, today: date, now) -> int:
+    """Turnings whose day has come are decided by the consequence engine (companion/consequences.py), from the
+    people in the storyline as things stand now, and written into the storyline. Returns how many."""
+    timeline_id, settled = companion['active_timeline_id'], 0
+    for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running'", (timeline_id,)):
+        stages = decode(row['stages'])
+        due = [index for index, stage in enumerate(stages) if stage.get('pending') and stage['on'] <= today.isoformat()]
+        for index in due:
+            stages[index] = decided_stage(connection, companion, row, index, stages[index], now)
+            settled += 1
+        if due:
+            connection.execute('UPDATE storylines SET stages=? WHERE id=?', (encode(stages), row['id']))
+    return settled
+
+
+def decided_stage(connection, companion, row, index: int, stage: dict, now) -> dict:
+    from companion import consequences
+    story, definition = find_story(row['story']), companion['version']['definition']
+    alternatives = story.stages[index]
+    names = cast_names(connection, row, definition)
+    outcome = consequences.decide(
+        connection, timeline_id=row['timeline_id'], choice=stage['pending'], subject=f"storyline:{row['id']}",
+        facts=facts(connection, companion, row, now), names=names,
+        labels=[fill(item.text, row, names_by_id(connection, row), definition) for item in alternatives],
+        day=stage['on'], timestamp=stamp(now))
+    return outcome_stage(stage['on'], alternatives[outcome['picked']], outcome['id'])
+
+
+def outcome_stage(on: str, chosen: Beat, consequence_id: str) -> dict:
+    return {'on': on, 'text': chosen.text, 'share': chosen.share, 'tone': chosen.tone, 'consequence': consequence_id}
+
+
+def names_by_id(connection, row) -> dict:
+    return {person['id']: {'name': person['name'], 'role': person['role']}
+            for person in circle.people(connection, row['timeline_id'], include_removed=True)}
+
+
+def cast_names(connection, row, definition: dict) -> dict:
+    """{name, a, b} for the engine's reasons."""
+    found = names_by_id(connection, row)
+    cast = [found.get(person, {'name': 'someone'})['name'] for person in decode(row['cast_ids'])]
+    return {'name': definition['name'].split()[0], 'a': cast[0] if cast else 'someone',
+            'b': cast[1] if len(cast) > 1 else 'someone'}
+
+
+def facts(connection, companion, row, now) -> dict:
+    """What the engine reads for a storyline: the drama level, how close the companion is to each person in
+    it, how the two of them know each other, the first person's age, and the companion's own description."""
+    from companion import consequences
+    from companion.memory import pairs
+    people = {person['id']: person for person in circle.people(connection, row['timeline_id'], include_removed=True)}
+    cast = [people[person] for person in decode(row['cast_ids']) if person in people]
+    me, definition = pairs.companion_key(companion['id']), companion['version']['definition']
+    found = {'drama': drama(connection), 'sheet': {group for group in consequences.WORDS
+                                                  if consequences.sheet_has(definition, group)}}
+    for field, person in zip(('a', 'b'), cast, strict=False):
+        found[f'closeness_{field}'] = pairs.closeness(connection, me, person['seed'], now)
+    if cast:
+        found['age_a'] = decode(cast[0]['details']).get('age')
+    if len(cast) > 1:
+        found['tie'] = circle.tie(cast[0], cast[1])
+    return found
+
+
+def fork_stages(connection, row, copy_id: str, timeline_id: str, cutoff: str) -> list[dict]:
+    """A storyline's stages for a new timeline's copy: turnings decided by the fork keep their outcome (copied
+    with it), later ones are left for the copy's own engine to decide."""
+    from companion import consequences
+    story, stages = find_story(row['story']), decode(row['stages'])
+    for index, stage in enumerate(stages):
+        if not stage.get('consequence'):
+            continue
+        if stage['on'] > cutoff:
+            stages[index] = {'on': stage['on'], 'text': '', 'share': '', 'tone': '', 'pending': choice_key(story, index)}
+        else:
+            copied = consequences.copy(connection, stage['consequence'], timeline_id, f'storyline:{copy_id}')
+            stages[index] = {**stage, 'consequence': copied}
+    return stages
 
 
 def local_today(companion, now) -> date:
@@ -279,6 +367,7 @@ def advance(connection, companion, now) -> int:
         day += timedelta(days=1)
     connection.execute('INSERT INTO storyline_days (timeline_id, through) VALUES (?, ?) ON CONFLICT(timeline_id) '
                        'DO UPDATE SET through=excluded.through', (timeline_id, today.isoformat()))
+    settle(connection, companion, today, now)
     return started
 
 
@@ -323,12 +412,14 @@ def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
 def view(row: dict, names: dict, definition: dict, today: str, you=False) -> dict:
     stages = decode(row['stages'])
     beats = [{'on': stage['on'], 'text': fill(stage['text'], row, names, definition, you),
-              'share': fill(stage['share'], row, names, definition), 'tone': stage['tone']}
-             for stage in stages if stage['on'] <= today]
+              'share': fill(stage['share'], row, names, definition), 'tone': stage['tone'],
+              'consequence': stage.get('consequence')}
+             for stage in stages if stage['on'] <= today and not stage.get('pending')]
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in
                                               decode(row['cast_ids']) if person_id in names],
-            'beats': beats, 'unfolding': row['status'] == 'running' and stages[-1]['on'] > today}
+            'beats': beats, 'unfolding': row['status'] == 'running' and (stages[-1]['on'] > today or
+                                                                          bool(stages[-1].get('pending')))}
 
 
 def visible(connection, companion, now, include_ended=False, you=False) -> list[dict]:
@@ -397,3 +488,23 @@ def end(database, storyline_id) -> list[dict]:
         connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (storyline_id,))
         return visible(connection, companion, database.clock.now())
 
+
+
+def change_outcome(database, consequence_id: str, option: int) -> dict:
+    """The user changes how a turning went: the storyline takes the other way, and the outcome says the user
+    chose it. Returns the outcome."""
+    from companion import consequences
+    from companion.characters import require_current
+    with database.connect(write=True) as connection:
+        found = consequences.by_id(connection, consequence_id)
+        companion = require_current(connection)
+        row = optional(connection, 'SELECT * FROM storylines WHERE id=?', (found['subject'].removeprefix('storyline:'),))
+        require(row is not None and row['timeline_id'] == companion['active_timeline_id'],
+                'That outcome is not on this timeline.', 404)
+        outcome = consequences.change(connection, consequence_id, option, stamp(database.clock.now()))
+        stages = decode(row['stages'])
+        index = next(index for index, stage in enumerate(stages) if stage.get('consequence') == consequence_id)
+        chosen = find_story(row['story']).stages[index][option]
+        stages[index] = outcome_stage(stages[index]['on'], chosen, consequence_id)
+        connection.execute('UPDATE storylines SET stages=? WHERE id=?', (encode(stages), row['id']))
+        return outcome

@@ -1476,3 +1476,23 @@ CREATE TABLE IF NOT EXISTS knowledge_holders (
 );
 CREATE INDEX IF NOT EXISTS knowledge_holders_knowledge ON knowledge_holders(knowledge_id);
 CREATE INDEX IF NOT EXISTS knowledge_holders_holder ON knowledge_holders(holder);
+
+-- The consequence engine (companion/consequences.py): how a choice in the world turned out. `options` holds each
+-- way it could have gone with its odds and the reasons that moved them; `picked` is the option the seeded dice
+-- landed on, or the one the user chose instead (`picked_by`). `subject` names what it is about, such as
+-- `storyline:<id>`.
+CREATE TABLE IF NOT EXISTS consequences (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  choice TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  label TEXT NOT NULL,
+  decided_on TEXT NOT NULL,
+  options TEXT NOT NULL,
+  picked INTEGER NOT NULL,
+  picked_by TEXT NOT NULL DEFAULT 'dice' CHECK (picked_by IN ('dice', 'user')),
+  changed_at TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (subject, choice)
+);
+CREATE INDEX IF NOT EXISTS consequences_timeline ON consequences(timeline_id, decided_on);

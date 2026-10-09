@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Request
 from pydantic import Field
 
-from companion import conversation
+from companion import consequences, conversation
 from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
@@ -292,6 +292,27 @@ def require_date(value: str) -> date:
         return date.fromisoformat(value)
     except ValueError:
         raise DomainError('Give the date as YYYY-MM-DD.', 422) from None
+
+
+class OutcomeChange(Input):
+    option: int = Field(ge=0, le=9)
+
+
+@router.get('/consequences/{consequence_id}')
+def read_consequence(request: Request, consequence_id: str):
+    """How a turning in the world went and why (companion/consequences.py): each way it could have gone, with
+    its odds and reasons, and the one it took."""
+    with db(request).connect() as connection:
+        found = consequences.by_id(connection, consequence_id)
+        require(found['timeline_id'] == require_current(connection)['active_timeline_id'],
+                'That outcome is not on this timeline.', 404)
+        return found
+
+
+@router.post('/consequences/{consequence_id}/change')
+def change_consequence(request: Request, consequence_id: str, body: OutcomeChange):
+    """The user makes it go another way instead."""
+    return storylines.change_outcome(db(request), consequence_id, body.option)
 
 
 @today_router.get('')

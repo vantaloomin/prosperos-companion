@@ -511,9 +511,9 @@ name. A finished one can open a conversation. `GET /api/life/recommendations` li
 Things unfold over days in the companion's life and their circle's (`companion/life/storylines.py`):
 "my dad just got a promotion", "the new guy at work keeps hitting on me", "I got drunk and kissed my
 best friend". Each is a fixed template with a cast from the circle (or the companion's own work) and
-one to three beats a few days apart. Whether one starts on a day, which template, who is in it and
-how each beat turns out are decided by a seed when it starts, never by a model; later beats stay
-hidden until their local date. The Life setting `drama` (0 quiet, 1 realistic, 2 dramatic, 3 soap
+one to three beats a few days apart. Whether one starts on a day, which template and who is in it
+are decided by a seed when it starts, never by a model; a beat that can turn out more than one way is
+left to the consequence engine on its day (below). Later beats stay hidden until their local date. The Life setting `drama` (0 quiet, 1 realistic, 2 dramatic, 3 soap
 opera; default 1) sets how often one starts (about 4%, 8%, 15% or 28% of days), how many run at once
 (1 to 4) and which templates can happen: quiet keeps to good news; realistic adds everyday trouble
 (a creepy new coworker, a friend's breakup, layoff rumors); dramatic adds health scares, feuds and
@@ -527,7 +527,7 @@ POST /api/life/storylines/{id}/end        # it leaves Today and the context; lat
 ```
 
 A storyline is `{id, story, level, started_on, status, cast: [{id, name, role}], beats: [{on, text,
-share, tone}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
+share, tone, consequence}], unfolding}`, listing only beats whose date has come. Names are filled in as people are
 named now; removing someone ends the storylines they are in. The chat context lists the last three
 weeks' storylines and says when one is still unfolding, so the companion never guesses the ending.
 There the beats are told to the companion as "you" ("You got the promotion", "Cathy, your mom, got a
@@ -537,6 +537,27 @@ the user; Today keeps the third person. A settled storyline stays in the context
 still bring the outcome back (embedded like memories when semantic recall is on).
 A beat from today or yesterday can open a conversation, using its `share` line when no model is
 connected. Days are decided as the agenda extends, up to 14 days back after time away.
+
+#### The consequence engine
+
+Whether two feuding friends make up, whether the companion gets the promotion: a beat with more than
+one way to go is decided on its day by `companion/consequences.py`, not by a coin flipped when the
+storyline started. The engine reads the state that bears on it (the drama level, how close the
+companion is to each person in the story, how the two of them know each other, the first person's age,
+and words in the companion's own description such as "driven" or "stubborn", skipping "not shy"),
+turns it into odds from a small table per turning (`world/data/consequences.json`), rolls seeded dice
+and records the outcome in `consequences` with every option's odds and the reasons that moved them.
+The same world and seed always give the same result. The model never sees odds or reasons: the
+companion only hears what happened. A fork keeps outcomes decided by its point and decides later ones
+itself.
+
+```http
+GET  /api/life/consequences/{id}          # {id, label, decided_on, options: [{option, label, odds, reasons}], picked, picked_by}
+POST /api/life/consequences/{id}/change   # {"option": 1}: make it go that way instead (picked_by becomes "user")
+```
+
+A decided beat carries its outcome's id as `consequence`. Today shows it under "Why it went this way"
+with each way it could have gone, its odds and reasons, and a button to make it go another way.
 
 ### Birthdays and anniversaries
 

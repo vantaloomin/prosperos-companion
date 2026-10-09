@@ -19,7 +19,7 @@ from companion import pictures
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import encounters, feed, home, network, social, wardrobe
+from companion.life import encounters, feed, home, network, social, storylines, wardrobe
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
 FROZEN_EVENT = 'The timeline was frozen before this event was reviewed.'
@@ -203,9 +203,13 @@ def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
     rows = [row for row in many(connection, 'SELECT * FROM storylines WHERE timeline_id=? AND started_on<=?',
                                 (parent_id, cutoff_date))
             if all(person in ids for person in decode(row['cast_ids']))]
-    insert(connection, 'storylines', [{**row, 'id': identifier(), 'timeline_id': new_id,
-                                       'cast_ids': encode([ids[person] for person in decode(row['cast_ids'])])}
-                                      for row in rows])
+    copies = []
+    for row in rows:
+        copy_id = identifier()
+        copies.append({**row, 'id': copy_id, 'timeline_id': new_id,
+                       'cast_ids': encode([ids[person] for person in decode(row['cast_ids'])]),
+                       'stages': encode(storylines.fork_stages(connection, row, copy_id, new_id, cutoff_date))})
+    insert(connection, 'storylines', copies)
     if optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (parent_id,)):
         connection.execute('INSERT INTO storyline_days (timeline_id, through) VALUES (?, ?)', (new_id, cutoff_date))
 

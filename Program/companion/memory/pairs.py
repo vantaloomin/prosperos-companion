@@ -246,7 +246,7 @@ def story_moves(connection, companion: dict, person_id: str, today: str) -> dict
         if person_id not in decode(row['cast_ids']):
             continue
         for index, stage in enumerate(decode(row['stages'])):
-            if stage['on'] > today:
+            if stage['on'] > today or stage.get('pending'):
                 break
             move = FALLINGS.get(row['story'], {}).get(index)
             if isinstance(move, dict):
