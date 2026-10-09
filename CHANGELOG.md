@@ -49,6 +49,15 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.5.1 (2026-10-09)
+
+- **Color schemes** from Prospero's Study (Ink, Slate, Umber, Moss, Wine, Ash) and a custom palette.
+- **Number settings** use steppers, sliders and presets, save on change and stay within their limits.
+- **Check for models** and rescans on return to the app; home folder shown as `~` in paths.
+- **Paired phones** can add and manage hosted image services (keys only over Tailscale).
+- Fixed: memories filed under the wrong companion after switching chats; stopped replies can be edited;
+  PC-only messages say where to make the change.
+
 ## v0.5.0 (2026-10-09)
 
 - **News travels:** news spreads one person a day; companions can text "Did you hear about…?"; Today
