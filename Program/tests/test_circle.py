@@ -148,8 +148,10 @@ def test_rename_and_remove_rebuild_entries_that_name_the_person(client, baltimor
     reconcile(client)
     named = [decode(row['entry'])['with'] for row in rows(client, subject='companion', status='upcoming')
              if row['entry'] and decode(row['entry']).get('with')]
-    assert named
-    person_id = named[0]['id']
+    # Someone with days of their own here (not everyone close lives in town), so restoring can rebuild them.
+    local = [person for person in named if rows(client, subject=person['id'], status='upcoming')]
+    assert local
+    person_id = local[0]['id']
     renamed = client.patch(f'/api/life/circle/{person_id}', json={'name': 'Rowan'}).json()
     assert renamed['name'] == 'Rowan' and renamed['revision'] == 2
     for row in rows(client, subject='companion', status='upcoming'):
