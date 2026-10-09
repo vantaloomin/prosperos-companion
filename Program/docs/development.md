@@ -125,21 +125,40 @@ never gains the Companion's identity marker.
 The bundle and setup are not code signed yet, so Windows SmartScreen may warn on first launch. Signing is an
 open release decision.
 
+### Release branches
+
+Work is planned in releases, and each upcoming release has its own branch made ahead of time from `main`:
+`release/v0.6.0`, `release/v0.7.0` and so on.
+
+- **Every pull request targets the branch of the release it belongs to**, not `main`. CI runs on pull
+  requests into any branch.
+- **Only hotfixes target `main`** (a fix for something already released). After a hotfix merges, merge `main`
+  into every open release branch so they keep it, and so a later release never undoes it.
+- **Cutting a release** is one pull request from `release/v<version>` into `main`, carrying the version numbers,
+  notes and title below. A merge commit keeps each feature's own commit on `main`.
+  Then run the `Release` workflow on `main`, delete the release branch, merge `main` into the next release
+  branch, and make the branch for the release after that.
+
+Releases only ever publish from `main`.
+
 ### Publishing a release
 
 1. Set the same version in `package.json`, `pyproject.toml` and `companion/identity.py`, and write the
    release notes in `docs/releases/v<version>.md` (plus an entry in the top-level `CHANGELOG.md`).
-2. Merge that to `main`, then run the `Release` workflow from the Actions tab on `main` (pre-release
-   is ticked by default).
+   A new minor version also needs its title in `docs/releases/titles.json`; patch releases share it, so
+   every 0.4 release is named "v0.4.x: Small World, Big News".
+2. Merge that to `main` (from the release branch, see above), then run the `Release` workflow from the
+   Actions tab on `main` (pre-release is ticked by default).
 
-`release.yml` checks the three version numbers agree and the notes exist, runs the whole `Package`
+`release.yml` checks the three version numbers agree and the notes and title exist, runs the whole `Package`
 workflow on that commit, and only when every job passes tags `v<version>` on it and publishes the
 setup, the portable zip and `SHA256SUMS.txt` as a GitHub release. It refuses a version that is
 already released.
 
 To change the notes of a published release (say, to warn about a bug in it), edit its
 `docs/releases/v<version>.md`, merge, then run the `Release notes` workflow on `main` with the tags
-to update, separated by spaces.
+to update, separated by spaces. Pick `title` instead of `notes` to rename releases after changing
+`docs/releases/titles.json`.
 
 ## Interface
 

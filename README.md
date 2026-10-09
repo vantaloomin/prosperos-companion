@@ -56,6 +56,14 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
   </tr>
 </table>
 
+## Roadmap
+
+<p align="center">
+  <img src="Program/docs/images/roadmap.svg" alt="Prospero's Companion roadmap: what each release brought and what is planned next" width="880">
+</p>
+
+Plans change as we go. See the [releases](https://github.com/vantaloomin/prosperos-companion/releases) for what has actually shipped.
+
 ## Getting started
 
 ### Windows
