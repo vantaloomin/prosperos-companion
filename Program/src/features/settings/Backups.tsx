@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Archive, RotateCcw } from 'lucide-react'
 import { api } from '../../api'
 import { useWorkspaceSettings } from '../../companion'
-import type { BackupList, BackupResult } from '../../types'
+import type { AutoBackups, BackupList, BackupResult } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
@@ -46,8 +46,9 @@ export function Backups() {
     <section className="settings-section form-stack" aria-labelledby="backup-heading">
       <div>
         <h2 id="backup-heading">Backups</h2>
-        <p className="subtle">A backup is a copy of this workspace, saved beside it: your conversation, memories, life{loraMaker ? ', images and adapters' : ' and images'}. Your API keys are not included. Anything you delete later stays in backups made before.</p>
+        <p className="subtle">A backup is a copy of the world you are in, saved beside it: your conversation, memories, life{loraMaker ? ', images and adapters' : ' and images'}. Your API keys are not included. Anything you delete later stays in backups made before.</p>
       </div>
+      {<AutoBackupsSetting list={list.data} onSaved={() => void client.invalidateQueries({ queryKey: BACKUPS_KEY })} />}
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       {pending && (
         <Notice action={<button type="button" className="text-button" aria-disabled={busy} onClick={() => void cancel()}>Cancel</button>}>
@@ -79,5 +80,28 @@ export function Backups() {
         </div>
       )}
     </section>
+  )
+}
+
+const EVERY: [AutoBackups, string][] = [['daily', 'Every day'], ['weekly', 'Every week'], ['off', 'Off']]
+
+/** Automatic backups cover every world, on their own, while the app runs; this sets how often. */
+function AutoBackupsSetting({ list, onSaved }: { list: BackupList | undefined; onSaved: () => void }) {
+  const [error, setError] = useState('')
+  if (!list) return null
+  const save = async (auto_backups: AutoBackups) => {
+    setError('')
+    try { await api('/settings', { auto_backups }, 'PUT'); onSaved() } catch (failure) { setError(failure instanceof Error ? failure.message : 'That setting was not saved.') }
+  }
+  const last = list.last_auto_backup ? `Last one here: ${formatDate(`${list.last_auto_backup}Z`)}.` : 'The first one is made a few minutes after the app starts.'
+  return (
+    <div className="field">
+      <label htmlFor="auto-backups">Automatic backups</label>
+      <select id="auto-backups" value={list.auto_backups} aria-describedby="auto-backups-hint" onChange={(event) => void save(event.target.value as AutoBackups)}>
+        {EVERY.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </select>
+      <small id="auto-backups-hint">Every world is backed up on its own while the Companion runs, without reference pictures. The last 7 days and one a week for 4 weeks before are kept. {list.auto_backups !== 'off' && last}</small>
+      {error && <Notice tone="error">{error}</Notice>}
+    </div>
   )
 }

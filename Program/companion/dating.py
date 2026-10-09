@@ -54,6 +54,11 @@ def profile(connection) -> dict | None:
     return row and {**row, 'interested_in': decode(row['interested_in'])}
 
 
+def persona(connection) -> dict | None:
+    """Who the user is in this world (companion/worlds.py), so the profile starts filled in."""
+    return optional(connection, 'SELECT name, gender, age, about FROM persona WHERE id=1')
+
+
 def default_city(connection) -> str:
     return story.default_city(connection)
 
@@ -332,6 +337,6 @@ def state(database) -> dict:
         return {'surface': kind, 'words': SURFACES[kind], 'city': {'id': data['id'], 'name': data['name']},
                 'profile': mine and {key: mine[key] for key in ('name', 'age', 'gender', 'interested_in', 'looking_for',
                                                                  'age_min', 'age_max', 'bio')},
-                'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
+                'persona': persona(connection), 'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
                 'deck': [dating.card(sheet, data, database.clock.now().date(), found) for sheet, found in shown],
                 'remaining': left, 'matches': matches(connection, database), 'date': date}

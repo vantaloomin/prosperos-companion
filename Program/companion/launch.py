@@ -155,9 +155,9 @@ def move_chosen_data():
 
 def restore_chosen_backup():
     """A restore chosen in Settings runs here, before the workspace is opened."""
-    from companion import restore
+    from companion import restore, worlds
     from companion.identity import database_path
-    chosen = restore.apply_pending(database_path())
+    chosen = restore.apply_pending(worlds.active_path(database_path()))
     if chosen:
         report_restore(*chosen)
 

@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
 from companion import (
+    auto_backup,
     backup,
     cast,
     character_helper,
@@ -520,7 +521,7 @@ def create_backup(request: Request, include_datasets: bool = False):
 
 @router.get('/backups')
 def list_backups(request: Request):
-    return restore.listing(db(request).path.parent)
+    return restore.listing(db(request).path.parent) | auto_backup.status(db(request))
 
 
 @router.post('/backups/{name}/restore')
@@ -537,23 +538,23 @@ def cancel_restore(request: Request):
 # Under /api/backups so a phone never sees or changes it (companion/phone/access.py PC_ONLY).
 @router.get('/backups/data-folder')
 def read_data_folder(request: Request):
-    return data_folder.status(db(request).path.parent)
+    return data_folder.status(db(request).root)
 
 
 @router.post('/backups/data-folder/move')
 def schedule_data_move(request: Request):
     """The move runs the next time the Companion starts; the open workspace cannot be copied safely."""
-    return data_folder.schedule(db(request).path.parent, db(request).now())
+    return data_folder.schedule(db(request).root, db(request).now())
 
 
 @router.delete('/backups/data-folder/move')
 def cancel_data_move(request: Request):
-    return data_folder.cancel(db(request).path.parent)
+    return data_folder.cancel(db(request).root)
 
 
 @router.post('/backups/data-folder/open')
 def open_data_folder(request: Request):
-    return data_folder.open_folder(db(request).path.parent)
+    return data_folder.open_folder(db(request).root)
 
 
 @router.get('/notifications/settings')

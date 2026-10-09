@@ -33,8 +33,25 @@ def decode(value: str | None):
 class Database:
     def __init__(self, path: str | Path | None = None, clock: Clock | None = None):
         self.path = Path(path or database_path())
+        # The folder of the first world: what every world shares (downloaded models, worlds.json) lives there.
+        # Another world's database is in its own folder below it (companion/worlds.py), and `use` switches to it.
+        self.root = self.path.parent
+        self.home = self.path
         # Tests hand in a FixedClock; debug time (companion/debug_time.py) shifts the app clock wrapped around it.
         self.clock = clock if isinstance(clock, AppClock) else AppClock(clock)
+        self.open()
+
+    def use(self, path: str | Path):
+        """Every part of the app reads and writes through this object, so pointing it at another world's
+        database moves all of them there; each connection opens the file anew."""
+        previous, self.path = self.path, Path(path)
+        try:
+            self.open()
+        except BaseException:
+            self.path = previous
+            raise
+
+    def open(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         inspect_existing(self.path)
         if upgrade_needed(self.path):
@@ -165,6 +182,9 @@ ADDED_COLUMNS = (
     # When the user read the one-time notice that the characters are AI and confirmed they are 18 or older
     # (companion/workspace.py); the app asks once, before anything else, until then.
     ('workspace_settings', 'ai_notice_at', 'TEXT'),
+    # Automatic backups of every world (companion/auto_backup.py): on by default, once a day.
+    ('workspace_settings', 'auto_backups',
+     "TEXT NOT NULL DEFAULT 'daily' CHECK (auto_backups IN ('off', 'daily', 'weekly'))"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

@@ -9,7 +9,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from companion import dating_routes, group_routes, groups, local_zone, logs, story_routes, troubleshoot, workspace
+from companion import (
+    auto_backup,
+    dating_routes,
+    group_routes,
+    groups,
+    local_zone,
+    logs,
+    story_routes,
+    troubleshoot,
+    workspace,
+    worlds,
+    worlds_routes,
+)
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.dating_photos import DatingPhotos
@@ -117,7 +129,8 @@ async def lifespan(app):
     app.state.dating_photos.recover()
     tasks = [asyncio.create_task(app.state.life.run_forever()),
              asyncio.create_task(app.state.images.run_forever()),
-             asyncio.create_task(app.state.push.run_forever())] if app.state.life_tasks else []
+             asyncio.create_task(app.state.push.run_forever()),
+             asyncio.create_task(auto_backup.run_forever(app.state))] if app.state.life_tasks else []
     if app.state.life_tasks:
         # Built-in recall loads its model now, so the first reply does not wait for it.
         app.state.builtin_recall.kick()
@@ -139,6 +152,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                voice_runner=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
+    worlds.start(app.state.database)  # The world the user was last in; the first run makes the first world.
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
     app.state.vault = vault or SystemVault()
     world = observed_weather.ObservedWorld(world or CatalogWorld(app.state.database), app.state.database)
@@ -219,6 +233,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(phone_routes.router)
     app.include_router(people_routes.router)
     app.include_router(debug_router)
+    app.include_router(worlds_routes.router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

@@ -51,7 +51,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
         <p className="subtle">Meet people around town. Someone you match with can become a companion. Your companions never see who you swipe on.</p>
       </div></header>
       {error && <Notice tone="error">{error}</Notice>}
-      {!data.profile ? <Setup words={data.words} surface={data.surface} onSave={async (profile) => { await save(profile) }} />
+      {!data.profile ? <Setup words={data.words} surface={data.surface} persona={data.persona} onSave={async (profile) => { await save(profile) }} />
         : editing ? <ProfileForm profile={data.profile} onCancel={() => setEditing(false)} onSave={async (profile) => { if (await save(profile)) setEditing(false) }}
           onDelete={() => void run(() => api<DatingData>('/dating/profile', undefined, 'DELETE')).then(() => { setEditing(false); void client.invalidateQueries({ queryKey: DATING_STATUS_KEY }) })} />
         : <>

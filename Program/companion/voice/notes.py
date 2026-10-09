@@ -120,9 +120,13 @@ class VoiceNotes:
         self.database = database
         self.vault = vault
         self.transport = transport
-        self.folder = Path(database.path).parent / FOLDER
-        self.kokoro = Kokoro(Path(database.path).parent / 'voice', transport, runner)
+        # The built-in voice is downloaded once for every world (companion/worlds.py); notes belong to a world.
+        self.kokoro = Kokoro(database.root / 'voice', transport, runner)
         self.catalogs: dict[tuple[str, str], list[dict]] = {}
+
+    @property
+    def folder(self) -> Path:
+        return Path(self.database.path).parent / FOLDER
 
     # --- keys and engines ----------------------------------------------------------------------
 

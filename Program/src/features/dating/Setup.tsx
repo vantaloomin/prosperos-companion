@@ -1,18 +1,18 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Download, Heart } from 'lucide-react'
-import type { DatingGender, DatingProfile, DatingWords } from '../../types'
+import type { Dating, DatingGender, DatingProfile, DatingWords } from '../../types'
 import { Notice } from '../../components/Feedback'
-import { AIMS, BLANK, GENDERS } from './datingText'
+import { AIMS, fromPersona, GENDERS } from './datingText'
 
 const INSTALL_MS = 1600
 const STEPS = ['About you', 'Who you are into', 'What you want', 'Your bio'] as const
 
-interface SetupProps { words: DatingWords; surface: string; onSave: (profile: DatingProfile) => Promise<void> }
+interface SetupProps { words: DatingWords; surface: string; persona?: Dating['persona']; onSave: (profile: DatingProfile) => Promise<void> }
 
 /** Getting the app: its store page, a short install, then a few screens setting up the user's profile. */
-export function Setup({ words, surface, onSave }: SetupProps) {
+export function Setup({ words, surface, persona, onSave }: SetupProps) {
   const [stage, setStage] = useState<'store' | 'installing' | number>('store')
-  const [draft, setDraft] = useState<DatingProfile>(BLANK)
+  const [draft, setDraft] = useState<DatingProfile>(() => fromPersona(persona))
   const [busy, setBusy] = useState(false)
   useEffect(() => {
     if (stage !== 'installing') return

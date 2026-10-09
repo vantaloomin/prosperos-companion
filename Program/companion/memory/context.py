@@ -91,6 +91,8 @@ HEADINGS = {
             # The system prompt, after the character. Changes rarely: it stays the same from one reply to the next,
             # so local servers and providers can reuse their work on it and on the conversation after it (prompt
             # caching). Keep this order: what changes least comes first.
+            # Who the user is in this world (companion/worlds.py): what they wrote about their persona.
+            'persona': 'Who the user is (what they told the app about themselves; never contradict it)',
             'home': 'Your home and belongings (fictional, yours; keep them consistent)',
             'acquaintances': 'People you have met through your circle (friends of friends; you know them a little, '
                              'from where you met)',
@@ -217,6 +219,16 @@ TRAITS = ('Your emotional traits, expressed in character only and only about wha
           '(never claim to know what the user did): ')
 FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
+
+
+def persona_text(connection) -> str | None:
+    """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder."""
+    row = connection.execute('SELECT * FROM persona WHERE id=1').fetchone()
+    if not row:
+        return None
+    parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
+             f"Gender: {row['gender']}" if row['gender'] else '', row['about'].strip()]
+    return '\n'.join(f'- {part}' for part in parts if part) or None
 
 
 def trait_text(trait) -> str:
@@ -698,6 +710,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         recent, older = [], messages + group['older']
     packet = Packet(budget)
     packet.require('character', version['id'], character_text(version, connection))
+    if who := persona_text(connection):
+        packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
     previous = recent[-2]['created_at'] if len(recent) > 1 else (group or {}).get('previous')
