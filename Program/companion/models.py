@@ -140,6 +140,11 @@ class CharacterCardFile(Input):
     data: str = Field(min_length=1, max_length=14_000_000)
 
 
+class LoreSwitch(Input):
+    """Turn an imported lorebook, or one of its entries, on or off (companion/lore.py)."""
+    enabled: bool
+
+
 class SidecarTurn(Input):
     role: Literal['user', 'assistant']
     content: str = Field(min_length=1, max_length=40000)

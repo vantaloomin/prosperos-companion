@@ -149,6 +149,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [Current context tools (MCP)](Program/docs/context-tools.md)
 - [Safety: AI notices and crisis help](Program/docs/safety.md)
 - [Phone access](Program/docs/phone-access.md)
+- [Bring your characters](Program/docs/bring-your-characters.md)
 - [Importing from Prospero's Study](Program/docs/study-import.md)
 - [Installing on a Mac](Program/docs/macos.md)
 - [Development](Program/docs/development.md)

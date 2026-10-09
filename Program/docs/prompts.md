@@ -35,13 +35,13 @@ they already did on that part (prompt caching), so a reply starts sooner and cos
 small local models, which follow facts best when they sit right next to the message they answer.
 
 1. **The system prompt**: who the companion is (the prompt above), then the sections that change rarely, in
-   `HEADINGS` in `companion/memory/context.py`: home, the circle, today's calendar, weather and money, then what
+   `HEADINGS` in `companion/memory/context.py`: the user's persona, always-on lore, home, the circle, today's calendar, weather and money, then what
    grows during a chat (memories, what they have said about themselves, plans, recent life).
 2. **The conversation**: at least the last 20 messages. Its first message moves forward 12 messages at a time,
    not one, so the start of the conversation stays the same for several replies; older messages stay recallable.
 3. **The notes for this reply**, in front of the latest message (`NOW` in `context.py`), between two lines in
    square brackets: the time and what the companion is doing right now, what the people in their life are up
-   to, what they have on, the "you keep repeating" nudge, recalled memories, lookups, and anything saved since
+   to, what they have on, lorebook entries whose keywords just came up, the "you keep repeating" nudge, recalled memories, lookups, and anything saved since
    the conversation's first message (marked "new in this conversation"; it joins the system prompt when that
    first message moves on). A busy note, an out-of-character note or a reminder for a redraft is added here too.
 

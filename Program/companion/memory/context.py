@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import consequences, lore, news, pictures, prompt_library, secrets, self_facts, texting
 from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
@@ -93,6 +93,8 @@ HEADINGS = {
             # caching). Keep this order: what changes least comes first.
             # Who the user is in this world (companion/worlds.py): what they wrote about their persona.
             'persona': 'Who the user is (what they told the app about themselves; never contradict it)',
+            # Always-on entries of imported lorebooks (companion/lore.py).
+            'lore': 'Facts about you and your world (from your lorebook; treat them as true and never contradict them)',
             'home': 'Your home and belongings (fictional, yours; keep them consistent)',
             'acquaintances': 'People you have met through your circle (friends of friends; you know them a little, '
                              'from where you met)',
@@ -177,6 +179,8 @@ NOW = {
                      'never as done, and they may change)',
        'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
                 'only what is listed here)',
+       # Lorebook entries whose keywords came up in the last few messages (companion/lore.py).
+       'lore_now': 'Lore that fits what is being talked about (from your lorebook; true in your world)',
        'wearing': 'What you have on',
        'wording': 'Your wording lately',
        'time': 'Right now'}
@@ -744,6 +748,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('real_events', events['id'], f"- From {events['service_name']}, retrieved "
                                                   f"{events['retrieved_at'][11:16]} UTC: «{events['content']}»")
     query = latest['text'] if latest else (group or {}).get('query', '')
+    lore.offer(packet, connection, companion, recent, query)
     offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older), query, semantic)
     return render(packet, conversation)
 
