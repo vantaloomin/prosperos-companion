@@ -186,5 +186,5 @@ class Pusher:
     async def run_forever(self):
         while True:
             await asyncio.sleep(EVERY)
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(Exception), self.database.pin():
                 await asyncio.to_thread(self.tick)

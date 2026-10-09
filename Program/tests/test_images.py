@@ -3,6 +3,7 @@ import asyncio
 import base64
 import json
 import os
+import sqlite3
 import struct
 import sys
 from datetime import timedelta
@@ -12,6 +13,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from companion import worlds
 from companion.identity import CLIENT_HEADER
 from companion.images import content, prompts
 from companion.images.adapters.base import AdapterError, ImageRequest, ImageResult
@@ -1255,3 +1257,30 @@ def test_a_model_list_that_cannot_be_read_says_to_type_the_name(app, client):
     app.state.images.adapters['hosted'] = HostedAdapter(httpx.MockTransport(lambda request: httpx.Response(404)))
     listed = ok(client.post('/api/images/models', json={'provider': 'other', 'base_url': 'https://images.example.com/v1'}))
     assert not listed['ok'] and 'Type the model name' in listed['error'] and listed['models'] == []
+
+
+# Worlds -----------------------------------------------------------------------------------------
+
+def test_a_picture_that_finishes_after_a_switch_is_stored_in_its_own_world(client, companion, clock, adapters):
+    state = client.app.state
+    local_comfy(client)
+    job = generate(client, make_post(client, clock))
+    first = state.database.path
+    made = ok(client.post('/api/worlds', json={}))
+    comfy = adapters['comfyui']
+    comfy.gate = asyncio.Event()
+
+    async def scenario():
+        drawing = asyncio.create_task(state.images.drain())
+        while not comfy.requests:  # The picture is being drawn: the model has it, nothing is stored yet.
+            await asyncio.sleep(0)
+        worlds.switch(state, made['id'])
+        comfy.gate.set()
+        await drawing
+
+    asyncio.run(scenario())
+    assert state.database.path != first
+    with sqlite3.connect(first) as connection:
+        assert connection.execute('SELECT status FROM image_jobs WHERE id=?', (job['id'],)).fetchone() == ('completed',)
+    with sqlite3.connect(state.database.path) as connection:
+        assert connection.execute('SELECT COUNT(*) FROM image_jobs').fetchone() == (0,)

@@ -70,6 +70,17 @@ one prompt in memory would drop the chat's cached prompt for each of them. So on
 back-and-forth keeps reusing the chat's prompt, and the background work catches up when the user pauses. Pointing
 the background jobs at a profile on a different server lets them run at once.
 
+### Instant replies on local models
+
+A local server keeps what it read for one prompt at a time, so going from one companion to another (or to a
+group, or a background job) means the next reply reads its whole prompt again. With llama.cpp's server
+(`llama-server`) started with `--slot-save-path <folder>`, the app keeps each companion's prompt start in that
+folder and puts it back before they reply (`companion/providers/prompt_cache.py`): coming back to someone is as
+quick as if you never left. It turns itself on when the server answers like llama.cpp's (`/props`) and accepts a
+save, and stays off otherwise; nothing is saved while the same companion keeps talking, only when the server is
+about to read someone else's prompt. There is one file per companion (and per model), each overwritten in place.
+Short prompts are not worth a file. A failure here only means the prompt is read again, never a failed reply.
+
 ## This computer
 
 `companion/hardware.py` reads the graphics cards (NVIDIA through `nvidia-smi`; Apple silicon as shared

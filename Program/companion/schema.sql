@@ -1650,3 +1650,22 @@ CREATE TABLE IF NOT EXISTS local_programs (
   model_path TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL
 );
+
+-- Who the user is in this world (companion/worlds.py): the persona the world belongs to, copied from worlds.json
+-- in the data folder whenever the world opens or the persona changes. The prompt and Matchlight read it here.
+CREATE TABLE IF NOT EXISTS persona (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  persona_id TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  gender TEXT NOT NULL DEFAULT '',
+  age INTEGER,
+  about TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+-- While you were away (companion/recap.py): the catch-up the user has read, by the last message it followed.
+CREATE TABLE IF NOT EXISTS away_recaps (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  since TEXT NOT NULL,
+  dismissed_at TEXT NOT NULL
+);

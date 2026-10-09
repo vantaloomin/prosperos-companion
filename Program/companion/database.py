@@ -8,6 +8,7 @@ import json
 import re
 import sqlite3
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,6 +17,9 @@ from companion.errors import DomainError, require
 from companion.identity import APP_ID, SCHEMA_VERSION, VERSION, database_path
 
 SCHEMA = Path(__file__).with_name('schema.sql').read_text(encoding='utf-8')
+# The world a piece of work belongs to (companion/worlds.py). A request, a background tick and every task they
+# start read and write the world they began in, even when the user switches worlds while they wait on a model.
+PINNED: ContextVar[tuple[int, Path] | None] = ContextVar('companion_world', default=None)
 
 
 def identifier() -> str:
@@ -32,9 +36,48 @@ def decode(value: str | None):
 
 class Database:
     def __init__(self, path: str | Path | None = None, clock: Clock | None = None):
-        self.path = Path(path or database_path())
+        self.active = Path(path or database_path())
+        # The folder of the first world: what every world shares (downloaded models, worlds.json) lives there.
+        # Another world's database is in its own folder below it (companion/worlds.py), and `use` switches to it.
+        self.root = self.active.parent
+        self.home = self.active
+        self.world: str | None = None  # The open world's id, set by companion/worlds.py.
         # Tests hand in a FixedClock; debug time (companion/debug_time.py) shifts the app clock wrapped around it.
         self.clock = clock if isinstance(clock, AppClock) else AppClock(clock)
+        self.open()
+
+    @property
+    def path(self) -> Path:
+        """The open world's database, or the one the work under way was pinned to."""
+        pinned = PINNED.get()
+        return pinned[1] if pinned and pinned[0] == id(self) else self.active
+
+    @contextmanager
+    def pin(self):
+        """Keep this work (and every task it starts) in the world open now, whatever is opened meanwhile."""
+        token = PINNED.set((id(self), self.path))
+        try:
+            yield
+        finally:
+            PINNED.reset(token)
+
+    def use(self, path: str | Path):
+        """Every part of the app reads and writes through this object, so pointing it at another world's
+        database moves all of them there; each connection opens the file anew. Work already pinned to the
+        world being left stays there; the work doing the switch follows it."""
+        previous, pinned = self.active, PINNED.get()
+        self.active = Path(path)
+        if pinned and pinned[0] == id(self):
+            PINNED.set((id(self), self.active))
+        try:
+            self.open()
+        except BaseException:
+            self.active = previous
+            if pinned and pinned[0] == id(self):
+                PINNED.set(pinned)
+            raise
+
+    def open(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         inspect_existing(self.path)
         if upgrade_needed(self.path):
@@ -169,6 +212,11 @@ ADDED_COLUMNS = (
     # When the user read the one-time notice that the characters are AI and confirmed they are 18 or older
     # (companion/workspace.py); the app asks once, before anything else, until then.
     ('workspace_settings', 'ai_notice_at', 'TEXT'),
+    # Automatic backups of every world (companion/auto_backup.py): on by default, once a day.
+    ('workspace_settings', 'auto_backups',
+     "TEXT NOT NULL DEFAULT 'daily' CHECK (auto_backups IN ('off', 'daily', 'weekly'))"),
+    # While you were away (companion/recap.py): days without a message before a catch-up shows; 0 is off.
+    ('life_settings', 'recap_after_days', 'INTEGER NOT NULL DEFAULT 3'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

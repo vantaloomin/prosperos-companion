@@ -158,7 +158,7 @@ class BuiltinRecall:
 
     def __init__(self, database, spawn=None, transport: httpx.AsyncBaseTransport | None = None):
         self.database = database
-        self.folder = Path(database.path).parent / 'embeddings'
+        self.folder = database.root / 'embeddings'  # Shared by every world.
         self.spawn = spawn or subprocess.Popen
         self.transport = transport
         self.process = None

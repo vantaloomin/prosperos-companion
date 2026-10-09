@@ -9,7 +9,7 @@ import { DRAMA_LEVELS } from '../today/storyText'
 import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['life-settings']
-type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'away_daily' | 'texts_gap_hours' | 'circle_size'
+type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'away_daily' | 'texts_gap_hours' | 'circle_size' | 'recap_after_days'
 
 const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: string }[] = [
   { key: 'catch_up_max_events', label: 'Most events when you return', min: 0, max: 6, hint: 'However long you were away.' },
@@ -20,6 +20,7 @@ const LIMITS: { key: NumberKey; label: string; min: number; max: number; hint: s
   { key: 'texts_daily', label: 'Most first messages a day, each', min: 1, max: 6, hint: '' },
   { key: 'away_daily', label: 'Most first messages a day, all companions together', min: 0, max: 40, hint: 'Shared by every companion, so a day with the app left running stays within what you want to spend on your model. 0 to 40; 0 stops them all.' },
   { key: 'texts_gap_hours', label: 'Quiet hours after talking before they message first', min: 1, max: 24, hint: '' },
+  { key: 'recap_after_days', label: 'Days away before a "While you were away" catch-up', min: 0, max: 60, hint: 'Shown once in the chat when you come back: what happened in their life and around town. 0 turns it off.' },
   { key: 'circle_size', label: 'People in their circle', min: 0, max: 12, hint: '0 decides by how sociable they are: 4 for a homebody, 5 usually, 10 for a social butterfly. Add people from Today.' },
 ]
 

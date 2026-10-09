@@ -29,6 +29,7 @@ import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
 import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
+import { AwayRecap } from './AwayRecap'
 import { ChatsPanel } from '../chats/ChatsPanel'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { readThrough } from '../chats/chatText'
@@ -221,6 +222,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         </div>
         <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
         <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
+        <AwayRecap name={name} />
         <ConversationNotice notice={notice} go={go} />
         <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
           onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
