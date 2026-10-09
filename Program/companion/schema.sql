@@ -1572,3 +1572,16 @@ CREATE TABLE IF NOT EXISTS voice_notes (
   voice TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+-- On her mind (companion/life/thoughts.py): one thought a day per timeline, worded by rules from what happened that
+-- day; `phrased` is the model's polish when background phrasing is on, `polish_tried` stops a second attempt.
+CREATE TABLE IF NOT EXISTS thoughts (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  day TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  text TEXT NOT NULL,
+  phrased TEXT,
+  polish_tried INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, day)
+);

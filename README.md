@@ -33,7 +33,7 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 **They text first.** Check-ins on their breaks, a hello at the times you usually show up (a lunch question if you tend to write at lunch), follow-ups on things they said they'd ask about, news and photos, within daily limits and quiet hours. The app never shows whether they're free: a busy companion answers later, or sends a quick "can't talk" and replies properly afterward.
 
-**They stay in character.** No "as an AI" disclaimers. Start a message with `OOC:` or wrap it in ((double parentheses)) when you want a plain answer.
+**They stay in character.** No "as an AI" disclaimers. Start a message with `OOC:` or wrap it in ((double parentheses)) when you want a plain answer. The app itself is clear that the characters are AI: a one-time notice on first start, a line under every message box, and a note with crisis lines if you ever mention hurting yourself. [Safety](Program/docs/safety.md) has the details.
 
 **Memory you control.** Facts you mention are remembered automatically (you can turn this off), and the Memories page shows exactly what the next reply will use. Correct, pin, exclude or delete anything. Conflicts are asked about rather than overwritten.
 
@@ -139,6 +139,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [World data and building cities](Program/docs/world-data.md)
 - [Making a city](Program/docs/making-a-city.md): what a city file needs, for players
 - [Current context tools (MCP)](Program/docs/context-tools.md)
+- [Safety: AI notices and crisis help](Program/docs/safety.md)
 - [Phone access](Program/docs/phone-access.md)
 - [Importing from Prospero's Study](Program/docs/study-import.md)
 - [Installing on a Mac](Program/docs/macos.md)

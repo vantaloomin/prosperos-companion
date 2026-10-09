@@ -26,7 +26,7 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, composer, feed, mood, routine
+from companion.life import agenda, composer, feed, mood, routine, thoughts
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -43,7 +43,8 @@ CAST_PER_TURN = 3
 BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
-FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts')
+FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
+         'on_her_mind')
 UNFINISHED = ('planned', 'running', 'interrupted')
 
 
@@ -729,6 +730,7 @@ class LifeEngine:
                 if not self.database.clock.shifted:  # Real weather and events would not match a spoofed day.
                     await self.quietly_observe()
                 await self.quietly_prepare()
+                await self.quietly_think()
             # First messages have their own setting (texts_first), so the companion can text while the
             # app is closed even when background activity is off; the open app also asks each minute.
             await self.quietly_text()
@@ -772,6 +774,44 @@ class LifeEngine:
             await self.prepare_now()
         except Exception:  # noqa: BLE001 - preparation is optional work.
             pass
+
+    async def quietly_think(self):
+        """Polish one thought on someone's mind (companion/life/thoughts.py) in the model's words, when model
+        phrasing is on. A conversation interrupts it; the template wording stays until a later tick."""
+        try:
+            await self.think()
+        except BackgroundInterrupted:
+            pass
+        except Exception:  # noqa: BLE001 - the template wording is already shown.
+            LOG.exception('A thought could not be polished.')
+
+    async def think(self):
+        due = await asyncio.to_thread(self.due_thought)
+        if due is None:
+            return
+        config, row, name = due
+        try:
+            text = await thoughts.polish(self.provider, self.scheduler, config, key_for(self.vault, config), row, name)
+        except DomainError:
+            text = None
+        await asyncio.to_thread(self.save_thought, row, text)
+
+    def due_thought(self):
+        with self.database.connect(write=True) as connection:
+            config, life = config_for(connection, 'life'), life_settings(connection)
+            if config is None or not life['phrase_with_model'] or not thoughts.enabled(connection):
+                return None
+            companion = current(connection)
+            if companion is not None and settings(connection)['paused_at'] is None:
+                thoughts.catch_up(connection, companion, self.now())
+            row = thoughts.unpolished(connection)
+            if row is None:
+                return None
+            return config, row, by_id(connection, row['companion_id'])['version']['definition']['name']
+
+    def save_thought(self, row, text):
+        with self.database.connect(write=True) as connection:
+            thoughts.save_polish(connection, row, text)
 
     async def quietly_life(self, mode):
         """The companion in focus, then this turn of everyone else."""

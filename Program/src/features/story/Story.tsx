@@ -8,6 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
+import { AiFooter, CrisisNote } from '../../components/Safety'
 import { aroundText, placeGroups, sceneTime, whereText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 
@@ -105,7 +106,7 @@ function StoryLog({ messages, pending, onRetry }: { messages: StoryMessage[]; pe
 
 function StoryLine({ message }: { message: StoryMessage }) {
   if (message.role === 'scene') return <p className="story-move">{message.text}</p>
-  if (message.role === 'user') return <p className="story-user">{message.text}</p>
+  if (message.role === 'user') return <><p className="story-user">{message.text}</p>{message.crisis_help && <CrisisNote />}</>
   if (message.status === 'failed') return <Notice tone="error">The narrator could not go on: {message.error}</Notice>
   return <div className="story-narration">{message.text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)}</div>
 }
@@ -116,7 +117,7 @@ function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string)
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit() }
   }
-  return (
+  return (<>
     <form className="composer story-composer" onSubmit={(event) => { event.preventDefault(); submit() }}>
       <label className="visually-hidden" htmlFor="story-text">What you do or say</label>
       <textarea id="story-text" rows={2} value={text} maxLength={40000} placeholder="What do you do or say?"
@@ -124,7 +125,8 @@ function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string)
       <InfoTip id="story-tip" label="the story" above text={`Enter sends, Shift+Enter adds a new line. ${OUT_OF_STORY}`} />
       <button type="submit" className="button primary" disabled={busy || !text.trim()}><Send aria-hidden="true" />Send</button>
     </form>
-  )
+    <AiFooter />
+  </>)
 }
 
 function NewStory({ empty, onClear }: { empty: boolean; onClear: () => Promise<void> }) {

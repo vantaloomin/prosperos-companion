@@ -12,7 +12,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-from companion import in_character, logs, pictures, self_checks, self_facts, texting, troubleshoot
+from companion import in_character, logs, pictures, safety, self_checks, self_facts, texting, troubleshoot
 from companion.characters import require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -107,8 +107,11 @@ def search(database, query: str, limit=SEARCH_LIMIT) -> dict:
 
 
 def message_view(row: dict) -> dict:
+    """A message for the interface. A user's message that sounds like self-harm carries `crisis_help`, so the chat
+    shows the app's note with places to get help under it (companion/safety.py)."""
     return {key: value for key, value in row.items() if key not in {'receipt', 'client_id'}} | {
-        'active': bool(row['active']), 'redacted': row['redacted_at'] is not None}
+        'active': bool(row['active']), 'redacted': row['redacted_at'] is not None,
+        'crisis_help': row['role'] == 'user' and row['redacted_at'] is None and safety.crisis(row['text'])}
 
 
 def recover(database):

@@ -863,10 +863,28 @@ POST /api/today/seen
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
 | `last_seen_at` | When the user last marked Today as seen |
 | `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
+| `mind` | On her mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
 
 Call `POST /api/today/seen` once the user has looked at Today, so the next visit's `changes`
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
 and `plans` have the same shape as `GET /api/events`.
+
+### On her mind
+
+Each evening (from 18:00 the companion's time) Today gets one private thought for that day, worked out by
+rules in `companion/life/thoughts.py` from what actually happened: a storyline beat or a new life chapter, how a
+consequence left them feeling (a mood mark not about the user), money (a surprise bill, a splurge, payday, a tight
+week), a plan of theirs in the next three days, a day that went off plan, or, kept light, the user: closeness
+reaching a new stage, or that the two of you talked. The weightiest wins, ties go to the day's seeded dice, and a
+topic used on either of the two days before steps aside when anything else is there; a quiet day gets a quiet line.
+Thoughts are written once, when Today is opened or in the background, and kept in `thoughts`, so the week reads
+back as it was; a day never changes after the fact. Nothing a secret they keep could give away is used, and no
+emotional trait the character was not given is ever implied.
+
+The wording is a fixed template. With background activity and `phrase_with_model` both on, the life model polishes
+one thought a tick at background priority; a polish that drops their name, names a clock time or runs long is
+thrown away and the template stays. Thoughts never reach the chat context, so the companion never knows they were
+read. The Life setting `on_her_mind` (on by default) hides them and stops new ones being written.
 
 ### Money
 

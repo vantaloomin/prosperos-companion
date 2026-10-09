@@ -32,6 +32,8 @@ export interface Message {
   pictures?: SentPicture[]
   /** Sent as a voice note: the audio, with the text as its transcript (companion/voice/notes.py). */
   voice?: VoiceNote | null
+  /** Your message sounds like self-harm: the app's note with places to get help shows under it (companion/safety.py). */
+  crisis_help?: boolean
 }
 
 export interface VoiceNote { url: string; duration_ms: number | null; engine: string }
@@ -208,6 +210,8 @@ export interface WorkspaceSettings {
   story_mode?: boolean
   /** The note under a group message when someone lets a secret slip; on unless turned off. */
   show_secret_slips?: boolean
+  /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
+  ai_notice_confirmed?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean
@@ -348,6 +352,7 @@ export interface LifeSettings {
   /** Replies wait while the companion is at work or asleep. */
   paced_replies: boolean
   day_shifts: boolean
+  on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
 }
@@ -410,7 +415,12 @@ export interface Today {
   day: { date: string; body: BodyState | null }
   /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
   occasions?: Occasion[]
+  /** On her mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
+  mind?: { thoughts: Thought[] } | null
 }
+
+/** One day's thought on the companion's mind. */
+export interface Thought { day: string; text: string }
 
 /** How the companion feels physically today, carried over from the day before. */
 export interface BodyState { state: 'sick' | 'hungover' | 'tired' | 'worn out' | 'sore'; because: string }
@@ -1171,6 +1181,7 @@ export interface StoryScene {
 export interface StoryMessage {
   id: string; seq: number; role: 'user' | 'narrator' | 'scene'; text: string; reply_to: string | null
   status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
+  crisis_help?: boolean
 }
 /** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
 export interface StoryPerson {
@@ -1247,6 +1258,8 @@ export interface GroupMessage {
   created_at: string
   /** Kept as a shared moment: it brings everyone who was there a little closer. */
   kept?: boolean
+  /** Your message sounds like self-harm: the app's note with places to get help shows under it. */
+  crisis_help?: boolean
 }
 
 export interface Group {

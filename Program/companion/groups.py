@@ -32,7 +32,7 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from companion import away, group_openers, in_character, prompt_library, secrets, texting
+from companion import away, group_openers, in_character, prompt_library, safety, secrets, texting
 from companion.characters import by_id
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
@@ -289,7 +289,7 @@ def message_view(row: dict, kept: frozenset = frozenset()) -> dict:
     return {'id': row['id'], 'seq': row['seq'], 'kind': kind, 'companion_id': companion_of(row['author']),
             'name': row['name'], 'text': row['text'], 'status': row['status'], 'error': row['error'],
             'reply_to': row['reply_to'], 'guard': row['guard'], 'created_at': row['created_at'],
-            'kept': row['id'] in kept}
+            'kept': row['id'] in kept, 'crisis_help': kind == 'user' and safety.crisis(row['text'])}
 
 
 def member_view(connection, stay: dict) -> dict:

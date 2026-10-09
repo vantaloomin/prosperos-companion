@@ -98,6 +98,8 @@ ADDED_COLUMNS = (
     ('life_settings', 'user_birthday', "TEXT NOT NULL DEFAULT ''"),
     ('life_settings', 'paced_replies', 'INTEGER NOT NULL DEFAULT 1'),
     ('life_settings', 'day_shifts', 'INTEGER NOT NULL DEFAULT 1 CHECK (day_shifts IN (0, 1))'),
+    # On her mind (companion/life/thoughts.py): one private thought a day, shown folded on Today.
+    ('life_settings', 'on_her_mind', 'INTEGER NOT NULL DEFAULT 1 CHECK (on_her_mind IN (0, 1))'),
     ('messages', 'held_until', 'TEXT'),
     ('messages', 'held_line', 'TEXT'),
     ('messages', 'held_notified', 'TEXT'),
@@ -152,6 +154,9 @@ ADDED_COLUMNS = (
     # The names and mark holders an outcome was decided with, so changing how it went can redo its marks.
     ('consequences', 'names', 'TEXT'),
     ('consequences', 'holders', 'TEXT'),
+    # When the user read the one-time notice that the characters are AI and confirmed they are 18 or older
+    # (companion/workspace.py); the app asks once, before anything else, until then.
+    ('workspace_settings', 'ai_notice_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

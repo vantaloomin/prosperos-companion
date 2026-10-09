@@ -15,6 +15,7 @@ import { DebugBanner } from './features/settings/DebugBanner'
 import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
 import { Welcome } from './features/character/Welcome'
+import { AiNotice } from './features/character/AiNotice'
 import { sidecar, useSidecarOpen } from './features/sidecar/store'
 import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
@@ -104,6 +105,7 @@ export default function App() {
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
       </main>
       {sidecarOpen && <Suspense fallback={null}><Sidecar view={view} go={go} /></Suspense>}
+      <AiNotice />
     </div>
   )
 }
