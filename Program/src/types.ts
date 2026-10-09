@@ -989,6 +989,14 @@ export interface StoryBeat {
   consequence: string | null
 }
 /** A lasting change to the companion's life (companion/life/chapters.py). */
+/** News travels (companion/news.py): the companion's recent news and who has heard it, in the order they did. */
+export interface NewsItem {
+  id: string
+  text: string
+  happened_on: string
+  heard: { name: string; heard_on: string; from: string | null; companion_id: string | null }[]
+}
+
 export interface LifeChapter {
   id: string
   kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves'
@@ -1295,8 +1303,10 @@ export interface SecretHolder {
   companion_id: string | null
   name: string
   via: SecretVia
-  /** How they came to know it, in words ("heard it in a group"). */
+  /** How they came to know it, in words ("heard it from Billy in a group"). */
   how: string
+  /** Who told them, as they'd say it ("Billy", "the user"), or null. */
+  told_by?: string | null
   learned_at: string
   /** The group they learned it in, when they did. */
   group: { id: string; name: string } | null

@@ -217,6 +217,9 @@ Each holder row says how they learned it (`via`):
 | reveal | "Let them find out" in the panel, or the user said it in a group in front of someone it was kept from. |
 | history | Added to a group with everything so far, where it had been said. |
 
+Everyone remembers who told them (`told_by`: the message's author, or `user`). The panel says it ("heard it from
+Billy in a group", "Billy let it slip in a group") and the 1:1 knowledge line does too ("Billy told you").
+
 "Make them forget" ends what someone learned, the way "Don't remember this" works; what happened in their own life
 can't be forgotten. Start over or Delete ends everything the companion learned. A companion never learns something
 because the user knows it.
@@ -228,6 +231,10 @@ because the user knows it.
 - **1:1 chat**: one `knowledge` section ("What you know that others may not") with secrets the user added that they
   know, and anything they learned from others. Their own storylines and sheet already tell them the rest. What they
   heard in a group follows automatic memory, like other memories.
+
+- **News**: ordinary, non-secret news travels separately (docs/life-api.md, "News travels"). A speaker's group
+  section lists news they heard that someone present hasn't ("Sally hasn't heard yet"), or says to let the person
+  it happened to tell it when they are there. News said in a group is heard by everyone there, from whoever said it.
 
 ### The reply check
 

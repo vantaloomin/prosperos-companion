@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Request
 from pydantic import Field
 
-from companion import consequences, conversation
+from companion import consequences, conversation, news
 from companion.characters import require_current
 from companion.clock import parse, stamp
 from companion.database import settings
@@ -333,6 +333,12 @@ def read_chapters(request: Request):
 def undo_chapter(request: Request, chapter_id: str):
     """Take a chapter back; returns the chapters still in place."""
     return chapters.undo(db(request), chapter_id)
+
+
+@router.get('/news')
+def read_news(request: Request):
+    """Word getting around (companion/news.py): the companion's recent news and who has heard it, in order."""
+    return news.read(db(request))
 
 
 @router.get('/reactions')

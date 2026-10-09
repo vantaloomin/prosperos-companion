@@ -21,7 +21,7 @@ import logging
 import random
 from datetime import date, timedelta
 
-from companion import events, logs, notifications, troubleshoot
+from companion import events, logs, news, notifications, troubleshoot
 from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -45,6 +45,7 @@ BACKGROUND_LOOKUP_DEADLINE = 20.0
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
          'on_her_mind')
+NEWS_EVERY = timedelta(minutes=10)
 UNFINISHED = ('planned', 'running', 'interrupted')
 
 
@@ -391,6 +392,8 @@ class LifeEngine:
         self.lookups = None
         self.openers = None
         self.groups = None
+        # When news last travelled (companion/news.py).
+        self.news_at = None
 
     def now(self):
         return self.database.clock.now()
@@ -724,6 +727,7 @@ class LifeEngine:
             # A fast debug clock (companion/debug_time.py) ticks more often in real time to keep up.
             await asyncio.sleep(self.database.clock.wait(tick_seconds))
             await self.quietly_life('background')
+            await self.quietly_spread()
             with self.database.connect() as connection:
                 background = settings(connection)['background_activity']
             if background:
@@ -774,6 +778,23 @@ class LifeEngine:
             await self.prepare_now()
         except Exception:  # noqa: BLE001 - preparation is optional work.
             pass
+
+    async def quietly_spread(self):
+        """Word of the companions' news gets around (companion/news.py), rules only, every NEWS_EVERY. It runs
+        whatever background activity says, as the rest of their rule-built lives do; never while paused."""
+        now = self.now()
+        if self.news_at is not None and now - self.news_at < NEWS_EVERY:
+            return
+        self.news_at = now
+        try:
+            await asyncio.to_thread(self.spread_news)
+        except Exception:  # noqa: BLE001 - the news travels on a later tick.
+            LOG.exception('News could not travel.')
+
+    def spread_news(self):
+        with self.database.connect(write=True) as connection:
+            if settings(connection)['paused_at'] is None:
+                news.sync(connection, self.now())
 
     async def quietly_think(self):
         """Polish one thought on someone's mind (companion/life/thoughts.py) in the model's words, when model

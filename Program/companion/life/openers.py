@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from datetime import time, timedelta
 
 from companion import away, in_character, notifications, prompt_library, self_facts, texting
+from companion import news as word
 from companion.characters import by_id, current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -40,7 +41,7 @@ from companion.life import (
     usual_hours,
 )
 from companion.life.mood import ABSENCE_HOURS, last_presence
-from companion.memory import context
+from companion.memory import context, pairs
 from companion.memory.records import OPEN_PLANS, eligible
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
@@ -237,6 +238,28 @@ def crossed_paths(connection, companion, now) -> list[Trigger]:
     return result
 
 
+def heard_news(connection, companion, now) -> list[Trigger]:
+    """News about another companion the user knows, heard by word of mouth today or yesterday (companion/news.py):
+    a friend texts the user about it, sometimes before the companion it happened to has said a word. Only what
+    they were told, never anything from the user's chats."""
+    key = pairs.companion_key(companion['id'])
+    since = (storylines.local_today(companion, now) - timedelta(days=1)).isoformat()
+    result = []
+    for item in word.heard(connection, key, since):
+        other = by_id(connection, pairs.companion_id(item['about']) or '')
+        if other is None or item['via'] != 'word':
+            continue
+        first = other['version']['name'].split()[0]
+        teller = word.who(connection, item['told_by'], key)
+        result.append(Trigger(
+            f"heard:{item['id']}", 'news',
+            f"{teller} told you some news about {other['version']['name']}, who you know the user knows well: "
+            f"{item['text']}. Tell the user, the way you would text a friend. You know only what {teller} told you, "
+            f"and you do not know whether the user has heard yet, so don't say how they might have.",
+            f"Did you hear about {first}?? {item['text']}!", (item['id'],)))
+    return result
+
+
 def occasion(connection, companion, now) -> list[Trigger]:
     """The user's birthday, the companion's own, or a milestone in how long they have talked: on the day.
     A circle member's birthday stays in the chat context only."""
@@ -357,7 +380,7 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 
 
 # In priority order; later features add their own.
-FINDERS = [occasion, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, reminders, silence, usual_time,
+FINDERS = [occasion, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence, usual_time,
            check_in]
 
 

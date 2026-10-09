@@ -629,6 +629,31 @@ GET  /api/life/chapters                   # the chapters in place, newest first
 POST /api/life/chapters/{id}/undo         # take one back; returns the rest
 ```
 
+#### News travels
+
+`companion/news.py` lets word of a companion's news get around. News is a storyline beat that turned out good or
+bad (never a storyline that is a secret) or a new life chapter, from the last 14 days. It starts with the companion
+it happened to and spreads each evening (from 20:00 their time) for five days, one hop a day: whoever had heard by
+the start of a day may pass it on that evening. A companion can tell the people in their circle and the other
+companions they know (memory/pairs.py, `known_companions`); a circle person can tell their companion and the rest
+of that circle. Whether a teller passes it on is the consequence engine's choice `news:pass_on`: likelier the
+closer they feel (never at "Just met"), when it is their own news, and from a gossip; the dice are seeded by the
+news, the pair and the day. It runs in the life engine every ten minutes, rules only, whatever background activity
+says, and never while paused. A chapter's news follows its title and ends when the chapter is undone.
+
+`news_holders` records who heard it, on which day, how (`origin`, `word`, `group`) and from whom (`told_by`).
+A companion who heard news about someone else gets it in their chat context under "News you heard about people
+you know" for 14 days ("Heard on 2026-10-07 (Ana (Kimberly's sister) told you): …"), and news about another
+companion heard today or yesterday can open a conversation ("Did you hear about Kimberly??"), sometimes before
+that companion has told the user. Only life events travel, never anything from the user's chats, and the prompt
+says they don't know whether the user has heard, so no companion seems to have read the user's other chats.
+Group chats: see docs/group-chat.md. Today shows "Word getting around": the companion's recent news and who has
+heard it, from whom, once anyone has.
+
+```http
+GET  /api/life/news                       # the companion's recent news and who heard it: [{id, text, happened_on, heard}]
+```
+
 ### Birthdays and anniversaries
 
 `companion/life/occasions.py` keeps four kinds of day, from the calendar and saved state only:

@@ -78,6 +78,10 @@ such than that the their theirs them themselves then there these they thing thin
 too under until upon very was were what when where which while who whom whose why will with without would yet you
 your yours yourself told tell tells telling everybody anybody secret secretly secrets'''.split())
 
+# The same, when they remember who told them (`told_by`).
+TOLD_TEXT = {'origin': 'from the start', 'witness': 'heard it from {teller} in a group',
+             'slip': '{teller} let it slip in a group', 'history': 'read what {teller} said in a group',
+             'reveal': '{teller} told them in a group'}
 VIA_TEXT = {'origin': 'from the start', 'witness': 'heard it in a group', 'slip': 'it slipped out in a group',
             'history': 'read it in a group', 'reveal': 'you let them find out'}
 
@@ -302,15 +306,17 @@ def insert(connection, kind: str, source_id: str | None, timestamp: str, *, stat
     return knowledge_id
 
 
-def hold(connection, knowledge_id: str, holder: str, role: str, learned_at: str, via: str, message_id=None) -> bool:
-    """Adds a holder row unless they already hold that role; returns whether one was added."""
+def hold(connection, knowledge_id: str, holder: str, role: str, learned_at: str, via: str, message_id=None,
+         told_by: str | None = None) -> bool:
+    """Adds a holder row unless they already hold that role; returns whether one was added. `told_by` is who they
+    heard it from (a person key or 'user'), which they remember."""
     existing = optional(connection, 'SELECT id FROM knowledge_holders WHERE knowledge_id=? AND holder=? AND role=? '
                         'AND ended_at IS NULL', (knowledge_id, holder, role))
     if existing:
         return False
-    connection.execute('INSERT INTO knowledge_holders (id, knowledge_id, holder, role, learned_at, via, message_id) '
-                       'VALUES (?, ?, ?, ?, ?, ?, ?)', (identifier(), knowledge_id, holder, role, learned_at, via,
-                                                        message_id))
+    connection.execute('INSERT INTO knowledge_holders (id, knowledge_id, holder, role, learned_at, via, message_id, '
+                       'told_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (identifier(), knowledge_id, holder, role,
+                                                                    learned_at, via, message_id, told_by))
     return True
 
 
@@ -399,7 +405,7 @@ def witness(connection, message: dict) -> list[str]:
             guarded = kept_from(secret, member)
             via = 'reveal' if guarded and message['author'] == 'user' else 'slip' if guarded and told_by_knower \
                 else 'witness'
-            hold(connection, secret['id'], member, 'knows', message['created_at'], via, message['id'])
+            hold(connection, secret['id'], member, 'knows', message['created_at'], via, message['id'], message['author'])
             if via in ('slip', 'reveal'):
                 slipped.append(secret['id'])
             if via == 'reveal':
@@ -417,7 +423,7 @@ def history(connection, group_id: str, member: str, timestamp: str):
             continue
         said = next((row for row in rows if hits(secret, row['text'], row['author'])), None)
         if said:
-            hold(connection, secret['id'], member, 'knows', timestamp, 'history', said['id'])
+            hold(connection, secret['id'], member, 'knows', timestamp, 'history', said['id'], said['author'])
 
 
 # In prompts --------------------------------------------------------------------------------------------
@@ -486,9 +492,18 @@ def context_lines(connection, companion: dict) -> list[tuple[str, str]]:
                    if (name := person_name(connection, member))]
         tail = (' Keep it to yourself.' if secret['guard_all'] else
                 f" {names_text(guarded)} must not find out." if guarded else '')
-        since = f" (since {parse(mine['learned_at']).date().isoformat()})"
+        teller = told(connection, mine)
+        since = f" ({f'{teller} told you, ' if teller else ''}since {parse(mine['learned_at']).date().isoformat()})"
         lines.append((f"secret:{secret['id']}", f"- {secret['statement'].rstrip('.')}{since}.{tail}"))
     return lines
+
+
+def told(connection, holder: dict) -> str | None:
+    """Who they heard it from, as they would say it: a name, "the user", or None when nobody told them."""
+    teller = holder.get('told_by')
+    if not teller or teller == holder['holder']:
+        return None
+    return 'the user' if teller == 'user' else first_name(person_name(connection, teller) or 'someone')
 
 
 def found_about(connection, holder: str, about: str) -> int:
@@ -522,9 +537,12 @@ def holder_view(connection, holder: dict) -> dict:
         row = optional(connection, 'SELECT g.id, g.name FROM group_messages m JOIN group_chats g ON g.id=m.group_id '
                        'WHERE m.id=?', (holder['message_id'],))
         group = row and {'id': row['id'], 'name': row['name']}
+    teller = told(connection, holder)
+    how = VIA_TEXT[holder['via']] if teller is None else TOLD_TEXT[holder['via']].format(
+        teller='you' if teller == 'the user' else teller)
     return {'key': holder['holder'], 'companion_id': companion_id,
             'name': person_name(connection, holder['holder']) or 'Someone no longer here', 'via': holder['via'],
-            'how': VIA_TEXT[holder['via']], 'learned_at': holder['learned_at'], 'group': group}
+            'how': how, 'told_by': teller, 'learned_at': holder['learned_at'], 'group': group}
 
 
 SOURCE_TEXT = {'storyline': 'storyline', 'character': 'character', 'memory': 'memories'}

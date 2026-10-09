@@ -32,7 +32,7 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from companion import away, group_openers, in_character, prompt_library, safety, secrets, texting
+from companion import away, group_openers, in_character, news, prompt_library, safety, secrets, texting
 from companion.characters import by_id
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
@@ -425,6 +425,8 @@ def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str
         lines += member_lines(connection, stay['member'], item, now)
     lines += secrets.group_lines(connection, stay['member'], [item['member'] for item in members],
                                  {item['member']: item['name'] for item in members}, now)
+    lines += news.group_lines(connection, stay['member'], [item['member'] for item in members],
+                              {item['member']: item['name'] for item in members}, now)
     return lines
 
 
@@ -597,6 +599,7 @@ def record(database, group_id: str, text: str, client_id: str) -> dict:
         require(current_members(connection, group_id), 'Add someone to this group to keep talking.', 409)
         row = add_line(connection, group_id, database.now(), 'user', USER, text, client_id=client_id)
         secrets.witness(connection, row)  # The user can tell them; then they know.
+        news.witness(connection, row)
         return row
 
 
@@ -887,6 +890,7 @@ class GroupChats:
             saved = one(connection, 'SELECT * FROM group_messages WHERE id=?', (row['id'],))
             if status == 'complete':
                 secrets.witness(connection, saved)
+                news.witness(connection, saved)
         running.live.pop(row['id'], None)
         if status == 'complete':
             running.shown_at, running.before = time.monotonic(), text

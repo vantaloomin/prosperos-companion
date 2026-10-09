@@ -1585,3 +1585,34 @@ CREATE TABLE IF NOT EXISTS thoughts (
   created_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, day)
 );
+
+-- News travels (companion/news.py): something big enough to share from a companion's own life (a storyline beat
+-- that turned out good or bad, a new chapter), spreading one hop a day along who knows whom. `about` is the companion
+-- it happened to; `spread_through` the last day whose evening it has spread on.
+CREATE TABLE IF NOT EXISTS news (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  source TEXT NOT NULL UNIQUE,
+  about TEXT NOT NULL,
+  text TEXT NOT NULL,
+  happened_on TEXT NOT NULL,
+  spread_through TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'ended')),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS news_timeline ON news(timeline_id, status, happened_on);
+
+-- Who has heard each piece of news, when (their teller's local day), and who told them: `told_by` is a person key,
+-- 'user', or NULL for the companion it happened to (`hop` 0).
+CREATE TABLE IF NOT EXISTS news_holders (
+  news_id TEXT NOT NULL REFERENCES news(id),
+  holder TEXT NOT NULL,
+  told_by TEXT,
+  hop INTEGER NOT NULL,
+  heard_on TEXT NOT NULL,
+  via TEXT NOT NULL CHECK (via IN ('origin', 'word', 'group')),
+  message_id TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (news_id, holder)
+);
+CREATE INDEX IF NOT EXISTS news_holders_holder ON news_holders(holder, heard_on);

@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, pictures, prompt_library, secrets, self_facts, texting
+from companion import consequences, news, pictures, prompt_library, secrets, self_facts, texting
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
@@ -136,6 +136,9 @@ HEADINGS = {
                           'it, and never invent how an unfolding one ends)',
             # Secrets they learned from others, or that the user declared (companion/secrets.py).
             'knowledge': 'What you know that others may not (keep each one as private as it says)',
+            # News about people they know that reached them by word of mouth (companion/news.py).
+            'news': 'News you heard about people you know (from whoever told you; you do not know whether the user '
+                    'has heard it yet, so never say or guess how the user found out)',
             'townsfolk': 'People around town (background characters you keep running into; you know only what is '
                          'listed here, so never invent more about them or claim to know them better)',
             'city_news': 'Changes around your city (fictional unless marked as a real listing; you know them as a '
@@ -653,7 +656,7 @@ def offer_own(packet, connection, timeline_id, version, now, since=None):
         packet.offer('own_plans', identity, text)
 
 
-def offer_secrets(packet, connection, companion, group: dict | None):
+def offer_secrets(packet, connection, companion, group: dict | None, now: datetime):
     """A group reply's own group section; in a 1:1 chat, the secrets they learned from others instead (in a group,
     the group section says what they know and who there must not find out)."""
     for identity, text in (group or {}).get('lines', ()):
@@ -661,6 +664,8 @@ def offer_secrets(packet, connection, companion, group: dict | None):
     if group is None:
         for identity, text in secrets.context_lines(connection, companion):
             packet.offer('knowledge', identity, text)
+        for identity, text in news.context_lines(connection, companion, now):
+            packet.offer('news', identity, text)
 
 
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
@@ -700,7 +705,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     since = recent[0]['created_at'] if recent else None
     offer_own(packet, connection, timeline_id, version, now, since)
-    offer_secrets(packet, connection, companion, group)
+    offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
