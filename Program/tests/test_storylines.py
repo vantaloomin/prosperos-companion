@@ -179,7 +179,8 @@ def test_a_settled_storyline_stays_by_its_outcome_then_goes_to_recall(client, so
 
     clock.advance(timedelta(days=40))
     reconcile(client)
-    assert '## What is going on' not in client.get('/api/context/preview').json()['prompt']
+    # A life chapter may share the section by now, so look for the storyline's own line.
+    assert '- Settled on ' not in client.get('/api/context/preview').json()['prompt']
     with client.app.state.database.connect(write=True) as connection:
         companion = require_current(connection)
         assert storylines.context_lines(connection, companion, clock.now()) == []
