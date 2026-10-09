@@ -25,6 +25,7 @@ import { applyFinished, groupTurns, lastUserMessage, liveFor, mergeMessages, rep
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
+import { useOoc } from './useOoc'
 import { useScrollAway } from './useScrollAway'
 import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
@@ -64,6 +65,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [branching, setBranching] = useState<Message | null>(null)
   const [found, setFound] = useState<{ id: string; at: number } | null>(null)
   const draft = useDraft()
+  const ooc = useOoc()
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
   const name = companion.version.name
@@ -123,8 +125,9 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const fail = (error: unknown) => setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'That did not work. Please try again.', settings: error instanceof ApiError && error.code === 'not_configured' })
 
   const send = async () => {
-    const { text, clientId, pictures = [] } = draft.value
-    if (!text.trim() && !pictures.length) return
+    const { clientId, pictures = [] } = draft.value
+    const text = ooc.route(draft.value.text)
+    if (!text.trim() && !pictures.length) { draft.clear(); return }
     draft.setSending(true)
     try {
       accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId, picture_ids: pictures.map((picture) => picture.id), companion_id: companion.id }))
@@ -233,7 +236,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
         </div>
         <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
-        <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
+        <ActivityLine messages={messages} phases={phases} sending={draft.sending} aside={ooc.note} />
         <AwayRecap name={name} />
         <ConversationNotice notice={notice} go={go} />
         <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}

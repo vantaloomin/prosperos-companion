@@ -16,7 +16,8 @@ import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
 import { Welcome } from './features/character/Welcome'
 import { AiNotice } from './features/character/AiNotice'
-import { sidecar, useSidecarOpen } from './features/sidecar/store'
+import { sidecar, useSidecarMode, useSidecarOpen, useSidecarWaiting } from './features/sidecar/store'
+import { current as sidecarWindow } from './features/sidecar/popout'
 import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
 import { badge, unreadOf } from './features/chats/chatText'
@@ -34,6 +35,7 @@ const Today = lazy(() => import('./features/today/Today').then((m) => ({ default
 const Dating = lazy(() => import('./features/dating/Dating').then((m) => ({ default: m.Dating })))
 const Story = lazy(() => import('./features/story/Story').then((m) => ({ default: m.Story })))
 const Sidecar = lazy(() => import('./features/sidecar/Sidecar').then((m) => ({ default: m.Sidecar })))
+const SidecarWindow = lazy(() => import('./features/sidecar/SidecarWindow').then((m) => ({ default: m.SidecarWindow })))
 const Groups = lazy(() => import('./features/groups/Groups').then((m) => ({ default: m.Groups })))
 const GroupChat = lazy(() => import('./features/groups/GroupChat').then((m) => ({ default: m.GroupChat })))
 const Worlds = lazy(() => import('./features/worlds/Worlds').then((m) => ({ default: m.Worlds })))
@@ -83,6 +85,7 @@ export default function App() {
   const storyOn = !!useWorkspaceSettings().data?.story_mode
   useAppColors()
   const sidecarOpen = useSidecarOpen()
+  const sidecarWaiting = useSidecarWaiting()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
   const datingInstalled = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean }>('/dating/status') }).data?.installed ?? true
   return (
@@ -93,8 +96,8 @@ export default function App() {
         {VIEWS.filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon }) => (
           <Fragment key={id}>
             {/* The sidecar opens beside any view, so it is a toggle rather than a view. */}
-            {id === 'settings' && <button type="button" className="nav-sidecar" aria-pressed={sidecarOpen} onClick={() => sidecar.setOpen(!sidecarOpen)}>
-              <MessageSquareText aria-hidden="true" /><span>Sidecar</span>
+            {id === 'settings' && <button type="button" className="nav-sidecar" aria-pressed={sidecarOpen} onClick={() => toggleSidecar(sidecarOpen)}>
+              <MessageSquareText aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
             </button>}
             <button type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
               <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}
@@ -109,10 +112,28 @@ export default function App() {
           : companion.isError ? <ErrorNotice error={companion.error} />
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
       </main>
-      {sidecarOpen && <Suspense fallback={null}><Sidecar view={view} go={go} /></Suspense>}
+      {sidecarOpen && <SidecarHost view={view} go={go} />}
       <AiNotice />
     </div>
   )
+}
+
+/** The sidecar docked beside the app, or in its own window (src/features/sidecar/popout.ts). */
+function SidecarHost({ view, go }: { view: View; go: (view: View) => void }) {
+  const mode = useSidecarMode()
+  return (
+    <Suspense fallback={null}>
+      {mode === 'window' ? <SidecarWindow><Sidecar view={view} go={go} windowed /></SidecarWindow> : <Sidecar view={view} go={go} />}
+    </Suspense>
+  )
+}
+
+/** The nav button: opens the sidecar where it last was, brings its window forward, or closes the docked panel. */
+function toggleSidecar(open: boolean) {
+  const popped = sidecarWindow()
+  if (open && popped) popped.focus()
+  else if (open) sidecar.setOpen(false)
+  else sidecar.show()
 }
 
 /** #chat/<id>, from a notification tapped while the app was closed: open that companion's chat. */

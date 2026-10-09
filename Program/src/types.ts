@@ -212,6 +212,12 @@ export interface WorkspaceSettings {
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */
   custom_palette?: Palette | null
+  /** They can ask to remember more: one hidden extra look through memory when a reply needs it. On unless turned off. */
+  recall_more?: boolean
+  /** Out-of-character asides go to the helper instead of the companion (src/features/conversation/ooc.ts). */
+  ooc_to_helper?: boolean
+  /** The markers for those asides; null means the defaults (OOC: and ((...))). */
+  ooc_markers?: { open: string; close: string }[] | null
   /** Story mode (src/features/story) is opt-in, in Settings > Advanced. */
   story_mode?: boolean
   /** The note under a group message when someone lets a secret slip; on unless turned off. */

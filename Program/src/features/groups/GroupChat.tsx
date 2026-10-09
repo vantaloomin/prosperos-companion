@@ -17,6 +17,8 @@ import { ChatsPanel } from '../chats/ChatsPanel'
 import { useMarkRead } from '../chats/useChats'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useDraft } from '../conversation/useDraft'
+import { useOoc } from '../conversation/useOoc'
+import { AsideText } from '../conversation/ActivityLine'
 import { useScrollAway } from '../conversation/useScrollAway'
 import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
@@ -67,12 +69,14 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
   const id = group.id
   const style = useChatStyle()
   const draft = useDraft(`companion:group-draft:${id}`)
+  const ooc = useOoc()
   const shown = shownMessages(data.messages, data.live)
   const { transcript, pinned, follow } = useFollow(shown)
   const scroll = useScrollAway(transcript, pinned)
   const submit = async () => {
-    const { text, clientId } = draft.value
-    if (!text.trim()) return
+    const { clientId } = draft.value
+    const text = ooc.route(draft.value.text)
+    if (!text.trim()) { draft.clear(); return }
     draft.setSending(true)
     if (await send(text, clientId)) { draft.clear(); follow() }
     draft.setSending(false)
@@ -95,7 +99,7 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
         </div>
         {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
       </div>
-      <p className="chat-activity subtle" role="status" aria-live="polite">{groupActivity(data, sending)}</p>
+      <p className="chat-activity subtle" role="status" aria-live="polite">{groupActivity(data, sending) || <AsideText note={ooc.note} />}</p>
       <GroupNotice notice={notice ?? (data.ready ? null : NO_MODEL)} go={go} />
       {group.members.length
         ? <Composer name={group.title} draft={draft} streaming={data.busy} compact={scroll.away} onSend={() => void submit()} pictures={false}
