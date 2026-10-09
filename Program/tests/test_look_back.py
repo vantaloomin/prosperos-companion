@@ -1,11 +1,17 @@
 """She can ask to remember more (companion/memory/look_back.py): a wider search, and one hidden recall request."""
 import json
 
+import pytest
 from conftest import send
 from test_memory import remember
 
 from companion.memory import look_back
 from companion.providers.chat import Chunk
+
+
+@pytest.fixture(autouse=True)
+def fresh_rates(monkeypatch):
+    monkeypatch.setattr(look_back, 'RATES', look_back.Rates())
 
 
 def feed(lookout, *pieces) -> str:
@@ -71,3 +77,21 @@ def test_a_thin_recall_widens_with_recent_messages(client, connected, provider):
     with client.app.state.database.connect() as connection:
         receipt = connection.execute('SELECT receipt FROM messages WHERE id=?', (reply['id'],)).fetchone()[0]
     assert json.loads(receipt)['widened_recall'] is True
+
+
+def test_a_request_anywhere_else_is_cut_out_however_it_is_written():
+    assert feed(look_back.Lookout(), 'Oh hi! [[Recall: x]', ']', ' and more') == 'Oh hi! and more'
+    assert feed(look_back.Lookout(), 'Line one\n[recall the zoo] Next') == 'Line one\nNext'
+    assert feed(look_back.Lookout(strip=True), '[Recall: zoo]] So!') == 'So!'
+    assert feed(look_back.Lookout(), 'A [note] and [rock]') == 'A [note] and [rock]'
+    lookout = look_back.Lookout()
+    assert feed(lookout, '[recall the zoo]') == '' and lookout.query == 'the zoo'
+
+
+def test_a_model_that_asks_too_often_stops_being_offered_it():
+    rates = look_back.Rates()
+    for number in range(look_back.RATE_AFTER):
+        assert rates.allowed('small')
+        rates.count('small', asked=number % 2 == 0)
+        rates.count('steady', asked=number % 10 == 0)
+    assert not rates.allowed('small') and rates.allowed('steady')

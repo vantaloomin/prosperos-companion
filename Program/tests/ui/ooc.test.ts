@@ -28,3 +28,9 @@ test('the user can add their own markers', () => {
   assert.deepEqual(splitOoc('Sure [[is she too clingy?]]', markers), { story: 'Sure', aside: 'is she too clingy?' })
   assert.deepEqual(splitOoc('// note to self', markers), { story: '', aside: 'note to self' })
 })
+
+test('markers match whatever the case', () => {
+  const markers = [{ open: 'ooc:', close: '' }, { open: '<ASIDE>', close: '</ASIDE>' }]
+  assert.deepEqual(splitOoc('OOC: too much?', markers), { story: '', aside: 'too much?' })
+  assert.deepEqual(splitOoc('Hi <aside>brb</aside>', markers), { story: 'Hi', aside: 'brb' })
+})

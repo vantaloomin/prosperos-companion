@@ -20,12 +20,15 @@ Advanced with the other prompts ([prompts.md](prompts.md)).
 
 ## Out-of-character messages
 
-A message to a companion or a group that starts with `OOC:`, or the part of it inside ((double parentheses)), goes
-to the sidecar instead (`src/features/conversation/ooc.ts`, `useOoc.ts`). The sidecar opens and answers it as if it
-were typed there; the aside never appears in the chat or reaches the companion, and the rest of the message is sent
-as usual. Settings > General > Out-of-character messages turns this off (the companion then answers those honestly,
-out of character) and edits the markers: a starting word, or an opening and closing pair, up to 12 of each
-(`ooc_to_helper`, `ooc_markers` in `/api/settings`).
+A message to a companion or a group that starts with `OOC:` goes to the sidecar instead, and so does any part of a
+message inside ((double parentheses)) (`src/features/conversation/ooc.ts`, `useOoc.ts`). The sidecar answers it as
+if it were typed there; the aside never appears in the chat or reaches the companion, and the rest of the message is
+sent as usual. A whole aside opens the sidecar and the activity line says "Sent to the sidecar". Part of a message
+opens it too ("Your aside went to the sidecar"), except on a phone, where it would cover the reply: the line offers
+"Open" and the Sidecar button shows a dot until it is opened. Settings > General > Out-of-character messages turns
+this off (the companion then answers those honestly, out of character) and edits the markers ("Starts with" a word,
+or "Between" an opening and closing pair; matching ignores case; up to 12), saved as they change (`ooc_to_helper`,
+`ooc_markers` in `/api/settings`).
 
 ## What it sees
 

@@ -21,7 +21,7 @@ export function activityLine(messages: Message[], phases: Record<string, Phase>,
 function phaseLine(phase: Phase | undefined): string {
   if (phase === 'looking') return 'Looking at your picture…'
   if (phase === 'waiting') return 'Waiting for the model to be free…'
-  if (phase === 'remembering') return 'Looking back through earlier chats…'
+  if (phase === 'remembering') return 'Checking older memories…'
   if (phase === 'writing') return 'Writing a reply…'
   return 'Getting a reply ready…'
 }

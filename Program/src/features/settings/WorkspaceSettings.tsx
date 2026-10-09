@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { SETTINGS_KEY, pcTimezone, useWorkspaceSettings } from '../../companion'
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, X } from 'lucide-react'
 import { api } from '../../api'
 import type { WorkspaceSettings as Settings } from '../../types'
 import { Notice } from '../../components/Feedback'
@@ -176,36 +176,70 @@ export function OocSettings() {
     <section className="settings-section form-stack" aria-labelledby="ooc-heading">
       <h2 id="ooc-heading">Out-of-character messages</h2>
       <SectionError problem={problem} />
-      <Toggle label="Send out-of-character messages to the helper" checked={data.ooc_to_helper ?? true} onChange={(value) => void save({ ooc_to_helper: value })}
-        hint="A message that starts with OOC:, or a part of one inside (( )), goes to the helper panel instead of your companion, and stays out of the chat. The rest of the message is sent as usual. When off, your companion answers those honestly, out of character." />
+      <Toggle label="Send out-of-character messages to the sidecar" checked={data.ooc_to_helper ?? true} onChange={(value) => void save({ ooc_to_helper: value })}
+        hint="Messages that start with OOC:, or the parts inside (( )), go to the sidecar instead of the character, and stay out of the chat; the rest is sent as usual. Off: the character answers them honestly." />
       {(data.ooc_to_helper ?? true) && <OocMarkers markers={markers} save={(next) => void save({ ooc_markers: next })} />}
     </section>
   )
 }
 
+const sameMarkers = (a: OocMarker[], b: OocMarker[]) =>
+  a.length === b.length && a.every((row, index) => row.open.toLowerCase() === b[index].open.toLowerCase() && row.close.toLowerCase() === b[index].close.toLowerCase())
+
+/** What is wrong with one marker row, if anything. */
+function markerProblem(rows: MarkerRow[], index: number): string | null {
+  const row = rows[index]
+  if (!row.open.trim() || (row.pair && !row.close.trim())) return 'A marker needs at least one character.'
+  const same = (other: OocMarker) => other.open.trim().toLowerCase() === row.open.trim().toLowerCase() && other.close.trim().toLowerCase() === row.close.trim().toLowerCase()
+  return rows.slice(0, index).some(same) ? 'That marker is already in the list.' : null
+}
+
+type MarkerRow = OocMarker & { pair: boolean }
+
 function OocMarkers({ markers, save }: { markers: OocMarker[]; save: (markers: OocMarker[]) => void }) {
-  const [rows, setRows] = useState(markers)
-  // Saved as soon as every marker has a start; a half-typed new row waits until it has one.
-  const change = (next: OocMarker[]) => {
+  const [rows, setRows] = useState<MarkerRow[]>(() => markers.map((row) => ({ ...row, pair: !!row.close })))
+  const [adding, setAdding] = useState(false)
+  // Saved as soon as every marker is complete; while one isn't, its row says why.
+  const change = (next: MarkerRow[]) => {
     setRows(next)
-    if (next.length && next.every((row) => row.open.trim())) save(next.map((row) => ({ open: row.open.trim(), close: row.close.trim() })))
+    if (next.length && next.every((_row, index) => !markerProblem(next, index))) {
+      save(next.map((row) => ({ open: row.open.trim(), close: row.pair ? row.close.trim() : '' })))
+    }
   }
-  const edit = (index: number, part: Partial<OocMarker>) => change(rows.map((row, at) => (at === index ? { ...row, ...part } : row)))
+  const edit = (index: number, part: Partial<MarkerRow>) => change(rows.map((row, at) => (at === index ? { ...row, ...part } : row)))
+  const add = (pair: boolean) => { setRows([...rows, { open: '', close: '', pair }]); setAdding(false) }
   return (
     <fieldset className="form-stack">
       <legend>Markers</legend>
-      <p className="subtle">Leave "Ends with" empty for a word that marks the whole message when it starts with it.</p>
       {rows.map((row, index) => (
-        <div key={index} className="form-grid">
-          <TextInput label="Starts with" value={row.open} maxLength={12} onChange={(open) => edit(index, { open })} />
-          <TextInput label="Ends with" value={row.close} maxLength={12} onChange={(close) => edit(index, { close })} />
-          <button type="button" className="text-button" onClick={() => change(rows.filter((_, at) => at !== index))} disabled={rows.length < 2}>Remove</button>
-        </div>
+        <MarkerRowEditor key={index} row={row} problem={markerProblem(rows, index)} only={rows.length < 2}
+          onChange={(part) => edit(index, part)} onRemove={() => change(rows.filter((_, at) => at !== index))} />
       ))}
       <div className="form-actions">
-        <button type="button" className="button" onClick={() => setRows([...rows, { open: '', close: '' }])} disabled={rows.length >= 12}>Add a marker</button>
-        <button type="button" className="text-button" onClick={() => change(DEFAULT_OOC_MARKERS)}>Reset to defaults</button>
+        {adding
+          ? <span role="group" aria-label="Kind of marker">
+              <button type="button" className="button" onClick={() => add(false)}>Starts with</button>
+              <button type="button" className="button" onClick={() => add(true)}>Between</button>
+            </span>
+          : <button type="button" className="button" onClick={() => setAdding(true)} disabled={rows.length >= 12}>Add marker</button>}
+        {!sameMarkers(rows, DEFAULT_OOC_MARKERS) && <button type="button" className="text-button" onClick={() => change(DEFAULT_OOC_MARKERS.map((row) => ({ ...row, pair: !!row.close })))}>Reset to defaults</button>}
       </div>
     </fieldset>
+  )
+}
+
+function MarkerRowEditor({ row, problem, only, onChange, onRemove }: { row: MarkerRow; problem: string | null; only: boolean; onChange: (part: Partial<MarkerRow>) => void; onRemove: () => void }) {
+  const box = (value: string, label: string, set: (text: string) => void) =>
+    <input value={value} maxLength={12} size={6} aria-label={label} aria-invalid={!!problem} onChange={(event) => set(event.target.value)} />
+  return (
+    <div>
+      <div className="form-actions">
+        {row.pair
+          ? <span>Between {box(row.open, 'Opening marker', (open) => onChange({ open }))} and {box(row.close, 'Closing marker', (close) => onChange({ close }))}</span>
+          : <span>Starts with {box(row.open, 'Starting word', (open) => onChange({ open }))}</span>}
+        <button type="button" className="icon-button marker-remove" aria-label="Remove this marker" disabled={only} onClick={onRemove}><X aria-hidden="true" /></button>
+      </div>
+      {problem && <p className="subtle" role="alert">{problem}</p>}
+    </div>
   )
 }

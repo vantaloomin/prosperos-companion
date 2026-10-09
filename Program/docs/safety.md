@@ -16,7 +16,7 @@ nothing is sent anywhere.
   chats, group chats and Story mode, in every chat style and on a phone, the whole time you are chatting.
 - **The notices come from the app, never from a character.** A character still never says it is an AI (see
   "They stay in character" in the README); a message starting with `OOC:` or wrapped in ((double parentheses)) goes to the
-  helper (the sidecar, which is not a character) by default, and with that turned off the character gives a plain,
+  sidecar (which is not a character) by default, and with that turned off the character gives a plain,
   honest answer.
 
 ## Crisis help

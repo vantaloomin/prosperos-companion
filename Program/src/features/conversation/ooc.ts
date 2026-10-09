@@ -12,6 +12,7 @@ export interface OocSplit { story: string; aside: string }
 
 /** The message split into what goes to the companion (`story`) and what goes to the helper (`aside`). */
 export function splitOoc(text: string, markers: OocMarker[]): OocSplit {
+  // Matching ignores case; the markers' own spelling is only for show.
   const start = markers.find((marker) => !marker.close && text.trimStart().toLowerCase().startsWith(marker.open.toLowerCase()))
   if (start) return { story: '', aside: text.trimStart().slice(start.open.length).trim() }
   const pairs = markers.filter((marker) => marker.close)
@@ -21,7 +22,7 @@ export function splitOoc(text: string, markers: OocMarker[]): OocSplit {
   for (let found = firstPair(rest, pairs); found; found = firstPair(rest, pairs)) {
     story.push(rest.slice(0, found.at))
     const inside = rest.slice(found.at + found.marker.open.length)
-    const end = inside.indexOf(found.marker.close)
+    const end = inside.toLowerCase().indexOf(found.marker.close.toLowerCase())
     asides.push((end < 0 ? inside : inside.slice(0, end)).trim())
     rest = end < 0 ? '' : inside.slice(end + found.marker.close.length)
   }
@@ -33,7 +34,7 @@ export function splitOoc(text: string, markers: OocMarker[]): OocSplit {
 function firstPair(text: string, pairs: OocMarker[]): { at: number; marker: OocMarker } | null {
   let best: { at: number; marker: OocMarker } | null = null
   for (const marker of pairs) {
-    const at = text.indexOf(marker.open)
+    const at = text.toLowerCase().indexOf(marker.open.toLowerCase())
     if (at >= 0 && (!best || at < best.at)) best = { at, marker }
   }
   return best

@@ -425,17 +425,25 @@ class Conversation:
         asking = context.add_note(packet, look_back.ASK)
         status, error, dropped, query = await self.write(prepared, key, asking, text, publish, active, step,
                                                          look_back.Lookout())
+        look_back.RATES.count(model_of(prepared), query is not None)
         if query is None:
             return status, error, dropped, asking
-        step('remembering')
+        # "Checking older memories…" only once the second look has taken a second, until the reply starts.
+        later = asyncio.get_running_loop().call_later(look_back.SHOW_AFTER, step, 'remembering')
         lines = await asyncio.to_thread(self.look_back, prepared, query, packet)
         packet = context.add_note(packet, look_back.found_note(query, lines))
-        status, error, dropped, _query = await self.write(prepared, key, packet, text, publish, active, step)
+        try:
+            status, error, dropped, _query = await self.write(prepared, key, packet, text, publish, active,
+                                                              lambda phase: later.cancelled() and step(phase),
+                                                              started=lambda: later.cancel() or step('writing'))
+        finally:
+            later.cancel()
         return status, error, dropped, packet
 
     def may_look_back(self, prepared) -> bool:
         user_text = prepared['user']['text']
-        if in_character.out_of_character(user_text) or not look_back.points_back(user_text):
+        if in_character.out_of_character(user_text) or not look_back.points_back(user_text) or \
+                not look_back.RATES.allowed(model_of(prepared)):
             return False
         with self.database.connect() as connection:
             return bool(settings(connection)['recall_more'])
@@ -447,8 +455,8 @@ class Conversation:
             return context.looked_back(connection, companion, self.database.clock.now(), query, user['seq'],
                                        frozenset(packet['receipt']['included'].get('recalled', ())))
 
-    async def write(self, prepared, key, packet, text, publish, active, step=lambda _phase: None, lookout=None
-                    ) -> tuple[str, str | None, int, str | None]:
+    async def write(self, prepared, key, packet, text, publish, active, step=lambda _phase: None, lookout=None,
+                    started=lambda: None) -> tuple[str, str | None, int, str | None]:
         """One pass at the reply. Sentences that say the companion is an AI or not real are dropped before
         they are shown (companion/in_character.py); a reply that asks to remember more is held back and cut short
         (`lookout`, companion/memory/look_back.py; otherwise such a request is only dropped). Returns the status, error, how many sentences were dropped and
@@ -460,6 +468,8 @@ class Conversation:
 
         def keep(piece):
             if piece:
+                if not text:
+                    started()
                 text.append(piece)
                 publish(piece)
 
@@ -507,6 +517,10 @@ class Conversation:
                 finished = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())
+
+
+def model_of(prepared) -> str:
+    return str(prepared['config'].get('model') or '')
 
 
 def chat_owner(connection, timeline_id) -> dict:

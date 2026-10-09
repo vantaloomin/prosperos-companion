@@ -193,8 +193,11 @@ receipt's `widened_recall`). With the Memory setting `recall_more` on (the defau
 also lets the companion answer with only `[[recall: a few words]]`. `Lookout` holds the start of the streamed reply
 until it is clear whether it is such a request, so it never shows; the app then recalls with those words, adds what
 it found as a note at the end of the prompt (the cached part is unchanged) and asks once more, with any further
-request stripped. The reply's phase reads `remembering` meanwhile ("Looking back through earlier chats…"). At most
-two model calls per reply; out-of-character messages never get the offer.
+request stripped. Once that second look has taken a second, the reply's phase reads `remembering` ("Checking older
+memories…") until its text starts. At most two model calls per reply; out-of-character messages never get the
+offer. Requests are matched loosely (`[recall x]`, `[[Recall: x]`) and cut out wherever else they turn up in a
+reply. A model that asks in more than a quarter of the replies it is offered this (after 20) stops being offered it
+until the app restarts (`look_back.Rates`); that is logged, never shown.
 
 ### Voice notes
 

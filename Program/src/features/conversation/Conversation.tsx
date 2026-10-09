@@ -126,7 +126,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 
   const send = async () => {
     const { clientId, pictures = [] } = draft.value
-    const text = ooc(draft.value.text)
+    const text = ooc.route(draft.value.text)
     if (!text.trim() && !pictures.length) { draft.clear(); return }
     draft.setSending(true)
     try {
@@ -236,7 +236,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
           {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
         </div>
         <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
-        <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
+        <ActivityLine messages={messages} phases={phases} sending={draft.sending} aside={ooc.note} />
         <AwayRecap name={name} />
         <ConversationNotice notice={notice} go={go} />
         <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}

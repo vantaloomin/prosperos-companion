@@ -16,7 +16,7 @@ import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
 import { Welcome } from './features/character/Welcome'
 import { AiNotice } from './features/character/AiNotice'
-import { sidecar, useSidecarOpen } from './features/sidecar/store'
+import { sidecar, useSidecarOpen, useSidecarWaiting } from './features/sidecar/store'
 import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
 import { badge, unreadOf } from './features/chats/chatText'
@@ -83,6 +83,7 @@ export default function App() {
   const storyOn = !!useWorkspaceSettings().data?.story_mode
   useAppColors()
   const sidecarOpen = useSidecarOpen()
+  const sidecarWaiting = useSidecarWaiting()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
   const datingInstalled = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean }>('/dating/status') }).data?.installed ?? true
   return (
@@ -94,7 +95,7 @@ export default function App() {
           <Fragment key={id}>
             {/* The sidecar opens beside any view, so it is a toggle rather than a view. */}
             {id === 'settings' && <button type="button" className="nav-sidecar" aria-pressed={sidecarOpen} onClick={() => sidecar.setOpen(!sidecarOpen)}>
-              <MessageSquareText aria-hidden="true" /><span>Sidecar</span>
+              <MessageSquareText aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
             </button>}
             <button type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
               <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}
