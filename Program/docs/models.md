@@ -64,10 +64,11 @@ Chat requests are laid out so that the start of each one matches the one before 
 providers reuse instead of reading it again. With a local server this matters most: on a mid-size model a
 reused prompt answers in a moment, where reading it fresh can take many seconds.
 
-Background jobs (memory suggestions, life phrasing) send different prompts between chat replies. A local server
-that keeps only one prompt in memory then drops the chat's cached prompt each time. Give it room for two or more
-at once (llama.cpp `--parallel`, Ollama `OLLAMA_NUM_PARALLEL`, LM Studio's parallel requests), or point the
-background jobs at a different profile.
+Background jobs (memory suggestions, life phrasing) send different prompts, and a local server that keeps only
+one prompt in memory would drop the chat's cached prompt for each of them. So on a local server
+(`companion/providers/scheduling.py`) background work waits until 90 seconds after the last chat reply: a quick
+back-and-forth keeps reusing the chat's prompt, and the background work catches up when the user pauses. Pointing
+the background jobs at a profile on a different server lets them run at once.
 
 ## This computer
 
