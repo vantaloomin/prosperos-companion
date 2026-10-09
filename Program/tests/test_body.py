@@ -90,6 +90,9 @@ def test_the_agenda_carries_the_state_into_the_day_and_the_chat(client, baltimor
         previous = [decode(other['entry'])['activity'] for other in rows
                     if other['local_date'] == (date.fromisoformat(row['local_date']) - timedelta(days=1)).isoformat()]
         assert set(previous) & set(body.AFTER)
+    # How she feels is a hidden value: Today shows it only with moods shown (Settings > Life > Hidden values).
+    assert client.get('/api/today').json()['day']['body'] is None
+    assert client.put('/api/settings', json={'show_moods': True}).status_code == 200
     today = client.get('/api/today').json()
     with client.app.state.database.connect() as connection:
         expected = agenda.day_on(connection, baltimore['active_timeline_id'], today['day']['date'])['body']
