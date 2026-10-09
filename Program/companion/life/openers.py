@@ -32,6 +32,7 @@ from companion.errors import DomainError
 from companion.life import (
     chapters,
     deck,
+    dreams,
     encounters,
     occasions,
     own_plans,
@@ -226,6 +227,13 @@ def little_news(connection, companion, now) -> list[Trigger]:
             for item in deck.fresh(connection, companion, now)]
 
 
+def dream_news(connection, companion, now) -> list[Trigger]:
+    """Last night's dream, as a morning text (companion/life/dreams.py)."""
+    return [Trigger(item['key'], 'storyline', f"{item['told']} It is the morning after. Tell the user about it in a "
+                    'short text, the way you would tell a friend about a weird dream. Do not add to it.', item['share'])
+            for item in dreams.fresh(connection, companion, now)]
+
+
 def crossed_paths(connection, companion, now) -> list[Trigger]:
     """Another companion met around town for the first time today or yesterday (companion/life/encounters.py):
     the user knows them both, so it's news worth a text."""
@@ -389,7 +397,7 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 
 # In priority order; later features add their own.
 FINDERS = [occasion, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
-           little_news, usual_time, check_in]
+           dream_news, little_news, usual_time, check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:

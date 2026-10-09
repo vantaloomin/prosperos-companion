@@ -1,19 +1,25 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api } from '../../api'
-import type { Moment } from '../../types'
+import type { Dream, Moment } from '../../types'
 import { storyDate } from './storyText'
 
 /** Little things (companion/life/deck.py): the small moment the Life deck drew into each of the last few days. With
  * Hidden values > odds on, each opens to its odds and a way to make it go another way. */
-export function LittleThings({ moments, name }: { moments: Moment[] | undefined; name: string }) {
-  if (!moments?.length) return null
+export function LittleThings({ moments, dreams, name }: { moments: Moment[] | undefined; dreams: Dream[] | undefined; name: string }) {
+  if (!moments?.length && !dreams?.length) return null
   return (
     <section className="today-section" aria-labelledby="little-things-heading">
       <h2 id="little-things-heading">Little things</h2>
-      <p className="subtle">Small moments in {name}&apos;s days, drawn from the Life deck. How often they happen is set by the drama level in Settings.</p>
+      <p className="subtle">Small moments in {name}&apos;s days, and the odd dream. How often they happen is set by the drama level in Settings.</p>
       <ul className="plain-list">
-        {moments.map((item) => (
+        {(dreams ?? []).map((item) => (
+          <li key={`dream-${item.day}`}>
+            <p><time dateTime={item.day}>{storyDate(item.day)}</time> <span className="subtle">Dream:</span> {item.text}</p>
+            {item.sleep_talk && <p className="subtle">{item.sleep_talk}</p>}
+          </li>
+        ))}
+        {(moments ?? []).map((item) => (
           <li key={item.day}>
             <p><time dateTime={item.day}>{storyDate(item.day)}</time> {item.text}</p>
             {item.odds !== undefined && <MomentOdds item={item} />}

@@ -1715,3 +1715,16 @@ CREATE TABLE IF NOT EXISTS life_moments (
   created_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, day)
 );
+
+-- Dreams (companion/life/dreams.py): one row per night, named by the day before it, decided once. `text` is NULL on
+-- a night without a dream; `sleep_talk` is the circle member who says they talked in their sleep.
+CREATE TABLE IF NOT EXISTS dreams (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  night TEXT NOT NULL,
+  text TEXT,
+  told TEXT,
+  share TEXT,
+  sleep_talk TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, night)
+);

@@ -26,7 +26,7 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, composer, deck, feed, mood, routine, thoughts
+from companion.life import agenda, composer, deck, dreams, feed, mood, routine, thoughts
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -801,6 +801,7 @@ class LifeEngine:
             if settings(connection)['paused_at'] is None:
                 news.sync(connection, self.now())
                 deck.sync(connection, self.now())
+                dreams.sync(connection, self.now())
 
     async def quietly_think(self):
         """Polish one thought on someone's mind (companion/life/thoughts.py) in the model's words, when model

@@ -107,7 +107,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <Chapters name={name} />
       <WordGetsAround name={name} />
       <Storylines name={name} />
-      <LittleThings moments={data.moments} name={name} />
+      <LittleThings moments={data.moments} dreams={data.dreams} name={name} />
       <Reactions name={name} />
       <Routine data={data} name={name} go={go} />
       <MoneyPanel name={name} go={() => go('character')} />

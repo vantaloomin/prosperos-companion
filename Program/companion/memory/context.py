@@ -22,6 +22,7 @@ from companion.life import (
     circle,
     deck,
     disruptions,
+    dreams,
     encounters,
     home,
     money,
@@ -119,6 +120,9 @@ HEADINGS = {
     # The Life deck (companion/life/deck.py): the day's small moment, drawn once a day.
     'moments': 'Something small from your day today (decided: it happened to you; bring it up only if it fits, the '
                'way a person would, and never contradict it)',
+    # Dreams (companion/life/dreams.py): last night's, the morning after.
+    'dream': 'Last night (a dream you had; mention it only if it comes up naturally, always as a dream, never as '
+             'something that happened)',
             'wardrobe': 'Your clothes (fictional, yours; when you describe what you wear, pick from these and keep '
                         'it consistent with what you have on now)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
@@ -588,6 +592,8 @@ def offer_day(packet, connection, timeline_id, version, now, today):
         packet.offer('day_shifts', identity, text)
     for identity, text in deck.context_lines(connection, companion, now):
         packet.offer('moments', identity, text)
+    for identity, text in dreams.context_lines(connection, companion, now):
+        packet.offer('dream', identity, text)
 
 
 def offer_people(packet, connection, companion, now, today):
