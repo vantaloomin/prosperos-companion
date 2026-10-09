@@ -9,6 +9,9 @@ export interface FormBridge { form: FormState; setForm: (form: FormState) => voi
 /** `turns` is the sidecar's conversation: it lasts while the app is open, is never stored and never reaches the companion. */
 export interface SidecarState { open: boolean; focus: Pick<Message, 'id' | 'text'> | null; bridge: FormBridge | null; turns: Turn[] }
 
+/** The companion the sidecar's conversation is about; another one coming into focus starts it over. */
+let about: string | null = null
+
 const OPEN_KEY = 'companion:sidecar'
 let state: SidecarState = { open: readOpen(), focus: null, bridge: null, turns: [] }
 const listeners = new Set<() => void>()
@@ -34,6 +37,13 @@ export const sidecar = {
   clearFocus() { set({ focus: null }) },
   setBridge(bridge: FormBridge | null) { set({ bridge }) },
   setTurns(turns: Turn[]) { set({ turns }) },
+  /** What it proposed about one companion (a memory, their reply, a field) never lands on another. */
+  follow(companionId: string | null) {
+    if (companionId === about) return
+    const first = about === null
+    about = companionId
+    if (!first && (state.turns.length || state.focus)) set({ turns: [], focus: null })
+  },
 }
 
 export function useSidecar(): SidecarState {

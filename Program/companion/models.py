@@ -258,6 +258,8 @@ class MessageCreate(Input):
     client_id: str = Field(min_length=8, max_length=100)
     # Pictures uploaded for this message (companion/pictures.py).
     picture_ids: list[str] = Field(default_factory=list, max_length=4)
+    # The companion whose chat the window shows (conversation.in_focus).
+    companion_id: str | None = Field(default=None, max_length=100)
 
     @model_validator(mode='after')
     def something_to_send(self):
@@ -278,6 +280,8 @@ class MemoryCreate(Input):
     applies_until: str | None = None
     source_message_ids: list[str] = Field(default_factory=list, max_length=20)
     tentative: bool = False
+    # The companion whose Memories or chat the window shows, when no source message says it.
+    companion_id: str | None = Field(default=None, max_length=100)
 
 
 class MemoryCorrection(Input):

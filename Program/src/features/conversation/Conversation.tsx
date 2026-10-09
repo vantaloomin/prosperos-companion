@@ -119,7 +119,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     if (!text.trim() && !pictures.length) return
     draft.setSending(true)
     try {
-      accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId, picture_ids: pictures.map((picture) => picture.id) }))
+      accept(await api<SendResult>('/conversation/messages?wait=false', { text, client_id: clientId, picture_ids: pictures.map((picture) => picture.id), companion_id: companion.id }))
       draft.clear()
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }
@@ -223,7 +223,12 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
         <ConversationNotice notice={notice} go={go} />
         <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
-          onReworded={(id, text) => update((current) => current.map((message) => message.id === id ? { ...message, text } : message))} />
+          onReworded={(id, text) => {
+            // A stopped reply that was edited became the finished one, so the turn reloads to show it as kept.
+            const was = messages.find((message) => message.id === id)
+            update((current) => current.map((message) => message.id === id ? { ...message, text } : message))
+            if (was && was.status !== 'complete') void client.invalidateQueries({ queryKey: HISTORY_KEY })
+          }} />
         {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
         <Composer name={name} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
       </section>

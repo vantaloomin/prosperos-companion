@@ -22,6 +22,7 @@ from companion.images.models import (
     Preview,
 )
 from companion.lora.appearance import current_for_images
+from companion.phone.access import via_lan
 from companion.providers.urls import validate_compatible_url
 
 router = APIRouter(prefix='/api/images')
@@ -53,13 +54,36 @@ def list_backends(request: Request):
     return {'backends': backends.listing(db(request))}
 
 
+# What a paired phone may not set on an image backend: an address the PC sends requests (and a saved key) to,
+# a program the PC runs, a workflow the PC hands to ComfyUI, or which machine counts as yours for NSFW.
+PHONE_FIELDS = ('base_url', 'cli_path', 'workflow', 'reference_workflow', 'controlled_machine')
+ON_THE_PC = 'on your PC, in Settings > Images'
+
+
+def from_phone(request: Request, body: BackendFields, creating=False) -> None:
+    """A paired phone adds and manages image APIs at their providers' own addresses; the rest stays on the PC
+    (companion/phone/access.py)."""
+    if getattr(request.state, 'device', None) is None:
+        return
+    if creating and (body.kind != 'hosted' or body.provider in (None, 'other')):
+        raise DomainError('On a phone you can add OpenRouter, Google, the OpenAI API or NanoGPT. ComfyUI, Codex and '
+                          f'image APIs at an address of your own are added {ON_THE_PC}.', 403)
+    if any(getattr(body, field) is not None for field in PHONE_FIELDS):
+        raise DomainError(f'Addresses, programs and workflows of image backends are changed {ON_THE_PC}.', 403)
+    if body.api_key and via_lan(request):
+        raise DomainError('Home Wi-Fi access is not encrypted, so API keys are not sent over it. Add the key over '
+                          f'Tailscale, or {ON_THE_PC}.', 403)
+
+
 @router.post('/backends')
 def create_backend(request: Request, body: BackendCreate):
+    from_phone(request, body, creating=True)
     return backends.create(db(request), request.app.state.vault, body)
 
 
 @router.put('/backends/{backend_id}')
 def update_backend(request: Request, backend_id: str, body: BackendFields):
+    from_phone(request, body)
     result = backends.update(db(request), request.app.state.vault, backend_id, body)
     runner(request).wake()
     return result

@@ -4,7 +4,7 @@ Every change advances the workspace memory revision so in-flight replies built f
 revision are withheld instead of reaching the active conversation (M9).
 """
 from companion import pictures
-from companion.characters import require_current
+from companion.characters import by_id, for_timeline, require_current
 from companion.clock import parse, stamp
 from companion.database import bump_memory_revision, identifier, many, one, optional, settings
 from companion.errors import require
@@ -107,15 +107,29 @@ def insert(connection, companion, fields: dict, *, now: str, origin='user', auth
     return get(connection, memory_id), True
 
 
+def owner(connection, body) -> dict:
+    """Whose memory a Remember this makes: the companion whose chat the source messages are in, else the one the
+    window named, else the one in focus. Another window (or a phone) may have switched focus meanwhile."""
+    if body.source_message_ids:
+        message = one(connection, 'SELECT timeline_id FROM messages WHERE id=?', (body.source_message_ids[0],))
+        companion = for_timeline(connection, message['timeline_id'])
+    elif body.companion_id:
+        companion = by_id(connection, body.companion_id)
+        require(companion is not None, 'That companion is no longer in this workspace, so nothing was saved.', 404)
+    else:
+        companion = None
+    return companion or require_current(connection)
+
+
 def remember(database, body) -> dict:
     """Direct Remember this. Automatic extraction is a separate, permission-checked path."""
     require((body.layer == 'companion_life') == (body.reality == 'fiction'),
             'Only companion-life memories are fictional; personal memories describe real life.', 422)
     require(body.plan_status is None or body.layer == 'plan', 'Only plans have a plan status.', 422)
     with database.connect(write=True) as connection:
-        companion = require_current(connection)
+        companion = owner(connection, body)
         validate_sources(connection, companion['active_timeline_id'], body.source_message_ids)
-        fields = body.model_dump(exclude={'source_message_ids', 'tentative'})
+        fields = body.model_dump(exclude={'source_message_ids', 'tentative', 'companion_id'})
         memory, _created = insert(connection, companion, fields, now=database.now(),
                                   authority='tentative' if body.tentative else 'stated',
                                   sources=body.source_message_ids)

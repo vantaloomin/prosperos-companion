@@ -12,7 +12,7 @@ import { waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
-import { shownAttempt, statusDetail, type Turn } from './turns'
+import { shownAttempt, statusDetail, unfinished, type Turn } from './turns'
 
 interface Props {
   turn: Turn
@@ -181,13 +181,14 @@ function ReplyTools({ message, position, streaming, onPage, onStop, actions, onS
 
 const MOMENT = 'Keep as a shared moment'
 
-/** Only a finished reply can be reworded or kept as a shared moment; one that stopped or failed can still be a branch point. */
+/** A finished reply can be reworded or kept as a shared moment. One the user stopped, or the model cut short, can be
+ * finished by hand with Edit; one that failed can still be a branch point. */
 function replyActions(message: Message, streaming: boolean, onEdit: Act, onBranch: Act, onMoment: Act): Action[] {
   if (message.redacted || streaming || message.status === 'withheld') return []
   const branch: Action = ['Branch from here', <GitBranch key="icon" aria-hidden="true" />, onBranch]
-  return message.status === 'complete'
-    ? [['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit], [MOMENT, <HeartHandshake key="icon" aria-hidden="true" />, onMoment], branch]
-    : [branch]
+  const edit: Action = ['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit]
+  if (message.status === 'complete') return [edit, [MOMENT, <HeartHandshake key="icon" aria-hidden="true" />, onMoment], branch]
+  return unfinished(message) ? [edit, branch] : [branch]
 }
 
 /** What follows a reply once it shows: the picture it sent and a note on how it ended. The note is the app speaking,

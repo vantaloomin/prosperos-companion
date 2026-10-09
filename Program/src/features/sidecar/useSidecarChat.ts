@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, newId } from '../../api'
 import { useCompanion, type View } from '../../companion'
@@ -17,6 +17,8 @@ export function useSidecarChat(view: View) {
   const companion = useCompanion()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const companionId = companion.data?.id ?? null
+  useEffect(() => { if (companionId) sidecar.follow(companionId) }, [companionId])
 
   const split = async (text: string): Promise<Turn> => {
     const form = sidecar.get().bridge!
@@ -49,7 +51,7 @@ export function useSidecarChat(view: View) {
   const run = async (proposal: Proposal, action: 'apply' | 'undo') => {
     update(proposal.id, { status: 'working', error: undefined })
     try {
-      if (action === 'apply') update(proposal.id, { status: 'applied', undo: await apply(proposal, sidecar.get().bridge, client) })
+      if (action === 'apply') update(proposal.id, { status: 'applied', undo: await apply(proposal, sidecar.get().bridge, client, companionId) })
       else { await undo(proposal, sidecar.get().bridge, client); update(proposal.id, { status: 'pending', undo: undefined }) }
     } catch (failure) {
       update(proposal.id, { status: action === 'apply' ? 'pending' : 'applied', error: failure instanceof Error ? failure.message : 'That did not work.' })
