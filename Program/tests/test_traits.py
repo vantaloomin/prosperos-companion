@@ -1,9 +1,16 @@
 """The absence mood from opt-in emotional traits (PRD C6, M4 and the absence acceptance row)."""
 from datetime import timedelta
 
-from conftest import reconcile, send
+import pytest
+from conftest import reconcile, send, show
 
 from companion.memory.context import NEUTRAL_ABSENCE
+
+
+@pytest.fixture(autouse=True)
+def shown(client):
+    """The absence mood shows on Today only with Hidden values > Show how they're feeling on."""
+    show(client, show_moods=True)
 
 
 def revise(client, **changes):
@@ -36,6 +43,9 @@ def test_absence_trait_creates_a_visible_mood_at_the_chosen_intensity(client, li
                                      {'name': 'jealousy', 'intensity': 'strong'}])
     result = away(client, clock, days=14)
     assert len(result['run']['plan']) <= 3  # absence never raises catch-up volume
+    show(client, show_moods=False)
+    assert client.get('/api/today').json()['mood'] is None  # Hidden unless the user turns it on.
+    show(client, show_moods=True)
     mood = client.get('/api/today').json()['mood']
     assert mood['intensity'] == 'moderate' and mood['traits'] == ['guilt over absence', 'neediness']
     prompt = system(client)

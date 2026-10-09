@@ -16,6 +16,8 @@ import { Chapters } from './Chapters'
 import { Reactions } from './Reactions'
 import { Storylines } from './Storylines'
 import { Townsfolk } from './Townsfolk'
+import { OnHerMind } from './OnHerMind'
+import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
 
@@ -67,6 +69,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           <h1>{name}'s day</h1>
           <p className="subtle">Message {name} any time. When they are busy or asleep, they answer when they can.</p>
           <Feeling data={data} name={name} />
+          {data.mind && <OnHerMind thoughts={data.mind.thoughts} name={name} />}
         </div>
         {data.feed_unread > 0 && <button type="button" className="button" onClick={() => go('feed')}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
       </header>
@@ -101,6 +104,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <Plans data={data} name={name} />
       <Recommendations name={name} />
       <Chapters name={name} />
+      <WordGetsAround name={name} />
       <Storylines name={name} />
       <Reactions name={name} />
       <Routine data={data} name={name} go={go} />
@@ -116,6 +120,7 @@ function Feeling({ data, name }: { data: TodayData; name: string }) {
   const text = bodyText(data.day?.body, name)
   return <>
     {text && <p className="subtle">{text}</p>}
+    {data.feeling && data.feeling.feeling !== 'calm' && <p className="subtle">{data.feeling.text}{data.feeling.reason ? `: ${data.feeling.reason}` : ''}.</p>}
     {(data.occasions ?? []).map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
   </>
 }
@@ -171,7 +176,7 @@ function Plans({ data, name }: { data: TodayData; name: string }) {
         <ul className="plain-list">{shared.map((plan) => <li key={plan.id}><strong>{plan.subject}</strong>: {plan.value} <span className="badge">{plan.status}</span></li>)}</ul>
       </>}
       {companion.length > 0 && <><h3>{name}'s</h3><ul className="event-list">{companion.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
-      {threads.length > 0 && <><h3>On {name}'s mind</h3><ul className="event-list">{threads.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
+      {threads.length > 0 && <><h3>Still unresolved</h3><ul className="event-list">{threads.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
     </section>
   )
 }

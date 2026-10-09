@@ -26,6 +26,12 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).
   show_secret_slips INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1)),
+  -- Hidden values (Settings > Hidden values): how companions feel and who has heard their news stay unseen
+  -- unless the user turns them on, so the default keeps some mystique. They still shape every reply.
+  show_moods INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1)),
+  show_news INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1)),
+  -- "Why it went this way": the odds behind how a turning went (companion/consequences.py).
+  show_odds INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1)),
   paused_at TEXT,
   review_required INTEGER NOT NULL DEFAULT 0 CHECK (review_required IN (0, 1)),
   permission_revision INTEGER NOT NULL DEFAULT 1,
@@ -1571,4 +1577,61 @@ CREATE TABLE IF NOT EXISTS voice_notes (
   engine TEXT NOT NULL,
   voice TEXT NOT NULL,
   created_at TEXT NOT NULL
+);
+
+-- On her mind (companion/life/thoughts.py): one thought a day per timeline, worded by rules from what happened that
+-- day; `phrased` is the model's polish when background phrasing is on, `polish_tried` stops a second attempt.
+CREATE TABLE IF NOT EXISTS thoughts (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  day TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  text TEXT NOT NULL,
+  phrased TEXT,
+  polish_tried INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, day)
+);
+
+-- News travels (companion/news.py): something big enough to share from a companion's own life (a storyline beat
+-- that turned out good or bad, a new chapter), spreading one hop a day along who knows whom. `about` is the companion
+-- it happened to; `spread_through` the last day whose evening it has spread on.
+CREATE TABLE IF NOT EXISTS news (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  source TEXT NOT NULL UNIQUE,
+  about TEXT NOT NULL,
+  text TEXT NOT NULL,
+  happened_on TEXT NOT NULL,
+  spread_through TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'ended')),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS news_timeline ON news(timeline_id, status, happened_on);
+
+-- Who has heard each piece of news, when (their teller's local day), and who told them: `told_by` is a person key,
+-- 'user', or NULL for the companion it happened to (`hop` 0).
+CREATE TABLE IF NOT EXISTS news_holders (
+  news_id TEXT NOT NULL REFERENCES news(id),
+  holder TEXT NOT NULL,
+  told_by TEXT,
+  hop INTEGER NOT NULL,
+  heard_on TEXT NOT NULL,
+  via TEXT NOT NULL CHECK (via IN ('origin', 'word', 'group')),
+  message_id TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (news_id, holder)
+);
+CREATE INDEX IF NOT EXISTS news_holders_holder ON news_holders(holder, heard_on);
+
+-- Group chat moods (companion/moods.py): each member's one current mood, by rules. `day` is their local day
+-- when it last changed (it resets overnight); `furious_replies` counts replies sent while furious, for walking out.
+CREATE TABLE IF NOT EXISTS moods (
+  holder TEXT PRIMARY KEY,
+  feeling TEXT NOT NULL CHECK (feeling IN ('calm', 'happy', 'excited', 'annoyed', 'hurt', 'angry', 'anxious', 'sad')),
+  intensity INTEGER NOT NULL CHECK (intensity BETWEEN 1 AND 3),
+  target TEXT,
+  reason TEXT NOT NULL,
+  day TEXT NOT NULL,
+  furious_replies INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
 );

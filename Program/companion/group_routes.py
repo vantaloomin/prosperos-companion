@@ -36,6 +36,8 @@ class Moment(Input):
 class GroupChange(Input):
     name: str | None = Field(None, max_length=200)
     reply_cap: int | None = Field(None, ge=1, le=groups.MAX_CAP)
+    # Someone furious may walk out (companion/moods.py); off by default.
+    walk_out: bool | None = None
 
 
 class NewMember(Input):
@@ -77,7 +79,7 @@ def read(request: Request, group_id: str, after_seq: int = 0):
 
 @router.patch('/{group_id}')
 def change(request: Request, group_id: str, body: GroupChange):
-    return groups.update(request.app.state.database, group_id, body.name, body.reply_cap)
+    return groups.update(request.app.state.database, group_id, body.name, body.reply_cap, body.walk_out)
 
 
 @router.delete('/{group_id}')

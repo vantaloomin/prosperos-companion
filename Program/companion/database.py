@@ -98,6 +98,12 @@ ADDED_COLUMNS = (
     ('life_settings', 'user_birthday', "TEXT NOT NULL DEFAULT ''"),
     ('life_settings', 'paced_replies', 'INTEGER NOT NULL DEFAULT 1'),
     ('life_settings', 'day_shifts', 'INTEGER NOT NULL DEFAULT 1 CHECK (day_shifts IN (0, 1))'),
+    # On her mind (companion/life/thoughts.py): one private thought a day, shown folded on Today.
+    # Who passed a secret on (companion/secrets.py): a person key or 'user'; NULL for those it started with.
+    ('knowledge_holders', 'told_by', 'TEXT'),
+    # Group chat moods (companion/moods.py): whether someone furious may walk out of this group.
+    ('group_chats', 'walk_out', 'INTEGER NOT NULL DEFAULT 0 CHECK (walk_out IN (0, 1))'),
+    ('life_settings', 'on_her_mind', 'INTEGER NOT NULL DEFAULT 1 CHECK (on_her_mind IN (0, 1))'),
     ('messages', 'held_until', 'TEXT'),
     ('messages', 'held_line', 'TEXT'),
     ('messages', 'held_notified', 'TEXT'),
@@ -142,6 +148,10 @@ ADDED_COLUMNS = (
     # A group reply a secret check touched (companion/secrets.py): 'redrafted', 'revealed' or 'held'.
     ('group_messages', 'guard', 'TEXT'),
     ('workspace_settings', 'show_secret_slips', 'INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1))'),
+    # Hidden values: moods and who heard the news stay unseen unless the user turns them on.
+    ('workspace_settings', 'show_moods', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1))'),
+    ('workspace_settings', 'show_news', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1))'),
+    ('workspace_settings', 'show_odds', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
     # from before that is switched on once (see initialize), and turning it off afterwards sticks.
     ('life_settings', 'events_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
@@ -152,6 +162,9 @@ ADDED_COLUMNS = (
     # The names and mark holders an outcome was decided with, so changing how it went can redo its marks.
     ('consequences', 'names', 'TEXT'),
     ('consequences', 'holders', 'TEXT'),
+    # When the user read the one-time notice that the characters are AI and confirmed they are 18 or older
+    # (companion/workspace.py); the app asks once, before anything else, until then.
+    ('workspace_settings', 'ai_notice_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

@@ -6,7 +6,7 @@ from companion.errors import require
 
 FLAGS = ('automatic_memory', 'sensitive_memory', 'share_profile_across_timelines', 'background_activity',
          'model_memory_suggestions', 'chat_sounds', 'chat_retro_dark', 'ask_about_people',
-         'story_mode', 'show_secret_slips')
+         'story_mode', 'show_secret_slips', 'show_moods', 'show_news', 'show_odds')
 # Changing any of these can make queued work stale, so they advance the permission revision.
 PERMISSIONS = {'automatic_memory', 'sensitive_memory', 'background_activity', 'model_memory_suggestions'}
 
@@ -14,6 +14,7 @@ PERMISSIONS = {'automatic_memory', 'sensitive_memory', 'background_activity', 'm
 def view(row: dict) -> dict:
     return {**row, **{flag: bool(row[flag]) for flag in FLAGS},
             'paused': row['paused_at'] is not None, 'review_required': bool(row['review_required']),
+            'ai_notice_confirmed': row['ai_notice_at'] is not None,
             'system_timezone': local_zone.detect()}
 
 
@@ -58,6 +59,9 @@ def update(database, body) -> dict:
         row = settings(connection)
         timezone_change(row, changes)
         review_done = changes.pop('review_complete', False)
+        # The first-run notice is confirmed once and stays confirmed.
+        if changes.pop('ai_notice_confirmed', False) and row['ai_notice_at'] is None:
+            changes['ai_notice_at'] = database.now()
         changed = {key: value for key, value in changes.items() if row[key] != value}
         enabling = any(changed.get(key) is True for key in PERMISSIONS)
         require(not (enabling and row['review_required'] and not review_done),

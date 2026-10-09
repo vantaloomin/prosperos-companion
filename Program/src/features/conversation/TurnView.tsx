@@ -5,6 +5,7 @@ import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
 import { VoiceNote } from './VoiceNote'
 import { Stamp } from '../../components/Stamp'
+import { CrisisNote } from '../../components/Safety'
 import { sidecar } from '../sidecar/store'
 import { useMessageSheet, type Act, type Action } from './useMessageSheet'
 import { waitsUntilLater } from './held'
@@ -50,6 +51,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
     <>
       <Leads messages={turn.leads} name={name} highlight={highlight} onStop={onStop} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />
       <TurnUser turn={turn} name={name} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} />
+      {turn.user?.crisis_help && <CrisisNote />}
       {shown && (
         <Reply message={shown} found={highlight === shown.id} name={name} text={live[shown.id] ?? shown.text} position={turn.attempts.length > 1 ? [index, turn.attempts.length] : null}
           onPage={(step) => setChosen(turn.attempts[index + step]?.id ?? null)} onStop={onStop} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} bursts={bursts} />

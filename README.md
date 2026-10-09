@@ -27,13 +27,13 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
   <img src="Program/docs/images/chat-visual-novel.png" alt="A conversation shown in the Visual novel chat style" width="820">
 </p>
 
-**A life of their own.** Your companion follows a weekly routine in their city, with a hidden week-ahead plan for them and everyone they know. Plans made in chat actually happen. Weather, holidays, birthdays, money, a home that slowly changes, and a body that gets tired or sick all carry over from day to day. Events are built from data and templates on your PC; the model only puts them into words, so it stays quick and cheap.
+**A life of their own.** Your companion follows a weekly routine in their city, with a hidden week-ahead plan for them and everyone they know. Plans made in chat actually happen. Weather, holidays, birthdays, money, a home that slowly changes, and a body that gets tired or sick all carry over from day to day. Each evening Today shows what's on their mind, worked out from how their day went. Events are built from data and templates on your PC; the model only puts them into words, so it stays quick and cheap.
 
-**People around them.** Family (who share their last name), friends, coworkers, friends of friends and ordinary townsfolk they meet on their street. Storylines play out with a drama slider from realistic to soap opera. A private Feed shows their posts and their friends', with likes and comments. You can even make someone they met the main character.
+**People around them.** Family (who share their last name), friends, coworkers, friends of friends and ordinary townsfolk they meet on their street. Storylines play out with a drama slider from realistic to soap opera. A private Feed shows their posts and their friends', with likes and comments. Word gets around: their sister hears big news first, and sometimes a friend texts you about it before they do. They have moods too: a bad day at work leaves them a bit sullen, and a kind word from you lifts it. In group chats they can give someone the cold shoulder and (if you allow it) walk out. Moods and who has heard what stay hidden unless you turn them on under Hidden values in Settings. You can even make someone they met the main character.
 
 **They text first.** Check-ins on their breaks, a hello at the times you usually show up (a lunch question if you tend to write at lunch), follow-ups on things they said they'd ask about, news and photos, within daily limits and quiet hours. The app never shows whether they're free: a busy companion answers later, or sends a quick "can't talk" and replies properly afterward.
 
-**They stay in character.** No "as an AI" disclaimers. Start a message with `OOC:` or wrap it in ((double parentheses)) when you want a plain answer.
+**They stay in character.** No "as an AI" disclaimers. Start a message with `OOC:` or wrap it in ((double parentheses)) when you want a plain answer. The app itself is clear that the characters are AI: a one-time notice on first start, a line under every message box, and a note with crisis lines if you ever mention hurting yourself. [Safety](Program/docs/safety.md) has the details.
 
 **Memory you control.** Facts you mention are remembered automatically (you can turn this off), and the Memories page shows exactly what the next reply will use. Correct, pin, exclude or delete anything. Conflicts are asked about rather than overwritten.
 
@@ -139,6 +139,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [World data and building cities](Program/docs/world-data.md)
 - [Making a city](Program/docs/making-a-city.md): what a city file needs, for players
 - [Current context tools (MCP)](Program/docs/context-tools.md)
+- [Safety: AI notices and crisis help](Program/docs/safety.md)
 - [Phone access](Program/docs/phone-access.md)
 - [Importing from Prospero's Study](Program/docs/study-import.md)
 - [Installing on a Mac](Program/docs/macos.md)

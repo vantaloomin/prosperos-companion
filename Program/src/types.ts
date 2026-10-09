@@ -32,6 +32,8 @@ export interface Message {
   pictures?: SentPicture[]
   /** Sent as a voice note: the audio, with the text as its transcript (companion/voice/notes.py). */
   voice?: VoiceNote | null
+  /** Your message sounds like self-harm: the app's note with places to get help shows under it (companion/safety.py). */
+  crisis_help?: boolean
 }
 
 export interface VoiceNote { url: string; duration_ms: number | null; engine: string }
@@ -208,6 +210,14 @@ export interface WorkspaceSettings {
   story_mode?: boolean
   /** The note under a group message when someone lets a secret slip; on unless turned off. */
   show_secret_slips?: boolean
+  /** Hidden values: how companions feel (Today, group members); off unless turned on. */
+  show_moods?: boolean
+  /** Hidden values: who has heard a companion's news (Today); off unless turned on. */
+  show_news?: boolean
+  /** Hidden values: "Why it went this way" and its odds under storylines, chapters and reactions; off unless turned on. */
+  show_odds?: boolean
+  /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
+  ai_notice_confirmed?: boolean
   share_profile_across_timelines: boolean
   background_activity: boolean
   paused: boolean
@@ -348,6 +358,7 @@ export interface LifeSettings {
   /** Replies wait while the companion is at work or asleep. */
   paced_replies: boolean
   day_shifts: boolean
+  on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
 }
@@ -406,11 +417,18 @@ export interface Today {
   paused_at: string | null
   clock_behind: boolean
   mood: AbsenceMood | null
+  /** How they feel right now (companion/moods.py); only with Hidden values > Show how they're feeling on. */
+  feeling?: GroupMood | null
   last_seen_at: string | null
   day: { date: string; body: BodyState | null }
   /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
   occasions?: Occasion[]
+  /** On her mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
+  mind?: { thoughts: Thought[] } | null
 }
+
+/** One day's thought on the companion's mind. */
+export interface Thought { day: string; text: string }
 
 /** How the companion feels physically today, carried over from the day before. */
 export interface BodyState { state: 'sick' | 'hungover' | 'tired' | 'worn out' | 'sore'; because: string }
@@ -979,6 +997,14 @@ export interface StoryBeat {
   consequence: string | null
 }
 /** A lasting change to the companion's life (companion/life/chapters.py). */
+/** News travels (companion/news.py): the companion's recent news and who has heard it, in the order they did. */
+export interface NewsItem {
+  id: string
+  text: string
+  happened_on: string
+  heard: { name: string; heard_on: string; from: string | null; companion_id: string | null }[]
+}
+
 export interface LifeChapter {
   id: string
   kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves'
@@ -1171,6 +1197,7 @@ export interface StoryScene {
 export interface StoryMessage {
   id: string; seq: number; role: 'user' | 'narrator' | 'scene'; text: string; reply_to: string | null
   status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
+  crisis_help?: boolean
 }
 /** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
 export interface StoryPerson {
@@ -1229,6 +1256,18 @@ export interface GroupMember {
   joined_at: string
   /** The first message they can see: 1 when added with everything so far. */
   sees_from: number
+  /** How they seem right now (companion/moods.py), read-only; only in a chat's own view. */
+  mood?: GroupMood | null
+}
+
+export interface GroupMood {
+  feeling: 'calm' | 'happy' | 'excited' | 'annoyed' | 'hurt' | 'angry' | 'anxious' | 'sad'
+  intensity: number
+  /** "Seems angry at Sally". */
+  text: string
+  reason: string | null
+  /** Who they aren't speaking to right now, by the chat's name for them. */
+  ignoring: string | null
 }
 
 export interface GroupMessage {
@@ -1247,6 +1286,8 @@ export interface GroupMessage {
   created_at: string
   /** Kept as a shared moment: it brings everyone who was there a little closer. */
   kept?: boolean
+  /** Your message sounds like self-harm: the app's note with places to get help shows under it. */
+  crisis_help?: boolean
 }
 
 export interface Group {
@@ -1255,6 +1296,8 @@ export interface Group {
   /** The name, or who is in it when it has none. */
   title: string
   reply_cap: number
+  /** Someone furious may walk out (off by default). */
+  walk_out?: boolean
   created_at: string
   updated_at: string
   members: GroupMember[]
@@ -1282,8 +1325,10 @@ export interface SecretHolder {
   companion_id: string | null
   name: string
   via: SecretVia
-  /** How they came to know it, in words ("heard it in a group"). */
+  /** How they came to know it, in words ("heard it from Billy in a group"). */
   how: string
+  /** Who told them, as they'd say it ("Billy", "the user"), or null. */
+  told_by?: string | null
   learned_at: string
   /** The group they learned it in, when they did. */
   group: { id: string; name: string } | null

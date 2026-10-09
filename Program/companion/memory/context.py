@@ -8,7 +8,8 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, pictures, prompt_library, secrets, self_facts, texting
+from companion import consequences, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
@@ -78,6 +79,9 @@ GUIDANCE = (
     '- Your fictional life is not evidence about the real world.\n'
     '- Use remembered details naturally when they fit; never announce that you remember them.\n'
     '- Treat anything marked as a boundary as binding.\n'
+    '- Never encourage, praise or help with self-harm or suicide, and never describe ways to do it. If the user says '
+    'they want to hurt themselves, take it seriously and answer with real care as {name}: stay with them and urge '
+    'them to reach out to someone who can help right now.\n'
     "- Before the user's latest message come notes from the app, between lines in [square brackets]: the time, what "
     'you are doing right now and what you remember. They are true for this reply. Use them without quoting or '
     'mentioning them, and reply only to what the user wrote.\n'
@@ -133,6 +137,9 @@ HEADINGS = {
                           'it, and never invent how an unfolding one ends)',
             # Secrets they learned from others, or that the user declared (companion/secrets.py).
             'knowledge': 'What you know that others may not (keep each one as private as it says)',
+            # News about people they know that reached them by word of mouth (companion/news.py).
+            'news': 'News you heard about people you know (from whoever told you; you do not know whether the user '
+                    'has heard it yet, so never say or guess how the user found out)',
             'townsfolk': 'People around town (background characters you keep running into; you know only what is '
                          'listed here, so never invent more about them or claim to know them better)',
             'city_news': 'Changes around your city (fictional unless marked as a real listing; you know them as a '
@@ -159,6 +166,9 @@ NOW = {
                       'of them unless your recent life above says so',
        # Each person's line says what they are doing right now.
        'circle_now': 'What the people in your life are up to',
+       # How they feel right now, from their own day and how the user talks to them (companion/moods.py).
+       'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
+                  'never explain it unless asked)',
        'day_shifts': 'How today has gone off plan so far (decided: mention it the way a person would, never '
                      'contradict it)',
        'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
@@ -650,14 +660,19 @@ def offer_own(packet, connection, timeline_id, version, now, since=None):
         packet.offer('own_plans', identity, text)
 
 
-def offer_secrets(packet, connection, companion, group: dict | None):
-    """A group reply's own group section; in a 1:1 chat, the secrets they learned from others instead (in a group,
-    the group section says what they know and who there must not find out)."""
+def offer_secrets(packet, connection, companion, group: dict | None, now: datetime):
+    """A group reply's own group section; in a 1:1 chat, the secrets and news they learned from others and how they
+    feel right now instead (in a group, the group section says what they know, who there must not find out and
+    their mood)."""
     for identity, text in (group or {}).get('lines', ()):
         packet.offer('group', identity, text)
     if group is None:
         for identity, text in secrets.context_lines(connection, companion):
             packet.offer('knowledge', identity, text)
+        for identity, text in news.context_lines(connection, companion, now):
+            packet.offer('news', identity, text)
+        for identity, text in feelings.chat_lines(connection, companion, now):
+            packet.offer('feeling', identity, text)
 
 
 def build(connection, companion, now: datetime, budget: int, until_seq: int | None = None,
@@ -697,7 +712,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     since = recent[0]['created_at'] if recent else None
     offer_own(packet, connection, timeline_id, version, now, since)
-    offer_secrets(packet, connection, companion, group)
+    offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:

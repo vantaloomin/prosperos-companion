@@ -1,9 +1,10 @@
 """The Today view: the companion's routine, plans and what changed since the last visit (PRD Today, C5)."""
+from companion import moods as feelings
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional, settings
 from companion.events import view as event_view
-from companion.life import agenda, circle, feed, mood, occasions, routine, simulation
+from companion.life import agenda, circle, feed, mood, occasions, routine, simulation, thoughts
 from companion.memory.records import OPEN_PLANS, eligible
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
@@ -87,7 +88,10 @@ def view(database) -> dict:
             'simulated_through': position['simulated_through'],
             'clock_behind': now < parse(position['simulated_through']),
             'limits': simulation.settings_view(life),
-            'mood': mood.active(connection, companion, now),
+            # Hidden values: how they feel stays unseen unless the user turns it on (companion/moods.py).
+            'mood': mood.active(connection, companion, now) if workspace['show_moods'] else None,
+            'feeling': feelings.view(connection, f"companion:{companion['id']}", {feelings.USER: 'you'}, now)
+            if workspace['show_moods'] else None,
             'day': day(connection, timeline_id, now.astimezone(zone(version['timezone'])).date().isoformat()),
             'occasions': occasions.occasions(connection, companion, now),
         }
@@ -96,6 +100,9 @@ def view(database) -> dict:
     result['routine'] = {'default_schedule': default, 'current': current.view() if current else None,
                          'next': upcoming.view() if upcoming else None}
     result['availability'] = availability(current)
+    result['mind'] = thoughts.view(database)
+    if not workspace['show_moods']:
+        result['day']['body'] = None  # Hidden values: "Mira is tired" shows only with moods shown.
     return result
 
 

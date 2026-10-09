@@ -3,6 +3,7 @@ import { ArrowUp, ImagePlus, Square, X } from 'lucide-react'
 import type { DraftState } from './useDraft'
 import { usePrepare } from './usePrepare'
 import { InfoTip } from '../../components/InfoTip'
+import { AiFooter } from '../../components/Safety'
 import { sendPicture } from './pictureUpload'
 import { canSend as ready, PER_MESSAGE } from './pictureState'
 
@@ -16,8 +17,8 @@ export function Composer({ name, draft, streaming, compact, onSend, onStop, pict
   const pictures = usePictureAdder(draft, withPictures !== false)
   const canSend = ready(draft.value.text, draft.value.pictures?.length ?? 0, draft.sending || streaming || pictures.busy)
   const onKeyDown = keyHandler(canSend, streaming, onSend, onStop)
-  return (
-    // Sending with the button disables it; keep the keyboard in the message box for the next message.
+  return (<>
+    {/* Sending with the button disables it; keep the keyboard in the message box for the next message. */}
     <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}
       {...pictures.formEvents}>
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
@@ -32,7 +33,8 @@ export function Composer({ name, draft, streaming, compact, onSend, onStop, pict
         ? <button type="button" className="button composer-send" onClick={() => { onStop(); text.current?.focus() }}><Square aria-hidden="true" /><span className="composer-label">Stop</span></button>
         : <button type="submit" className="button primary composer-send" disabled={!canSend}><ArrowUp aria-hidden="true" /><span className="composer-label">Send</span></button>}
     </form>
-  )
+    <AiFooter />
+  </>)
 }
 
 /** Enter sends, Shift+Enter is a new line, Escape stops the reply being written. */

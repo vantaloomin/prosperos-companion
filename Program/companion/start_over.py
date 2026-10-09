@@ -39,7 +39,7 @@ WORKSPACE = (
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
     'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge',
-    'knowledge_holders',
+    'knowledge_holders', 'moods',
     'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.
@@ -55,7 +55,7 @@ HISTORY = (
     'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
-    'closeness_jokes', 'closeness_settings', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'recommendations', 'life_chapters', 'chapter_days', 'marks', 'consequences', 'storylines',
+    'closeness_jokes', 'closeness_settings', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
     'storyline_days', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
     'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'timelines',
@@ -100,6 +100,8 @@ OWN = {
     'lora_gen_images': 'generation_id IN gone_generations',
     'chat_reads': 'thread_id IN gone_timelines',
     'away_messages': 'message_id IN gone_messages',
+    'news_holders': "news_id IN (SELECT id FROM news WHERE timeline_id IN gone_timelines) "
+                    "OR holder='companion:' || :companion",
     'companions': 'id=:companion',
 }
 

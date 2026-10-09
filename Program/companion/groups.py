@@ -17,8 +17,9 @@ The app decides everything here by rules: who is in a group, who sees which mess
 
 Seams the later group chat PRs build on:
 - `public_line`: a member's "Others see" line in the cast block (world/perception.py).
-- `group_lines`: the speaker's private group section (secrets, closeness between members, mood).
-- `plan`, `weights` and `chime_in`: who answers whom (closeness between members, later ignoring someone).
+- `group_lines`: the speaker's private group section (secrets, news, closeness between members, mood).
+- `plan`, `weights` and `chime_in`: who answers whom (closeness between members; nobody answers someone they
+  aren't speaking to, companion/moods.py).
 - Members are person keys (`companion:<id>`), so guests from a circle or the town can join as another kind.
 
 Groups also start conversations on their own: a member shares something from their day and the others answer
@@ -32,9 +33,9 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from companion import away, group_openers, in_character, prompt_library, secrets, texting
+from companion import away, group_openers, in_character, moods, news, prompt_library, safety, secrets, texting
 from companion.characters import by_id
-from companion.database import identifier, many, one, optional
+from companion.database import identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.life import reactions
 from companion.memory import closeness, context, pairs
@@ -93,6 +94,8 @@ anyone else.
 - Talk to the whole group or to one person in it, and keep it as short as a real group text unless the moment \
 needs more."""
 
+COLD = ("{name} isn't speaking to {target} right now. Write {name}'s message again so it talks to the others and "
+        'neither names nor answers {target}.')
 TURN = 'Write {name}\'s next message in the group chat "{group}": only what {name} says, with no name in front.'
 
 USER = 'User'
@@ -201,7 +204,8 @@ def create(database, companion_ids: list[str], name: str | None = None, ties=Non
         return group_view(connection, group_id)
 
 
-def update(database, group_id: str, name: str | None = None, reply_cap: int | None = None) -> dict:
+def update(database, group_id: str, name: str | None = None, reply_cap: int | None = None,
+           walk_out: bool | None = None) -> dict:
     timestamp = database.now()
     with database.connect(write=True) as connection:
         group = require_group(connection, group_id)
@@ -212,6 +216,8 @@ def update(database, group_id: str, name: str | None = None, reply_cap: int | No
         if reply_cap is not None:
             require(1 <= reply_cap <= MAX_CAP, f'Replies per message is 1 to {MAX_CAP}.', 422)
             connection.execute('UPDATE group_chats SET reply_cap=? WHERE id=?', (reply_cap, group_id))
+        if walk_out is not None:
+            connection.execute('UPDATE group_chats SET walk_out=? WHERE id=?', (int(walk_out), group_id))
         return group_view(connection, group_id)
 
 
@@ -224,6 +230,8 @@ def add(database, group_id: str, companion_id: str, everything: bool = False, ti
         key = member_key(companion_id)
         require(all(stay['member'] != key for stay in current_members(connection, group_id)),
                 'They are already in this group.', 409)
+        still = moods.blocked(connection, key, current_members(connection, group_id), database.clock.now())
+        require(still is None, still or '', 409)
         pairs.tell_all(connection, ties, timestamp)
         pairs.tell_rest(connection, [companion_id, *(companion_of(stay['member']) for stay in current_members(
             connection, group_id) if companion_of(stay['member']))], database.clock.now(), timestamp)
@@ -262,6 +270,7 @@ def leave_everywhere(connection, companion_id: str, timestamp: str):
     for stay in rows:
         leave(connection, stay['group_id'], stay, timestamp, f"{stay['name']} is no longer in the group.")
     pairs.forget(connection, companion_id)
+    moods.forget(connection, member_key(companion_id))
 
 
 def copy(database, group_id: str) -> dict:
@@ -289,7 +298,7 @@ def message_view(row: dict, kept: frozenset = frozenset()) -> dict:
     return {'id': row['id'], 'seq': row['seq'], 'kind': kind, 'companion_id': companion_of(row['author']),
             'name': row['name'], 'text': row['text'], 'status': row['status'], 'error': row['error'],
             'reply_to': row['reply_to'], 'guard': row['guard'], 'created_at': row['created_at'],
-            'kept': row['id'] in kept}
+            'kept': row['id'] in kept, 'crisis_help': kind == 'user' and safety.crisis(row['text'])}
 
 
 def member_view(connection, stay: dict) -> dict:
@@ -307,7 +316,7 @@ def title(connection, group: dict) -> str:
 def group_view(connection, group_id: str) -> dict:
     group = require_group(connection, group_id)
     return {'id': group['id'], 'name': group['name'], 'title': title(connection, group),
-            'reply_cap': group['reply_cap'], 'created_at': group['created_at'], 'updated_at': group['updated_at'],
+            'reply_cap': group['reply_cap'], 'walk_out': bool(group['walk_out']), 'created_at': group['created_at'], 'updated_at': group['updated_at'],
             'members': [member_view(connection, stay) for stay in current_members(connection, group_id)]}
 
 
@@ -413,7 +422,8 @@ def shared_part(connection, group: dict, member: str, budget: int, until_seq: in
 
 def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str]]:
     """The speaker's own view of the group, private to them: how close they feel to each member, and the secrets
-    they know with who here must not find out (companion/secrets.py). Later: who they're not speaking to."""
+    they know with who here must not find out (companion/secrets.py), news they heard, and their mood with who
+    they're not speaking to (companion/moods.py)."""
     members = [item for item in current_members(connection, group['id']) if item['member'] != stay['member']]
     lines = [(f"group:{group['id']}",
               f"You are {stay['name']} in the group chat \"{title(connection, group)}\" with "
@@ -425,6 +435,9 @@ def group_lines(connection, group: dict, stay: dict, now) -> list[tuple[str, str
         lines += member_lines(connection, stay['member'], item, now)
     lines += secrets.group_lines(connection, stay['member'], [item['member'] for item in members],
                                  {item['member']: item['name'] for item in members}, now)
+    lines += news.group_lines(connection, stay['member'], [item['member'] for item in members],
+                              {item['member']: item['name'] for item in members}, now)
+    lines += moods.lines(connection, stay['member'], members, now)
     return lines
 
 
@@ -501,11 +514,11 @@ def weights(connection, group_id: str, members: list[dict], now) -> dict[str, fl
 
 
 def plan(members: list[dict], text: str, seed: str, cap: int, weight: dict[str, float],
-         done: frozenset = frozenset()) -> list[str]:
+         done: frozenset = frozenset(), quiet: frozenset = frozenset()) -> list[str]:
     """Who answers a user message, in order: anyone named first, then up to `cap` in all, drawn by weight.
-    Seeded by the message, so a retry picks the same people."""
-    candidates = [stay for stay in members if stay['member'] not in done]
-    named = [member for member in mentioned(text, members) if member not in done]
+    Seeded by the message, so a retry picks the same people. Nobody in `quiet` (not speaking to its writer)."""
+    candidates = [stay for stay in members if stay['member'] not in done | quiet]
+    named = [member for member in mentioned(text, members) if member not in done | quiet]
     order = list(named)
     pool = [stay['member'] for stay in candidates if stay['member'] not in named]
     rng = random.Random(seed)
@@ -515,6 +528,12 @@ def plan(members: list[dict], text: str, seed: str, cap: int, weight: dict[str, 
         order.append(pick)
         pool.remove(pick)
     return order
+
+
+def cold(connection, members: list[dict], author: str, now) -> frozenset:
+    """Members not speaking to `author` right now (companion/moods.py): never picked to answer them."""
+    return frozenset(stay['member'] for stay in members
+                     if moods.ignores(moods.stored(connection, stay['member'], now), author))
 
 
 def chime_in(connection, queue: list[str], spoken: set[str], speaker: str, members: list[dict], seed: str,
@@ -597,6 +616,7 @@ def record(database, group_id: str, text: str, client_id: str) -> dict:
         require(current_members(connection, group_id), 'Add someone to this group to keep talking.', 409)
         row = add_line(connection, group_id, database.now(), 'user', USER, text, client_id=client_id)
         secrets.witness(connection, row)  # The user can tell them; then they know.
+        news.witness(connection, row)
         return row
 
 
@@ -623,6 +643,11 @@ class GroupChats:
     def view(self, group_id: str, after_seq: int = 0) -> dict:
         with self.database.connect() as connection:
             group = group_view(connection, group_id)
+            labels = {member_key(item['companion_id']): item['label'] for item in group['members'] if item['companion_id']}
+            shown = settings(connection)['show_moods']  # Hidden values: moods stay unseen unless turned on.
+            for item in group['members']:
+                item['mood'] = shown and item['companion_id'] and moods.view(
+                    connection, member_key(item['companion_id']), labels, self.database.clock.now()) or None
             messages = history(connection, group_id, after_seq)
             ready = config_for(connection, CHAT) is not None
         running = self.rounds.get(group_id)
@@ -747,9 +772,11 @@ class GroupChats:
             members = current_members(connection, group_id)
             done = opener | frozenset(row['author'] for row in many(
                 connection, "SELECT author FROM group_messages WHERE reply_to=? AND status='complete'", (user['id'],)))
+            now = self.database.clock.now()
             queue = plan(members, user['text'], user['id'], group['reply_cap'],
-                         weights(connection, group_id, members, self.database.clock.now()), done)
+                         weights(connection, group_id, members, now), done, cold(connection, members, user['author'], now))
         spoken, extra = set(done), True
+        self.walk_out(group_id)
         while queue:
             member = queue.pop(0)
             with self.database.connect() as connection:
@@ -763,12 +790,24 @@ class GroupChats:
             reply = await self.speak(group_id, user, stay, running)
             if not reply or reply['status'] != 'complete':
                 continue
-            if banter(queue, spoken, reply['text'], members, extra):
-                extra = False
-            elif extra and not mentioned(reply['text'], members):
-                with self.database.connect() as connection:
-                    if chime_in(connection, queue, spoken, member, members, reply['id'], self.database.clock.now()):
-                        extra = False
+            self.walk_out(group_id)
+            with self.database.connect() as connection:
+                skip = spoken | cold(connection, members, member, self.database.clock.now())
+                if banter(queue, skip, reply['text'], members, extra):
+                    extra = False
+                elif extra and not mentioned(reply['text'], members) and \
+                        chime_in(connection, queue, skip, member, members, reply['id'], self.database.clock.now()):
+                    extra = False
+
+    def walk_out(self, group_id: str) -> dict | None:
+        """Someone furious walks out, when the group allows it (companion/moods.py)."""
+        with self.database.connect(write=True) as connection:
+            if not require_group(connection, group_id)['walk_out']:
+                return None
+            stay = moods.walking_out(connection, current_members(connection, group_id), self.database.clock.now())
+            if stay:
+                leave(connection, group_id, stay, self.database.now(), f"{stay['name']} left the group.")
+            return stay
 
     async def speak(self, group_id: str, user: dict, stay: dict, running: Round) -> dict | None:
         database = self.database
@@ -779,12 +818,15 @@ class GroupChats:
             row = add_line(connection, group_id, database.now(), stay['member'], stay['name'], '', status='streaming',
                            reply_to=user['id'])
             hold = paced(connection)
-            # Secrets this speaker knows that someone here must not find out: the reply is checked before it shows.
+            # Secrets this speaker knows that someone here must not find out, or someone here they're not speaking
+            # to: the reply is checked before it shows.
             watch = secrets.watched(connection, stay['member'], json.loads(row['present']))
+            mood = moods.stored(connection, stay['member'], database.clock.now())
+            shoulder = any(moods.ignores(mood, member) for member in json.loads(row['present']))
         # A paced or checked reply is written out of sight and shows whole when it is sent, like a text.
         text, status, error, guard = [], 'complete', None, None
         running.phase = 'preparing'
-        if not hold and not watch:
+        if not hold and not watch and not shoulder:
             running.live[row['id']] = text
         companion = None
         try:
@@ -795,8 +837,8 @@ class GroupChats:
                 packet = await asyncio.to_thread(self.packet, group, companion, stay, config, row['seq'], user)
             active = in_character.applies(user['text'], companion['version']['definition'])
             status, error = await self.write(config, packet, text, running, active)
-            if watch and status == 'complete':
-                status, error, guard = await self.check(config, packet, text, running, active, stay, watch, row)
+            if (watch or shoulder) and status == 'complete':
+                status, error, guard = await self.review(config, packet, text, running, active, stay, watch, row)
             if hold and status == 'complete':
                 await self.pace(running, ''.join(text), row['id'])
         except asyncio.CancelledError:
@@ -808,6 +850,26 @@ class GroupChats:
             LOG.exception('A group reply failed unexpectedly.')
             status, error = 'failed', f"Couldn't finish the reply: {failure}"
         return self.finish(row, ''.join(text), status, error, companion, stay, running, guard)
+
+    async def review(self, config, packet, text: list, running: Round, active: bool, stay: dict, watch: list[dict],
+                     row: dict) -> tuple[str, str | None, str | None]:
+        """The secrets check, then the cold shoulder: a reply that names someone they're not speaking to is written
+        once more without them (companion/moods.py)."""
+        status, error, guard = 'complete', None, None
+        if watch:
+            status, error, guard = await self.check(config, packet, text, running, active, stay, watch, row)
+        if status != 'complete':
+            return status, error, guard
+        with self.database.connect() as connection:
+            members = current_members(connection, row['group_id'])
+            target = moods.ignored_named(connection, stay['member'], tidy(''.join(text), stay['name'], members),
+                                               members, self.database.clock.now())
+        if target is None:
+            return status, error, guard
+        text.clear()
+        status, error = await self.write(config, add_note(packet, COLD.format(name=stay['name'], target=target)), text,
+                                         running, active)
+        return status, error, guard or 'redrafted'
 
     async def check(self, config, packet, text: list, running: Round, active: bool, stay: dict, watch: list[dict],
                     row: dict) -> tuple[str, str | None, str | None]:
@@ -887,6 +949,9 @@ class GroupChats:
             saved = one(connection, 'SELECT * FROM group_messages WHERE id=?', (row['id'],))
             if status == 'complete':
                 secrets.witness(connection, saved)
+                news.witness(connection, saved)
+                moods.counted(connection, stay['member'], database.clock.now())
+                moods.nudge(connection, stay['member'], text, members, database.clock.now())
         running.live.pop(row['id'], None)
         if status == 'complete':
             running.shown_at, running.before = time.monotonic(), text

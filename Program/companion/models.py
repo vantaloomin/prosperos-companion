@@ -221,7 +221,12 @@ class SettingsUpdate(Input):
     ask_about_people: bool | None = None
     story_mode: bool | None = None
     show_secret_slips: bool | None = None
+    show_moods: bool | None = None
+    show_news: bool | None = None
+    show_odds: bool | None = None
     review_complete: bool | None = None
+    # The first-run notice: the characters are AI, and the user is 18 or older. Only ever confirmed.
+    ai_notice_confirmed: Literal[True] | None = None
 
 
 class ConnectionUpdate(Input):
@@ -312,6 +317,7 @@ class LifeSettingsUpdate(Input):
     # Replies wait while the companion is at work or asleep (companion/life/pacing.py).
     paced_replies: bool | None = None
     day_shifts: bool | None = None
+    on_her_mind: bool | None = None
     user_birthday: str | None = Field(default=None, pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
 
 

@@ -1,13 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api } from '../../api'
-import { COMPANION_KEY } from '../../companion'
+import { COMPANION_KEY, useWorkspaceSettings } from '../../companion'
 import type { Consequence } from '../../types'
 import { storyDate } from './storyText'
 
 /** "Why it went this way": each way a turning could have gone, its odds and what moved them, and a way to make
- * it go another way. Loads only when opened. */
+ * it go another way. Loads only when opened, and shows only with Hidden values > odds turned on. */
 export function WhyItWent({ id, possibleOnly = false }: { id: string; possibleOnly?: boolean }) {
+  return useWorkspaceSettings().data?.show_odds === true ? <Odds id={id} possibleOnly={possibleOnly} /> : null
+}
+
+function Odds({ id, possibleOnly }: { id: string; possibleOnly: boolean }) {
   const [open, setOpen] = useState(false)
   const [failed, setFailed] = useState('')
   const client = useQueryClient()

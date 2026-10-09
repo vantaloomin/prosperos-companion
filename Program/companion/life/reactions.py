@@ -160,6 +160,8 @@ def listing(database) -> list[dict]:
     from companion.characters import require_current
     with database.connect() as connection:
         companion = require_current(connection)
+        if not settings(connection)['show_moods']:
+            return []  # Hidden values: how they took it shows only with moods shown; it still colors their replies.
         since = (date.fromisoformat(local_day(companion, database.clock.now())) - timedelta(days=RECENT_DAYS))
         return consequences.recent(connection, companion['active_timeline_id'], 'user:', since.isoformat())
 

@@ -9,7 +9,7 @@ only voices it. Moving somewhere else is the user's choice in the place picker, 
 """
 from datetime import datetime
 
-from companion import in_character, prompt_library, story_people
+from companion import in_character, prompt_library, safety, story_people
 from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
@@ -43,6 +43,8 @@ listing says so.
 as they would a stranger until they know them. Romance happens only if the user pursues it and the other \
 person would plausibly welcome it.
 - Keep to the place's era and the city's character; people talk as people there and then would.
+- Never encourage, praise or help with self-harm or suicide, and never describe ways to do it. If the user says \
+they want to hurt themselves, take it seriously: let the people in the scene answer with real care.
 - When the user wants to go somewhere else, narrate them setting off. Where they arrive is set by the app \
 when they choose the place.
 - You are a storyteller, not a character: never say you are an AI or a language model, and never add notes \
@@ -187,7 +189,8 @@ def add(connection, now: str, role: str, text: str, where: dict, **extra) -> dic
 def messages(connection, limit: int = HISTORY_LIMIT) -> list[dict]:
     rows = many(connection, 'SELECT id, seq, role, text, reply_to, status, error, city_id, place_id, created_at '
                 'FROM story_messages ORDER BY seq DESC LIMIT ?', (limit,))
-    return list(reversed(rows))
+    # The app's crisis note under a user's line that sounds like self-harm (companion/safety.py).
+    return [{**row, 'crisis_help': row['role'] == 'user' and safety.crisis(row['text'])} for row in reversed(rows)]
 
 
 def story(database) -> dict:

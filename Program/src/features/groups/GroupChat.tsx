@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ChevronLeft, HeartHandshake, Pencil, RotateCcw, UsersRound } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import { useWorkspaceSettings, type View } from '../../companion'
-import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage } from '../../types'
+import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage, GroupMood } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Stamp } from '../../components/Stamp'
+import { CrisisNote } from '../../components/Safety'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Composer } from '../conversation/Composer'
 import { ChatsButton, ChatStyleSwitch } from '../conversation/ConversationHeader'
@@ -86,8 +87,10 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
       <GroupHeader group={group} go={go} onChange={act} />
       <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
-          {shown.map((message) => <GroupLine key={message.id} message={message}
-            onKeep={(kept) => void act(() => api(`/groups/${id}/messages/${message.id}/moment`, { kept }))} />)}
+          {shown.map((message) => <Fragment key={message.id}>
+            <GroupLine message={message} onKeep={(kept) => void act(() => api(`/groups/${id}/messages/${message.id}/moment`, { kept }))} />
+            {message.crisis_help && <CrisisNote />}
+          </Fragment>)}
           <TryAgain shown={canRetry(data)} onRetry={() => void act(() => api(`/groups/${id}/retry?wait=false`, {}))} />
         </div>
         {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
@@ -238,7 +241,7 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
       <ul>
         {group.members.map((member) => (
           <li key={member.companion_id ?? member.label}>
-            <span>{member.name}{member.main && <span className="subtle"> · main character</span>}</span>
+            <span>{member.name}{member.main && <span className="subtle"> · main character</span>}<MoodLine mood={member.mood} /></span>
             <button type="button" className="text-button" onClick={() => setRemoving(member)}>Remove from group</button>
           </li>
         ))}
@@ -250,6 +253,8 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
         </select>
       </label>
       <p className="subtle">Anyone you name answers first.</p>
+      <label className="group-walk-out"><input type="checkbox" checked={group.walk_out ?? false} onChange={(event) => void onChange(() => api(`/groups/${group.id}`, { walk_out: event.target.checked }, 'PATCH'))} /> People can walk out</label>
+      <p className="subtle">When someone stays furious with someone here, they leave the group. You can add them back once they calm down.</p>
       <div className="form-actions">
         <button type="button" className="text-button" onClick={() => setCopying(true)}>New group with these people</button>
         <button type="button" className="text-button danger" onClick={() => setDeleting(true)}>Delete this group…</button>
@@ -261,6 +266,13 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
         onMade={(made) => { setCopying(false); go(`group/${made.id}`) }} />}
     </div>
   )
+}
+
+/** How someone seems right now, read-only, with why (companion/moods.py). Nothing while they seem calm. */
+function MoodLine({ mood }: { mood?: GroupMood | null }) {
+  if (!mood || mood.feeling === 'calm') return null
+  const why = mood.reason ? `: ${mood.reason}` : ''
+  return <span className="group-mood subtle"> · {mood.text}{why}{mood.ignoring ? `. Not speaking to ${mood.ignoring}.` : ''}</span>
 }
 
 function AddSomeone({ group, outside, onChange }: { group: Group; outside: CastMember[]; onChange: Change }) {

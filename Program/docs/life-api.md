@@ -629,6 +629,33 @@ GET  /api/life/chapters                   # the chapters in place, newest first
 POST /api/life/chapters/{id}/undo         # take one back; returns the rest
 ```
 
+#### News travels
+
+`companion/news.py` lets word of a companion's news get around. News is a storyline beat that turned out good or
+bad (never a storyline that is a secret) or a new life chapter, from the last 14 days. It starts with the companion
+it happened to and spreads each evening (from 20:00 their time) for five days, one hop a day: whoever had heard by
+the start of a day may pass it on that evening. A companion can tell the people in their circle and the other
+companions they know (memory/pairs.py, `known_companions`); a circle person can tell their companion and the rest
+of that circle. Whether a teller passes it on is the consequence engine's choice `news:pass_on`: likelier the
+closer they feel (never at "Just met"), when it is their own news, and from a gossip; the dice are seeded by the
+news, the pair and the day. It runs in the life engine every ten minutes, rules only, whatever background activity
+says, and never while paused. A chapter's news follows its title and ends when the chapter is undone.
+
+`news_holders` records who heard it, on which day, how (`origin`, `word`, `group`) and from whom (`told_by`).
+A companion who heard news about someone else gets it in their chat context under "News you heard about people
+you know" for 14 days ("Heard on 2026-10-07 (Ana (Kimberly's sister) told you): …"), and news about another
+companion heard today or yesterday can open a conversation ("Did you hear about Kimberly??"), sometimes before
+that companion has told the user. Only life events travel, never anything from the user's chats, and the prompt
+says they don't know whether the user has heard, so no companion seems to have read the user's other chats.
+Group chats: see docs/group-chat.md. Today shows "Word getting around": the companion's recent news and who has
+heard it, from whom, once anyone has, only with Settings > Life > Hidden values > "Show who has heard their news"
+on (workspace `show_news`, off by default; `GET /api/life/news` returns `[]` while it is off). Word travels either
+way.
+
+```http
+GET  /api/life/news                       # the companion's recent news and who heard it: [{id, text, happened_on, heard}]; [] while hidden
+```
+
 ### Birthdays and anniversaries
 
 `companion/life/occasions.py` keeps four kinds of day, from the calendar and saved state only:
@@ -863,10 +890,28 @@ POST /api/today/seen
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
 | `last_seen_at` | When the user last marked Today as seen |
 | `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
+| `mind` | On her mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
 
 Call `POST /api/today/seen` once the user has looked at Today, so the next visit's `changes`
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
 and `plans` have the same shape as `GET /api/events`.
+
+### On her mind
+
+Each evening (from 18:00 the companion's time) Today gets one private thought for that day, worked out by
+rules in `companion/life/thoughts.py` from what actually happened: a storyline beat or a new life chapter, how a
+consequence left them feeling (a mood mark not about the user), money (a surprise bill, a splurge, payday, a tight
+week), a plan of theirs in the next three days, a day that went off plan, or, kept light, the user: closeness
+reaching a new stage, or that the two of you talked. The weightiest wins, ties go to the day's seeded dice, and a
+topic used on either of the two days before steps aside when anything else is there; a quiet day gets a quiet line.
+Thoughts are written once, when Today is opened or in the background, and kept in `thoughts`, so the week reads
+back as it was; a day never changes after the fact. Nothing a secret they keep could give away is used, and no
+emotional trait the character was not given is ever implied.
+
+The wording is a fixed template. With background activity and `phrase_with_model` both on, the life model polishes
+one thought a tick at background priority; a polish that drops their name, names a clock time or runs long is
+thrown away and the template stays. Thoughts never reach the chat context, so the companion never knows they were
+read. The Life setting `on_her_mind` (Settings > Life > Hidden values, on by default) hides them and stops new ones being written.
 
 ### Money
 
