@@ -15,11 +15,13 @@ export function AiNotice() {
 function AiNoticeDialog() {
   const client = useQueryClient()
   const dialog = useRef<HTMLDialogElement>(null)
+  const checkbox = useRef<HTMLInputElement>(null)
   const [adult, setAdult] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => {
     const element = dialog.current
     element?.showModal()
+    checkbox.current?.focus()  // Not the safety link, which would start out outlined.
     return () => element?.close()
   }, [])
   const confirm = async () => {
@@ -33,7 +35,7 @@ function AiNoticeDialog() {
       <div className="dialog-body">
         <p>The characters in Prospero&apos;s Companion are AI. Everything they say is written by an AI model, not a person, and it can be wrong. They stay in character, so a line under every message box reminds you.</p>
         <p>If you ever mention hurting yourself, the app shows a note with places to get help. It never stops the chat and nothing is sent anywhere. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/safety.md" target="_blank" rel="noreferrer">How the app handles safety</a></p>
-        <label className="ai-notice-adult"><input type="checkbox" checked={adult} onChange={(event) => setAdult(event.target.checked)} /> I&apos;m 18 or older</label>
+        <label className="ai-notice-adult"><input ref={checkbox} type="checkbox" checked={adult} onChange={(event) => setAdult(event.target.checked)} /> I&apos;m 18 or older</label>
         {error && <p className="error-text" role="alert">{error}</p>}
       </div>
       <div className="dialog-actions">
