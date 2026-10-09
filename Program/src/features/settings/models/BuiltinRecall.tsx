@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, FolderOpen, Gauge } from 'lucide-react'
+import { Download, FolderOpen, Gauge, RefreshCw } from 'lucide-react'
 import { api } from '../../../api'
+import { shownPath, useRefetchOnFocus } from '../../../paths'
 import { Notice } from '../../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../../components/Fields'
 
@@ -29,7 +30,9 @@ type Run = (label: string, work: () => Promise<void>) => Promise<void>
 /** Settings > Models: an embedding model the Companion runs itself with llama.cpp (companion/providers/builtin_recall.py). */
 export function BuiltinRecall() {
   const client = useQueryClient()
-  const query = useQuery({ queryKey: KEY, queryFn: () => api<BuiltinRecallView>('/models/builtin-recall'), refetchInterval: (state) => state.state.data?.state === 'starting' ? 1500 : false, refetchOnWindowFocus: true })
+  const query = useQuery({ queryKey: KEY, queryFn: () => api<BuiltinRecallView>('/models/builtin-recall'), refetchInterval: (state) => state.state.data?.state === 'starting' ? 1500 : false, staleTime: 0 })
+  // A model file dropped in the folder shows up when the user comes back to the app.
+  useRefetchOnFocus(query.refetch)
   const [path, setPath] = useState<string | null>(null)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
@@ -48,7 +51,7 @@ export function BuiltinRecall() {
       <p className="subtle">Recall finds related memories even when the words differ. The Companion can run a small embedding model for this itself, on this PC's processor, apart from LM Studio, Kobold or Ollama. You download the model file, so you accept its licence. While this is on, it does Semantic recall instead of the profile chosen above.</p>
     </div>
     <RuntimeStep data={data} busy={busy} run={run} onChange={update} />
-    <ModelStep data={data} chosen={chosen} busy={busy} run={run} setPath={setPath} refresh={() => void query.refetch()} />
+    <ModelStep data={data} chosen={chosen} busy={busy} run={run} setPath={setPath} checking={query.isFetching} refresh={() => void query.refetch()} />
     <RecallSwitch data={data} chosen={chosen} busy={busy} run={run} onChange={update} />
     {error && <Notice tone="error">{error}</Notice>}
     <TestRecall busy={busy} run={run} refresh={() => void query.refetch()} />
@@ -68,7 +71,7 @@ function RuntimeStep({ data, busy, run, onChange }: StepProps & { onChange: (vie
   </div>
 }
 
-function ModelStep({ data, chosen, busy, run, setPath, refresh }: StepProps & { chosen: string; setPath: (path: string) => void; refresh: () => void }) {
+function ModelStep({ data, chosen, busy, run, setPath, checking, refresh }: StepProps & { chosen: string; setPath: (path: string) => void; checking: boolean; refresh: () => void }) {
   const listed = data.models.some(model => model.path === chosen)
   const openFolder = () => run('folder', async () => { await api('/models/builtin-recall/open-folder', {}); refresh() })
   return <div className="form-stack">
@@ -80,13 +83,14 @@ function ModelStep({ data, chosen, busy, run, setPath, refresh }: StepProps & { 
       </li>)}
     </ul>
     <p className="subtle">Put the file in the Companion's models folder, or use one LM Studio already downloaded.</p>
-    <div className="form-actions"><button type="button" className="button" onClick={() => void openFolder()} disabled={!!busy}><FolderOpen size={15} aria-hidden="true" />Open models folder</button><small>{data.models_folder}</small></div>
+    <div className="form-actions"><button type="button" className="button" onClick={() => void openFolder()} disabled={!!busy}><FolderOpen size={15} aria-hidden="true" />Open models folder</button><small>{shownPath(data.models_folder)}</small></div>
     <Field label="Model file" hint={data.models.length ? 'Embedding models found on this PC.' : 'No embedding model found yet. Choose Another file to type its path.'}>{(id, hint) => (
       <select id={id} aria-describedby={hint} value={listed ? chosen : OTHER} onChange={event => setPath(event.target.value === OTHER ? '' : event.target.value)}>
         {data.models.map(model => <option key={model.path} value={model.path}>{model.name} ({model.source}, {model.size_mb} MB)</option>)}
         <option value={OTHER}>Another file…</option>
       </select>
     )}</Field>
+    <div className="form-actions"><button type="button" className="text-button" aria-disabled={checking} onClick={() => { if (!checking) refresh() }}><RefreshCw size={15} aria-hidden="true" />{checking ? 'Checking…' : 'Check for models'}</button></div>
     {!listed && <TextInput label="Path to the model file" value={chosen} onChange={setPath} maxLength={1000} placeholder="C:\Models\embeddinggemma-2-Q8_0.gguf" hint="The full path of a .gguf embedding model." />}
   </div>
 }

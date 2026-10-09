@@ -20,6 +20,7 @@ import { sidecar, useSidecarOpen } from './features/sidecar/store'
 import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
 import { badge, unreadOf } from './features/chats/chatText'
+import { useAppColors } from './features/settings/useAppColors'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
 const Character = lazy(() => import('./features/character/Character').then((m) => ({ default: m.Character })))
@@ -78,6 +79,7 @@ export default function App() {
   useFocusOnViewChange(view)
   // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
   const storyOn = !!useWorkspaceSettings().data?.story_mode
+  useAppColors()
   const sidecarOpen = useSidecarOpen()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
   const datingInstalled = useQuery({ queryKey: ['dating-status'], queryFn: () => api<{ installed: boolean }>('/dating/status') }).data?.installed ?? true

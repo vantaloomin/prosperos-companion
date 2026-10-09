@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
+import { useRefetchOnFocus } from '../../paths'
 import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
@@ -12,6 +13,8 @@ import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
+import { SliderField, SliderNumber } from '../../components/NumberFields'
+import { countText } from '../../components/numberBounds'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -60,10 +63,9 @@ export function ImageSettings() {
 }
 
 function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Limits>, done?: string) => Promise<boolean> }) {
-  const [limit, setLimit] = useState<string | null>(null)
   const [style, setStyle] = useState<string | null>(null)
   const saveDrafts = async () => {
-    if (await save({ ...(limit !== null ? { daily_limit: Number(limit) } : {}), ...(style !== null ? { style } : {}) }, 'Saved.')) { setLimit(null); setStyle(null) }
+    if (style !== null && await save({ style }, 'Saved.')) setStyle(null)
   }
   return <>
       <Toggle label="Make images for new posts automatically" checked={data.automatic_images} onChange={(value) => void save({ automatic_images: value })}
@@ -75,7 +77,8 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
         hint="Only to a backend allowed to receive that request." />
       <div className="form-grid">
-        <TextInput label="Most automatic images a day" type="number" value={limit ?? String(data.daily_limit)} hint="0 to 24." onChange={setLimit} />
+        <SliderField label="Most automatic images a day" value={data.daily_limit} min={0} max={24} format={(value) => countText(value, 'image', 'images', 'None')}
+          onChange={(value) => void save({ daily_limit: value }, 'Saved.')} />
         <Field label="Shape" hint="For post pictures and photos in chat. Memes are always square.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={data.aspect} onChange={(event) => void save({ aspect: event.target.value as Limits['aspect'] })}>
             <option value="landscape">Landscape</option><option value="square">Square</option><option value="portrait">Portrait</option>
@@ -83,10 +86,10 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
         )}</Field>
       </div>
       <TextInput label="Style" value={style ?? data.style} maxLength={500} placeholder="Candid, natural-light photograph" hint="Starts every image prompt, unless a backend below has its own style." onChange={setStyle} />
-      {(limit !== null || style !== null) && (
+      {style !== null && (
         <div className="form-actions">
           <button type="button" className="button primary" onClick={() => void saveDrafts()}>Save</button>
-          <button type="button" className="button" onClick={() => { setLimit(null); setStyle(null) }}>Cancel</button>
+          <button type="button" className="button" onClick={() => setStyle(null)}>Cancel</button>
         </div>
       )}
   </>
@@ -280,8 +283,8 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
       <div className="form-stack">
         <p className="subtle">Starts on Krea 2 Turbo's settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
         <div className="form-grid">
-          <TextInput label="Steps" type="number" value={String(shown.steps)} hint="1 to 100. Turbo models need few." onChange={(value) => setDraft({ ...draft, steps: Number(value) })} />
-          <TextInput label="CFG" type="number" value={String(shown.cfg)} hint="At 1 the negative prompt is ignored." onChange={(value) => setDraft({ ...draft, cfg: Number(value) })} />
+          <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} hint="Turbo models need few." onChange={(steps) => setDraft({ ...draft, steps })} />
+          <SliderNumber label="CFG" value={shown.cfg} min={0} max={30} step={0.5} hint="At 1 the negative prompt is ignored." onChange={(cfg) => setDraft({ ...draft, cfg })} />
           <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} krea={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
           <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} krea={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
         </div>
@@ -294,7 +297,10 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
 
 /** The server's file lists, asked once the panel is opened and shared by the file and LoRA pickers. */
 function useBackendFiles(id: string, open: boolean) {
-  return useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  const files = useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+  // A model dropped in ComfyUI's folders shows up when the user comes back to the app.
+  useRefetchOnFocus(files.refetch, open)
+  return files
 }
 
 /** A dropdown of the server's files (only `krea` when given), or a text box when it listed none. */
@@ -339,7 +345,7 @@ function StyleLoraRows({ rows, options, krea, setRows }: { rows: StyleLora[]; op
     {krea.length > 0 && <Toggle label="Only Krea 2 LoRAs" checked={kreaOnly} onChange={setKreaOnly} hint="LoRAs whose name or folder says Krea 2. Turn off to see every LoRA." />}
     {rows.map((row, index) => <div key={index} className="form-grid">
       <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} krea={kreaOnly ? krea : []} value={row.name} fallback="" onChange={(name) => edit(index, { name })} />
-      <TextInput label="Strength" type="number" value={String(row.strength)} hint="0.6 to 0.8 suits most style LoRAs." onChange={(value) => edit(index, { strength: Number(value) })} />
+      <SliderNumber label="Strength" value={row.strength} min={-2} max={2} step={0.05} hint="0.6 to 0.8 suits most style LoRAs." onChange={(strength) => edit(index, { strength })} />
       <TextInput label="Trigger words" value={row.trigger} maxLength={200} hint="Put in front of the prompt when the LoRA needs them." onChange={(trigger) => edit(index, { trigger })} />
       <button type="button" className="text-button" onClick={() => setRows(rows.filter((_, at) => at !== index))}><Trash2 aria-hidden="true" />Remove</button>
     </div>)}

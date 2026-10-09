@@ -8,6 +8,7 @@ import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { backupLabel } from './backupText'
+import { shownPath } from '../../paths'
 
 const BACKUPS_KEY = ['backups']
 const formatDate = (iso: string) => new Date(iso).toLocaleString()
@@ -30,7 +31,7 @@ export function Backups() {
   }
   const backup = () => run(async () => {
     const created = await api<BackupResult>(`/backups?include_datasets=${datasets}`, {})
-    setResult({ tone: 'info', text: `Backup saved to ${created.path}.` })
+    setResult({ tone: 'info', text: `Backup saved to ${shownPath(created.path)}.` })
     await client.invalidateQueries({ queryKey: BACKUPS_KEY })
   }, 'The backup failed.')
   const choose = (name: string) => run(async () => {
