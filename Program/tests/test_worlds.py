@@ -74,8 +74,11 @@ def test_switching_worlds_changes_everything_and_settings_follow(client, connect
 
 
 def test_a_new_persona_has_a_world_of_their_own(client, companion):
-    made = ok(client.post('/api/worlds/personas', json={}))
-    assert made['name'] and len(made['worlds']) == 1
+    # Who the user is stays theirs: a name is needed, and nothing they left blank is made up.
+    assert client.post('/api/worlds/personas', json={}).status_code == 422
+    made = ok(client.post('/api/worlds/personas', json={'name': 'Jordan'}))
+    assert made['name'] == 'Jordan' and len(made['worlds']) == 1
+    assert (made['gender'], made['age'], made['about'], made['birthday']) == ('', None, '', '')
     switched = ok(client.post(f"/api/worlds/personas/{made['id']}/switch"))
     assert switched['persona']['id'] == made['id'] and switched['world']['id'] == made['worlds'][0]['id']
     data = listing(client)

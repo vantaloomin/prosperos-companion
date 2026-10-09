@@ -42,7 +42,9 @@ reloads into the new one, rather than writing into it.
 - A new world starts in the current city (or `city_id`) with fresh townsfolk and a starter companion: a grown-up
   townsperson picked by the world's seed, written from their town sheet with no model call (`cast.profile`), a friend
   at closeness stage 2.
-- A new persona takes the current persona's gender and age, a name from the city's names, and a world of their own.
+- The persona is the exception: who the user is stays the user's to say (Vanta, 2026-10-09). "New persona" opens the
+  persona form; the name they type is required, anything left blank stays blank, and the app makes nothing up. Their
+  world is still decided for them, as above.
 
 ## Deleting
 

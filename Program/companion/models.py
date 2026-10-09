@@ -423,7 +423,7 @@ Birthday = Annotated[str, Field(pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d
 
 
 class PersonaInput(Input):
-    """Who the user is in a persona's worlds (companion/worlds.py). Anything left out is decided by the app."""
+    """Who the user is in a persona's worlds (companion/worlds.py). Only the user says this; blanks stay blank."""
     name: str | None = Field(None, max_length=80)
     gender: Gender | None = None
     age: int | None = Field(None, ge=18, le=120)

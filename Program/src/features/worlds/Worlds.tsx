@@ -18,6 +18,7 @@ export function Worlds() {
   const client = useQueryClient()
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const [making, setMaking] = useState(false)
   const run: Run = async (action) => {
     if (busy) return
     setError('')
@@ -42,14 +43,12 @@ export function Worlds() {
             onSwitch={(world) => void switchTo(`/worlds/${world.id}/switch`, world.name)}
             onSwitchPersona={() => void switchTo(`/worlds/personas/${persona.id}/switch`, personaName(persona))} />
         ))}
-        <div className="form-actions">
-          <button type="button" className="button" aria-disabled={!!busy} onClick={() => void run(async () => {
-            await api('/worlds/personas', {})
-            await client.invalidateQueries({ queryKey: WORLDS_KEY })
-          })}><UserRoundPlus aria-hidden="true" />New persona</button>
-        </div>
-        <p className="subtle small">A new persona gets a world of their own right away, in this city with new people in it and a first companion to meet. Change anything about them afterwards.</p>
-        <PersonaForm key={data.persona.id} persona={data.persona} onSaved={store} />
+        {making
+          ? <PersonaForm onCancel={() => setMaking(false)} onSaved={() => { setMaking(false); void client.invalidateQueries({ queryKey: WORLDS_KEY }) }} />
+          : <div className="form-actions">
+              <button type="button" className="button" onClick={() => setMaking(true)}><UserRoundPlus aria-hidden="true" />New persona</button>
+            </div>}
+        <PersonaForm key={data.persona.id} persona={data.persona} onSaved={(saved) => { if (saved) store(saved) }} />
       </div>
     </section>
   )

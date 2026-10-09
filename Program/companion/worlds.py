@@ -34,7 +34,6 @@ REGISTRY = 'worlds.json'
 FOLDER = 'worlds'
 DATABASE = 'companion.sqlite3'
 GENDERS = ('woman', 'man', 'nonbinary')
-PRONOUNS = {'woman': 'she', 'man': 'he'}
 # What belongs to the user rather than to a world: carried from the world they leave into the one they enter, as a
 # restore keeps them (companion/restore.py). Debug time stays with its world; their own cities follow them.
 SHARED = tuple(table for table in restore.KEPT_SETTINGS if table != 'debug_time') + ('world_cities',)
@@ -342,23 +341,15 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
 
 # Personas -------------------------------------------------------------------------------------------------
 
-def generated_name(database: Database, gender: str, seed: str) -> str:
-    with database.connect() as connection:
-        data = city_of(connection)
-    return generators.name(data, seed=seed, pronouns=PRONOUNS.get(gender))['full']
-
-
 def create_persona(database: Database, body) -> dict:
-    """A new persona with a world of their own. What the user leaves out is decided for them: the current persona's
-    gender and age, and a name from the city's names."""
+    """A new persona with a world of their own. Who the user is stays theirs to say (Vanta, 2026-10-09): the name
+    they typed, and nothing the app makes up; what they leave blank stays blank. The world is decided for them."""
+    name = (body.name or '').strip()
+    require(bool(name), 'Give the new persona a name.', 422)
     data = registry(database)
-    active = found(data['worlds'], data['active'], 'world')
-    current = found(data['personas'], active['persona_id'], 'persona')
     persona_id = identifier()
-    gender = body.gender or current['gender'] or 'woman'
-    persona = {'id': persona_id, 'name': (body.name or '').strip() or generated_name(database, gender, persona_id),
-               'gender': gender, 'age': body.age or current['age'], 'about': (body.about or '').strip(),
-               'birthday': body.birthday or '', 'created_at': database.now()}
+    persona = {'id': persona_id, 'name': name, 'gender': body.gender or '', 'age': body.age,
+               'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now()}
     data['personas'].append(persona)
     save(database.root, data)
     world = create_world(database, persona_id)
