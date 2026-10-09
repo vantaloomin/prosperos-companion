@@ -63,6 +63,20 @@ def live(client, clock, ids, weeks):
         clock.instant = clock.now() + timedelta(days=7)
 
 
+def settle(client, clock, ids):
+    """Go on until the last meeting so far is over, and bring the agenda up to then, so the meetings counted
+    have happened rather than still being ahead (the week ahead can hold the only ones)."""
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        last = connection.execute("SELECT MAX(a.ends_at) AS at FROM townsfolk_encounters met JOIN life_agenda a ON "
+                                  "a.timeline_id=met.timeline_id AND a.slot_key=met.slot_key AND a.subject='companion' "
+                                  "WHERE met.key LIKE 'cast:%'").fetchone()['at']
+        if last and parse(last) > clock.now():
+            clock.instant = parse(last)
+        for companion_id in ids:
+            agenda.extend(connection, by_id(connection, companion_id), client.app.state.life.world, clock.now())
+
+
 def cast_meetings(connection) -> list[dict]:
     rows = connection.execute("SELECT met.*, c.id AS companion_id FROM townsfolk_encounters met JOIN companions c "
                               "ON c.active_timeline_id=met.timeline_id WHERE met.key LIKE 'cast:%' "
@@ -80,6 +94,7 @@ def test_companions_meet_where_their_own_days_take_them(client, clock, fellows, 
     mira = make(client, 'Warm and curious.', home_city='baltimore')
     sam = neighbor(client, 'Sam Ortiz')
     live(client, clock, [mira['id'], sam], 3)
+    settle(client, clock, [mira['id'], sam])
     with client.app.state.database.connect() as connection:
         met = cast_meetings(connection)
         assert met, 'Two companions with the same evenings in Fells Point never crossed paths in six weeks.'
@@ -124,8 +139,12 @@ def test_another_companion_is_only_where_their_own_days_put_them(client, clock):
 def test_meeting_another_companion_is_news_for_the_user(client, clock, fellows, one_haunt):
     mira = make(client, 'Warm and curious.', home_city='baltimore')
     sam = neighbor(client, 'Sam Ortiz')
-    live(client, clock, [mira['id'], sam], 3)
     database = client.app.state.database
+    for _week in range(8):  # Usually within three weeks; now and then a quiet stretch takes longer.
+        live(client, clock, [mira['id'], sam], 1)
+        with database.connect() as connection:
+            if any(meeting['companion_id'] == mira['id'] for meeting in cast_meetings(connection)):
+                break
     with database.connect(write=True) as connection:
         first = next(meeting for meeting in cast_meetings(connection) if meeting['companion_id'] == mira['id'])
         connection.execute("UPDATE life_agenda SET status='happened' WHERE timeline_id=? AND slot_key=?",
