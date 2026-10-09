@@ -79,8 +79,6 @@ def test_a_sick_day_stays_home_and_a_low_evening_stays_small():
 def test_the_agenda_carries_the_state_into_the_day_and_the_chat(client, baltimore, clock, monkeypatch):
     monkeypatch.setattr(body, 'AFTER', {key: (('tired', 1.0),) for key in body.AFTER})
     monkeypatch.setattr(body, 'COLD_CHANCE', {'winter': 0, 'other': 0})
-    # How they feel is a hidden value; Today shows it only with moods shown.
-    assert client.put('/api/settings', json={'show_moods': True}).status_code == 200
     clock.advance(timedelta(days=3))
     reconcile(client)
     with client.app.state.database.connect() as connection:
