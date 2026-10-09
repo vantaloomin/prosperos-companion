@@ -36,6 +36,18 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.5.0 (2026-10-09)
+
+- **News travels:** news spreads one person a day; companions can text "Did you hear about…?"; Today
+  shows who has heard.
+- **Moods** for every companion, by rules; the cold shoulder in groups and an opt-in "People can walk out".
+- **On her mind:** one private thought a day on Today.
+- **Hidden values** in Settings > Life: moods, who heard the news and the odds stay hidden by default.
+- **AI notices and crisis help:** first-run notice with an 18+ checkbox, an "AI can make mistakes" line
+  in every chat, an app note with crisis lines when a message sounds like self-harm.
+- **Record model calls** (Settings > Debug, off by default) with "Save for support".
+- Release names carry a title (this one: "Word Gets Around"); a roadmap in the README.
+
 ## v0.4.0 (2026-10-09)
 
 - **Everyone keeps living:** every companion lives their days; group chats start conversations.
