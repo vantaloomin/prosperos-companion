@@ -129,17 +129,20 @@ open release decision.
 
 1. Set the same version in `package.json`, `pyproject.toml` and `companion/identity.py`, and write the
    release notes in `docs/releases/v<version>.md` (plus an entry in the top-level `CHANGELOG.md`).
+   A new minor version also needs its title in `docs/releases/titles.json`; patch releases share it, so
+   every 0.4 release is named "v0.4.x: Small World, Big News".
 2. Merge that to `main`, then run the `Release` workflow from the Actions tab on `main` (pre-release
    is ticked by default).
 
-`release.yml` checks the three version numbers agree and the notes exist, runs the whole `Package`
+`release.yml` checks the three version numbers agree and the notes and title exist, runs the whole `Package`
 workflow on that commit, and only when every job passes tags `v<version>` on it and publishes the
 setup, the portable zip and `SHA256SUMS.txt` as a GitHub release. It refuses a version that is
 already released.
 
 To change the notes of a published release (say, to warn about a bug in it), edit its
 `docs/releases/v<version>.md`, merge, then run the `Release notes` workflow on `main` with the tags
-to update, separated by spaces.
+to update, separated by spaces. Pick `title` instead of `notes` to rename releases after changing
+`docs/releases/titles.json`.
 
 ## Interface
 
