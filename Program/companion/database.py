@@ -158,6 +158,8 @@ ADDED_COLUMNS = (
     ('messages', 'superseded_at', 'TEXT'),
     ('workspace_settings', 'chat_retro_dark', 'INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1))'),
     ('workspace_settings', 'story_mode', 'INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1))'),
+    # Launch buttons (companion/launcher.py): start the local programs in use with the Companion.
+    ('workspace_settings', 'auto_launch', 'INTEGER NOT NULL DEFAULT 0 CHECK (auto_launch IN (0, 1))'),
     # Onboarding portraits (lora/portraits.py): a set whose later pictures follow the profile picture,
     # and the kept picture shown as the companion's profile picture.
     ('lora_generations', 'kind', "TEXT NOT NULL DEFAULT 'dataset' CHECK (kind IN ('dataset', 'portraits'))"),
@@ -195,6 +197,8 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'show_moods', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1))'),
     ('workspace_settings', 'show_news', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1))'),
     ('workspace_settings', 'show_odds', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1))'),
+    # Record model calls (companion/model_calls.py): off unless the user turns it on in Settings > Debug.
+    ('workspace_settings', 'record_model_calls', 'INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
     # from before that is switched on once (see initialize), and turning it off afterwards sticks.
     ('life_settings', 'events_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),

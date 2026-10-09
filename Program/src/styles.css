@@ -695,6 +695,7 @@ textarea { resize: vertical; line-height: 1.6; }
 /* Chat styles: presentation only. Each lays out the same message markup; Feed is the base rules above. */
 .avatar { display: none; }
 .chat-style-switch { padding: 5px 8px; font-size: 0.8125rem; border-radius: 7px; max-width: 132px; }
+.where-form { margin-top: 12px; max-width: 520px; }
 .chat-style-options { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
 .chat-style-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); cursor: pointer; }
 .chat-style-option:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
