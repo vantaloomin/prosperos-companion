@@ -559,6 +559,22 @@ POST /api/life/consequences/{id}/change   # {"option": 1}: make it go that way i
 A decided beat carries its outcome's id as `consequence`. Today shows it under "Why it went this way"
 with each way it could have gone, its odds and reasons, and a button to make it go another way.
 
+An outcome can leave **marks** for a while (the option's `marks` in the table, stored in `marks`):
+`mood` or `money` with an amount, which add up per person and are read back as the `mood` and `money`
+readers (a companion low after a missed promotion is likelier to stay cold after a fight), or `avoid`,
+which keeps the companion away from someone (they are left out of company, drop-ins and gatherings). Marks
+also tilt the day (`disruptions.tilts`): low spirits make a quiet night in likelier, tight money makes plans
+fall through and things come up more often, and the chat context's money section says money has felt
+tight (or easier) lately. A mark with `ripple` also reaches each companion who feels Close or closer to the
+companion (backstories, groups and Small world meetings), as a lighter mood mark on their own timeline.
+Changing how it went redoes the marks from that day. The note lists what an outcome left and whom it reached
+(`marks: [{kind, amount, note, until, ripple, holder, who}]` in the outcome).
+
+Secrets use the engine too: whether a gossip would pass a secret on to someone in a group chat is the
+choice `secret:pass_on`, from how close they feel (about 86% at Close or closer, 20% a step below, never
+to someone they hardly know), seeded by the secret, the two of them and that closeness. Only a companion
+with the gossip flaw passes anything on, and never to someone it is kept from.
+
 ### Birthdays and anniversaries
 
 `companion/life/occasions.py` keeps four kinds of day, from the calendar and saved state only:

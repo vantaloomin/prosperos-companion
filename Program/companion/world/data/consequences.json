@@ -1,89 +1,425 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code). Names in `why`: {name} the companion, {a} and {b} the people in the story.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
       "options": [
-        {"weight": 3, "rules": [{"reader": "closeness_a", "at_least": 4, "times": 1.3, "why": "{name} is close to {a} and keeps telling them to go for it"}]},
-        {"weight": 2, "rules": [{"reader": "age_a", "at_least": 55, "times": 1.5, "why": "{a} is past starting over somewhere new"}]}
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and keeps telling them to go for it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 55,
+              "times": 1.5,
+              "why": "{a} is past starting over somewhere new"
+            }
+          ]
+        }
       ]
     },
     "storyline:promotion_chance:1": {
       "label": "Whether {name} gets the promotion",
       "options": [
-        {"weight": 1, "rules": [{"reader": "sheet", "has": "driven", "times": 1.8, "why": "{name} is driven and it shows at work"}]},
-        {"weight": 1, "rules": [
-          {"reader": "sheet", "has": "unfocused", "times": 1.8, "why": "{name} is easily distracted at work"},
-          {"reader": "drama", "at_least": 2, "times": 1.2, "why": "the drama level favours setbacks"}]}
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.8,
+              "why": "{name} is driven and it shows at work"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.8,
+              "why": "{name} has had a rough few weeks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 60,
+              "note": "{name} has a bigger paycheck",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.8,
+              "why": "{name} is easily distracted at work"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is low after missing out on the promotion",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
       ]
     },
     "storyline:work_creep:1": {
       "label": "How the trouble with the new guy ends",
       "options": [
-        {"weight": 1, "rules": [{"reader": "sheet", "has": "assertive", "times": 1.8, "why": "{name} doesn't take nonsense from anyone"}]},
-        {"weight": 1, "rules": [
-          {"reader": "sheet", "has": "shy", "times": 1.5, "why": "{name} is shy and would rather a manager handle it"},
-          {"reader": "drama", "at_least": 2, "times": 1.3, "why": "the drama level makes it go further"}]}
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.8,
+              "why": "{name} doesn't take nonsense from anyone"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} is shy and would rather a manager handle it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level makes it go further"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is worn down after reporting the new guy",
+              "amount": -1
+            }
+          ]
+        }
       ]
     },
     "storyline:layoff_rumors:1": {
       "label": "How the layoff rumors end",
       "options": [
-        {"weight": 1, "rules": [{"reader": "drama", "at_least": 2, "times": 1.5, "why": "the drama level means somebody gets hurt"}]},
-        {"weight": 1, "rules": [{"reader": "drama", "at_most": 0, "times": 2, "why": "the drama level keeps things gentle"}]}
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level means somebody gets hurt"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "note": "{name} is being careful with money after the layoff scare",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        }
       ]
     },
     "storyline:parent_health:1": {
       "label": "What {a}'s test results say",
       "options": [
-        {"weight": 3, "rules": [{"reader": "drama", "at_most": 1, "times": 2, "why": "the drama level keeps things gentle"}]},
-        {"weight": 2, "rules": [
-          {"reader": "age_a", "at_least": 65, "times": 1.5, "why": "{a} is in their late sixties or older"},
-          {"reader": "drama", "at_least": 3, "times": 1.5, "why": "the drama level is soap opera"}]}
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 1,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 65,
+              "times": 1.5,
+              "why": "{a} is in their late sixties or older"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 30,
+              "note": "{name} is worried about {a}'s treatment",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
       ]
     },
     "storyline:friends_feud:1": {
       "label": "Whether {a} and {b} make up",
       "options": [
-        {"weight": 1, "rules": [
-          {"reader": "tie", "is": "old friends", "times": 2, "why": "{a} and {b} go way back"},
-          {"reader": "closeness_a", "at_least": 4, "times": 1.3, "why": "{name} is close to {a} and can talk them round"},
-          {"reader": "closeness_b", "at_least": 4, "times": 1.3, "why": "{name} is close to {b} and can talk them round"}]},
-        {"weight": 1, "rules": [
-          {"reader": "tie", "is": "coworkers", "times": 1.5, "why": "{a} and {b} only know each other from work"},
-          {"reader": "drama", "at_least": 3, "times": 1.3, "why": "the drama level keeps it going"}]}
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 2,
+              "why": "{a} and {b} go way back"
+            },
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and can talk them round"
+            },
+            {
+              "reader": "closeness_b",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {b} and can talk them round"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "coworkers",
+              "times": 1.5,
+              "why": "{a} and {b} only know each other from work"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
       ]
     },
     "storyline:secret_couple:1": {
       "label": "How it goes for {a} and {b}",
       "options": [
-        {"weight": 1, "rules": [{"reader": "tie", "is": "old friends", "times": 1.5, "why": "{a} and {b} have known each other for years"}]},
-        {"weight": 1, "rules": [{"reader": "drama", "at_least": 3, "times": 1.5, "why": "the drama level is soap opera"}]}
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.5,
+              "why": "{a} and {b} have known each other for years"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level is soap opera"
+            }
+          ]
+        }
       ]
     },
     "storyline:friend_fight:1": {
       "label": "Whether {name} and {a} make up",
       "options": [
-        {"weight": 1, "rules": [
-          {"reader": "closeness_a", "at_least": 4, "times": 2, "why": "{name} and {a} are close, and it's worth fixing"},
-          {"reader": "sheet", "has": "forgiving", "times": 1.5, "why": "{name} doesn't hold grudges"}]},
-        {"weight": 1, "rules": [
-          {"reader": "closeness_a", "at_most": 2, "times": 1.5, "why": "{name} and {a} weren't that close to begin with"},
-          {"reader": "sheet", "has": "stubborn", "times": 1.5, "why": "{name} is stubborn about apologising"}]}
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 2,
+              "why": "{name} and {a} are close, and it's worth fixing"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "{name} and {a} weren't that close to begin with"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} is stubborn about apologising"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has had a rough few weeks and has less patience"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is keeping some distance from {a}",
+              "about": "a"
+            }
+          ]
+        }
       ]
     },
     "storyline:drunk_kiss:2": {
       "label": "What {name} and {a} decide",
       "options": [
-        {"weight": 3, "rules": [{"reader": "closeness_a", "at_most": 3, "times": 1.3, "why": "{name} and {a} are friends more than anything"}]},
-        {"weight": 2, "rules": [{"reader": "closeness_a", "at_least": 5, "times": 1.5, "why": "{name} and {a} are as close as two people get"}]}
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 3,
+              "times": 1.3,
+              "why": "{name} and {a} are friends more than anything"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 7,
+              "note": "{name} is giving {a} a little space",
+              "about": "a"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 5,
+              "times": 1.5,
+              "why": "{name} and {a} are as close as two people get"
+            }
+          ]
+        }
       ]
     },
     "storyline:love_triangle:1": {
       "label": "Who the person picks",
       "options": [
-        {"weight": 1, "rules": [{"reader": "drama", "at_least": 3, "times": 1.3, "why": "the drama level wants someone hurt"}]},
-        {"weight": 1, "rules": [{"reader": "tie", "is": "old friends", "times": 1.3, "why": "{a} and {b} go way back"}]}
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level wants someone hurt"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.3,
+              "why": "{a} and {b} go way back"
+            }
+          ]
+        }
+      ]
+    },
+    "secret:pass_on": {
+      "label": "Whether {name} passes the secret on to {a}",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 24,
+              "why": "they feel close to {a}"
+            },
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 0,
+              "why": "they hardly know {a}"
+            }
+          ]
+        },
+        {
+          "weight": 4,
+          "rules": []
+        }
       ]
     }
   }

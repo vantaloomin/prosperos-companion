@@ -1496,3 +1496,23 @@ CREATE TABLE IF NOT EXISTS consequences (
   UNIQUE (subject, choice)
 );
 CREATE INDEX IF NOT EXISTS consequences_timeline ON consequences(timeline_id, decided_on);
+
+-- Marks an outcome leaves (companion/consequences.py): hidden state that tilts later odds, from `starts_on` up to
+-- `ends_on`. `holder` is whom it is on (`companion:<id>` or a circle person's id); kinds are 'mood', 'money' and
+-- 'avoid' (the holder keeps away from `about`). A ripple is a mark another companion took from one close to them.
+CREATE TABLE IF NOT EXISTS marks (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  consequence_id TEXT NOT NULL,
+  holder TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('mood', 'money', 'avoid')),
+  amount INTEGER NOT NULL DEFAULT 0,
+  about TEXT,
+  note TEXT NOT NULL,
+  ripple INTEGER NOT NULL DEFAULT 0,
+  starts_on TEXT NOT NULL,
+  ends_on TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS marks_holder ON marks(timeline_id, holder, kind, starts_on);
+CREATE INDEX IF NOT EXISTS marks_consequence ON marks(consequence_id);

@@ -285,7 +285,7 @@ def decided_stage(connection, companion, row, index: int, stage: dict, now) -> d
         connection, timeline_id=row['timeline_id'], choice=stage['pending'], subject=f"storyline:{row['id']}",
         facts=facts(connection, companion, row, now), names=names,
         labels=[fill(item.text, row, names_by_id(connection, row), definition) for item in alternatives],
-        day=stage['on'], timestamp=stamp(now))
+        day=stage['on'], timestamp=stamp(now), holders=holders(companion, row), now=now)
     return outcome_stage(stage['on'], alternatives[outcome['picked']], outcome['id'])
 
 
@@ -296,6 +296,12 @@ def outcome_stage(on: str, chosen: Beat, consequence_id: str) -> dict:
 def names_by_id(connection, row) -> dict:
     return {person['id']: {'name': person['name'], 'role': person['role']}
             for person in circle.people(connection, row['timeline_id'], include_removed=True)}
+
+
+def holders(companion, row) -> dict:
+    """Whom an outcome's marks can land on: the companion (me) and the people in the story (a, b)."""
+    from companion.memory import pairs
+    return {'me': pairs.companion_key(companion['id']), **dict(zip(('a', 'b'), decode(row['cast_ids']), strict=False))}
 
 
 def cast_names(connection, row, definition: dict) -> dict:
@@ -314,8 +320,11 @@ def facts(connection, companion, row, now) -> dict:
     people = {person['id']: person for person in circle.people(connection, row['timeline_id'], include_removed=True)}
     cast = [people[person] for person in decode(row['cast_ids']) if person in people]
     me, definition = pairs.companion_key(companion['id']), companion['version']['definition']
+    day = local_today(companion, now).isoformat()
     found = {'drama': drama(connection), 'sheet': {group for group in consequences.WORDS
-                                                  if consequences.sheet_has(definition, group)}}
+                                                  if consequences.sheet_has(definition, group)},
+             'mood': consequences.total(connection, row['timeline_id'], me, 'mood', day),
+             'money': consequences.total(connection, row['timeline_id'], me, 'money', day)}
     for field, person in zip(('a', 'b'), cast, strict=False):
         found[f'closeness_{field}'] = pairs.closeness(connection, me, person['seed'], now)
     if cast:
@@ -501,7 +510,13 @@ def change_outcome(database, consequence_id: str, option: int) -> dict:
         row = optional(connection, 'SELECT * FROM storylines WHERE id=?', (found['subject'].removeprefix('storyline:'),))
         require(row is not None and row['timeline_id'] == companion['active_timeline_id'],
                 'That outcome is not on this timeline.', 404)
-        outcome = consequences.change(connection, consequence_id, option, stamp(database.clock.now()))
+        now = database.clock.now()
+        outcome = consequences.change(connection, consequence_id, option, stamp(now))
+        consequences.clear_marks(connection, consequence_id)
+        consequences.leave_marks(connection, outcome, holders(companion, row),
+                                 cast_names(connection, row, companion['version']['definition']), stamp(now), now,
+                                 since=local_today(companion, now))
+        outcome = consequences.by_id(connection, consequence_id)
         stages = decode(row['stages'])
         index = next(index for index, stage in enumerate(stages) if stage.get('consequence') == consequence_id)
         chosen = find_story(row['story']).stages[index][option]

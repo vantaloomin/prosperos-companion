@@ -40,7 +40,7 @@ from companion.errors import require
 from companion.life import circle, storylines
 from companion.world import perception
 
-GOSSIP_LEVEL = 4  # "Close": a gossip happily passes a secret they weren't asked to keep on to them.
+PASS_ON = 'secret:pass_on'  # The consequence engine's table for a gossip passing a secret on.
 SLIP_LEVEL = 3  # Drama "soap opera": a slip that survives the redraft stays and becomes a reveal.
 STATEMENT_LIMIT = 400
 
@@ -262,14 +262,19 @@ def gossips(connection, key: str) -> bool:
 
 
 def spreads(connection, secret: dict, teller: str, listener: str, now) -> bool:
-    """Whether a knower would happily pass this on: a gossip, to someone they feel Close to or closer, and only
-    when it isn't being kept from that person. Never anything kept from them; the slip check still guards that."""
+    """Whether a knower would happily pass this on, decided by the consequence engine (companion/consequences.py,
+    choice `secret:pass_on`): only a gossip, and only when it isn't being kept from that person; how likely
+    comes from how close they feel. The dice are seeded by the secret, the two people and that closeness, so the
+    answer holds until the closeness changes. Never anything kept from them; the slip check still guards that."""
     if teller not in secret['knowers'] or listener in secret['knowers'] or kept_from(secret, listener):
         return False
     if not gossips(connection, teller):
         return False
+    from companion import consequences
     from companion.memory import pairs  # pairs reads found_about from here
-    return (pairs.closeness(connection, teller, listener, now) or 0) >= GOSSIP_LEVEL
+    level = pairs.closeness(connection, teller, listener, now) or 0
+    found = consequences.odds(PASS_ON, {'closeness_a': level}, {'name': 'they', 'a': 'them', 'b': ''})
+    return consequences.roll(f"{secret['id']}:{teller}>{listener}:{level}", found) == 0
 
 
 # Registering storyline and character secrets -----------------------------------------------------------

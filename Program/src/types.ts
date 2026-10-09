@@ -982,6 +982,8 @@ export interface Consequence {
   options: { option: number; label: string; odds: number; reasons: string[] }[]
   picked: number
   picked_by: 'dice' | 'user'
+  /** What it left behind for a while, tilting later odds; a ripple reached a companion close to them. */
+  marks: { kind: 'mood' | 'money' | 'avoid'; amount: number; note: string; until: string; ripple: boolean; holder: string; who: string | null }[]
 }
 /** Something unfolding in the companion's or their circle's lives (companion/life/storylines.py). */
 export interface Storyline {

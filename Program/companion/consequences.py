@@ -14,9 +14,10 @@ Odds come from the tables alone, so the same world and seed always give the same
 import json
 import random
 import re
+from datetime import date, timedelta
 from functools import cache
 
-from companion.database import decode, encode, identifier, optional
+from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.world import catalog
 
@@ -101,8 +102,9 @@ def roll(seed: str, found: list[dict]) -> int:
 # Recording outcomes ---------------------------------------------------------------------------------
 
 def decide(connection, *, timeline_id: str, choice: str, subject: str, facts: dict, names: dict,
-           labels: list[str], day: str, timestamp: str) -> dict:
-    """Work out the odds, roll and record the outcome once; a second call returns the recorded one."""
+           labels: list[str], day: str, timestamp: str, holders: dict | None = None, now=None) -> dict:
+    """Work out the odds, roll and record the outcome once, with the marks it leaves on `holders`; a second call
+    returns the recorded one."""
     found = recorded(connection, subject, choice)
     if found:
         return found
@@ -116,24 +118,29 @@ def decide(connection, *, timeline_id: str, choice: str, subject: str, facts: di
         "picked_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'dice', ?)",
         (row_id, timeline_id, choice, subject, tables()[choice]['label'].format(**names), day, encode(options), picked,
          timestamp))
+    if holders:
+        leave_marks(connection, recorded(connection, subject, choice), holders, names, timestamp, now)
     return recorded(connection, subject, choice)
 
 
-def view(row) -> dict:
-    return {'id': row['id'], 'timeline_id': row['timeline_id'], 'choice': row['choice'], 'subject': row['subject'], 'label': row['label'],
-            'decided_on': row['decided_on'], 'options': decode(row['options']), 'picked': row['picked'],
-            'picked_by': row['picked_by']}
+def view(row, connection=None) -> dict:
+    found = {'id': row['id'], 'timeline_id': row['timeline_id'], 'choice': row['choice'], 'subject': row['subject'],
+             'label': row['label'], 'decided_on': row['decided_on'], 'options': decode(row['options']),
+             'picked': row['picked'], 'picked_by': row['picked_by']}
+    if connection is not None:
+        found['marks'] = marks_of(connection, row['id'])
+    return found
 
 
 def recorded(connection, subject: str, choice: str) -> dict | None:
     row = optional(connection, 'SELECT * FROM consequences WHERE subject=? AND choice=?', (subject, choice))
-    return view(row) if row else None
+    return view(row, connection) if row else None
 
 
 def by_id(connection, consequence_id: str) -> dict:
     row = optional(connection, 'SELECT * FROM consequences WHERE id=?', (consequence_id,))
     require(row is not None, 'That outcome is not in this workspace.', 404)
-    return view(row)
+    return view(row, connection)
 
 
 def change(connection, consequence_id: str, option: int, timestamp: str) -> dict:
@@ -147,9 +154,112 @@ def change(connection, consequence_id: str, option: int, timestamp: str) -> dict
 
 
 def copy(connection, consequence_id: str, timeline_id: str, subject: str) -> str:
-    """An outcome carried onto a new timeline (a fork) with its odds and who picked it. Returns the copy's id."""
+    """An outcome carried onto a new timeline (a fork) with its odds, who picked it and the marks it left on this
+    timeline (ripples stay with the companions they reached). Returns the copy's id."""
     row = dict(optional(connection, 'SELECT * FROM consequences WHERE id=?', (consequence_id,)))
+    old_timeline = row['timeline_id']
     row.update(id=identifier(), timeline_id=timeline_id, subject=subject)
-    connection.execute(f"INSERT INTO consequences ({', '.join(row)}) VALUES ({', '.join('?' for _ in row)})",
-                       tuple(row.values()))
+    insert_row(connection, 'consequences', row)
+    for mark in many(connection, 'SELECT * FROM marks WHERE consequence_id=? AND timeline_id=?',
+                     (consequence_id, old_timeline)):
+        insert_row(connection, 'marks', {**dict(mark), 'id': identifier(), 'timeline_id': timeline_id,
+                                         'consequence_id': row['id']})
     return row['id']
+
+
+def insert_row(connection, table: str, row: dict):
+    connection.execute(f"INSERT INTO {table} ({', '.join(row)}) VALUES ({', '.join('?' for _ in row)})",  # noqa: S608
+                       tuple(row.values()))
+
+
+# Marks ----------------------------------------------------------------------------------------------
+# An outcome can leave marks (the option's `marks` in the table): hidden state that tilts later odds for a while.
+# `mood` and `money` add up per holder (readers `mood` and `money`); `avoid` keeps the holder away from someone
+# (they are left out of company and gatherings). A mark with `ripple` also reaches the companions who feel Close
+# or closer to the holder (memory/pairs.py: backstories, groups, Small world meetings), as a lighter mood mark.
+
+RIPPLE_LEVEL = 4
+
+
+def leave_marks(connection, outcome: dict, holders: dict, names: dict, timestamp: str, now=None,
+                since: date | None = None):
+    """Write the marks the picked option leaves, from the day it was decided or `since` when later (the day the
+    user changed how it went). `holders` maps the table's `on` names (me, a, b) to keys."""
+    option = tables()[outcome['choice']]['options'][outcome['picked']]
+    start = max(date.fromisoformat(outcome['decided_on']), since or date.min)
+    for mark in option.get('marks', ()):
+        holder = holders.get(mark['on'])
+        if holder is None:
+            continue
+        row = {'timeline_id': outcome['timeline_id'], 'consequence_id': outcome['id'], 'holder': holder,
+               'kind': mark['kind'], 'amount': mark.get('amount', 0), 'about': holders.get(mark.get('about')),
+               'note': mark['note'].format(**names), 'starts_on': start.isoformat(),
+               'ends_on': (start + timedelta(days=mark['days'])).isoformat()}
+        add_mark(connection, row, timestamp)
+        if mark.get('ripple') and now is not None:
+            ripple(connection, row, timestamp, now)
+
+
+def add_mark(connection, row: dict, timestamp: str, ripple_of=False):
+    insert_row(connection, 'marks', {'id': identifier(), **row, 'ripple': int(ripple_of), 'created_at': timestamp})
+
+
+def ripple(connection, row: dict, timestamp: str, now):
+    """The mark reaches companions who feel close to its holder, on their own active timeline."""
+    from companion.memory import pairs
+    if not row['holder'].startswith('companion:'):
+        return
+    for other in many(connection, 'SELECT id, active_timeline_id FROM companions WHERE id!=? AND '
+                      'active_version_id IS NOT NULL AND active_timeline_id IS NOT NULL',
+                      (pairs.companion_id(row['holder']),)):
+        key = pairs.companion_key(other['id'])
+        if (pairs.closeness(connection, key, row['holder'], now) or 0) >= RIPPLE_LEVEL:
+            add_mark(connection, {**row, 'timeline_id': other['active_timeline_id'], 'holder': key,
+                                  'kind': 'mood', 'amount': (row['amount'] > 0) - (row['amount'] < 0),
+                                  'about': row['holder']}, timestamp, ripple_of=True)
+
+
+def clear_marks(connection, consequence_id: str):
+    connection.execute('DELETE FROM marks WHERE consequence_id=?', (consequence_id,))
+
+
+def marks_of(connection, consequence_id: str) -> list[dict]:
+    """The marks an outcome left, for "Why it went this way": {kind, amount, note, until, ripple, holder}."""
+    return [{'kind': row['kind'], 'amount': row['amount'], 'note': row['note'], 'until': row['ends_on'],
+             'ripple': bool(row['ripple']), 'holder': row['holder'],
+             'who': holder_name(connection, row['holder']) if row['ripple'] else None}
+            for row in many(connection, 'SELECT * FROM marks WHERE consequence_id=? ORDER BY ripple, created_at',
+                            (consequence_id,))]
+
+
+def holder_name(connection, holder: str) -> str | None:
+    from companion.characters import by_id as companion_by_id
+    found = companion_by_id(connection, holder.removeprefix('companion:'))
+    return found['version']['name'] if found else None
+
+
+def active(connection, timeline_id: str, day: str, kind: str, holder: str | None = None) -> list[dict]:
+    query = 'SELECT * FROM marks WHERE timeline_id=? AND kind=? AND starts_on<=? AND ends_on>?'
+    values = (timeline_id, kind, day, day)
+    if holder is not None:
+        query, values = query + ' AND holder=?', (*values, holder)
+    return many(connection, query, values)
+
+
+def total(connection, timeline_id: str, holder: str, kind: str, day: str) -> int:
+    return sum(row['amount'] for row in active(connection, timeline_id, day, kind, holder))
+
+
+def avoided(connection, timeline_id: str, day: str) -> set[str]:
+    """Who the companion on this timeline keeps away from on `day`."""
+    return {row['about'] for row in active(connection, timeline_id, day, 'avoid') if row['about']}
+
+
+def money_line(connection, timeline_id: str, holder: str, day: str) -> list[tuple[str, str]]:
+    """A line for the chat context's money section when an outcome left money tighter or easier."""
+    amount = total(connection, timeline_id, holder, 'money', day)
+    if amount < 0:
+        return [(f'marks:money:{day}', '- Money has felt tighter than usual lately.')]
+    if amount > 0:
+        return [(f'marks:money:{day}', '- You have a little more room in your budget lately.')]
+    return []

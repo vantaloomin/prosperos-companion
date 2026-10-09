@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api } from '../../api'
 import type { Consequence } from '../../types'
+import { storyDate } from './storyText'
 
 /** "Why it went this way": each way a turning could have gone, its odds and what moved them, and a way to make
  * it go another way. Loads only when opened. */
@@ -34,6 +35,18 @@ export function WhyItWent({ id }: { id: string }) {
               </li>
             ))}
           </ul>
+          {outcome.data.marks.length > 0 && (
+            <>
+              <p className="subtle">What it left, for a while:</p>
+              <ul className="plain-list">
+                {outcome.data.marks.map((mark) => (
+                  <li key={mark.holder + mark.kind + mark.note} className="subtle">
+                    {mark.ripple ? `It reached ${mark.who ?? 'another companion'}, who is close to them` : mark.note}, until {storyDate(mark.until)}.
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </>
       )}
       {outcome.isError && <p className="subtle">This outcome could not be loaded. {String(outcome.error.message)}</p>}

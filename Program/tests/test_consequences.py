@@ -2,18 +2,20 @@
 from datetime import timedelta
 
 import pytest
-from conftest import reconcile, send
+from conftest import reconcile, send, set_life
 from test_storylines import WORKDAY, stored
 
 from companion import consequences
 from companion.life import storylines
+
+ALL_STORIES = storylines.STORIES
 
 
 def test_every_turning_has_a_table_with_one_option_per_way():
     turnings = {storylines.choice_key(story, index): len(stage)
                 for story in storylines.STORIES for index, stage in enumerate(story.stages) if len(stage) > 1}
     tables = consequences.tables()
-    assert set(turnings) == set(tables)
+    assert set(turnings) == {key for key in tables if key.startswith('storyline:')}
     for key, count in turnings.items():
         assert len(tables[key]['options']) == count, key
         for option in tables[key]['options']:
@@ -112,3 +114,95 @@ def test_a_fork_keeps_decided_outcomes(client, driven, clock, provider):
 def storylines_stage(client, index):
     import json
     return json.loads(stored(client)[0]['stages'])[index]
+
+
+def settled_promotion(client, clock):
+    reconcile(client)
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    return client.get('/api/life/storylines?include_ended=true').json()[0]['beats'][1]['consequence']
+
+
+def change(client, consequence_id, option):
+    response = client.post(f'/api/life/consequences/{consequence_id}/change', json={'option': option})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_an_outcome_leaves_marks_that_tilt_later_odds(client, driven, clock):
+    consequence_id = settled_promotion(client, clock)
+    missed = change(client, consequence_id, 1)
+    assert [(mark['kind'], mark['amount'], mark['ripple']) for mark in missed['marks']] == [('mood', -1, False)]
+    assert missed['marks'][0]['note'] == 'Mira is low after missing out on the promotion'
+    got = change(client, consequence_id, 0)
+    assert [(mark['kind'], mark['amount']) for mark in got['marks']] == [('money', 1)]
+    assert 'a little more room in your budget' in client.get('/api/context/preview').json()['prompt']
+
+    change(client, consequence_id, 1)
+    with client.app.state.database.connect() as connection:
+        from companion.characters import require_current
+        companion = require_current(connection)
+        row = stored(client)[0]
+        found = storylines.facts(connection, companion, row, clock.now())
+    assert found['mood'] == -1 and found['money'] == 0
+    names = {'name': 'Mira', 'a': 'someone', 'b': 'someone'}
+    low = consequences.odds('storyline:promotion_chance:1', found, names)
+    assert 'Mira has had a rough few weeks' in low[0]['reasons']
+    assert low[0]['odds'] < consequences.odds('storyline:promotion_chance:1', {**found, 'mood': 0}, names)[0]['odds']
+
+
+def test_marks_wear_off(client, driven, clock):
+    change(client, settled_promotion(client, clock), 1)
+    with client.app.state.database.connect() as connection:
+        timeline_id = stored(client)[0]['timeline_id']
+        holder = f"companion:{driven['id']}"
+        today = clock.now().date()
+        assert consequences.total(connection, timeline_id, holder, 'mood', today.isoformat()) == -1
+        later = (today + timedelta(days=30)).isoformat()
+        assert consequences.total(connection, timeline_id, holder, 'mood', later) == 0
+
+
+def test_a_mark_ripples_to_a_close_companion(client, driven, clock, monkeypatch):
+    from test_small_world import neighbor
+
+    from companion.memory import pairs
+    other = {'id': neighbor(client, 'Sam')}
+    monkeypatch.setattr(pairs, 'closeness', lambda connection, a, b, now: 5)
+    missed = change(client, settled_promotion(client, clock), 1)
+    ripple = next(mark for mark in missed['marks'] if mark['ripple'])
+    assert ripple['holder'] == f"companion:{other['id']}" and ripple['who'] == 'Sam' and ripple['amount'] == -1
+
+
+def test_keeping_away_leaves_someone_out_of_company(client, driven, clock, monkeypatch):
+    monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in ALL_STORIES if story.key == 'friend_fight'))
+    set_life(client, drama=3)
+    reconcile(client)
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    item = client.get('/api/life/storylines?include_ended=true').json()[0]
+    friend = item['cast'][0]['id']
+    cold = change(client, item['beats'][1]['consequence'], 1)
+    assert cold['marks'][0]['kind'] == 'avoid'
+    with client.app.state.database.connect() as connection:
+        day = clock.now().date().isoformat()
+        assert consequences.avoided(connection, item_timeline(client), day) == {friend}
+    assert change(client, item['beats'][1]['consequence'], 0)['marks'] == []
+
+
+def test_low_spirits_and_tight_money_tilt_the_day():
+    from companion.life import disruptions
+    rows = disruptions.TABLES['social']
+    weights = {row['id']: row['high'] - row['low'] + 1 for row in disruptions.tilted(rows, {'cancelled': 2})}
+    assert weights['cancelled'] == 22 and weights['none'] == 76
+    assert disruptions.tilted(rows, {})[-1]['high'] == rows[-1]['high']
+
+
+def test_a_gossip_is_likelier_to_pass_a_secret_on_the_closer_they_feel():
+    names = {'name': 'they', 'a': 'them', 'b': ''}
+    passing = [consequences.odds('secret:pass_on', {'closeness_a': level}, names)[0]['odds'] for level in (2, 3, 4)]
+    assert passing[0] == 0 and 0.1 < passing[1] < 0.3 and passing[2] > 0.8
+
+
+def item_timeline(client):
+    return stored(client)[0]['timeline_id']

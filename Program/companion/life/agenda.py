@@ -12,7 +12,7 @@ members' happened entries are their visible diary.
 """
 from datetime import timedelta
 
-from companion import self_facts
+from companion import consequences, self_facts
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
@@ -30,6 +30,7 @@ from companion.life import (
     storylines,
     wardrobe,
 )
+from companion.memory import pairs
 from companion.workspace import overlapping_pause
 from companion.world import generators
 
@@ -143,7 +144,9 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         block['plans'] = sorted(plan['id'] for plan in facts['plans'])
     company = free_people(connection, timeline_id, slot) if subject == COMPANION and not resting else []
     if scope['shifting'] and not resting and slot.block.key not in pinned:
-        shift = disruptions.roll(f'{seed}:shift', block, company)
+        tilt = disruptions.tilts(connection, timeline_id, pairs.companion_key(scope['companion']['id']),
+                                 slot.local_date.isoformat()) if subject == COMPANION else None
+        shift = disruptions.roll(f'{seed}:shift', block, company, tilt)
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
     if shift and shift['friend']:
@@ -240,10 +243,11 @@ def recent_activities(connection, timeline_id, subject, before) -> list[str]:
 
 
 def free_people(connection, timeline_id, slot) -> list[dict]:
-    """Circle members with nothing busy overlapping the slot, in circle order."""
-    result = []
+    """Circle members with nothing busy overlapping the slot, in circle order, leaving out anyone the companion is
+    keeping away from for now (companion/consequences.py marks)."""
+    result, avoided = [], consequences.avoided(connection, timeline_id, slot.local_date.isoformat())
     for person in circle.people(connection, timeline_id):
-        if not decode(person['schedule']):
+        if not decode(person['schedule']) or person['id'] in avoided:
             continue
         overlapping = many(connection, 'SELECT block FROM life_agenda WHERE timeline_id=? AND subject=? '
                            'AND starts_at<? AND ends_at>?', (timeline_id, person['id'], stamp(slot.ends_at),

@@ -66,12 +66,14 @@ def enabled(connection) -> bool:
     return ACTIVE and bool(row and row['day_shifts'])
 
 
-def roll(seed: str, block: dict, company=()) -> dict | None:
-    """The shift for one slot ({key, minutes, reason, friend, text}), or None for a day as planned."""
+def roll(seed: str, block: dict, company=(), tilt: dict | None = None) -> dict | None:
+    """The shift for one slot ({key, minutes, reason, friend, text}), or None for a day as planned. `tilt`
+    multiplies rows' weights (see `tilts`)."""
     if block['kind'] not in TABLES or block.get('holiday') or block.get('sick_day'):
         return None
     draws = Draws(seed)
-    chain = resolve(TABLES, block['kind'], draws, 'shift')
+    tables = {**TABLES, block['kind']: tilted(TABLES[block['kind']], tilt)} if tilt else TABLES
+    chain = resolve(tables, block['kind'], draws, 'shift')
     if not chain or (chain[0]['id'] == 'drop_by' and not company):
         return None
     key = chain[0]['id']
@@ -81,6 +83,29 @@ def roll(seed: str, block: dict, company=()) -> dict | None:
     reason = chain[1]['text'] if len(chain) > 1 else ''
     text = chain[0]['text'].format(minutes=minutes, reason=reason, friend=friend['name'] if friend else '')
     return {'key': key, 'minutes': minutes, 'reason': reason, 'friend': friend, 'text': text}
+
+
+def tilted(rows: list[dict], factors: dict) -> list[dict]:
+    """The rows with their weights multiplied by `factors` ({row id: factor}), as ranges on one die again."""
+    result, low = [], 1
+    for row in rows:
+        weight = max(1, round((row['high'] - row['low'] + 1) * factors.get(row['id'], 1)))
+        result.append({**row, 'low': low, 'high': low + weight - 1})
+        low += weight
+    return result
+
+
+def tilts(connection, timeline_id: str, holder: str, day: str) -> dict:
+    """How the marks earlier outcomes left tilt the day (companion/consequences.py): low spirits mean more quiet
+    nights in; tight money means more plans falling through and more things coming up."""
+    from companion import consequences
+    factors = {}
+    if consequences.total(connection, timeline_id, holder, 'mood', day) < 0:
+        factors['cancelled'] = 1.5
+    if consequences.total(connection, timeline_id, holder, 'money', day) < 0:
+        factors['cancelled'] = factors.get('cancelled', 1) * 1.5
+        factors['came_up'] = 1.3
+    return factors
 
 
 def shifted(block: dict, shift: dict | None) -> dict:
