@@ -221,6 +221,9 @@ ADDED_COLUMNS = (
      "TEXT NOT NULL DEFAULT 'daily' CHECK (auto_backups IN ('off', 'daily', 'weekly'))"),
     # While you were away (companion/recap.py): days without a message before a catch-up shows; 0 is off.
     ('life_settings', 'recap_after_days', 'INTEGER NOT NULL DEFAULT 3'),
+    # Become a townsperson (companion/worlds.py): the townsperson the user is in this world, and their town.
+    ('persona', 'townsfolk_key', "TEXT NOT NULL DEFAULT ''"),
+    ('persona', 'town_seed', "TEXT NOT NULL DEFAULT ''"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

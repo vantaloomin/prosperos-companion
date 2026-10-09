@@ -158,8 +158,9 @@ def deck(connection, data: dict, mine: dict) -> tuple[list[dict], int]:
 def city_for(connection, city_id: str, town: str) -> dict:
     """The city as the story has it, with the town the person was met in: a different main character's town
     would make a different person of the same key."""
+    from companion.life import network
     data = story.city_data(connection, city_id)
-    return data if data.get('town', '') == town else data | {'town': town}
+    return data if data.get('town', '') == town else data | {'town': town, 'you': network.you(connection, town)}
 
 
 def person(connection, key: str, town: str) -> tuple[dict, dict]:

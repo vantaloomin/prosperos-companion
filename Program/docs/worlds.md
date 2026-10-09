@@ -46,6 +46,24 @@ reloads into the new one, rather than writing into it.
   persona form; the name they type is required, anything left blank stays blank, and the app makes nothing up. Their
   world is still decided for them, as above.
 
+## Become a townsperson
+
+`POST /api/worlds/become {key}` (Feature Hit List #43): "Become <name>" on someone the companion has met around
+town (Today > Around town) starts a new life as them, after one confirm, and switches to it. It only happens when the
+user picks the person; the app never puts them in someone else's shoes.
+
+- A new world, not a second you: a new persona named after the townsperson, with their age and a gender from their
+  pronouns, and a new world for it in the same city that reuses the town seed of the companion who met them, so the
+  streets and townsfolk are the same. None of the user's companions come along, and the world they left waits as it
+  was. They never play two people in one world.
+- The persona's text starts from the person's town sheet, drafted by rules (`cast.profile`, no model call): who they
+  are and their job, their street, what they are working toward, their routine ("Usually: ...") and how they come
+  across. The user changes all of it like any persona. The persona keeps `townsfolk_key` and `town_seed`.
+- Their circle is there: the starter companion is someone from their own usual place (a coworker, or a regular
+  there), at closeness stage 3, whose background says how they know the user.
+- In that world the townsperson is the user, so they are left out of the town's people (`network.you`,
+  `townsfolk.at_place`): nobody runs into them, and Matchlight never offers them.
+
 ## Deleting
 
 A world can be deleted unless it is active or the first world (which holds the others; Start over empties it). A

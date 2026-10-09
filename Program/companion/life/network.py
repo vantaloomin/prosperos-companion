@@ -115,8 +115,16 @@ def occupation(data: dict, key: str, age: int) -> str:
 
 def city(connection, companion: dict) -> dict:
     """The companion's city, carrying the family names strangers there never have (generators.name)."""
+    town = companion.get('town_seed') or ''
     return newcomers.city_for(connection, companion['version']['definition']) | {
-        'kin': kin(connection, companion), 'town': companion.get('town_seed') or ''}
+        'kin': kin(connection, companion), 'town': town, 'you': you(connection, town)}
+
+
+def you(connection, town: str) -> str:
+    """The townsperson the user became in this world (companion/worlds.py, Become a townsperson), when this town is
+    theirs: they are the user here, so they are no longer one of the town's people."""
+    row = optional(connection, 'SELECT townsfolk_key, town_seed FROM persona WHERE id=1')
+    return row['townsfolk_key'] if row and row['townsfolk_key'] and row['town_seed'] == town else ''
 
 
 def kin(connection, companion: dict) -> list[str]:

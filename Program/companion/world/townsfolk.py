@@ -144,11 +144,13 @@ def modern(data: dict) -> bool:
 
 
 def at_place(data: dict, place_id: str) -> list[dict]:
-    """Everyone seeded at this place, the same every time for the same city."""
+    """Everyone seeded at this place, the same every time for the same city, but for the townsperson the user became
+    in this world (`data['you']`, companion/worlds.py)."""
     place = catalog.find(data, place_id)
     if not place or place not in data['places']:
         return []
-    return [person(data, place, index) for index in range(count(data, place))]
+    found = [person(data, place, index) for index in range(count(data, place))]
+    return [sheet for sheet in found if sheet['key'] != data.get('you')] if data.get('you') else found
 
 
 def seed_for(data: dict, key: str) -> str:
