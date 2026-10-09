@@ -1,5 +1,5 @@
 {
- "about": "Dreams (companion/life/dreams.py, Feature Hit List #31): fixed templates that mix two or three fragments of the companion's real day into a short, odd, harmless dream. {first} is the dreamer, {a} and {b} are people from that day, {place} a place they were, {odd} and {object} the dream's own strange touches. `text` is for Today, `told` for the chat context, `share` a morning text she may send. Never a nightmare. The user can appear only as {b}, in a dream about two people. Dreams are never sexual or romantic, whoever is in them; a template is not used again within `repeat_days`, and people or places a secret is about never become a fragment.",
+ "about": "Dreams (companion/life/dreams.py, Feature Hit List #31): fixed templates that mix two or three fragments of the companion's real day into a short, odd, harmless dream. {first} is the dreamer, {a} and {b} are people from that day, {place} a place they were, {odd} and {object} the dream's own strange touches. `text` is for Today, `told` for the chat context, `share` a morning text they may send. Never a nightmare. The user can appear only as {b}, in a dream about two people. Dreams are never sexual or romantic, whoever is in them; a template is not used again within `repeat_days`, and people or places a secret is about never become a fragment.",
  "chance": 30,
  "per_week": 3,
  "templates": [

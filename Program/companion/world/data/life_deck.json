@@ -1,5 +1,5 @@
 {
- "about": "The Life deck (companion/life/deck.py, Feature Hit List #33): small moments drawn into the companion's days with the seeded dice. `drama` is the lowest drama level (0 quiet to 3 soap opera) a card can turn up at; `needs` lists what the companion must have (friend: someone in their circle, work: a job); `weight` is how often it comes up next to the others (10 is usual); `text` is for Today, `told` for the chat, `share` (when present) is a first message she may send about it. {first} is the companion's first name and {friend} someone from their circle. Adapts the idea of Prospero's Study's Inspiration decks, not its code.",
+ "about": "The Life deck (companion/life/deck.py, Feature Hit List #33): small moments drawn into the companion's days with the seeded dice. `drama` is the lowest drama level (0 quiet to 3 soap opera) a card can turn up at; `needs` lists what the companion must have (friend: someone in their circle, work: a job); `weight` is how often it comes up next to the others (10 is usual); `text` is for Today, `told` for the chat, `share` (when present) is a first message they may send about it. {first} is the companion's first name and {friend} someone from their circle. Adapts the idea of Prospero's Study's Inspiration decks, not its code.",
  "chance": [
   30,
   40,

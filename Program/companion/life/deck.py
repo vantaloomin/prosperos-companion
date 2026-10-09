@@ -1,7 +1,7 @@
 """The Life deck and random tables: small moments in the companion's days (Feature Hit List #33 and #35).
 
-Her days pick up small surprises: a changed habit, an old joke coming back, a favor for a neighbor, a late bus.
-Each day of hers, the seeded dice (companion/life/chance.py, from Prospero's Study) decide whether something
+Their days pick up small surprises: a changed habit, an old joke coming back, a favor for a neighbor, a late bus.
+Each of their days, the seeded dice (companion/life/chance.py, from Prospero's Study) decide whether something
 small happens and, if so, which card it is. The cards come from two places that share one picker: the Life deck
 (world/data/life_deck.json), and Study's d100 random tables reworded for everyday life
 (world/data/random_tables.json), whose rows join the deck as extra cards weighted by their dice ranges. This adapts
