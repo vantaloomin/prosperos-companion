@@ -16,7 +16,7 @@ import { Chapters } from './Chapters'
 import { Reactions } from './Reactions'
 import { Storylines } from './Storylines'
 import { Townsfolk } from './Townsfolk'
-import { OnHerMind } from './OnHerMind'
+import { OnTheirMind } from './OnTheirMind'
 import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
@@ -69,7 +69,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           <h1>{name}'s day</h1>
           <p className="subtle">Message {name} any time. When they are busy or asleep, they answer when they can.</p>
           <Feeling data={data} name={name} />
-          {data.mind && <OnHerMind thoughts={data.mind.thoughts} name={name} />}
+          {data.mind && <OnTheirMind thoughts={data.mind.thoughts} name={name} />}
         </div>
         {data.feed_unread > 0 && <button type="button" className="button" onClick={() => go('feed')}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
       </header>

@@ -30,7 +30,7 @@ RECENT_MESSAGES = 30
 MESSAGE_CHARS = 1500
 MEMORY_LIMIT = 150
 NEW_MEMORY_LAYERS = ('user_fact', 'shared_experience', 'plan', 'temporary', 'relationship')
-VIEW_NAMES = {'conversation': 'the chat', 'feed': 'her posts', 'character': 'the character form',
+VIEW_NAMES = {'conversation': 'the chat', 'feed': 'their posts', 'character': 'the character form',
               'memories': 'Memories', 'today': 'Today', 'settings': 'Settings', 'story': 'the Story tab'}
 
 
