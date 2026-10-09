@@ -213,3 +213,36 @@ def test_a_place_the_definition_contradicts_waits(client, provider):
     facts = {fact['value']: fact for fact in client.get('/api/self-facts').json()['facts']}
     assert (facts['Starbucks']['status'], facts['Starbucks']['definition_says']) == ('conflict', 'Mercy Hospital')
     assert facts['Duluth']['status'] == 'noted'
+
+
+def test_remember_this_on_her_reply_keeps_what_she_said(client, connected, provider):
+    says(provider, 'I grew up in Duluth.')
+    reply = send(client, 'Where are you from?', 'client-0101')['reply']
+    result = client.post(f"/api/conversation/messages/{reply['id']}/remember").json()
+    assert result['memories'] == [] and result['draft'] is None
+    assert [(fact['category'], fact['value'], fact['status']) for fact in result['self_facts']] == [
+        ('grew_up', 'Duluth', 'kept')]
+    assert client.get('/api/memories').json() == [], 'what she says is never a fact about the user'
+
+
+def test_remember_this_keeps_a_reply_the_rules_cannot_read(client, connected, provider):
+    says(provider, '*laughs* Tuesdays are for the old record shop downtown, always.')
+    reply = send(client, 'Busy week?', 'client-0102')['reply']
+    [fact] = client.post(f"/api/conversation/messages/{reply['id']}/remember").json()['self_facts']
+    assert (fact['category'], fact['value'], fact['status']) == (
+        'said', 'Tuesdays are for the old record shop downtown, always.', 'kept')
+    prompt = client.get('/api/context/preview').json()['prompt']
+    assert 'You said this and it stays true: "Tuesdays are for the old record shop downtown, always."' in prompt
+    again = client.post(f"/api/conversation/messages/{reply['id']}/remember").json()['self_facts']
+    assert [item['id'] for item in again] == [fact['id']], 'remembering twice keeps one'
+
+
+def test_remember_this_settles_a_contradiction(client, connected, provider):
+    says(provider, 'I grew up in Duluth.')
+    send(client, 'Where are you from?', 'client-0103')
+    says(provider, 'I grew up in Tacoma.')
+    reply = send(client, 'Wait, really?', 'client-0104')['reply']
+    [fact] = client.post(f"/api/conversation/messages/{reply['id']}/remember").json()['self_facts']
+    assert (fact['value'], fact['status']) == ('Tacoma', 'kept')
+    listed = {item['value']: item['status'] for item in client.get('/api/self-facts').json()['facts']}
+    assert listed == {'Tacoma': 'kept'}

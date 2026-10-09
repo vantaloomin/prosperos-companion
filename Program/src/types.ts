@@ -328,6 +328,8 @@ export interface Suggestion {
 export interface RememberResult {
   memories: Memory[]
   draft: { layer: Layer; subject: string; value: string; source_message_ids: string[] } | null
+  /** On a companion message: what they said about themselves, now kept. */
+  self_facts?: SelfFact[]
 }
 
 export interface DeletePreview {
@@ -976,7 +978,7 @@ export interface SelfFact {
   id: string
   message_id: string
   category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy' | 'team' | 'plays'
-    | 'works_at' | 'detail'
+    | 'works_at' | 'detail' | 'said'
   label: string
   subject: string
   value: string
