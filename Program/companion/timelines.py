@@ -20,6 +20,7 @@ from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import encounters, feed, home, network, social, storylines, wardrobe
+from companion.voice import notes as voice_notes
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
 FROZEN_EVENT = 'The timeline was frozen before this event was reviewed.'
@@ -244,6 +245,7 @@ def copy_messages(connection, messages, ids, new_id):
             "SELECT owner_kind, ?, model, digest, vector, created_at FROM memory_vectors "
             "WHERE owner_kind='message' AND owner_id=?", (ids[row['id']], row['id']))
     pictures.copy(connection, {row['id']: ids[row['id']] for row in messages})
+    voice_notes.copy(connection, {row['id']: ids[row['id']] for row in messages})
 
 
 def copy_posts(connection, posts, ids, new_id):

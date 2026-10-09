@@ -3,6 +3,7 @@ import { memo, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, MessageSquareText, Pencil, RotateCcw, Square } from 'lucide-react'
 import type { Message } from '../../types'
 import { ChatPhoto } from './ChatPhoto'
+import { VoiceNote } from './VoiceNote'
 import { Stamp } from '../../components/Stamp'
 import { sidecar } from '../sidecar/store'
 import { useMessageSheet, type Act, type Action } from './useMessageSheet'
@@ -151,7 +152,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, onEdit, o
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} actions={actions} onSheet={sheet.open} />
       </header>
-      <ReplyBody text={text} streaming={streaming} bursts={bursts} />
+      {message.voice && !message.redacted ? <VoiceNote note={message.voice} text={message.text} name={name} /> : <ReplyBody text={text} streaming={streaming} bursts={bursts} />}
       <ReplyExtras message={message} name={name} note={note} />
       {sheet.sheet}
     </article>

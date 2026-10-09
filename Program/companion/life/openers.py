@@ -47,6 +47,7 @@ from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import BackgroundInterrupted, Work
 from companion.text_models import CHAT, config_for, key_for
 from companion.traits import NAMES, absence_traits, strongest
+from companion.voice import notes as voice_notes
 
 OPENER = Work(15, 'companion message', True)
 FOLLOW_UP_WITHIN = timedelta(days=3)
@@ -416,6 +417,8 @@ class Openers:
         self.vault = vault
         self.provider = provider
         self.scheduler = scheduler
+        # Voice notes (companion/voice/notes.py), set by the app; without it every first text is a text.
+        self.voice = None
 
     async def check(self) -> dict:
         """At most one first message per check, from whichever companion has a reason and is free to send it.
@@ -452,14 +455,23 @@ class Openers:
             if trigger.template is None and config is None:
                 continue
             try:
-                text, wording = await self.write(companion_id, trigger, config, now)
+                sent = await self.send(companion, trigger, config, now)
             except BackgroundInterrupted:
                 return {'state': 'interrupted', 'message': None}
-            if text:
-                return self.save(companion, trigger, text, wording, now)
+            if sent:
+                return sent
         return {'state': 'nothing', 'message': None}
 
-    async def write(self, companion_id, trigger, config, now) -> tuple[str | None, str]:
+    async def send(self, companion, trigger, config, now) -> dict | None:
+        """Write the message and save it; now and then it goes as a voice note (companion/voice/notes.py)."""
+        engine = self.voice.plan(companion, trigger.key, now) if self.voice else None
+        text, wording = await self.write(companion['id'], trigger, config, now, voice=engine is not None)
+        if not text:
+            return None
+        note = await self.voice.record(companion, engine, text) if engine else None
+        return self.save(companion, trigger, text, wording, now, note)
+
+    async def write(self, companion_id, trigger, config, now, voice=False) -> tuple[str | None, str]:
         with self.database.connect() as connection:
             companion = by_id(connection, companion_id)
         fallback = voiced(trigger.template, companion['version']['definition'])
@@ -467,7 +479,10 @@ class Openers:
             return fallback, 'template'
         with self.database.connect() as connection:
             packet = context.build(connection, companion, now, config['context_tokens'] - config['max_output_tokens'])
-            ask = '(' + prompt_library.text(connection, 'first-texts', reason=trigger.reason) + ')'
+            ask = prompt_library.text(connection, 'first-texts', reason=trigger.reason)
+            if voice:
+                ask += ' ' + prompt_library.text(connection, 'voice-notes')
+            ask = '(' + ask + ')'
         messages = list(packet['messages'])
         if messages and messages[-1]['role'] == 'user':
             messages[-1] = {'role': 'user', 'content': messages[-1]['content'] + '\n\n' + ask}
@@ -495,7 +510,14 @@ class Openers:
                 connection, companion['active_timeline_id'], written)
         return (written, 'model') if fresh else (fallback, 'template')
 
-    def save(self, companion, trigger, text, wording, now) -> dict:
+    def save(self, companion, trigger, text, wording, now, note=None) -> dict:
+        """Save the message (with its voice note, if it has one); a note for a message not sent is thrown away."""
+        result = self.store(companion, trigger, text, wording, now, note)
+        if result['state'] != 'sent' and self.voice:
+            self.voice.discard(note)
+        return result
+
+    def store(self, companion, trigger, text, wording, now, note) -> dict:
         from companion.conversation import message_view, next_seq
         timestamp = stamp(now)
         with self.database.connect(write=True) as connection:
@@ -523,13 +545,16 @@ class Openers:
                                (identifier(), timeline_id, trigger.key, trigger.kind,
                                 encode({'reason': trigger.reason, 'sources': list(trigger.sources)}), message_id,
                                 wording, timestamp))
+            if note:
+                self.voice.attach(connection, message_id, note, timestamp)
             notifications.enqueue_message(connection, message_id, timestamp)
             away.record(connection, 'companion', timeline_id, message_id, timestamp)
             row = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
             self_facts.note(connection, row, timestamp)
             own_plans.note(connection, row, latest, timestamp)
             focus = current(connection)
-        return {'state': 'sent', 'kind': trigger.kind, 'message': message_view(row), 'companion_id': latest['id'],
+            [view] = voice_notes.decorate(connection, [message_view(row)])
+        return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],
                 'focus': bool(focus and focus['id'] == latest['id'])}
 
 

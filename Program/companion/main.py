@@ -47,6 +47,9 @@ from companion.providers.vault import SystemVault
 from companion.recall_routes import router as recall_router
 from companion.routes import router
 from companion.text_model_routes import router as model_router
+from companion.voice import notes as voice_notes
+from companion.voice.notes import VoiceNotes
+from companion.voice_routes import router as voice_router
 from companion.world import changes as city_changes
 from companion.world import routes as world_routes
 from companion.world.source import CatalogWorld
@@ -91,6 +94,18 @@ async def start_lan(app):
             logging.getLogger('companion').warning('%s', error.message)
 
 
+async def prepare_voice(voice):
+    """Voice notes are on by default, so the built-in voice downloads by itself the first time it is needed."""
+    with voice.database.connect() as connection:
+        current = voice_notes.read(connection)
+    if not current['voice_notes'] or current['engine'] != 'builtin' or voice.kokoro.ready():
+        return
+    try:
+        await voice.kokoro.install()
+    except DomainError as error:
+        logging.getLogger('companion').warning('The built-in voice did not download: %s', error.message)
+
+
 @asynccontextmanager
 async def lifespan(app):
     recover(app.state.database)
@@ -106,6 +121,7 @@ async def lifespan(app):
     if app.state.life_tasks:
         # Built-in recall loads its model now, so the first reply does not wait for it.
         app.state.builtin_recall.kick()
+        tasks.append(asyncio.create_task(prepare_voice(app.state.voice)))
     app.state.memory.kick()
     await start_lan(app)
     yield
@@ -119,7 +135,8 @@ async def lifespan(app):
 def create_app(database_path: str | Path | None = None, *, clock=None, vault=None, provider=None,
                life_tasks=True, world=None, embedder=None, image_adapters=None,
                context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None,
-               lora_maker=None, builtin_spawn=None, builtin_transport=None, hardware=None) -> FastAPI:
+               lora_maker=None, builtin_spawn=None, builtin_transport=None, hardware=None, voice_transport=None,
+               voice_runner=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
@@ -142,6 +159,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.openers = Openers(app.state.database, app.state.vault, app.state.conversation.provider,
                                 app.state.conversation.scheduler)
     app.state.life.openers = app.state.openers
+    app.state.voice = VoiceNotes(app.state.database, app.state.vault, voice_transport, voice_runner)
+    app.state.openers.voice = app.state.voice
     app.state.debug_time = DebugTime(app.state.database, app.state.life)
     app.state.images = ImageRunner(app.state.database, app.state.vault, image_adapters,
                                    app.state.conversation.scheduler)
@@ -178,6 +197,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(router)
     app.include_router(model_router)
     app.include_router(recall_router)
+    app.include_router(voice_router)
     app.include_router(hardware_router)
     app.include_router(life_routes.router)
     app.include_router(home_routes.router)

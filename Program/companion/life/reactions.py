@@ -70,7 +70,7 @@ def told_secret(connection, secret: dict, told: str, now):
     for holder in held_by(connection, secret['id']):
         companion = by_id(connection, pairs.companion_id(holder) or '')
         if companion and companion['active_timeline_id']:
-            react(connection, companion, 'user:told_secret', f"secret:{secret['id']}:{told}", {'a': listener},
+            react(connection, companion, 'user:told_secret', f"secret:{secret['id']}:{told}>{holder}", {'a': listener},
                   local_day(companion, now), now)
 
 
@@ -82,7 +82,7 @@ def showed_everything(connection, group: dict, added: str, now):
     for member in spoke - {added}:
         companion = by_id(connection, pairs.companion_id(member) or '')
         if companion and companion['active_timeline_id']:
-            react(connection, companion, 'user:showed_everything', f"group:{group['id']}:{added}",
+            react(connection, companion, 'user:showed_everything', f"group:{group['id']}:{added}>{member}",
                   {'a': newcomer, 'group': group['name'] or 'the group'}, local_day(companion, now), now)
 
 
@@ -100,7 +100,7 @@ def daily(connection, companion: dict, now) -> int:
                 found += 1
         what = occasion_on(connection, companion, day, timezone)
         if what and said and not any(MENTIONS.search(text) for text in said):
-            react(connection, companion, 'user:forgot_occasion', f"occasion:{day.isoformat()}", {'occasion': what},
+            react(connection, companion, 'user:forgot_occasion', f"occasion:{companion['active_timeline_id']}:{day.isoformat()}", {'occasion': what},
                   day.isoformat(), now)
             found += 1
     return found

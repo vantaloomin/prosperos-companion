@@ -30,6 +30,7 @@ FOLDERS = {
     'images/raw': 'SELECT raw_file FROM image_jobs WHERE raw_file IS NOT NULL',
     'lora/adapters': 'SELECT file FROM lora_adapters WHERE removed_at IS NULL',
     'pictures': 'SELECT DISTINCT file FROM message_pictures WHERE message_id IS NOT NULL',
+    'voice-notes': 'SELECT DISTINCT file FROM voice_notes',
     'lora/references': 'SELECT file FROM lora_references UNION SELECT crop_file FROM lora_references '
                        'WHERE crop_file IS NOT NULL',
 }

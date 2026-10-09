@@ -454,6 +454,16 @@ textarea { resize: vertical; line-height: 1.6; }
 /* Images */
 /* A photo a reply sent: the picture as made, never cropped, at most a comfortable reading height. The frame
    takes the shape it is made in from the start (ChatPhoto.tsx), so the picture lands without moving anything. */
+.voice-note { display: grid; gap: 6px; width: 320px; max-width: 100%; }
+.voice-note-player { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 999px; background: var(--accent-tint); }
+.voice-note-play { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+.voice-note-play:disabled { opacity: 0.5; cursor: default; }
+.voice-note-play svg { width: 18px; height: 18px; }
+.voice-note-track { flex: 1; height: 4px; overflow: hidden; border-radius: 2px; background: var(--border); }
+.voice-note-track span { display: block; height: 100%; background: var(--accent); }
+.voice-note-length { flex: none; min-width: 3ch; color: var(--muted); font-size: 0.85em; font-variant-numeric: tabular-nums; }
+.voice-note-words { margin: 0; color: var(--muted); font-size: 0.92em; }
+.voice-note-missing { margin: 0; }
 .chat-photo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; justify-items: start; width: 440px; max-width: 100%; margin: 8px 0 0; }
 .chat-photo-frame { position: relative; max-width: 100%; overflow: hidden; border-radius: 12px; background: var(--accent-tint); }
 .chat-photo-frame.photo-landscape { width: min(100%, 440px); aspect-ratio: 3 / 2; }

@@ -184,6 +184,12 @@ edited text never matches an old vector. Deleting a memory, correcting it or red
 deletes its vectors; excluded memories and their source messages never enter the pool, so their
 vectors are never ranked. The receipt records whether semantic recall took part.
 
+### Voice notes
+
+`voice/` sends some first texts as voice notes by rules and reads them aloud with the built-in Kokoro voice (a
+pinned sherpa-onnx program run per note in its own process) or a hosted engine with the user's key. See
+[voice-notes.md](voice-notes.md).
+
 ### Built-in recall
 
 `providers/builtin_recall.py` runs llama.cpp's `llama-server` in embedding mode for users without an
