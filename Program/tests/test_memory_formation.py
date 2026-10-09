@@ -61,7 +61,9 @@ def test_questions_hypotheticals_quotes_and_roleplay_are_not_facts(client, conne
 def test_companion_text_cannot_become_a_user_fact(client, connected, provider):
     provider.replies = [[Chunk('You probably live in Paris.'), Chunk('', 'stop')]]
     reply = send(client, 'Guess where I am', 'client-0001')['reply']
-    assert client.post(f"/api/conversation/messages/{reply['id']}/remember").status_code == 422
+    # Remember this on her reply keeps it as something she said, never as a fact about the user.
+    kept = client.post(f"/api/conversation/messages/{reply['id']}/remember").json()
+    assert kept['memories'] == [] and [fact['category'] for fact in kept['self_facts']] == ['said']
     enable(client)
     run(client)
     assert memories(client) == []

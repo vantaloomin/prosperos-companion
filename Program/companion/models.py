@@ -140,6 +140,11 @@ class CharacterCardFile(Input):
     data: str = Field(min_length=1, max_length=14_000_000)
 
 
+class LoreSwitch(Input):
+    """Turn an imported lorebook, or one of its entries, on or off (companion/lore.py)."""
+    enabled: bool
+
+
 class SidecarTurn(Input):
     role: Literal['user', 'assistant']
     content: str = Field(min_length=1, max_length=40000)
@@ -237,6 +242,8 @@ class SettingsUpdate(Input):
     show_moods: bool | None = None
     show_news: bool | None = None
     show_odds: bool | None = None
+    # Automatic backups of every world (companion/auto_backup.py).
+    auto_backups: Literal['off', 'daily', 'weekly'] | None = None
     review_complete: bool | None = None
     # The first-run notice: the characters are AI, and the user is 18 or older. Only ever confirmed.
     ai_notice_confirmed: Literal[True] | None = None
@@ -335,6 +342,8 @@ class LifeSettingsUpdate(Input):
     paced_replies: bool | None = None
     day_shifts: bool | None = None
     on_her_mind: bool | None = None
+    # While you were away (companion/recap.py): days away before a catch-up shows; 0 turns it off.
+    recap_after_days: int | None = Field(default=None, ge=0, le=60)
     user_birthday: str | None = Field(default=None, pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
 
 
@@ -429,3 +438,34 @@ class StudyCharacter(StudyWorkspace):
 
 class StudyImport(StudyCharacter):
     review_token: str = Field(min_length=64, max_length=64)
+
+
+Gender = Literal['woman', 'man', 'nonbinary', '']
+Birthday = Annotated[str, Field(pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')]
+
+
+class PersonaInput(Input):
+    """Who the user is in a persona's worlds (companion/worlds.py). Only the user says this; blanks stay blank."""
+    name: str | None = Field(None, max_length=80)
+    gender: Gender | None = None
+    age: int | None = Field(None, ge=18, le=120)
+    about: str | None = Field(None, max_length=2000)
+    birthday: Birthday | None = None
+
+
+class WorldChange(Input):
+    """Rename a world, or give it to another persona."""
+    name: str | None = Field(None, max_length=80)
+    persona_id: str | None = Field(None, min_length=1, max_length=100)
+
+
+class NewWorld(Input):
+    """A new world: for the active persona and in the current city unless these say otherwise."""
+    persona_id: str | None = Field(None, min_length=1, max_length=100)
+    name: str | None = Field(None, max_length=80)
+    city_id: str | None = Field(None, min_length=1, max_length=120)
+
+
+class RecapRead(Input):
+    """The catch-up the user read, by the message it followed (companion/recap.py)."""
+    since: str = Field(min_length=1, max_length=40)

@@ -163,6 +163,8 @@ def shared_text(focus_name: str, meetings: list[dict], in_story: dict | None = N
 
 def met_text(found: dict) -> str:
     """How they know the user: through the dating app, or through the companion they ran into."""
+    if found['focus'] is None and not found['match']:
+        return f'{SHARED[1]} around town; the two of them are friends.'  # A new world's first companion.
     if found['match']:
         met = shared_text('', [], found['in_story'])
         return f"{MATCHED} {found['match']['noun']}; the two of them have only just started talking. {met}".strip()

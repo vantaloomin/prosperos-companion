@@ -15,6 +15,8 @@ export type View = 'conversation' | 'dating' | 'story' | 'today' | 'feed' | 'mem
   | `chat/${string}`
   /** Group chats (src/features/groups): the list, and one group as #group/<its id>. */
   | 'groups' | `group/${string}`
+  /** Worlds and personas (src/features/worlds). */
+  | 'worlds'
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

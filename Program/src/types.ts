@@ -193,6 +193,7 @@ export interface Companion {
 
 export interface WorkspaceSettings {
   user_timezone: string
+  auto_backups?: AutoBackups
   /** 'pc' follows this PC's timezone; 'chosen' was picked in Settings; 'default' is the untouched UTC. */
   user_timezone_source: 'default' | 'pc' | 'chosen'
   /** What the backend worked out from the PC (Windows registry, TZ), or null. */
@@ -327,6 +328,8 @@ export interface Suggestion {
 export interface RememberResult {
   memories: Memory[]
   draft: { layer: Layer; subject: string; value: string; source_message_ids: string[] } | null
+  /** On a companion message: what they said about themselves, now kept. */
+  self_facts?: SelfFact[]
 }
 
 export interface DeletePreview {
@@ -357,6 +360,7 @@ export interface LifeSettings {
   texts_daily: number
   /** First messages from all companions together in a day (companion/away.py); 0 for none. */
   away_daily: number
+  recap_after_days: number
   texts_gap_hours: number
   /** 0 sizes the circle by how sociable the companion is. */
   circle_size: number
@@ -372,7 +376,7 @@ export interface LifeSettings {
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
 export interface BackupEntry {
-  name: string; bytes: number; kind: 'backup' | 'pre-upgrade' | 'before-reset' | 'before-delete' | 'before-debug'; readable: boolean
+  name: string; bytes: number; kind: 'backup' | 'pre-upgrade' | 'before-reset' | 'before-delete' | 'before-debug' | 'auto'; readable: boolean
   created_at?: string; app_version?: string; files?: number; datasets_included?: boolean
 }
 export interface StartOverPreview {
@@ -387,7 +391,12 @@ export interface DataFolderStatus {
   can_move: boolean; reason: string | null; pending: boolean; notes: string[]
 }
 
-export interface BackupList { backups: BackupEntry[]; pending: { name: string; requested_at: string } | null }
+export type AutoBackups = 'off' | 'daily' | 'weekly'
+export interface BackupList {
+  backups: BackupEntry[]; pending: { name: string; requested_at: string } | null
+  /** Automatic backups of every world (companion/auto_backup.py), and when this world last had one. */
+  auto_backups: AutoBackups; last_auto_backup: string | null; auto_backup_count: number
+}
 
 export interface LifeEvent {
   id: string
@@ -969,7 +978,7 @@ export interface SelfFact {
   id: string
   message_id: string
   category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy' | 'team' | 'plays'
-    | 'works_at' | 'detail'
+    | 'works_at' | 'detail' | 'said'
   label: string
   subject: string
   value: string
@@ -1241,6 +1250,8 @@ export interface Dating {
   words: DatingWords
   city: { id: string; name: string }
   profile: DatingProfile | null
+  /** Who the user is in this world, so a new profile starts filled in. */
+  persona?: { name: string; gender: string; age: number | null; about: string } | null
   /** Whether Story mode is on, so a match can be met there. */
   story: boolean
   /** Whether an image backend is set up, so "Show photo" can make one. */
@@ -1386,3 +1397,25 @@ export interface TownPaper {
   previous: string
   next: string | null
 }
+
+/** Worlds and personas (companion/worlds.py): the user as someone in particular, and the worlds they live in. */
+export interface World {
+  id: string; name: string; persona_id: string; folder: string; city_id: string; created_at: string; used_at: string
+  active: boolean
+  /** The first world holds the others, so it cannot be deleted. */
+  first: boolean
+  /** Its companions' names, main character first. */
+  companions: string[]
+}
+export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
+export interface Persona {
+  id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
+  active: boolean
+  worlds: World[]
+}
+export interface Worlds {
+  active_world_id: string; active_persona_id: string; world: World; persona: Persona; personas: Persona[]
+}
+
+/** While you were away (companion/recap.py): a catch-up after a few days without a message. */
+export interface AwayRecap { since: string; days: number; items: string[] }

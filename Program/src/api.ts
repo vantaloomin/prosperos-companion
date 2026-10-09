@@ -9,12 +9,22 @@ function errorMessage(status: number, data: { detail?: unknown }): string {
   return `The Companion could not finish that (error ${status}). Please try again.`
 }
 
+let world: string | null = null
+
+/** The world this page shows (src/features/worlds/useWorlds.ts). Sent with every request, so a page left open in
+ * one world never changes another the PC or phone has since moved to (companion/main.py stay_in_world). */
+export function openedIn(id: string) { world = id }
+
+function headers(type: string): Record<string, string> {
+  return { 'Content-Type': type, 'X-Companion-Client': 'workspace', ...(world ? { 'X-Companion-World': world } : {}) }
+}
+
 export async function api<T>(path: string, body?: unknown, method?: string): Promise<T> {
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
       method: method ?? (body === undefined ? 'GET' : 'POST'),
-      headers: { 'Content-Type': 'application/json', 'X-Companion-Client': 'workspace' },
+      headers: headers('application/json'),
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch {
@@ -28,6 +38,7 @@ export async function api<T>(path: string, body?: unknown, method?: string): Pro
 /** A phone whose pairing was removed on the PC goes back to the pairing screen (src/features/phone). */
 function failure(status: number, data: { detail?: unknown; code?: string }): ApiError {
   if (data.code === 'phone_unpaired') window.dispatchEvent(new Event('companion:unpaired'))
+  if (data.code === 'world_changed') { window.location.hash = '#conversation'; window.location.reload() }
   return new ApiError(errorMessage(status, data), status, data.code)
 }
 
@@ -39,7 +50,7 @@ export async function upload<T>(path: string, file: Blob, params: Record<string,
   try {
     response = await fetch(`/api${path}?${new URLSearchParams(params)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream', 'X-Companion-Client': 'workspace' },
+      headers: headers('application/octet-stream'),
       body: file,
     })
   } catch {

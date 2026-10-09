@@ -791,6 +791,20 @@ read while the window is visible. The chat header's Chats button opens the list 
 phone), with the count waiting in the other chats; the Profile tab shows the total. Nothing here says
 whether anyone is around: no presence, no read receipts.
 
+## While you were away
+
+```http
+GET  /api/conversation/recap        → {recap: {since, days, items: [str]} | null}
+POST /api/conversation/recap/read   {since} → {recap: null}
+```
+
+When the user's last message to the open companion is at least `life_settings.recap_after_days` old (3 by
+default; 0 turns it off, under Settings > Life), the chat opens with a short catch-up (`companion/recap.py`):
+new life chapters, storylines that moved on, the biggest things they did, how many townsfolk they ran into and
+the town paper issues that came out, at most six lines. It is built from what the world already decided, so it
+never calls a model, and shows only what the Today view would. Reading it folds it away (`away_recaps`) until the
+user is gone for a while again.
+
 ## Texting rhythm
 
 How the companion texts is part of their definition: `texting: {bursts, lowercase, typos}`, all off

@@ -39,7 +39,7 @@ WORKSPACE = (
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
     'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge',
-    'knowledge_holders', 'moods',
+    'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books',
     'sqlite_sequence',
 )
 # Children before parents, so the order also reads as what depends on what.
@@ -52,7 +52,7 @@ CHARACTER = (
 # drawn from them (world_changes with origin 'real') goes with them by ON DELETE CASCADE; changes
 # the user made to a city stay.
 HISTORY = (
-    'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
+    'away_recaps', 'context_uses', 'context_observations', 'notifications', 'chat_photos', 'message_social_links', 'social_posts', 'message_post_links',
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
     'closeness_jokes', 'closeness_settings', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'news_holders', 'news', 'marks', 'consequences', 'storylines',

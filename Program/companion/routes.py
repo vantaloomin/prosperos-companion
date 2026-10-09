@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
 from companion import (
+    auto_backup,
     backup,
     cast,
     character_helper,
@@ -19,6 +20,7 @@ from companion import (
     notifications,
     pictures,
     prompt_library,
+    recap,
     restore,
     self_facts,
     sidecar,
@@ -53,6 +55,7 @@ from companion.models import (
     NotificationSettingsUpdate,
     PerceptionRequest,
     PromptUpdate,
+    RecapRead,
     SettingsUpdate,
     SidecarRequest,
     StartOverConfirm,
@@ -312,6 +315,17 @@ def read_conversation(request: Request, before_seq: int | None = None, limit: in
     return conversation.history(db(request), before_seq, min(max(limit, 1), 500))
 
 
+@router.get('/conversation/recap')
+def read_recap(request: Request):
+    """While you were away: a catch-up after a few days without a message, or null (companion/recap.py)."""
+    return recap.read(db(request))
+
+
+@router.post('/conversation/recap/read')
+def dismiss_recap(request: Request, body: RecapRead):
+    return recap.dismiss(db(request), body.since)
+
+
 @router.get('/conversation/search')
 def search_conversation(request: Request, q: str = ''):
     return conversation.search(db(request), q)
@@ -520,7 +534,7 @@ def create_backup(request: Request, include_datasets: bool = False):
 
 @router.get('/backups')
 def list_backups(request: Request):
-    return restore.listing(db(request).path.parent)
+    return restore.listing(db(request).path.parent) | auto_backup.status(db(request))
 
 
 @router.post('/backups/{name}/restore')
@@ -537,23 +551,23 @@ def cancel_restore(request: Request):
 # Under /api/backups so a phone never sees or changes it (companion/phone/access.py PC_ONLY).
 @router.get('/backups/data-folder')
 def read_data_folder(request: Request):
-    return data_folder.status(db(request).path.parent)
+    return data_folder.status(db(request).root)
 
 
 @router.post('/backups/data-folder/move')
 def schedule_data_move(request: Request):
     """The move runs the next time the Companion starts; the open workspace cannot be copied safely."""
-    return data_folder.schedule(db(request).path.parent, db(request).now())
+    return data_folder.schedule(db(request).root, db(request).now())
 
 
 @router.delete('/backups/data-folder/move')
 def cancel_data_move(request: Request):
-    return data_folder.cancel(db(request).path.parent)
+    return data_folder.cancel(db(request).root)
 
 
 @router.post('/backups/data-folder/open')
 def open_data_folder(request: Request):
-    return data_folder.open_folder(db(request).path.parent)
+    return data_folder.open_folder(db(request).root)
 
 
 @router.get('/notifications/settings')

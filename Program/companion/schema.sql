@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   chat_style TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel')),
   chat_sounds INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1)),
   chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
+  -- Start the local programs in use when the Companion starts (companion/launcher.py); off until turned on.
+  auto_launch INTEGER NOT NULL DEFAULT 0 CHECK (auto_launch IN (0, 1)),
   -- The app's colors, Prospero's Study's palettes; Retro IM keeps its own. custom_palette is JSON hex colors.
   color_scheme TEXT NOT NULL DEFAULT 'ink' CHECK (color_scheme IN ('ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom')),
   custom_palette TEXT NOT NULL DEFAULT '',
@@ -1640,3 +1642,61 @@ CREATE TABLE IF NOT EXISTS moods (
   furious_replies INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL
 );
+
+-- Local programs the Companion starts (companion/launcher.py): where each is installed, found or typed by the
+-- user (`chosen`), and KoboldCpp's model file. Whether they all start with the Companion is
+-- workspace_settings.auto_launch.
+CREATE TABLE IF NOT EXISTS local_programs (
+  program TEXT PRIMARY KEY CHECK (program IN ('lmstudio', 'ollama', 'kobold', 'comfyui')),
+  path TEXT NOT NULL DEFAULT '',
+  chosen INTEGER NOT NULL DEFAULT 0 CHECK (chosen IN (0, 1)),
+  model_path TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+-- Who the user is in this world (companion/worlds.py): the persona the world belongs to, copied from worlds.json
+-- in the data folder whenever the world opens or the persona changes. The prompt and Matchlight read it here.
+CREATE TABLE IF NOT EXISTS persona (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  persona_id TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  gender TEXT NOT NULL DEFAULT '',
+  age INTEGER,
+  about TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+-- While you were away (companion/recap.py): the catch-up the user has read, by the last message it followed.
+CREATE TABLE IF NOT EXISTS away_recaps (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  since TEXT NOT NULL,
+  dismissed_at TEXT NOT NULL
+);
+
+-- Lore from imported lorebooks (companion/lore.py, companion/imports/characters.py): a book belongs to one
+-- companion, or to the whole world when companion_id is NULL. An entry joins the prompt when one of its keywords
+-- is in the conversation, or always when `always` is set; `pattern` marks entries whose search patterns the app
+-- cannot match, which stay off.
+CREATE TABLE IF NOT EXISTS lore_books (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT REFERENCES companions(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  source_format TEXT NOT NULL DEFAULT '',
+  source_file TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS lore_entries (
+  id TEXT PRIMARY KEY,
+  book_id TEXT NOT NULL REFERENCES lore_books(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  text TEXT NOT NULL,
+  keywords TEXT NOT NULL DEFAULT '[]',
+  always INTEGER NOT NULL DEFAULT 0 CHECK (always IN (0, 1)),
+  pattern INTEGER NOT NULL DEFAULT 0 CHECK (pattern IN (0, 1)),
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1))
+);
+CREATE INDEX IF NOT EXISTS lore_entries_book ON lore_entries(book_id, position);

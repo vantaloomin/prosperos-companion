@@ -5,6 +5,7 @@ import { api } from '../../../api'
 import { Notice } from '../../../components/Feedback'
 import { useReturnFocus } from '../../../components/returnFocus'
 import { HARDWARE_KEY } from './hardware'
+import { LaunchFor } from './LocalPrograms'
 import { ProfileEditor } from './ProfileEditor'
 import { jobChoice } from './routing'
 import { isRecall, type ModelJob, type ModelProfile, type ModelsOverview } from './types'
@@ -125,6 +126,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
       <button type="button" className="button" onClick={onEdit} aria-label={`Edit ${profile.name}`}><Pencil size={15} aria-hidden="true" />Edit</button>
       <button type="button" className="button" onClick={() => void copy()} disabled={busy} aria-label={`Duplicate ${profile.name}`}><Copy size={15} aria-hidden="true" />Duplicate</button>
       <button type="button" className="button" onClick={remove} disabled={busy} aria-label={`Delete ${profile.name}`}><Trash2 size={15} aria-hidden="true" />Delete</button>
+      <LaunchFor id={profile.id} />
     </div>
   </li>
 }

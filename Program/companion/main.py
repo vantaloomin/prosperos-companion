@@ -9,7 +9,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from companion import dating_routes, group_routes, groups, local_zone, logs, story_routes, troubleshoot, workspace
+from companion import (
+    auto_backup,
+    dating_routes,
+    group_routes,
+    groups,
+    local_zone,
+    logs,
+    story_routes,
+    troubleshoot,
+    workspace,
+    worlds,
+    worlds_routes,
+)
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.dating_photos import DatingPhotos
@@ -19,12 +31,15 @@ from companion.debug_time import DebugTime
 from companion.errors import DomainError
 from companion.hardware import Hardware
 from companion.hardware_routes import router as hardware_router
-from companion.identity import APP_NAME, CLIENT_HEADER, VERSION
+from companion.identity import APP_NAME, CLIENT_HEADER, VERSION, WORLD_HEADER
 from companion.images import jobs as image_jobs
 from companion.images import routes as image_routes
 from companion.images.photos import ChatPhotos
 from companion.images.runner import ImageRunner
+from companion.imports import file_routes
 from companion.imports import routes as import_routes
+from companion.launcher import Launcher
+from companion.launcher_routes import router as launcher_router
 from companion.life import home_routes, wardrobe_routes
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
@@ -63,6 +78,19 @@ async def guard_writes(request: Request, call_next):
     if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} and request.headers.get(CLIENT_HEADER) != 'workspace':
         return JSONResponse({'detail': 'Use the local Companion app to make changes.'}, status_code=403)
     return await call_next(request)
+
+
+async def stay_in_world(request: Request, call_next):
+    """A request, and everything it starts, reads and writes the world open when it arrived
+    (companion/database.py PINNED). A page opened in another world (a phone, when the PC switched) is told
+    so instead of changing this one; it reloads into the world now open (src/api.ts)."""
+    database = request.app.state.database
+    opened = request.headers.get(WORLD_HEADER)
+    if opened and database.world and opened != database.world:
+        return JSONResponse({'detail': 'You moved to another world on another screen. Opening it here too.',
+                             'code': 'world_changed'}, status_code=409)
+    with database.pin():
+        return await call_next(request)
 
 
 async def domain_error(_request: Request, error: DomainError):
@@ -118,11 +146,14 @@ async def lifespan(app):
     app.state.dating_photos.recover()
     tasks = [asyncio.create_task(app.state.life.run_forever()),
              asyncio.create_task(app.state.images.run_forever()),
-             asyncio.create_task(app.state.push.run_forever())] if app.state.life_tasks else []
+             asyncio.create_task(app.state.push.run_forever()),
+             asyncio.create_task(auto_backup.run_forever(app.state))] if app.state.life_tasks else []
     if app.state.life_tasks:
         # Built-in recall loads its model now, so the first reply does not wait for it.
         app.state.builtin_recall.kick()
         tasks.append(asyncio.create_task(prepare_voice(app.state.voice)))
+        # Local programs the user asked to start with the Companion (off until turned on).
+        tasks.append(asyncio.create_task(app.state.launcher.launch_all()))
     app.state.memory.kick()
     await start_lan(app)
     yield
@@ -137,9 +168,10 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                life_tasks=True, world=None, embedder=None, image_adapters=None,
                context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None,
                lora_maker=None, builtin_spawn=None, builtin_transport=None, hardware=None, voice_transport=None,
-               voice_runner=None) -> FastAPI:
+               voice_runner=None, launcher=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
+    worlds.start(app.state.database)  # The world the user was last in; the first run makes the first world.
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
     app.state.vault = vault or SystemVault()
     world = observed_weather.ObservedWorld(world or CatalogWorld(app.state.database), app.state.database)
@@ -149,6 +181,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder,
                                           lookups=app.state.lookups)
     app.state.builtin_recall = BuiltinRecall(app.state.database, builtin_spawn, builtin_transport)
+    app.state.launcher = launcher or Launcher(app.state.database)
     app.state.conversation.embedder.builtin = app.state.builtin_recall
     app.state.hardware = hardware or Hardware()
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
@@ -186,6 +219,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.life_tasks = life_tasks
     # The LoRA creator is hidden unless switched on; profile pictures and an adopted adapter keep working.
     app.state.lora_maker = lora_maker_enabled() if lora_maker is None else lora_maker
+    app.middleware('http')(stay_in_world)
     app.middleware('http')(guard_writes)
     # Outermost: only this PC, or a paired phone through Tailscale, gets further (companion/phone/access.py).
     app.state.phone = phone_access.Gate(app.state.database)
@@ -197,6 +231,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.add_exception_handler(Exception, unexpected_error)
     app.include_router(router)
     app.include_router(model_router)
+    app.include_router(launcher_router)
     app.include_router(recall_router)
     app.include_router(voice_router)
     app.include_router(hardware_router)
@@ -216,10 +251,12 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     if app.state.lora_maker:
         app.include_router(lora_routes.maker_router)
     app.include_router(import_routes.router)
+    app.include_router(file_routes.router)
     app.include_router(closeness_routes.router)
     app.include_router(phone_routes.router)
     app.include_router(people_routes.router)
     app.include_router(debug_router)
+    app.include_router(worlds_routes.router)
     app.include_router(calls_router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')

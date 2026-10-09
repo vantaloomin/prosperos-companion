@@ -14,6 +14,7 @@ import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
+import { LaunchFor } from './models/LocalPrograms'
 import { SliderField, SliderNumber } from '../../components/NumberFields'
 import { countText } from '../../components/numberBounds'
 
@@ -150,6 +151,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === 0} aria-label={`Move ${backend.label} up`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index - 1 }))}><ArrowUp aria-hidden="true" />Up</button>
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === count - 1} aria-label={`Move ${backend.label} down`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index + 1 }))}><ArrowDown aria-hidden="true" />Down</button>
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
+        <LaunchFor id={backend.id} />
       </div>
     </li>
   )

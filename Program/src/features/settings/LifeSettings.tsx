@@ -11,7 +11,7 @@ import { DRAMA_LEVELS } from '../today/storyText'
 import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['life-settings']
-type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'away_daily' | 'texts_gap_hours' | 'circle_size'
+type NumberKey = 'catch_up_max_events' | 'catch_up_lookback_hours' | 'return_gap_hours' | 'background_interval_minutes' | 'background_daily_events' | 'texts_daily' | 'away_daily' | 'texts_gap_hours' | 'circle_size' | 'recap_after_days'
 
 type Format = (value: number) => string
 const counted = (one: string, many: string, zero?: string): Format => (value) => countText(value, one, many, zero)
@@ -30,6 +30,7 @@ const PRESETS: { name: NumberKey; label: string; presets: number[]; format: Form
   { name: 'return_gap_hours', label: 'Time away before catching up', presets: [1, 2, 4, 8, 12, 24, 48], format: hoursText },
   { name: 'background_interval_minutes', label: 'Background updates', presets: [15, 30, 60, 120, 240, 480, 1440], format: every },
   { name: 'texts_gap_hours', label: 'Quiet hours after talking before they message first', presets: [1, 2, 3, 4, 6, 8, 12, 24], format: hoursText },
+  { name: 'recap_after_days', label: 'Time away before a "While you were away" catch-up', presets: [0, 1, 2, 3, 5, 7, 14, 30, 60], format: counted('day', 'days', 'Off'), hint: 'Shown once in the chat when you come back: what happened in their life and around town.' },
 ]
 
 export function LifeSettings({ name }: { name: string }) {

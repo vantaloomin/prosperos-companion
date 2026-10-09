@@ -10,6 +10,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useReturnFocus } from '../../components/returnFocus'
 import { REMEMBER_KEY, rememberedText } from '../memories/memoryGroups'
+import { keptSaying } from '../character/selfFactText'
 import { Composer } from './Composer'
 import { ConversationHeader } from './ConversationHeader'
 import { ConversationSearch } from './ConversationSearch'
@@ -29,6 +30,7 @@ import { useChatStyle } from './useChatStyle'
 import { playCue } from './imSounds'
 import { NovelStage } from './NovelStage'
 import { latestPhotoId } from './photoState'
+import { AwayRecap } from './AwayRecap'
 import { ChatsPanel } from '../chats/ChatsPanel'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { readThrough } from '../chats/chatText'
@@ -134,6 +136,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const remember = async (message: Message) => {
     try {
       const result = await api<RememberResult>(`/conversation/messages/${message.id}/remember`, {})
+      if (result.self_facts?.length) {
+        setNotice({ tone: 'info', text: keptSaying(name, result.self_facts) })
+        void client.invalidateQueries({ queryKey: ['self-facts'] })
+        return
+      }
       if (result.memories.length) {
         setNotice({ tone: 'info', text: rememberedText(name, result.memories) })
         void client.invalidateQueries({ queryKey: MEMORIES_KEY })
@@ -221,6 +228,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         </div>
         <div className="visually-hidden" role="status" aria-live="polite">{announcement}</div>
         <ActivityLine messages={messages} phases={phases} sending={draft.sending} />
+        <AwayRecap name={name} />
         <ConversationNotice notice={notice} go={go} />
         <MessageDialogs name={name} editing={editing} branching={branching} onClose={() => { setEditing(null); setBranching(null) }} onNotice={(text) => setNotice({ tone: 'info', text })}
           onReworded={(id, text) => {

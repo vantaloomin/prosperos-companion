@@ -20,6 +20,7 @@ import { sidecar, useSidecarOpen } from './features/sidecar/store'
 import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
 import { badge, unreadOf } from './features/chats/chatText'
+import { WorldButton } from './features/worlds/WorldButton'
 import { useAppColors } from './features/settings/useAppColors'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
@@ -35,6 +36,7 @@ const Story = lazy(() => import('./features/story/Story').then((m) => ({ default
 const Sidecar = lazy(() => import('./features/sidecar/Sidecar').then((m) => ({ default: m.Sidecar })))
 const Groups = lazy(() => import('./features/groups/Groups').then((m) => ({ default: m.Groups })))
 const GroupChat = lazy(() => import('./features/groups/GroupChat').then((m) => ({ default: m.GroupChat })))
+const Worlds = lazy(() => import('./features/worlds/Worlds').then((m) => ({ default: m.Worlds })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
 // The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
@@ -50,7 +52,7 @@ const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') || id.startsWith('chat/') || id.startsWith('group/') ? id as View : 'conversation'
+  return id === 'worlds' || VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') || id.startsWith('chat/') || id.startsWith('group/') ? id as View : 'conversation'
 }
 
 function isCurrent(id: View, view: View) {
@@ -87,6 +89,7 @@ export default function App() {
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
       <nav className="app-nav" aria-label="Views">
+        <WorldButton current={view === 'worlds'} onOpen={() => go('worlds')} />
         {VIEWS.filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon }) => (
           <Fragment key={id}>
             {/* The sidecar opens beside any view, so it is a toggle rather than a view. */}
@@ -149,12 +152,13 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
 }
 
 function inWorkspace(view: View) {
-  return view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
+  return view === 'worlds' || view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
     || view === 'groups' || view.startsWith('group/')
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
   const storyOn = useWorkspaceSettings().data?.story_mode
+  if (view === 'worlds') return <Worlds />
   if (view === 'dating') return <Dating go={go} />
   if (view === 'groups') return <Groups go={go} />
   if (view.startsWith('group/')) return <GroupChat key={view} id={decodeURIComponent(view.slice(6))} go={go} />

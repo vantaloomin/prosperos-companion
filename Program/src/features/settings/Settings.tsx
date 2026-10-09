@@ -21,6 +21,7 @@ import { Cities } from '../world/Cities'
 import { BuiltinRecall } from './models/BuiltinRecall'
 import { VoiceSettings } from './models/VoiceSettings'
 import { HardwareCheck } from './models/HardwareCheck'
+import { LocalPrograms } from './models/LocalPrograms'
 import { ModelSettings } from './models/ModelSettings'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { NextStep } from './NextStep'
@@ -92,7 +93,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
     general: <><TimezoneSettings /><ChatStyleSettings /><PauseSettings /><BackgroundSettings /></>,
-    models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <BuiltinRecall />}<VoiceSettings /></>,
+    models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
     life: <><LifeSettings name={name} /><HiddenValues name={name} /><Cities /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,

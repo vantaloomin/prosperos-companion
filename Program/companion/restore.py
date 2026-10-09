@@ -27,7 +27,7 @@ MOVED = ('images', 'lora')
 KEPT_SETTINGS = ('workspace_settings', 'connection', 'model_profiles', 'model_routes', 'life_settings',
                  'image_settings', 'image_backends', 'context_settings', 'context_services', 'context_tools',
                  'lora_settings', 'notification_settings', 'phone_settings', 'phone_devices', 'phone_push',
-                 'builtin_recall', 'voice_settings', 'prompt_overrides', 'debug_time')
+                 'builtin_recall', 'voice_settings', 'prompt_overrides', 'debug_time', 'local_programs')
 
 
 def database_files(path: Path) -> list[Path]:
@@ -99,21 +99,27 @@ def apply_deletions(database: Database, retained: dict) -> dict:
 
 def keep_settings(database: Database, previous: Path):
     """The settings of the workspace being replaced, instead of the backup's (or the hold a restore starts with)."""
-    connection = sqlite3.connect(database.path, isolation_level=None)
+    copy_settings(database.path, previous, KEPT_SETTINGS, database.now())
+
+
+def copy_settings(target: Path, source: Path, tables: tuple[str, ...], timestamp: str):
+    """`tables` in the workspace at `target` become those of the one at `source`: a restore keeps the current
+    settings, and switching worlds carries them along (companion/worlds.py). `tables` lists parents first."""
+    connection = sqlite3.connect(target, isolation_level=None)
     try:
         # A plain path: URI filenames in ATTACH need SQLite built with them on, which Windows' is not.
-        connection.execute('ATTACH DATABASE ? AS kept', (str(previous.resolve()),))
+        connection.execute('ATTACH DATABASE ? AS kept', (str(Path(source).resolve()),))
         connection.execute('BEGIN IMMEDIATE')
-        for table in reversed(KEPT_SETTINGS):
+        for table in reversed(tables):
             connection.execute(f'DELETE FROM main.{table}')
-        for table in KEPT_SETTINGS:
+        for table in tables:
             ours = {row[1] for row in connection.execute(f'PRAGMA main.table_info({table})')}
             columns = ', '.join(row[1] for row in connection.execute(f'PRAGMA kept.table_info({table})')
                                 if row[1] in ours)
             if columns:
                 connection.execute(f'INSERT INTO main.{table} ({columns}) SELECT {columns} FROM kept.{table}')
         if connection.execute('SELECT paused_at FROM main.workspace_settings').fetchone()[0] is None:
-            connection.execute('UPDATE main.pauses SET ended_at=? WHERE ended_at IS NULL', (database.now(),))
+            connection.execute('UPDATE main.pauses SET ended_at=? WHERE ended_at IS NULL', (timestamp,))
         connection.execute('COMMIT')
     except BaseException:
         if connection.in_transaction:
@@ -166,8 +172,9 @@ def archive_path(workspace: Path, name: str) -> Path:
     return path
 
 
-# Backups the app makes on its own, named for what they came before (companion/start_over.py, upgrade.py).
-KINDS = ('pre-upgrade', 'before-reset', 'before-delete', 'before-debug')
+# Backups the app makes on its own, named for what they came before (companion/start_over.py, upgrade.py), and
+# the automatic ones (companion/auto_backup.py).
+KINDS = ('pre-upgrade', 'before-reset', 'before-delete', 'before-debug', 'auto')
 
 
 def kind(name: str) -> str:

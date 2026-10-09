@@ -426,6 +426,11 @@ textarea { resize: vertical; line-height: 1.6; }
 .network-list .badge { margin-left: 6px; }
 .network-list .text-button { margin-left: 6px; }
 .town-detail { margin: 4px 0 2px; display: grid; gap: 2px; }
+.lore-book { border-top: 1px solid var(--border); padding-top: 8px; }
+.lore-book summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.lore-book .form-actions { margin-top: 8px; }
+.lore-book .network-list p { margin: 2px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+.lore-book .check-row { display: inline-flex; gap: 8px; align-items: center; margin-right: 8px; }
 .town-detail p { margin: 0; }
 .acquaintances { margin-top: 16px; }
 .diary { border-top: 1px solid var(--border); padding-top: 8px; }
@@ -702,6 +707,7 @@ textarea { resize: vertical; line-height: 1.6; }
 /* Chat styles: presentation only. Each lays out the same message markup; Feed is the base rules above. */
 .avatar { display: none; }
 .chat-style-switch { padding: 5px 8px; font-size: 0.8125rem; border-radius: 7px; max-width: 132px; }
+.where-form { margin-top: 12px; max-width: 520px; }
 .number-stepper { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; min-height: 44px; border: 1px solid var(--border); border-radius: 7px; background: var(--canvas); overflow: hidden; }
 .number-stepper output { text-align: center; padding: 0 8px; font-variant-numeric: tabular-nums; }
 .stepper-button { display: grid; place-items: center; height: 100%; min-height: 42px; color: var(--text); }
@@ -1310,3 +1316,31 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* Group chat moods (features/groups/GroupChat.tsx): read-only, under each person in the people panel. */
 .group-mood { display: block; font-size: 0.85rem; }
 .group-walk-out { display: flex; align-items: center; gap: 8px; }
+
+/* Worlds and personas (src/features/worlds): the nav button says who the user is and where. */
+.app-nav .nav-world span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-persona { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 600; font-size: 0.85rem; }
+.worlds { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.worlds-header, .worlds-list { max-width: 760px; width: 100%; margin: 0 auto; padding: 18px 32px 12px; display: flex; flex-direction: column; gap: 10px; }
+.worlds-list { padding-top: 0; padding-bottom: 32px; gap: 18px; }
+.worlds-header h1 { font-size: 1.3rem; }
+.persona-worlds { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
+.persona-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.persona-row h2 { flex: 1; font-size: 1.05rem; margin: 0; }
+.persona-initial { display: grid; place-items: center; font-weight: 600; color: var(--accent); background: var(--accent-tint); }
+.world-rows { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.world-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px; flex-wrap: wrap; }
+.world-row[aria-current='true'] { background: var(--accent-tint); }
+.world-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.world-row-actions { display: flex; align-items: center; gap: 10px; }
+.world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
+.world-rename input { flex: 1; min-width: 0; }
+@media (max-width: 720px) {
+  .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
+}
+
+/* While you were away (src/features/conversation/AwayRecap.tsx): a quiet catch-up above the composer. */
+.away-recap { max-width: 760px; width: calc(100% - 32px); margin: 0 auto 8px; padding: 12px 16px; border: 1px dashed var(--border); border-radius: 10px; background: var(--surface); font-family: system-ui, sans-serif; font-size: 0.875rem; }
+.away-recap h2 { font-size: 0.95rem; margin: 0 0 6px; }
+.away-recap ul { margin: 0 0 4px; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 2px; }
+.away-recap .text-button { padding-left: 0; }

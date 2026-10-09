@@ -8,7 +8,7 @@ receipt records what was included and what was left out, by identity only.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from companion import consequences, news, pictures, prompt_library, secrets, self_facts, texting
+from companion import consequences, lore, news, pictures, prompt_library, secrets, self_facts, texting
 from companion import moods as feelings
 from companion.almanac import context as almanac
 from companion.clock import parse, stamp, zone
@@ -91,6 +91,10 @@ HEADINGS = {
             # The system prompt, after the character. Changes rarely: it stays the same from one reply to the next,
             # so local servers and providers can reuse their work on it and on the conversation after it (prompt
             # caching). Keep this order: what changes least comes first.
+            # Who the user is in this world (companion/worlds.py): what they wrote about their persona.
+            'persona': 'Who the user is (what they told the app about themselves; never contradict it)',
+            # Always-on entries of imported lorebooks (companion/lore.py).
+            'lore': 'Facts about you and your world (from your lorebook; treat them as true and never contradict them)',
             'home': 'Your home and belongings (fictional, yours; keep them consistent)',
             'acquaintances': 'People you have met through your circle (friends of friends; you know them a little, '
                              'from where you met)',
@@ -175,6 +179,8 @@ NOW = {
                      'never as done, and they may change)',
        'photo': 'A picture you are sending the user with this reply (mention it naturally, and describe '
                 'only what is listed here)',
+       # Lorebook entries whose keywords came up in the last few messages (companion/lore.py).
+       'lore_now': 'Lore that fits what is being talked about (from your lorebook; true in your world)',
        'wearing': 'What you have on',
        'wording': 'Your wording lately',
        'time': 'Right now'}
@@ -217,6 +223,16 @@ TRAITS = ('Your emotional traits, expressed in character only and only about wha
           '(never claim to know what the user did): ')
 FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
+
+
+def persona_text(connection) -> str | None:
+    """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder."""
+    row = connection.execute('SELECT * FROM persona WHERE id=1').fetchone()
+    if not row:
+        return None
+    parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
+             f"Gender: {row['gender']}" if row['gender'] else '', row['about'].strip()]
+    return '\n'.join(f'- {part}' for part in parts if part) or None
 
 
 def trait_text(trait) -> str:
@@ -698,6 +714,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         recent, older = [], messages + group['older']
     packet = Packet(budget)
     packet.require('character', version['id'], character_text(version, connection))
+    if who := persona_text(connection):
+        packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
     previous = recent[-2]['created_at'] if len(recent) > 1 else (group or {}).get('previous')
@@ -730,6 +748,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
         packet.offer('real_events', events['id'], f"- From {events['service_name']}, retrieved "
                                                   f"{events['retrieved_at'][11:16]} UTC: «{events['content']}»")
     query = latest['text'] if latest else (group or {}).get('query', '')
+    lore.offer(packet, connection, companion, recent, query)
     offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older), query, semantic)
     return render(packet, conversation)
 

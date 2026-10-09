@@ -37,7 +37,8 @@ class MemoryWorker:
         if not self.enabled or (self.task is not None and not self.task.done()):
             return
         try:
-            self.task = asyncio.get_running_loop().create_task(self.drain())
+            with self.database.pin():  # The drain finishes the work of the world it was started in.
+                self.task = asyncio.get_running_loop().create_task(self.drain())
         except RuntimeError:
             self.task = None
 

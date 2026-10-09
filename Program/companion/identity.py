@@ -9,13 +9,14 @@ from pathlib import Path
 
 APP_ID = 'prospero-companion'
 APP_NAME = 'Prospero Companion'
-VERSION = '0.5.1'
+VERSION = '0.6.0'
 SCHEMA_VERSION = 1
 CREDENTIAL_SERVICE = 'Prospero Companion'
 ARCHIVE_FORMAT = 'prospero-companion-archive'
 ARCHIVE_VERSION = 2
 DEFAULT_PORT = 8775
 CLIENT_HEADER = 'x-companion-client'
+WORLD_HEADER = 'x-companion-world'  # The world a page was opened in (companion/main.py stay_in_world).
 DATA_ENV = 'COMPANION_DATA_DIR'
 DATABASE_ENV = 'COMPANION_DB'
 # The folder holding Windows/, Mac/ and Program/ (a checkout or ZIP copy), or the installed app's folder

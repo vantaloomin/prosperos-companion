@@ -63,7 +63,9 @@ class ImageRunner:
     async def run_forever(self, tick_seconds=30):
         self.wakeup = asyncio.Event()
         while True:
-            with contextlib.suppress(Exception):
+            # Each job started here keeps the world it began in, so a picture that finishes after the user
+            # switched worlds is stored in its own world (companion/database.py PINNED).
+            with contextlib.suppress(Exception), self.database.pin():
                 self.automatic()
                 self.share()
                 self.dispatch()
@@ -118,6 +120,10 @@ class ImageRunner:
 
     async def drain(self):
         """Run until nothing more can start; tests use it in place of the background loop."""
+        with self.database.pin():
+            await self.drain_pinned()
+
+    async def drain_pinned(self):
         while True:
             started = self.dispatch()
             pending = [task for task, _meta in list(self.tasks.values()) if not task.done()]

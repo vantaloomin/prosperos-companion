@@ -17,6 +17,7 @@ from companion.providers.codex import CodexProvider
 from companion.providers.discovery import discover_models
 from companion.providers.discovery_errors import check_with_deadline
 from companion.providers.events import Chunk, anthropic_event, chat_event, google_event, openai_event
+from companion.providers.prompt_cache import PromptCache
 from companion.providers.requests import REQUESTS, headers_for, validate_key
 
 __all__ = ['INCOMPLETE', 'Chunk', 'ChatProvider']
@@ -152,6 +153,8 @@ class ChatProvider:
     def __init__(self, transport: httpx.AsyncBaseTransport | None = None, codex: CodexProvider | None = None):
         self.transport = transport
         self.codex = codex or CodexProvider()
+        # Instant replies on local models: each companion's prompt start kept and put back (prompt_cache.py).
+        self.prompts = PromptCache()
 
     async def stream(self, config: dict, key: str | None, system: str, messages: list[dict]) -> AsyncIterator[Chunk]:
         provider = provider_of(config)
@@ -166,6 +169,7 @@ class ChatProvider:
             async with asyncio.timeout(config['timeout_seconds']):
                 async with httpx.AsyncClient(transport=self.transport, timeout=config['timeout_seconds'],
                                              follow_redirects=False, trust_env=False) as client:
+                    body = {**body, **await self.prompts.prepare(client, config, system)}
                     async for chunk in self.request(client, config, key, path, body):
                         yield chunk
         except (httpx.TimeoutException, TimeoutError) as error:
