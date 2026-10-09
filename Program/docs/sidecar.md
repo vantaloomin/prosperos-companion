@@ -18,6 +18,15 @@ It uses the **Sidecar** job in Settings > Models, which falls back to the chat m
 profile is assigned. Its instructions are `companion/prompts/sidecar.md`, editable in Settings >
 Advanced with the other prompts ([prompts.md](prompts.md)).
 
+## Out-of-character messages
+
+A message to a companion or a group that starts with `OOC:`, or the part of it inside ((double parentheses)), goes
+to the sidecar instead (`src/features/conversation/ooc.ts`, `useOoc.ts`). The sidecar opens and answers it as if it
+were typed there; the aside never appears in the chat or reaches the companion, and the rest of the message is sent
+as usual. Settings > General > Out-of-character messages turns this off (the companion then answers those honestly,
+out of character) and edits the markers: a starting word, or an opening and closing pair, up to 12 of each
+(`ooc_to_helper`, `ooc_markers` in `/api/settings`).
+
 ## What it sees
 
 Each message goes to `POST /api/sidecar` with the last few sidecar turns, the page the user is on,

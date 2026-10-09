@@ -12,7 +12,7 @@ const update = (proposalId: string, change: Partial<Proposal>) => sidecar.setTur
 
 /** Sending to the sidecar, and applying or undoing what it proposes. */
 export function useSidecarChat(view: View) {
-  const { focus, bridge, turns } = useSidecar()
+  const { focus, bridge, turns, handed } = useSidecar()
   const client = useQueryClient()
   const companion = useCompanion()
   const [busy, setBusy] = useState(false)
@@ -48,6 +48,15 @@ export function useSidecarChat(view: View) {
       return false
     } finally { setBusy(false) }
   }
+  // Asides the chat handed over (out-of-character messages) are sent one at a time, as if typed here.
+  useEffect(() => {
+    if (busy || !handed.length) return
+    const timer = setTimeout(() => {
+      const next = sidecar.takeHanded()
+      if (next) void send(next)
+    })
+    return () => clearTimeout(timer)
+  }, [busy, handed]) // eslint-disable-line react-hooks/exhaustive-deps
   const run = async (proposal: Proposal, action: 'apply' | 'undo') => {
     update(proposal.id, { status: 'working', error: undefined })
     try {

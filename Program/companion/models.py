@@ -222,6 +222,12 @@ class Palette(Input):
     text: str = Field(pattern=HEX)
 
 
+class OocMarker(Input):
+    """An out-of-character marker: a starting word (`open` only, like OOC:) or an opening and closing pair."""
+    open: str = Field(min_length=1, max_length=12, pattern=r'\S')
+    close: str = Field(default='', max_length=12)
+
+
 class SettingsUpdate(Input):
     user_timezone: str | None = Field(default=None, max_length=64)
     # 'detected': the interface reporting this PC's zone; 'pc': Use this PC's timezone; otherwise chosen.
@@ -242,6 +248,11 @@ class SettingsUpdate(Input):
     show_moods: bool | None = None
     show_news: bool | None = None
     show_odds: bool | None = None
+    # She can ask to remember more (companion/memory/look_back.py).
+    recall_more: bool | None = None
+    # Out-of-character messages go to the helper (Settings > Chat).
+    ooc_to_helper: bool | None = None
+    ooc_markers: list[OocMarker] | None = Field(default=None, max_length=12)
     # Automatic backups of every world (companion/auto_backup.py).
     auto_backups: Literal['off', 'daily', 'weekly'] | None = None
     review_complete: bool | None = None

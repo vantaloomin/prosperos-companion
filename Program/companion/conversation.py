@@ -29,7 +29,7 @@ from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
 from companion.life import occasions, own_plans, pacing, recommendations
-from companion.memory import context, formation
+from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
@@ -150,7 +150,7 @@ def recover(database):
 
 
 # What the app is doing for a reply before its text arrives, so the chat can always say (never the companion's presence).
-PHASES = ('preparing', 'looking', 'waiting', 'writing')
+PHASES = ('preparing', 'looking', 'waiting', 'remembering', 'writing')
 
 
 @dataclass
@@ -396,11 +396,12 @@ class Conversation:
                         name=definition.get('name', 'the character'), model=default_name(prepared['config']))
                     what_if = self.what_if(prepared['user']['timeline_id'])
                     packet = context.add_note(packet, '\n\n'.join(filter(None, (note, what_if))))
-                status, error, dropped = await self.write(prepared, key, packet, text, publish, active, step)
+                status, error, dropped, packet = await self.compose(prepared, key, packet, text, publish, active,
+                                                                    step)
                 if dropped and not ''.join(text).strip():
                     # The reply only stepped out of character: written once more with a reminder.
                     reminder = in_character.REMINDER.format(name=definition.get('name', 'yourself'))
-                    status, error, dropped = await self.write(
+                    status, error, dropped, _asked = await self.write(
                         prepared, key, context.add_note(packet, reminder), text, publish, active, step)
                     if dropped and not ''.join(text).strip():
                         error = 'Every line of the reply stepped out of character, so it was hidden.'
@@ -416,12 +417,45 @@ class Conversation:
             status, error = 'failed', error or 'The model returned no reply text.'
         self.finish(prepared['attempt_id'], ''.join(text), status, error)
 
-    async def write(self, prepared, key, packet, text, publish, active, step=lambda _phase: None
-                    ) -> tuple[str, str | None, int]:
+    async def compose(self, prepared, key, packet, text, publish, active, step) -> tuple[str, str | None, int, dict]:
+        """The reply, with one chance to ask to remember more first (companion/memory/look_back.py): returns the
+        status, error, dropped sentences and the packet the reply was written from."""
+        if not self.may_look_back(prepared):
+            return (*(await self.write(prepared, key, packet, text, publish, active, step))[:3], packet)
+        asking = context.add_note(packet, look_back.ASK)
+        status, error, dropped, query = await self.write(prepared, key, asking, text, publish, active, step,
+                                                         look_back.Lookout())
+        if query is None:
+            return status, error, dropped, asking
+        step('remembering')
+        lines = await asyncio.to_thread(self.look_back, prepared, query, packet)
+        packet = context.add_note(packet, look_back.found_note(query, lines))
+        status, error, dropped, _query = await self.write(prepared, key, packet, text, publish, active, step)
+        return status, error, dropped, packet
+
+    def may_look_back(self, prepared) -> bool:
+        user_text = prepared['user']['text']
+        if in_character.out_of_character(user_text) or not look_back.points_back(user_text):
+            return False
+        with self.database.connect() as connection:
+            return bool(settings(connection)['recall_more'])
+
+    def look_back(self, prepared, query: str, packet: dict) -> list[str]:
+        user = prepared['user']
+        with self.database.connect() as connection:
+            companion = chat_owner(connection, user['timeline_id'])
+            return context.looked_back(connection, companion, self.database.clock.now(), query, user['seq'],
+                                       frozenset(packet['receipt']['included'].get('recalled', ())))
+
+    async def write(self, prepared, key, packet, text, publish, active, step=lambda _phase: None, lookout=None
+                    ) -> tuple[str, str | None, int, str | None]:
         """One pass at the reply. Sentences that say the companion is an AI or not real are dropped before
-        they are shown (companion/in_character.py); returns the status, error and how many were dropped.
-        Waiting for the model is capped at the reply's time limit, so a reply never waits unseen forever."""
+        they are shown (companion/in_character.py); a reply that asks to remember more is held back and cut short
+        (`lookout`, companion/memory/look_back.py; otherwise such a request is only dropped). Returns the status, error, how many sentences were dropped and
+        what it asked to remember, if it did. Waiting for the model is capped at the reply's time limit, so a reply
+        never waits unseen forever."""
         status, error, guard = 'complete', None, in_character.Guard(active)
+        lookout = lookout or look_back.Lookout(strip=True)
         text.clear()
 
         def keep(piece):
@@ -435,12 +469,15 @@ class Conversation:
                 step('writing')
                 async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
                                                         packet['messages']):
-                    keep(guard.feed(chunk.text))
+                    keep(guard.feed(lookout.feed(chunk.text)))
+                    if lookout.query:
+                        break
                     if chunk.finish_reason in INCOMPLETE:
                         status, error = 'incomplete', INCOMPLETE[chunk.finish_reason]
         finally:
+            keep(guard.feed(lookout.flush()))
             keep(guard.flush())  # A stopped or failed reply keeps the text it had, still checked.
-        return status, error, guard.dropped
+        return status, error, guard.dropped, lookout.query
 
     def what_if(self, timeline_id) -> str:
         """The odds the consequence engine sees for what could happen, for an out-of-character answer."""

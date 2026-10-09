@@ -7,6 +7,7 @@ import type { WorkspaceSettings as Settings } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { TextInput, Toggle } from '../../components/Fields'
 import { timezones } from '../character/definition'
+import { DEFAULT_OOC_MARKERS, type OocMarker } from '../conversation/ooc'
 
 type Save = (change: Partial<Settings> & { review_complete?: boolean }) => Promise<boolean>
 
@@ -158,8 +159,53 @@ export function MemorySettings() {
             hint="Messages the built-in rules found nothing in are sent to your model connection in the background, which picks out facts in your own words. They are saved automatically and marked that way in Memories, where you can correct or delete them; anything that contradicts a saved fact waits for you. Uses extra model time." />
           <Toggle label="Ask about people in your life" checked={data.ask_about_people ?? true} onChange={(value) => void save({ ask_about_people: value })}
             hint="People you mention (your sister, your boss, a friend by name) and what you say about them are remembered under the same setting as everything else. With this on, they may now and then ask how someone is doing or how their news turned out, at most once per question. Never after a loss, or about anyone a boundary covers." />
+          <Toggle label="Let them look back when they need to" checked={data.recall_more ?? true} onChange={(value) => void save({ recall_more: value })}
+            hint="When you bring up something from before that they can't place, they may take one more look through their memories and your earlier chats before answering. That reply can take up to twice as long. The app also widens its own search when the first look finds little; that needs no extra model time." />
           <Toggle label="Share what you've told them across alternate timelines" checked={data.share_profile_across_timelines} onChange={(value) => void save({ share_profile_across_timelines: value })}
             hint="Facts about you, your plans and how you're doing apply in every timeline, including ones you start with Edit from here. When off, each timeline only knows what you told it, plus what came before its edit. Shared moments and the companion's own life always stay in their own timeline." />
         </section>
+  )
+}
+
+/** General > Out-of-character messages: asides marked like this go to the helper, never to the companion. */
+export function OocSettings() {
+  const { data, save, problem } = useWorkspace()
+  if (!data) return <SectionError problem={problem} />
+  const markers = data.ooc_markers?.length ? data.ooc_markers : DEFAULT_OOC_MARKERS
+  return (
+    <section className="settings-section form-stack" aria-labelledby="ooc-heading">
+      <h2 id="ooc-heading">Out-of-character messages</h2>
+      <SectionError problem={problem} />
+      <Toggle label="Send out-of-character messages to the helper" checked={data.ooc_to_helper ?? true} onChange={(value) => void save({ ooc_to_helper: value })}
+        hint="A message that starts with OOC:, or a part of one inside (( )), goes to the helper panel instead of your companion, and stays out of the chat. The rest of the message is sent as usual. When off, your companion answers those honestly, out of character." />
+      {(data.ooc_to_helper ?? true) && <OocMarkers markers={markers} save={(next) => void save({ ooc_markers: next })} />}
+    </section>
+  )
+}
+
+function OocMarkers({ markers, save }: { markers: OocMarker[]; save: (markers: OocMarker[]) => void }) {
+  const [rows, setRows] = useState(markers)
+  // Saved as soon as every marker has a start; a half-typed new row waits until it has one.
+  const change = (next: OocMarker[]) => {
+    setRows(next)
+    if (next.length && next.every((row) => row.open.trim())) save(next.map((row) => ({ open: row.open.trim(), close: row.close.trim() })))
+  }
+  const edit = (index: number, part: Partial<OocMarker>) => change(rows.map((row, at) => (at === index ? { ...row, ...part } : row)))
+  return (
+    <fieldset className="form-stack">
+      <legend>Markers</legend>
+      <p className="subtle">Leave "Ends with" empty for a word that marks the whole message when it starts with it.</p>
+      {rows.map((row, index) => (
+        <div key={index} className="form-grid">
+          <TextInput label="Starts with" value={row.open} maxLength={12} onChange={(open) => edit(index, { open })} />
+          <TextInput label="Ends with" value={row.close} maxLength={12} onChange={(close) => edit(index, { close })} />
+          <button type="button" className="text-button" onClick={() => change(rows.filter((_, at) => at !== index))} disabled={rows.length < 2}>Remove</button>
+        </div>
+      ))}
+      <div className="form-actions">
+        <button type="button" className="button" onClick={() => setRows([...rows, { open: '', close: '' }])} disabled={rows.length >= 12}>Add a marker</button>
+        <button type="button" className="text-button" onClick={() => change(DEFAULT_OOC_MARKERS)}>Reset to defaults</button>
+      </div>
+    </fieldset>
   )
 }

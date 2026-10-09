@@ -17,6 +17,7 @@ import { ChatsPanel } from '../chats/ChatsPanel'
 import { useMarkRead } from '../chats/useChats'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useDraft } from '../conversation/useDraft'
+import { useOoc } from '../conversation/useOoc'
 import { useScrollAway } from '../conversation/useScrollAway'
 import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
@@ -67,12 +68,14 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
   const id = group.id
   const style = useChatStyle()
   const draft = useDraft(`companion:group-draft:${id}`)
+  const ooc = useOoc()
   const shown = shownMessages(data.messages, data.live)
   const { transcript, pinned, follow } = useFollow(shown)
   const scroll = useScrollAway(transcript, pinned)
   const submit = async () => {
-    const { text, clientId } = draft.value
-    if (!text.trim()) return
+    const { clientId } = draft.value
+    const text = ooc(draft.value.text)
+    if (!text.trim()) { draft.clear(); return }
     draft.setSending(true)
     if (await send(text, clientId)) { draft.clear(); follow() }
     draft.setSending(false)

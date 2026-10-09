@@ -9,9 +9,11 @@ from companion.errors import require
 FLAGS = ('automatic_memory', 'sensitive_memory', 'share_profile_across_timelines', 'background_activity',
          'model_memory_suggestions', 'chat_sounds', 'chat_retro_dark', 'auto_launch', 'ask_about_people',
          'story_mode', 'show_secret_slips', 'show_moods', 'show_news', 'show_odds',
-         'record_model_calls')
+         'record_model_calls', 'recall_more', 'ooc_to_helper')
 # Changing any of these can make queued work stale, so they advance the permission revision.
 PERMISSIONS = {'automatic_memory', 'sensitive_memory', 'background_activity', 'model_memory_suggestions'}
+# Out-of-character markers the composer sends to the helper, until the user changes them: the two that already work.
+OOC_MARKERS = [{'open': 'OOC:', 'close': ''}, {'open': '((', 'close': '))'}]
 
 
 def view(row: dict) -> dict:
@@ -19,6 +21,7 @@ def view(row: dict) -> dict:
             'paused': row['paused_at'] is not None, 'review_required': bool(row['review_required']),
             'ai_notice_confirmed': row['ai_notice_at'] is not None,
             'custom_palette': json.loads(row['custom_palette']) if row['custom_palette'] else None,
+            'ooc_markers': json.loads(row['ooc_markers']) if row['ooc_markers'] else OOC_MARKERS,
             'system_timezone': local_zone.detect()}
 
 
@@ -62,8 +65,9 @@ def update(database, body) -> dict:
     with database.connect(write=True) as connection:
         row = settings(connection)
         timezone_change(row, changes)
-        if 'custom_palette' in changes:
-            changes['custom_palette'] = json.dumps(changes['custom_palette'], sort_keys=True)
+        for column in ('custom_palette', 'ooc_markers'):
+            if column in changes:
+                changes[column] = json.dumps(changes[column], sort_keys=True)
         review_done = changes.pop('review_complete', False)
         # The first-run notice is confirmed once and stays confirmed.
         if changes.pop('ai_notice_confirmed', False) and row['ai_notice_at'] is None:

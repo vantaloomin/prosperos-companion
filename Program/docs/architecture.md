@@ -184,6 +184,18 @@ edited text never matches an old vector. Deleting a memory, correcting it or red
 deletes its vectors; excluded memories and their source messages never enter the pool, so their
 vectors are never ranked. The receipt records whether semantic recall took part.
 
+### Looking back
+
+`memory/look_back.py` (She can ask to remember more). When the user's message points at the past ("remember when",
+"last summer", "you told me") and the first recall finds fewer than two items, the app widens it with no model call:
+the user's last few messages are added to the search words and nothing is held back for having come up lately (the
+receipt's `widened_recall`). With the Memory setting `recall_more` on (the default), the prompt for such a message
+also lets the companion answer with only `[[recall: a few words]]`. `Lookout` holds the start of the streamed reply
+until it is clear whether it is such a request, so it never shows; the app then recalls with those words, adds what
+it found as a note at the end of the prompt (the cached part is unchanged) and asks once more, with any further
+request stripped. The reply's phase reads `remembering` meanwhile ("Looking back through earlier chats…"). At most
+two model calls per reply; out-of-character messages never get the offer.
+
 ### Voice notes
 
 `voice/` sends some first texts as voice notes by rules and reads them aloud with the built-in Kokoro voice (a
