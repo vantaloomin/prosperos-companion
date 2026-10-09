@@ -23,6 +23,7 @@ from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
 from companion.text_models import CHAT, config_for, default_name, key_for
+from companion.voice import notes as voice_notes
 
 LOG = logging.getLogger(__name__)
 
@@ -76,8 +77,8 @@ def history(database, before_seq=None, limit=100) -> dict:
                     'ORDER BY seq DESC LIMIT ?',
                     (companion['active_timeline_id'], before_seq or 2 ** 62, limit))
         return {'timeline_id': companion['active_timeline_id'],
-                'messages': pictures.decorate(connection, photos.decorate(
-                    connection, [message_view(row) for row in reversed(rows)]))}
+                'messages': voice_notes.decorate(connection, pictures.decorate(connection, photos.decorate(
+                    connection, [message_view(row) for row in reversed(rows)])))}
 
 
 SEARCH_LIMIT = 50
