@@ -36,6 +36,17 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.4.0 (2026-10-09)
+
+- **Everyone keeps living:** every companion lives their days; group chats start conversations.
+- **Small world:** companions meet where their days take them; a weekly town paper on Today.
+- **Consequence engine:** turnings decided from state with "Why it went this way" and a way to change
+  them, lasting marks, user-action consequences, OOC odds; Life chapters every few months.
+- **Voice notes:** built-in offline voice (about 378 MB on first use), or OpenAI, ElevenLabs, Google.
+- **Sensible defaults:** everyday life events on, corrections apply at once, running jokes and circle
+  fill themselves, rule-only background life, restores keep current settings.
+- **Prompt caching** and small-model prompts; local background work waits for a pause in chat.
+
 ## v0.3.0 (2026-10-08)
 
 - **Group chats:** several companions in one chat, each answering from what they know; secrets kept
