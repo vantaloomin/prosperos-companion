@@ -8,7 +8,7 @@ import { chatStyleOf, retroDarkOn, soundsOn } from './chatStyles'
 export function useChatStyle() {
   const client = useQueryClient()
   const settings = useWorkspaceSettings()
-  const save = async (change: Partial<Pick<WorkspaceSettings, 'chat_style' | 'chat_sounds' | 'chat_retro_dark'>>) => {
+  const save = async (change: Partial<Pick<WorkspaceSettings, 'chat_style' | 'chat_sounds' | 'chat_retro_dark' | 'color_scheme' | 'custom_palette'>>) => {
     const before = client.getQueryData<WorkspaceSettings>(SETTINGS_KEY)
     if (before) client.setQueryData(SETTINGS_KEY, { ...before, ...change })
     try {
@@ -19,6 +19,6 @@ export function useChatStyle() {
       return error instanceof Error ? error.message : 'That setting was not saved.'
     }
   }
-  return { style: chatStyleOf(settings.data), sounds: soundsOn(settings.data), soundsSetting: !!settings.data?.chat_sounds,
+  return { style: chatStyleOf(settings.data), scheme: settings.data?.color_scheme ?? 'ink', palette: settings.data?.custom_palette ?? null, sounds: soundsOn(settings.data), soundsSetting: !!settings.data?.chat_sounds,
     retroDark: retroDarkOn(settings.data), retroDarkSetting: !!settings.data?.chat_retro_dark, save }
 }
