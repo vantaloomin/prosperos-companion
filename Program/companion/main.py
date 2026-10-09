@@ -25,6 +25,8 @@ from companion.images import routes as image_routes
 from companion.images.photos import ChatPhotos
 from companion.images.runner import ImageRunner
 from companion.imports import routes as import_routes
+from companion.launcher import Launcher
+from companion.launcher_routes import router as launcher_router
 from companion.life import home_routes, wardrobe_routes
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
@@ -123,6 +125,8 @@ async def lifespan(app):
         # Built-in recall loads its model now, so the first reply does not wait for it.
         app.state.builtin_recall.kick()
         tasks.append(asyncio.create_task(prepare_voice(app.state.voice)))
+        # Local programs the user asked to start with the Companion (off until turned on).
+        tasks.append(asyncio.create_task(app.state.launcher.launch_all()))
     app.state.memory.kick()
     await start_lan(app)
     yield
@@ -137,7 +141,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                life_tasks=True, world=None, embedder=None, image_adapters=None,
                context_transports=None, trainer_spawn=None, link_reader=None, push_transport=None,
                lora_maker=None, builtin_spawn=None, builtin_transport=None, hardware=None, voice_transport=None,
-               voice_runner=None) -> FastAPI:
+               voice_runner=None, launcher=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
     app.state.database = Database(database_path, clock)
     workspace.adopt_pc_timezone(app.state.database, local_zone.detect())
@@ -149,6 +153,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.conversation = Conversation(app.state.database, app.state.vault, provider, embedder=embedder,
                                           lookups=app.state.lookups)
     app.state.builtin_recall = BuiltinRecall(app.state.database, builtin_spawn, builtin_transport)
+    app.state.launcher = launcher or Launcher(app.state.database)
     app.state.conversation.embedder.builtin = app.state.builtin_recall
     app.state.hardware = hardware or Hardware()
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
@@ -197,6 +202,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.add_exception_handler(Exception, unexpected_error)
     app.include_router(router)
     app.include_router(model_router)
+    app.include_router(launcher_router)
     app.include_router(recall_router)
     app.include_router(voice_router)
     app.include_router(hardware_router)

@@ -12,6 +12,7 @@ import { HARDWARE_KEY, useHardware } from './models/hardware'
 import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
+import { LaunchFor } from './models/LocalPrograms'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -127,6 +128,7 @@ function BackendRow({ backend, index, count, refresh, setResult }: { backend: Im
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === 0} aria-label={`Move ${backend.label} up`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index - 1 }))}><ArrowUp aria-hidden="true" />Up</button>
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === count - 1} aria-label={`Move ${backend.label} down`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index + 1 }))}><ArrowDown aria-hidden="true" />Down</button>
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
+        <LaunchFor id={backend.id} />
       </div>
     </li>
   )

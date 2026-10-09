@@ -115,6 +115,8 @@ ADDED_COLUMNS = (
     ('messages', 'superseded_at', 'TEXT'),
     ('workspace_settings', 'chat_retro_dark', 'INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1))'),
     ('workspace_settings', 'story_mode', 'INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1))'),
+    # Launch buttons (companion/launcher.py): start the local programs in use with the Companion.
+    ('workspace_settings', 'auto_launch', 'INTEGER NOT NULL DEFAULT 0 CHECK (auto_launch IN (0, 1))'),
     # Onboarding portraits (lora/portraits.py): a set whose later pictures follow the profile picture,
     # and the kept picture shown as the companion's profile picture.
     ('lora_generations', 'kind', "TEXT NOT NULL DEFAULT 'dataset' CHECK (kind IN ('dataset', 'portraits'))"),

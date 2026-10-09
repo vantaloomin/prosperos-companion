@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   chat_style TEXT NOT NULL DEFAULT 'feed' CHECK (chat_style IN ('feed', 'bubbles', 'community', 'retro', 'novel')),
   chat_sounds INTEGER NOT NULL DEFAULT 0 CHECK (chat_sounds IN (0, 1)),
   chat_retro_dark INTEGER NOT NULL DEFAULT 0 CHECK (chat_retro_dark IN (0, 1)),
+  -- Start the local programs in use when the Companion starts (companion/launcher.py); off until turned on.
+  auto_launch INTEGER NOT NULL DEFAULT 0 CHECK (auto_launch IN (0, 1)),
   -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).
@@ -1635,5 +1637,16 @@ CREATE TABLE IF NOT EXISTS moods (
   reason TEXT NOT NULL,
   day TEXT NOT NULL,
   furious_replies INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+
+-- Local programs the Companion starts (companion/launcher.py): where each is installed, found or typed by the
+-- user (`chosen`), and KoboldCpp's model file. Whether they all start with the Companion is
+-- workspace_settings.auto_launch.
+CREATE TABLE IF NOT EXISTS local_programs (
+  program TEXT PRIMARY KEY CHECK (program IN ('lmstudio', 'ollama', 'kobold', 'comfyui')),
+  path TEXT NOT NULL DEFAULT '',
+  chosen INTEGER NOT NULL DEFAULT 0 CHECK (chosen IN (0, 1)),
+  model_path TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL
 );

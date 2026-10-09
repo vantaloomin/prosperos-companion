@@ -27,7 +27,7 @@ MOVED = ('images', 'lora')
 KEPT_SETTINGS = ('workspace_settings', 'connection', 'model_profiles', 'model_routes', 'life_settings',
                  'image_settings', 'image_backends', 'context_settings', 'context_services', 'context_tools',
                  'lora_settings', 'notification_settings', 'phone_settings', 'phone_devices', 'phone_push',
-                 'builtin_recall', 'voice_settings', 'prompt_overrides', 'debug_time')
+                 'builtin_recall', 'voice_settings', 'prompt_overrides', 'debug_time', 'local_programs')
 
 
 def database_files(path: Path) -> list[Path]:
