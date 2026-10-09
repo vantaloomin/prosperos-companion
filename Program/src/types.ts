@@ -974,6 +974,16 @@ export interface StoryBeat {
   /** The consequence engine's outcome this beat came from, when it could have gone more than one way. */
   consequence: string | null
 }
+/** A lasting change to the companion's life (companion/life/chapters.py). */
+export interface LifeChapter {
+  id: string
+  kind: 'new_job' | 'move' | 'pet' | 'hobby' | 'friend_moves'
+  started_on: string
+  title: string
+  consequence: string | null
+  undone: boolean
+}
+
 /** How a turning in the world went and why (companion/consequences.py). */
 export interface Consequence {
   id: string

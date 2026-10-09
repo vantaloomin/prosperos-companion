@@ -17,6 +17,7 @@ from companion.events import committed
 from companion.life import (
     agenda,
     body,
+    chapters,
     circle,
     disruptions,
     encounters,
@@ -568,7 +569,8 @@ def offer_people(packet, connection, companion, now, today):
         packet.offer('acquaintances', identity, text)
     for identity, text in encounters.context_lines(connection, companion, now):
         packet.offer('townsfolk', identity, text)
-    for identity, text in storylines.context_lines(connection, companion, now):
+    for identity, text in [*chapters.context_lines(connection, companion, now),
+                           *storylines.context_lines(connection, companion, now)]:
         packet.offer('storylines', identity, text)
 
 

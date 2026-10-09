@@ -30,6 +30,8 @@ WORDS = {
     'shy': r'shy|timid|introvert\w*|conflict[- ]avoidant|avoids conflict|quiet',
     'forgiving': r'forgiving|easygoing|easy-going|laid[- ]back|kind-hearted|peacemaker',
     'stubborn': r'stubborn|proud|grudges?|hot[- ]headed|short temper|temper|unforgiving',
+    'restless': r'restless|adventurous|wanderlust|spontaneous|free[- ]spirited|thrill[- ]seek\w*',
+    'homebody': r'homebody|home-loving|nester|cozy|cosy|settled|creature of habit',
 }
 SHEET_FIELDS = ('identity', 'personality', 'voice', 'background', 'flaws')
 NEGATED = re.compile(r"\b(?:not|never|isn't|hardly|no)\s+(?:\w+\s+)?$", re.IGNORECASE)

@@ -12,6 +12,7 @@ from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
+    chapters,
     circle,
     encounters,
     feed,
@@ -317,7 +318,21 @@ def change_consequence(request: Request, consequence_id: str, body: OutcomeChang
         subject = consequences.by_id(connection, consequence_id)['subject']
     if subject.startswith('storyline:'):
         return storylines.change_outcome(db(request), consequence_id, body.option)
+    if subject.startswith('chapter:'):
+        return chapters.change(db(request), request.app.state.life.world, consequence_id, body.option)
     return reactions.change(db(request), consequence_id, body.option)
+
+
+@router.get('/chapters')
+def read_chapters(request: Request):
+    """The life chapters in place on this timeline (companion/life/chapters.py), newest first."""
+    return chapters.listing(db(request))
+
+
+@router.post('/chapters/{chapter_id}/undo')
+def undo_chapter(request: Request, chapter_id: str):
+    """Take a chapter back; returns the chapters still in place."""
+    return chapters.undo(db(request), chapter_id)
 
 
 @router.get('/reactions')

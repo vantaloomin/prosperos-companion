@@ -598,6 +598,37 @@ choice `secret:pass_on`, from how close they feel (about 86% at Close or closer,
 to someone they hardly know), seeded by the secret, the two of them and that closeness. Only a companion
 with the gossip flaw passes anything on, and never to someone it is kept from.
 
+#### Life chapters
+
+`companion/life/chapters.py` gives the companion a lasting change every few months, picked by the engine. Once
+a month, on a day seeded by the timeline, a chapter may begin: about 12%, 20%, 30% or 40% a month from the
+quiet to the soap-opera drama level, never within 45 days of the timeline starting or 75 days of the last one.
+The choice `chapter:next` picks which, from the marks earlier outcomes left (tight money makes a new job likelier,
+money coming in makes a move likelier), the companion's own description (driven, restless, a homebody) and what
+is possible at all (`can_<kind>`):
+
+- `new_job`: another career the city offers on the same kind of schedule, paying the same or more (more when
+  money has been tight); the budget follows.
+- `move`: another neighbourhood of the city whose rents fit their pay; the old home ends and a new one starts.
+- `pet`: a pet comes home, when they have none.
+- `hobby`: a pastime they take up for real joins their interests.
+- `friend_moves`: a friend in the circle who isn't in a running storyline moves to another city and leaves
+  the circle.
+
+A career, location or interest is an overlay on the character for that timeline (`characters.with_chapters`),
+so everything reading their life sees how it is now while the saved character stays as written; a fork made
+before the chapter keeps the old life. A chapter never touches personality, emotional traits or a romance
+companion's love life. The chat context's storylines section tells the companion for 90 days ("This is how your
+life is now"), and a chapter from today or yesterday can open a conversation. Today lists them under "New
+chapters in {name}'s life" with "Why it went this way"; "Make it go this way" swaps in another chapter that
+is possible from the same day, and Undo takes it back (a new home or pet goes and the old home returns, a
+friend who moved comes back; what happened meanwhile stays).
+
+```http
+GET  /api/life/chapters                   # the chapters in place, newest first
+POST /api/life/chapters/{id}/undo         # take one back; returns the rest
+```
+
 ### Birthdays and anniversaries
 
 `companion/life/occasions.py` keeps four kinds of day, from the calendar and saved state only:

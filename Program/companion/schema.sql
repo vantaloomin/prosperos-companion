@@ -1516,3 +1516,29 @@ CREATE TABLE IF NOT EXISTS marks (
 );
 CREATE INDEX IF NOT EXISTS marks_holder ON marks(timeline_id, holder, kind, starts_on);
 CREATE INDEX IF NOT EXISTS marks_consequence ON marks(consequence_id);
+
+-- Life chapters (companion/life/chapters.py): lasting changes to a companion's life (a new job, a move, a pet, a
+-- hobby, a friend moving away), picked by the consequence engine. `changes` is the overlay on the character for this
+-- timeline (career, location, interest); `undo` is what taking it back reverses (home items, circle people);
+-- `told` goes into the chat context and `share` can open a conversation.
+CREATE TABLE IF NOT EXISTS life_chapters (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL,
+  started_on TEXT NOT NULL,
+  title TEXT NOT NULL,
+  told TEXT NOT NULL,
+  share TEXT NOT NULL,
+  changes TEXT NOT NULL DEFAULT '{}',
+  undo TEXT NOT NULL DEFAULT '{}',
+  consequence_id TEXT,
+  undone_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS life_chapters_timeline ON life_chapters(timeline_id, started_on);
+
+-- The last local date each timeline was checked for a new life chapter.
+CREATE TABLE IF NOT EXISTS chapter_days (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  through TEXT NOT NULL
+);

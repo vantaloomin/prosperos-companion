@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* choices name each option's `label`. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story.",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -617,6 +617,155 @@
               "days": 5,
               "note": "{name} feels exposed that {a} can read everything said in {group}",
               "told": "You feel a little exposed that the user let {a} read everything said in {group} before they joined."
+            }
+          ]
+        }
+      ]
+    },
+    "chapter:next": {
+      "label": "What changes next in {name}'s life",
+      "options": [
+        {
+          "label": "{name} starts a new job",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_new_job",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name}'s city has no other job that fits"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 2.5,
+              "why": "money has been tight for {name}"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 0.5,
+              "why": "{name} has been doing well at work"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name}'s description says they're driven"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} moves to a new place",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_move",
+              "at_most": 0,
+              "times": 0,
+              "why": "there is nowhere else in the city that fits their budget"
+            },
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 2,
+              "why": "{name} has more money coming in"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.5,
+              "why": "money has been tight, so a cheaper place makes sense"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name}'s description says they're restless"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 0.5,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        },
+        {
+          "label": "{name} adopts a pet",
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "can_pet",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} already has a pet"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has been low and wants company at home"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name}'s description says they're a homebody"
+            }
+          ]
+        },
+        {
+          "label": "{name} takes up a new hobby",
+          "weight": 1.2,
+          "rules": [
+            {
+              "reader": "can_hobby",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} already does every pastime there is to take up"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.5,
+              "why": "{name} has been low and needs something of their own"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name}'s description says they're restless"
+            }
+          ]
+        },
+        {
+          "label": "A friend of {name} moves away",
+          "weight": 0.6,
+          "rules": [
+            {
+              "reader": "can_friend_moves",
+              "at_most": 0,
+              "times": 0,
+              "why": "{name} has no friend in their circle who could move"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "friends",
+              "at_most": 2,
+              "times": 0.5,
+              "why": "{name} has few friends nearby"
             }
           ]
         }

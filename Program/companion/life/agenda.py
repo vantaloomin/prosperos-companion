@@ -13,10 +13,12 @@ members' happened entries are their visible diary.
 from datetime import timedelta
 
 from companion import consequences, self_facts
+from companion.characters import by_id
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
     body,
+    chapters,
     circle,
     composer,
     disruptions,
@@ -72,6 +74,8 @@ def seed_for(timeline_id, subject, slot_key) -> str:
 
 def extend(connection, companion, world, now) -> dict:
     """Bring every subject's agenda up to a week ahead and settle what has ended. Cheap: no model."""
+    if chapters.advance(connection, companion, world, now):
+        companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
