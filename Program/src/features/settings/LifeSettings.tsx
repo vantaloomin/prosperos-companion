@@ -73,7 +73,7 @@ export function LifeSettings({ name }: { name: string }) {
       <DramaSlider name={name} value={data.drama} onChange={(value) => void save({ drama: value })} />
       <div className="form-grid">
         {LIMITS.map((limit) => (
-          <TextInput key={limit.key} label={limit.label} type="number" value={draft[limit.key] ?? String(data[limit.key])} hint={limit.hint || `${limit.min} to ${limit.max}.`}
+          <TextInput key={limit.key} label={limit.label} type="number" value={draft[limit.key] ?? String(data[limit.key])} hint={limit.hint.startsWith(`${limit.min} to`) ? limit.hint : `${limit.min} to ${limit.max}. ${limit.hint}`.trim()} min={limit.min} max={limit.max}
             onChange={(value) => setDraft((current) => ({ ...current, [limit.key]: value }))} />
         ))}
       </div>

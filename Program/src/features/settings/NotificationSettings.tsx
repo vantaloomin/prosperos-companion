@@ -85,9 +85,9 @@ function Limits({ data, save }: { data: Values; save: (change: Partial<Values>, 
           onChange={(value) => setDraft((current) => ({ ...current, quiet_start: value }))} />
         <TextInput label="Quiet hours end" type="time" value={draft.quiet_end ?? data.quiet_end} hint="In your timezone. Quiet hours can run past midnight."
           onChange={(value) => setDraft((current) => ({ ...current, quiet_end: value }))} />
-        <TextInput label="Most notifications a day" type="number" value={draft.daily_cap ?? String(data.daily_cap)} hint="1 to 6."
+        <TextInput label="Most notifications a day" type="number" value={draft.daily_cap ?? String(data.daily_cap)} hint="1 to 6." min={1} max={6}
           onChange={(value) => setDraft((current) => ({ ...current, daily_cap: value }))} />
-        <TextInput label="Minutes between notifications" type="number" value={draft.min_gap_minutes ?? String(data.min_gap_minutes)} hint="30 to 720."
+        <TextInput label="Minutes between notifications" type="number" value={draft.min_gap_minutes ?? String(data.min_gap_minutes)} hint="30 to 720." min={30} max={720}
           onChange={(value) => setDraft((current) => ({ ...current, min_gap_minutes: value }))} />
       </div>
       {changed.length > 0 && <div className="form-actions"><button type="button" className="button primary" onClick={() => void saveLimits()}>Save</button><button type="button" className="button" onClick={() => setDraft({})}>Cancel</button></div>}
