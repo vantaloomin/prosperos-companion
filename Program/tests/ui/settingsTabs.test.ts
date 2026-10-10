@@ -20,6 +20,8 @@ test('search finds sections by title, tab name or keyword, needing every word', 
   assert.deepEqual(found('timezone'), ['time-heading'])
   assert.deepEqual(found('WEATHER'), ['context-heading'])
   assert.deepEqual(found('restore'), ['backup-heading'])
+  assert.deepEqual(found('full logging'), ['model-calls-heading'])
+  assert.deepEqual(searchSettings('logging', true, true), [])
   assert.ok(found('quiet hours').includes('notifications-heading'))
   assert.deepEqual(found('anthropic key'), ['models-heading'])
   assert.deepEqual(found('weather', false), [])
