@@ -159,7 +159,25 @@ def comfy_python(folder: Path) -> Path | None:
     return first_file(*(folder / venv / name for venv in ('venv', '.venv') for name in names))
 
 
+WINDOWS_SCRIPTS = {'.bat', '.cmd'}
+SHELL_SCRIPTS = {'.sh', '.command'}
+
+
+def script_command(script: Path) -> list[str] | None:
+    """How to run the user's own launch script as it is, or None when `script` is not one."""
+    suffix = script.suffix.lower()
+    if suffix in WINDOWS_SCRIPTS:
+        return [os.environ.get('COMSPEC') or 'cmd.exe', '/c', str(script)]
+    if suffix in SHELL_SCRIPTS:
+        return [shutil.which('bash') or '/bin/sh', str(script)]
+    return None
+
+
 def comfy_command(install: Path, port: int) -> list[str]:
+    script = script_command(install)
+    if script:
+        # The user's own launch script keeps its own flags and port; the launcher waits for the backend's address.
+        return script
     if install.suffix.lower() in {'.exe', '.app'}:
         # The ComfyUI desktop app keeps its own port; it is started as it is.
         return ['open', '-a', str(install)] if install.suffix == '.app' else [str(install)]
