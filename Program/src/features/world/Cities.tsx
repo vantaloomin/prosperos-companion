@@ -189,15 +189,15 @@ function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
       <h3 id="featured-cities-heading">{featured.title}</h3>
       {featured.note && <p className="subtle">{featured.note}</p>}
       <ul className="featured-strip">
-        {featured.cities.map((city) => (
+        {featured.cities.map((city) => { const where = [city.region, city.country].filter(Boolean).join(', '); return (
           <li key={city.id}>
             <button type="button" className="featured-card" onClick={() => jump(city.id)}>
               <span className="featured-name">{city.name}{city.new && <span className="badge">New</span>}</span>
-              <span className="subtle">{[city.region, city.country].filter(Boolean).join(', ')}</span>
+              <span className="subtle featured-region" title={where}>{where}</span>
               <span className="featured-summary">{city.summary}</span>
             </button>
           </li>
-        ))}
+        ) })}
       </ul>
     </div>
   )

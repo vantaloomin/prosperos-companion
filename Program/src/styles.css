@@ -610,6 +610,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .featured-card { display: grid; gap: 4px; align-content: start; width: 100%; height: 100%; text-align: left; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
 .featured-card:hover, .featured-card:focus-visible { border-color: var(--accent); }
 .featured-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.featured-region { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .featured-summary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.875rem; }
 @media (max-width: 720px) {
   .featured-strip { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: calc(100% - 34px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
