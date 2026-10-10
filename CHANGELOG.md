@@ -49,6 +49,18 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.6.1 (2026-10-10)
+
+- **On their mind:** companions are "they" in the app's wording unless a character's own pronouns say otherwise.
+- **ComfyUI launch scripts:** the launch button can run your own .bat/.cmd/.sh script as it is; plainer launch
+  errors.
+- **Faster catch-ups:** a month away with 25 companions catches up in about 3 s instead of 11, without "database
+  is locked" errors meanwhile.
+- **Service default:** blank model settings say the service you connect to picks the value.
+- **Fixes:** memories kept when you switch worlds, evening-made companions get a home straight away, instant local
+  replies retry a server that was still loading, profile tabs stay at the top, feed pictures keep faces in frame,
+  friends' posts say whose friend they are, weekly backups start right away, the phone bottom bar fits.
+
 ## v0.6.0 (2026-10-09)
 
 - **Worlds and personas:** each persona has worlds of their own, each with its own companions, town, chats
