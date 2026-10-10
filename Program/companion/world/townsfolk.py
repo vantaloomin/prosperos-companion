@@ -72,85 +72,8 @@ TEMPERAMENTS = {
     'driven': ('driven', 'had the look of someone with somewhere to be', 0.15),
     'dreamy': ('dreamy', 'kept drifting off mid-sentence', -0.05),
 }
-QUIRKS = (
-    'remembers everyone\'s usual order', 'hums under their breath', 'wears the same green scarf every day',
-    'carries a battered notebook everywhere', 'can\'t resist a terrible pun', 'knows every dog in the neighborhood '
-    'by name', 'is always running five minutes late', 'collects odd little trinkets', 'names every plant they own',
-    'has an opinion about everyone\'s shoes', 'talks to pigeons', 'sketches people when they think no one is looking',
-    'whistles the same tune all day', 'keeps sweets in every pocket',
-    'reads the last page of a book first', 'counts the steps on every staircase', 'always sits facing the door',
-    'keeps a pencil tucked behind one ear', 'greets every cat like an old friend', 'rates every meal out of ten',
-    'carries a pocketknife and a spare button', 'quotes old proverbs at the oddest moments',
-    'can name every bird by its song', 'taps out rhythms on any surface', 'keeps a jar of buttons nobody may touch',
-    'never leaves without checking the weather twice', 'folds napkins into little animals',
-    'always knows where the best bread in town is', 'saves every ticket stub and receipt',
-    'gives everyone a nickname within a week', 'drinks tea far too hot for anyone else',
-    'has a lucky coin and flips it to decide things', 'apologizes to furniture after bumping into it',
-    'keeps a pressed flower in their wallet', 'laughs a beat after everyone else',
-    'rearranges the salt and pepper wherever they sit', 'knows a card trick and will show you',
-    'writes the date at the top of everything', 'collects other people\'s lost gloves',
-    'speaks to babies as if they were grown-ups',
-    'keeps a running tally of every rainy day',
-    'carries a spare umbrella to lend out',
-    'always orders the second-cheapest thing',
-    'never sits in the same seat twice',
-    'keeps lists of favorite words',
-    'tears bread into perfect little squares',
-    'wears mismatched socks on purpose',
-    'can fall asleep sitting up anywhere',
-    'knows when every bell in town will ring',
-    'keeps a small brass bell on their keys',
-    'salutes every magpie',
-    'always has a piece of string handy',
-    "rates strangers' dogs out loud",
-    'keeps a seed packet in every coat',
-    'memorizes the names on every shop sign without meaning to',
-    'says goodnight to the moon',
-    'can recite every street in the neighborhood in order',
-    'always pays in exact change',
-    "keeps a tiny sewing kit and fixes other people's hems",
-    'eats dessert first whenever allowed',
-    'sniffs every book before opening it',
-    'taps the doorframe twice on the way out',
-    'collects smooth stones from every trip',
-    'draws little suns on the corners of notes',
-    'can tie a dozen kinds of knots',
-    'keeps a diary of the weather and nothing else',
-    'carries a magnifying glass for no clear reason',
-    "knows the birthday of every neighbor's cat",
-    'always walks on the sunny side of the street',
-    'cuts sandwiches into triangles and nothing else',
-    'saves the puzzle page for later and never finishes it',
-    'finishes every sentence with a little nod',
-    'keeps a stash of postcards and sends them to friends across town',
-    'names the pigeons on their windowsill',
-    'laughs loudest at their own jokes',
-    'keeps an old watch that runs ten minutes fast on purpose',
-    "can't pass a puddle without hopping over it",
-    'makes up words and uses them seriously',
-    'keeps a jar of honey from every market they visit',
-    'hums a different tune for every season',
-    'tucks a flower in their buttonhole on Fridays',
-    'tests every chair before sitting down',
-    'always has a pocket full of acorns or conkers',
-    'greets the morning with a big stretch out the window',
-    "keeps meticulous notes on every pie they've eaten",
-    'knows a little poem for any occasion',
-    "carries a handkerchief embroidered with someone else's initials",
-    'pats every bench they pass',
-    'writes letters with a fountain pen and seals them with wax',
-    'is suspicious of all soup',
-    'keeps a pebble in their pocket for luck',
-    'only drinks from one particular chipped mug',
-    'stops to read every notice board',
-    'carries a small notebook of overheard sayings',
-    'always arrives with something baked',
-    'counts under their breath when nervous',
-    'keeps a little music box by the window and winds it nightly',
-    'puts a coin in every fountain',
-    'refuses to step on cracks in the pavement',
-    'folds every letter into thirds, exactly',
-)
+QUIRK_BANK = json.loads((catalog.DATA / 'quirks.json').read_text(encoding='utf-8'))['quirks']
+QUIRKS = tuple(item['text'] for item in QUIRK_BANK)
 # Flaws: (text, slows their goal down, setback wording with {name}).
 FLAWS = {
     'proud': ('too proud to ask for help', False, '{name} turned down help they needed and paid for it'),
@@ -190,38 +113,17 @@ def _more_traits():
 
 
 _more_traits()
-# Goals: id, wording (modern, period), steps to reach it, where they practise (place kind, part of day) or
-# None, progress line, done line. Lines start with the person's given name.
-GOALS = (
-    ('own-place', ('save up to open a place of their own', 'save enough to open a shop of their own'), 6, None,
-     '{name} put another chunk of pay into the savings', '{name} finally signed for a little place of their own'),
-    ('race', ('run their first marathon', 'walk the long road to the coast and back'), 5, ('park', 'morning'),
-     '{name} went further than ever on a long morning run', '{name} made it the whole way and has the blisters to prove it'),
-    ('band', ('get their band a real gig', 'get their troupe a proper engagement'), 5, ('venue', 'evening'),
-     '{name}\'s band finally sounded tight at practice', '{name}\'s band played its first real show'),
-    ('exam', ('pass a licensing exam', 'earn their guild papers'), 4, ('library', 'evening'),
-     '{name} got through another chapter of study', '{name} passed, and can\'t stop grinning about it'),
-    ('novel', ('finish writing a novel', 'finish the book they have been writing for years'), 7, ('cafe', 'morning'),
-     '{name} wrote another chapter', '{name} typed the last line of their novel'),
-    ('reconcile', ('patch things up with an estranged sibling', 'make peace with a brother or sister they fell out '
-     'with'), 4, None, '{name} sent their sibling a message and got an answer', '{name} and their sibling are speaking again'),
-    ('move', ('save enough to move somewhere bigger', 'save enough to take better rooms'), 5, None,
-     '{name} went to see a place they might be able to afford', '{name} moved into a bigger place'),
-    ('language', ('learn a new language before a big trip', 'learn a foreign tongue'), 5, ('library', 'afternoon'),
-     '{name} got through a whole conversation in their new language', '{name} can finally hold their own in it'),
-    ('promotion', ('get promoted', 'be made head of the place they work'), 5, None,
-     '{name} got trusted with something bigger at work', '{name} got the promotion'),
-    ('art', ('get their paintings into a show', 'get their pictures hung in a proper gallery'), 5, ('park', 'afternoon'),
-     '{name} finished a painting they are actually proud of', '{name} has their work hanging in a show'),
-    ('dog', ('adopt a dog', 'take in a dog of their own'), 3, None,
-     '{name} visited the shelter again and has a favorite', '{name} adopted a scruffy dog'),
-    ('strong', ('get properly strong', 'win the strongman contest at the fair'), 5, ('gym', 'evening'),
-     '{name} hit a new personal best', '{name} did it, and won\'t stop talking about it'),
-    ('side', ('get a side business off the ground', 'build up a little trade on the side'), 6, None,
-     '{name} landed another paying customer on the side', '{name}\'s side business is paying its own way now'),
-)
+# Goals come from the bank (world/data/goals.json) as (id, (modern, period wording), steps, (place kind, part of
+# day) where they practise or None, progress line, done line); lines start with the person's given name.
+GOAL_BANK = json.loads((catalog.DATA / 'goals.json').read_text(encoding='utf-8'))['goals']
+GOALS = tuple((item['id'], (item['text'], item['period']), item['steps'],
+               tuple(item['practice']) if item['practice'] else None, item['progress'], item['done'])
+              for item in GOAL_BANK)
+GOAL_INTERESTS = {item['id']: item['interest'] for item in GOAL_BANK}
 GOAL_KINDS = {'park': ('park', 'garden', 'trail'), 'venue': ('venue', 'tavern', 'nightlife'),
-              'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',)}
+              'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',), 'market': ('market',),
+              'workshop': ('workshop',), 'museum': ('museum',), 'beach': ('beach',), 'temple': ('temple',),
+              'restaurant': ('restaurant',)}
 COMPANY_SPOTS = ('bar', 'tavern', 'nightlife')
 BASE_PROGRESS = 0.4
 SETBACK = 0.88

@@ -111,3 +111,22 @@ def test_period_towns_and_new_main_characters_get_their_life_too():
                                               'focus': {'version': {'name': 'Mira'}}}, date(2026, 3, 2))
     assert life_details.for_sheet(modern, sheet)['origin'] in definition['background']
     assert life_details.for_sheet(modern, {**sheet, 'cast': 'someone'}) == {}
+
+
+def test_goals_are_a_big_bank_the_town_can_use():
+    bank = townsfolk.GOAL_BANK
+    assert len(bank) >= 100 and len({goal['id'] for goal in bank}) == len(bank)
+    lines = [goal[field] for goal in bank for field in ('text', 'period', 'progress', 'done')]
+    assert len(lines) == len(set(lines))
+    for goal in bank:
+        assert 2 <= goal['steps'] <= 8 and goal['interest'], goal['id']
+        assert goal['practice'] is None or (goal['practice'][0] in townsfolk.GOAL_KINDS
+                                            and goal['practice'][1] in ('morning', 'afternoon', 'evening')), goal['id']
+        for field in ('text', 'period', 'progress', 'done', 'interest'):
+            assert not GENDERED.search(goal[field]) and '"' not in goal[field], (goal['id'], field)
+            assert not goal[field].endswith('.'), (goal['id'], field)
+        assert goal['progress'].startswith('{name}') and goal['done'].startswith('{name}'), goal['id']
+        assert goal['bio'][-1] in '.!?' and not GENDERED.search(goal['bio']), goal['id']
+    for quirk in townsfolk.QUIRK_BANK:
+        assert quirk['text'][:1].islower() and not quirk['text'].endswith('.'), quirk['text']
+        assert quirk['bio'][-1] in '.!?' and not GENDERED.search(quirk['text'] + ' ' + quirk['bio']), quirk['text']

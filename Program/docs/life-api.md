@@ -373,7 +373,8 @@ taste at the second, family and pets at the third, then one story per meeting, w
 These reach the chat context, Around town (`facts`, `stories`), Story mode's people and the profile drafted when
 a townsperson becomes the main character. The bank grows without code changes; `tests/test_life_details.py`
 checks its rules (subject-less lowercase clauses, no final period, no gendered words, a `period` alternative where
-wording is modern).
+wording is modern). Goals and quirks are data too (`world/data/goals.json`, `world/data/quirks.json`, each with the
+line a dating profile shows), as are the temperaments, flaws and desires in `perception.json` (their `town` part).
 
 ```http
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known

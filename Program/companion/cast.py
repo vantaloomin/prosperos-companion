@@ -39,15 +39,9 @@ VOICES = {
     'driven': 'Direct and to the point; always has a plan.',
     'dreamy': 'Wanders off on ideas and loses the thread, then laughs about it.',
 }
-# What working toward each goal says about them.
 # How a profile's line about who they know begins (shared_text).
 SHARED = ('Has crossed paths with', 'Has met the user', 'Matched with the user through')
 MATCHED = SHARED[2]
-GOAL_INTERESTS = {
-    'own-place': 'saving up', 'race': 'running', 'band': 'music', 'exam': 'studying', 'novel': 'writing',
-    'reconcile': 'family', 'move': 'apartment hunting', 'language': 'languages', 'promotion': 'work',
-    'art': 'painting', 'dog': 'dogs', 'strong': 'lifting', 'side': 'their side business',
-}
 
 
 # Who is in the cast ---------------------------------------------------------------------------------
@@ -198,7 +192,7 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     temperament = sheet['temperament']
     lately = f" Lately: {state['line']}." if state['line'] else ''
     reached = f" Already managed to {'; '.join(state['reached'])}." if state['reached'] else ''
-    goal_interest = GOAL_INTERESTS.get(state['goal']['id'])
+    goal_interest = townsfolk.GOAL_INTERESTS.get(state['goal']['id'])
     definition = {
         'name': sheet['full'],
         'identity': f"{sheet['age']}. {work_text(data, sheet)} Lives in {home}.",
