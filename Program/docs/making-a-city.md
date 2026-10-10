@@ -37,7 +37,7 @@ None of these are required, but each one gives the life sim and the companion mo
 | `prices` | Everyday costs (coffee, a pint, a bus fare) in the city's `currency`. |
 | `transit` | Lines that neighbourhoods name, for getting around. |
 | `water` | Sea, rivers and lakes for the drawn map of a city without a street map (fictional, original and private cities). A sea gives the `side` its coast faces (`north`, `south`, `east`, `west`); a river gives two or more `[lat, lon]` `points` in order; a lake gives one point, its centre. Each may have a `name` and a `width_km`. |
-| `setting` and `era` | `real`, `fictional` or `original`, and `modern`, `victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `future` or `other`. Real-world lookups only run for real, modern cities. |
+| `setting` and `era` | `real`, `fictional` or `original`, and `modern`, `victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `jazz-age` (the 1920s), `future` or `other`. Real-world lookups only run for real, modern cities. |
 
 Aim for 8 to 25 neighbourhoods with three or more places each, including somewhere to eat or drink in every one. The built-in cities have about 80 to 170 places.
 
@@ -69,7 +69,7 @@ Write a city file for Prospero's Companion for: <city, era and anything you want
 Reply with one JSON object only. Fields:
 - name, region, country, timezone (IANA, e.g. "America/Los_Angeles"), summary, lat, lon,
   setting ("real", "fictional" or "original"), era ("modern", "victorian", "medieval", "fantasy",
-  "steampunk", "frontier", "future" or "other").
+  "steampunk", "frontier", "jazz-age", "future" or "other").
 - sources: {"curated": {"kind": "curated", "title": "Written for this city", "license": "User content",
   "retrieved": "<today as YYYY-MM-DD>"}}; every record below has "source": "curated".
 - neighborhoods (10-20): id, name, summary, vibe (1-3 words), lat, lon, rent_tier ("low", "mid", "high",

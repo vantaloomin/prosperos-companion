@@ -11,16 +11,30 @@ Built-in cities come in three kinds (`setting`):
 
 | Setting | Cities |
 | --- | --- |
-| `real` | Baltimore, New York, Miami, San Diego, Los Angeles (written by a beta tester), Las Vegas |
+| `real` | Baltimore, Chicago, New York, Miami, New Orleans, San Diego, Los Angeles (written by a beta tester), Las Vegas, London, Jeju (South Korea, in won) and Osaka (Japan, in yen); New York, 1925 is the real city in the Jazz Age (`jazz-age`) |
 | `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
-| `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, and Calderwick, an industrial canal city with a steampunk lean. |
+| `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, Calderwick, an industrial canal city with a steampunk lean, Haddon Harbor, a modern Maine harbour town where everyone knows everyone, and Pellmouth, a 1926 Massachusetts river-mouth town with a cosmic-horror lean (rumour and legend, never confirmed monsters; it names `category: fictional`). |
+
+City lists (Settings > Cities and every city picker) shelve cities as **Real / Modern**, **Other Eras**,
+**Fictional** and **Custom**. Custom holds the user's own cities. Any other city can name its shelf in
+`category` (`real`, `other-eras` or `fictional`); otherwise it is worked out from `setting` and `era`: a real
+city of today is Real / Modern, a real or original city in a past era (`victorian`, `frontier`, `medieval`,
+`jazz-age`, `other`) is Other Eras, and the rest are Fictional. London 1895 is a `fictional` setting that names
+`other-eras`, since it is real London with Holmes's places added. The summary from `GET /api/world/cities`
+carries the result as `category`.
+
+**Featured cities.** `companion/world/data/featured.json` names a release (`"0.8"`), a title, a short note and up
+to four city ids, and is edited at each release. `GET /api/world/featured` returns the ones that load, in that
+order, with `new` true while the app's major.minor version matches the release. Settings > Cities shows them as a
+strip of cards above the shelves (hidden when the list is empty), with a New badge while `new`; Quick start lists
+them first under Featured.
 
 Users can also build their own cities (see [Building a city](#building-a-city)). `GET /api/world/cities`
 lists what a workspace actually has. Each city has neighbourhoods (with approximate centres, typical rents and
 housing), places (attractions, museums, parks, venues, food, bars, shopping), colleges, major
 employers, career hubs, transit, monthly climate and recurring annual events. A shared catalogue
 of about 45 modern careers describes schedules and themes; a city whose `era` is not `modern`
-(`victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `future`, `other`) defines its own
+(`victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `jazz-age`, `future`, `other`) defines its own
 careers. Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
 are optional, so a setting without money (Oz) or without weather data still works.
 
@@ -90,7 +104,7 @@ event's generation inputs.
 | `job` | Careers come from `catalog.careers_for(data)`: the shared ones for the city's era plus its own. Returns `career`, `employer` (`name`, `id`, `named`, `fit`), `neighborhood`, `schedule`, `commute` (when `home` is given). `fit` says how the employer was found: `employer` (a named employer for that career), `college` (students), `workplace` (a fitting place, such as a cafe for a barista or a tavern for a career in hospitality), `hub` (an unnamed workplace in a matching career hub) or `weak` (no matching sector in this city). Unnamed employers are described, never given invented names. |
 | `schedule` | Routine blocks in exactly the character `schedule` shape of the [life simulation API](life-api.md): `work` (or `study`), `sleep`, `after-work` leisure when there is time, and `day-off` leisure. They can be passed straight to `POST /api/companion`. |
 | `home` | `neighborhood`, `housing` type, `bedrooms`, `rent` within the neighbourhood's range and the budget (in the city's `currency` per `rent_period`), `rent_range`; both `null` where the setting has no rents. |
-| `commute` | `mode`, `line` (transit name or `null`), `distance_km`, `minutes`; walking for short trips, a shared rail line, then a shared bus, then a car. All values are estimates. |
+| `commute` | `mode`, `line` (transit name or `null`), `distance_km`, `minutes`; walking for short trips, a shared rail line, then a shared bus, then one change of line (`line` reads "A, then B", with `change: {at, name, lines}` and seven minutes added), then a car. All values are estimates. |
 | `circle` | `family` (the companion's family name, given or chosen) and `people`, closest first: close friend, coworker, sibling, friend, parent, neighbor, friend, cousin, old classmate, friend, mentor, coworker (up to 12). Coworkers share the companion's `employer` (or `career` when only that is known; with neither there are no coworkers). Neighbors live in the `home` neighbourhood. Parents and siblings share the family name and heritage group; cousins do half the time. Relatives live out of town about 40% of the time. Ages sit around the companion's `age`. Names are unique within a circle. |
 | `resident` | `id` (stable for the seed), `role`, `closeness` (`close`, `regular`, `occasional`), `name`, `age`, `local`, `home` (a `home` result), `job` (a `job` result with a commute from home, or `null` when retired at 67 or out of town), `schedule` (routine blocks like `job`'s; a simple retired day; `null` out of town) and `haunts` (up to three affordable cafes, bars, parks and the like near home). Feed `schedule` to the background simulation the same way as a companion's. |
 | `name` | `given`, `family`, `full`, `pronouns` (`she/her`, `he/him` or `they/them`) and `group` (the heritage group drawn from). |
@@ -105,14 +119,16 @@ given name; one in five come from any group in the city. Real cities weight the 
 local estimates in their `names.mix` (Miami leans Hispanic and Caribbean, Baltimore Black American).
 A city may set `names` to pick another `bank`, weight groups with `mix`, or add its own `groups`
 (`{"feminine": […], "masculine": […], "neutral": […], "family": […]}`); a city with its own groups and no
-`mix` uses only those. Weights for groups a bank lacks are ignored, so changing a city's era keeps working.
+`mix` uses only those. Weights for groups a bank lacks are ignored, so changing a city's era keeps working. The modern bank includes `german` and
+`french-canadian` (Québécois family names) groups; `anglo` stands for the city's local majority, so `{anglo: 1}`
+gives Korean names in Jeju and Japanese names in Osaka. Pellmouth adds its own `portuguese` group this way.
 
 **Names by birth year.** A group's `cultures` weights
 (`{"us-black": 0.6, "local": 0.4}`) send the given name to what babies were actually called around the
 person's birth year: `given_names.json` holds, per culture, the most popular names per birth year or
 cohort, most popular first, and the generator samples a year up to three either side of
 `present_year − age` and favours higher-ranked names. The present year is 2026 in modern and other
-settings, 1895 for Victorian, 1890 for steampunk, 1885 for frontier and 2077 for the future (`era_years`;
+settings, 1895 for Victorian, 1890 for steampunk, 1885 for frontier, 1926 for the Jazz Age and 2077 for the future (`era_years`;
 a city may set its own `names.year`); people born after the newest lists take the newest. Medieval and
 fantasy settings have no birth-year lists and use their banks' own names. Victorian and frontier groups
 take given names from England and Wales, Scotland, Ireland, Jewish diaspora, Italian, United States,
@@ -151,9 +167,18 @@ gets a short "names for anyone new" context section of ready-made names for the 
 spread of ages (`companion/world/newcomers.py`), so the model never has to invent one.
 
 **Local colour.** Each city lists things locals eat, drink, say, root for and do (`local_color`, with
-`kind` dish, drink, saying, custom, team, shop or other), with the places they are easiest to find and
+`kind` dish, drink, saying, custom, team, shop, legend, rumor or other), with the places they are easiest to find and
 the seasons they belong to. `local_color` picks a few for a seed, in season on `day`, so the model can
-mention crab feasts or a ventanita coffee without inventing them.
+mention crab feasts or a ventanita coffee without inventing them. Legends and rumours come back with
+`hearsay: true` and reach prompts as "Local legend (hearsay locals tell, not confirmed fact): …", never as fact.
+
+**A town's own townsfolk.** A city may add an optional `townsfolk` block with `quirks` and `goals` of its own
+(Pellmouth's people keep the tide table pinned by the door); each is drawn five times as often as a single shared
+one. Residents' and regulars' jobs follow the town: a career counts more when the city lists it, when its
+employers hire for it (by employer size), when a career hub matches its sector and when fitting places exist, so a
+quarry town has quarry workers rather than stockbrokers. Staff titles depend on the place as well as its kind (a
+soda jerk only at a soda fountain, a floorwalker only at a department store, a ticket taker at a paid attraction).
+A career can `need` a place kind or an employer that hires it (casino dealers need a casino).
 
 **Prices.** Each city with money lists typical prices for everyday things (`prices`: coffee, a pint,
 a fare, a week's groceries, a night's lodging) as `low`–`high` ranges in its own currency, with a
@@ -162,13 +187,15 @@ silver pennies, 1880s dollars, groschen). `facts()` includes them and `price()` 
 the model never has to guess what something costs. Oz has no money and no prices.
 
 **Holidays.** Each city keeps a shared calendar chosen from its era and country (`catalog.calendar_id`):
-`us` for modern US cities, `us-1880s` for the frontier, `uk-victorian` for Victorian and steampunk
-England, `medieval-england` for medieval settings, and none otherwise (Oz has none). A city may name
+`us` for modern US cities, `uk` for modern United Kingdom cities (England and Wales), `south-korea` and `japan` for
+modern cities there, `us-1920s` for Jazz Age US cities, `us-1880s` for the frontier, `uk-victorian` for Victorian
+and steampunk England, `medieval-england` for medieval settings, and none otherwise (Oz has none). A city may name
 another `calendar`, `'none'`, or add its own `holidays`. A holiday has one rule: `month` and `day`, a
-`month`, `weekday` (Monday 0) and `nth` (-1 for the last), or `easter` (days from Western Easter).
+`month`, `weekday` (Monday 0) and `nth` (-1 for the last), `easter` (days from Western Easter), or `dates` (a "MM-DD" date per year, for lunar holidays such as Seollal,
+Chuseok and Buddha's Birthday, and Japan's equinox days; listed 2024-2040, after which they drop out rather
+than guess).
 `kind` is `public` (most offices and schools close), `observance` (widely marked, a working day) or
-`feast` (a church feast or quarter day). Moved "observed" weekdays and lunar-calendar holidays are
-not included.
+`feast` (a church feast or quarter day). Moved "observed" weekdays (substitute days off) are not included.
 
 Weather here is climate, not a forecast. Real current conditions belong to the MCP context tools
 (PRD X1–X3); a life event built from climate must not be presented as today's weather.
@@ -195,7 +222,7 @@ id and the month, starting in October 2026 (a city visited on earlier dates, suc
 back one year). The same city therefore changes the same way on every run and nothing has to be stored. People
 hear of a change a few days before it happens (two weeks before a closing). Wording and new-place names come
 from `companion/world/data/changes.json`, written by `scripts/world/changes.py`, in four styles chosen by era:
-modern, Victorian (also steampunk), medieval (also fantasy) and frontier. A new place copies the hours,
+modern, Victorian (also steampunk), medieval (also fantasy), frontier and Jazz Age. A new place copies the hours,
 setting and price level of one of the city's places of its kind and is tagged `new`.
 
 In a real city, seeds only close or renovate places that opened through a change: the shipped places are real

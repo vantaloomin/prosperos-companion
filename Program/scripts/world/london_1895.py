@@ -73,12 +73,13 @@ MET, DISTRICT, TUBE, NLR = 'metropolitan-railway', 'district-railway', 'city-and
 
 CITY = {
     'schema_version': 1, 'id': 'london-1895', 'name': 'London, 1895', 'setting': 'fictional', 'era': ERA,
+    'category': 'other-eras',
     'basis': 'Real late-Victorian London, as it stood in 1895, together with the places of Arthur Conan Doyle\'s '
              'Sherlock Holmes stories, all of which are in the public domain in the US. Nothing is taken from '
              'later films, television or pastiches.',
     'region': 'County of London', 'country': 'United Kingdom of Great Britain and Ireland',
     'timezone': 'Europe/London',
-    'aliases': ['Victorian London', 'Holmes\'s London', 'Baker Street', 'London 1895', 'Sherlock Holmes\'s London'],
+    'aliases': ['Victorian London', 'Holmes\'s London', 'London 1895', 'Sherlock Holmes\'s London'],
     'summary': 'The capital of the British Empire in 1895: gaslit streets, hansom cabs, horse omnibuses and '
                'steam trains under the ground, banks in the City, newspapers on Fleet Street, docks downriver, '
                'and Mr Sherlock Holmes in rooms at 221B Baker Street.',

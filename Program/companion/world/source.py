@@ -12,14 +12,14 @@ KINDS = {
     'park': ('park', 'garden', 'trail'), 'cafe': ('cafe',), 'restaurant': ('restaurant', 'tavern', 'inn'),
     'bar': ('bar', 'nightlife', 'tavern'), 'museum': ('museum',), 'attraction': ('attraction', 'landmark'),
     'market': ('market',), 'grocery': ('market',), 'library': ('library',), 'gym': ('fitness',),
-    'beach': ('beach',), 'venue': ('venue', 'stadium'), 'shop': ('shopping',),
+    'beach': ('beach',), 'venue': ('venue', 'stadium'), 'shop': ('shopping',), 'vet': ('vet',),
 }
 TAGGED = {'waterfront': {'waterfront', 'harbour', 'harbor', 'docks', 'beach'}, 'bookstore': {'books', 'bookshop'}}
 # A tag only makes a place one of these kinds when the place is outdoors: a waterfront distillery bar is no
 # place for a walk along the water.
 TAGGED_OUTDOORS = {'waterfront': {'park', 'garden', 'trail', 'beach', 'landmark', 'attraction', 'market', 'docks'}}
 # Everyday stops a person makes close to home; museums, venues and beaches stay city-wide.
-LOCAL = {'cafe', 'restaurant', 'bar', 'market', 'grocery', 'library', 'gym', 'park'}
+LOCAL = {'cafe', 'restaurant', 'bar', 'market', 'grocery', 'library', 'gym', 'park', 'vet'}
 # How far "near home" reaches; with fewer than ENOUGH places that close, the nearest ENOUGH + 1 instead.
 NEAR_KM, ENOUGH = 3.0, 2
 

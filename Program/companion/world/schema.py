@@ -17,7 +17,7 @@ DayPart = Literal['morning', 'afternoon', 'evening', 'late']
 # Kinds the generators reason about. Place kinds, college types, transit kinds and local colour kinds are open:
 # a city may add its own (a bowling alley, a film school), which work everywhere a specific kind is not asked for.
 PLACE_KINDS = ('attraction', 'museum', 'park', 'beach', 'landmark', 'venue', 'stadium', 'market', 'shopping',
-                    'restaurant', 'cafe', 'bar', 'nightlife', 'fitness', 'library', 'trail',
+                    'restaurant', 'cafe', 'bar', 'nightlife', 'fitness', 'library', 'trail', 'vet',
                     # Kinds for historical, fictional and original settings.
                     'tavern', 'inn', 'temple', 'guildhall', 'workshop', 'square', 'docks', 'garden')
 PlaceKind = Id
@@ -35,7 +35,7 @@ TRANSIT_KINDS = ('subway', 'light-rail', 'commuter-rail', 'bus', 'ferry', 'water
 TransitKind = Id
 # What a city is: a real place, a well-known fictional setting, or an original one (built in or the user's own).
 Setting = Literal['real', 'fictional', 'original']
-Era = Literal['modern', 'victorian', 'medieval', 'fantasy', 'steampunk', 'frontier', 'future', 'other']
+Era = Literal['modern', 'victorian', 'medieval', 'fantasy', 'steampunk', 'frontier', 'jazz-age', 'future', 'other']
 ScheduleKind = Literal['office', 'shift-day', 'shift-night', 'rotating', 'evening', 'early', 'flexible', 'academic']
 
 
@@ -54,7 +54,7 @@ class Source(Record):
 
 
 class Rent(Record):
-    """Typical monthly asking rent ranges in US dollars. Estimates for fiction, not listings."""
+    """Typical asking rent ranges in the city's currency, per its `rent_period`. Estimates for fiction, not listings."""
     studio: tuple[int, int]
     one_bedroom: tuple[int, int]
     two_bedroom: tuple[int, int]
@@ -220,8 +220,13 @@ class CityNames(Record):
     year: int | None = Field(default=None, ge=1, le=3000)
 
 
+Year = Annotated[str, Field(pattern=r'^\d{4}$')]
+MonthDay = Annotated[str, Field(pattern=r'^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$')]
+
+
 class Holiday(Record):
-    """One holiday, by exactly one rule: a fixed date, the nth weekday of a month, or days from Easter."""
+    """One holiday, by exactly one rule: a fixed date, the nth weekday of a month, days from Easter, or a table of
+    dates by year (holidays on a lunar calendar, or set by astronomy, such as Seollal or an equinox)."""
     id: Id
     name: Text
     kind: Literal['public', 'observance', 'feast']
@@ -232,26 +237,35 @@ class Holiday(Record):
     weekday: int | None = Field(default=None, ge=0, le=6)
     nth: int | None = Field(default=None, ge=-1, le=5)
     easter: int | None = Field(default=None, ge=-70, le=70)
+    # "MM-DD" by year ("2026": "02-17"); a year missing from the table has no such holiday.
+    dates: dict[Year, MonthDay] | None = Field(default=None, min_length=1)
 
     @model_validator(mode='after')
     def check(self):
+        plain = (self.month, self.day, self.weekday, self.nth, self.easter) == (None,) * 5
         shapes = {
             'fixed': self.month is not None and self.day is not None and self.weekday is None and self.nth is None,
             'weekday': self.month is not None and self.day is None and self.weekday is not None
             and self.nth not in (None, 0),
             'easter': self.easter is not None and self.month is None,
+            'dates': self.dates is not None and plain,
         }
-        if sum(shapes.values()) != 1 or (self.easter is not None and (self.weekday, self.nth) != (None, None)):
-            raise ValueError(f'Holiday {self.id} needs one rule: month and day, month weekday and nth, or easter.')
+        if sum(shapes.values()) != 1 or (self.easter is not None and (self.weekday, self.nth) != (None, None)) or \
+                (self.dates is not None and not plain):
+            raise ValueError(f'Holiday {self.id} needs one rule: month and day, month weekday and nth, easter, '
+                             'or dates by year.')
         return self
 
 
-LOCAL_COLOR_KINDS = ('dish', 'drink', 'saying', 'custom', 'team', 'shop', 'other')
+# 'legend' and 'rumor' are hearsay: what locals tell, never confirmed fact (generators.local_color and facts say so).
+LOCAL_COLOR_KINDS = ('dish', 'drink', 'saying', 'custom', 'team', 'shop', 'legend', 'rumor', 'other')
+HEARSAY_KINDS = ('legend', 'rumor')
 SOURCE_KINDS = ('curated', 'wikidata', 'openstreetmap', 'government', 'user', 'other')
 
 
 class LocalColor(Record):
-    """Something locals eat, drink, say, root for or do, so the model can mention it without inventing it."""
+    """Something locals eat, drink, say, root for, do or tell (a legend, a rumour), so the model can mention it
+    without inventing it."""
     id: Id
     name: Text
     kind: Id  # LOCAL_COLOR_KINDS, or a city's own
@@ -277,6 +291,36 @@ class Price(Record):
         if self.low > self.high:
             raise ValueError(f'Price {self.id} runs low to high.')
         return self
+
+
+# Where a townsperson goes to work on a goal (companion/world/townsfolk.py GOAL_KINDS).
+PracticeSpot = Literal['park', 'venue', 'library', 'cafe', 'gym', 'market', 'workshop', 'museum', 'beach', 'temple',
+                       'restaurant']
+
+
+class TownQuirk(Record):
+    """A quirk particular to the city's townsfolk, beside the shared bank (world/data/quirks.json)."""
+    text: Text  # A subject-less clause: 'keeps the tide table pinned by the door'.
+    bio: str = Field(default='', max_length=400)  # First-person line for their dating profile.
+
+
+class TownGoal(Record):
+    """A goal particular to the city's townsfolk, beside the shared bank (world/data/goals.json), in its era's words."""
+    id: Id
+    text: Text  # Completes 'trying to ...'.
+    steps: int = Field(ge=1, le=12)
+    practice: tuple[PracticeSpot, DayPart] | None = None
+    progress: Text  # Starts with {name}.
+    done: Text  # Starts with {name}.
+    interest: str = Field(default='', max_length=80)
+    bio: str = Field(default='', max_length=400)
+
+
+class Townsfolk(Record):
+    """How the city flavours its townsfolk: quirks and goals they draw beside the shared ones, more often than any
+    one shared quirk or goal, so the town's people sound like the town."""
+    quirks: list[TownQuirk] = Field(default_factory=list, max_length=40)
+    goals: list[TownGoal] = Field(default_factory=list, max_length=40)
 
 
 class Water(Record):
@@ -308,6 +352,10 @@ class City(Record):
     # 'private' marks a personal city pack (for example fan fiction of owned settings): loaded from a local
     # folder, never shipped or committed.
     distribution: Literal['public', 'private'] = 'public'
+    # Where the city sits in city lists: 'real' (real places today), 'other-eras' (a real or realistic past) or
+    # 'fictional'. Open text so a stray word never stops a city loading; when it is not one of those three it is
+    # worked out from the setting and era (catalog.category).
+    category: str = Field(default='', max_length=40)
     # For fictional settings: the work it draws on and why it may be shipped (for example, public domain).
     basis: str = Field(default='', max_length=400)
     region: Text
@@ -342,6 +390,8 @@ class City(Record):
     holidays: list[Holiday] = Field(default_factory=list, max_length=100)
     # Sea, rivers and lakes, drawn on the map of a city without a street map.
     water: list[Water] = Field(default_factory=list, max_length=12)
+    # Quirks and goals of the city's own for its townsfolk (companion/world/townsfolk.py).
+    townsfolk: Townsfolk | None = None
 
     @model_validator(mode='after')
     def check(self):
@@ -491,3 +541,13 @@ class Changes(Record):
         if missing or unknown:
             raise ValueError(f'Every era needs a known style (missing {missing}, unknown {unknown}).')
         return self
+
+
+class Featured(Record):
+    """The cities a release puts up front (companion/world/data/featured.json), edited at each release."""
+    schema_version: Literal[1]
+    # The release the list belongs to, as major.minor ('0.8'); its cities are marked new while the app is on it.
+    release: Annotated[str, Field(pattern=r'^\d+\.\d+$')]
+    title: Text
+    note: str = Field(default='', max_length=200)
+    cities: list[Id] = Field(default_factory=list, max_length=4)

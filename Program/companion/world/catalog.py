@@ -11,9 +11,9 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from companion.errors import DomainError
-from companion.identity import data_dir
+from companion.identity import VERSION, data_dir
 from companion.world import mend as mending
-from companion.world.schema import Career, Careers, City, Holidays, Names
+from companion.world.schema import Career, Careers, City, Featured, Holidays, Names
 
 DATA = Path(__file__).parent / 'data'
 LOG = logging.getLogger(__name__)
@@ -78,7 +78,13 @@ def holiday_calendars() -> dict[str, dict]:
 
 ERA_CALENDARS = {'victorian': 'uk-victorian', 'steampunk': 'uk-victorian', 'medieval': 'medieval-england',
                  'frontier': 'us-1880s'}
-US_NAMES = {'us', 'usa', 'united states', 'united states of america'}
+US_NAMES = {'us', 'usa', 'u.s.', 'u.s.a.', 'united states', 'united states of america'}
+UK_NAMES = {'uk', 'u.k.', 'united kingdom', 'great britain', 'britain', 'england', 'wales'}
+KOREA_NAMES = {'south korea', 'korea', 'republic of korea'}
+# Today's calendar by country, and an era's by country where it differs from place to place.
+MODERN_CALENDARS = {**dict.fromkeys(US_NAMES, 'us'), **dict.fromkeys(UK_NAMES, 'uk'),
+                    **dict.fromkeys(KOREA_NAMES, 'south-korea'), 'japan': 'japan'}
+COUNTRY_CALENDARS = {'jazz-age': dict.fromkeys(US_NAMES, 'us-1920s')}
 
 
 def calendar_id(data: dict) -> str | None:
@@ -86,9 +92,15 @@ def calendar_id(data: dict) -> str | None:
     chosen = data.get('calendar')
     if chosen:
         return None if chosen == 'none' else chosen
+    country = data['country'].strip().lower()
     if data['era'] in ('modern', 'future', 'other'):
-        return 'us' if data['country'].lower() in US_NAMES else None
+        return MODERN_CALENDARS.get(country)
+    if data['era'] in COUNTRY_CALENDARS:
+        return COUNTRY_CALENDARS[data['era']].get(country)
     return ERA_CALENDARS.get(data['era'])
+
+
+OMIT_WHEN_EMPTY = {'townsfolk'}
 
 
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
@@ -100,7 +112,9 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     if mend:
         raw, notes = mending.mend(raw if isinstance(raw, dict) else json.loads(raw))
     model = City.model_validate(raw) if isinstance(raw, dict) else City.model_validate_json(raw)
-    data = model.model_dump(mode='json')
+    # The townsfolk block is optional and newer than most cities: left out when absent, so their data_version
+    # stays the same.
+    data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     known = careers_for(data)
     for employer in data['employers']:
         unknown = set(employer['careers']) - set(known)
@@ -221,13 +235,30 @@ def city(city_id: str, extra: dict[str, dict] | None = None) -> dict:
     return found
 
 
+CATEGORIES = ('real', 'other-eras', 'fictional')
+PAST_ERAS = {'victorian', 'frontier', 'jazz-age', 'medieval', 'other'}
+
+
+def category(data: dict) -> str:
+    """The city's shelf in city lists: 'custom' for the user's own, else its named category, else one worked out from
+    its setting and era. A real or realistic past (an original frontier town) is another era; legends are fiction."""
+    if data.get('origin', 'user') == 'user':
+        return 'custom'
+    if data.get('category') in CATEGORIES:
+        return data['category']
+    setting, era = data.get('setting', 'real'), data.get('era', 'modern')
+    if era == 'modern':
+        return 'real' if setting == 'real' else 'fictional'
+    return 'other-eras' if era in PAST_ERAS and setting != 'fictional' else 'fictional'
+
+
 def summary(data: dict) -> dict:
     keys = ('id', 'name', 'setting', 'era', 'basis', 'region', 'country', 'timezone', 'aliases', 'summary',
             'data_version')
     return {key: data[key] for key in keys} | {
         'counts': {key: len(data[key]) for key in ('neighborhoods', 'places', 'colleges', 'employers',
                                                    'annual_events')}, 'builtin': data.get('builtin', False),
-        'origin': data.get('origin', 'user'), 'distribution': data['distribution'],
+        'origin': data.get('origin', 'user'), 'category': category(data), 'distribution': data['distribution'],
         'import_notes': data.get('import_notes', [])}
 
 
@@ -290,3 +321,17 @@ def resolve(text: str, extra: dict[str, dict] | None = None) -> dict | None:
 def sources(data: dict) -> list[dict]:
     """Every source the city's records cite, for attribution screens."""
     return [{'id': key} | value for key, value in data['sources'].items()]
+
+
+@cache
+def _featured() -> dict:
+    return Featured.model_validate_json((DATA / 'featured.json').read_text(encoding='utf-8')).model_dump()
+
+
+def featured(extra: dict[str, dict] | None = None) -> dict:
+    """The release's featured cities that load, in its order, with `new` while the app is on that release."""
+    data = _featured()
+    known = cities() | (extra or {})
+    return {'release': data['release'], 'title': data['title'], 'note': data['note'],
+            'new': '.'.join(VERSION.split('.')[:2]) == data['release'],
+            'cities': [summary(known[city_id]) for city_id in data['cities'] if city_id in known]}

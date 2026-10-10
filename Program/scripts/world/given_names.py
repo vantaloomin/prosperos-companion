@@ -18,19 +18,20 @@ PRESENT_YEAR = 2026
 # The year each era's present day is set in; a city may set its own `names.year`. Eras missing here
 # (medieval, fantasy) have no birth-year lists and use their banks' own names.
 ERA_YEARS = {'modern': PRESENT_YEAR, 'other': PRESENT_YEAR, 'future': 2077, 'victorian': 1895, 'steampunk': 1890,
-             'frontier': 1885}
+             'frontier': 1885, 'jazz-age': 1926}
 LINE = re.compile(r'^(\d{4})(s|-(\d{4}))?\s+([FM]):\s*(.*)$')
 
 # Where a city's country has its own culture here, its residents' `local` names come from it; elsewhere
 # (and in made-up countries) the United States lists stand in.
 COUNTRIES = {
     'united states': 'us', 'united states of america': 'us', 'usa': 'us', 'us': 'us', 'canada': 'us',
-    'united kingdom': 'england-wales', 'uk': 'england-wales', 'great britain': 'england-wales',
+    'united kingdom': 'england-wales', 'uk': 'england-wales', 'great britain': 'england-wales', 'britain': 'england-wales',
     'england': 'england-wales', 'wales': 'england-wales', 'scotland': 'scotland',
     'australia': 'england-wales', 'new zealand': 'england-wales',
     'ireland': 'ireland', 'italy': 'italy', 'mexico': 'mexico', 'spain': 'spain', 'germany': 'germany',
     'austria': 'germany', 'france': 'france', 'belgium': 'france', 'poland': 'poland', 'russia': 'russia',
     'china': 'china', 'taiwan': 'china', 'hong kong': 'china', 'south korea': 'korea', 'korea': 'korea',
+    'republic of korea': 'korea',
     'japan': 'japan', 'vietnam': 'vietnam', 'philippines': 'philippines', 'india': 'india',
     'nigeria': 'nigeria', 'ghana': 'ghana', 'jamaica': 'jamaica', 'haiti': 'haiti', 'israel': 'israel',
     'egypt': 'arab', 'lebanon': 'arab', 'jordan': 'arab', 'syria': 'arab', 'iraq': 'arab',

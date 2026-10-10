@@ -70,7 +70,7 @@ afterwards and asking again makes nothing new. Pictures are never made in bulk.
 
 ## Older eras
 
-The same deck has a period form: a **personal column** in the paper for Victorian, steampunk and frontier
+The same deck has a period form: a **personal column** in the paper for Victorian, steampunk, frontier and Jazz Age
 cities (a notice with initials and a box number, "Write to them", "Turn the page"), and **the matchmaker**
 for medieval and fantasy cities ("Ask for an introduction").
 

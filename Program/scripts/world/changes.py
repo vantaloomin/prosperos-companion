@@ -116,14 +116,48 @@ FRONTIER = {
                   {'summary': 'the boardwalk being rebuilt', 'delay': 4}],
 }
 
+JAZZ_AGE = {
+    'openings': {
+        'cafe': opening(['Busy Bee', 'Majestic', 'Corner', 'Liberty', 'Bluebird', 'Main Street', 'Little Gem'],
+                        ['Lunch Counter', 'Soda Fountain', 'Coffee Shop', 'Luncheonette', 'Tea Room'],
+                        'A new lunch counter with a marble soda fountain and pie under glass.'),
+        'restaurant': opening(['Wilton', 'Columbia', 'Liberty', 'Sunset', 'Rialto', 'Gold Coast', 'Mama Rosa’s'],
+                              ['Grill', 'Chop House', 'Cafeteria', 'Oyster Bar', 'Restaurant', 'Spaghetti House'],
+                              'A new restaurant with white tablecloths and a fifty-cent blue-plate special.'),
+        'bar': opening(['Blue', 'Green', 'Gilded', 'Velvet', 'Hidden', 'Back Room', 'Side Door'],
+                       ['Door', 'Parrot', 'Lantern', 'Club', 'Room', 'Cellar'],
+                       'A new speakeasy behind an unmarked door; you need the password.'),
+        'nightlife': opening(['Moonlight', 'Starlight', 'Paradise', 'Peacock', 'Red Lantern', 'Gilded Cage'],
+                             ['Club', 'Ballroom', 'Supper Club', 'Dance Hall', 'Revue'],
+                             'A new club with a hot band, a chorus line and a doorman who knows everyone.'),
+        'shopping': opening(['Hartwell', 'Kessler', 'Liberty', 'Modern', 'Empire', 'Bon Ton'],
+                            ['Dry Goods', 'Haberdashery', 'Millinery', 'Five-and-Dime', 'Department Store'],
+                            'A new shop with electric lights in the window and the latest from Paris.'),
+        'inn': opening(['Hotel', 'The'], ['Halcyon', 'Linden', 'Wexford', 'Marlowe', 'Garland'],
+                       'A new hotel with an elevator, a barbershop off the lobby and a radio in the lounge.'),
+        'venue': opening(['Roxy', 'Bijou', 'Palace', 'Orpheum', 'Strand', 'Capitol'],
+                         ['Theatre', 'Picture Palace', 'Vaudeville House'],
+                         'A new picture palace with a Wurlitzer organ and an usher in braid.'),
+    },
+    'renovation': ['closed while it is wired for electric light', 'shut after a Prohibition raid',
+                   'closed while a new marble front goes up'],
+    'closing': ['closed for good', 'padlocked by the Prohibition agents', 'shut when the owner lost everything on the '
+                'market'],
+    'roadworks': [{'summary': 'the streetcar tracks being relaid', 'delay': 10},
+                  {'summary': 'a new subway line being dug under the street', 'delay': 12},
+                  {'summary': 'the cobbles being paved over with asphalt', 'delay': 6}],
+}
+
 CHANGES = {
     'schema_version': 1,
     'source': {'kind': 'curated', 'title': 'City change wording written for Prospero Companion', 'license': 'CC0-1.0',
                'retrieved': '2026-10-05',
                'note': 'Invented names and phrasing for fictional changes; no real business is meant.'},
-    'styles': {'modern': MODERN, 'victorian': VICTORIAN, 'medieval': MEDIEVAL, 'frontier': FRONTIER},
+    'styles': {'modern': MODERN, 'victorian': VICTORIAN, 'medieval': MEDIEVAL, 'frontier': FRONTIER,
+               'jazz-age': JAZZ_AGE},
     'eras': {'modern': 'modern', 'future': 'modern', 'other': 'modern', 'victorian': 'victorian',
-             'steampunk': 'victorian', 'medieval': 'medieval', 'fantasy': 'medieval', 'frontier': 'frontier'},
+             'steampunk': 'victorian', 'medieval': 'medieval', 'fantasy': 'medieval', 'frontier': 'frontier',
+             'jazz-age': 'jazz-age'},
 }
 
 if __name__ == '__main__':
