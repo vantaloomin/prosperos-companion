@@ -311,6 +311,9 @@
    "schedule": "rotating",
    "pay": "$$",
    "summary": "Dealing table games on rotating casino shifts.",
+   "needs": [
+    "casino"
+   ],
    "themes": [
     "tables",
     "tourists",

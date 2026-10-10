@@ -43,6 +43,10 @@ SYNONYMS = {
     '9-to-5': 'office', 'day': 'office', 'shift': 'shift-day', 'nights': 'shift-night', 'night-shift': 'shift-night',
     'part-time': 'flexible', 'freelance': 'flexible', 'school': 'academic',
 }
+# Local colour kinds stay open, but these words mean a known one (schema.LOCAL_COLOR_KINDS).
+COLOR_KINDS = {'legends': 'legend', 'folklore': 'legend', 'myth': 'legend', 'myths': 'legend', 'folk-tale': 'legend',
+               'rumour': 'rumor', 'rumours': 'rumor', 'rumors': 'rumor', 'gossip': 'rumor', 'hearsay': 'rumor',
+               'food': 'dish', 'dishes': 'dish', 'drinks': 'drink', 'sayings': 'saying', 'customs': 'custom'}
 # Place kinds and transit kinds stay open, but these words mean one the generators already reason about.
 PLACE_KINDS = {
     'coffee': 'cafe', 'coffee-shop': 'cafe', 'coffeehouse': 'cafe', 'bakery': 'cafe', 'tea-house': 'cafe',
@@ -135,7 +139,7 @@ class _Mender:
         self.kinds('places', 'kind', PLACE_KINDS)
         self.kinds('transit', 'kind', TRANSIT_KINDS)
         self.kinds('colleges', 'type', {})
-        self.kinds('local_color', 'kind', {})
+        self.kinds('local_color', 'kind', COLOR_KINDS)
         if isinstance(self.data.get('speeds'), dict):
             speeds = {TRANSIT_KINDS.get(slug(key), slug(key)): value for key, value in self.data['speeds'].items()}
             self.data['speeds'] = {key: value for key, value in speeds.items() if key}

@@ -91,8 +91,6 @@ BEARDS = ('a full beard', 'stubble', 'a neat moustache', 'a trimmed beard')
 
 # The bio -----------------------------------------------------------------------------------------------
 
-QUIRK_BIO = {item['text']: item['bio'] for item in townsfolk.QUIRK_BANK}
-GOAL_BIO = {item['id']: item['bio'] for item in townsfolk.GOAL_BANK}
 LOOKING_TEXT = {'serious': 'a relationship', 'casual': 'something casual', 'friends': 'new friends'}
 PART_TEXT = {'morning': 'mornings', 'afternoon': 'afternoons', 'evening': 'evenings', 'late': 'late evenings'}
 # A personal-column notice, in older eras: what they seek, by what they are looking for.
@@ -276,8 +274,8 @@ def haunt_text(sheet: dict) -> str:
 def bio(sheet: dict, data: dict, after: str, day: date) -> str:
     """Up to three short lines from what the sheet says about them."""
     seed = townsfolk.drawn(sheet)
-    goal_id = townsfolk.story(sheet, data, day)['goal']['id']
-    lines = [GOAL_BIO.get(goal_id, ''), QUIRK_BIO.get(sheet['quirk'], ''), haunt_text(sheet)]
+    lines = [townsfolk.story(sheet, data, day)['goal']['bio'], townsfolk.quirk_bio(data, sheet['quirk']),
+             haunt_text(sheet)]
     if sheet.get('occupation') == 'retired':
         lines.insert(0, 'Retired, and busier than ever.')
     lines = sorted((line for line in lines if line), key=lambda line: generators.unit(seed, 'bio', line))[:3]

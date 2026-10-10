@@ -192,7 +192,7 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     temperament = sheet['temperament']
     lately = f" Lately: {state['line']}." if state['line'] else ''
     reached = f" Already managed to {'; '.join(state['reached'])}." if state['reached'] else ''
-    goal_interest = townsfolk.GOAL_INTERESTS.get(state['goal']['id'])
+    goal_interest = state['goal']['interest']
     definition = {
         'name': sheet['full'],
         'identity': f"{sheet['age']}. {work_text(data, sheet)} Lives in {home}.",

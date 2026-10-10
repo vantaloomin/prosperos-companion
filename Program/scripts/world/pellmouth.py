@@ -71,9 +71,8 @@ CHEAP = ([18, 24], [22, 32], [28, 40])
 MIDDLE = ([22, 30], [28, 40], [36, 50])
 BETTER = ([28, 38], [36, 50], [45, 60])
 
-# Legends and rumours are local colour of kind 'other' until the shared kinds (schema.LOCAL_COLOR_KINDS) list
-# 'legend' and 'rumor'; built-in cities may only use the shared kinds.
-LEGEND = RUMOR = 'other'
+# Legends and rumours are hearsay (schema.HEARSAY_KINDS): prompts give them as what locals say, never as fact.
+LEGEND, RUMOR = 'legend', 'rumor'
 
 WALK, CAR, RAIL, FERRY, BUS = 'on-foot', 'shore-street-railway', 'boston-and-maine', 'pell-river-ferry', 'shore-road-bus'
 
@@ -719,6 +718,50 @@ CITY = {
         price('groceries', 'Groceries for a family', 7, 11, 'a week'),
         price('wage', 'Day wage', 4, 6, 'a day in the mills, the pits or the cannery; clerks $20-$30 a week'),
     ],
+    # The town's own quirks and goals for its townsfolk, drawn beside the shared ones: everyday habits of a harbour
+    # town, uncanny only as mood. Nothing here says anything strange is real.
+    'townsfolk': {
+        'quirks': [
+            {'text': 'keeps the tide table pinned by the door', 'bio': 'I know when high water is. Always.'},
+            {'text': "won't whistle near the water after dark",
+             'bio': 'I will not whistle by the harbour after dark. Do not ask me why; nobody here does.'},
+            {'text': 'counts the foghorn blasts under their breath', 'bio': 'I count the foghorn. It passes the time.'},
+            {'text': 'always takes the long way round the old meetinghouse',
+             'bio': 'I take the long way round the old meetinghouse. Habit.'},
+            {'text': 'reads the Courier shipping news before the front page',
+             'bio': 'Shipping news first, then the rest of the paper.'},
+            {'text': 'keeps a lamp lit in the window on foggy nights', 'bio': 'There is always a lamp in my window when '
+             'the fog comes in.'},
+            {'text': 'taps the barometer every time they pass a chandlery window',
+             'bio': 'I tap every barometer I pass. Old skipper habit, and I never was a skipper.'},
+            {'text': 'knows every family plot in the Old Hill Burying Ground', 'bio': 'Ask me about anyone in the Old Hill Burying Ground.'},
+        ],
+        'goals': [
+            {'id': 'pellmouth-dory', 'text': 'build a dory of their own over the winter', 'steps': 6,
+             'practice': ['workshop', 'evening'],
+             'progress': '{name} got another strake fastened on the dory in the shed',
+             'done': '{name} launched the new dory off the town landing, with half the street watching',
+             'interest': 'boatbuilding', 'bio': 'Building a dory in my shed, one plank at a time.'},
+            {'id': 'pellmouth-family-papers', 'text': "trace their family back through the town's old records",
+             'steps': 5, 'practice': ['library', 'afternoon'],
+             'progress': '{name} found another great-grandparent in the Athenaeum ledgers',
+             'done': '{name} traced the family back to the first settlers, and stopped there',
+             'interest': 'family history', 'bio': 'Digging through the town records for my family.'},
+            {'id': 'pellmouth-chowder', 'text': 'win the chowder supper at the West Parish Grange', 'steps': 4,
+             'practice': ['market', 'morning'],
+             'progress': '{name} tried another batch of chowder on the neighbours',
+             'done': '{name} took first prize for chowder, and will not share the secret',
+             'interest': 'cooking', 'bio': 'Working on a chowder that will win the Grange supper.'},
+            {'id': 'pellmouth-mooring', 'text': 'save for a mooring and a boat in the harbour', 'steps': 6,
+             'practice': None, 'progress': '{name} put another week of pay towards a mooring',
+             'done': '{name} has a boat on a mooring of their own at last',
+             'interest': 'boats', 'bio': 'Saving for a mooring in the harbour.'},
+            {'id': 'pellmouth-boston-job', 'text': 'get a place in Boston and off the North Shore', 'steps': 7,
+             'practice': None, 'progress': '{name} wrote off to another Boston firm about a position',
+             'done': '{name} got an offer in Boston, and has not yet said whether they will go',
+             'interest': 'getting ahead', 'bio': 'Looking for a job in Boston. Maybe.'},
+        ],
+    },
     'names': {
         'mix': {'anglo': 6, 'irish': 2, 'french-canadian': 1.5, 'italian': 1, 'portuguese': 0.8, 'slavic': 0.6,
                 'german': 0.5, 'jewish': 0.3, 'black-american': 0.15},

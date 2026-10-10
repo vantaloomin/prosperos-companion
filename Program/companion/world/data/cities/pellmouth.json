@@ -3568,7 +3568,7 @@
   {
    "id": "annis-sayer",
    "name": "The widow Sayer",
-   "kind": "other",
+   "kind": "legend",
    "summary": "Annis Sayer, a widow of West Parish, was examined for witchcraft on a boulder in 1692. The court papers stop mid-page; the story says she was never seen to come down.",
    "places": [
     "sayers-rock",
@@ -3580,7 +3580,7 @@
   {
    "id": "sealed-meetinghouse",
    "name": "The sealed meetinghouse",
-   "kind": "other",
+   "kind": "legend",
    "summary": "The Second Parish meetinghouse was shut in 1894 after a winter service nobody who attended would describe. The record says a quarrel and a bad roof.",
    "places": [
     "second-parish-meetinghouse"
@@ -3591,7 +3591,7 @@
   {
    "id": "no-bottom",
    "name": "Number Four has no bottom",
-   "kind": "other",
+   "kind": "legend",
    "summary": "Quarry Village says nobody has ever sounded the bottom of Number Four, that the water is warm in January, and that what goes in does not come up.",
    "places": [
     "number-four-quarry"
@@ -3602,7 +3602,7 @@
   {
    "id": "tide-folk",
    "name": "The Narrows know the tide",
-   "kind": "other",
+   "kind": "rumor",
    "summary": "Uptown it is said the Narrows families know the tides better than the printed tables, and that on some nights they go down to the steps to meet it. The Narrows says uptown talks too much.",
    "places": [
     "the-tide-steps",
@@ -3614,7 +3614,7 @@
   {
    "id": "whitcomb-journals",
    "name": "What is in the Whitcomb Room",
-   "kind": "other",
+   "kind": "rumor",
    "summary": "Students swear one of the Whitcomb journals is written in no known language, and that a professor who asked to take it home left the faculty the same term.",
    "places": [
     "lindall-library"
@@ -3625,7 +3625,7 @@
   {
    "id": "fourth-floor",
    "name": "The fourth floor of the tower",
-   "kind": "other",
+   "kind": "rumor",
    "summary": "Attendants say nobody is ever assigned to the top floor of the State Hospital tower, and that its lights are on all the same.",
    "places": [
     "state-hospital-grounds"
@@ -3786,6 +3786,103 @@
    "source": "curated-2026-10"
   }
  ],
+ "townsfolk": {
+  "quirks": [
+   {
+    "text": "keeps the tide table pinned by the door",
+    "bio": "I know when high water is. Always."
+   },
+   {
+    "text": "won't whistle near the water after dark",
+    "bio": "I will not whistle by the harbour after dark. Do not ask me why; nobody here does."
+   },
+   {
+    "text": "counts the foghorn blasts under their breath",
+    "bio": "I count the foghorn. It passes the time."
+   },
+   {
+    "text": "always takes the long way round the old meetinghouse",
+    "bio": "I take the long way round the old meetinghouse. Habit."
+   },
+   {
+    "text": "reads the Courier shipping news before the front page",
+    "bio": "Shipping news first, then the rest of the paper."
+   },
+   {
+    "text": "keeps a lamp lit in the window on foggy nights",
+    "bio": "There is always a lamp in my window when the fog comes in."
+   },
+   {
+    "text": "taps the barometer every time they pass a chandlery window",
+    "bio": "I tap every barometer I pass. Old skipper habit, and I never was a skipper."
+   },
+   {
+    "text": "knows every family plot in the Old Hill Burying Ground",
+    "bio": "Ask me about anyone in the Old Hill Burying Ground."
+   }
+  ],
+  "goals": [
+   {
+    "id": "pellmouth-dory",
+    "text": "build a dory of their own over the winter",
+    "steps": 6,
+    "practice": [
+     "workshop",
+     "evening"
+    ],
+    "progress": "{name} got another strake fastened on the dory in the shed",
+    "done": "{name} launched the new dory off the town landing, with half the street watching",
+    "interest": "boatbuilding",
+    "bio": "Building a dory in my shed, one plank at a time."
+   },
+   {
+    "id": "pellmouth-family-papers",
+    "text": "trace their family back through the town's old records",
+    "steps": 5,
+    "practice": [
+     "library",
+     "afternoon"
+    ],
+    "progress": "{name} found another great-grandparent in the Athenaeum ledgers",
+    "done": "{name} traced the family back to the first settlers, and stopped there",
+    "interest": "family history",
+    "bio": "Digging through the town records for my family."
+   },
+   {
+    "id": "pellmouth-chowder",
+    "text": "win the chowder supper at the West Parish Grange",
+    "steps": 4,
+    "practice": [
+     "market",
+     "morning"
+    ],
+    "progress": "{name} tried another batch of chowder on the neighbours",
+    "done": "{name} took first prize for chowder, and will not share the secret",
+    "interest": "cooking",
+    "bio": "Working on a chowder that will win the Grange supper."
+   },
+   {
+    "id": "pellmouth-mooring",
+    "text": "save for a mooring and a boat in the harbour",
+    "steps": 6,
+    "practice": null,
+    "progress": "{name} put another week of pay towards a mooring",
+    "done": "{name} has a boat on a mooring of their own at last",
+    "interest": "boats",
+    "bio": "Saving for a mooring in the harbour."
+   },
+   {
+    "id": "pellmouth-boston-job",
+    "text": "get a place in Boston and off the North Shore",
+    "steps": 7,
+    "practice": null,
+    "progress": "{name} wrote off to another Boston firm about a position",
+    "done": "{name} got an offer in Boston, and has not yet said whether they will go",
+    "interest": "getting ahead",
+    "bio": "Looking for a job in Boston. Maybe."
+   }
+  ]
+ },
  "names": {
   "mix": {
    "anglo": 6,
