@@ -1,4 +1,4 @@
-"""The city map: her home, usual and recent places, Story mode's scene and every place to click
+"""The city map: their home, usual and recent places, Story mode's scene and every place to click
 (companion/life/citymap.py, Hit List #40)."""
 from datetime import timedelta
 
@@ -38,7 +38,7 @@ def test_the_map_shows_every_place_in_their_city_near_its_neighbourhood(client):
     assert read(client)['places'] == found['places']
 
 
-def test_her_home_and_the_places_she_goes_are_marked_with_what_happened_there(client, clock):
+def test_their_home_and_the_places_they_go_are_marked_with_what_happened_there(client, clock):
     make(client, 'Warm and curious.')
     build(client)
     with client.app.state.database.connect(write=True) as connection:
@@ -71,7 +71,7 @@ def test_story_mode_marks_the_scene_and_fictional_cities_get_a_sketch(client):
     assert citymap.real({'setting': 'real'}) is True
 
 
-def test_usual_and_recent_places_come_from_her_events_and_a_lunch_break_is_not_work(clock):
+def test_usual_and_recent_places_come_from_their_events_and_a_lunch_break_is_not_work(clock):
     now = clock.now()
     events = [{'id': '1', 'place': 'cafe', 'summary': '', 'at': (now - timedelta(days=2)).isoformat(), 'block': 'leisure'},
               {'id': '2', 'place': 'cafe', 'summary': '', 'at': (now - timedelta(days=30)).isoformat(), 'block': 'leisure'},
