@@ -142,7 +142,7 @@ def own_text(found: dict | None) -> str:
         lines.append(f"- How adventurous: {levels[found['level']]['label'].lower()}; "
                      f"{levels[found['level']]['text']}.")
     if found.get('drive') in drives:
-        lines.append(f"- You have {drives[found['drive']]['text']}.")
+        lines.append(f"- Drive: {drives[found['drive']]['label'].lower()}; {drives[found['drive']]['text']}.")
     into = [interests[entry]['text'] for entry in found.get('interests') or [] if entry in interests]
     if into:
         lines.append('- Into: ' + '; '.join(into) + '.')

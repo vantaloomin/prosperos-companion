@@ -96,7 +96,7 @@ def test_what_the_user_sets_wins_and_a_young_sheet_gets_nothing(client, companio
            intimacy={'orientation': '', 'level': 'wild', 'drive': 'low', 'interests': ['rope', 'nonsense'],
                      'note': 'Likes being asked first.'})
     prompt = preview(client)
-    assert 'How adventurous: wild' in prompt and 'a low drive' in prompt and 'an agreed safeword' in prompt
+    assert 'How adventurous: wild' in prompt and 'Drive: low; rarely the one to start things' in prompt and 'an agreed safeword' in prompt
     assert 'Likes being asked first.' in prompt and 'nonsense' not in prompt
     # A romance companion is drawn to the user; nothing rolled says otherwise.
     assert 'Orientation:' not in prompt

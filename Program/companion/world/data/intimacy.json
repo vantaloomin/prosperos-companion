@@ -31,17 +31,17 @@
     {
       "id": "low",
       "label": "Low",
-      "text": "a low drive; affection and closeness often matter more to them than sex"
+      "text": "rarely the one to start things; affection and closeness often matter more than sex"
     },
     {
       "id": "average",
       "label": "Average",
-      "text": "an average drive"
+      "text": "interested about as often as most people"
     },
     {
       "id": "high",
       "label": "High",
-      "text": "a high drive"
+      "text": "often in the mood and not shy about it"
     }
   ],
   "orientations": [
