@@ -385,7 +385,8 @@ def chat_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     else:
         about = ''
     return [(f"mood:{mood['feeling']}:{mood['intensity']}:{mood['target']}",
-             f"- You're {feel}{about} (why: {mood['reason']}). Let it color your tone; never say it as a rule.")]
+             f"- You're {feel}{about} (why: {mood['reason']}). Let it show in how you write "
+             '(shorter, blunter, messier, whatever fits you), not just in what you say. Never explain it unless asked.')]
 
 
 def labels_name(connection, key: str) -> str:

@@ -21,7 +21,7 @@ from companion.errors import DomainError, require
 from companion.life import encounters, network
 from companion.memory import pairs
 from companion.models import CharacterDefinition, CharacterDraftRequest
-from companion.world import catalog, generators, looks, perception, townsfolk
+from companion.world import catalog, generators, life_details, looks, perception, townsfolk
 
 # A shift's part of the day sets when they sleep, as (bed, wake).
 SLEEP = {'morning': ('21:30', '05:00'), 'afternoon': ('23:30', '08:00'), 'evening': ('01:30', '09:30'),
@@ -39,15 +39,9 @@ VOICES = {
     'driven': 'Direct and to the point; always has a plan.',
     'dreamy': 'Wanders off on ideas and loses the thread, then laughs about it.',
 }
-# What working toward each goal says about them.
 # How a profile's line about who they know begins (shared_text).
 SHARED = ('Has crossed paths with', 'Has met the user', 'Matched with the user through')
 MATCHED = SHARED[2]
-GOAL_INTERESTS = {
-    'own-place': 'saving up', 'race': 'running', 'band': 'music', 'exam': 'studying', 'novel': 'writing',
-    'reconcile': 'family', 'move': 'apartment hunting', 'language': 'languages', 'promotion': 'work',
-    'art': 'painting', 'dog': 'dogs', 'strong': 'lifting', 'side': 'their side business',
-}
 
 
 # Who is in the cast ---------------------------------------------------------------------------------
@@ -198,19 +192,19 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     temperament = sheet['temperament']
     lately = f" Lately: {state['line']}." if state['line'] else ''
     reached = f" Already managed to {'; '.join(state['reached'])}." if state['reached'] else ''
-    goal_interest = GOAL_INTERESTS.get(state['goal']['id'])
+    goal_interest = townsfolk.GOAL_INTERESTS.get(state['goal']['id'])
     definition = {
         'name': sheet['full'],
         'identity': f"{sheet['age']}. {work_text(data, sheet)} Lives in {home}.",
         'personality': f"{name} is {temperament} and {sheet['quirk']}. People meeting {name} for the first time "
                        f"say they {townsfolk.first_impression(sheet)}. Underneath, {name} wants "
                        f"{townsfolk.DESIRES[sheet['desire']]}.",
-        'voice': VOICES.get(temperament, ''),
+        'voice': VOICES.get(temperament) or perception.entry('temperament', temperament).get('town', {}).get('voice', ''),
         'flaws': [flaw[:1].upper() + flaw[1:] + '.'],
         'skills': [f"Knows the regulars and the rhythms of {sheet['place']['name']}."],
         'interests': [item for item in (goal_interest, sheet['place']['kind']) if item],
-        'background': f"Has lived in {home} for years. Right now {name} is trying to {state['goal']['text']}."
-                      f"{lately}{reached} {met_text(found)}".rstrip(),
+        'background': f"{life_details.background(data, sheet) or f'Has lived in {home} for years.'} Right now "
+                      f"{name} is trying to {state['goal']['text']}.{lately}{reached} {met_text(found)}".rstrip(),
         'routine': townsfolk.routine_text(sheet)[:1].upper() + townsfolk.routine_text(sheet)[1:] + '.',
         'location': f"{home}, {data['name']}, {data['region']}",
         'home_city': data['id'],

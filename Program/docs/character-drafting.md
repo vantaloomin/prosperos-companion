@@ -75,8 +75,9 @@ plain files, so they can be read and tuned without touching code:
 
 - `character-rules.md` says what makes a character believable: an ordinary adult with a real
   job and constraints, concrete skills at a believable level, flaws that cost something and show
-  up in conversation (no disguised virtues), one real contradiction, a voice written as texting
-  instructions, a plain appearance, a life that does not revolve around the user, and a list of
+  up in conversation (no disguised virtues), one real contradiction of their own (not the overused
+  tidy-at-work, messy-at-home one), traits that don't come as a package (smart doesn't mean calm,
+  no default cool, dry, in-control type), a voice written as texting instructions, a plain appearance, a life that does not revolve around the user, and a list of
   stock words, tropes and overused names to avoid.
 - `character-draft.md` asks for the whole character as one JSON object with the app's keys.
 - `character-field.md` and `character-fields.json` ask for one field.
