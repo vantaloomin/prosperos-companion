@@ -181,3 +181,40 @@ def test_installs_are_found_a_few_folders_down(tmp_path):
     assert local_programs.search([tmp_path], local_programs.is_comfy_folder) == portable
     if not local_programs.WINDOWS:
         assert local_programs.search([tmp_path], local_programs.is_kobold) == tmp_path / 'Tools' / 'koboldcpp'
+
+
+def test_a_folder_without_comfyui_is_refused(client, programs, tmp_path):
+    setup_programs(client)
+    empty = tmp_path / 'Downloads'
+    empty.mkdir()
+    refused = client.put('/api/models/launcher/comfyui', json={'path': str(empty)})
+    assert refused.status_code == 422 and "doesn't look like ComfyUI" in refused.json()['detail']
+    (empty / 'main.py').write_text('')
+    (empty / 'comfy').mkdir()
+    assert client.put('/api/models/launcher/comfyui', json={'path': str(empty)}).status_code == 200
+
+
+@pytest.mark.parametrize(('error', 'said'), [
+    (PermissionError(13, 'Permission denied'), 'did not let the Companion open it'),
+    (FileNotFoundError(2, 'No such file'), 'no longer where it was saved'),
+    (OSError(8, 'Exec format error'), 'not a program'),
+    (OSError(5, 'Input/output error'), 'could not be started.'),
+])
+def test_a_program_that_cannot_be_opened_says_why_in_plain_words(client, programs, app, error, said):
+    setup_programs(client)
+
+    def refuse(command, **options):
+        raise error
+    app.state.launcher.spawn = refuse
+    client.post('/api/models/launcher/comfyui/launch')
+    message = wait_for(client, 'comfyui', 'failed')['message']
+    assert message.startswith('ComfyUI could not be started') and said in message and 'Errno' not in message
+
+
+def test_a_path_from_the_home_folder_can_start_with_a_tilde(client, programs, tmp_path, monkeypatch):
+    add_profile(client, {'provider': 'local', 'model': 'llama3', 'base_url': 'http://127.0.0.1:11434/v1'}, 'Ollama')
+    monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))
+    (tmp_path / 'ollama').write_bytes(b'')
+    listing = client.put('/api/models/launcher/ollama', json={'path': '~/ollama'}).json()
+    assert listing['programs'][0]['path'] == str(tmp_path / 'ollama') and listing['system'] in {'windows', 'mac', 'linux'}

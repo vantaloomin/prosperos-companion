@@ -6,6 +6,7 @@ it on, since it opens other programs; then they start one after another, each wa
 to answer, text models first.
 """
 import asyncio
+import errno
 import logging
 import os
 import subprocess
@@ -26,6 +27,25 @@ STEP_SECONDS = 600
 DETACHED = ({'creationflags': getattr(subprocess, 'CREATE_NO_WINDOW', 0) | getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)}
             if sys.platform == 'win32' else {'start_new_session': True})
 log = logging.getLogger('companion')
+# What a saved ComfyUI path may be besides a ComfyUI folder: the desktop app or the user's own launch script.
+COMFY_FILES = {'.exe', '.app', '.bat', '.cmd', '.sh', '.command'}
+NOT_A_PROGRAM = {errno.ENOEXEC, 193}  # 193: Windows' "not a valid Win32 application".
+
+
+def start_failure(label: str, error: OSError) -> str:
+    """Why a program did not start, in plain words; the system's own message goes to the log."""
+    log.warning('%s could not be started: %s', label, error)
+    if isinstance(error, PermissionError):
+        return f'{label} could not be started: this computer did not let the Companion open it.'
+    if isinstance(error, FileNotFoundError):
+        return f'{label} could not be started: it is no longer where it was saved.'
+    if error.errno in NOT_A_PROGRAM or getattr(error, 'winerror', None) in NOT_A_PROGRAM:
+        return f'{label} could not be started: that file is not a program.'
+    return f'{label} could not be started.'
+
+
+def comfy_install(path: Path) -> bool:
+    return local_programs.is_comfy_folder(path) or (path.suffix.lower() in COMFY_FILES and path.exists())
 
 
 def saved(connection, program: str) -> dict:
@@ -114,15 +134,23 @@ class Launcher:
         with self.database.connect() as connection:
             in_use = local_programs.uses(connection)
             auto = bool(optional(connection, 'SELECT auto_launch FROM workspace_settings WHERE id=1')['auto_launch'])
-        return {'auto_launch': auto, 'programs': [await self.view(program, found) for program, found in in_use.items()]}
+        # The computer's kind, so the path boxes show an example path of the right shape.
+        system = 'windows' if local_programs.WINDOWS else 'mac' if sys.platform == 'darwin' else 'linux'
+        return {'auto_launch': auto, 'system': system,
+                'programs': [await self.view(program, found) for program, found in in_use.items()]}
 
     # --- Settings
 
     def choose(self, program: str, path: str | None, model_path: str | None):
         require(program in PROGRAMS, 'That program is not one the Companion can start.', 404)
         values = {}
+        # A path typed as ~/... (as the examples on a Mac show) means the user's own folder.
+        path, model_path = (str(Path(value).expanduser()) if value else value for value in (path, model_path))
         if path is not None:
             require(not path or Path(path).exists(), 'Nothing was found at that path.', 422)
+            require(not path or program != 'comfyui' or comfy_install(Path(path)),
+                    "That folder doesn't look like ComfyUI. Choose the folder with main.py in it, the ComfyUI app, "
+                    'or the script you start it with.', 422)
             values.update(path=path, chosen=1 if path else 0)
         if model_path is not None:
             require(not model_path or Path(model_path).is_file(), 'That model file was not found.', 422)
@@ -160,7 +188,7 @@ class Launcher:
         except DomainError as error:
             self.states[program] = {'state': 'failed', 'message': error.message}
         except OSError as error:
-            self.states[program] = {'state': 'failed', 'message': f"{PROGRAMS[program]['label']} could not be started: {error}"}
+            self.states[program] = {'state': 'failed', 'message': start_failure(PROGRAMS[program]['label'], error)}
 
     async def begin(self, program: str, program_uses: list[dict]):
         label = PROGRAMS[program]['label']

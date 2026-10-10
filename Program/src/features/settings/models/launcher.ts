@@ -13,7 +13,7 @@ export interface LocalProgram {
   state: 'idle' | 'starting' | 'running' | 'failed'
   message: string
 }
-export interface LauncherView { auto_launch: boolean; programs: LocalProgram[] }
+export interface LauncherView { auto_launch: boolean; system: 'windows' | 'mac' | 'linux'; programs: LocalProgram[] }
 
 export const LAUNCHER_KEY = ['launcher']
 
