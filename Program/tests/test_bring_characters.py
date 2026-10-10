@@ -33,7 +33,9 @@ def zipped(files: dict) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w') as archive:
         for name, data in files.items():
-            archive.writestr(name, data if isinstance(data, bytes) else json.dumps(data))
+            # A fixed date keeps the bytes, and so the parametrized test ids, the same in every pytest-xdist worker.
+            entry = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
+            archive.writestr(entry, data if isinstance(data, bytes) else json.dumps(data))
     return buffer.getvalue()
 
 
