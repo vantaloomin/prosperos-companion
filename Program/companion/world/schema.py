@@ -483,3 +483,13 @@ class Changes(Record):
         if missing or unknown:
             raise ValueError(f'Every era needs a known style (missing {missing}, unknown {unknown}).')
         return self
+
+
+class Featured(Record):
+    """The cities a release puts up front (companion/world/data/featured.json), edited at each release."""
+    schema_version: Literal[1]
+    # The release the list belongs to, as major.minor ('0.8'); its cities are marked new while the app is on it.
+    release: Annotated[str, Field(pattern=r'^\d+\.\d+$')]
+    title: Text
+    note: str = Field(default='', max_length=200)
+    cities: list[Id] = Field(default_factory=list, max_length=4)
