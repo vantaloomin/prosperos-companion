@@ -164,7 +164,8 @@ def test_a_bad_day_leaves_her_sullen_in_her_own_chat_and_kind_words_lift_it(clie
     send(client, 'Hey, what are you up to?', 'mood-one-1')
     prompt = mira_prompt(provider)
     assert ("- You're subdued and a bit sullen: shorter, quieter replies, less joking, though you still answer and "
-            'still care (why: Mira lost the promotion to Dana). Let it color your tone; never say it as a rule.') in prompt
+            'still care (why: Mira lost the promotion to Dana). Let it show in how you write (shorter, blunter, '
+            'messier, whatever fits you), not just in what you say. Never explain it unless asked.') in prompt
     assert '## How you feel right now' in prompt
 
     send(client, "Oh no, I'm so sorry. I'm here for you.", 'mood-one-2')
