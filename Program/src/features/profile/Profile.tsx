@@ -11,25 +11,23 @@ import { useLocalTime } from '../conversation/clock'
 import { PROFILE_TABS, circleText, handle, profileClass, profileTab, showsCard } from './profileText'
 
 /**
- * The companion's profile: their card, then Messages, Posts and Character as tabs. It takes the chat
- * style's look. Messages keeps its own header, so the card only shows above Posts and Character, with a
- * Message button that goes back to the chat the way a social app's profile does.
+ * The companion's profile: Messages, Posts and Character as tabs, then their card. It takes the chat
+ * style's look. The tabs stay at the top on every tab and never scroll away. Messages keeps its own header,
+ * so the card only shows on Posts and Character, scrolling with the page, with a Message button that goes
+ * back to the chat the way a social app's profile does.
  */
 export function Profile({ companion, view, go, children }: { companion: Companion; view: View; go: (view: View) => void; children: ReactNode }) {
   const chat = useChatStyle()
   const card = showsCard(view)
   return (
     <div className={`${profileClass(chat.style, chat.retroDark)}${card ? ' with-card' : ''}`}>
+      <ProfileTabs view={view} go={go} />
       {card ? (
         <div className="profile-scroll">
           <ProfileCard companion={companion} message={() => go('conversation')} />
-          <ProfileTabs view={view} go={go} />
           {children}
         </div>
-      ) : <>
-        <ProfileTabs view={view} go={go} />
-        {children}
-      </>}
+      ) : children}
     </div>
   )
 }
