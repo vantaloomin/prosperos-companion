@@ -104,6 +104,23 @@ export type Intensity = 'mild' | 'moderate' | 'strong'
 
 export interface EmotionalTrait { name: string; intensity: Intensity; note: string }
 
+/** What they look like, field by field; empty strings and nulls are drawn for them, leaving out what Appearance says. */
+export interface Looks {
+  age: number | null
+  height_cm: number | null
+  weight_kg: number | null
+  build: string
+  skin: string
+  face: string
+  jaw: string
+  nose: string
+  eyes: string
+  eye_shape: string
+  hair: string
+  facial_hair: string
+  feature: string
+}
+
 export interface CharacterDefinition {
   name: string
   /** "MM-DD"; empty picks a date for them. */
@@ -116,6 +133,8 @@ export interface CharacterDefinition {
   interests: string[]
   background: string
   appearance: string
+  /** Face shape, height, build and the rest (companion/world/looks.py); an empty field is drawn for them. */
+  looks?: Looks
   routine: string
   location: string
   relationship: Relationship
@@ -1164,6 +1183,10 @@ export interface Townsperson {
   comes_across: string | null
   /** From the third meeting: how they once described themselves. */
   says_they_are: string | null
+  /** What the companion has picked up about their life (companion/world/life_details.py), a little more each meeting. */
+  facts?: string[]
+  /** Stories from their past they have told, from the fourth meeting, one per meeting. */
+  stories?: string[]
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
   /** How close they and the companion feel, both ways; read-only. */

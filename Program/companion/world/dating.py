@@ -87,31 +87,8 @@ BEARDS = ('a full beard', 'stubble', 'a neat moustache', 'a trimmed beard')
 
 # The bio -----------------------------------------------------------------------------------------------
 
-QUIRK_BIO = {
-    'remembers everyone\'s usual order': 'I will remember your usual order after one visit.',
-    'hums under their breath': 'I hum under my breath. Sorry in advance.',
-    'wears the same green scarf every day': 'You will know me by the green scarf.',
-    'carries a battered notebook everywhere': 'Never without my battered notebook.',
-    'can\'t resist a terrible pun': 'Warning: I can\'t resist a terrible pun.',
-    'knows every dog in the neighborhood by name': 'I know every dog in the neighborhood by name. The owners, less so.',
-    'is always running five minutes late': 'I will be five minutes late. I\'m working on it.',
-    'collects odd little trinkets': 'I collect odd little trinkets. Ask me about the best one.',
-    'names every plant they own': 'Every one of my plants has a name.',
-    'has an opinion about everyone\'s shoes': 'I will have an opinion about your shoes.',
-    'talks to pigeons': 'Yes, I talk to pigeons. They listen.',
-    'sketches people when they think no one is looking': 'I sketch people when they aren\'t looking.',
-    'whistles the same tune all day': 'I whistle the same tune all day and I don\'t know what it is.',
-    'keeps sweets in every pocket': 'There are sweets in every one of my pockets.',
-}
-GOAL_BIO = {
-    'own-place': 'Saving up to open a place of my own.', 'race': 'Training for my first marathon.',
-    'band': 'Trying to get my band a real gig.', 'exam': 'Studying for a licensing exam.',
-    'novel': 'Writing a novel, slowly.', 'reconcile': 'Working on being a better sibling.',
-    'move': 'Saving for a bigger place.', 'language': 'Learning a new language before a big trip.',
-    'promotion': 'Aiming for a promotion this year.', 'art': 'I paint, and I\'d like a show one day.',
-    'dog': 'Hoping to adopt a dog soon.', 'strong': 'Getting properly strong at the gym.',
-    'side': 'Running a little business on the side.',
-}
+QUIRK_BIO = {item['text']: item['bio'] for item in townsfolk.QUIRK_BANK}
+GOAL_BIO = {item['id']: item['bio'] for item in townsfolk.GOAL_BANK}
 LOOKING_TEXT = {'serious': 'a relationship', 'casual': 'something casual', 'friends': 'new friends'}
 PART_TEXT = {'morning': 'mornings', 'afternoon': 'afternoons', 'evening': 'evenings', 'late': 'late evenings'}
 # A personal-column notice, in older eras: what they seek, by what they are looking for.
@@ -224,6 +201,14 @@ def build(seed: str, sheet: dict, who: str) -> str:
         generators.pick(seed, 'build', list(BUILDS[who]))
 
 
+def fitted(drawn: str, tall: int, who: str) -> str:
+    """A build that names a height agrees with the height drawn: no 5'2" 'tall and lean', no 6' 'petite'."""
+    mean = HEIGHT[who][0]
+    if drawn == 'tall and lean' and tall < mean + 5:
+        return 'lean'
+    return 'slim' if drawn == 'petite' and tall > mean else drawn
+
+
 def era_kind(data: dict) -> str:
     era = data.get('era', 'modern')
     return 'future' if era == 'future' else 'modern' if townsfolk.modern(data) else 'period'
@@ -232,7 +217,8 @@ def era_kind(data: dict) -> str:
 def looks(sheet: dict, data: dict) -> dict:
     seed, who, era = townsfolk.drawn(sheet), gender(sheet), era_kind(data)
     details = list(DETAILS) + (list(MODERN_DETAILS) if era != 'period' else [])
-    found = {'height_cm': height_cm(seed, who, era != 'period'), 'build': build(seed, sheet, who),
+    tall = height_cm(seed, who, era != 'period')
+    found = {'height_cm': tall, 'build': fitted(build(seed, sheet, who), tall, who),
              'hair': hair(seed, sheet, who, era), 'eyes': f"{weighted(seed, 'eyes', EYES[region(sheet)])} eyes",
              'style': generators.pick(seed, 'style', list(STYLES[era])),
              'detail': generators.pick(seed, 'detail', details)}

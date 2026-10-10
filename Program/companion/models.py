@@ -60,6 +60,23 @@ class MoneySetup(Input):
     goal_since: str = Field(default='', pattern=r'^(\d{4}-\d{2}-\d{2})?$')
 
 
+class Looks(Input):
+    """What they look like, field by field (companion/world/looks.py); an empty field is drawn for them."""
+    age: int | None = Field(default=None, ge=18, le=120)
+    height_cm: int | None = Field(default=None, ge=120, le=230)
+    weight_kg: int | None = Field(default=None, ge=35, le=250)
+    build: str = Field(default='', max_length=120)
+    skin: str = Field(default='', max_length=120)
+    face: str = Field(default='', max_length=120)
+    jaw: str = Field(default='', max_length=120)
+    nose: str = Field(default='', max_length=120)
+    eyes: str = Field(default='', max_length=120)
+    eye_shape: str = Field(default='', max_length=120)
+    hair: str = Field(default='', max_length=200)
+    facial_hair: str = Field(default='', max_length=120)
+    feature: str = Field(default='', max_length=200)
+
+
 class CharacterDefinition(Input):
     # Empty when creating gives them a name that fits (companion/characters.py); a revision needs one.
     name: str = Field(default='', max_length=120)
@@ -72,6 +89,8 @@ class CharacterDefinition(Input):
     interests: list[str] = Field(default_factory=list, max_length=50)
     background: str = Field(default='', max_length=12000)
     appearance: str = Field(default='', max_length=4000)
+    # Face shape, height, build and the rest, so every picture shows the same person; empty fields are drawn.
+    looks: Looks = Field(default_factory=Looks)
     routine: str = Field(default='', max_length=8000)
     location: str = Field(default='', max_length=200)
     # City id in the installed world data (for example "baltimore"); events use its real places.

@@ -47,7 +47,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import newcomers, perception
+from companion.world import looks, newcomers, perception
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -278,6 +278,8 @@ def character_text(version, connection=None) -> str:
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
+    if version.get('companion_id') and (sheet := looks.text(looks.for_companion(version['companion_id'], definition))):
+        lines.append(f'Looks: {sheet}')
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
     if definition.get('skills'):

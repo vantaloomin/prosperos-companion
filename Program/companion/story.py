@@ -18,7 +18,7 @@ from companion.life import agenda, encounters, network
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import config_for, default_name, key_for
-from companion.world import catalog, changes, custom, generators, inside, newcomers, townsfolk
+from companion.world import catalog, changes, custom, generators, inside, life_details, newcomers, townsfolk
 
 JOB = 'story'
 DEFAULT_CITY = 'baltimore'
@@ -134,7 +134,17 @@ def person_line(person: dict, place: dict, data: dict, known: dict | None = None
     pronouns = f", {sheet['pronouns']}" if sheet.get('pronouns') else ''
     return (f"- {seen[0].upper()}{seen[1:]}: {sheet['full']}{pronouns}, {sheet['age']}, {person['doing']}, "
             f"{sheet.get('occupation') or sheet['role']}. {townsfolk.first_impression(sheet).capitalize()}; "
-            f"{sheet['quirk']}. Mood: {person['mood']}.{story_people.remembered(known)}{person.get('note', '')}")
+            f"{sheet['quirk']}.{life_text(data, sheet)} Mood: {person['mood']}.{story_people.remembered(known)}"
+            f"{person.get('note', '')}")
+
+
+def life_text(data: dict, sheet: dict) -> str:
+    """Where they come from, a taste and a story they might tell, for the model to use or leave."""
+    found = life_details.for_sheet(data, sheet)
+    if not found:
+        return ''
+    story = f" Might tell the story of the time they {found['stories'][0]}." if found['stories'] else ''
+    return f" {found['origin'][:1].upper()}{found['origin'][1:]}; {found['likes'][0]}.{story}"
 
 
 def scene_text(view: dict) -> str:
