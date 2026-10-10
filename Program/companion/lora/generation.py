@@ -20,7 +20,7 @@ from companion.images import backends
 from companion.images.adapters.base import AdapterError, ImageRequest, size_for
 from companion.images.content import classify, stricter
 from companion.images.jobs import image_settings
-from companion.images.prompts import NEGATIVE
+from companion.images.prompts import NEGATIVE, sheet_for
 from companion.images.routing import eligible, route
 from companion.images.storage import raw_directory, sniff
 from companion.lora import files, references
@@ -59,9 +59,12 @@ def directory(database):
     return files.folder(database, 'generated')
 
 
-def base_of(definition) -> str:
+def base_of(companion) -> str:
+    """Their name, their looks sheet in words (companion/world/looks.py) and their appearance description."""
+    definition = companion['version']['definition']
+    sheet = sheet_for(companion, definition)[0].rstrip('.')
     appearance = ' '.join(definition.get('appearance', '').split()).rstrip('.')
-    return f"{definition['name']}, {appearance}" if appearance else definition['name']
+    return ', '.join(part for part in (definition['name'], sheet[:1].lower() + sheet[1:], appearance) if part)
 
 
 def compose(style, base, shot) -> str:
@@ -70,9 +73,9 @@ def compose(style, base, shot) -> str:
 
 def draft(database) -> dict:
     with database.connect() as connection:
-        definition = require_current(connection)['version']['definition']
+        companion = require_current(connection)
         style = image_settings(connection)['style']
-    return {'base': base_of(definition), 'style': style or DEFAULT_STYLE, 'negative': NEGATIVE,
+    return {'base': base_of(companion), 'style': style or DEFAULT_STYLE, 'negative': NEGATIVE,
             'seed': random.SystemRandom().randrange(1, 2**31),
             'shots': [{'key': key, 'label': label, 'shot': shot, 'aspect': aspect}
                       for key, label, shot, aspect in SHOTS]}

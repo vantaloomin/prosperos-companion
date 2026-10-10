@@ -47,7 +47,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import intimacy, newcomers, perception
+from companion.world import intimacy, looks, newcomers, perception
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -266,6 +266,16 @@ def emotional_lines(definition) -> list[str]:
     return lines or [NEUTRAL_ABSENCE]
 
 
+def list_lines(definition) -> list[str]:
+    """Their skills, flaws and interests, each when the sheet has any."""
+    lines = ['Skills: ' + '; '.join(definition['skills'])] if definition.get('skills') else []
+    if definition.get('flaws'):
+        lines.append(FLAWS + '; '.join(definition['flaws']))
+    if definition.get('interests'):
+        lines.append('Interests: ' + ', '.join(definition['interests']))
+    return lines
+
+
 def character_text(version, connection=None, intimate: bool = False) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral.
 
@@ -280,14 +290,11 @@ def character_text(version, connection=None, intimate: bool = False) -> str:
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
+    if version.get('companion_id') and (sheet := looks.text(looks.for_companion(version['companion_id'], definition))):
+        lines.append(f'Looks: {sheet}')
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
-    if definition.get('skills'):
-        lines.append('Skills: ' + '; '.join(definition['skills']))
-    if definition.get('flaws'):
-        lines.append(FLAWS + '; '.join(definition['flaws']))
-    if definition.get('interests'):
-        lines.append('Interests: ' + ', '.join(definition['interests']))
+    lines += list_lines(definition)
     if version.get('companion_id'):
         found = perception.for_companion(version['companion_id'], definition)
         lines.append(perception.own_text(found['public'], found['private']))

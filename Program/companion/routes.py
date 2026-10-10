@@ -63,7 +63,7 @@ from companion.models import (
     TimelineUpdate,
     TownSeed,
 )
-from companion.world import intimacy, perception
+from companion.world import intimacy, looks, perception
 
 router = APIRouter(prefix='/api')
 
@@ -171,6 +171,17 @@ def adult_side(request: Request, body: PerceptionRequest):
         rolled = intimacy.rolled_for_companion(connection, companion['id'] if companion else 'new',
                                                companion.get('townsfolk_key') if companion else None, body.definition)
     return {'rolled': intimacy.view(rolled), 'adult': rolled is not None, **intimacy.options()}
+
+
+@router.post('/companion/looks')
+def looks_suggestions(request: Request, body: PerceptionRequest):
+    """What each empty looks field uses for a saved companion (drawn from their id, leaving out what the appearance
+    already says, with a drawn build or weight following what the form sets), and suggestions for the word fields.
+    No model is involved."""
+    with request.app.state.database.connect() as connection:
+        companion = characters.current(connection)
+    automatic = looks.for_companion(companion['id'], body.definition) if companion else None
+    return {'automatic': automatic, 'options': looks.options()}
 
 
 @router.post('/companion/draft/card')
