@@ -1,0 +1,7 @@
+{
+ "schema_version": 1,
+ "release": "0.8",
+ "title": "New in v0.8 · Out on the Town",
+ "note": "New cities to call home this release.",
+ "cities": ["chicago", "new-orleans", "jeju", "osaka"]
+}

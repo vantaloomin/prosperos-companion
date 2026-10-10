@@ -11,9 +11,9 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from companion.errors import DomainError
-from companion.identity import data_dir
+from companion.identity import VERSION, data_dir
 from companion.world import mend as mending
-from companion.world.schema import Career, Careers, City, Holidays, Names
+from companion.world.schema import Career, Careers, City, Featured, Holidays, Names
 
 DATA = Path(__file__).parent / 'data'
 LOG = logging.getLogger(__name__)
@@ -307,3 +307,17 @@ def resolve(text: str, extra: dict[str, dict] | None = None) -> dict | None:
 def sources(data: dict) -> list[dict]:
     """Every source the city's records cite, for attribution screens."""
     return [{'id': key} | value for key, value in data['sources'].items()]
+
+
+@cache
+def _featured() -> dict:
+    return Featured.model_validate_json((DATA / 'featured.json').read_text(encoding='utf-8')).model_dump()
+
+
+def featured(extra: dict[str, dict] | None = None) -> dict:
+    """The release's featured cities that load, in its order, with `new` while the app is on that release."""
+    data = _featured()
+    known = cities() | (extra or {})
+    return {'release': data['release'], 'title': data['title'], 'note': data['note'],
+            'new': '.'.join(VERSION.split('.')[:2]) == data['release'],
+            'cities': [summary(known[city_id]) for city_id in data['cities'] if city_id in known]}

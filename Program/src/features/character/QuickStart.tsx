@@ -11,6 +11,7 @@ import { PasteCharacter } from './PasteCharacter'
 import type { SplitResult } from './helper'
 import { defaultCity } from './places'
 import { CityOptions } from '../world/CityOptions'
+import type { FeaturedCities } from '../world/cityText'
 import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
 import { CitiesUnavailable } from '../world/CitiesUnavailable'
 
@@ -93,6 +94,7 @@ interface PicksProps {
 }
 
 function Picks({ request, set, cities, homeCity, pickCity }: PicksProps) {
+  const featured = useQuery({ queryKey: ['featured-cities'], queryFn: () => api<FeaturedCities<CitySummary>>('/world/featured'), staleTime: Infinity })
   return (<>
     <div className="form-grid three">
       <TextInput label="Name" value={request.name} onChange={(name) => set({ name })} maxLength={120} hint="Optional. Left empty, they get one that fits." />
@@ -107,7 +109,7 @@ function Picks({ request, set, cities, homeCity, pickCity }: PicksProps) {
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={homeCity} onChange={(event) => pickCity(event.target.value)}>
             <option value="">Anywhere, today</option>
-            <CityOptions cities={cities.data ?? []} withRegion />
+            <CityOptions cities={cities.data ?? []} featured={featured.data?.cities} withRegion />
           </select>
         )}
       </Field>
