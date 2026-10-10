@@ -15,13 +15,16 @@ class FakePrograms:
 
     def __init__(self, exit_code=None):
         self.started: list[list[str]] = []
+        self.folders: list[str] = []
         self.up: set[int] = set()
         self.exit_code = exit_code
 
     def listen(self, command, options):
         self.started.append(command)
+        self.folders.append(options.get('cwd'))
         host = (options.get('env') or {}).get('OLLAMA_HOST', '')
-        self.up.add(int(command[command.index('--port') + 1]) if '--port' in command else int(host.rpartition(':')[2]))
+        # A launch script stands in for ComfyUI started on its usual port.
+        self.up.add(int(command[command.index('--port') + 1]) if '--port' in command else int(host.rpartition(':')[2] or 8188))
 
     def spawn(self, command, **options):
         self.listen(command, options)
@@ -219,3 +222,18 @@ def test_a_path_from_the_home_folder_can_start_with_a_tilde(client, programs, tm
     (tmp_path / 'ollama').write_bytes(b'')
     listing = client.put('/api/models/launcher/ollama', json={'path': '~/ollama'}).json()
     assert listing['programs'][0]['path'] == str(tmp_path / 'ollama') and listing['system'] in {'windows', 'mac', 'linux'}
+
+
+def test_comfyui_launch_script_runs_as_it_is(client, programs, app, tmp_path):
+    setup_programs(client)
+    for name in ('run_nvidia_gpu.bat', 'start comfy.cmd', 'comfy.sh', 'ComfyUI.command'):
+        script = tmp_path / name
+        script.write_text('python main.py --port 8188\n')
+        programs.up.clear()
+        assert client.put('/api/models/launcher/comfyui', json={'path': str(script)}).status_code == 200
+        client.post('/api/models/launcher/comfyui/launch')
+        wait_for(client, 'comfyui', 'running')
+        command = programs.started[-1]
+        assert command[-1] == str(script) and '--port' not in command
+        assert (command[1] == '/c') == (script.suffix in {'.bat', '.cmd'})
+        assert programs.folders[-1] == str(tmp_path)

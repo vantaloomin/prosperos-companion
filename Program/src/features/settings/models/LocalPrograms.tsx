@@ -90,7 +90,8 @@ function WhereForm({ item, examples, save, cancel }: { item: LocalProgram; examp
   const [model, setModel] = useState(item.model_path)
   const kobold = item.program === 'kobold'
   return <div className="form-stack where-form">
-    <TextInput label={item.program === 'comfyui' ? 'ComfyUI folder or app' : `Where ${item.label} is`} value={path} onChange={setPath} maxLength={1000} placeholder={examples[item.program]} />
+    <TextInput label={item.program === 'comfyui' ? 'ComfyUI folder, app or launch script' : `Where ${item.label} is`} value={path} onChange={setPath} maxLength={1000} placeholder={examples[item.program]}
+      hint={item.program === 'comfyui' ? 'A .bat, .cmd or .sh you start ComfyUI with runs as it is, with its own settings. Its port should match the address above.' : undefined} />
     {kobold && <TextInput label="Model file" value={model} onChange={setModel} maxLength={1000} placeholder={examples.model} hint="The .gguf file KoboldCpp loads, or a .kcpps settings file." />}
     <div className="form-actions">
       <button type="button" className="button primary" onClick={() => save(kobold ? { path, model_path: model } : { path })}>Save</button>

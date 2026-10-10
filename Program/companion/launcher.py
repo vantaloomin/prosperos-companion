@@ -28,7 +28,7 @@ DETACHED = ({'creationflags': getattr(subprocess, 'CREATE_NO_WINDOW', 0) | getat
             if sys.platform == 'win32' else {'start_new_session': True})
 log = logging.getLogger('companion')
 # What a saved ComfyUI path may be besides a ComfyUI folder: the desktop app or the user's own launch script.
-COMFY_FILES = {'.exe', '.app', '.bat', '.cmd', '.sh', '.command'}
+COMFY_FILES = {'.exe', '.app'} | local_programs.WINDOWS_SCRIPTS | local_programs.SHELL_SCRIPTS
 NOT_A_PROGRAM = {errno.ENOEXEC, 193}  # 193: Windows' "not a valid Win32 application".
 
 
