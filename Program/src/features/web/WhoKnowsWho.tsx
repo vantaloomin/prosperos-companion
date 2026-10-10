@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, List, Network, X } from 'lucide-react'
 import { api } from '../../api'
@@ -34,17 +34,23 @@ export function WhoKnowsWho({ go }: { go: (view: View) => void }) {
           {asList ? <Network aria-hidden="true" /> : <List aria-hidden="true" />}{asList ? 'Web' : 'List'}
         </button>
       </header>
-      <WebBody data={shown} asList={asList} selected={selected} centre={centre} onSelect={setSelected} onPick={(id) => { setAsList(false); focus(id) }} />
-      {picked && <WebCard data={shown} id={picked.id} onClose={() => setSelected(null)} onPick={focus} go={go} />}
+      <WebBody data={shown} asList={asList} selected={selected} centre={centre} onSelect={(id) => id ? focus(id) : setSelected(null)}
+        onPick={(id) => setSelected(id === selected ? null : id)} onFocus={focus} go={go} />
     </section>
   )
 }
 
-interface BodyProps { data: WebData; asList: boolean; selected: string | null; centre: { id: string; at: number } | null; onSelect: (id: string | null) => void; onPick: (id: string) => void }
+interface BodyProps { data: WebData; asList: boolean; selected: string | null; centre: { id: string; at: number } | null; onSelect: (id: string | null) => void; onPick: (id: string) => void; onFocus: (id: string) => void; go: (view: View) => void }
 
-function WebBody({ data, asList, selected, centre, onSelect, onPick }: BodyProps) {
+function WebBody({ data, asList, selected, centre, onSelect, onPick, onFocus, go }: BodyProps) {
   if (data.nodes.length <= 1) return <p className="web-empty subtle">Nobody here yet. People show up as your companions meet them and as you mention yours.</p>
-  return asList ? <WebList data={data} onPick={onPick} /> : <WebCanvas data={data} selected={selected} centre={centre} onSelect={onSelect} />
+  if (asList) return <WebList data={data} selected={selected} onPick={onPick} go={go} />
+  return (
+    <>
+      <WebCanvas data={data} selected={selected} centre={centre} onSelect={onSelect} />
+      {selected && <WebCard data={data} id={selected} onClose={() => onSelect(null)} onPick={onFocus} go={go} />}
+    </>
+  )
 }
 
 function WebSearch({ data, onPick }: { data: WebData; onPick: (id: string) => void }) {
@@ -81,14 +87,14 @@ function WebFilters({ data, filter, selected, onChange, onNear }: FilterProps) {
   )
 }
 
-interface CardProps { data: WebData; id: string; onClose: () => void; onPick: (id: string) => void; go: (view: View) => void }
+interface CardProps { inline?: boolean; data: WebData; id: string; onClose: () => void; onPick: (id: string) => void; go: (view: View) => void }
 
-function WebCard({ data, id, onClose, onPick, go }: CardProps) {
+function WebCard({ inline, data, id, onClose, onPick, go }: CardProps) {
   const node = data.nodes.find((item) => item.id === id)
   if (!node) return null
   const ties = tiesOf(data, id)
   return (
-    <aside className="web-card" aria-label={node.name}>
+    <aside className={inline ? 'web-card inline' : 'web-card'} aria-label={node.name}>
       <header>
         <div><h2>{node.name}</h2><p className="subtle">{[KIND_LABELS[node.kind], node.detail, node.hood].filter(Boolean).join(' · ')}</p></div>
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
@@ -103,18 +109,25 @@ function WebCard({ data, id, onClose, onPick, go }: CardProps) {
 
 const ORDER: WebKind[] = ['you', 'companion', 'yours', 'match', 'circle', 'acquaintance', 'townsperson']
 
-/** The same people as a plain list by kind, for keyboards and screen readers. */
-function WebList({ data, onPick }: { data: WebData; onPick: (id: string) => void }) {
+interface ListProps { data: WebData; selected: string | null; onPick: (id: string) => void; go: (view: View) => void }
+
+/** The same people as a list by kind, for keyboards and screen readers: one person a row with their ties beneath; the picked one opens in its row. */
+function WebList({ data, selected, onPick, go }: ListProps) {
+  const box = useRef<HTMLDivElement>(null)
+  // Opens on the picked person's row, carried over from the web.
+  useEffect(() => { box.current?.querySelector('li.picked')?.scrollIntoView({ block: 'start' }) }, [])
   return (
-    <div className="web-list">
+    <div ref={box} className="web-list">
       {ORDER.map((kind) => {
         const people = data.nodes.filter((node) => node.kind === kind && kind !== 'you')
         return people.length > 0 && (
           <section key={kind}>
             <h2>{KIND_LABELS[kind]}</h2>
-            <ul>{people.map((node) => <li key={node.id}>
-              <button type="button" className="text-button" onClick={() => onPick(node.id)}>{node.name}</button>
-              <span className="subtle"> {tiesOf(data, node.id).map((tie) => `${tie.label} (${tie.name})`).join('; ')}</span>
+            <ul>{people.map((node) => <li key={node.id} className={node.id === selected ? 'picked' : undefined}>
+              <button type="button" className="text-button web-row-name" aria-expanded={node.id === selected} onClick={() => onPick(node.id)}>{node.name}</button>
+              {node.detail && <span className="subtle"> · {node.detail}</span>}
+              <ul className="web-row-ties">{tiesOf(data, node.id).map((tie) => <li key={tie.id}>{tie.name} · {tie.label}</li>)}</ul>
+              {node.id === selected && <WebCard inline data={data} id={node.id} onClose={() => onPick(node.id)} onPick={onPick} go={go} />}
             </li>)}</ul>
           </section>
         )

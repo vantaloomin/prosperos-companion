@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef } from 'react'
-import { mainPin, type CityMapData, type MapPlace } from './mapText'
+import { mainPin, narrow, type CityMapData, type MapPlace } from './mapText'
 import { drawn, GROUNDS, lakeOutline, pathOf, type District, type Drawn } from './drawn'
 
 interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; caption: string }
@@ -13,6 +13,8 @@ export function SketchMap({ data, selected, onSelect, caption }: Props) {
   useEffect(() => {
     const target = box.current?.querySelector('.sketch-pin.selected') ?? box.current?.querySelector('.sketch-pin.pin-home')
     target?.scrollIntoView({ block: 'center', inline: 'center' })
+    // On a phone the card is a sheet over the lower part, so the picked place moves up above it.
+    if (selected && narrow() && box.current) box.current.scrollBy({ top: box.current.clientHeight * 0.28 })
   }, [selected])
   return (
     <div ref={box} className="sketch-map">
@@ -75,9 +77,9 @@ function PlacePin({ place, x, y, selected, onSelect }: PinProps) {
   const pin = mainPin(place)
   return (
     <g className={`sketch-pin map-pin pin-${pin}${selected ? ' selected' : ''}`} transform={`translate(${x} ${y})`}
-      role="button" tabIndex={-1} aria-label={place.name} onClick={() => onSelect(place.id)}>
+      role="button" tabIndex={0} aria-label={place.name} onClick={() => onSelect(place.id)}>
       <circle className="sketch-hit" r={14} />
-      {pin === 'place' ? <circle className="sketch-dot" r={4.5} /> : <>
+      {pin === 'place' ? <><circle className="sketch-dot" r={4.5} /><text className="sketch-label sketch-hover-label" x={9} y={4}>{place.name}</text></> : <>
         <circle className="sketch-badge" r={13} />
         <g className="sketch-glyph" transform="translate(-8 -8) scale(0.667)"><PinShape pin={pin} /></g>
       </>}

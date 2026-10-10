@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, KeyRound, List, Map as MapIcon } from 'lucide-react'
 import { api } from '../../api'
@@ -27,8 +27,6 @@ export function CityMap({ companion, place, go }: { companion: Companion; place:
   if (map.isPending) return <Loading label="Unfolding the map" />
   if (map.isError) return <section className="page"><ErrorNotice error={map.error} /></section>
   const data = map.data
-  const picked = data.places.find((item) => item.id === selected) ?? null
-  const street = data.city.real && !streetsFailed
   return (
     <section className="map-page" aria-labelledby="map-title">
       <header className="map-bar">
@@ -39,12 +37,23 @@ export function CityMap({ companion, place, go }: { companion: Companion; place:
           {asList ? <MapIcon aria-hidden="true" /> : <List aria-hidden="true" />}{asList ? 'Map' : 'List'}
         </button>
       </header>
-      <div className="map-area">
-        {asList ? <PlaceList places={data.places} onPick={(id) => { setSelected(id); setAsList(false) }} />
-          : <MapView data={data} street={street} failed={streetsFailed} selected={selected} onSelect={setSelected} onFail={() => setStreetsFailed(true)} />}
-        {picked && <PlaceCard place={picked} city={data.city.id} story={data.story} companion={companion} onClose={() => setSelected(null)} go={go} />}
-      </div>
+      <MapArea data={data} asList={asList} selected={selected} onSelect={setSelected} streetsFailed={streetsFailed} onFail={() => setStreetsFailed(true)} companion={companion} go={go} />
     </section>
+  )
+}
+
+interface AreaProps { data: CityMapData; asList: boolean; selected: string | null; onSelect: (id: string | null) => void; streetsFailed: boolean; onFail: () => void; companion: Companion; go: (view: View) => void }
+
+/** The map or the list, and the picked place's card: floating over the map, or opened in its row in the list. */
+function MapArea({ data, asList, selected, onSelect, streetsFailed, onFail, companion, go }: AreaProps) {
+  const picked = data.places.find((item) => item.id === selected) ?? null
+  const card = (inline: boolean) => picked && <PlaceCard inline={inline} place={picked} city={data.city.id} story={data.story} companion={companion} onClose={() => onSelect(null)} go={go} />
+  return (
+    <div className="map-area">
+      {asList ? <PlaceList places={data.places} selected={selected} onPick={(id) => onSelect(id === selected ? null : id)} card={card(true)} />
+        : <MapView data={data} street={data.city.real && !streetsFailed} failed={streetsFailed} selected={selected} onSelect={onSelect} onFail={onFail} />}
+      {!asList && card(false)}
+    </div>
   )
 }
 
@@ -71,16 +80,20 @@ function MapKey() {
   )
 }
 
-/** The same places as a plain list by neighbourhood, for keyboards and screen readers. */
-function PlaceList({ places, onPick }: { places: MapPlace[]; onPick: (id: string) => void }) {
+/** The same places as a plain list by neighbourhood, for keyboards and screen readers; the picked one opens in its row. */
+function PlaceList({ places, selected, onPick, card }: { places: MapPlace[]; selected: string | null; onPick: (id: string) => void; card: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null)
+  // Opens on the picked place's row, carried over from the map.
+  useEffect(() => { box.current?.querySelector('li.picked')?.scrollIntoView({ block: 'start' }) }, [])
   return (
-    <div className="map-list">
+    <div ref={box} className="map-list">
       {byHood(places).map(([hood, items]) => (
         <section key={hood}>
           <h2>{hood}</h2>
-          <ul>{items.map((item) => <li key={item.id}>
-            <button type="button" className="text-button" onClick={() => onPick(item.id)}>{item.name}</button>
+          <ul>{items.map((item) => <li key={item.id} className={item.id === selected ? 'picked' : undefined}>
+            <button type="button" className="text-button" aria-expanded={item.id === selected} onClick={() => onPick(item.id)}>{item.name}</button>
             <span className="subtle"> {item.kind}{item.pins.length ? ` · ${PIN_LABELS[mainPin(item)]}` : ''}</span>
+            {item.id === selected && card}
           </li>)}</ul>
         </section>
       ))}

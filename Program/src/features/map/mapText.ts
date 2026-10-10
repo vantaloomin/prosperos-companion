@@ -40,3 +40,8 @@ export function byHood(places: MapPlace[]): [string, MapPlace[]][] {
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
     .map(([hood, items]) => [hood, items.sort((a, b) => Number(!a.pins.length) - Number(!b.pins.length) || a.name.localeCompare(b.name))])
 }
+
+/** A phone-sized screen, where the place card is a bottom sheet over the lower part of the map. */
+export function narrow(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches
+}

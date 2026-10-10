@@ -27,8 +27,8 @@ export function WebCanvas({ data, selected, centre, onSelect }: Props) {
   const { bodies, simulation } = useSimulation(data, setPositions)
   const [camera, setCamera] = useState<Camera | null>(null)
   const size = useSize(svg)
-  // You start in the middle of the view.
-  const view = camera ?? { x: size.width / 2, y: size.height / 2, k: 1 }
+  // Until the user pans, zooms or drags, the view fits everyone with some room around them.
+  const view = camera ?? fitted(positions, size)
   const gestures = useGestures(svg, view, setCamera, bodies, simulation, onSelect)
 
   // Centre the view on someone picked from the search, the card or the list.
@@ -36,13 +36,16 @@ export function WebCanvas({ data, selected, centre, onSelect }: Props) {
     const body = centre && bodies.current.get(centre.id)
     if (!body || !size.width) return
     const frame = requestAnimationFrame(() => setCamera((now) => {
-      const k = now?.k ?? 1
-      return { k, x: size.width / 2 - (body.x ?? 0) * k, y: size.height / 2 - (body.y ?? 0) * k }
+      const k = Math.max(now?.k ?? 1, 1)
+      const spot = clearOfCard({ width: size.width, height: size.height })
+      return { k, x: spot.x - (body.x ?? 0) * k, y: spot.y - (body.y ?? 0) * k }
     }))
     return () => cancelAnimationFrame(frame)
   }, [centre, size.width, size.height, bodies])
 
   const near = selected ? within(data, selected, 1) : null
+  // Names show for the people around whoever is in focus (the picked person, else the main companion); the rest on hover or zoom.
+  const named = within(data, selected ?? data.nodes.find((node) => node.main)?.id ?? 'you', 1)
   const at = (id: string) => positions[id] ?? { x: 0, y: 0 }
   return (
     <svg ref={svg} className="web-canvas" role="img" aria-label="Who knows who, as a web. Use the List button for the same people as a list."
@@ -50,8 +53,8 @@ export function WebCanvas({ data, selected, centre, onSelect }: Props) {
       <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
         {data.links.map((link) => <WebLine key={`${link.source}|${link.target}`} link={link} a={at(link.source)} b={at(link.target)}
           faded={!!near && link.source !== selected && link.target !== selected} />)}
-        {data.nodes.map((node) => <WebBubble key={node.id} node={node} at={at(node.id)} selected={node.id === selected} near={near}
-          zoomed={view.k >= 1.4} onGrab={gestures.grab} />)}
+        {data.nodes.map((node) => <WebBubble key={node.id} node={node} at={at(node.id)} selected={node.id === selected} near={near} named={named.has(node.id)}
+          zoomed={view.k >= 2.2} onGrab={gestures.grab} />)}
       </g>
     </svg>
   )
@@ -100,18 +103,18 @@ function WebLine({ link, a, b, faded }: { link: WebLink; a: Point; b: Point; fad
   )
 }
 
-interface BubbleProps { node: WebNode; at: Point; selected: boolean; near: Set<string> | null; zoomed: boolean; onGrab: (event: ReactPointerEvent, id: string) => void }
+interface BubbleProps { node: WebNode; at: Point; selected: boolean; near: Set<string> | null; named: boolean; zoomed: boolean; onGrab: (event: ReactPointerEvent, id: string) => void }
 
-function WebBubble({ node, at, selected, near, zoomed, onGrab }: BubbleProps) {
+function WebBubble({ node, at, selected, near, named: around, zoomed, onGrab }: BubbleProps) {
   const size = radius(node)
-  const named = node.kind === 'you' || node.kind === 'companion' || zoomed || (near?.has(node.id) ?? false)
+  const named = node.kind === 'you' || node.kind === 'companion' || zoomed || around
   const faded = near && !near.has(node.id)
   return (
     <g className={`web-node kind-${node.kind}${selected ? ' selected' : ''}${faded ? ' faded' : ''}`} transform={`translate(${at.x} ${at.y})`}
       onPointerDown={(event) => onGrab(event, node.id)}>
       <circle r={size} />
       <circle className="web-hit" r={Math.max(size, 18)} />
-      {named && <text y={size + 13}>{node.name}</text>}
+      <text className={named ? undefined : 'web-hover-name'} y={size + 13}>{node.name}</text>
       <title>{node.name}</title>
     </g>
   )
@@ -149,6 +152,7 @@ function useGestures(svg: React.RefObject<SVGSVGElement | null>, camera: Camera,
     pointers.current.set(event.pointerId, local(event))
     svg.current?.setPointerCapture(event.pointerId)
     drag.current = { id, moved: false, start: local(event), camera, spread: spread(pointers.current) }
+    setCamera((now) => now ?? camera)
   }
   const grab = (event: ReactPointerEvent, id: string) => { event.stopPropagation(); start(event, id) }
   const move = (event: ReactPointerEvent) => {
@@ -203,4 +207,22 @@ function spread(points: Map<number, Pointer>): number {
 function midpoint(points: Map<number, Pointer>): Pointer {
   const [a, b] = [...points.values()]
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+}
+
+const PAD = 0.1
+
+/** A view that fits everyone in, with a tenth of the space as margin. */
+function fitted(positions: Positions, size: { width: number; height: number }): Camera {
+  const points = Object.values(positions)
+  if (!points.length || !size.width) return { x: size.width / 2, y: size.height / 2, k: 1 }
+  const xs = points.map((point) => point.x), ys = points.map((point) => point.y)
+  const [left, right, top, bottom] = [Math.min(...xs) - 30, Math.max(...xs) + 30, Math.min(...ys) - 30, Math.max(...ys) + 40]
+  const k = Math.min(MAX_ZOOM / 2, Math.max(MIN_ZOOM, Math.min((size.width * (1 - 2 * PAD)) / (right - left), (size.height * (1 - 2 * PAD)) / (bottom - top))))
+  return { k, x: size.width / 2 - ((left + right) / 2) * k, y: size.height / 2 - ((top + bottom) / 2) * k }
+}
+
+/** Where a picked person sits: left of the card on a wide screen, above the bottom sheet on a phone. */
+function clearOfCard(size: { width: number; height: number }): Point {
+  const phone = window.matchMedia('(max-width: 720px)').matches
+  return phone ? { x: size.width / 2, y: size.height * 0.24 } : { x: Math.max(size.width / 2 - 190, size.width * 0.35), y: size.height / 2 }
 }
