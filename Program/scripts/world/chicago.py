@@ -1075,6 +1075,14 @@ CITY = {
         price('italian-beef', 'Italian beef sandwich', 9, 14),
         price('chicago-dog', 'Chicago-style hot dog', 4, 7),
     ],
+    'water': [
+        {'kind': 'sea', 'name': 'Lake Michigan', 'side': 'east', 'width_km': 6},
+        {'kind': 'river', 'name': 'Chicago River', 'width_km': 0.08, 'points': [
+            [41.889, -87.612], [41.887, -87.625], [41.887, -87.637], [41.896, -87.642], [41.910, -87.650],
+            [41.930, -87.664], [41.955, -87.685], [41.975, -87.700]]},
+        {'kind': 'river', 'name': 'South Branch', 'width_km': 0.07, 'points': [
+            [41.887, -87.637], [41.872, -87.638], [41.857, -87.640], [41.845, -87.655], [41.840, -87.680]]},
+    ],
 }
 
 if __name__ == '__main__':

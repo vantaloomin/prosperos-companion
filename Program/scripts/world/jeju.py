@@ -1064,6 +1064,10 @@ CITY = {
         price('tangerines', 'Box of tangerines', 15000, 35000, 'about 5 kg, by grade and season'),
         price('wage', 'Day\'s wage', 90000, 130000, 'a day of ordinary full-time work'),
     ],
+    'water': [
+        {'kind': 'sea', 'name': 'Jeju Strait', 'side': 'north', 'width_km': 6},
+        {'kind': 'sea', 'name': 'East China Sea', 'side': 'south', 'width_km': 6},
+    ],
 }
 
 if __name__ == '__main__':

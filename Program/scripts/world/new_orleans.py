@@ -1194,6 +1194,12 @@ CITY = {
         price('king-cake', 'King cake', 20, 45, 'a whole cake'),
         price('music-cover', 'Club cover on Frenchmen', 0, 20),
     ],
+    'water': [
+        {'kind': 'sea', 'name': 'Lake Pontchartrain', 'side': 'north', 'width_km': 8},
+        {'kind': 'river', 'name': 'Mississippi River', 'width_km': 0.7, 'points': [
+            [29.950, -90.160], [29.935, -90.140], [29.917, -90.120], [29.913, -90.093], [29.923, -90.068],
+            [29.945, -90.061], [29.956, -90.058], [29.958, -90.046], [29.952, -90.030], [29.950, -90.008]]},
+    ],
 }
 
 if __name__ == '__main__':

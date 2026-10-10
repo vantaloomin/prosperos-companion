@@ -7076,5 +7076,19 @@
    "per": "a day of ordinary full-time work",
    "source": "curated-2026-10"
   }
+ ],
+ "water": [
+  {
+   "kind": "sea",
+   "name": "Jeju Strait",
+   "side": "north",
+   "width_km": 6
+  },
+  {
+   "kind": "sea",
+   "name": "East China Sea",
+   "side": "south",
+   "width_km": 6
+  }
  ]
 }
