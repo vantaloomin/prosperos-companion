@@ -328,6 +328,7 @@ textarea { resize: vertical; line-height: 1.6; }
 }
 .settings-section h2 { margin-bottom: 6px; }
 .settings-intro { max-width: 760px; margin: 0 0 20px; }
+.settings-section a { color: var(--accent); }
 .settings-panel > .settings-intro + .settings-section { border-top: 0; padding-top: 0; }
 
 .today > .notice, .today > div > .notice { max-width: 760px; margin-bottom: 12px; }

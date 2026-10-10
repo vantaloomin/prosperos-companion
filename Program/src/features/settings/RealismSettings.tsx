@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { ChatList, Closeness as ClosenessState } from '../../types'
 import { CHATS_KEY } from '../chats/useChats'
-import { CLOSENESS_KEY, stageText } from '../memories/closenessText'
+import { CLOSENESS_KEY } from '../memories/closenessText'
 import { StageControls } from '../memories/Closeness'
 import { DRAMA_LEVELS } from '../today/storyText'
 import { Notice } from '../../components/Feedback'
@@ -20,21 +20,21 @@ export function RealismIntro() {
 }
 
 /** How much drama, their pace and plans that go off course: world-wide settings, so they come first. */
-export function PaceSettings({ name }: { name: string }) {
+export function PaceSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
   const level = DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
-      <Field label={`Drama in ${name}'s world: ${level.label}`} hint={level.hint}>
+      <Field label={`Drama in your world: ${level.label}`} hint={level.hint}>
         {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={data.drama} aria-valuetext={level.label} aria-describedby={describedBy}
           onChange={(event) => void save({ drama: Number(event.target.value) })} />}
       </Field>
-      <Toggle label={`Reply at ${name}'s pace`} checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
-        hint={`When ${name} is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
-      <Toggle label={`Let ${name}'s days go off plan`} checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
-        hint={`Now and then ${name} runs late, stays late, has plans fall through, has something come up or gets a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned.`} />
+      <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
+        hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
+      <Toggle label="Let their days go off plan" checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
+        hint={`Now and then they run late, stay late, have plans fall through, have something come up or get a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned.`} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
@@ -97,7 +97,7 @@ function CompanionCloseness({ id, name, open }: { id: string; name: string; open
   if (!closeness.data) return null
   return (
     <div className="form-stack">
-      <p>{stageText(closeness.data, name)}</p>
+      <p>{stageLine(closeness.data, name)}</p>
       <div className="closeness-controls"><StageControls name={name} state={closeness.data} change={change} path={path} /></div>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       {open
@@ -105,4 +105,10 @@ function CompanionCloseness({ id, name, open }: { id: string; name: string; open
         : <p className="subtle">Nickname, running jokes and starting over are in {name}&apos;s Memories, once their chat is open.</p>}
     </div>
   )
+}
+
+/** "Mira is at Friends.", saying so when the user set or keeps it there. */
+export function stageLine(state: ClosenessState, name: string) {
+  const how = state.held_level ? ', kept there by you' : state.set_on ? ', set by you' : ''
+  return `${name} is at ${state.name}${how}.`
 }

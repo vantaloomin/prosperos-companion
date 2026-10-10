@@ -53,7 +53,7 @@ export function HiddenValues({ name }: { name: string }) {
   )
 }
 
-/** "Mira", "Mira's", "Mira keeps"; with no companion yet, "your companions", "their", "they keep". */
+/** "Mira", "Mira's", "Mira keeps"; without a name (Settings > Realism covers everyone), "each companion", "their", "they keep". */
 function phrases(name: string) {
-  return name ? { who: name, whose: `${name}'s`, keeps: `${name} keeps` } : { who: 'your companions', whose: 'their', keeps: 'they keep' }
+  return name ? { who: name, whose: `${name}'s`, keeps: `${name} keeps` } : { who: 'each companion', whose: 'their', keeps: 'they keep' }
 }
