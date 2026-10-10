@@ -97,7 +97,7 @@ def draft(database) -> dict:
     shots = [{'key': key, 'label': label, 'aspect': aspect,
               'shot': shot.format(outfit=outfit, other_outfit=other_outfit, expression=expression)}
              for key, label, shot, aspect in STEPS]
-    return {'base': generation.base_of(definition), 'style': style or generation.DEFAULT_STYLE, 'negative': NEGATIVE,
+    return {'base': generation.base_of(companion), 'style': style or generation.DEFAULT_STYLE, 'negative': NEGATIVE,
             'seed': random.SystemRandom().randrange(1, 2**31), 'shots': shots, 'any_backend': bool(enabled),
             'reference_backend': backend_line(follows[0] if follows else None)}
 

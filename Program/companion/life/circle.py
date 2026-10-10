@@ -99,17 +99,19 @@ def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken
     names = [name for name in NAMES if name not in taken]
     name = generators.pick(seed, 'name', names) if names else f'Friend {ordinal + 1}'
     role = role or (ROLES[0] if ordinal == 0 else generators.pick(seed, 'role', list(ROLES[1:])))
-    offered = catalog.careers_for(data) if data else {
-        key: career for key, career in catalog.careers().items() if 'modern' in career['eras']}
-    career_id = generators.pick(seed, 'career', sorted(offered))
-    career = offered[career_id]
     if data:
+        # Weighted towards the city's own industries, like its townsfolk.
+        career = generators.town_career(data, seed)
+        career_id = career['id']
         job = generators.job(data, career_id, seed=seed)
         details = {'career': career['name'], 'employer': job['employer']['name'],
                    'neighborhood': job['neighborhood']['name'], 'city': data['name'],
                    'refs': job['refs'], 'sources': job['sources'], 'data_version': job['data_version']}
         schedule = job['schedule']
     else:
+        offered = {key: career for key, career in catalog.careers().items() if 'modern' in career['eras']}
+        career_id = generators.pick(seed, 'career', sorted(offered))
+        career = offered[career_id]
         details = {'career': career['name'], 'employer': '', 'neighborhood': '', 'city': '', 'refs': [],
                    'sources': [], 'data_version': ''}
         schedule = generators.schedule(career, seed)

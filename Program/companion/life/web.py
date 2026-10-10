@@ -82,8 +82,11 @@ def add_companion(connection, web: Web, companion: dict, now):
         web.link(key, pairs.companion_key(tie['companion_id']), tie['how'] or 'know each other', 'friend')
     timeline_id = companion['active_timeline_id']
     add_circle(web, key, circle.people(connection, timeline_id))
-    for person in network.acquaintances(connection, timeline_id, now):
+    met = network.acquaintances(connection, timeline_id, now)
+    # Everyone first, then the ties: newest come first, so a friend of a friend can be listed before the friend.
+    for person in met:
         web.add(person['key'], person['full'], 'acquaintance', person.get('occupation') or '', '')
+    for person in met:
         web.link(person['key'], person['key'].rsplit('/', 1)[0], person['relation'])
         web.link(key, person['key'], f"met at {person['occasion']}", 'met')
     add_townsfolk(web, key, encounters.known(connection, companion, now))

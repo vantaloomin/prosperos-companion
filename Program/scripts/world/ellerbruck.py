@@ -687,6 +687,9 @@ CITY = {
         price('goose', 'Goose at market', 12, 24, 'for Martinmas'),
         price('wage', "Labourer's wage", 6, 10, 'a day'),
     ],
+    # Drawn on the map, since the city has no street map (src/features/map/drawn.ts).
+    'water': [{'kind': 'river', 'name': 'Eller', 'width_km': 0.1, 'points': [
+        [51.296, 9.525], [51.292, 9.540], [51.292, 9.555], [51.290, 9.570]]}],
 }
 
 if __name__ == '__main__':

@@ -656,6 +656,9 @@ CITY = {
         price('shoes', 'Shoes', 4, 8, 'a pair'),
         price('wage', "Labourer's wage", 2, 4, 'a day'),
     ],
+    # Drawn on the map, since the city has no street map (src/features/map/drawn.ts).
+    'water': [{'kind': 'river', 'name': 'Cam', 'width_km': 0.12, 'points': [
+        [51.034, -2.552], [51.024, -2.545], [51.012, -2.538], [51.006, -2.526], [51.007, -2.508]]}],
 }
 
 if __name__ == '__main__':

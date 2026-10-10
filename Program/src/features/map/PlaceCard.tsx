@@ -7,12 +7,12 @@ import type { Companion } from '../../types'
 import { DRAFT_KEY, newDraft, readDraft, writeDraft } from '../conversation/draft'
 import { historyLine, suggestion, type MapPlace } from './mapText'
 
-interface Props { place: MapPlace; city: string; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
+interface Props { inline?: boolean; place: MapPlace; city: string; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
 
 const storage = () => { try { return window.localStorage } catch { return undefined } }
 
 /** A tapped place: what it is, what happened there with them, who is usually there, and where to go next. */
-export function PlaceCard({ place, city, story, companion, onClose, go }: Props) {
+export function PlaceCard({ inline, place, city, story, companion, onClose, go }: Props) {
   const client = useQueryClient()
   const [error, setError] = useState('')
   const name = companion.version.name
@@ -32,7 +32,7 @@ export function PlaceCard({ place, city, story, companion, onClose, go }: Props)
   }
   const home = place.id === '~home'
   return (
-    <aside className="map-card" aria-label={place.name}>
+    <aside className={inline ? 'map-card inline' : 'map-card'} aria-label={place.name}>
       <header>
         <div><h2>{place.name}</h2><p className="subtle">{[home ? '' : place.kind, place.hood].filter(Boolean).join(' · ')}</p></div>
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>

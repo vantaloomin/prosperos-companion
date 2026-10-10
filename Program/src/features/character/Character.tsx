@@ -19,6 +19,8 @@ import { Wardrobe } from './Wardrobe'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
+import { AdultSideFields } from './AdultSideFields'
+import { LooksFields } from './LooksFields'
 import { QuickStart } from './QuickStart'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
@@ -133,12 +135,14 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('appearance', 'their appearance')}
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
+          <LooksFields definition={cleaned} looks={definition.looks} set={set} />
           <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
           <TextingFields value={definition.texting} onChange={(texting) => set({ texting })} />
           <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
           {help('routine', 'their routine')}
           <LifeFields definition={definition} set={set} themes={texts.themes} setThemes={setText('themes')} help={help} />
           <PerceptionFields definition={cleaned} seenAs={definition.seen_as ?? ''} seesSelf={definition.sees_self ?? ''} set={set} />
+          <AdultSideFields definition={cleaned} value={definition.intimacy} set={set} />
           <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
           <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
             hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />

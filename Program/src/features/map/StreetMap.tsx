@@ -3,6 +3,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { mainPin, type CityMapData } from './mapText'
 import { pinMarkup } from './pins'
+import { narrow } from './mapText'
 
 interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; onFail: () => void }
 
@@ -29,6 +30,8 @@ export function StreetMap({ data, selected, onSelect, onFail }: Props) {
       const icon = L.divIcon({ className: `map-pin pin-${pin}`, html: pinMarkup(pin), iconSize: pin === 'place' ? [12, 12] : [26, 26] })
       const marker = L.marker([place.lat, place.lon], { icon, title: place.name, keyboard: true, zIndexOffset: pin === 'place' ? 0 : 500 })
         .on('click', () => callbacks.current.onSelect(place.id)).addTo(created)
+      // Their places always carry a name; the rest show it on hover or keyboard focus.
+      if (pin === 'place') marker.bindTooltip(place.name, { direction: 'top', offset: [0, -6] })
       markers.current.set(place.id, marker)
     }
     const marked = data.places.filter((place) => place.pins.length)
@@ -40,7 +43,14 @@ export function StreetMap({ data, selected, onSelect, onFail }: Props) {
   useEffect(() => {
     for (const [id, marker] of markers.current) marker.getElement()?.classList.toggle('selected', id === selected)
     const marker = selected ? markers.current.get(selected) : null
-    if (marker && map.current) map.current.panTo(marker.getLatLng())
+    if (marker && map.current) map.current.panTo(clearOfCard(map.current, marker.getLatLng()))
   }, [selected])
   return <div ref={box} className="street-map" />
+}
+
+/** Where to centre so the picked pin stays in view beside the card on a wide screen, or above the sheet on a phone. */
+function clearOfCard(map: L.Map, at: L.LatLng): L.LatLng {
+  const size = map.getSize(), point = map.latLngToContainerPoint(at)
+  const shift = narrow() ? L.point(0, size.y * 0.28) : L.point(Math.min(190, size.x * 0.15), 0)
+  return map.containerPointToLatLng(point.add(shift))
 }

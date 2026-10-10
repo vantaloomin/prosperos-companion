@@ -2,7 +2,7 @@
 from companion import moods as feelings
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
-from companion.database import many, optional, settings
+from companion.database import decode, many, optional, settings
 from companion.events import view as event_view
 from companion.life import agenda, circle, deck, dreams, feed, mood, occasions, routine, simulation, thoughts
 from companion.memory.records import OPEN_PLANS, eligible
@@ -51,7 +51,14 @@ def plans(connection, companion, now) -> dict:
                    "AND json_extract(settled.details, '$.state')='settled' AND json_extract(settled.details, "
                    "'$.thread_key')=json_extract(life_events.details, '$.thread_key')) "
                    'ORDER BY starts_at DESC LIMIT 5', (timeline_id,))
-    return {'shared': user_plans, 'companion': [event_view(row) for row in companion_plans],
+    # Older versions could plan one slot twice; it is shown once.
+    shown, seen = [], set()
+    for row in companion_plans:
+        slot = decode(row['details']).get('target_slot') or row['id']
+        if slot not in seen:
+            seen.add(slot)
+            shown.append(row)
+    return {'shared': user_plans, 'companion': [event_view(row) for row in shown],
             'threads': [event_view(row) for row in threads]}
 
 

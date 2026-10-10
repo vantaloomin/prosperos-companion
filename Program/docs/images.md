@@ -149,6 +149,21 @@ impressions ("looks like someone who...") are dropped and backstory is cut from 
 from a derby fall" keeps the scar). The post's caption is not in the prompt: the feed shows it
 under the picture. Other backends get the same paragraph, which reads as a plain description.
 
+**Looks sheet.** Before the appearance description comes their looks sheet in words
+(`companion/world/looks.py`, banks in `world/data/looks.json`): "A tall, athletic woman in her early
+thirties with olive skin, an oval face, a defined jawline, a straight nose, almond-shaped hazel eyes,
+dark brown hair in a ponytail and freckles." The sheet holds apparent age, height, weight, build, skin,
+face shape, jaw and chin, nose, eye colour and shape, hair, facial hair and one noticeable feature. On
+the character form (Show details > Looks) each field is optional: what the user sets wins, and an empty
+field is drawn from the companion's id, coloured by the heritage their description names and with
+weight worked out from height and build inside a plausible body-mass range (`bmi_limits`), so a roll
+never pairs 4'10" with 350 lb. A drawn field is left out where the appearance text already speaks of
+it, so a picture never gets two hair colours. Weight stays out of the picture (the build word carries
+it) but is in their own prompt as "Looks:", so they answer "how tall are you?" the way their pictures
+show them. Townsfolk draw height, build, hair, eye colour and their feature from their Matchlight looks
+(`companion/world/dating.py`), so a dating card, its photo and a townsperson who becomes the main
+character all show one person; becoming the main character copies the whole sheet onto the form.
+
 **Style per backend.** Each backend can have its own **Style** (stored as `style` in its config), since
 each model wants its own opening: a photo line for Krea 2, a tag-style line for an anime model, a
 plainer one for GPT Image. A request is built with the general style from Settings > Images; when

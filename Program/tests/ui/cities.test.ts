@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { cityFacts, definitionOf, exportName, groupCities, parseDefinition, slugify, type CityListing } from '../../src/features/world/cityText.ts'
+import { categoryOf, cityFacts, definitionOf, exportName, matchesCity, parseDefinition, shelveCities, slugify, type CityListing } from '../../src/features/world/cityText.ts'
 
 const city = (extra: Partial<CityListing> = {}): CityListing => ({
   id: 'baltimore', name: 'Baltimore', region: 'Maryland', country: 'US', setting: 'real', era: 'modern', summary: '', basis: '',
@@ -27,14 +27,30 @@ test('the editor text must be a JSON object', () => {
   assert.match(broken.ok ? '' : broken.error, /not valid JSON/)
 })
 
-test('cities group by origin and sort by name', () => {
-  const groups = groupCities([city({ id: 'z', name: 'Zed', origin: 'user' }), city(), city({ id: 'a', name: 'Arden', origin: 'user' })])
-  assert.deepEqual(groups.user.map((item) => item.name), ['Arden', 'Zed'])
-  assert.equal(groups.builtin.length, 1)
-  assert.deepEqual(groups.pack, [])
+test('cities shelve as Real / Modern, Other Eras, Fictional and Custom, each sorted by name', () => {
+  const shelves = shelveCities([
+    city({ id: 'z', name: 'Zed', origin: 'user', category: 'custom' }), city({ category: 'real' }),
+    city({ id: 'oz', name: 'The Emerald City', category: 'fictional' }), city({ id: 'a', name: 'Arden', origin: 'user', category: 'custom' }),
+    city({ id: 'old', name: 'Old Server City' }),
+  ])
+  assert.deepEqual(shelves.map((shelf) => [shelf.title, shelf.cities.map((item) => item.name)]), [
+    ['Real / Modern', ['Baltimore', 'Old Server City']], ['Other Eras', []], ['Fictional', ['The Emerald City']], ['Custom', ['Arden', 'Zed']],
+  ])
+  assert.equal(categoryOf({ name: 'x', category: 'something-else' }), 'real')
+})
+
+test('the city search matches name, other names, region and country, ignoring accents and case', () => {
+  const ellerbruck = city({ name: 'Ellerbrück', region: 'Hesse', country: 'a small German principality', aliases: ['the market town'] })
+  assert.ok(matchesCity(ellerbruck, 'ellerbruck'))
+  assert.ok(matchesCity(ellerbruck, ' HESSE '))
+  assert.ok(matchesCity(ellerbruck, 'german'))
+  assert.ok(matchesCity(ellerbruck, 'market'))
+  assert.ok(matchesCity(ellerbruck, ''))
+  assert.ok(!matchesCity(ellerbruck, 'gotham'))
 })
 
 test('facts read naturally', () => {
   assert.equal(cityFacts(city()), 'Real city · modern · 21 neighbourhoods, 124 places')
   assert.equal(cityFacts(city({ setting: 'original', counts: { ...city().counts, neighborhoods: 1, places: 1 } })), 'Original setting · modern · 1 neighbourhood, 1 place')
 })
+

@@ -65,7 +65,7 @@ def test_story_mode_marks_the_scene_and_fictional_cities_get_a_sketch(client):
     assert client.put('/api/settings', json={'story_mode': True}).status_code == 200
     scene = client.get('/api/story').json()['scene']
     found = read(client)
-    assert found['story'] is True
+    assert found['story'] is True and isinstance(found['water'], list)
     assert [place['id'] for place in found['places'] if 'scene' in place['pins']] == [scene['place']['id']]
     assert citymap.real({'setting': 'fictional'}) is False and citymap.real({'distribution': 'private'}) is False
     assert citymap.real({'setting': 'real'}) is True
@@ -79,3 +79,16 @@ def test_usual_and_recent_places_come_from_their_events_and_a_lunch_break_is_not
               {'id': '4', 'place': 'office', 'summary': '', 'at': (now - timedelta(days=90)).isoformat(), 'block': 'work'}]
     marked = citymap.marks(events, now)
     assert marked == {'cafe': {'usual', 'recent'}}
+
+
+def test_a_city_can_name_its_sea_rivers_and_lakes_for_the_drawn_map():
+    from pydantic import ValidationError
+
+    from companion.world import catalog
+    from companion.world.schema import Water
+    london = catalog.city('london-1895')
+    assert london['water'][0]['kind'] == 'river' and len(london['water'][0]['points']) >= 2
+    assert Water(kind='sea', name='Grey Sea', side='south').side == 'south'
+    for bad in ({'kind': 'sea'}, {'kind': 'river', 'points': [(1.0, 2.0)]}, {'kind': 'lake', 'points': []}):
+        with pytest.raises(ValidationError):
+            Water(**bad)

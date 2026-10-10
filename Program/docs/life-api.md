@@ -364,6 +364,18 @@ wherever their rules take them. A meeting counts once its slot has happened and 
 (`entry.townsfolk = {key, times}`), and forks keep meetings before the fork. The chat context lists the six
 most recently seen, with only what the companion has learned. No model is involved.
 
+Each townsperson also has a life so far (`companion/world/life_details.py`, bank in
+`companion/world/data/life_details.json`): where they come from, their work history (years at the job they have
+now, or retirement, and one or two jobs before it from the city's careers for the era), a family detail or two
+fitted to their age, maybe a named pet, two tastes and four stories from their past. People at one place or on one
+street never tell the same story. The companion learns where they are from at the first meeting, their work and a
+taste at the second, family and pets at the third, then one story per meeting, which the diary line mentions.
+These reach the chat context, Around town (`facts`, `stories`), Story mode's people and the profile drafted when
+a townsperson becomes the main character. The bank grows without code changes; `tests/test_life_details.py`
+checks its rules (subject-less lowercase clauses, no final period, no gendered words, a `period` alternative where
+wording is modern). Goals and quirks are data too (`world/data/goals.json`, `world/data/quirks.json`, each with the
+line a dating profile shows), as are the temperaments, flaws and desires in `perception.json` (their `town` part).
+
 ```http
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
 GET /api/life/townsfolk/person?key=<key>    # one of them, plus `now`: where their rules put them right now
@@ -381,11 +393,12 @@ companions have no set workplace yet, so nothing is marked as work. A place's ca
 three things that happened there with them, the townsfolk they know who are regulars there, and "Go there"
 (Story mode on, moves the scene) or "Suggest going together" (puts a line in their composer, never sends it).
 Real public cities use OpenStreetMap tiles in the interface, which needs internet; fictional, original and
-private cities, or a street map that fails to load, get a sketch of their neighbourhoods, labelled not to
-scale. The map never shows where the user is. No model is involved.
+private cities, or a street map that fails to load, get a drawn map in the same colours: each neighbourhood a
+district shaped by its neighbours, with side streets, main roads to the districts it borders, parks, and any
+sea, rivers and lakes the city file names (`water`), labelled not to scale. The map never shows where the user is. No model is involved.
 
 ```http
-GET /api/life/map    # {city: {id, name, lat, lon, real}, hoods: [{id, name, lat, lon, next}], places: [...], story}
+GET /api/life/map    # {city: {id, name, lat, lon, real}, hoods: [{id, name, lat, lon, next}], places: [...], water: [...], story}
 ```
 
 ### Who knows who

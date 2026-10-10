@@ -104,6 +104,23 @@ export type Intensity = 'mild' | 'moderate' | 'strong'
 
 export interface EmotionalTrait { name: string; intensity: Intensity; note: string }
 
+/** What they look like, field by field; empty strings and nulls are drawn for them, leaving out what Appearance says. */
+export interface Looks {
+  age: number | null
+  height_cm: number | null
+  weight_kg: number | null
+  build: string
+  skin: string
+  face: string
+  jaw: string
+  nose: string
+  eyes: string
+  eye_shape: string
+  hair: string
+  facial_hair: string
+  feature: string
+}
+
 export interface CharacterDefinition {
   name: string
   /** "MM-DD"; empty picks a date for them. */
@@ -116,6 +133,8 @@ export interface CharacterDefinition {
   interests: string[]
   background: string
   appearance: string
+  /** Face shape, height, build and the rest (companion/world/looks.py); an empty field is drawn for them. */
+  looks?: Looks
   routine: string
   location: string
   relationship: Relationship
@@ -133,6 +152,25 @@ export interface CharacterDefinition {
   life_themes: string[]
   money: MoneySetup
   texting?: TextingStyle
+  /** Their adult side as the user set it (companion/world/intimacy.py); empty fields use the roll. */
+  intimacy?: IntimacySetup | null
+}
+
+export interface IntimacySetup { orientation: string; level: string; drive: string; interests: string[]; note: string }
+
+/** An adult side with labels for showing it (companion/world/intimacy.py view). */
+export interface AdultSide extends IntimacySetup { level_label: string; drive_label: string; interest_labels: string[] }
+
+/** What the character form offers for the adult side, and what the seed gives them as the form stands. */
+export interface AdultSideChoices {
+  rolled: AdultSide | null
+  /** False when their sheet reads as under 18: they never get one. */
+  adult: boolean
+  orientations: string[]
+  levels: { id: string; label: string; text: string }[]
+  drives: { id: string; label: string; text: string }[]
+  groups: { id: string; label: string }[]
+  interests: { id: string; label: string; tier: number; group: string }[]
 }
 
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'
@@ -231,6 +269,10 @@ export interface WorkspaceSettings {
   show_news?: boolean
   /** Hidden values: "Why it went this way" and its odds under storylines, chapters and reactions; off unless turned on. */
   show_odds?: boolean
+  /** Settings > Realism > Adult side of life (companion/world/intimacy.py): adults only; off unless turned on. */
+  adult_side?: boolean
+  /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
+  show_adult_side?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
@@ -496,7 +538,7 @@ export interface FeedPost {
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
-export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string; era?: string }
+export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string; era?: string; category?: string }
 
 export interface ContextReceipt { budget_tokens: number; estimated_tokens: number; included: Record<string, string[]>; omitted: Record<string, string[]> }
 export interface ContextPreview { system: string; note: string; history: { role: 'user' | 'assistant'; content: string }[]; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
@@ -1164,6 +1206,14 @@ export interface Townsperson {
   comes_across: string | null
   /** From the third meeting: how they once described themselves. */
   says_they_are: string | null
+  /** With the adult side on: who they're drawn to, once the companion knows their heart. */
+  orientation?: string | null
+  /** With the adult side on and shown in Hidden values: all of it, for the user's eyes only. */
+  adult_side?: AdultSide | null
+  /** What the companion has picked up about their life (companion/world/life_details.py), a little more each meeting. */
+  facts?: string[]
+  /** Stories from their past they have told, from the fourth meeting, one per meeting. */
+  stories?: string[]
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
   /** How close they and the companion feel, both ways; read-only. */
