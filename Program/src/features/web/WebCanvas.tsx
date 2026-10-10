@@ -80,11 +80,11 @@ function useSimulation(data: WebData, setPositions: (positions: Positions) => vo
       setPositions(Object.fromEntries([...next.values()].map((body) => [body.id, { x: body.x ?? 0, y: body.y ?? 0 }])))
     }
     const sim = forceSimulation([...next.values()])
-      .force('link', forceLink<Body, Tie>(data.links.map((link) => ({ source: link.source, target: link.target }))).id((body) => body.id).distance(70).strength(0.6))
-      .force('charge', forceManyBody().strength(-160))
-      .force('collide', forceCollide<Body>((body) => (sizes.get(body.id) ?? 7) + 6))
+      .force('link', forceLink<Body, Tie>(data.links.map((link) => ({ source: link.source, target: link.target }))).id((body) => body.id).distance(110).strength(0.5))
+      .force('charge', forceManyBody().strength(-380))
+      .force('collide', forceCollide<Body>((body) => (sizes.get(body.id) ?? 7) + 14))
       .force('centre', forceCenter(0, 0).strength(0.03))
-      .alpha(known.size ? 0.4 : 1)
+      .alpha(known.size ? 0.4 : 1).alphaDecay(0.045)
       .on('tick', () => { if (!queued) queued = requestAnimationFrame(publish) })
     simulation.current = sim
     return () => { sim.stop(); cancelAnimationFrame(queued) }

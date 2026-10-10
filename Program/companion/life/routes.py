@@ -14,6 +14,7 @@ from companion.life import (
     agenda,
     chapters,
     circle,
+    citymap,
     deck,
     encounters,
     feed,
@@ -248,6 +249,15 @@ def read_acquaintances(request: Request):
     with database.connect() as connection:
         companion = require_current(connection)
         return network.acquaintances(connection, companion['active_timeline_id'], database.clock.now())
+
+
+@router.get('/map')
+def read_map(request: Request):
+    """The companion's city with their places marked, for the map (companion/life/citymap.py)."""
+    database = db(request)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        return citymap.build(connection, companion, database.clock.now(), bool(settings(connection)['story_mode']))
 
 
 @router.get('/web')

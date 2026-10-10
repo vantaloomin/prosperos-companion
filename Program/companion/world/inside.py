@@ -125,7 +125,7 @@ def sentence(entry: dict, seed: str, home: dict | None = None) -> str:
 def touch(entry: dict | None, seed: str, home: dict | None = None) -> dict | None:
     """The entry with a spot detail added to its summary, when one is drawn. An entry another hook
     already added to (a belonging, a home change) is left alone, so a summary never piles up details."""
-    if not entry or entry.get('home') or entry.get('inside') or entry.get('activity') in WORKING:
+    if not entry or entry.get('home') or entry.get('wardrobe') or entry.get('inside') or entry.get('activity') in WORKING:
         return entry
     line = sentence(entry, seed, home)
     if not line:

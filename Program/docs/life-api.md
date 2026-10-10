@@ -371,6 +371,23 @@ GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the ci
 GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # a neighborhood's residents
 ```
 
+### The city map
+
+Today > Map, Story mode's Map button and the "Show on map" links on Today open the companion's city
+(`companion/life/citymap.py`). Every place in the city pack is a pin, placed near its neighbourhood's centre
+(packs have no per-place coordinates, so the card says "Location approximate"). Their home, their usual
+places (two or more visits in 60 days), places from the last two weeks and Story mode's scene are marked;
+companions have no set workplace yet, so nothing is marked as work. A place's card shows its spots, the last
+three things that happened there with them, the townsfolk they know who are regulars there, and "Go there"
+(Story mode on, moves the scene) or "Suggest going together" (puts a line in their composer, never sends it).
+Real public cities use OpenStreetMap tiles in the interface, which needs internet; fictional, original and
+private cities, or a street map that fails to load, get a sketch of their neighbourhoods, labelled not to
+scale. The map never shows where the user is. No model is involved.
+
+```http
+GET /api/life/map    # {city: {id, name, lat, lon, real}, hoods: [{id, name, lat, lon, next}], places: [...], story}
+```
+
 ### Who knows who
 
 Today > Who knows who draws everyone the user has met or heard about as a web (`companion/life/web.py`):
