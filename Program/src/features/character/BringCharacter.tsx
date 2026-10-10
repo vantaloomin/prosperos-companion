@@ -8,22 +8,32 @@ import { Notice } from '../../components/Feedback'
 import { fileData } from './helper'
 import { IMPORT_TYPES, broughtText, type Brought } from './loreText'
 
+type Result = { tone: 'info' | 'error'; text: string }
+/** The last import's outcome, kept outside the section: the new companion remounts the whole Character page, which
+ * would otherwise lose the "is here" notice the moment it is set. */
+let latest: (Result & { at: number }) | null = null
+const KEEP_MS = 30_000
+
 /** A character card, CHARX, Backyard file or lorebook from another app, imported straight away. The world gives
  * them a job, a home and a routine; everything can be changed on this page afterwards. */
 export function BringCharacter() {
   const client = useQueryClient()
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
+  const [result, showResult] = useState<Result | null>(() => latest && Date.now() - latest.at < KEEP_MS ? latest : null)
+  const setResult = (next: Result | null) => {
+    latest = next && { ...next, at: Date.now() }
+    showResult(next)
+  }
   const bring = async (file: File | undefined) => {
     if (!file) return
     setBusy(true)
     setResult(null)
     try {
       const made = await api<Brought & { companion: Companion | null }>('/import/character', { filename: file.name, data: await fileData(file) })
+      setResult({ tone: 'info', text: broughtText(made) })  // Before the page remounts for the new companion.
       if (made.companion) client.setQueryData(COMPANION_KEY, made.companion)
       await Promise.all(['cast', 'lore', 'versions'].map((key) => client.invalidateQueries({ queryKey: [key] })))
-      setResult({ tone: 'info', text: broughtText(made) })
     } catch (failure) {
       setResult({ tone: 'error', text: failure instanceof Error ? failure.message : 'That file could not be imported.' })
     } finally {

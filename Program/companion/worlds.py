@@ -225,6 +225,12 @@ def carry_settings(target: Path, source: Path, timestamp: str):
     try:
         assignments = ', '.join(f'{column}=MAX({column}, ?) + 1' for column in REVISIONS)
         connection.execute(f'UPDATE workspace_settings SET {assignments} WHERE id=1', tuple(before or (0, 0)))
+        # Memories still waiting from the world's last visit were queued under its own settings; they stay due, and
+        # forming one still checks automatic memory is on (companion/memory/formation.py).
+        if before:
+            connection.execute("UPDATE memory_jobs SET permission_revision=(SELECT permission_revision FROM "
+                               "workspace_settings WHERE id=1) WHERE status='queued' AND permission_revision=?",
+                               (before[0],))
     finally:
         connection.close()
 
