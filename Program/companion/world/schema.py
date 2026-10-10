@@ -583,3 +583,5 @@ class Featured(Record):
     title: Text
     note: str = Field(default='', max_length=200)
     cities: list[Id] = Field(default_factory=list, max_length=4)
+    # The featured cities that first shipped in this release; only these get the New badge.
+    new_cities: list[Id] = Field(default_factory=list, max_length=4)

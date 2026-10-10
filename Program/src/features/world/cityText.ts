@@ -51,7 +51,7 @@ export function parseDefinition(text: string): Parsed {
 }
 
 /** A release's featured cities (GET /world/featured); `new` while the app is on that release. */
-export interface FeaturedCities<T = CityListing> { release: string; title: string; note: string; new: boolean; cities: T[] }
+export interface FeaturedCities<T = CityListing> { release: string; title: string; note: string; new: boolean; cities: (T & { new?: boolean })[] }
 
 export type CityCategory = 'real' | 'other-eras' | 'fictional' | 'custom'
 

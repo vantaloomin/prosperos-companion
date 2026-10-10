@@ -24,9 +24,11 @@ city of today is Real / Modern, a real or original city in a past era (`victoria
 carries the result as `category`.
 
 **Featured cities.** `companion/world/data/featured.json` names a release (`"0.8"`), a title, a short note and up
-to four city ids, and is edited at each release. `GET /api/world/featured` returns the ones that load, in that
-order, with `new` true while the app's major.minor version matches the release. Settings > Cities shows them as a
-strip of cards above the shelves (hidden when the list is empty), with a New badge while `new`; Quick start lists
+to four city ids, plus `new_cities`, the ones among them that first shipped in that release, and is edited at each
+release. `GET /api/world/featured` returns the ones that load, in that order, with `new` true while the app's
+major.minor version matches the release, and on each city `new` while that holds and it is in `new_cities`.
+Settings > Cities shows them as a strip of cards above the shelves (hidden when the list is empty), with a New
+badge on each city whose `new` is set; Quick start lists
 them first under Featured.
 
 Users can also build their own cities (see [Building a city](#building-a-city)). `GET /api/world/cities`

@@ -192,7 +192,7 @@ function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
         {featured.cities.map((city) => (
           <li key={city.id}>
             <button type="button" className="featured-card" onClick={() => jump(city.id)}>
-              <span className="featured-name">{city.name}{featured.new && <span className="badge">New</span>}</span>
+              <span className="featured-name">{city.name}{city.new && <span className="badge">New</span>}</span>
               <span className="subtle">{[city.region, city.country].filter(Boolean).join(', ')}</span>
               <span className="featured-summary">{city.summary}</span>
             </button>
