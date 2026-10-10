@@ -554,3 +554,19 @@ def test_one_agenda_extension_reads_a_days_weather_and_happenings_once():
     # A world without climate or events still answers as none.
     assert SameDay(object()).weather('Baltimore', day) is None
     assert SameDay(object()).happenings('Baltimore', day) == []
+
+
+def test_a_long_catch_up_is_written_a_subject_at_a_time_first(client, life, clock, monkeypatch):
+    from companion.life import agenda
+    reconcile(client)
+    clock.advance(timedelta(days=10))
+    database, engine = client.app.state.database, client.app.state.life
+    agenda.catch_up_in_steps(database, None, engine.world, clock.now())
+    with database.connect() as connection:
+        through = connection.execute('SELECT MIN(through) FROM agenda_cursors').fetchone()[0]
+    assert parse(through) >= clock.now() + agenda.HORIZON - timedelta(minutes=1)
+    # Up to date: nothing more is written in steps.
+    calls = []
+    monkeypatch.setattr(agenda, 'extend_subject', lambda *args: calls.append(args))
+    agenda.catch_up_in_steps(database, None, engine.world, clock.now())
+    assert calls == []
