@@ -14,6 +14,7 @@ from datetime import timedelta
 
 from companion import consequences, self_facts
 from companion.characters import by_id
+from companion.characters import current as in_focus
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
@@ -39,6 +40,8 @@ from companion.world import generators
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
+# How far behind an agenda is before its catch-up is written one subject at a time (catch_up_in_steps).
+STEP_AFTER = timedelta(days=1)
 COMPANION = 'companion'
 BUSY = {'work', 'study', 'sleep'}
 WORKING = {'work', 'study'}
@@ -72,8 +75,34 @@ def seed_for(timeline_id, subject, slot_key) -> str:
     return f'agenda:{timeline_id}:{subject}:{slot_key}'
 
 
+class SameDay:
+    """The world for the length of one extension. Every subject asks for the city's weather and happenings day after
+    day (their plans, whether it is winter for a cold), and each lookup reads the city's data afresh: a month away
+    asked hundreds of times, which made the first open after a month take seconds. Callers copy what they keep."""
+
+    def __init__(self, world):
+        self.world = world
+        self.seen = {}
+
+    def __getattr__(self, name):
+        return getattr(self.world, name)
+
+    def remembered(self, name, city, day, empty):
+        if (name, city, day) not in self.seen:
+            lookup = getattr(self.world, name, None)
+            self.seen[name, city, day] = lookup(city, day) if lookup else empty
+        return self.seen[name, city, day]
+
+    def weather(self, city, day):
+        return self.remembered('weather', city, day, None)
+
+    def happenings(self, city, day):
+        return self.remembered('happenings', city, day, [])
+
+
 def extend(connection, companion, world, now) -> dict:
     """Bring every subject's agenda up to a week ahead and settle what has ended. Cheap: no model."""
+    world = SameDay(world)
     if chapters.advance(connection, companion, world, now):
         companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
@@ -90,6 +119,27 @@ def extend(connection, companion, world, now) -> dict:
     started = storylines.advance(connection, companion, now)
     reactions.daily(connection, companion, now)
     return {'written': written, 'settled': settled, 'storylines': started}
+
+
+def catch_up_in_steps(database, companion_id, world, now):
+    """Write a long catch-up one subject at a time, each in its own transaction, before `extend` settles the rest.
+    A companion out of focus who is weeks behind otherwise held the database's write lock for many seconds, and the
+    user's own changes waited, or failed as "database is locked". Only when the agenda is more than a day behind."""
+    with database.connect() as connection:
+        companion = by_id(connection, companion_id) if companion_id else in_focus(connection)
+        if companion is None:
+            return
+        timeline_id = companion['active_timeline_id']
+        behind = optional(connection, 'SELECT MIN(through) AS through FROM agenda_cursors WHERE timeline_id=?',
+                          (timeline_id,))
+        if not behind or not behind['through'] or parse(behind['through']) > now + HORIZON - STEP_AFTER:
+            return
+        found = subjects(connection, companion, world, now)
+    world = SameDay(world)
+    for subject, definition, basis in found:
+        with database.connect(write=True) as connection:
+            extend_subject(connection, timeline_id, companion['version']['timezone'], subject, definition, basis,
+                           world, now, companion)
 
 
 def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion=None) -> int:

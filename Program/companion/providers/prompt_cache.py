@@ -19,6 +19,7 @@ server's own `--slot-save-path` folder, one per companion, each overwritten in p
 import asyncio
 import hashlib
 import logging
+import time
 from dataclasses import dataclass, field
 
 import httpx
@@ -28,11 +29,14 @@ PROVIDERS = {'local', 'compatible'}
 MIN_START = 2000
 SLOT = 0
 PROBE_SECONDS, SLOT_SECONDS = 3, 120
+# A server that could not be reached (not started yet, or still loading its model) is asked again after this long.
+REPROBE_SECONDS = 60
 
 
 @dataclass
 class Server:
     supported: bool | None = None
+    unreachable_at: float | None = None
     loaded: str | None = None
     saved: set[str] = field(default_factory=set)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -65,10 +69,16 @@ class PromptCache:
 
     async def probe(self, client: httpx.AsyncClient, config: dict, server: Server) -> bool:
         """Only llama.cpp's server reports its slots under /props."""
+        if server.unreachable_at is not None and time.monotonic() - server.unreachable_at >= REPROBE_SECONDS:
+            server.supported = server.unreachable_at = None
         if server.supported is None:
             try:
                 response = await client.get(root(config['base_url']) + '/props', timeout=PROBE_SECONDS)
                 server.supported = response.status_code == 200 and 'total_slots' in response.json()
+                if response.status_code == 503:  # llama-server answers 503 while it loads the model.
+                    server.unreachable_at = time.monotonic()
+            except httpx.TransportError:
+                server.supported, server.unreachable_at = False, time.monotonic()
             except (httpx.HTTPError, ValueError):
                 server.supported = False
         return server.supported

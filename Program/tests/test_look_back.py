@@ -37,6 +37,14 @@ def test_the_second_try_only_drops_a_request():
         ' ' * 300
 
 
+def test_a_reply_cut_off_inside_a_request_never_shows_it():
+    lookout = look_back.Lookout()
+    assert feed(lookout, '[[recall: the ferry ', 'trip to Annapolis') == ''
+    assert lookout.query == 'the ferry trip to Annapolis'
+    assert feed(look_back.Lookout(), 'Sure, love. ', '[[recall: the fer') == 'Sure, love. '
+    assert feed(look_back.Lookout(strip=True), 'Oh! [[Recall: zoo') == 'Oh! '
+
+
 def test_only_messages_that_point_back_get_the_offer():
     assert look_back.points_back('Do you remember the ferry?') and look_back.points_back('Last summer was fun')
     assert not look_back.points_back('What are you doing tonight?')

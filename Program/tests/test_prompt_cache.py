@@ -64,3 +64,21 @@ def test_a_server_that_cannot_save_is_left_alone():
     reply(provider, MIRA)
     assert [call for call in calls if call[0] != 'reply'] == [('save', calls[1][1])]
     assert calls[-1] == ('reply', None)
+
+
+def test_a_server_that_was_not_up_yet_is_asked_again(monkeypatch):
+    from companion.providers import prompt_cache
+    calls, up = [], {'yes': False}
+    serving = llama(calls)
+
+    def handler(request):
+        if not up['yes'] and request.url.path == '/props':
+            raise httpx.ConnectError('refused', request=request)
+        return serving.handle_request(request)
+    provider = ChatProvider(httpx.MockTransport(handler))
+    reply(provider, MIRA)
+    assert calls == [('reply', None)]
+    up['yes'] = True
+    monkeypatch.setattr(prompt_cache, 'REPROBE_SECONDS', 0)
+    reply(provider, MIRA)
+    assert calls[-1] == ('reply', 0)

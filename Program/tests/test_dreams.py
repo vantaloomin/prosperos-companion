@@ -128,3 +128,19 @@ def test_dreams_are_never_romantic_or_sexual():
     texts = [template[field] for template in dreams.data()['templates'] for field in ('text', 'told', 'share')]
     texts += dreams.data()['odd'] + dreams.data()['object']
     assert not {word.strip('.,!?') for text in texts for word in text.lower().split()} & banned
+
+
+def test_a_night_waits_until_the_day_has_been_lived(client, dreamer, clock):
+    """Opening Today before the day's life is settled must not fix the night as dreamless for good."""
+    morning(clock)
+    database = client.app.state.database
+    yesterday = (clock.now() - timedelta(days=1)).date().isoformat()
+    with database.connect(write=True) as connection:
+        timeline_id = require_current(connection)['active_timeline_id']
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, "
+                           "local_date, block, basis, created_at) VALUES ('late', ?, 'companion', 'late', ?, ?, ?, "
+                           "'{}', 'b', ?)", (timeline_id, yesterday, yesterday, yesterday, yesterday))
+    assert today(client) == []
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE life_agenda SET status='happened' WHERE id='late'")
+    assert len(today(client)) == 1

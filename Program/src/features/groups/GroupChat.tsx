@@ -99,7 +99,7 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
         </div>
         {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}
       </div>
-      <p className="chat-activity subtle" role="status" aria-live="polite">{groupActivity(data, sending) || <AsideText note={ooc.note} />}</p>
+      <p className="chat-activity subtle" role="status" aria-live="polite">{groupActivity(data, sending)}{groupActivity(data, sending) && ooc.note && ' · '}<AsideText note={ooc.note} /></p>
       <GroupNotice notice={notice ?? (data.ready ? null : NO_MODEL)} go={go} />
       {group.members.length
         ? <Composer name={group.title} draft={draft} streaming={data.busy} compact={scroll.away} onSend={() => void submit()} pictures={false}

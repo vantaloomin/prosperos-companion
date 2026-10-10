@@ -18,7 +18,7 @@ favourites; upcoming days are then drawn again.
 import re
 from datetime import date, timedelta
 
-from companion.clock import stamp, zone
+from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import circle, money
@@ -345,9 +345,11 @@ def plain_name(name: str) -> str:
     return ' '.join(word for word in name.split(' ') if word not in extra)
 
 
-def started_on(connection, timeline_id) -> date:
+def started_on(connection, timeline_id, timezone: str | None) -> date:
+    """The day the timeline began where the companion lives: a companion made in a US evening (already tomorrow in
+    UTC) has everything from that evening on."""
     row = one(connection, 'SELECT created_at FROM timelines WHERE id=?', (timeline_id,))
-    return date.fromisoformat(row['created_at'][:10])
+    return parse(row['created_at']).astimezone(zone(timezone or 'UTC')).date()
 
 
 def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
@@ -355,7 +357,7 @@ def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
     state = optional(connection, 'SELECT * FROM wardrobe_state WHERE timeline_id=?', (timeline_id,))
     if state:
         return state
-    seed, start = f'wardrobe:{timeline_id}', started_on(connection, timeline_id)
+    seed, start = f'wardrobe:{timeline_id}', started_on(connection, timeline_id, definition.get('timezone'))
     found, items = assemble(seed, definition, circle.city_data(definition, world))
     for item in items:
         insert_item(connection, timeline_id, item, 'generated', start, now)
