@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { BookHeart, Plus } from 'lucide-react'
 import { api } from '../../api'
-import { HISTORY_KEY, MEMORIES_KEY } from '../../companion'
+import { HISTORY_KEY, MEMORIES_KEY, type View } from '../../companion'
 import type { Companion, DeleteResult, History, Memory, Message } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -28,7 +28,7 @@ function takeRememberRequest(): RememberRequest | null {
   } catch { return null }
 }
 
-export function Memories({ companion }: { companion: Companion }) {
+export function Memories({ companion, go }: { companion: Companion; go: (view: View) => void }) {
   const client = useQueryClient()
   const [history, setHistory] = useState(false)
   const [request] = useState(takeRememberRequest)
@@ -104,7 +104,10 @@ export function Memories({ companion }: { companion: Companion }) {
           <h1>Memories</h1>
           <p className="subtle">What {name} remembers and where it came from. Corrections and changes apply from the next reply.</p>
         </div>
-        {!adding && <button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember something</button>}
+        <div className="today-actions">
+          <button type="button" className="button" onClick={() => go('year')}><BookHeart aria-hidden="true" />Our year so far</button>
+          {!adding && <button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember something</button>}
+        </div>
       </header>
       {adding && <RememberForm name={name} request={request} onSave={remember} onCancel={() => setAdding(false)} />}
       <Suggestions name={name} run={run} />

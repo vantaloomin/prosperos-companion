@@ -13,6 +13,7 @@ members' happened entries are their visible diary.
 from datetime import timedelta
 
 from companion import consequences, self_facts
+from companion.almanac.context import city_for as almanac_city
 from companion.characters import by_id
 from companion.characters import current as in_focus
 from companion.clock import parse, stamp
@@ -32,6 +33,7 @@ from companion.life import (
     recommendations,
     routine,
     storylines,
+    traditions,
     wardrobe,
 )
 from companion.memory import pairs
@@ -64,8 +66,18 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
                        f"{person['id']}:{person['revision']}"))
     # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
     result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id']),
-                               'own_birthday': occasions.own_birthday(companion)}, version['id']))
+                               'own_birthday': occasions.own_birthday(companion),
+                               'traditions': kept_traditions(connection, companion, now)}, version['id']))
     return result
+
+
+def kept_traditions(connection, companion, now) -> dict[str, dict]:
+    """The family's traditions on the dates an extension can write (companion/life/traditions.py), seeded the first
+    time the circle exists."""
+    city = almanac_city(connection, companion['version']['definition'])
+    traditions.ensure(connection, companion, city, now)
+    return traditions.on_dates(connection, companion, city, (now - BACKFILL - timedelta(days=1)).date(),
+                               (now + HORIZON + timedelta(days=1)).date())
 
 
 def seed_for(timeline_id, subject, slot_key) -> str:
@@ -246,6 +258,8 @@ def compose_entry(connection, scope: dict, slot, view: dict, company: list, rece
     timeline_id, definition, world, block = scope['timeline_id'], scope['definition'], scope['world'], view['block']
     if scope['subject'] != COMPANION:
         return composer.compose(view, definition, world, seed, recent[-3:], company, [])
+    if (kept := composer.tradition(view, definition, seed)) and not tradition_done(connection, timeline_id, view):
+        return kept
     celebrants = birthdays(connection, timeline_id, view['local_date'], company)
     entry = recommendations.session_for(connection, timeline_id, slot, block, definition, seed, company)
     if not entry and not celebrants and scope['companion']:
@@ -253,6 +267,13 @@ def compose_entry(connection, scope: dict, slot, view: dict, company: list, rece
     entry = entry or composer.compose(view, definition, world, seed, recent[-3:], company, celebrants)
     entry = network.run_in(connection, timeline_id, entry, view, block, seed)
     return encounters.meet(connection, scope['companion'], entry, view, block, seed)
+
+
+def tradition_done(connection, timeline_id, view: dict) -> bool:
+    """A holiday's tradition fills one slot of the day, the first free one."""
+    return optional(connection, "SELECT 1 FROM life_agenda WHERE timeline_id=? AND subject=? AND local_date=? "
+                    "AND json_extract(entry, '$.activity')='tradition' LIMIT 1",
+                    (timeline_id, COMPANION, view['local_date'])) is not None
 
 
 def repin(connection, timeline_id, plans: dict) -> int:

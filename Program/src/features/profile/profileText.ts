@@ -14,6 +14,7 @@ export const PROFILE_TABS: { id: ProfileTab; label: string }[] = [
 export function profileTab(view: string): ProfileTab | null {
   if (view === 'conversation' || view === 'feed' || view === 'memories' || view === 'character') return view
   if (view === 'appearance' || view === 'portraits' || view.startsWith('cast/')) return 'character'
+  if (view === 'year') return 'memories'
   return null
 }
 

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Map as MapIcon, Network, Newspaper, Play, RotateCcw, X } from 'lucide-react'
+import { BookHeart, Check, Map as MapIcon, Network, Newspaper, Play, RotateCcw, X } from 'lucide-react'
 import { api } from '../../api'
 import { SETTINGS_KEY, type View } from '../../companion'
-import type { Companion, LifeEvent, PauseRecord, Today as TodayData } from '../../types'
+import type { Companion, LifeEvent, PauseRecord, ScrapbookListing, Today as TodayData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Circle } from './Circle'
@@ -21,6 +21,7 @@ import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
+import { SCRAPBOOKS_KEY, featuredCard } from '../year/yearText'
 
 const TODAY_KEY = ['today']
 
@@ -80,6 +81,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       </header>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       <StateNotices data={data} name={name} onResume={resume} />
+      <YearReady name={name} go={go} />
       {data.paused ? null : <PausedTime name={name} onDone={(text) => { setFeedback({ tone: 'info', text }); void client.invalidateQueries({ queryKey: TODAY_KEY }) }} />}
       {data.mood && (
         <section className="today-section" aria-labelledby="mood-heading">
@@ -124,11 +126,19 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
 
 function Feeling({ data, name }: { data: TodayData; name: string }) {
   const text = bodyText(data.day?.body, name)
+  const occasions = useOccasions(data, name)
   return <>
     {text && <p className="subtle">{text}</p>}
     {data.feeling && data.feeling.feeling !== 'calm' && <p className="subtle">{data.feeling.text}{data.feeling.reason ? `: ${data.feeling.reason}` : ''}.</p>}
-    {(data.occasions ?? []).map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
+    {occasions.map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
   </>
+}
+
+/** The occasions for the header; while the scrapbook card shows, it carries the anniversary instead. */
+function useOccasions(data: TodayData, name: string) {
+  const listing = useQuery({ queryKey: SCRAPBOOKS_KEY, queryFn: () => api<ScrapbookListing>('/life/year') })
+  const card = featuredCard(listing.data, name)
+  return (data.occasions ?? []).filter((item) => !(card && item.kind === 'anniversary'))
 }
 
 function Section({ id, title, hint, empty, children }: { id: string; title: string; hint?: string; empty?: string; children: ReactNode[] }) {
@@ -137,6 +147,25 @@ function Section({ id, title, hint, empty, children }: { id: string; title: stri
       <h2 id={`${id}-heading`}>{title}</h2>
       {hint && <p className="subtle">{hint}</p>}
       {children.length ? <ul className="event-list">{children}</ul> : empty && <p className="subtle">{empty}</p>}
+    </section>
+  )
+}
+
+/** On an anniversary of the first talk, and in the first week of January, the scrapbook of the year just finished. */
+/** In an anniversary week or January's first week, a small scrapbook card. Opening it or putting it away keeps it
+ * away for good. */
+function YearReady({ name, go }: { name: string; go: (view: View) => void }) {
+  const client = useQueryClient()
+  const listing = useQuery({ queryKey: SCRAPBOOKS_KEY, queryFn: () => api<ScrapbookListing>('/life/year') })
+  const card = featuredCard(listing.data, name)
+  if (!card) return null
+  const dismiss = async () => client.setQueryData(SCRAPBOOKS_KEY, await api<ScrapbookListing>(`/life/year/${card.key}/seen`, {}))
+  return (
+    <section className="year-card" aria-labelledby="year-card-heading">
+      <h2 id="year-card-heading">{card.title}</h2>
+      <p>{card.stat}</p>
+      <button type="button" className="button primary" onClick={() => go('year')}><BookHeart aria-hidden="true" />Open the scrapbook</button>
+      <button type="button" className="icon-button year-card-close" aria-label="Put the scrapbook away" onClick={() => void dismiss()}><X aria-hidden="true" /></button>
     </section>
   )
 }

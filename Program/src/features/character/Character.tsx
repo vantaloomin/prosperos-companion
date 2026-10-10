@@ -15,6 +15,7 @@ import { useFormBridge } from '../sidecar/useFormBridge'
 import { sidecar } from '../sidecar/store'
 import { TextingFields } from './TextingFields'
 import { Home } from './Home'
+import { Traditions } from './Traditions'
 import { Wardrobe } from './Wardrobe'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
@@ -165,6 +166,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
   return (<>
     {details && <>
       <Home name={name} />
+      <Traditions name={name} />
       <Wardrobe name={name} />
       <SelfFacts name={name} />
     </>}
