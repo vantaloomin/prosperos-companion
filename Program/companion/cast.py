@@ -21,7 +21,7 @@ from companion.errors import DomainError, require
 from companion.life import encounters, network
 from companion.memory import pairs
 from companion.models import CharacterDefinition, CharacterDraftRequest
-from companion.world import catalog, generators, perception, townsfolk
+from companion.world import catalog, generators, life_details, perception, townsfolk
 
 # A shift's part of the day sets when they sleep, as (bed, wake).
 SLEEP = {'morning': ('21:30', '05:00'), 'afternoon': ('23:30', '08:00'), 'evening': ('01:30', '09:30'),
@@ -205,12 +205,12 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
         'personality': f"{name} is {temperament} and {sheet['quirk']}. People meeting {name} for the first time "
                        f"say they {townsfolk.first_impression(sheet)}. Underneath, {name} wants "
                        f"{townsfolk.DESIRES[sheet['desire']]}.",
-        'voice': VOICES.get(temperament, ''),
+        'voice': VOICES.get(temperament) or perception.entry('temperament', temperament).get('town', {}).get('voice', ''),
         'flaws': [flaw[:1].upper() + flaw[1:] + '.'],
         'skills': [f"Knows the regulars and the rhythms of {sheet['place']['name']}."],
         'interests': [item for item in (goal_interest, sheet['place']['kind']) if item],
-        'background': f"Has lived in {home} for years. Right now {name} is trying to {state['goal']['text']}."
-                      f"{lately}{reached} {met_text(found)}".rstrip(),
+        'background': f"{life_details.background(data, sheet) or f'Has lived in {home} for years.'} Right now "
+                      f"{name} is trying to {state['goal']['text']}.{lately}{reached} {met_text(found)}".rstrip(),
         'routine': townsfolk.routine_text(sheet)[:1].upper() + townsfolk.routine_text(sheet)[1:] + '.',
         'location': f"{home}, {data['name']}, {data['region']}",
         'home_city': data['id'],

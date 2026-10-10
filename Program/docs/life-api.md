@@ -364,6 +364,17 @@ wherever their rules take them. A meeting counts once its slot has happened and 
 (`entry.townsfolk = {key, times}`), and forks keep meetings before the fork. The chat context lists the six
 most recently seen, with only what the companion has learned. No model is involved.
 
+Each townsperson also has a life so far (`companion/world/life_details.py`, bank in
+`companion/world/data/life_details.json`): where they come from, their work history (years at the job they have
+now, or retirement, and one or two jobs before it from the city's careers for the era), a family detail or two
+fitted to their age, maybe a named pet, two tastes and four stories from their past. People at one place or on one
+street never tell the same story. The companion learns where they are from at the first meeting, their work and a
+taste at the second, family and pets at the third, then one story per meeting, which the diary line mentions.
+These reach the chat context, Around town (`facts`, `stories`), Story mode's people and the profile drafted when
+a townsperson becomes the main character. The bank grows without code changes; `tests/test_life_details.py`
+checks its rules (subject-less lowercase clauses, no final period, no gendered words, a `period` alternative where
+wording is modern).
+
 ```http
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
 GET /api/life/townsfolk/person?key=<key>    # one of them, plus `now`: where their rules put them right now

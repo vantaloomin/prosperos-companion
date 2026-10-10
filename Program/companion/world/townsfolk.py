@@ -14,6 +14,7 @@ nudged by their temperament and dragged by their flaw, makes progress, stalls or
 once enough progress is made they reach it and move on to their next goal. No model is involved.
 """
 import functools
+import json
 from datetime import date, datetime
 
 from companion.world import catalog, generators
@@ -77,6 +78,78 @@ QUIRKS = (
     'by name', 'is always running five minutes late', 'collects odd little trinkets', 'names every plant they own',
     'has an opinion about everyone\'s shoes', 'talks to pigeons', 'sketches people when they think no one is looking',
     'whistles the same tune all day', 'keeps sweets in every pocket',
+    'reads the last page of a book first', 'counts the steps on every staircase', 'always sits facing the door',
+    'keeps a pencil tucked behind one ear', 'greets every cat like an old friend', 'rates every meal out of ten',
+    'carries a pocketknife and a spare button', 'quotes old proverbs at the oddest moments',
+    'can name every bird by its song', 'taps out rhythms on any surface', 'keeps a jar of buttons nobody may touch',
+    'never leaves without checking the weather twice', 'folds napkins into little animals',
+    'always knows where the best bread in town is', 'saves every ticket stub and receipt',
+    'gives everyone a nickname within a week', 'drinks tea far too hot for anyone else',
+    'has a lucky coin and flips it to decide things', 'apologizes to furniture after bumping into it',
+    'keeps a pressed flower in their wallet', 'laughs a beat after everyone else',
+    'rearranges the salt and pepper wherever they sit', 'knows a card trick and will show you',
+    'writes the date at the top of everything', 'collects other people\'s lost gloves',
+    'speaks to babies as if they were grown-ups',
+    'keeps a running tally of every rainy day',
+    'carries a spare umbrella to lend out',
+    'always orders the second-cheapest thing',
+    'never sits in the same seat twice',
+    'keeps lists of favorite words',
+    'tears bread into perfect little squares',
+    'wears mismatched socks on purpose',
+    'can fall asleep sitting up anywhere',
+    'knows when every bell in town will ring',
+    'keeps a small brass bell on their keys',
+    'salutes every magpie',
+    'always has a piece of string handy',
+    "rates strangers' dogs out loud",
+    'keeps a seed packet in every coat',
+    'memorizes the names on every shop sign without meaning to',
+    'says goodnight to the moon',
+    'can recite every street in the neighborhood in order',
+    'always pays in exact change',
+    "keeps a tiny sewing kit and fixes other people's hems",
+    'eats dessert first whenever allowed',
+    'sniffs every book before opening it',
+    'taps the doorframe twice on the way out',
+    'collects smooth stones from every trip',
+    'draws little suns on the corners of notes',
+    'can tie a dozen kinds of knots',
+    'keeps a diary of the weather and nothing else',
+    'carries a magnifying glass for no clear reason',
+    "knows the birthday of every neighbor's cat",
+    'always walks on the sunny side of the street',
+    'cuts sandwiches into triangles and nothing else',
+    'saves the puzzle page for later and never finishes it',
+    'finishes every sentence with a little nod',
+    'keeps a stash of postcards and sends them to friends across town',
+    'names the pigeons on their windowsill',
+    'laughs loudest at their own jokes',
+    'keeps an old watch that runs ten minutes fast on purpose',
+    "can't pass a puddle without hopping over it",
+    'makes up words and uses them seriously',
+    'keeps a jar of honey from every market they visit',
+    'hums a different tune for every season',
+    'tucks a flower in their buttonhole on Fridays',
+    'tests every chair before sitting down',
+    'always has a pocket full of acorns or conkers',
+    'greets the morning with a big stretch out the window',
+    "keeps meticulous notes on every pie they've eaten",
+    'knows a little poem for any occasion',
+    "carries a handkerchief embroidered with someone else's initials",
+    'pats every bench they pass',
+    'writes letters with a fountain pen and seals them with wax',
+    'is suspicious of all soup',
+    'keeps a pebble in their pocket for luck',
+    'only drinks from one particular chipped mug',
+    'stops to read every notice board',
+    'carries a small notebook of overheard sayings',
+    'always arrives with something baked',
+    'counts under their breath when nervous',
+    'keeps a little music box by the window and winds it nightly',
+    'puts a coin in every fountain',
+    'refuses to step on cracks in the pavement',
+    'folds every letter into thirds, exactly',
 )
 # Flaws: (text, slows their goal down, setback wording with {name}).
 FLAWS = {
@@ -99,6 +172,24 @@ DESIRES = {
     'needed': 'to be needed', 'security': 'never to worry about money again', 'belonging': 'to belong somewhere',
     'escape': 'to get out of this city someday', 'family': 'to make their family proud',
 }
+
+
+def _more_traits():
+    """The rest of the temperaments, flaws and desires live in the phrase bank (world/data/perception.json), each
+    with a `town` part giving what the sheet needs, so the bank can grow them without code changes."""
+    found = json.loads((catalog.DATA / 'perception.json').read_text(encoding='utf-8'))
+    for key, item in found['temperaments'].items():
+        if 'town' in item:
+            TEMPERAMENTS.setdefault(key, (key, item['town']['impression'], item['town']['lift']))
+    for key, item in found['flaws'].items():
+        if 'town' in item:
+            FLAWS.setdefault(key, (item['town']['text'], item['town']['slows'], item['town']['setback']))
+    for key, item in found['desires'].items():
+        if 'town' in item:
+            DESIRES.setdefault(key, item['town']['text'])
+
+
+_more_traits()
 # Goals: id, wording (modern, period), steps to reach it, where they practise (place kind, part of day) or
 # None, progress line, done line. Lines start with the person's given name.
 GOALS = (
