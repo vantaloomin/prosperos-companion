@@ -21,6 +21,7 @@ may pick bank entries by id (`compose`), and every id is checked against the ban
 
 The bank is data (world/data/perception.json), so it can grow without code changes. No model is involved.
 """
+import copy
 import json
 import re
 from functools import cache, lru_cache
@@ -260,7 +261,14 @@ def compose(definition: dict, seed: str, raw_picks=None, raw_gaps=None) -> dict[
 
 
 def for_companion(companion_id: str, definition: dict) -> dict:
-    """A companion's lines: what the user wrote on the form wins, field by field."""
+    """A companion's lines: what the user wrote on the form wins, field by field. The same sheet always gives the
+    same lines, and a new day asks for every companion's many times over, so they are worked out once per sheet."""
+    return copy.deepcopy(lines_for(companion_id, json.dumps(definition, sort_keys=True, default=str)))
+
+
+@lru_cache(maxsize=512)
+def lines_for(companion_id: str, sheet: str) -> dict:
+    definition = json.loads(sheet)
     found = automatic(definition, companion_id)
     written_public = (definition.get('seen_as') or '').strip()
     written_private = [line.strip(' -•\t') for line in (definition.get('sees_self') or '').splitlines()

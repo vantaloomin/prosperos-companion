@@ -69,3 +69,38 @@ Windows 11, Ryzen 9 9950X3D, Python 3.12, 2026-10-07. Times are in milliseconds.
 
 A Linux cloud machine gave the same picture. At full speed it reached 247 companions, with a new
 day taking at most about a quarter of a second, a chat prompt 94 ms and a 168 MB database.
+
+## Worlds and automatic backups
+
+Each world is its own database, and only the world the user is in lives day to day; another world catches up
+when the user goes back to it. `Program/scripts/bench_worlds.py` grows a first world to 25 companions, then adds
+personas and worlds (each with its own townsfolk and starter companion, living a month), and at 1, 2, 5, 10, 25
+and 50 worlds times the things that grow with them.
+
+```
+cd Program
+python scripts/bench_worlds.py --max 50 --heavy 25 --out worlds.json
+```
+
+Linux cloud machine (4 cores, shared with other tests), Python 3.13, 2026-10-10. Times are in milliseconds.
+
+| Worlds | Worlds page | Switch | Start-up | Back up every world | All databases | All automatic backups | Largest backup |
+|---|---|---|---|---|---|---|---|
+| 1 | 17 | 16 | 122 | 3,305 | 86 MB | 12 MB | 12 MB |
+| 5 | 35 | 90 | 120 | 3,873 | 98 MB | 13 MB | 12 MB |
+| 10 | 133 | 97 | 102 | 4,733 | 109 MB | 14 MB | 12 MB |
+| 25 | 120 | 113 | 98 | 5,955 | 139 MB | 16 MB | 13 MB |
+| 50 | 637 | 213 | 126 | 10,806 | 189 MB | 19 MB | 13 MB |
+
+Fifty worlds are fine. The Worlds page reads every world's companion names, so it takes longer with many worlds,
+and switching stays well under a quarter of a second. Automatic backups run in the background and skip a world
+nobody has opened since its last backup (a second run took 6 to 16 ms). A backup is about a seventh of its
+world's database.
+
+Coming back to a world after a month away (its 25 companions' lives caught up for the one in focus) took 11 s
+before the fixes in this round and takes about 3 s now: a new day used to read the city's weather afresh for
+every person and day, and work out every companion's perception lines from scratch many times over.
+
+**A new day with many companions** now also lives a turn of three companions out of focus ("Everyone keeps
+living", added after the measurements above). On the same cloud machine, a new day with 25 companions took about
+1.5 s for the one in focus and 1.5 to 3 s for the turn of the others, in the background.
