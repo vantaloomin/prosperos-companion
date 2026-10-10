@@ -33,15 +33,16 @@ NOT_A_PROGRAM = {errno.ENOEXEC, 193}  # 193: Windows' "not a valid Win32 applica
 
 
 def start_failure(label: str, error: OSError) -> str:
-    """Why a program did not start, in plain words; the system's own message goes to the log."""
+    """Why a program did not start, in plain words (Iris); the system's own words go beside it as `detail`."""
     log.warning('%s could not be started: %s', label, error)
     if isinstance(error, PermissionError):
-        return f'{label} could not be started: this computer did not let the Companion open it.'
+        return (f"{label} couldn't start because your computer didn't allow it to run. Check that you can open it "
+                'yourself, then try again.')
     if isinstance(error, FileNotFoundError):
-        return f'{label} could not be started: it is no longer where it was saved.'
+        return f"{label} couldn't start: nothing is at that location any more. It may have moved or been uninstalled."
     if error.errno in NOT_A_PROGRAM or getattr(error, 'winerror', None) in NOT_A_PROGRAM:
-        return f'{label} could not be started: that file is not a program.'
-    return f'{label} could not be started.'
+        return f"{label} couldn't start: that file isn't a program. Choose the {label} program itself."
+    return f"{label} couldn't start. The details are in the log (Settings > Debug)."
 
 
 def comfy_install(path: Path) -> bool:
@@ -149,8 +150,8 @@ class Launcher:
         if path is not None:
             require(not path or Path(path).exists(), 'Nothing was found at that path.', 422)
             require(not path or program != 'comfyui' or comfy_install(Path(path)),
-                    "That folder doesn't look like ComfyUI. Choose the folder with main.py in it, the ComfyUI app, "
-                    'or the script you start it with.', 422)
+                    "That folder doesn't look like ComfyUI: there's no main.py in it. Choose the ComfyUI folder, "
+                    'the ComfyUI app, or the script you start it with.', 422)
             values.update(path=path, chosen=1 if path else 0)
         if model_path is not None:
             require(not model_path or Path(model_path).is_file(), 'That model file was not found.', 422)
@@ -188,7 +189,8 @@ class Launcher:
         except DomainError as error:
             self.states[program] = {'state': 'failed', 'message': error.message}
         except OSError as error:
-            self.states[program] = {'state': 'failed', 'message': start_failure(PROGRAMS[program]['label'], error)}
+            self.states[program] = {'state': 'failed', 'message': start_failure(PROGRAMS[program]['label'], error),
+                                    'detail': error.strerror or str(error)}
 
     async def begin(self, program: str, program_uses: list[dict]):
         label = PROGRAMS[program]['label']

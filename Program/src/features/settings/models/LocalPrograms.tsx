@@ -56,9 +56,9 @@ function ProgramRow({ item, act, launcher, examples }: { item: LocalProgram; act
     <div>
       <h3>{item.label}</h3>
       <p className="subtle">For {item.used_by.map(use => use.name).join(', ')} · {item.address}</p>
-      <p className="subtle" role="status">{STATE_TEXT[item.state]}{item.message ? ` ${item.message}` : ''}</p>
-      {!editing && <p className="subtle">{whereText(item)}</p>}
-      {(editing || missing || item.needs_model) && <WhereForm item={item} examples={examples} save={save} cancel={editing ? () => setEditing(false) : undefined} />}
+      <StateLines item={item} />
+      {!editing && !runsElsewhere(item) && <p className="subtle">{whereText(item)}</p>}
+      {(editing || asksWhere(item)) && <WhereForm item={item} examples={examples} save={save} cancel={editing ? () => setEditing(false) : undefined} />}
     </div>
     <div className="form-actions">
       <LaunchButton item={item} onLaunch={() => void act(() => launcher.launch(item.program))} />
@@ -66,6 +66,18 @@ function ProgramRow({ item, act, launcher, examples }: { item: LocalProgram; act
     </div>
   </li>
 }
+
+/** How it is doing, and the system's own words under a failure so support can read them. */
+function StateLines({ item }: { item: LocalProgram }) {
+  return <>
+    <p className="subtle" role="status">{item.message || STATE_TEXT[item.state]}</p>
+    {item.detail && <p className="subtle"><small>{shownPath(item.detail)}</small></p>}
+  </>
+}
+
+/** Running but not found here (started some other way): it runs, so there is nothing to ask for until it stops. */
+const runsElsewhere = (item: LocalProgram) => item.state === 'running' && !item.path
+const asksWhere = (item: LocalProgram) => (!item.path && !runsElsewhere(item)) || item.needs_model
 
 function whereText(item: LocalProgram) {
   if (!item.path) return 'Not found on this PC.'

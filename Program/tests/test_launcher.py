@@ -195,10 +195,10 @@ def test_a_folder_without_comfyui_is_refused(client, programs, tmp_path):
 
 
 @pytest.mark.parametrize(('error', 'said'), [
-    (PermissionError(13, 'Permission denied'), 'did not let the Companion open it'),
-    (FileNotFoundError(2, 'No such file'), 'no longer where it was saved'),
-    (OSError(8, 'Exec format error'), 'not a program'),
-    (OSError(5, 'Input/output error'), 'could not be started.'),
+    (PermissionError(13, 'Permission denied'), "didn't allow it to run"),
+    (FileNotFoundError(2, 'No such file'), 'nothing is at that location'),
+    (OSError(8, 'Exec format error'), "isn't a program"),
+    (OSError(5, 'Input/output error'), 'details are in the log'),
 ])
 def test_a_program_that_cannot_be_opened_says_why_in_plain_words(client, programs, app, error, said):
     setup_programs(client)
@@ -207,8 +207,9 @@ def test_a_program_that_cannot_be_opened_says_why_in_plain_words(client, program
         raise error
     app.state.launcher.spawn = refuse
     client.post('/api/models/launcher/comfyui/launch')
-    message = wait_for(client, 'comfyui', 'failed')['message']
-    assert message.startswith('ComfyUI could not be started') and said in message and 'Errno' not in message
+    failed = wait_for(client, 'comfyui', 'failed')
+    assert failed['message'].startswith("ComfyUI couldn't start") and said in failed['message']
+    assert 'Errno' not in failed['message'] and failed['detail'] == error.strerror
 
 
 def test_a_path_from_the_home_folder_can_start_with_a_tilde(client, programs, tmp_path, monkeypatch):

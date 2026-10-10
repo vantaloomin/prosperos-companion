@@ -12,6 +12,8 @@ export interface LocalProgram {
   needs_model: boolean
   state: 'idle' | 'starting' | 'running' | 'failed'
   message: string
+  /** The system's own reason a start failed, shown small under the message. */
+  detail?: string
 }
 export interface LauncherView { auto_launch: boolean; system: 'windows' | 'mac' | 'linux'; programs: LocalProgram[] }
 
