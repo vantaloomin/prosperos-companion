@@ -283,9 +283,14 @@ textarea { resize: vertical; line-height: 1.6; }
   .message.pressing { transform: scale(.97); }
 }
 @media (hover: none) and (prefers-reduced-motion: reduce) { .message { transition: none; } .message.pressing { transform: none; } }
-/* A narrow window with a mouse: the hidden buttons would wrap into empty rows between a message and its time, so
-   they take no room until the message is hovered or focused. */
-@media (max-width: 720px) { .message:not(:hover, :focus-within) .message-tools { display: none; } }
+/* A narrow window with a mouse: in the flow the hidden buttons would wrap into empty rows between a message and its
+   time, so they float over the message's top corner while it is hovered or focused and never move the list. */
+@media (max-width: 720px) and (hover: hover) {
+  .message { position: relative; }
+  .message .message-tools { display: none; position: absolute; top: 4px; right: 8px; z-index: 2; max-width: calc(100% - 16px); flex-wrap: wrap;
+    justify-content: flex-end; gap: 2px 12px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .message:is(:hover, :focus-within) .message-tools { display: flex; }
+}
 
 /* The sheet: a dimmed chat, the message lifted above a group of large rows, and Cancel apart, as phone apps do. */
 .message-sheet { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 560px; max-height: 100dvh; margin: 0 auto; padding: 0 10px calc(10px + env(safe-area-inset-bottom));
