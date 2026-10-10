@@ -40,7 +40,7 @@ from companion.imports import file_routes
 from companion.imports import routes as import_routes
 from companion.launcher import Launcher
 from companion.launcher_routes import router as launcher_router
-from companion.life import home_routes, wardrobe_routes
+from companion.life import home_routes, outings, trips, wardrobe_routes
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
@@ -202,6 +202,9 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
                                                app.state.openers)
     app.state.images.share = app.state.conversation.photos.share
     app.state.dating_photos = DatingPhotos(app.state.database, app.state.vault, app.state.images)
+    # The photo of a finished outing with the user and the picture on a postcard from a trip.
+    app.state.images.others += [lambda: outings.photograph(app.state.database),
+                                lambda: trips.picture_postcards(app.state.database)]
 
     def after_turn():
         # A local image waits while a reply is written (compute and job control); a finished turn lets it start.

@@ -68,8 +68,8 @@ def day_blocks(connection, companion, start, end) -> list[tuple[dict, object, ob
 def busy_kind(block: dict) -> str | None:
     if block['kind'] in routine.RESTING:
         return 'sleep'
-    if block.get('sick_day') or block.get('holiday'):
-        return None
+    if block.get('sick_day') or block.get('holiday') or block.get('with_user'):
+        return None  # Out with the user (companion/life/outings.py), they are not busy with someone else.
     return block['kind'] if block['kind'] in DELAYS else None
 
 

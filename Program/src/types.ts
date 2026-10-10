@@ -186,7 +186,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[] }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true

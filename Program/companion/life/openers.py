@@ -40,6 +40,7 @@ from companion.life import (
     recommendations,
     routine,
     storylines,
+    trips,
     usual_hours,
 )
 from companion.life.mood import ABSENCE_HOURS, last_presence
@@ -399,7 +400,7 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 
 
 # In priority order; later features add their own.
-FINDERS = [occasion, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
+FINDERS = [occasion, trips.postcard_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            dream_news, little_news, usual_time, check_in]
 
 

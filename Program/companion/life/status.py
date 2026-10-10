@@ -18,7 +18,7 @@ from datetime import timedelta
 
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional
-from companion.life import chapters, money, pacing, storylines
+from companion.life import chapters, money, pacing, storylines, trips
 from companion.world import generators
 
 LIMIT = 120
@@ -67,7 +67,9 @@ def away(connection, companion: dict, now) -> dict | None:
         return None
     block, ends_at = found
     kind = 'sleep' if block['kind'] == 'sleep' else block['kind']
-    if kind not in AWAY or block.get('sick_day') or block.get('holiday'):
+    if block.get('trip'):
+        return trips.away_status(connection, block, f"{companion['id']}:{window(companion, now)}")
+    if kind not in AWAY or block.get('sick_day') or block.get('holiday') or block.get('with_user'):
         return None
     until = clock_text(local(companion, parse(ends_at)))
     seed = f"{companion['id']}:{window(companion, now)}:{kind}"

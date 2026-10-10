@@ -410,17 +410,18 @@ PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 
 
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
-    """The home's rent, pets and vehicles, and what home changes and new clothes cost this pay cycle,
-    read through home.py's `monthly_costs` and `purchases` and wardrobe.py's `purchases`. None before
-    the home exists or where money does not apply."""
-    from companion.life import home, wardrobe  # both build from this budget, so import late
+    """The home's rent, pets and vehicles, and what home changes, new clothes, outings with the user and trips cost
+    this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, outings.py's and trips.py's
+    `purchases`. None before the home exists or where money does not apply."""
+    from companion.life import home, outings, trips, wardrobe  # all build from this budget, so import late
 
     found = profile(definition)
     costs = home.monthly_costs(connection, timeline_id, day) if found else None
     if not costs:
         return None
     start = cycle_start(found, day)
-    bought = home.purchases(connection, timeline_id, start, day) + wardrobe.purchases(connection, timeline_id, start, day)
+    bought = [*home.purchases(connection, timeline_id, start, day), *wardrobe.purchases(connection, timeline_id, start, day),
+              *outings.purchases(connection, timeline_id, start, day), *trips.purchases(connection, timeline_id, start, day)]
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date'])}
 
 
@@ -444,10 +445,12 @@ def with_home(found: Profile, costs: dict) -> Profile:
 
 
 def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
-    """Home changes and clothes this cycle with what they cost ({label, on, cost, for})."""
+    """Home changes, clothes, outings and trips this cycle with what they cost ({label, on, cost, for}). Outings and
+    trips carry their own cost."""
     month = monthly_share(found)
-    return [{'label': item['text'], 'on': item['date'], 'cost': round(PURCHASES.get(item['spend'], 0) * month, 2),
-             'for': item.get('for', 'home')} for item in purchases if PURCHASES.get(item['spend'])]
+    return [{'label': item['text'], 'on': item['date'],
+             'cost': round(item.get('cost') or PURCHASES.get(item['spend'], 0) * month, 2),
+             'for': item.get('for', 'home')} for item in purchases if item.get('cost') or PURCHASES.get(item['spend'])]
 
 
 def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dict:
@@ -503,8 +506,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:
-        where = 'on clothes' if item['for'] == 'clothes' else 'at home'
-        lines.append((f"bought:{item['on']}" + (':clothes' if item['for'] == 'clothes' else ''), f"- This pay period you spent money {where}: you {item['label']}."))
+        where = SPENT_ON.get(item['for'], 'at home')
+        lines.append((f"bought:{item['on']}" + (f":{item['for']}" if item['for'] != 'home' else ''), f"- This pay period you spent money {where}: you {item['label']}."))
     lines.append(('payday', '- ' + payday_text(view, local_date)))
     if view['splurge']:
         lines.append(('splurge', f"- This pay period you splurged on {view['splurge']['label']}."))
@@ -516,6 +519,9 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     progress = 'saving has stalled for now' if found['stalled'] else f"about {round(found['share'] * 100)}% there"
     lines.append(('goal', f"- Saving for {found['label']}: {progress}."))
     return [(f'money:{local_date}:{key}', line) for key, line in lines]
+
+
+SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

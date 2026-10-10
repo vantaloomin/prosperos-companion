@@ -28,11 +28,13 @@ from companion.life import (
     money,
     network,
     occasions,
+    outings,
     own_plans,
     pacing,
     reactions,
     recommendations,
     storylines,
+    trips,
     wardrobe,
 )
 from companion.life import mood as moods
@@ -188,6 +190,10 @@ NOW = {
        # How they feel right now, from their own day and how the user talks to them (companion/moods.py).
        'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
                   'never explain it unless asked)',
+       # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
+       'together': 'Going out with the user, and your trips (decided: you agreed to these plans and picked the '
+                   'places, and your trips are booked; keep to them, never move them or name another place, and '
+                   'when the time comes they happen as listed)',
        'day_shifts': 'How today has gone off plan so far (decided: mention it the way a person would, never '
                      'contradict it)',
        'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
@@ -658,6 +664,21 @@ def offer_life(packet, connection, companion, now):
         packet.offer('city_news', identity, text)
 
 
+def offer_together(packet, connection, companion, now, recent, group=None):
+    """Outings with the user and trips away, in a 1:1 chat. The messages since the companion last wrote are the turn
+    being answered, so an outing they settled is one the reply announces."""
+    if group is not None:
+        return
+    turn = set()
+    for message in reversed(recent):
+        if message['role'] != 'user':
+            break
+        turn.add(message['id'])
+    for identity, text in [*outings.context_lines(connection, companion, now, turn),
+                           *trips.context_lines(connection, companion, now)]:
+        packet.offer('together', identity, text)
+
+
 def offer_attachments(packet, connection, latest, photo):
     """The feed post the user is replying to, and the photo this reply sends."""
     post = linked_post(connection, latest['id']) if latest else None
@@ -770,6 +791,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_daily(packet, connection, version, now)
     people.offer(packet, connection, companion, groups['people'], groups['boundaries'], now, since)
     offer_life(packet, connection, companion, now)
+    offer_together(packet, connection, companion, now, recent, group)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     offer_attachments(packet, connection, latest, photo)

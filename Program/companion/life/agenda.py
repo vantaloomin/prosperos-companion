@@ -27,11 +27,13 @@ from companion.life import (
     home,
     network,
     occasions,
+    outings,
     own_plans,
     reactions,
     recommendations,
     routine,
     storylines,
+    trips,
     wardrobe,
 )
 from companion.memory import pairs
@@ -106,6 +108,8 @@ def extend(connection, companion, world, now) -> dict:
     if chapters.advance(connection, companion, world, now):
         companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
+    trips.plan_ahead(connection, companion, world, now)
+    outings.finish_due(connection, companion, now)
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
     # Removed people's upcoming entries go; what already happened stays.
@@ -145,10 +149,16 @@ def catch_up_in_steps(database, companion_id, world, now):
 def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion=None) -> int:
     stale = connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
                                'AND basis!=?', (timeline_id, subject, basis)).rowcount
-    plans = {}
+    plans, away = {}, {}
     if subject == COMPANION:
-        plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, (now - BACKFILL).date().isoformat()))
-        stale += repin(connection, timeline_id, plans)
+        since = (now - BACKFILL).date().isoformat()
+        plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
+        # Outings with the user take their slots the way the companion's own plans do (companion/life/outings.py).
+        for local_date, found in outings.as_plans(connection, timeline_id, since).items():
+            plans[local_date] = plans.get(local_date, []) + found
+        away = trips.by_date(connection, timeline_id, since)
+        plans = {local_date: found for local_date, found in plans.items() if local_date not in away}
+        stale += repin(connection, timeline_id, plans) + trips.repin(connection, timeline_id, away)
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, subject))
     # A timeline's days begin when it last became active: nothing is filled in for time it spent
@@ -177,7 +187,9 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         if local_date not in days:
             days[local_date] = day_facts(connection, timeline_id, subject, definition, world, slot.local_date,
                                          days_off.get(local_date))
-            if local_date in plans:
+            if local_date in away:
+                days[local_date]['trip'] = away[local_date]
+            elif local_date in plans:
                 days[local_date]['plans'] = plans[local_date]
                 days[local_date]['pinned'] = own_plans.assign(plans[local_date], [
                     holiday_block(block.view(), days_off.get(local_date)) for block in schedule
@@ -191,6 +203,8 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
 
 def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     """Compose one slot and write it, shifted when the day does not go to plan (companion/life/disruptions.py)."""
+    if facts.get('trip') and slot.block.kind not in routine.RESTING:
+        return write_trip_slot(connection, scope, slot, facts)
     timeline_id, subject, definition = scope['timeline_id'], scope['subject'], scope['definition']
     block, entry, shift = day_block(slot.block.view(), facts), None, None
     seed = seed_for(timeline_id, subject, slot.key)
@@ -211,7 +225,9 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         view = {**slot.view(), 'block': block, 'starts_at': stamp(starts_at), 'ends_at': stamp(ends_at)}
         if slot.block.key in pinned:
             plan = pinned[slot.block.key]
-            entry = plan and own_plans.entry(plan, block, definition)
+            block = outings.marked(block, plan)
+            entry = plan and (outings.entry(plan, block, definition) if 'outing' in plan else
+                              own_plans.entry(plan, block, definition))
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
             entry = disruptions.entry_with(entry, shift, definition['name'])
@@ -227,6 +243,24 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (identifier(), timeline_id, subject, slot.key, stamp(starts_at), stamp(ends_at), slot.local_date.isoformat(),
          encode(block), encode(entry) if entry else None, scope['basis'], stamp(scope['now'])))
+    return 1
+
+
+def write_trip_slot(connection, scope: dict, slot, facts: dict) -> int:
+    """A waking slot of a day away (companion/life/trips.py): spent in the other city, with the trip's own weather."""
+    trip, timeline_id = facts['trip'], scope['timeline_id']
+    block = trips.block(day_block(slot.block.view(), {**facts, 'weather': None, 'happenings': []}), trip)
+    schedule, _default = routine.blocks(scope['definition'])
+    entry = trips.entry(trip, {**slot.view(), 'block': block}, scope['definition'], scope['world'],
+                        seed_for(timeline_id, COMPANION, slot.key),
+                        trips.ends(schedule, slot.local_date, trip, slot.block.key))
+    if entry['weather']:
+        block['weather'] = entry['weather']
+    connection.execute(
+        'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
+        'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (identifier(), timeline_id, COMPANION, slot.key, stamp(slot.starts_at), stamp(slot.ends_at),
+         slot.local_date.isoformat(), encode(block), encode(entry), scope['basis'], stamp(scope['now'])))
     return 1
 
 

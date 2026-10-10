@@ -1119,6 +1119,50 @@ post, the active circle and the clock, arriving within a few hours of the post, 
 comments each. No line is said twice on one post or repeated on the few posts just before it. The companion likes and comments on friends' posts. A renamed friend shows their new
 name; a removed one's posts and comments leave the feed. A branched timeline keeps the social posts from before it split off, with their read, reaction and answer state.
 
+## Going out together and trips
+
+### Plans with the user
+
+When the user asks the companion out ("Want to get dinner Friday?", "Drinks with me Thursday?",
+"Coffee Saturday?"), or the companion firmly proposes a plan in a reply, the app saves an outing
+([companion/life/outings.py](../companion/life/outings.py)). Rules decide everything; the model only
+talks about it:
+
+- **What**: dinner, lunch, coffee, drinks, a show, a museum, a walk or a market, from the words used.
+- **When**: the asked day and time, else the activity's usual time. A day blocked by work, study,
+  sleep, another outing or a trip moves to the next free one within a week, and the companion is
+  told the asked day did not work.
+- **Where**: the companion picks a real place in their city that fits the activity, the time of day,
+  the season, their tastes and their budget (cheap places when money is tight). A place the user
+  names is kept.
+
+The plan becomes an agenda block with `with_user: true` (no busy hold, no away line). While it is
+under way the chat gets the scene: the place, the spot inside, dishes and prices, and the weather,
+and the companion talks face to face. When it ends it leaves a shared memory, a moment picture for
+the feed (when an image backend is set up), and the bill comes out of their money (`for: outing`).
+
+### Trips
+
+Every few weeks a companion with money to spare may book a weekend, or a long weekend around a
+public holiday, in another real city of the same era within reach
+([companion/life/trips.py](../companion/life/trips.py)). It is with family who live there, a circle
+member, or alone. The trip blocks the waking slots of those days with places in the destination,
+ends with the trip home (and maybe a sunburn the next day after a sunny weekend), sends the user a
+postcard picture on the first afternoon, and takes its cost from the budget (`for: trip`).
+
+### Endpoints
+
+- `GET /api/life/outings` returns `{outings, trips}` for the active timeline. Each item has a
+  `state` of `planned`, `now`, `done` or `cancelled`; outings carry `place`, `named` (the user named
+  the place), `asked_date` (when the day moved) and `cost_text`; trips carry `company`, `landmark`,
+  `cost_text` and `postcard_message_id`. Outings with the user show on Today under Out together;
+  trips show read-only under Trips.
+- `POST /api/life/outings/{id}/cancel`, `/elsewhere` (the companion picks another place),
+  `/home` (end an outing under way now) and `/undo`. `undo` on an item says it can be taken back:
+  calling it off, for the rest of that day while it has not started; heading home, for two
+  minutes, and nothing (memory, bill, photo) is kept until then.
+- Trips are the companion's own life, so there is nothing to change on them.
+
 ## Emotional traits and absence mood
 
 Traits are part of the character definition (`emotional_traits`, empty by default; see PRD C6):

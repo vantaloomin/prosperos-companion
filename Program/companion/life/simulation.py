@@ -215,7 +215,8 @@ def recommended(connection, timeline_id, slot_key) -> bool:
     """The slot holds a session of a recommendation or a plan the companion made in chat."""
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                          "AND slot_key=? AND (json_extract(entry, '$.recommendation.id') IS NOT NULL "
-                         "OR json_extract(entry, '$.own_plan.id') IS NOT NULL)", (timeline_id, slot_key)))
+                         "OR json_extract(entry, '$.own_plan.id') IS NOT NULL OR json_extract(entry, '$.outing.id') "
+                         "IS NOT NULL OR json_extract(entry, '$.trip.id') IS NOT NULL)", (timeline_id, slot_key)))
 
 
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
@@ -557,7 +558,8 @@ class LifeEngine:
                      'post': written['post'], 'mood': composed['mood'], 'with': composed.get('with'),
                      'fulfils': composed.get('fulfils'), 'weather': composed.get('weather'),
                      'body': block.get('body'), 'recommendation': composed.get('recommendation'),
-                     'own_plan': composed.get('own_plan')},
+                     'own_plan': composed.get('own_plan'), 'outing': composed.get('outing'),
+                     'trip': composed.get('trip')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {

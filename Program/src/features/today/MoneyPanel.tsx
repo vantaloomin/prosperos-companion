@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { MoneyView } from '../../types'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { cycleText, goalText, moodOfMoney, paydayText, rentText, shortDate, workText } from './moneyText'
+import { boughtFor, cycleText, goalText, moodOfMoney, paydayText, rentText, shortDate, workText } from './moneyText'
 
 /** The companion's budget this pay period: worked out from their pay and city, never from a model. */
 export function MoneyPanel({ name, go }: { name: string; go: () => void }) {
@@ -21,7 +21,7 @@ export function MoneyPanel({ name, go }: { name: string; go: () => void }) {
           {view.budget.upkeep > 0 && <li>Pets and getting around: about {view.text.upkeep} {view.period === 'month' ? 'a month' : 'a week'}.</li>}
           <li>Everyday costs about {view.text.essentials}, fun about {view.text.fun}, savings about {view.text.saving}.</li>
           {view.splurge && <li>Splurged on {view.splurge.label} ({shortDate(view.splurge.on)}).</li>}
-          {view.bought.map((item) => <li key={`${item.on}-${item.label}`}>{item.for === 'clothes' ? 'For their wardrobe' : 'At home'}, they {item.label} ({shortDate(item.on)}).</li>)}
+          {view.bought.map((item) => <li key={`${item.on}-${item.label}`}>{boughtFor(item.for)}, they {item.label} ({shortDate(item.on)}).</li>)}
           {view.surprise && <li>Unexpected expense: {view.surprise.label} ({shortDate(view.surprise.on)}).</li>}
           {view.cant_afford.length > 0 && <li>Can't afford right now: {view.cant_afford.join(', ')}.</li>}
         </ul>
