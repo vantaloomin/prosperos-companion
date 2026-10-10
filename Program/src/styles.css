@@ -354,6 +354,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .unread-dot { display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
 .post-intro, .post-caption { font-family: 'Literata', Georgia, serif; font-size: 1.0625rem; line-height: 1.7; }
 .post-event + .post-event { padding-top: 10px; border-top: 1px solid var(--border); }
+.post-event > .post-image { margin-top: 8px; }
 .post-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 .reactions { display: inline-flex; gap: 2px; }
 .reaction { width: 36px; height: 36px; border-radius: 8px; font-size: 1.05rem; filter: grayscale(.7); opacity: .75; }
@@ -505,7 +506,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .meme-top { top: 8px; }
 .meme-bottom { bottom: 8px; }
 .post-image { display: grid; gap: 6px; }
-.post-image > img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 10px; background: var(--accent-tint); }
+/* The picture in its own shape; a tall one is cut at the bottom, never through the face at the top. */
+.post-image > img { display: block; width: 100%; height: auto; max-height: min(80vh, 760px); object-fit: cover; object-position: center top; border-radius: 10px; background: var(--accent-tint); }
 .post-image-frame { position: relative; width: 100%; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 10px; background: var(--accent-tint); }
 .image-line { margin: 0; }
 .image-line .text-button { margin-left: 10px; padding: 0; vertical-align: baseline; }
