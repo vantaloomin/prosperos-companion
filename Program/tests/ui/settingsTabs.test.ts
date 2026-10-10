@@ -70,3 +70,12 @@ test('prompts are grouped in order and their placeholders explained', () => {
   assert.equal(placeholderHint(prompt('x', 'g', ['name', 'reason'], { name: "the companion's name" })), "Must keep: {{name}} (the companion's name), {{reason}}.")
   assert.equal(placeholderHint(prompt('x', 'g')), '')
 })
+
+test('everything that dials realism down is on the Realism tab, and search finds it there', () => {
+  const tab = (query: string) => searchSettings(query, true).map((match) => match.tab.id)
+  assert.equal(availableTabs(true).findIndex((item) => item.id === 'realism'), availableTabs(true).findIndex((item) => item.id === 'life') + 1)
+  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'drama', 'off plan', 'realism']) {
+    assert.ok(tab(query).length && tab(query).every((id) => id === 'realism'), query)
+  }
+  assert.equal(pickTab('realism', true), 'realism')
+})

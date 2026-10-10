@@ -1,6 +1,6 @@
 /** Settings is split into tabs; this lists them, what each holds, and the words a search finds them by. */
 
-export type SettingsTab = 'general' | 'models' | 'life' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data' | 'debug' | 'advanced'
+export type SettingsTab = 'general' | 'models' | 'life' | 'realism' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data' | 'debug' | 'advanced'
 
 export interface SettingsSection {
   /** The id of the section's heading, used to land on it from a search result. */
@@ -44,6 +44,14 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     id: 'life', label: 'Life & cities', sections: [
       { heading: 'life-heading', title: 'Life', keywords: 'life events pace themes days routine' },
       { heading: 'cities-heading', title: 'Cities', keywords: 'city cities places home world pack' },
+    ],
+  },
+  {
+    // Every setting that dials real life down or off, in one place (Vanta, 2026-10-10).
+    id: 'realism', label: 'Realism', sections: [
+      { heading: 'closeness-settings-heading', title: 'How close you get', keywords: 'realism realistic closeness close stage level relationship friends set it to step closer back keep it at hold max maximum min minimum limit ceiling never closer than slow burn cooling silence' },
+      { heading: 'pace-heading', title: 'Their pace and their days', keywords: 'realism realistic pace paced replies reply right away instant busy later asleep wait off plan day shifts late plans fall through surprise drama storylines soap opera quiet' },
+      { heading: 'hidden-values-heading', title: 'Hidden values', keywords: 'realism realistic hidden values show reveal mood moods feeling feelings news word gets around odds dice why it went secret secrets slip on their mind thoughts' },
     ],
   },
   {

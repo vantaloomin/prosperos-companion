@@ -1,5 +1,5 @@
 """Closeness stages API: see, set, hold, cap, cooling, nickname, running jokes and reset (PRD M3, M4)."""
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from pydantic import Field
 
 from companion.memory import closeness
@@ -28,13 +28,13 @@ def db(request: Request):
 
 
 @router.get('')
-def view(request: Request):
-    return closeness.view(db(request))
+def view(request: Request, companion: str | None = Query(default=None, max_length=64)):
+    return closeness.view(db(request), companion)
 
 
 @router.put('')
-def update(request: Request, body: ClosenessUpdate):
-    return closeness.update(db(request), body)
+def update(request: Request, body: ClosenessUpdate, companion: str | None = Query(default=None, max_length=64)):
+    return closeness.update(db(request), body, companion)
 
 
 @router.post('/reset')

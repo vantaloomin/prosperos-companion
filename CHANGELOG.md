@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Realism in one place:** a new Realism tab in Settings gathers everything that makes the world feel like
+  real life, so you can dial any of it down: how close you get with each companion (step it closer, set it,
+  keep it there, never closer than, gentle cooling), whether they reply at their own pace, whether their days
+  go off plan, how much drama there is, and Hidden values. Closeness can now be changed there for any
+  companion, not only the one that's open.
 - **Memories stay in the right chat:** a memory found in one companion's chat could be saved to whichever
   companion was open when the app got round to it, for example after you switched chats or opened another one
   on your phone. Memories, things they say about themselves, and Remember this now always go to the companion

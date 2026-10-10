@@ -327,6 +327,8 @@ textarea { resize: vertical; line-height: 1.6; }
   .settings-tabs [role='tab'] { white-space: nowrap; flex: 0 0 auto; }
 }
 .settings-section h2 { margin-bottom: 6px; }
+.settings-intro { max-width: 760px; margin: 0 0 20px; }
+.settings-panel > .settings-intro + .settings-section { border-top: 0; padding-top: 0; }
 
 .today > .notice, .today > div > .notice { max-width: 760px; margin-bottom: 12px; }
 .today-section { max-width: 760px; margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }

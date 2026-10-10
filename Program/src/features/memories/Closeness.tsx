@@ -51,24 +51,11 @@ export function Closeness({ name, memories, run }: { name: string; memories: Mem
   )
 }
 
-type Change = (action: () => Promise<ClosenessState>, done: string) => Promise<void>
+export type Change = (action: () => Promise<ClosenessState>, done: string) => Promise<void>
 
 function Controls({ name, state, change }: { name: string; state: ClosenessState; change: Change }) {
   const [nickname, setNickname] = useState(state.nickname)
   const [confirming, setConfirming] = useState(false)
-  const hold = (value: string) => {
-    const level = value ? Number(value) : null
-    void change(() => api('/closeness', { held_level: level }, 'PUT'),
-      level ? `${name} stays at ${state.stages[level - 1]} until you change it.` : 'Closeness grows from your shared history again.')
-  }
-  const setTo = (level: number) => void change(() => api('/closeness', { set_level: level }, 'PUT'), `${name} is at ${state.stages[level - 1]} now, and it grows from there.`)
-  const cap = (value: string) => {
-    const level = value ? Number(value) : null
-    void change(() => api('/closeness', { ceiling_level: level }, 'PUT'),
-      level ? `${name} won't get closer than ${state.stages[level - 1]}.` : 'Closeness can grow all the way again.')
-  }
-  const cool = (on: boolean) => void change(() => api('/closeness', { cooling: on }, 'PUT'),
-    on ? 'Long silences now cool things a little.' : 'Time apart no longer lowers closeness.')
   const saveNickname = (event: FormEvent) => {
     event.preventDefault()
     void change(() => api('/closeness', { nickname }, 'PUT'),
@@ -80,6 +67,48 @@ function Controls({ name, state, change }: { name: string; state: ClosenessState
   }
   return (
     <div className="closeness-controls">
+      <StageControls name={name} state={state} change={change} />
+      <form className="closeness-nickname" onSubmit={saveNickname}>
+        <TextInput label="A nickname you are happy with" value={nickname} onChange={setNickname} maxLength={40}
+          hint={`Leave it empty and ${name} won't use a pet name before you are comfortable with each other.`} />
+        <button type="submit" className="button">Save nickname</button>
+      </form>
+      <div>
+        <button type="button" className="button danger" onClick={() => setConfirming(true)}><RotateCcw aria-hidden="true" />Start over</button>
+      </div>
+      {confirming && (
+        <ConfirmDialog title="Start closeness over?" onClose={() => setConfirming(false)} actions={<>
+          <button type="button" className="button" onClick={() => setConfirming(false)}>Cancel</button>
+          <button type="button" className="button danger" onClick={reset}>Start over</button>
+        </>}>
+          <p>{name} goes back to {state.stages[0]} and only days and shared moments from now on count. A kept or set stage and running jokes are cleared. Your messages, memories, nickname, limit and cooling choice are kept.</p>
+        </ConfirmDialog>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Where closeness stands and how far it may go: steps, Set it to, Keep it at, Never closer than and gentle cooling.
+ * Memories shows these for the open companion; Settings > Realism for any companion (`path` names which).
+ */
+export function StageControls({ name, state, change, path = '/closeness' }: { name: string; state: ClosenessState; change: Change; path?: string }) {
+  const put = (body: object) => () => api<ClosenessState>(path, body, 'PUT')
+  const hold = (value: string) => {
+    const level = value ? Number(value) : null
+    void change(put({ held_level: level }),
+      level ? `${name} stays at ${state.stages[level - 1]} until you change it.` : 'Closeness grows from your shared history again.')
+  }
+  const setTo = (level: number) => void change(put({ set_level: level }), `${name} is at ${state.stages[level - 1]} now, and it grows from there.`)
+  const cap = (value: string) => {
+    const level = value ? Number(value) : null
+    void change(put({ ceiling_level: level }),
+      level ? `${name} won't get closer than ${state.stages[level - 1]}.` : 'Closeness can grow all the way again.')
+  }
+  const cool = (on: boolean) => void change(put({ cooling: on }),
+    on ? 'Long silences now cool things a little.' : 'Time apart no longer lowers closeness.')
+  return (
+    <>
       <div className="closeness-steps" role="group" aria-label="Move closeness">
         <button type="button" className="button" disabled={state.grown_level <= 1} onClick={() => setTo(state.grown_level - 1)}><ChevronDown aria-hidden="true" />One step back</button>
         <button type="button" className="button" disabled={state.grown_level >= state.stages.length} onClick={() => setTo(state.grown_level + 1)}><ChevronUp aria-hidden="true" />One step closer</button>
@@ -104,23 +133,7 @@ function Controls({ name, state, change }: { name: string; state: ClosenessState
       )}</Field>
       <Toggle label="Let long silences cool things a little" checked={state.cooling} onChange={cool}
         hint={`Off unless you turn it on. After 3 weeks without talking, ${name} is a step less familiar, after 2 months two steps, never below ${state.stages[1]}. Every 2 days you talk again bring a step back.`} />
-      <form className="closeness-nickname" onSubmit={saveNickname}>
-        <TextInput label="A nickname you are happy with" value={nickname} onChange={setNickname} maxLength={40}
-          hint={`Leave it empty and ${name} won't use a pet name before you are comfortable with each other.`} />
-        <button type="submit" className="button">Save nickname</button>
-      </form>
-      <div>
-        <button type="button" className="button danger" onClick={() => setConfirming(true)}><RotateCcw aria-hidden="true" />Start over</button>
-      </div>
-      {confirming && (
-        <ConfirmDialog title="Start closeness over?" onClose={() => setConfirming(false)} actions={<>
-          <button type="button" className="button" onClick={() => setConfirming(false)}>Cancel</button>
-          <button type="button" className="button danger" onClick={reset}>Start over</button>
-        </>}>
-          <p>{name} goes back to {state.stages[0]} and only days and shared moments from now on count. A kept or set stage and running jokes are cleared. Your messages, memories, nickname, limit and cooling choice are kept.</p>
-        </ConfirmDialog>
-      )}
-    </div>
+    </>
   )
 }
 
