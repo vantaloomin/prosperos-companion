@@ -284,12 +284,16 @@ textarea { resize: vertical; line-height: 1.6; }
 }
 @media (hover: none) and (prefers-reduced-motion: reduce) { .message { transition: none; } .message.pressing { transform: none; } }
 /* A narrow window with a mouse: in the flow the hidden buttons would wrap into empty rows between a message and its
-   time, so they float over the message's top corner while it is hovered or focused and never move the list. */
+   time, so they float as one row of icons on the message's top edge while it is hovered or focused, as Slack and
+   Discord do, and never move the list or cover the text. The labels stay as tooltips and for screen readers. */
 @media (max-width: 720px) and (hover: hover) {
   .message { position: relative; }
-  .message .message-tools { display: none; position: absolute; top: 4px; right: 8px; z-index: 2; max-width: calc(100% - 16px); flex-wrap: wrap;
-    justify-content: flex-end; gap: 2px 12px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .message .message-tools { display: none; position: absolute; top: 0; right: 8px; z-index: 2; transform: translateY(-50%); gap: 2px;
+    padding: 2px 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 2px 8px #0006; }
+  .message:is(:hover, :focus-within) { content-visibility: visible; }
   .message:is(:hover, :focus-within) .message-tools { display: flex; }
+  .message .message-tools .text-button { padding: 5px 6px; }
+  .message .message-tools .tool-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
 /* The sheet: a dimmed chat, the message lifted above a group of large rows, and Cancel apart, as phone apps do. */
