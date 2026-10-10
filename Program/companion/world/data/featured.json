@@ -1,8 +1,8 @@
 {
  "schema_version": 1,
  "release": "0.8",
- "title": "New in v0.8 · Out on the Town",
- "note": "New cities to call home this release.",
- "cities": ["haddon-harbor", "new-orleans", "jeju", "pellmouth"],
- "new_cities": ["haddon-harbor", "new-orleans", "jeju", "pellmouth"]
+ "title": "Featured in v0.8 · Out on the Town",
+ "note": "An old favourite and three new places to call home.",
+ "cities": ["baltimore", "grandport", "pellmouth", "osaka"],
+ "new_cities": ["grandport", "pellmouth", "osaka"]
 }
