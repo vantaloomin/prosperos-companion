@@ -29,11 +29,12 @@ def test_every_place_has_its_own_people_rebuilt_the_same_from_their_key():
     for data in catalog.cities().values():
         for place in data['places']:
             people = townsfolk.at_place(data, place['id'])
-            assert townsfolk.PEOPLE[0] <= len(people) <= townsfolk.PEOPLE[1]
+            extra = len(townsfolk.notables_at(data, place['id']))
+            assert townsfolk.PEOPLE[0] <= len(people) - extra <= townsfolk.PEOPLE[1]
             assert people == townsfolk.at_place(data, place['id'])
             for sheet in people:
                 assert townsfolk.find(data, sheet['key']) == sheet
-                assert not naming.is_invented(sheet['full'])
+                assert sheet.get('notable') or not naming.is_invented(sheet['full'])
                 assert sheet['flaw'] in townsfolk.FLAWS and sheet['desire'] in townsfolk.DESIRES
             if any(role[2] for role in townsfolk.ROLES.get(place['kind'], ())):
                 assert people[0]['staff'] and people[0]['shifts']['days']

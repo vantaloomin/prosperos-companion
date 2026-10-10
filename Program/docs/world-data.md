@@ -12,7 +12,7 @@ Built-in cities come in three kinds (`setting`):
 | Setting | Cities |
 | --- | --- |
 | `real` | Baltimore, New York, Miami, San Diego, Los Angeles (written by a beta tester), Las Vegas |
-| `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
+| `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Grandport, the merchant republic's capital in Oak's dark fantasy world Neokosmos, ships with Oak's permission (see Credits below). Other settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
 | `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, and Calderwick, an industrial canal city with a steampunk lean. |
 
 City lists (Settings > Cities and every city picker) shelve cities as **Real / Modern**, **Other Eras**,
@@ -333,6 +333,15 @@ folder. Errors mean the file will not load. Warnings point out thin spots that m
 repetitive: neighbourhoods with fewer than two places or nowhere to eat, no employers or career
 hubs, or no climate. `--json` prints the results for tools. It exits 1 when any file has errors,
 and CI runs it.
+
+## Credits for shipped settings
+
+**Grandport** (`grandport.json`, written by `scripts/world/grandport.py`) is set in **Neokosmos**, a world
+by **Oak** (https://quietoak.github.io/NeokosmosWiki/). The Neokosmos wiki is licensed CC BY-NC-SA 4.0;
+Prospero's Companion includes Grandport with Oak's permission (given 2026-10-10). The city, its people and
+its lore are Oak's, not part of the app's AGPL-3.0 code, and are not relicensed by being shipped here.
+Records citing `wiki` come from the wiki; records citing `inferred` were filled in for the app in the
+setting's voice. Oak's characters appear in town as `notables`.
 
 ## Adding or refreshing a built-in city
 
