@@ -119,3 +119,12 @@ def test_quiet_drama_keeps_to_gentle_cards(client, dealt, monkeypatch):
                                                                                  .clock.now()) - timedelta(days=index))
                  for index in range(60)]
     assert all(deck.card(item['card_id'])['drama'] == 0 for item in drawn if item['card_id'])
+
+
+def test_the_days_moment_is_drawn_before_their_thoughts_are_written(client, dealt, monkeypatch):
+    from companion.life import thoughts
+    only(monkeypatch, 'old-pocket-cash')
+    database = client.app.state.database
+    thoughts.view(database)
+    with database.connect() as connection:
+        assert connection.execute('SELECT COUNT(*) FROM life_moments').fetchone()[0] > 0

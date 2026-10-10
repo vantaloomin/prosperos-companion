@@ -21,11 +21,17 @@ export function ActivityLine({ messages, phases, sending, aside = null }: { mess
     const timer = window.setTimeout(() => setNow(appNow()), Math.min(Math.max(realDelay(next - appNow()), 0) + 500, 2 ** 31 - 1))
     return () => window.clearTimeout(timer)
   }, [next, now])
-  return <p className="chat-activity subtle" role="status" aria-live="polite">{text || <AsideText note={aside} />}</p>
+  // The aside's note shows beside a reply's progress too: a slow model would otherwise hide it for its whole life.
+  return <p className="chat-activity subtle" role="status" aria-live="polite">
+    {text}{text && aside && ' · '}<AsideText note={aside} />
+  </p>
 }
 
 /** Where an out-of-character aside went (useOoc), with a way to open the sidecar when it stayed closed. */
 export function AsideText({ note }: { note: AsideNote | null }) {
   if (!note) return null
-  return <>{note.text}{note.open && <> · <button type="button" className="text-button" onClick={() => sidecar.show()}>Open</button></>}</>
+  return <>{note.text}{note.open && <> · <button type="button" className="text-button"
+    // Keeps focus in the message box: on a phone, leaving it brings the tab bar back and moves this button away
+    // before the tap lands.
+    onMouseDown={(event) => event.preventDefault()} onClick={() => sidecar.show()}>Open</button></>}</>
 }

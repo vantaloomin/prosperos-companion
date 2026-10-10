@@ -223,6 +223,7 @@ def began(connection, companion) -> date:
 def catch_up(connection, companion, now) -> int:
     """Write the thoughts of the last week that are due and not written yet. Returns how many were written."""
     timeline_id, latest = companion['active_timeline_id'], last_ready(companion, now)
+    deck.catch_up(connection, companion, now)  # The day's Life deck moment is one of the things on their mind.
     day, written = max(latest - timedelta(days=WEEK - 1), began(connection, companion)), 0
     kept = {row['day']: row['topic'] for row in many(connection, 'SELECT day, topic FROM thoughts WHERE timeline_id=?',
                                                      (timeline_id,))}

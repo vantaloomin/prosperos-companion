@@ -183,15 +183,22 @@ def recent_count(connection, timeline_id: str, day: date) -> int:
 
 # Writing and reading -------------------------------------------------------------------------------------------
 
+def unsettled(connection, timeline_id: str, day: date) -> bool:
+    """Whether the companion's day still has entries waiting to happen: the dream is woven from what happened."""
+    return optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' AND "
+                    "local_date=? AND status='upcoming' LIMIT 1", (timeline_id, day.isoformat())) is not None
+
+
 def catch_up(connection, companion, now) -> int:
     """Decide the nights of the last week not decided yet. A night is named by the day before it, and is decided
-    once the morning comes where they live."""
+    once the morning comes where they live and that day's life has been lived (companion/life/agenda.py settles it):
+    deciding a night first would fix it as dreamless for good."""
     timeline_id, today = companion['active_timeline_id'], storylines.local_today(companion, now)
     kept = {row['night'] for row in many(connection, 'SELECT night FROM dreams WHERE timeline_id=? AND night>=?',
                                          (timeline_id, (today - timedelta(days=WEEK)).isoformat()))}
     day, written = max(today - timedelta(days=WEEK), deck.began(connection, companion)), 0
     while day < today:
-        if day.isoformat() not in kept:
+        if day.isoformat() not in kept and not unsettled(connection, timeline_id, day):
             dream = weave(connection, companion, day, now) or {}
             connection.execute('INSERT OR IGNORE INTO dreams (timeline_id, night, template, text, told, share, '
                                'sleep_talk, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',

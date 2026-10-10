@@ -32,6 +32,8 @@ WIDEN_MESSAGES = 3
 MARKER = re.compile(r'\[\[?\s*recall\b\s*:?\s*([^\]\n]{0,200}?)\s*\]\]?', re.IGNORECASE)
 # The start of one, still arriving.
 PARTIAL = re.compile(r'\[\[?\s*(?:r(?:e(?:c(?:a(?:l(?:l(?:\b\s*:?\s*[^\]\n]{0,200}\]?)?)?)?)?)?)?)?', re.IGNORECASE)
+# One the reply ended inside, cut off before it closed (at the model's length limit, say).
+UNCLOSED = re.compile(r'\[\[?\s*recall\b\s*:?\s*([^\]\n]{0,200}?)\s*\]?$', re.IGNORECASE)
 # A start longer than this that never closes the request is ordinary text.
 HOLD_LIMIT = 260
 # The chat says it is checking older memories once the second look has taken this long (seconds).
@@ -120,11 +122,11 @@ class Lookout:
         if self.query is not None:
             return ''
         text, self.held = self.held, ''
-        found = MARKER.match(text)
+        found = MARKER.match(text) or UNCLOSED.match(text)
         if found and self.asking and not self.started:
             self.query = found.group(1).strip() or 'that'
             return ''
-        return tidy(MARKER.sub('', text))
+        return tidy(UNCLOSED.sub('', MARKER.sub('', text)))
 
 
 def waiting(text: str, found) -> bool:

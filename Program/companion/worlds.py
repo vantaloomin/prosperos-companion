@@ -362,6 +362,11 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
 PRONOUN_GENDERS = {'she': 'woman', 'he': 'man', 'they': 'nonbinary'}
 
 
+def gender_of(sheet: dict) -> str:
+    """A townsperson's pronouns ("she/her") as a persona gender."""
+    return PRONOUN_GENDERS.get(str(sheet.get('pronouns') or '').split('/')[0].strip().casefold(), '')
+
+
 def circle_sheet(data: dict, you: str, seed: str) -> dict | None:
     """Someone from the person's own circle at their usual place: a coworker, or a regular they see there."""
     sheet = townsfolk.find(data, you)
@@ -381,8 +386,8 @@ def known_from(data: dict, sheet: dict, you: str, name: str) -> str:
         return ''
     first = name.split()[0] if name.split() else name
     place = person['place']['name']
-    together = 'they work together there' if person['staff'] and sheet['staff'] else \
-        'the user works there' if person['staff'] else 'they are both regulars there'
+    together = 'they work together' if person['staff'] and sheet['staff'] else \
+        'the user works' if person['staff'] else 'they are both regulars'
     return f'Knows the user, {first}, from {place}, where {together}.'
 
 
@@ -397,7 +402,7 @@ def sheet_text(definition: dict) -> str:
 def persona_for(data: dict, sheet: dict, today: date, timestamp: str) -> dict:
     met = {'match': None, 'meetings': [], 'focus': None, 'in_story': None}
     definition = cast.profile(data, sheet, met, today)
-    return {'id': identifier(), 'name': sheet['full'], 'gender': PRONOUN_GENDERS.get(sheet['pronouns'], ''),
+    return {'id': identifier(), 'name': sheet['full'], 'gender': gender_of(sheet),
             'age': sheet['age'], 'about': sheet_text(definition)[:2000], 'birthday': '', 'created_at': timestamp,
             'townsfolk_key': sheet['key'], 'town_seed': data.get('town', '')}
 

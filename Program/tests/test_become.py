@@ -21,6 +21,7 @@ def test_becoming_them_starts_a_new_world_as_them(client, met, app):
     after = ok(client.post('/api/worlds/become', json={'key': person['key']}))
     persona, world = after['persona'], after['world']
     assert persona['name'] == person['full'] and persona['age'] == person['age']
+    assert persona['gender'] == {'she': 'woman', 'he': 'man', 'they': 'nonbinary'}[person['pronouns'].split('/')[0]]
     assert persona['townsfolk_key'] == person['key'] and persona['town_seed'] == town
     assert str(person['age']) in persona['about'] and 'Usually:' in persona['about']
     assert 'Has met the user' not in persona['about']
@@ -40,7 +41,8 @@ def test_their_circle_is_there_and_they_are_not_a_stranger_in_it(client, met):
     assert starter['town_seed'] == town and data['you'] == person['key']
     sheet = townsfolk.find(data, starter['townsfolk_key'])
     assert sheet['place']['id'] == person['place']['id']
-    assert f"Knows the user, {person['full'].split()[0]}," in starter['version']['definition']['background']
+    background = starter['version']['definition']['background']
+    assert f"Knows the user, {person['full'].split()[0]}," in background and ' there.' not in background
     # They are the user here, so nobody runs into them around town.
     assert person['key'] not in {other['key'] for other in townsfolk.at_place(data, person['place']['id'])}
 
