@@ -111,7 +111,7 @@ const ORDER: WebKind[] = ['you', 'companion', 'yours', 'match', 'circle', 'acqua
 
 interface ListProps { data: WebData; selected: string | null; onPick: (id: string) => void; go: (view: View) => void }
 
-/** The same people as a list by kind, for keyboards and screen readers: one person a row with their ties beneath; the picked one opens in its row. */
+/** The same people as a list by kind, for keyboards and screen readers: one person a row with their ties beneath; the picked one opens in its row instead. */
 function WebList({ data, selected, onPick, go }: ListProps) {
   const box = useRef<HTMLDivElement>(null)
   // Opens on the picked person's row, carried over from the web.
@@ -126,8 +126,8 @@ function WebList({ data, selected, onPick, go }: ListProps) {
             <ul>{people.map((node) => <li key={node.id} className={node.id === selected ? 'picked' : undefined}>
               <button type="button" className="text-button web-row-name" aria-expanded={node.id === selected} onClick={() => onPick(node.id)}>{node.name}</button>
               {node.detail && <span className="subtle"> · {node.detail}</span>}
-              <ul className="web-row-ties">{tiesOf(data, node.id).map((tie) => <li key={tie.id}>{tie.name} · {tie.label}</li>)}</ul>
-              {node.id === selected && <WebCard inline data={data} id={node.id} onClose={() => onPick(node.id)} onPick={onPick} go={go} />}
+              {node.id === selected ? <WebCard inline data={data} id={node.id} onClose={() => onPick(node.id)} onPick={onPick} go={go} />
+                : <ul className="web-row-ties">{tiesOf(data, node.id).map((tie) => <li key={tie.id}>{tie.name} · {tie.label}</li>)}</ul>}
             </li>)}</ul>
           </section>
         )
