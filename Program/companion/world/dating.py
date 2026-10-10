@@ -229,6 +229,8 @@ def looks(sheet: dict, data: dict) -> dict:
 
 def on_app(sheet: dict, data: dict) -> bool:
     """Whether they are looking at all, from what the sheet has before it is named (names are the slow part)."""
+    if sheet.get('notable'):
+        return False  # A city's named characters are never on the app.
     seed, is_modern = townsfolk.drawn(sheet), townsfolk.modern(data)
     single = status(seed, sheet['age'], sheet['desire'], is_modern) in ('single', 'widowed')
     return looking(seed, sheet['age'], sheet['desire'], single, is_modern) != 'no'

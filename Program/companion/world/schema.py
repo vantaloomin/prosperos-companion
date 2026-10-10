@@ -277,6 +277,25 @@ class Price(Record):
         return self
 
 
+class Notable(Record):
+    """A named person a city places in town, such as a character from the setting a pack draws on. They join the
+    townsfolk at their place and live by the same rules (shifts or visits, goals, meetings), but with the name,
+    role and description given here instead of drawn ones. Notables are never on the dating app."""
+    id: Id
+    name: Text
+    # What people call them; the first word of `name` when left out.
+    given: str = Field(default='', max_length=60)
+    pronouns: Literal['she/her', 'he/him', 'they/them'] = 'they/them'
+    age: int = Field(ge=16, le=120)
+    place: Id
+    role: Annotated[str, Field(min_length=1, max_length=80)]
+    # Works there (keeps shifts) or only turns up as a regular (keeps visits).
+    staff: bool = False
+    about: Text
+    temperament: Id | None = None
+    source: Id
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -319,6 +338,8 @@ class City(Record):
     calendar: Id | None = None
     # Holidays particular to this city, beside its calendar's.
     holidays: list[Holiday] = Field(default_factory=list, max_length=100)
+    # Named people placed in town (a pack's characters), beside the seeded townsfolk.
+    notables: list[Notable] = Field(default_factory=list, max_length=200)
 
     @model_validator(mode='after')
     def check(self):
@@ -330,7 +351,7 @@ class City(Record):
             raise ValueError(f'Duplicate ids {sorted({i for i in ids if ids.count(i) > 1})}.')
         cited = [(item.id, item.source) for item in records]
         cited += [('climate', self.climate.source)] if self.climate else []
-        cited += [(item.id, item.source) for item in [*self.local_color, *self.prices]]
+        cited += [(item.id, item.source) for item in [*self.local_color, *self.prices, *self.notables]]
         missing = [name for name, source in cited if source not in self.sources]
         if missing:
             raise ValueError(f'Unknown sources cited by {missing}.')
@@ -349,6 +370,17 @@ class City(Record):
         stray = [item.id for item in self.neighborhoods if not set(item.transit) <= lines]
         if stray:
             raise ValueError(f'Unknown transit lines named by {stray}.')
+        return self
+
+    @model_validator(mode='after')
+    def check_notables(self):
+        places = {item.id for item in self.places}
+        stray = [item.id for item in self.notables if item.place not in places]
+        if stray:
+            raise ValueError(f'Notables placed at unknown places: {stray}.')
+        people = [item.id for item in self.notables]
+        if len(people) != len(set(people)):
+            raise ValueError(f'Duplicate notables {sorted({i for i in people if people.count(i) > 1})}.')
         return self
 
 

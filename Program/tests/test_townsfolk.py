@@ -1,4 +1,5 @@
 """Townsfolk: seeded people at the city's places, run by rules, met by the companion while out."""
+import copy
 from collections import Counter
 from datetime import date, datetime, timedelta
 
@@ -9,7 +10,7 @@ from test_social_circle import make
 from companion.characters import require_current
 from companion.database import decode
 from companion.life import body, encounters, network
-from companion.world import catalog, generators, naming, townsfolk
+from companion.world import catalog, dating, generators, naming, townsfolk
 
 
 @pytest.fixture(autouse=True)
@@ -228,3 +229,47 @@ def test_no_baltimore_resident_teaches_surfing():
     data = catalog.city('baltimore')
     jobs = {townsfolk._occupation(data, f'resident-{n}', 30) for n in range(2000)}
     assert 'surf instructor' not in jobs and len(jobs) > 20
+
+
+def with_notables(city_id: str = 'baltimore') -> dict:
+    """A built-in city with two named people added, the way a pack lists its characters."""
+    raw = copy.deepcopy(catalog.city(city_id))
+    for key in ('data_version', 'builtin', 'origin', 'pack_file'):
+        raw.pop(key, None)
+    place = next(item for item in raw['places'] if item['kind'] == 'bar')
+    source = next(iter(raw['sources']))
+    raw['notables'] = [
+        {'id': 'tess', 'name': 'Tess Harrow', 'pronouns': 'she/her', 'age': 41, 'place': place['id'],
+         'role': 'owner', 'staff': True, 'about': 'Runs the bar her mother opened.', 'temperament': 'gruff',
+         'source': source},
+        {'id': 'old-ned', 'name': 'Edward "Ned" Pike', 'given': 'Ned', 'pronouns': 'he/him', 'age': 77,
+         'place': place['id'], 'role': 'retired harbor pilot', 'about': 'Knows every ship that ever docked here.',
+         'source': source}]
+    return catalog.prepare(raw, mend=True)
+
+
+def test_a_citys_notables_join_the_townsfolk_at_their_place():
+    data = with_notables()
+    place_id = data['notables'][0]['place']
+    people = townsfolk.at_place(data, place_id)
+    seeded = townsfolk.count(data, catalog.find(data, place_id))
+    named = people[seeded:]
+    assert [sheet['full'] for sheet in named] == ['Tess Harrow', 'Edward "Ned" Pike']
+    tess, ned = named
+    assert (tess['name'], tess['age'], tess['role'], tess['temperament'], tess['staff']) == \
+        ('Tess', 41, 'owner', 'gruff', True)
+    assert tess['shifts']['days'] and 'visits' not in tess
+    assert ned['name'] == 'Ned' and not ned['staff'] and ned['visits']['days']
+    assert ned['about'] == 'Knows every ship that ever docked here.' and ned['notable'] == 'old-ned'
+    for sheet in named:
+        assert townsfolk.find(data, sheet['key']) == sheet
+        assert not dating.on_app(sheet, data)
+        assert townsfolk.whereabouts(sheet, data, datetime(2026, 3, 4, 20, 0))
+    assert tess['flaw'] != ned['flaw'] or tess['quirk'] != ned['quirk']
+
+
+def test_what_the_companion_knows_of_a_notable_says_who_they_are():
+    data = with_notables()
+    sheet = townsfolk.at_place(data, data['notables'][1]['place'])[-1]
+    person = encounters.revealed(sheet, data, [{'place': 'there', 'local_date': '2026-03-04'}], None, {})
+    assert 'Who they are: Knows every ship that ever docked here.' in encounters.text(person)

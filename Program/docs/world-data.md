@@ -170,6 +170,15 @@ another `calendar`, `'none'`, or add its own `holidays`. A holiday has one rule:
 `feast` (a church feast or quarter day). Moved "observed" weekdays and lunar-calendar holidays are
 not included.
 
+**Notables.** A city may name people who live in it (`notables`), such as a pack's characters: `id`,
+`name`, optional `given` (what people call them), `pronouns`, `age`, the `place` they belong to, `role`,
+`staff` (works there and keeps shifts, or only visits), `about` (who they are, one or two sentences),
+optional `temperament` and `source`. They join that place's townsfolk after the seeded ones, keyed the
+same way, and live by the same rules: days, goals, quirks and flaws are drawn from their key, while the
+name, age, role and temperament are the city's. The companion meets them like anyone else, and what it
+knows of them always includes `about`. Notables are never on the dating app. A pack's notable placed
+somewhere the city lacks is left out with a note.
+
 Weather here is climate, not a forecast. Real current conditions belong to the MCP context tools
 (PRD X1–X3); a life event built from climate must not be presented as today's weather.
 

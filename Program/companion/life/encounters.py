@@ -238,7 +238,7 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
               'first_met': meetings[0]['local_date'], 'first_place': meetings[0]['place'],
               'last_met': last['local_date'], 'last_place': last['place'],
               'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None,
-              'cast': sheet.get('cast'), 'comes_across': None, 'says_they_are': None}
+              'cast': sheet.get('cast'), 'comes_across': None, 'says_they_are': None, 'about': sheet.get('about')}
     person |= perception.revealed(data, sheet, times)
     person |= life_details.revealed(data, sheet, times)
     if times >= KNOWS_GOAL:
@@ -263,6 +263,8 @@ def text(person: dict) -> str:
     parts = [f"- {person['full']}, about {round(person['age'], -1) if person['age'] >= 25 else person['age']}, "
              f"{where}{hood}: {person['temperament']}, {person['quirk']}. You've crossed paths {times}, "
              f"last on {when} at {person['last_place']}."]
+    if person.get('about'):
+        parts.append(f"Who they are: {person['about']}")
     if person.get('comes_across'):
         parts.append(f"How they come across: {person['comes_across']}")
     if person['goal']:
