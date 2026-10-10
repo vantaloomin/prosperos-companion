@@ -1,3 +1,4 @@
+import { UserRound } from 'lucide-react'
 import { useFollowWorld } from './useWorlds'
 import { initial, whereLine } from './worldsText'
 
@@ -8,7 +9,7 @@ export function WorldButton({ current, onOpen }: { current: boolean; onOpen: () 
   return (
     <button type="button" className="nav-world" aria-current={current ? 'page' : undefined} onClick={onOpen}
       title={worlds ? `${whereLine(worlds.persona, worlds.world)}. Switch persona or world.` : 'Worlds'}>
-      <span className="nav-persona" aria-hidden="true">{initial(worlds?.persona)}</span><span>{worlds?.world.name ?? 'Worlds'}</span>
+      <span className="nav-persona" aria-hidden="true">{initial(worlds?.persona) || <UserRound size={14} />}</span><span>{worlds?.world.name ?? 'Worlds'}</span>
     </button>
   )
 }

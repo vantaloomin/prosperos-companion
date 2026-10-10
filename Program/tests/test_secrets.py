@@ -12,8 +12,9 @@ from companion.memory import pairs
 from companion.models import CharacterDefinition
 from companion.providers.chat import Chunk
 
-SECRET = 'Billy and Katie have been secretly seeing each other'
-SLIP = 'lol Billy and Katie are secretly seeing each other, did you know?'
+# Ottoline: a name the town generators never draw, so no seeded townsperson can share it.
+SECRET = 'Billy and Ottoline have been secretly seeing each other'
+SLIP = 'lol Billy and Ottoline are secretly seeing each other, did you know?'
 
 
 @pytest.fixture
@@ -25,7 +26,7 @@ def cast(client, companion, connected, provider):
 
 
 def declare(client, cast, **extra):
-    body = {'statement': SECRET, 'about': ['Billy', 'Katie'], 'knows': [cast['Billy']], 'kept_from': [cast['Sally']],
+    body = {'statement': SECRET, 'about': ['Billy', 'Ottoline'], 'knows': [cast['Billy']], 'kept_from': [cast['Sally']],
             **extra}
     return next(item for item in ok(client.post('/api/secrets', json=body))['secrets']
                 if item['statement'] == body['statement'])
@@ -56,7 +57,7 @@ def billy_says(text, times=2):
 
 def test_sallys_prompt_never_holds_a_secret_kept_from_her(client, cast, provider):
     secret = declare(client, cast)
-    assert secret['about'] == ['Billy Hart', 'Katie'] and secret['source'] == 'You added this'
+    assert secret['about'] == ['Billy Hart', 'Ottoline'] and secret['source'] == 'You added this'
     assert [person['name'] for person in secret['kept_from']] == ['Sally Moss']
     group = start(client, [cast['Billy'], cast['Sally']], 'Friday crew')
     provider.requests.clear()
@@ -64,7 +65,7 @@ def test_sallys_prompt_never_holds_a_secret_kept_from_her(client, cast, provider
 
     billy, sally = requests_of(provider, 'Billy')[0], requests_of(provider, 'Sally')[0]
     assert f'- You know: {SECRET}. Sally doesn\'t know and must not find out' in billy['prompt']
-    for word in ('secretly seeing', 'Katie', 'must not find out'):
+    for word in ('secretly seeing', 'Ottoline', 'must not find out'):
         assert word not in sally['prompt']
     # The secret rides in Billy's private part, below the shared transcript, so the cache stays shared.
     assert billy['prompt'].index('## The group chat so far') < billy['prompt'].index(SECRET)
@@ -119,7 +120,7 @@ def test_at_soap_opera_a_slip_stays_and_everyone_there_learns_it(client, cast, p
 def test_the_user_can_tell_them_or_let_them_find_out(client, cast, provider):
     secret = declare(client, cast)
     group = start(client, [cast['Billy'], cast['Sally']])
-    say(client, group['id'], 'Sally, I have to tell you: Billy and Katie are seeing each other.', 'group-0001')
+    say(client, group['id'], 'Sally, I have to tell you: Billy and Ottoline are seeing each other.', 'group-0001')
     # Sally was kept from it, so the user telling her is the user's reveal.
     assert knows(client, secret['id']) == {'Billy': 'origin', 'Sally': 'reveal'}
     with client.app.state.database.connect() as connection:
@@ -190,12 +191,12 @@ def test_a_gossip_line_names_who_they_would_tell(client, cast, provider, monkeyp
 def test_someone_added_with_everything_so_far_learns_what_was_said(client, cast, provider):
     secret = declare(client, cast)
     group = start(client, [cast['Billy'], cast['Mira']])
-    say(client, group['id'], 'Mira, Billy and Katie are secretly seeing each other!', 'group-0001')
+    say(client, group['id'], 'Mira, Billy and Ottoline are secretly seeing each other!', 'group-0001')
     assert knows(client, secret['id']) == {'Billy': 'origin', 'Mira': 'witness'}
     ok(client.post(f"/api/groups/{group['id']}/members", json={'companion_id': cast['Sally']}))
     assert 'Sally' not in knows(client, secret['id'])
     other = start(client, [cast['Billy'], cast['Mira']])
-    say(client, other['id'], 'So: Billy and Katie are secretly seeing each other.', 'group-0002')
+    say(client, other['id'], 'So: Billy and Ottoline are secretly seeing each other.', 'group-0002')
     ok(client.post(f"/api/groups/{other['id']}/members", json={'companion_id': cast['Sally'], 'history': 'everything'}))
     assert knows(client, secret['id'])['Sally'] == 'history'
 
@@ -265,18 +266,18 @@ def test_a_secret_storyline_registers_itself_and_ends_when_it_goes_public(client
 
 
 def test_a_message_gives_a_secret_away_by_rules():
-    secret = {'subjects': [{'key': 'companion:b', 'name': 'Billy Hart'}, {'key': None, 'name': 'Katie'}],
+    secret = {'subjects': [{'key': 'companion:b', 'name': 'Billy Hart'}, {'key': None, 'name': 'Ottoline'}],
               'keys': ['dating', 'seeing each other'], 'explicit': True}
-    assert secrets.hits(secret, 'Billy and Katie are dating!!', 'companion:s')
-    assert secrets.hits(secret, 'Katie and I are dating', 'companion:b')  # The speaker counts as named.
-    assert not secrets.hits(secret, 'Katie and I went bowling', 'companion:b')
+    assert secrets.hits(secret, 'Billy and Ottoline are dating!!', 'companion:s')
+    assert secrets.hits(secret, 'Ottoline and I are dating', 'companion:b')  # The speaker counts as named.
+    assert not secrets.hits(secret, 'Ottoline and I went bowling', 'companion:b')
     assert not secrets.hits(secret, 'Billy is dating someone', 'companion:s')
-    assert not secrets.hits(secret, 'Billyboy and Katie are dating', 'companion:s')
+    assert not secrets.hits(secret, 'Billyboy and Ottoline are dating', 'companion:s')
     # Key words from the statement itself: one is enough when it names two people, two when only one.
     derived = {'subjects': secret['subjects'], 'keys': secrets.derived_keys(SECRET, secret['subjects']),
                'explicit': False}
     assert derived['keys'] == ['seeing']
-    assert secrets.hits(derived, 'Billy is seeing Katie', None)
+    assert secrets.hits(derived, 'Billy is seeing Ottoline', None)
     alone = {'subjects': secret['subjects'][:1], 'keys': ['marathon', 'training'], 'explicit': False}
     assert not secrets.hits(alone, 'Billy ran a marathon once', None)
     assert secrets.hits(alone, 'Billy is training for a marathon', None)
@@ -285,7 +286,7 @@ def test_a_message_gives_a_secret_away_by_rules():
 def test_witness_lines_follow_automatic_memory_in_the_one_to_one_chat(client, cast, provider):
     secret = declare(client, cast)
     group = start(client, [cast['Billy'], cast['Mira']])
-    say(client, group['id'], 'Mira: Billy and Katie are seeing each other.', 'group-0001')
+    say(client, group['id'], 'Mira: Billy and Ottoline are seeing each other.', 'group-0001')
     assert knows(client, secret['id'])['Mira'] == 'witness'
     database = client.app.state.database
     with database.connect(write=True) as connection:
@@ -308,9 +309,9 @@ def test_the_panel_checks_what_it_is_given(client, cast):
                                                 'kept_from': [cast['Billy']]})
     assert refused.status_code == 422
     secret = declare(client, cast)
-    changed = ok(client.patch(f"/api/secrets/{secret['id']}", json={'statement': 'Billy and Katie kissed',
+    changed = ok(client.patch(f"/api/secrets/{secret['id']}", json={'statement': 'Billy and Ottoline kissed',
                                                                    'key_words': ['Kissed', 'smooch']}))['secrets'][0]
-    assert changed['statement'] == 'Billy and Katie kissed' and changed['own_key_words'] == ['kissed', 'smooch']
+    assert changed['statement'] == 'Billy and Ottoline kissed' and changed['own_key_words'] == ['kissed', 'smooch']
     assert [person['name'] for person in changed['kept_from']] == ['Sally Moss']
     assert ok(client.delete(f"/api/secrets/{secret['id']}"))['secrets'] == []
     assert client.post(f"/api/secrets/{secret['id']}/reveal", json={'companion_id': cast['Mira']}).status_code == 404

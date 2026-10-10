@@ -1,4 +1,4 @@
-"""On her mind: one private thought a day, shown folded on Today (Feature Hit List #8).
+"""On their mind: one private thought a day, shown folded on Today (Feature Hit List #8).
 
 At the end of each of the companion's days (from `EVENING` their time) the app works out what is on their mind from
 what actually happened that day, all by rules: a storyline beat or a new chapter of their life, how an outcome left

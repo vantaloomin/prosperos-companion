@@ -1115,7 +1115,8 @@ def test_the_prompt_is_one_krea_style_paragraph_of_what_a_camera_can_see():
              'weather': {'rain': True, 'high_f': 60}}
     prompt = prompts.compose('Kimberly Smith', appearance, [event], 'Candid, natural-light photograph',
                              'Wearing a grey hoodie.', dressed=True)
-    assert prompt.startswith('Candid, natural-light photograph of a fictional everyday moment.')
+    assert prompt.startswith('Candid, natural-light photograph of a fictional everyday moment, a medium shot with her '
+                             'whole head and face in the frame.')
     assert 'Kimberly' not in prompt and 'locked in' not in prompt and 'Mood:' not in prompt
     assert 'in college' not in prompt and 'derby' not in prompt and 'looks like someone' not in prompt
     assert 'faint scar on her chin' in prompt and 'Her smile is lopsided' in prompt

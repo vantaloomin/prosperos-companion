@@ -904,13 +904,13 @@ POST /api/today/seen
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
 | `last_seen_at` | When the user last marked Today as seen |
 | `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
-| `mind` | On her mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
+| `mind` | On their mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
 
 Call `POST /api/today/seen` once the user has looked at Today, so the next visit's `changes`
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
 and `plans` have the same shape as `GET /api/events`.
 
-### On her mind
+### On their mind
 
 Each evening (from 18:00 the companion's time) Today gets one private thought for that day, worked out by
 rules in `companion/life/thoughts.py` from what actually happened: a storyline beat or a new life chapter, how a

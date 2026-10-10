@@ -95,8 +95,16 @@ def test_news_that_gives_a_secret_away_stays_unshared(app, client, cast):
 
 def test_an_opening_line_that_fails_is_not_kept_or_tried_again(app, client, cast, provider):
     provider.respond = lambda system, history: [Chunk('', 'length')]
-    assert first_words(app) is not None
+    tried = first_words(app)
+    assert tried is not None
     assert [item for item in messages(client, cast['group']) if item['kind'] != 'app'] == []
+    # The day lived is random and may hold only one piece of news: give the second try another to share.
+    with app.state.database.connect(write=True) as connection:
+        connection.execute("INSERT INTO life_events SELECT id || '-also', companion_id, timeline_id, "
+                           "idempotency_key || '-also', kind, status, summary || ' Then a second thing happened.', "
+                           'details, starts_at, ends_at, character_version_id, permission_revision, inputs, revision, '
+                           'supersedes_id, rejection, created_at, decided_at FROM life_events WHERE id=?',
+                           (tried['event_id'],))
     first_words(app)
     with app.state.database.connect() as connection:
         assert connection.execute('SELECT COUNT(*) FROM away_messages').fetchone()[0] == 0

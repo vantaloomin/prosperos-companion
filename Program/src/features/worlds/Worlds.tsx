@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Globe, Plus, Trash2, UserRoundPlus } from 'lucide-react'
+import { Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
 import { api } from '../../api'
 import type { Persona, World, Worlds as WorldsData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -8,7 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { PersonaForm } from './PersonaForm'
 import { enter, useWorlds, WORLDS_KEY } from './useWorlds'
-import { companionsLine, initial, personaName } from './worldsText'
+import { companionsLine, initial, personaName, personaRef, personaTitle } from './worldsText'
 
 type Run = (action: () => Promise<unknown>) => Promise<void>
 
@@ -33,7 +33,7 @@ export function Worlds() {
     <section className="worlds" aria-labelledby="worlds-heading">
       <header className="worlds-header">
         <h1 id="worlds-heading">Worlds</h1>
-        <p className="subtle">You are <strong>{personaName(data.persona)}</strong> in <strong>{data.world.name}</strong>. Each persona lives in their own worlds, with their own companions, town and history. Your settings and models come with you everywhere.</p>
+        <p className="subtle">{personaName(data.persona) ? <>You are <strong>{personaName(data.persona)}</strong> in </> : <>You're in </>}<strong>{data.world.name}</strong>. Each persona lives in their own worlds, with their own companions, town and history. Your settings and models come with you everywhere.</p>
         {busy && <Notice>Opening {busy}…</Notice>}
         {error && <Notice tone="error">{error}</Notice>}
       </header>
@@ -41,17 +41,24 @@ export function Worlds() {
         {data.personas.map((persona) => (
           <PersonaWorlds key={persona.id} persona={persona} run={run} store={store}
             onSwitch={(world) => void switchTo(`/worlds/${world.id}/switch`, world.name)}
-            onSwitchPersona={() => void switchTo(`/worlds/personas/${persona.id}/switch`, personaName(persona))} />
+            onSwitchPersona={() => void switchTo(`/worlds/personas/${persona.id}/switch`, personaRef(persona))} />
         ))}
         {making
           ? <PersonaForm onCancel={() => setMaking(false)} onSaved={() => { setMaking(false); void client.invalidateQueries({ queryKey: WORLDS_KEY }) }} />
           : <div className="form-actions">
               <button type="button" className="button" onClick={() => setMaking(true)}><UserRoundPlus aria-hidden="true" />New persona</button>
             </div>}
-        <PersonaForm key={data.persona.id} persona={data.persona} onSaved={(saved) => { if (saved) store(saved) }} />
+        <div id="persona-edit"><PersonaForm key={data.persona.id} persona={data.persona} onSaved={(saved) => { if (saved) store(saved) }} /></div>
       </div>
     </section>
   )
+}
+
+/** The edit form for the persona the user is now, at the end of the page: go there with its name box ready. */
+function addName() {
+  const field = document.querySelector<HTMLInputElement>('#persona-edit input')
+  field?.scrollIntoView({ block: 'center' })
+  field?.focus()
 }
 
 interface PersonaWorldsProps { persona: Persona; run: Run; store: (data: WorldsData) => void; onSwitch: (world: World) => void; onSwitchPersona: () => void }
@@ -61,27 +68,35 @@ function PersonaWorlds({ persona, run, store, onSwitch, onSwitchPersona }: Perso
   const [deleting, setDeleting] = useState(false)
   const removable = !persona.active && persona.worlds.every((world) => !world.first)
   return (
-    <section className="persona-worlds" aria-label={personaName(persona)}>
-      <div className="persona-row">
-        <span className="portrait persona-initial" aria-hidden="true">{initial(persona)}</span>
-        <h2>{personaName(persona)}{persona.active && <span className="subtle"> (you, now)</span>}</h2>
-        {!persona.active && <button type="button" className="button" onClick={onSwitchPersona}>Be {personaName(persona)}</button>}
-        {removable && <button type="button" className="text-button" onClick={() => setDeleting(true)}><Trash2 aria-hidden="true" />Delete</button>}
-      </div>
+    <section className="persona-worlds" aria-label={personaTitle(persona)}>
+      <PersonaRow persona={persona} onSwitchPersona={onSwitchPersona} onDelete={removable ? () => setDeleting(true) : undefined} />
       <ul className="world-rows">
         {persona.worlds.map((world) => <WorldRow key={world.id} world={world} run={run} store={store} onSwitch={() => onSwitch(world)} />)}
       </ul>
       <button type="button" className="text-button" onClick={() => void run(async () => {
         await api('/worlds', { persona_id: persona.id })
         await client.invalidateQueries({ queryKey: WORLDS_KEY })
-      })}><Plus aria-hidden="true" />New world for {personaName(persona)}</button>
-      {deleting && <ConfirmDialog title={`Delete ${personaName(persona)}?`} onClose={() => setDeleting(false)} actions={<>
+      })}><Plus aria-hidden="true" />New world for {personaRef(persona)}</button>
+      {deleting && <ConfirmDialog title={`Delete ${personaRef(persona)}?`} onClose={() => setDeleting(false)} actions={<>
         <button type="button" className="button" onClick={() => setDeleting(false)}>Keep</button>
         <button type="button" className="button danger" onClick={() => void run(async () => { store(await api<WorldsData>(`/worlds/personas/${persona.id}`, undefined, 'DELETE')); setDeleting(false) })}>Delete</button>
       </>}>
         <p>Their {persona.worlds.length === 1 ? 'world goes' : `${persona.worlds.length} worlds go`} with them, with every companion and chat in it. A backup of each is kept in the data folder, under backups/deleted-worlds.</p>
       </ConfirmDialog>}
     </section>
+  )
+}
+
+function PersonaRow({ persona, onSwitchPersona, onDelete }: { persona: Persona; onSwitchPersona: () => void; onDelete?: () => void }) {
+  const name = personaName(persona)
+  return (
+    <div className="persona-row">
+      <span className="portrait persona-initial" aria-hidden="true">{initial(persona) || <UserRound size={18} />}</span>
+      <h2>{personaTitle(persona)}{persona.active && <span className="subtle"> (you, now)</span>}</h2>
+      {persona.active && !name && <button type="button" className="text-button" onClick={addName}>Add a name</button>}
+      {!persona.active && <button type="button" className="button" onClick={onSwitchPersona}>{name ? `Be ${name}` : 'Switch to this persona'}</button>}
+      {onDelete && <button type="button" className="text-button" onClick={onDelete}><Trash2 aria-hidden="true" />Delete</button>}
+    </div>
   )
 }
 

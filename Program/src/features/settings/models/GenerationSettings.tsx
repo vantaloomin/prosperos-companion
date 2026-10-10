@@ -108,8 +108,8 @@ function SamplingControls({ config, patch }: Props) {
   const fields = samplingFields(config)
   if (!fields.length) return null
   const supported = config.reported_capabilities?.supported_parameters
-  return <details className="advanced-settings"><summary>Sampling</summary><div className="form-stack"><p className="subtle">Blank uses the model’s default. Some thinking models reject sampling settings.</p>
-    <div className="form-grid">{fields.map(([key, label, min, max, step]) => <NumberInput key={key} label={label} value={config[key] ?? ''} min={min} max={key === 'temperature' && config.provider === 'anthropic' ? 1 : max} step={step} placeholder="Model default" onChange={value => patch({ [key]: value === '' ? null : Number(value) })} tip={samplerTips[key]} hint={supported && !supported.includes(key) ? 'Not reported as supported by this model. Leave blank.' : undefined} />)}</div>
+  return <details className="advanced-settings"><summary>Sampling</summary><div className="form-stack"><p className="subtle">Blank sends nothing, so the service you connect to picks its own value. That can differ between hosts of the same model. Some thinking models reject sampling settings.</p>
+    <div className="form-grid">{fields.map(([key, label, min, max, step]) => <NumberInput key={key} label={label} value={config[key] ?? ''} min={min} max={key === 'temperature' && config.provider === 'anthropic' ? 1 : max} step={step} placeholder="Service default" onChange={value => patch({ [key]: value === '' ? null : Number(value) })} tip={samplerTips[key]} hint={supported && !supported.includes(key) ? 'Not reported as supported by this model. Leave blank.' : undefined} />)}</div>
     <div className="form-actions"><button type="button" className="button" onClick={() => patch(Object.fromEntries(samplerFields.map(([key]) => [key, null])))}>Clear sampling settings</button></div></div></details>
 }
 
@@ -120,5 +120,5 @@ function NumberInput({ label, value, onChange, hint, tip, min, max, step, placeh
 
 function Choice({ label, value, options, onChange, hint, noDefault }: { label: string; value?: string | null; options: string[]; onChange: (value: string | null) => void; hint?: string; noDefault?: boolean }) {
   const id = useId()
-  return <div className="field"><label htmlFor={id}>{label}</label><select id={id} value={value ?? ''} aria-describedby={hint ? `${id}-hint` : undefined} onChange={event => onChange(event.target.value || null)}>{!noDefault && <option value="">Model default</option>}{value && !options.includes(value) && <option value={value}>{value} · saved, not reported</option>}{options.map(option => <option key={option} value={option}>{option}</option>)}</select>{hint && <small id={`${id}-hint`}>{hint}</small>}</div>
+  return <div className="field"><label htmlFor={id}>{label}</label><select id={id} value={value ?? ''} aria-describedby={hint ? `${id}-hint` : undefined} onChange={event => onChange(event.target.value || null)}>{!noDefault && <option value="">Service default</option>}{value && !options.includes(value) && <option value={value}>{value} · saved, not reported</option>}{options.map(option => <option key={option} value={option}>{option}</option>)}</select>{hint && <small id={`${id}-hint`}>{hint}</small>}</div>
 }

@@ -29,18 +29,21 @@ class MemoryWorker:
         self.embedder = embedder or EmbeddingProvider()
         self.provider = provider
         self.enabled = enabled
-        self.task: asyncio.Task | None = None
+        # One drain per world: a drain waiting on the model in the world just left must not hold up the one entered.
+        self.tasks: dict[str, asyncio.Task] = {}
         self.consolidated_at = -CONSOLIDATE_SECONDS
 
     def kick(self):
-        """Start draining unless a drain is already running. Safe to call often."""
-        if not self.enabled or (self.task is not None and not self.task.done()):
+        """Start draining this world unless its drain is already running. Safe to call often."""
+        world = str(self.database.path)
+        running = self.tasks.get(world)
+        if not self.enabled or (running is not None and not running.done()):
             return
         try:
             with self.database.pin():  # The drain finishes the work of the world it was started in.
-                self.task = asyncio.get_running_loop().create_task(self.drain())
+                self.tasks[world] = asyncio.get_running_loop().create_task(self.drain())
         except RuntimeError:
-            self.task = None
+            self.tasks.pop(world, None)
 
     async def drain(self):
         while True:

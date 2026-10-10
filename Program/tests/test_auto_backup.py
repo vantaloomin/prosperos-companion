@@ -17,6 +17,11 @@ def test_seven_days_then_four_weeks_are_kept():
     assert {f'auto-{day}' for day in range(7)} <= kept
     assert len(kept) == 7 + 4
     assert 'auto-59' not in kept
+    # The weeklies are whole weeks before the dailies' oldest week, so they reach back past a month.
+    weekly = sorted(int(name.split('-')[1]) for name in kept - {f'auto-{day}' for day in range(7)})
+    oldest_daily_week = (start - timedelta(days=6)).isocalendar()[:2]
+    assert all((start - timedelta(days=day)).isocalendar()[:2] != oldest_daily_week for day in weekly)
+    assert weekly[-1] >= 28
 
 
 def test_every_world_is_backed_up_once_a_day_on_its_own(client, companion, app, clock):

@@ -1,4 +1,4 @@
-"""On her mind (companion/life/thoughts.py): one private thought a day from what happened, folded on Today."""
+"""On their mind (companion/life/thoughts.py): one private thought a day from what happened, folded on Today."""
 import asyncio
 from datetime import timedelta
 
