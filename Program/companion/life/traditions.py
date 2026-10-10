@@ -94,20 +94,44 @@ def where(person: dict) -> str:
     return f' in {neighborhood}' if neighborhood else ''
 
 
-def compose(entry: dict, holiday: str, host: dict | None, rng: random.Random) -> str:
-    """The tradition in a few plain sentences. {their} stands for "their" or "your"."""
-    dish, ritual = rng.choice(entry['dishes']), rng.choice(entry['rituals'])
+HOME_FRAMES = ("Always at {their} {role} {name}'s{where}.",
+               "Every year it's {their} {role} {name}'s place{where}.",
+               "The whole family piles into {their} {role} {name}'s{where}.",
+               "Same as every year: {their} {role} {name} hosts{where}.")
+AWAY_FRAMES = ("It means going home to {their} {role} {name}'s, out of town.",
+               "It's a trip home to {their} {role} {name}'s, out of town.")
+OWN_FRAMES = ("It's {their} turn to host, at {their} own place.", "It happens at {their} own place these days.")
+FRIEND_FRAMES = ("A standing plan with {their} friend {name}.", "It's always with {their} friend {name}.")
+
+
+def compose(entry: dict, host: dict | None, rng: random.Random, turn: int = 0) -> str:
+    """The tradition in a few plain sentences; the holiday's name sits above it. {their} stands for "their" or
+    "your". `turn` picks the sentence frame, so a family's traditions don't all open the same way."""
     if entry['with'] == 'friends':
-        opening = (f"{holiday} is a standing plan with {{their}} friend {host['name']}." if host else
-                   f'{holiday} is spent with friends.')
-        return f"{opening} There's always {dish}. {ritual}"
-    if not host:
-        return f"{holiday} is {{their}} turn to host, at {{their}} own place. There's always {dish}. {ritual}"
-    if where(host) == ', out of town':
-        opening = f"{holiday} means going home to {{their}} {host['role']} {host['name']}'s, out of town."
+        opening = FRIEND_FRAMES[turn % 2].format(their='{their}', name=host['name']) if host else \
+            "It's spent with friends."
+    elif not host:
+        opening = OWN_FRAMES[turn % 2]
     else:
-        opening = f"{holiday} is always at {{their}} {host['role']} {host['name']}'s{where(host)}."
+        away = where(host) == ', out of town'
+        frames = AWAY_FRAMES if away else HOME_FRAMES
+        opening = frames[turn % len(frames)].format(
+            their='{their}', role=host['role'], name=host['name'], where='' if away else where(host))
+    dish, ritual = rng.choice(entry['dishes']), rng.choice(entry['rituals'])
     return f"{opening} There's always {dish}. {ritual}"
+
+
+def teaser(connection, row: dict, holiday: str) -> str:
+    """A short line for Today: "Thanksgiving at their mom Valerie's in Hampden". Just the holiday once the user
+    has written their own."""
+    host = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['host_id'],)) if row['host_id'] else None
+    if row['edited'] or row['origin'] == 'user':
+        return holiday
+    if not host:
+        return f'{holiday} at their own place'
+    if 'friend' in host['role']:
+        return f"{holiday} with their friend {host['name']}"
+    return f"{holiday} at their {host['role']} {host['name']}'s{where(host)}"
 
 
 def seeded(timeline_id: str, city: dict, people: list[dict]) -> list[dict]:
@@ -119,14 +143,15 @@ def seeded(timeline_id: str, city: dict, people: list[dict]) -> list[dict]:
     others = [entry for entry in found if not entry['main']]
     rng.shuffle(others)
     chosen = mains + [entry for entry in others if rng.random() < 0.5][:max(0, MOST - len(mains))]
-    result = []
+    result, turn = [], rng.randrange(len(HOME_FRAMES))
     for entry in chosen:
         pick = random.Random(f"traditions:{timeline_id}:{entry['holiday']}")
         host = host_for(entry['with'], people, pick, entry['main'])
         if entry['with'] in ('mom', 'dad') and not host:
             continue  # Mother's Day needs a mom in the circle.
         result.append({'holiday': entry['holiday'], 'host_id': host['id'] if host else None,
-                       'text': compose(entry, names[entry['holiday']], host, pick)})
+                       'text': compose(entry, host, pick, turn)})
+        turn += 1
     return result
 
 
@@ -185,7 +210,7 @@ def upcoming(connection, companion: dict, today: date, days: int) -> list[dict]:
         return []
     return [{'id': rows[item['id']]['id'], 'holiday': item['id'], 'name': item['name'], 'date': item['date'],
              'days': (item['date'] - today).days, 'text': voiced(rows[item['id']]['text'], 'your'),
-             'raw': rows[item['id']]['text']}
+             'raw': rows[item['id']]['text'], 'short': teaser(connection, rows[item['id']], item['name'])}
             for item in dated(city, today, today + timedelta(days=days)) if item['id'] in rows]
 
 

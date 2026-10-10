@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
@@ -7,7 +7,7 @@ import type { Companion, Scrapbook, ScrapbookItem, ScrapbookListing, ScrapbookPa
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { imageFile } from '../feed/imageState'
-import { SCRAPBOOKS_KEY, dayText, firstKey, pageAt, spanText } from './yearText'
+import { SCRAPBOOKS_KEY, dayText, firstKey, pageAt, spanText, sparse } from './yearText'
 
 /**
  * Our year so far: a scrapbook of your time with them, one page at a time. Swipe on a phone; arrows, the dots or
@@ -18,6 +18,7 @@ export function OurYear({ companion, go }: { companion: Companion; go: (view: Vi
   const listing = useQuery({ queryKey: SCRAPBOOKS_KEY, queryFn: () => api<ScrapbookListing>('/life/year') })
   const [chosen, setChosen] = useState<string | null>(null)
   const key = chosen ?? firstKey(listing.data)
+  useSeen(listing.data, setChosen)
   const book = useQuery({ queryKey: ['scrapbook', key], queryFn: () => api<Scrapbook>(`/life/year/${key}`), enabled: key !== null })
   return (
     <section className="page our-year">
@@ -32,13 +33,22 @@ export function OurYear({ companion, go }: { companion: Companion; go: (view: Vi
   )
 }
 
+/** Opening the scrapbook Today pointed to keeps Today's card away; the page stays on that scrapbook. */
+function useSeen(listing: ScrapbookListing | undefined, setChosen: (key: string) => void) {
+  const client = useQueryClient()
+  const featured = listing?.featured ?? null
+  useEffect(() => {
+    if (!featured) return
+    setChosen(featured)
+    void api<ScrapbookListing>(`/life/year/${featured}/seen`, {}).then((listing) => client.setQueryData(SCRAPBOOKS_KEY, listing)).catch(() => undefined)
+  }, [featured, setChosen, client])
+}
+
 function YearHeader({ book, name, periods, chosen, onChoose }: { book?: Scrapbook; name: string; periods: ScrapbookPeriod[]; chosen: string | null; onChoose: (key: string) => void }) {
   return (
-    <header className="page-header">
-      <div>
-        <h1>{book?.title ?? 'Our year so far'}</h1>
-        <p className="subtle">{book ? spanText(book.start, book.end) : `A look back at your time with ${name}, from what really happened.`}</p>
-      </div>
+    <header className="year-header">
+      <h1>{book?.title ?? 'Our year so far'}</h1>
+      <p className="subtle">{book ? spanText(book.start, book.end) : `A look back at your time with ${name}, from what really happened.`}</p>
       {periods.length > 1 && (
         <select aria-label="Which year" value={chosen ?? ''} onChange={(event) => onChoose(event.target.value)}>
           {periods.map((period) => <option key={period.key} value={period.key}>{period.title}</option>)}
@@ -69,7 +79,7 @@ function Pages({ book }: { book: Scrapbook }) {
       <div ref={strip} className="year-pages" tabIndex={0} role="group" aria-roledescription="scrapbook" aria-label={`${book.title}, page ${current + 1} of ${count}`}
         onKeyDown={keys} onScroll={(event) => setCurrent(pageAt(event.currentTarget.scrollLeft, event.currentTarget.clientWidth, count))}>
         {book.pages.map((page, index) => (
-          <article key={`${page.kind}-${index}`} className={`year-page year-page-${page.kind}`} aria-label={`Page ${index + 1}: ${page.title}`} aria-hidden={index !== current}>
+          <article key={`${page.kind}-${index}`} className={`year-page year-page-${page.kind}${sparse(page) ? ' year-page-sparse' : ''}`} aria-label={`Page ${index + 1}: ${page.title}`} aria-hidden={index !== current}>
             <PageBody page={page} name={book.name} />
           </article>
         ))}
@@ -114,7 +124,7 @@ function PageBody({ page, name }: { page: ScrapbookPage; name: string }) {
   return <>
     <h2>{page.title}</h2>
     <Items items={page.items} />
-    {page.kind === 'closer' && page.note && <p className="subtle">{page.note}</p>}
+    {page.kind === 'jokes' && page.note && <p className="subtle">{page.note}</p>}
   </>
 }
 

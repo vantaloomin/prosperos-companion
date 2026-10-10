@@ -55,7 +55,8 @@ def test_seeding_keeps_the_big_holidays_and_names_a_host():
     assert {'thanksgiving', 'christmas'} <= set(holidays) and len(holidays) <= traditions.MOST
     thanksgiving = next(row for row in first if row['holiday'] == 'thanksgiving')
     assert thanksgiving['host_id'] == 'p1'
-    assert thanksgiving['text'].startswith("Thanksgiving is always at {their} mom Ruth's in Towson.")
+    assert '{their} mom Ruth' in thanksgiving['text'] and 'Towson' in thanksgiving['text']
+    assert 'Thanksgiving' not in thanksgiving['text'].split('.')[0]  # The card's heading names the holiday.
     # Without family, the holiday is kept at their own place.
     alone = traditions.seeded('t1', city, [])
     assert all('{their} own place' in row['text'] or 'friends' in row['text'] for row in alone)
@@ -97,6 +98,7 @@ def test_a_coming_holiday_shows_its_tradition_and_the_day_goes_to_it(client, bal
     found = [item for item in today['occasions'] if item['kind'] == 'tradition' and item['holiday'] == 'Thanksgiving']
     assert found and found[0]['days'] == 4 and "Your family's tradition:" in found[0]['text']
     assert '{their}' not in found[0]['text'] and 'your' in found[0]['text'].split("tradition:")[1]
+    assert found[0]['teaser'].startswith('Thanksgiving ') and len(found[0]['teaser']) < 80
 
     clock.advance(timedelta(days=5))
     reconcile(client)

@@ -1585,9 +1585,12 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .traditions-panel textarea { width: 100%; resize: vertical; }
 
 /* Our year so far (src/features/year): one page at a time, swiped on a phone, arrows and dots on a computer. */
+.our-year { max-width: 640px; margin-inline: auto; }
 .our-year > .text-button { margin-bottom: 4px; }
-.our-year .page-header select { max-width: 220px; }
-.year-book { max-width: 640px; display: grid; gap: 12px; }
+.year-header { display: grid; gap: 10px; justify-items: start; margin-bottom: 16px; }
+.year-header h1, .year-header p { margin: 0; }
+.year-header select { max-width: 240px; }
+.year-book { display: grid; gap: 12px; }
 .year-pages { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; border-radius: 14px; }
 .year-pages::-webkit-scrollbar { display: none; }
 .year-page { flex: 0 0 100%; min-width: 0; min-height: 420px; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column; gap: 14px;
@@ -1612,7 +1615,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-items li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .year-items li:not(:has(time)) { grid-template-columns: 1fr; }
 .year-items time { color: var(--muted); font-size: 0.8125rem; padding-top: 2px; }
-.year-closing { margin: auto 0; font-size: 1.375rem; line-height: 1.45; }
+.year-closing { margin: 0; font-size: 1.375rem; line-height: 1.45; }
+.year-page-sparse { justify-content: center; }
+.year-page-sparse .year-quote blockquote, .year-page-sparse .year-items li { font-size: 1.1875rem; line-height: 1.55; }
+.year-page-sparse .year-items time { font-size: 0.875rem; padding-top: 4px; }
 .year-closing ~ * { margin-top: 0; }
 .year-controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .year-dots { list-style: none; margin: 0; padding: 0; display: flex; gap: 2px; }
@@ -1623,4 +1629,13 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .year-page { min-height: 380px; padding: 24px 18px; }
   .year-page-cover h2 { font-size: 1.6rem; }
   .year-photos { grid-template-columns: repeat(2, 1fr); }
+  .year-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .year-stats div { padding: 10px 8px; }
+  .year-stats dd { font-size: 1.375rem; }
+  .year-stats dt { font-size: 0.75rem; line-height: 1.3; }
 }
+.year-card { position: relative; display: grid; gap: 6px; justify-items: start; margin-bottom: 16px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 14px;
+  background: linear-gradient(160deg, var(--accent-tint), var(--surface) 70%); }
+.year-card h2 { margin: 0; padding-right: 32px; font-size: 1.375rem; line-height: 1.3; }
+.year-card p { margin: 0 0 6px; color: var(--accent); font-weight: 500; }
+.year-card .year-card-close { position: absolute; top: 8px; right: 8px; color: var(--muted); }

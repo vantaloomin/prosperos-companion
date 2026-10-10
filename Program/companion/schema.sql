@@ -1751,3 +1751,12 @@ CREATE TABLE IF NOT EXISTS family_traditions (
   updated_at TEXT NOT NULL,
   UNIQUE (timeline_id, holiday)
 );
+
+-- Our year so far (companion/life/scrapbook.py): the scrapbooks Today has pointed to and the user opened or put
+-- away, so the card on Today shows once per anniversary or New Year.
+CREATE TABLE IF NOT EXISTS scrapbook_seen (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  seen_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, key)
+);

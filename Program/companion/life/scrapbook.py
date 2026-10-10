@@ -7,19 +7,19 @@ happened on the active timeline and written by templates, never by a model:
 - the cover: the dates, the days talked, the messages and pictures;
 - the first thing the user said that year, and the reply;
 - pictures the companion sent;
-- how they got closer (the closeness stages reached, companion/memory/closeness.py) and the nickname;
-- running jokes and shared moments remembered;
+- how they got closer (the closeness stages reached, companion/memory/closeness.py);
+- running jokes and the nickname, then the other shared moments remembered;
 - the companion's own year: life chapters, the family holidays they kept and new things at home;
 - a closing line.
 
-A page with nothing to show is left out. On an anniversary and in the first week of January, Today points to the
-scrapbook (`featured`).
+A page with nothing to show is left out. In the week of an anniversary and the first week of January, Today points to
+the scrapbook (`featured`) until the user opens it or puts it away (`seen`).
 """
 from calendar import monthrange
 from datetime import date, datetime, time, timedelta
 
 from companion.clock import parse, stamp, zone
-from companion.database import decode, many, settings
+from companion.database import decode, many, optional, settings
 from companion.errors import require
 from companion.images import photos
 from companion.life import occasions
@@ -69,19 +69,41 @@ def user_today(connection, now) -> tuple[date, object]:
 
 
 def listing(connection, companion: dict, now) -> dict:
-    """The scrapbooks there are, and the one Today points to."""
+    """The scrapbooks there are, and the one Today points to with its days talked, until the user opens it or puts
+    it away."""
     today, timezone = user_today(connection, now)
-    first = occasions.first_talk(connection, companion['active_timeline_id'], timezone)
+    timeline_id = companion['active_timeline_id']
+    first = occasions.first_talk(connection, timeline_id, timezone)
     if not first:
-        return {'periods': [], 'featured': None}
+        return {'periods': [], 'featured': None, 'featured_days': 0}
     found = periods(first, today)
-    return {'periods': [view(period) for period in found], 'featured': featured(found, first, today)}
+    key = featured(found, first, today)
+    if key and optional(connection, 'SELECT 1 FROM scrapbook_seen WHERE timeline_id=? AND key=?', (timeline_id, key)):
+        key = None
+    period = next((item for item in found if item['key'] == key), None)
+    return {'periods': [view(item) for item in found], 'featured': key,
+            'featured_days': len(talked(connection, timeline_id, period, timezone)) if period else 0}
+
+
+def seen(connection, companion: dict, key: str, now):
+    """The user opened or put away the scrapbook Today pointed to."""
+    connection.execute('INSERT OR IGNORE INTO scrapbook_seen (timeline_id, key, seen_at) VALUES (?, ?, ?)',
+                       (companion['active_timeline_id'], key[:20], stamp(now)))
+
+
+def talked(connection, timeline_id: str, period: dict, timezone) -> set[str]:
+    """The local days the user wrote in a stretch of time."""
+    rows = many(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND role='user' AND active=1 AND "
+                'created_at>=? AND created_at<?', (timeline_id, instant(period['start'], timezone),
+                                                    instant(period['end'] + timedelta(days=1), timezone)))
+    return {parse(row['created_at']).astimezone(timezone).date().isoformat() for row in rows}
 
 
 def featured(found: list[dict], first: date, today: date) -> str | None:
-    """On an anniversary of the first talk, the year just finished; in January's first week, last year."""
+    """In the week from an anniversary of the first talk, the year just finished; in January's first week, last
+    year."""
     years = next((int(period['key'][5:]) for period in found if period['key'].startswith('year-')), 0)
-    if years and anniversary(first, years) == today:
+    if years and (today - anniversary(first, years)).days < NEW_YEAR_DAYS:
         return f'year-{years}'
     if today.month == 1 and today.day <= NEW_YEAR_DAYS and any(period['key'] == f'cal-{today.year - 1}'
                                                                 for period in found):
@@ -125,8 +147,8 @@ def build(connection, companion: dict, key: str, now) -> dict:
 
 
 def cover(period, name, days, messages, sent) -> dict:
-    stats = [(len(days), 'day talked', 'days talked'), (len(messages), 'message', 'messages'),
-             (len(sent), f'picture from {name}', f'pictures from {name}')]
+    stats = [(len(days), 'Day talked', 'Days talked'), (len(messages), 'Message', 'Messages'),
+             (len(sent), f'Picture from {name}', f'Pictures from {name}')]
     return {'kind': 'cover', 'title': period['title'], 'subtitle': f'You and {name}',
             'stats': [{'value': f'{count:,}', 'label': one if count == 1 else many_}
                       for count, one, many_ in stats if count]}
@@ -161,16 +183,19 @@ def together(connection, companion, now, period, timezone) -> list[dict]:
     low, high = period['start'].isoformat(), period['end'].isoformat()
     reached = [{'date': step['on'], 'text': state['stages'][step['level'] - 1] + (' (you set it)' if step.get('kind') == 'set' else '')}
                for step in state['history'] if step.get('on') and low <= step['on'] <= high]
+    nickname = f"They call you “{state['nickname']}”." if state['nickname'] else None
     pages = []
     if reached:
-        pages.append({'kind': 'closer', 'title': 'How you got closer', 'items': reached,
-                      'note': f"They call you “{state['nickname']}”." if state['nickname'] else None})
-    if state['jokes']:
-        pages.append({'kind': 'jokes', 'title': 'Running jokes',
+        pages.append({'kind': 'closer', 'title': 'How you got closer', 'items': reached})
+    if state['jokes'] or nickname:
+        pages.append({'kind': 'jokes', 'title': 'Running jokes', 'note': nickname,
                       'items': [{'text': f"{joke['subject']}: {joke['value']}"} for joke in state['jokes']]})
+    # A running joke is shown once, on its own page.
+    told = {(joke['subject'], joke['value']) for joke in state['jokes']}
     moments = [memory for memory in closeness.shared_moments(connection, companion, companion['active_timeline_id'],
                                                              now, None)
-               if low <= parse(memory['created_at']).astimezone(timezone).date().isoformat() <= high]
+               if (memory['subject'], memory['value']) not in told
+               and low <= parse(memory['created_at']).astimezone(timezone).date().isoformat() <= high]
     moments.sort(key=lambda memory: (-memory['pinned'], memory['created_at']))
     if moments:
         pages.append({'kind': 'moments', 'title': 'Moments to remember',

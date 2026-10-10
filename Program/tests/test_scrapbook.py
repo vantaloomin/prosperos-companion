@@ -21,11 +21,13 @@ def test_today_points_to_it_on_the_anniversary_and_at_new_year():
     on_the_day = date(2026, 3, 10)
     assert scrapbook.featured(scrapbook.periods(first, on_the_day), first, on_the_day) == 'year-1'
     assert scrapbook.featured(scrapbook.periods(first, date(2026, 1, 3)), first, date(2026, 1, 3)) == 'cal-2025'
+    assert scrapbook.featured(scrapbook.periods(first, date(2026, 3, 16)), first, date(2026, 3, 16)) == 'year-1'
+    assert scrapbook.featured(scrapbook.periods(first, date(2026, 3, 17)), first, date(2026, 3, 17)) is None
     assert scrapbook.featured(scrapbook.periods(first, date(2026, 6, 1)), first, date(2026, 6, 1)) is None
 
 
 def test_nothing_before_the_first_talk(client, companion):
-    assert client.get('/api/life/year').json() == {'periods': [], 'featured': None}
+    assert client.get('/api/life/year').json() == {'periods': [], 'featured': None, 'featured_days': 0}
     assert client.get('/api/life/year/so-far').status_code == 404
 
 
@@ -39,7 +41,7 @@ def test_the_pages_come_from_what_happened(client, connected, clock):
     kinds = [page['kind'] for page in book['pages']]
     assert kinds[0] == 'cover' and kinds[1] == 'first' and kinds[-1] == 'closing'
     cover = book['pages'][0]
-    assert {'value': '2', 'label': 'days talked'} in cover['stats']
+    assert {'value': '2', 'label': 'Days talked'} in cover['stats']
     first = book['pages'][1]
     assert first['title'] == 'The first thing you said' and first['said'].startswith('Hi! I just moved here')
     assert first['reply']
@@ -48,6 +50,10 @@ def test_the_pages_come_from_what_happened(client, connected, clock):
     send(client, 'A year!', 'client-03')
     listing = client.get('/api/life/year').json()
     assert [item['key'] for item in listing['periods']] == ['so-far', 'year-1', 'cal-2026']
+    # Two days after the anniversary, Today points to the first year until it is opened or put away.
+    assert listing['featured'] == 'year-1' and listing['featured_days'] == 2
+    assert client.post('/api/life/year/year-1/seen').json()['featured'] is None
+    assert client.get('/api/life/year').json()['featured'] is None
     year = client.get('/api/life/year/year-1').json()
     assert year['title'] == 'Our first year' and year['pages'][1]['said'].startswith('Hi!')
     later = client.get('/api/life/year/so-far').json()

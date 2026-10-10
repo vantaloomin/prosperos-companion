@@ -21,7 +21,7 @@ import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
-import { SCRAPBOOKS_KEY, featuredText } from '../year/yearText'
+import { SCRAPBOOKS_KEY, featuredCard } from '../year/yearText'
 
 const TODAY_KEY = ['today']
 
@@ -144,11 +144,22 @@ function Section({ id, title, hint, empty, children }: { id: string; title: stri
 }
 
 /** On an anniversary of the first talk, and in the first week of January, the scrapbook of the year just finished. */
+/** In an anniversary week or January's first week, a small scrapbook card. Opening it or putting it away keeps it
+ * away for good. */
 function YearReady({ name, go }: { name: string; go: (view: View) => void }) {
+  const client = useQueryClient()
   const listing = useQuery({ queryKey: SCRAPBOOKS_KEY, queryFn: () => api<ScrapbookListing>('/life/year') })
-  const text = featuredText(listing.data, name)
-  if (!text) return null
-  return <Notice action={<button type="button" className="text-button" onClick={() => go('year')}><BookHeart aria-hidden="true" />Open</button>}>{text}</Notice>
+  const card = featuredCard(listing.data, name)
+  if (!card) return null
+  const dismiss = async () => client.setQueryData(SCRAPBOOKS_KEY, await api<ScrapbookListing>(`/life/year/${card.key}/seen`, {}))
+  return (
+    <section className="year-card" aria-labelledby="year-card-heading">
+      <h2 id="year-card-heading">{card.title}</h2>
+      <p>{card.stat}</p>
+      <button type="button" className="button primary" onClick={() => go('year')}><BookHeart aria-hidden="true" />Open the scrapbook</button>
+      <button type="button" className="icon-button year-card-close" aria-label="Put the scrapbook away" onClick={() => void dismiss()}><X aria-hidden="true" /></button>
+    </section>
+  )
 }
 
 function StateNotices({ data, name, onResume }: { data: TodayData; name: string; onResume: () => void }) {
