@@ -125,7 +125,7 @@ def test_telling_someone_a_secret_in_a_group(client, companion, connected, provi
     likeliest(monkeypatch)
     declare(client, cast)
     group = start(client, [cast['Billy'], cast['Sally']])
-    say(client, group['id'], 'Sally, I have to tell you: Billy and Katie are seeing each other.', 'group-0001')
+    say(client, group['id'], 'Sally, I have to tell you: Billy and Ottoline are seeing each other.', 'group-0001')
     with client.app.state.database.connect() as connection:
         billy = by_id(connection, cast['Billy'])
         found = consequences.recent(connection, billy['active_timeline_id'], 'user:', '2000-01-01')
