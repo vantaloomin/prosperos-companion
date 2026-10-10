@@ -1733,3 +1733,21 @@ CREATE TABLE IF NOT EXISTS dreams (
   created_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, night)
 );
+
+-- Family traditions (companion/life/traditions.py): a few holidays the companion's family keeps, seeded once per
+-- timeline from companion/world/data/traditions.json and the circle. `text` keeps a {their} token for "their" or
+-- "your"; `host_id` is the circle member it happens with. The user can reword one (edited), drop it (removed) or
+-- add their own (origin 'user').
+CREATE TABLE IF NOT EXISTS family_traditions (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  holiday TEXT NOT NULL,
+  host_id TEXT,
+  text TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('seeded', 'user')),
+  edited INTEGER NOT NULL DEFAULT 0 CHECK (edited IN (0, 1)),
+  removed INTEGER NOT NULL DEFAULT 0 CHECK (removed IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, holiday)
+);

@@ -29,6 +29,7 @@ const SwitchTo = lazy(() => import('./features/character/SwitchTo').then((m) => 
 const Appearance = lazy(() => import('./features/appearance/Appearance').then((m) => ({ default: m.Appearance })))
 const Portraits = lazy(() => import('./features/appearance/Portraits').then((m) => ({ default: m.Portraits })))
 const Memories = lazy(() => import('./features/memories/Memories').then((m) => ({ default: m.Memories })))
+const OurYear = lazy(() => import('./features/year/OurYear').then((m) => ({ default: m.OurYear })))
 const Settings = lazy(() => import('./features/settings/Settings').then((m) => ({ default: m.Settings })))
 const Today = lazy(() => import('./features/today/Today').then((m) => ({ default: m.Today })))
 const Dating = lazy(() => import('./features/dating/Dating').then((m) => ({ default: m.Dating })))
@@ -159,6 +160,11 @@ function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
     : <Notice action={<button type="button" className="text-button" onClick={() => go('settings/advanced')}>Open Settings</button>}>Story mode is off. Turn it on in Settings &gt; Advanced.</Notice>
 }
 
+/** Memories, and Our year so far opened from it. */
+function MemoriesView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {
+  return view === 'year' ? <OurYear companion={companion} go={go} /> : <Memories companion={companion} go={go} />
+}
+
 function CompanionView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {
   if (view.startsWith('cast/')) return <SwitchTo townKey={decodeURIComponent(view.slice(5))} go={go} />
   if (view === 'appearance') return <Appearance companion={companion} go={go} />
@@ -166,6 +172,6 @@ function CompanionView({ view, companion, go }: { view: View; companion: Compani
   if (view === 'today') return <Today companion={companion} go={go} />
   if (view === 'feed') return <Feed companion={companion} go={go} />
   if (fromToday(view)) return view === 'people' ? <WhoKnowsWho go={go} /> : <CityMap companion={companion} place={view.startsWith('map/') ? decodeURIComponent(view.slice(4)) : null} go={go} />
-  if (view === 'memories') return <Memories companion={companion} />
+  if (profileTab(view) === 'memories') return <MemoriesView view={view} companion={companion} go={go} />
   return <Conversation companion={companion} go={go} />
 }

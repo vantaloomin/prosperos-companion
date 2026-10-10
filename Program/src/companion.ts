@@ -21,6 +21,8 @@ export type View = 'conversation' | 'chats' | 'dating' | 'story' | 'today' | 'fe
   | 'people'
   /** The city map (src/features/map), opened from Today, Story mode and "Show on map" links; #map/<place id> centres on a place. */
   | 'map' | `map/${string}`
+  /** Our year so far (src/features/year), opened from Memories and from Today on an anniversary. */
+  | 'year'
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

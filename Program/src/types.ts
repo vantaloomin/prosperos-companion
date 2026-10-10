@@ -1113,7 +1113,24 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string }
+
+/** A holiday the companion's family keeps (companion/life/traditions.py). */
+export interface Tradition { id: string; holiday: string; name: string; text: string; origin: 'seeded' | 'user'; edited: boolean; next: string | null }
+export interface TraditionsView { traditions: Tradition[]; removed: Tradition[]; holidays: { id: string; name: string }[]; decorations: string[] }
+
+/** Our year so far (companion/life/scrapbook.py): the stretches there are, and one stretch's pages. */
+export interface ScrapbookPeriod { key: string; title: string; start: string; end: string }
+export interface ScrapbookListing { periods: ScrapbookPeriod[]; featured: string | null }
+export interface ScrapbookItem { date?: string; text: string }
+export type ScrapbookPage =
+  | { kind: 'cover'; title: string; subtitle: string; stats: { value: string; label: string }[] }
+  | { kind: 'first'; title: string; date: string; said: string; reply: string | null }
+  | { kind: 'photos'; title: string; photos: { ref: string; summary: string; date: string | null }[] }
+  | { kind: 'closer'; title: string; items: ScrapbookItem[]; note: string | null }
+  | { kind: 'jokes' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
+  | { kind: 'closing'; title: string; text: string }
+export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 
 export interface HomeItem {

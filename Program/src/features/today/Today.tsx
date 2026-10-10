@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Map as MapIcon, Network, Newspaper, Play, RotateCcw, X } from 'lucide-react'
+import { BookHeart, Check, Map as MapIcon, Network, Newspaper, Play, RotateCcw, X } from 'lucide-react'
 import { api } from '../../api'
 import { SETTINGS_KEY, type View } from '../../companion'
-import type { Companion, LifeEvent, PauseRecord, Today as TodayData } from '../../types'
+import type { Companion, LifeEvent, PauseRecord, ScrapbookListing, Today as TodayData } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Circle } from './Circle'
@@ -21,6 +21,7 @@ import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
+import { SCRAPBOOKS_KEY, featuredText } from '../year/yearText'
 
 const TODAY_KEY = ['today']
 
@@ -80,6 +81,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       </header>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       <StateNotices data={data} name={name} onResume={resume} />
+      <YearReady name={name} go={go} />
       {data.paused ? null : <PausedTime name={name} onDone={(text) => { setFeedback({ tone: 'info', text }); void client.invalidateQueries({ queryKey: TODAY_KEY }) }} />}
       {data.mood && (
         <section className="today-section" aria-labelledby="mood-heading">
@@ -139,6 +141,14 @@ function Section({ id, title, hint, empty, children }: { id: string; title: stri
       {children.length ? <ul className="event-list">{children}</ul> : empty && <p className="subtle">{empty}</p>}
     </section>
   )
+}
+
+/** On an anniversary of the first talk, and in the first week of January, the scrapbook of the year just finished. */
+function YearReady({ name, go }: { name: string; go: (view: View) => void }) {
+  const listing = useQuery({ queryKey: SCRAPBOOKS_KEY, queryFn: () => api<ScrapbookListing>('/life/year') })
+  const text = featuredText(listing.data, name)
+  if (!text) return null
+  return <Notice action={<button type="button" className="text-button" onClick={() => go('year')}><BookHeart aria-hidden="true" />Open</button>}>{text}</Notice>
 }
 
 function StateNotices({ data, name, onResume }: { data: TodayData; name: string; onResume: () => void }) {
