@@ -12,7 +12,7 @@ Built-in cities come in three kinds (`setting`):
 | Setting | Cities |
 | --- | --- |
 | `real` | Baltimore, Chicago, New York, Miami, New Orleans, San Diego, Los Angeles (written by a beta tester), Las Vegas, London, Jeju (South Korea, in won) and Osaka (Japan, in yen); New York, 1925 is the real city in the Jazz Age (`jazz-age`) |
-| `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
+| `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Grandport, the merchant republic's capital in Oak's dark fantasy world Neokosmos, ships with Oak's permission (see Credits below). Other settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
 | `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, Calderwick, an industrial canal city with a steampunk lean, Haddon Harbor, a modern Maine harbour town where everyone knows everyone, and Pellmouth, a 1926 Massachusetts river-mouth town with a cosmic-horror lean (rumour and legend, never confirmed monsters; it names `category: fictional`). |
 
 City lists (Settings > Cities and every city picker) shelve cities as **Real / Modern**, **Other Eras**,
@@ -197,6 +197,15 @@ than guess).
 `kind` is `public` (most offices and schools close), `observance` (widely marked, a working day) or
 `feast` (a church feast or quarter day). Moved "observed" weekdays (substitute days off) are not included.
 
+**Notables.** A city may name people who live in it (`notables`), such as a pack's characters: `id`,
+`name`, optional `given` (what people call them), `pronouns`, `age`, the `place` they belong to, `role`,
+`staff` (works there and keeps shifts, or only visits), `about` (who they are, one or two sentences),
+optional `temperament` and `source`. They join that place's townsfolk after the seeded ones, keyed the
+same way, and live by the same rules: days, goals, quirks and flaws are drawn from their key, while the
+name, age, role and temperament are the city's. The companion meets them like anyone else, and what it
+knows of them always includes `about`. Notables are never on the dating app. A pack's notable placed
+somewhere the city lacks is left out with a note.
+
 Weather here is climate, not a forecast. Real current conditions belong to the MCP context tools
 (PRD X1–X3); a life event built from climate must not be presented as today's weather.
 
@@ -343,6 +352,15 @@ folder. Errors mean the file will not load. Warnings point out thin spots that m
 repetitive: neighbourhoods with fewer than two places or nowhere to eat, no employers or career
 hubs, or no climate. `--json` prints the results for tools. It exits 1 when any file has errors,
 and CI runs it.
+
+## Credits for shipped settings
+
+**Grandport** (`grandport.json`, written by `scripts/world/grandport.py`) is set in **Neokosmos**, a world
+by **Oak** (https://quietoak.github.io/NeokosmosWiki/). The Neokosmos wiki is licensed CC BY-NC-SA 4.0;
+Prospero's Companion includes Grandport with Oak's permission (given 2026-10-10). The city, its people and
+its lore are Oak's, not part of the app's AGPL-3.0 code, and are not relicensed by being shipped here.
+Records citing `wiki` come from the wiki; records citing `inferred` were filled in for the app in the
+setting's voice. Oak's characters appear in town as `notables`.
 
 ## Adding or refreshing a built-in city
 
