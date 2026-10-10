@@ -62,6 +62,9 @@ def members(database) -> list[dict]:
              'stepped_back_at': row['stepped_back_at'], 'created_at': row['created_at']} for row in rows]
 
 
+ALREADY = 'They are already one of your companions. Switch to them instead.'
+
+
 def met(connection, companion: dict, now) -> tuple[dict, dict, dict]:
     """The city, the town's view of the other companions, and everyone this companion has met by now."""
     data = network.city(connection, companion)
@@ -72,7 +75,8 @@ def met(connection, companion: dict, now) -> tuple[dict, dict, dict]:
 def townsperson(connection, companion: dict, key: str, now) -> tuple[dict, dict, list[dict], dict | None]:
     """A townsperson the main character or the user's own story has met (companion/story_people.py), with the
     city, the companion's meetings and the story's record; refused otherwise."""
-    require(not key.startswith('cast:'), 'They are already one of your companions. Switch to them instead.', 409)
+    require(not key.startswith('cast:') and not optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (key,)),
+            ALREADY, 409)
     data, _cast, history = met(connection, companion, now)
     in_story = optional(connection, 'SELECT * FROM story_people WHERE key=?', (key,))
     if in_story and townsfolk.find(data, key) is None:
@@ -86,11 +90,11 @@ def townsperson(connection, companion: dict, key: str, now) -> tuple[dict, dict,
 def candidate(connection, key: str, now) -> dict:
     """Someone who may become the main character: a dating match who is not a companion yet, else a
     townsperson the main character has met."""
-    require(not key.startswith('cast:'), 'They are already one of your companions. Switch to them instead.', 409)
+    require(not key.startswith('cast:'), ALREADY, 409)
     matched = dating.match(connection, key)
     if matched:
         require(optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (key,)) is None,
-                'They are already one of your companions. Switch to them instead.', 409)
+                ALREADY, 409)
         in_story = optional(connection, 'SELECT * FROM story_people WHERE key=?', (key,))
         return {'data': matched['data'], 'sheet': matched['sheet'], 'meetings': [], 'focus': current(connection),
                 'match': matched, 'in_story': in_story}

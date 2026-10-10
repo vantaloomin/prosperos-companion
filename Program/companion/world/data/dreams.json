@@ -63,9 +63,9 @@
    "id": "place-doors",
    "people": 0,
    "place": true,
-   "text": "{first} dreamed every door at {place} opened onto somewhere {odd}.",
-   "told": "Last night you dreamed every door at {place} opened onto somewhere {odd}.",
-   "share": "Had a dream where every door at {place} opened onto somewhere {odd}."
+   "text": "{first} dreamed every door at {place} opened onto a room that was {odd}.",
+   "told": "Last night you dreamed every door at {place} opened onto a room that was {odd}.",
+   "share": "Had a dream where every door at {place} opened onto a room that was {odd}."
   },
   {
    "id": "place-object-rain",
@@ -79,8 +79,8 @@
    "id": "place-lost",
    "people": 0,
    "place": true,
-   "text": "{first} dreamed they kept trying to get to {place} and every street led somewhere {odd}.",
-   "told": "Last night you dreamed you kept trying to get to {place} and every street led somewhere {odd}.",
+   "text": "{first} dreamed they kept trying to get to {place} and every street led to a place that was {odd}.",
+   "told": "Last night you dreamed you kept trying to get to {place} and every street led to a place that was {odd}.",
    "share": "I spent my whole dream trying to get to {place}. Every street ended up {odd}."
   },
   {
@@ -135,9 +135,9 @@
    "id": "one-map",
    "people": 1,
    "place": false,
-   "text": "{first} dreamed {a} handed them a map to somewhere {odd} and said not to be late.",
-   "told": "Last night you dreamed {a} handed you a map to somewhere {odd} and said not to be late.",
-   "share": "{a} gave me a map in my dream last night. To somewhere {odd}. And told me not to be late."
+   "text": "{first} dreamed {a} handed them a map to a place that was {odd} and said not to be late.",
+   "told": "Last night you dreamed {a} handed you a map to a place that was {odd} and said not to be late.",
+   "share": "{a} gave me a map in my dream last night. To a place that was {odd}. And told me not to be late."
   },
   {
    "id": "one-tiny",
@@ -199,8 +199,8 @@
    "id": "two-game",
    "people": 2,
    "place": false,
-   "text": "{first} dreamed they were playing a board game with {a} and {b}, and every piece was {object}.",
-   "told": "Last night you dreamed you were playing a board game with {a} and {b}, and every piece was {object}.",
+   "text": "{first} dreamed they were playing a board game with {a} and {b}, and the pieces were {object}.",
+   "told": "Last night you dreamed you were playing a board game with {a} and {b}, and the pieces were {object}.",
    "share": "Dreamed me, {a} and {b} were playing a board game with {object} for pieces. Nobody knew the rules."
   },
   {
@@ -268,7 +268,7 @@
   "buttons",
   "postcards",
   "lemons",
-  "a single enormous key",
+  "enormous keys",
   "rubber ducks",
   "maps of places that don't exist",
   "teacups"
