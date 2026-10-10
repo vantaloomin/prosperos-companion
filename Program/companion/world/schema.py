@@ -98,6 +98,8 @@ class Place(Record):
     # Empty means all year.
     seasons: list[Season] = Field(default_factory=list)
     cuisine: str = Field(default='', max_length=60)
+    # Named spots inside (the terrace, the café on L5), used as detail (companion/world/inside.py).
+    spots: list[Text] = Field(default_factory=list, max_length=8)
     source: Id
 
 

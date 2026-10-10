@@ -21,10 +21,12 @@ class Place:
     city: str = ''
     neighborhood: str = ''
     tags: tuple[str, ...] = field(default_factory=tuple)
+    spots: tuple[str, ...] = field(default_factory=tuple)
 
     def view(self) -> dict:
-        return {'id': self.id, 'name': self.name, 'kind': self.kind, 'city': self.city,
+        view = {'id': self.id, 'name': self.name, 'kind': self.kind, 'city': self.city,
                 'neighborhood': self.neighborhood}
+        return {**view, 'spots': list(self.spots)} if self.spots else view
 
 
 class WorldSource(Protocol):

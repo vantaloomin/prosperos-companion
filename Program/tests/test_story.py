@@ -73,6 +73,9 @@ def test_the_narrator_is_given_the_scene_and_the_companion_never_sees_the_story(
     request = provider.requests[-1]
     assert 'You are the narrator of an open-ended story' in request['system']
     assert f"Place: {place['name']}" in request['system'] and 'Weather:' in request['system']
+    # Named spots inside the place are detail for the narrator and the screen (companion/world/inside.py).
+    spots = moved['scene']['place']['spots']
+    assert spots and f"Spots here, for detail only (nobody moves between them): {', '.join(spots)}." in request['system']
     assert all(person['sheet']['full'] in request['system'] for person in people)
     assert request['messages'][0]['content'].startswith('[You arrive at')
     assert 'secret password is plum' in request['messages'][-1]['content']

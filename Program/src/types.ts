@@ -1212,7 +1212,11 @@ export interface DebugTime {
 }
 
 /** Story mode (companion/story.py): the user's own story with a narrator, apart from the companion. */
-export interface StoryPlace { id: string; name: string; kind: string; neighborhood: string; summary?: string }
+export interface StoryPlace {
+  id: string; name: string; kind: string; neighborhood: string; summary?: string
+  /** Named spots inside, for detail (companion/world/inside.py): "the back patio". */
+  spots?: string[]
+}
 export interface StoryScene {
   city: { id: string; name: string; era: string }
   place: StoryPlace

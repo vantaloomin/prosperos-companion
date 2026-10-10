@@ -27,7 +27,7 @@ None of these are required, but each one gives the life sim and the companion mo
 
 | Part | What it adds |
 | --- | --- |
-| Food and drink in every neighbourhood | Places to grab coffee, eat out and meet friends close to home. Give places a `kind` (`cafe`, `restaurant`, `bar`, `park`, `museum`, `venue`...), a `cost` (`free`, `$` to `$$$$`), who they suit (`good_for`: `solo`, `friends`, `date`, `family`, `coworkers`) and when they're open (`day_parts`: `morning`, `afternoon`, `evening`, `late`). |
+| Food and drink in every neighbourhood | Places to grab coffee, eat out and meet friends close to home. Give places a `kind` (`cafe`, `restaurant`, `bar`, `park`, `museum`, `venue`...), a `cost` (`free`, `$` to `$$$$`), who they suit (`good_for`: `solo`, `friends`, `date`, `family`, `coworkers`) and when they're open (`day_parts`: `morning`, `afternoon`, `evening`, `late`). A place may also list up to eight named `spots` inside it (`"the café on L5"`, `"out on the roof terrace"`), used as detail; without them the app picks a few by kind. |
 | `employers` and `careers` | Real jobs to have, at named workplaces. An employer lists the job ids it hires for. |
 | `colleges` | Somewhere to study, with what each is `known_for`. |
 | Neighbourhood rents and `housing` | What living there costs (`rent_tier`, and `rent` ranges for a studio, one and two bedrooms). |

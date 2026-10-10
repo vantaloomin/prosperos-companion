@@ -99,7 +99,7 @@ class CatalogWorld:
                 if item['id'] not in seen:
                     seen.add(item['id'])
                     result.append(Place(item['id'], item['name'], kind, data['name'], hoods[item['neighborhood']],
-                                        tuple(item.get('tags', ()))))
+                                        tuple(item.get('tags', ())), tuple(item.get('spots', ()))))
         return result
 
 

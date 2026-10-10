@@ -9,7 +9,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { aroundText, placeGroups, sceneTime, whereText } from './storyText'
+import { aroundText, placeGroups, sceneTime, spotsText, whereText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 
 const STORY_KEY = ['story']
@@ -56,6 +56,7 @@ function SceneBar({ scene, onMove }: { scene: StoryScene; onMove: (body: { city_
     <div className="story-scene">
       <p><MapPin aria-hidden="true" /> <strong>{whereText(scene)}</strong></p>
       <p className="subtle">{sceneTime(scene.local_time)}{scene.weather ? ` · ${scene.weather}` : ''}</p>
+      {!!scene.place.spots?.length && <p className="subtle">{spotsText(scene.place.spots)}</p>}
       <p>{aroundText(scene.around)}</p>
       {moving ? <GoElsewhere scene={scene} onDone={() => setMoving(false)} onMove={onMove} />
         : <button type="button" className="button" onClick={() => setMoving(true)}>Go somewhere else…</button>}
