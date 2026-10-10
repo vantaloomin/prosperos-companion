@@ -2,6 +2,7 @@
 import asyncio
 import re
 from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 from conftest import send, set_life
@@ -9,6 +10,8 @@ from test_cast_lives import settle
 from test_groups import by_speaker, companion_named, messages, ok, say, start
 
 from companion import group_openers
+from companion.characters import by_id
+from companion.clock import stamp
 from companion.providers.chat import Chunk
 
 OPENING = re.compile(r"Write (.+?)'s message starting a new conversation")
@@ -82,10 +85,32 @@ def test_it_follows_the_holds_of_texting_first(app, client, cast, clock):
     assert first_words(app) is not None
 
 
+def give_news(connection, from_id: str, to_id: str, now):
+    """Copy one of `from_id`'s finished moments into `to_id`'s day when `to_id` has nothing fresh to share: their
+    seeded day sometimes holds no ordinary moment in the last day, which is not what these tests are about."""
+    to = by_id(connection, to_id)
+    fresh = connection.execute("SELECT 1 FROM life_events WHERE timeline_id=? AND kind='ordinary' AND status='committed' "
+                               'AND ends_at<=? AND ends_at>?',
+                               (to['active_timeline_id'], stamp(now), stamp(now - group_openers.NEWS_WITHIN))).fetchone()
+    source = connection.execute("SELECT id FROM life_events WHERE companion_id=? AND kind='ordinary' AND "
+                                "status='committed' AND ends_at<=? ORDER BY ends_at DESC LIMIT 1",
+                                (from_id, stamp(now))).fetchone()
+    if fresh or source is None:
+        return
+    columns = [row[1] for row in connection.execute('PRAGMA table_info(life_events)')]
+    values = {'id': '?', 'companion_id': '?', 'timeline_id': '?', 'idempotency_key': '?', 'character_version_id': '?',
+              'supersedes_id': 'NULL', 'summary': "'Sally finished a long run along the harbour.'"}
+    connection.execute(f"INSERT INTO life_events ({', '.join(columns)}) SELECT "
+                       f"{', '.join(values.get(column, column) for column in columns)} FROM life_events WHERE id=?",
+                       (uuid4().hex, to_id, to['active_timeline_id'], uuid4().hex, to['active_version_id'],
+                        source['id']))
+
+
 def test_news_that_gives_a_secret_away_stays_unshared(app, client, cast):
     ok(client.post('/api/secrets', json={'statement': 'Billy is dating Katie.', 'about': ['Billy', 'Katie'],
                                          'knows': [cast['Billy']], 'kept_from': [cast['Sally']]}))
     with app.state.database.connect(write=True) as connection:
+        give_news(connection, cast['Billy'], cast['Sally'], app.state.database.clock.now())
         connection.execute("UPDATE life_events SET summary='Billy had dinner with Katie, who he is dating.' "
                            'WHERE timeline_id=(SELECT active_timeline_id FROM companions WHERE id=?)',
                            (cast['Billy'],))

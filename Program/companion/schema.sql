@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   show_news INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1)),
   -- "Why it went this way": the odds behind how a turning went (companion/consequences.py).
   show_odds INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1)),
+  -- Settings > Realism > Adult side of life (companion/world/intimacy.py): off until the user turns it on; showing
+  -- what townsfolk are like that way is a hidden value.
+  adult_side INTEGER NOT NULL DEFAULT 0 CHECK (adult_side IN (0, 1)),
+  show_adult_side INTEGER NOT NULL DEFAULT 0 CHECK (show_adult_side IN (0, 1)),
   -- Settings > Debug: write every model request and response in full to logs/model-calls (companion/model_calls.py).
   record_model_calls INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1)),
   paused_at TEXT,

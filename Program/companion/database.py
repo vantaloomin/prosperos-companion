@@ -201,6 +201,9 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'show_moods', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1))'),
     ('workspace_settings', 'show_news', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1))'),
     ('workspace_settings', 'show_odds', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1))'),
+    # The adult side of life (companion/world/intimacy.py): off unless the user turns it on in Settings > Realism.
+    ('workspace_settings', 'adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (adult_side IN (0, 1))'),
+    ('workspace_settings', 'show_adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_adult_side IN (0, 1))'),
     # Record model calls (companion/model_calls.py): off unless the user turns it on in Settings > Debug.
     ('workspace_settings', 'record_model_calls', 'INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
