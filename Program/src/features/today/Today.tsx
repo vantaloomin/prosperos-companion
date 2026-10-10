@@ -126,11 +126,19 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
 
 function Feeling({ data, name }: { data: TodayData; name: string }) {
   const text = bodyText(data.day?.body, name)
+  const occasions = useOccasions(data, name)
   return <>
     {text && <p className="subtle">{text}</p>}
     {data.feeling && data.feeling.feeling !== 'calm' && <p className="subtle">{data.feeling.text}{data.feeling.reason ? `: ${data.feeling.reason}` : ''}.</p>}
-    {(data.occasions ?? []).map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
+    {occasions.map((item) => <p key={item.key} className="subtle">{occasionText(item, name)}</p>)}
   </>
+}
+
+/** The occasions for the header; while the scrapbook card shows, it carries the anniversary instead. */
+function useOccasions(data: TodayData, name: string) {
+  const listing = useQuery({ queryKey: SCRAPBOOKS_KEY, queryFn: () => api<ScrapbookListing>('/life/year') })
+  const card = featuredCard(listing.data, name)
+  return (data.occasions ?? []).filter((item) => !(card && item.kind === 'anniversary'))
 }
 
 function Section({ id, title, hint, empty, children }: { id: string; title: string; hint?: string; empty?: string; children: ReactNode[] }) {

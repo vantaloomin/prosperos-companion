@@ -38,5 +38,5 @@ test('traditions show their next date and what is up at home', () => {
   assert.equal(decorationsText(['a wreath on the front door']), 'Up at home right now: a wreath on the front door.')
   assert.equal(decorationsText(['a', 'b', 'c']), 'Up at home right now: a, b and c.')
   const item = { key: 'k', kind: 'tradition' as const, date: '2026-11-26', days: 1, span: '', text: '', template: null, holiday: 'Thanksgiving', tradition: "Always at their mom Ruth's. There's always pie.", teaser: "Thanksgiving at their mom Ruth's in Towson" }
-  assert.equal(occasionText(item, 'Mira'), "Tomorrow: Thanksgiving at their mom Ruth's in Towson")
+  assert.equal(occasionText(item, 'Mira'), "Tomorrow: Thanksgiving at their mom Ruth's in Towson.")
 })

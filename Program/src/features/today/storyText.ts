@@ -7,7 +7,7 @@ export function occasionText(item: Occasion, name: string): string {
   if (item.kind === 'user_birthday') return item.days === 0 ? 'Happy birthday! It is your birthday today.' : `Your birthday is ${when}.`
   if (item.kind === 'own_birthday') return `It is ${name}'s birthday ${when}.`
   if (item.kind === 'circle_birthday') return `It is ${name}'s ${item.relation} ${item.person}'s birthday ${when}.`
-  if (item.kind === 'tradition') return `${when.charAt(0).toUpperCase()}${when.slice(1)}: ${item.teaser ?? item.tradition}`
+  if (item.kind === 'tradition') return `${when.charAt(0).toUpperCase()}${when.slice(1)}: ${item.teaser ? `${item.teaser}.` : item.tradition}`
   return `It's been ${item.span} since you two started talking.`
 }
 
