@@ -85,8 +85,8 @@ function Welcome({ formOpen, name }: { formOpen: boolean; name: string }) {
   return (
     <div className="sidecar-welcome">
       {formOpen
-        ? <p>Paste a whole character, or ask for a change: &ldquo;make her older&rdquo;, &ldquo;he has a sister&rdquo;, &ldquo;less formal&rdquo;.</p>
-        : <p>Ask about {name}: &ldquo;was that reply in character?&rdquo;, &ldquo;rewrite her last reply shorter&rdquo;, &ldquo;which memories are wrong?&rdquo;.</p>}
+        ? <p>Paste a whole character, or ask for a change: &ldquo;make them older&rdquo;, &ldquo;they have a sister&rdquo;, &ldquo;less formal&rdquo;.</p>
+        : <p>Ask about {name}: &ldquo;was that reply in character?&rdquo;, &ldquo;rewrite that last reply shorter&rdquo;, &ldquo;which memories are wrong?&rdquo;.</p>}
       <p className="subtle">It can see the character, the recent chat and the memories. You review every change it proposes before it is used.</p>
     </div>
   )

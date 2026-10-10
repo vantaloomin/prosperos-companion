@@ -109,7 +109,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .message-companion.inactive .prose { color: var(--muted); }
 .reply-tools { display: flex; align-items: center; gap: 10px; }
 .pager { display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; color: var(--muted); }
-/* Notes from the app (a failed or stopped reply) in a box of their own, so they never read as her words. */
+/* Notes from the app (a failed or stopped reply) in a box of their own, so they never read as the companion's words. */
 .system-note { display: flex; align-items: flex-start; gap: 8px; width: fit-content; max-width: 100%; margin-top: 10px; padding: 8px 12px; border: 1px dashed var(--border); border-radius: 10px; background: var(--raised); color: var(--muted); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.8125rem; font-style: normal; line-height: 1.5; }
 .system-note > svg { width: 15px; height: 15px; margin-top: 2px; flex-shrink: 0; }
 .system-note > span { min-width: 0; overflow-wrap: anywhere; }
@@ -1308,12 +1308,12 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .crisis-note { margin: 4px 0 14px; }
 }
 
-/* On her mind (features/today/OnHerMind.tsx): a folded line under the day's heading. */
-.on-her-mind { margin-top: 6px; max-width: 640px; }
-.on-her-mind summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 0.92rem; }
-.on-her-mind summary svg { width: 15px; height: 15px; }
-.on-her-mind ul { margin-top: 8px; gap: 6px; }
-.on-her-mind time { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
+/* On their mind (features/today/OnTheirMind.tsx): a folded line under the day's heading. */
+.on-their-mind { margin-top: 6px; max-width: 640px; }
+.on-their-mind summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 0.92rem; }
+.on-their-mind summary svg { width: 15px; height: 15px; }
+.on-their-mind ul { margin-top: 8px; gap: 6px; }
+.on-their-mind time { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
 
 /* Group chat moods (features/groups/GroupChat.tsx): read-only, under each person in the people panel. */
 .group-mood { display: block; font-size: 0.85rem; }

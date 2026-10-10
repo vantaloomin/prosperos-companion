@@ -57,6 +57,6 @@ in-place edit as the sidecar.
 request carries the text the user saw (`expected_text`); if the reply has changed since, it is
 refused with 409. Every edit is kept in `message_edits` (before, after, time). The reply's
 noted self-facts and plans that are still unconfirmed (self-facts `noted` or `conflict`, and its
-companion plans) are cleared and noted again from the new wording, so what she "said" matches what
-she is remembered to have said. Start over and Delete character remove the edit rows with the
+companion plans) are cleared and noted again from the new wording, so what they "said" matches what
+they are remembered to have said. Start over and Delete character remove the edit rows with the
 messages.
