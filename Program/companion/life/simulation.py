@@ -430,6 +430,10 @@ class LifeEngine:
                 agenda.extend(connection, companion, self.world, self.now())
 
     def decide(self, mode, companion_id=None) -> dict:
+        with self.database.connect() as connection:
+            stepped = may_extend(settings(connection), mode)
+        if stepped:
+            agenda.catch_up_in_steps(self.database, companion_id, self.world, self.now())
         with self.database.connect(write=True) as connection:
             companion = by_id(connection, companion_id) if companion_id else current(connection)
             if mode == 'return' and companion and not companion_id:

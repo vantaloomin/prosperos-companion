@@ -425,3 +425,27 @@ def test_she_does_not_reach_out_at_the_user_usual_time_while_she_is_busy(client,
         assert openers.usual_hours.around_now(connection, clock.now().replace(hour=14, minute=50)) is not None
         found = openers.usual_time(connection, openers.current(connection), clock.now().replace(hour=14, minute=50))
         assert found == []
+
+
+def test_an_unusable_reply_with_no_template_is_not_asked_for_again_at_once(client, connected, provider, clock):
+    set_life(client, texts_first=True)
+    database = client.app.state.database
+    from companion import events
+    from companion.models import EventProposal
+    with database.connect() as connection:
+        timeline_id = connection.execute('SELECT active_timeline_id FROM companions').fetchone()[0]
+    event = events.propose(database, EventProposal(
+        idempotency_key='settled:retry', kind='thread', summary="Mira's record player arrived, and it works.",
+        details={'state': 'settled', 'thread': 'parcel', 'thread_key': 'retry'},
+        starts_at=(clock.now() - timedelta(hours=3)).isoformat(), ends_at=(clock.now() - timedelta(hours=2)).isoformat(),
+        inputs={}), timeline_id)
+    events.commit(database, event['id'])
+    too_long = [Chunk('x' * (openers.MAX_LENGTH + 1)), Chunk('', 'stop')]
+    provider.replies = [too_long, too_long, too_long]
+    asked = len(provider.requests)
+    for _ in range(3):
+        assert check(client)['state'] == 'nothing'
+    assert len(provider.requests) == asked + 1
+    clock.advance(openers.RETRY_AFTER)
+    check(client)
+    assert len(provider.requests) == asked + 2

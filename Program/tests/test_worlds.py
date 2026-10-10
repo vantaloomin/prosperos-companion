@@ -144,3 +144,18 @@ def test_a_page_left_open_in_another_world_is_told_to_reload(client, companion):
     stale = client.post('/api/conversation/recap/read', json={'since': 'x'}, headers={'X-Companion-World': first})
     assert stale.status_code == 409 and stale.json()['code'] == 'world_changed'
     assert client.get('/api/companion', headers={'X-Companion-World': made['id']}).status_code == 200
+
+
+def test_memories_still_queued_in_a_world_left_behind_are_formed_on_return(client, connected, app):
+    from companion.memory.formation import run_pending
+    send(client, 'My neighbour is called Oskar.', 'oskar-message')
+    database = app.state.database
+    with database.connect(write=True) as connection:  # As if the memory model had not got to it yet.
+        connection.execute("UPDATE memory_jobs SET status='queued', finished_at=NULL")
+    first = listing(client)['world']['id']
+    made = ok(client.post('/api/worlds', json={}))
+    ok(client.post(f"/api/worlds/{made['id']}/switch"))
+    ok(client.post(f"/api/worlds/{first}/switch"))
+    run_pending(database)
+    with database.connect() as connection:
+        assert {row['status'] for row in connection.execute('SELECT status FROM memory_jobs')} == {'done'}
