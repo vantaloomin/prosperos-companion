@@ -1,5 +1,6 @@
 """Secrets in group chats: only people who know a secret ever have it in their prompt (companion/secrets.py)."""
 import json
+import re
 
 import pytest
 from conftest import send, set_life
@@ -67,6 +68,8 @@ def test_sallys_prompt_never_holds_a_secret_kept_from_her(client, cast, provider
     assert f'- You know: {SECRET}. Sally doesn\'t know and must not find out' in billy['prompt']
     for word in ('secretly seeing', 'Ottoline', 'must not find out'):
         assert word not in sally['prompt']
+    # Townsfolk names are drawn at random, so another Katie ("Katie Price (about 41)") can be on her street.
+    assert not re.search(r'\bKatie\b(?! \w+ \(about)', sally['prompt'])
     # The secret rides in Billy's private part, below the shared transcript, so the cache stays shared.
     assert billy['prompt'].index('## The group chat so far') < billy['prompt'].index(SECRET)
     # Billy's 1:1 chat knows it too; Sally's doesn't.

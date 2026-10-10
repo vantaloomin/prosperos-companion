@@ -49,6 +49,23 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.7.0 (2026-10-10)
+
+- **Life deck:** a small moment drawn into each day with the seeded dice; the companion knows it, Today lists the
+  week's Little things, and with odds shown you can draw another card.
+- **Dreams:** some nights the day turns into a short, odd dream the companion remembers the morning after.
+- **Become a townsperson:** start a new world as someone you met around town, in the same town.
+- **They can ask to remember more:** a wider look back for messages about the past, and one hidden request to
+  look again.
+- **OOC to the sidecar:** out-of-character asides go to the helper, never into the story; the sidecar can pop out
+  into its own window.
+- **Realism in one place:** a new Realism tab in Settings gathers everything that makes the world feel like
+  real life. Start from one of four presets (I want real life, Bring on the drama, I want an easy life, I pull
+  the strings), picked on the welcome screen or at the top of the tab, then dial anything up or down: how close you get with each companion (step it closer, set it,
+  keep it there, never closer than, gentle cooling), whether they reply at their own pace, whether their days
+  go off plan, how much drama there is, and Hidden values. Closeness can now be changed there for any
+  companion, not only the one that's open.
+
 ## v0.6.1 (2026-10-10)
 
 - **On their mind:** companions are "they" in the app's wording unless a character's own pronouns say otherwise.

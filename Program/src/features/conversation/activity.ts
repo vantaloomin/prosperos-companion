@@ -2,7 +2,7 @@ import type { Message } from '../../types'
 import { isHeld, waitsUntilLater } from './held.ts'
 
 /** What the app is doing for a reply before its text arrives (companion/conversation.py PHASES). */
-export type Phase = 'preparing' | 'looking' | 'waiting' | 'writing'
+export type Phase = 'preparing' | 'looking' | 'waiting' | 'remembering' | 'writing'
 
 /**
  * The line under the conversation saying what the app is doing. It describes the app's work, never
@@ -21,6 +21,7 @@ export function activityLine(messages: Message[], phases: Record<string, Phase>,
 function phaseLine(phase: Phase | undefined): string {
   if (phase === 'looking') return 'Looking at your picture…'
   if (phase === 'waiting') return 'Waiting for the model to be free…'
+  if (phase === 'remembering') return 'Checking older memories…'
   if (phase === 'writing') return 'Writing a reply…'
   return 'Getting a reply ready…'
 }

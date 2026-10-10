@@ -20,7 +20,9 @@ from companion.life import (
     body,
     chapters,
     circle,
+    deck,
     disruptions,
+    dreams,
     encounters,
     home,
     money,
@@ -37,7 +39,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, corrected, people, phrases, time_recall, vectors
+from companion.memory import closeness, corrected, look_back, people, phrases, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -115,6 +117,12 @@ HEADINGS = {
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
             'body': 'How you feel physically today (from your fictional days; let it color your replies lightly)',
+    # The Life deck (companion/life/deck.py): the day's small moment, drawn once a day.
+    'moments': 'Something small from your day today (decided: it happened to you; bring it up only if it fits, the '
+               'way a person would, and never contradict it)',
+    # Dreams (companion/life/dreams.py): last night's, the morning after.
+    'dream': 'Last night (a dream you had; mention it only if it comes up naturally, always as a dream, never as '
+             'something that happened)',
             'wardrobe': 'Your clothes (fictional, yours; when you describe what you wear, pick from these and keep '
                         'it consistent with what you have on now)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
@@ -196,6 +204,7 @@ class Packet:
     omitted: dict = field(default_factory=dict)
     used: int = 0
     semantic: bool = False
+    widened: bool = False
 
     def require(self, section, identity, text):
         self.used += token_estimate(text)
@@ -567,8 +576,8 @@ def fit_conversation(packet, recent) -> list[dict]:
 
 def offer_day(packet, connection, timeline_id, version, now, today):
     """Today's weather, the city's happenings, how the companion feels and the day's occasions."""
-    for item in occasions.occasions(connection, {'id': version['companion_id'], 'active_timeline_id': timeline_id,
-                                                 'version': version}, now):
+    companion = {'id': version['companion_id'], 'active_timeline_id': timeline_id, 'version': version}
+    for item in occasions.occasions(connection, companion, now):
         packet.offer('occasions', item['key'], item['text'])
     day = agenda.day_on(connection, timeline_id, today)
     if day['weather'] and day['weather'].get('observed'):
@@ -582,6 +591,10 @@ def offer_day(packet, connection, timeline_id, version, now, today):
         packet.offer('body', today, body.text(day['body']))
     for identity, text in disruptions.context_lines(connection, timeline_id, agenda.COMPANION, today, now):
         packet.offer('day_shifts', identity, text)
+    for identity, text in deck.context_lines(connection, companion, now):
+        packet.offer('moments', identity, text)
+    for identity, text in dreams.context_lines(connection, companion, now):
+        packet.offer('dream', identity, text)
 
 
 def offer_people(packet, connection, companion, now, today):
@@ -771,10 +784,45 @@ def offer_recalled(packet, connection, companion, now, recallable, turns, query,
     span = time_recall.query_span(query, now, timezone)
     marked = corrected.notes(connection, companion, timeline_id, messages)
     notes = marked | corrected.summary_notes(summaries, marked)
-    for identity, text in recalled(recallable, older, query, ranking, summaries, surfaced,
-                                   (span, timezone) if span else None, stories, notes):
+    found = recalled(recallable, older, query, ranking, summaries, surfaced, (span, timezone) if span else None,
+                     stories, notes)
+    if thin(found, recallable) and look_back.points_back(query):
+        # They can ask to remember more (memory/look_back.py): first, with no model call, a wider search.
+        wider = ' '.join([query, *widening(messages)])
+        found += [item for item in recalled(recallable, older, wider, ranking, summaries, frozenset(),
+                                            (span, timezone) if span else None, stories, notes)
+                  if item[0] not in {identity for identity, _text in found}]
+        packet.widened = True
+    for identity, text in found:
         packet.offer('recalled', identity, text)
     packet.semantic = bool(semantic)
+
+
+def thin(found: list[tuple[str, str]], recallable: list[dict]) -> bool:
+    pinned = {memory['id'] for memory in recallable if memory['pinned']}
+    return sum(1 for identity, _text in found if identity not in pinned) < look_back.THIN
+
+
+def widening(messages: list[dict]) -> list[str]:
+    """The user's last few messages before the one answered, as extra words for a widened search."""
+    users = [message['text'] for message in messages if message['role'] == 'user']
+    return users[-look_back.WIDEN_MESSAGES - 1:-1]
+
+
+def looked_back(connection, companion, now: datetime, query: str, until_seq: int | None = None,
+                skip=frozenset()) -> list[str]:
+    """What a second look through memory finds for the words the companion asked about (memory/look_back.py):
+    the same eligible pool as the reply's own recall, less what the reply was already given."""
+    timeline_id = companion['active_timeline_id']
+    recallable = partition(eligible(connection, companion, timeline_id, stamp(now)))['recallable']
+    messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
+    older = messages[:window_start(len(messages))]
+    summaries = usable_summaries(connection, timeline_id, excluded_sources(connection, companion['id']))
+    timezone = settings(connection)['user_timezone']
+    span = time_recall.query_span(query, now, timezone)
+    found = recalled([memory for memory in recallable if not memory['pinned']], older, query, (), summaries,
+                     frozenset(), (span, timezone) if span else None, storylines.recall_items(connection, companion, now))
+    return [text for identity, text in found if identity not in skip][:RECALL_LIMIT]
 
 
 def section_text(packet, headings) -> list[str]:
@@ -813,6 +861,7 @@ def render(packet, conversation) -> dict:
         else:
             chat.append({'role': role, 'content': message['text']})
     receipt = {'budget_tokens': packet.budget, 'estimated_tokens': packet.used,
-               'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic}
+               'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic,
+               'widened_recall': packet.widened}
     return {'system': system, 'note': note, 'history': chat, 'messages': with_note(chat, note) if note else chat,
             'receipt': receipt}

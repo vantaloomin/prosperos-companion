@@ -38,7 +38,7 @@ export function Character({ companion, go }: { companion: Companion | null; go: 
   const begin = (definition: CharacterDefinition, drafted: boolean, split?: Start['split']) => {
     setStart((current) => ({ definition, drafted, split, attempt: (current?.attempt ?? 0) + 1 }))
     // A drafted character opens with the sidecar beside it, for changes in plain words; on a phone it would cover the form.
-    if (drafted && window.matchMedia?.('(min-width: 721px)').matches) sidecar.setOpen(true)
+    if (drafted && window.matchMedia?.('(min-width: 721px)').matches) sidecar.show()
   }
   if (!companion && !start) {
     return (

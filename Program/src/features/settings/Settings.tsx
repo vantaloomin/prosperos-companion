@@ -12,11 +12,12 @@ import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
 import { LifeSettings } from './LifeSettings'
+import { ClosenessSettings, PaceSettings, RealismIntro } from './RealismSettings'
 import { NotificationSettings } from './NotificationSettings'
 import { PhoneSettings } from './PhoneSettings'
 import { PromptSettings } from './PromptSettings'
 import { Toggle } from '../../components/Fields'
-import { BackgroundSettings, MemorySettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
+import { BackgroundSettings, MemorySettings, OocSettings, PauseSettings, RestoredReview, TimezoneSettings } from './WorkspaceSettings'
 import { Cities } from '../world/Cities'
 import { BuiltinRecall } from './models/BuiltinRecall'
 import { VoiceSettings } from './models/VoiceSettings'
@@ -92,9 +93,10 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
   // Built-in recall reads and runs files on the PC, so a phone does not show it (companion/phone/access.py).
   const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
-    general: <><TimezoneSettings /><ChatStyleSettings /><PauseSettings /><BackgroundSettings /></>,
+    general: <><TimezoneSettings /><ChatStyleSettings /><OocSettings /><PauseSettings /><BackgroundSettings /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
-    life: <><LifeSettings name={name} /><HiddenValues name={name} /><Cities /></>,
+    life: <><LifeSettings name={name} /><Cities /></>,
+    realism: <><RealismIntro /><PaceSettings /><ClosenessSettings name={name} /><HiddenValues name="" /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,
     images: <ImageSettings />,

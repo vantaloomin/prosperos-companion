@@ -17,6 +17,7 @@ import { Reactions } from './Reactions'
 import { Storylines } from './Storylines'
 import { Townsfolk } from './Townsfolk'
 import { OnTheirMind } from './OnTheirMind'
+import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
 import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
@@ -106,6 +107,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <Chapters name={name} />
       <WordGetsAround name={name} />
       <Storylines name={name} />
+      <LittleThings moments={data.moments} dreams={data.dreams} name={name} />
       <Reactions name={name} />
       <Routine data={data} name={name} go={go} />
       <MoneyPanel name={name} go={() => go('character')} />

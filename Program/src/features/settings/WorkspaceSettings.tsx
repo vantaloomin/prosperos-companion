@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { SETTINGS_KEY, pcTimezone, useWorkspaceSettings } from '../../companion'
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, X } from 'lucide-react'
 import { api } from '../../api'
 import type { WorkspaceSettings as Settings } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { TextInput, Toggle } from '../../components/Fields'
 import { timezones } from '../character/definition'
+import { DEFAULT_OOC_MARKERS, type OocMarker } from '../conversation/ooc'
 
 type Save = (change: Partial<Settings> & { review_complete?: boolean }) => Promise<boolean>
 
@@ -158,8 +159,87 @@ export function MemorySettings() {
             hint="Messages the built-in rules found nothing in are sent to your model connection in the background, which picks out facts in your own words. They are saved automatically and marked that way in Memories, where you can correct or delete them; anything that contradicts a saved fact waits for you. Uses extra model time." />
           <Toggle label="Ask about people in your life" checked={data.ask_about_people ?? true} onChange={(value) => void save({ ask_about_people: value })}
             hint="People you mention (your sister, your boss, a friend by name) and what you say about them are remembered under the same setting as everything else. With this on, they may now and then ask how someone is doing or how their news turned out, at most once per question. Never after a loss, or about anyone a boundary covers." />
+          <Toggle label="Let them look back when they need to" checked={data.recall_more ?? true} onChange={(value) => void save({ recall_more: value })}
+            hint="When you bring up something from before that they can't place, they may take one more look through their memories and your earlier chats before answering. That reply can take up to twice as long. The app also widens its own search when the first look finds little; that needs no extra model time." />
           <Toggle label="Share what you've told them across alternate timelines" checked={data.share_profile_across_timelines} onChange={(value) => void save({ share_profile_across_timelines: value })}
             hint="Facts about you, your plans and how you're doing apply in every timeline, including ones you start with Edit from here. When off, each timeline only knows what you told it, plus what came before its edit. Shared moments and the companion's own life always stay in their own timeline." />
         </section>
+  )
+}
+
+/** General > Out-of-character messages: asides marked like this go to the helper, never to the companion. */
+export function OocSettings() {
+  const { data, save, problem } = useWorkspace()
+  if (!data) return <SectionError problem={problem} />
+  const markers = data.ooc_markers?.length ? data.ooc_markers : DEFAULT_OOC_MARKERS
+  return (
+    <section className="settings-section form-stack" aria-labelledby="ooc-heading">
+      <h2 id="ooc-heading">Out-of-character messages</h2>
+      <SectionError problem={problem} />
+      <Toggle label="Send out-of-character messages to the sidecar" checked={data.ooc_to_helper ?? true} onChange={(value) => void save({ ooc_to_helper: value })}
+        hint="Messages that start with OOC:, or the parts inside (( )), go to the sidecar instead of the character, and stay out of the chat; the rest is sent as usual. Off: the character answers them honestly." />
+      {(data.ooc_to_helper ?? true) && <OocMarkers markers={markers} save={(next) => void save({ ooc_markers: next })} />}
+    </section>
+  )
+}
+
+const sameMarkers = (a: OocMarker[], b: OocMarker[]) =>
+  a.length === b.length && a.every((row, index) => row.open.toLowerCase() === b[index].open.toLowerCase() && row.close.toLowerCase() === b[index].close.toLowerCase())
+
+/** What is wrong with one marker row, if anything. */
+function markerProblem(rows: MarkerRow[], index: number): string | null {
+  const row = rows[index]
+  if (!row.open.trim() || (row.pair && !row.close.trim())) return 'A marker needs at least one character.'
+  const same = (other: OocMarker) => other.open.trim().toLowerCase() === row.open.trim().toLowerCase() && other.close.trim().toLowerCase() === row.close.trim().toLowerCase()
+  return rows.slice(0, index).some(same) ? 'That marker is already in the list.' : null
+}
+
+type MarkerRow = OocMarker & { pair: boolean }
+
+function OocMarkers({ markers, save }: { markers: OocMarker[]; save: (markers: OocMarker[]) => void }) {
+  const [rows, setRows] = useState<MarkerRow[]>(() => markers.map((row) => ({ ...row, pair: !!row.close })))
+  const [adding, setAdding] = useState(false)
+  // Saved as soon as every marker is complete; while one isn't, its row says why.
+  const change = (next: MarkerRow[]) => {
+    setRows(next)
+    if (next.length && next.every((_row, index) => !markerProblem(next, index))) {
+      save(next.map((row) => ({ open: row.open.trim(), close: row.pair ? row.close.trim() : '' })))
+    }
+  }
+  const edit = (index: number, part: Partial<MarkerRow>) => change(rows.map((row, at) => (at === index ? { ...row, ...part } : row)))
+  const add = (pair: boolean) => { setRows([...rows, { open: '', close: '', pair }]); setAdding(false) }
+  return (
+    <fieldset className="form-stack">
+      <legend>Markers</legend>
+      {rows.map((row, index) => (
+        <MarkerRowEditor key={index} row={row} problem={markerProblem(rows, index)} only={rows.length < 2}
+          onChange={(part) => edit(index, part)} onRemove={() => change(rows.filter((_, at) => at !== index))} />
+      ))}
+      <div className="form-actions">
+        {adding
+          ? <span role="group" aria-label="Kind of marker">
+              <button type="button" className="button" onClick={() => add(false)}>Starts with</button>
+              <button type="button" className="button" onClick={() => add(true)}>Between</button>
+            </span>
+          : <button type="button" className="button" onClick={() => setAdding(true)} disabled={rows.length >= 12}>Add marker</button>}
+        {!sameMarkers(rows, DEFAULT_OOC_MARKERS) && <button type="button" className="text-button" onClick={() => change(DEFAULT_OOC_MARKERS.map((row) => ({ ...row, pair: !!row.close })))}>Reset to defaults</button>}
+      </div>
+    </fieldset>
+  )
+}
+
+function MarkerRowEditor({ row, problem, only, onChange, onRemove }: { row: MarkerRow; problem: string | null; only: boolean; onChange: (part: Partial<MarkerRow>) => void; onRemove: () => void }) {
+  const box = (value: string, label: string, set: (text: string) => void) =>
+    <input value={value} maxLength={12} size={6} aria-label={label} aria-invalid={!!problem} onChange={(event) => set(event.target.value)} />
+  return (
+    <div>
+      <div className="form-actions">
+        {row.pair
+          ? <span>Between {box(row.open, 'Opening marker', (open) => onChange({ open }))} and {box(row.close, 'Closing marker', (close) => onChange({ close }))}</span>
+          : <span>Starts with {box(row.open, 'Starting word', (open) => onChange({ open }))}</span>}
+        <button type="button" className="icon-button marker-remove" aria-label="Remove this marker" disabled={only} onClick={onRemove}><X aria-hidden="true" /></button>
+      </div>
+      {problem && <p className="subtle" role="alert">{problem}</p>}
+    </div>
   )
 }

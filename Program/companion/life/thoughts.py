@@ -19,7 +19,7 @@ from datetime import date, datetime, time, timedelta
 from companion import consequences, secrets
 from companion.clock import stamp, zone
 from companion.database import decode, many, optional
-from companion.life import money, storylines
+from companion.life import deck, money, storylines
 from companion.life.chapters import FRESH_DAYS
 from companion.memory import closeness, pairs
 from companion.providers.chat import INCOMPLETE
@@ -168,7 +168,13 @@ def with_you(connection, companion, day: date, now) -> list[tuple]:
     return found
 
 
-FINDERS = (beats, chapters, feelings, budget, looking_forward, off_plan, with_you)
+def little_things(connection, companion, day: date, now) -> list[tuple]:
+    """The day's small moment from the Life deck (companion/life/deck.py)."""
+    found = deck.on_day(connection, companion, day)
+    return [(2, f"moment:{found['card_id']}", deck.worded(connection, found, companion, 'text'))] if found else []
+
+
+FINDERS = (beats, chapters, feelings, budget, looking_forward, off_plan, little_things, with_you)
 
 
 def local_bounds(day: date, timezone) -> tuple[datetime, datetime]:
@@ -217,6 +223,7 @@ def began(connection, companion) -> date:
 def catch_up(connection, companion, now) -> int:
     """Write the thoughts of the last week that are due and not written yet. Returns how many were written."""
     timeline_id, latest = companion['active_timeline_id'], last_ready(companion, now)
+    deck.catch_up(connection, companion, now)  # The day's Life deck moment is one of the things on their mind.
     day, written = max(latest - timedelta(days=WEEK - 1), began(connection, companion)), 0
     kept = {row['day']: row['topic'] for row in many(connection, 'SELECT day, topic FROM thoughts WHERE timeline_id=?',
                                                      (timeline_id,))}

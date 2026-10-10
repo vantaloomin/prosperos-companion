@@ -327,6 +327,9 @@ textarea { resize: vertical; line-height: 1.6; }
   .settings-tabs [role='tab'] { white-space: nowrap; flex: 0 0 auto; }
 }
 .settings-section h2 { margin-bottom: 6px; }
+.settings-intro { max-width: 760px; margin: 0 0 20px; }
+.settings-section a { color: var(--accent); }
+.settings-panel > .settings-intro + .settings-section { border-top: 0; padding-top: 0; }
 
 .today > .notice, .today > div > .notice { max-width: 760px; margin-bottom: 12px; }
 .today-section { max-width: 760px; margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
@@ -334,6 +337,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .why-it-went { margin: 0 0 6px; }
 .why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .why-it-went ul { margin-top: 6px; }
+.deck-card { display: grid; gap: 2px; max-width: 32rem; margin: 6px 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
 .event-list, .plain-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 10px; }
 .plain-list li { line-height: 1.6; }
 .event { padding: 14px 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
@@ -626,6 +630,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .paste-character .text-button svg { width: 15px; height: 15px; }
 /* The sidecar: a dock beside every view, after the Study's Collaborator dock (src/styles/collaborator.css at bbcbde4). */
 .app-nav .nav-sidecar { margin-top: auto; }
+.marker-remove { width: 44px; height: 44px; }
+.app-nav .nav-dot { position: absolute; top: 6px; right: 18px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .app-nav .nav-sidecar + button { margin-top: 0; }
 .app-nav .nav-sidecar[aria-pressed='true'] { color: var(--accent); background: var(--accent-tint); }
 .sidecar { width: 380px; flex: 0 0 380px; display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--border); background: var(--surface); }
@@ -634,6 +640,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .sidecar h2 svg { width: 17px; height: 17px; color: var(--accent); }
 .sidecar > header .subtle { margin: 4px 0 0; font-size: 0.75rem; }
 .sidecar-header-actions { display: flex; gap: 2px; }
+.sidecar-window { display: flex; height: 100vh; }
+.sidecar-window .sidecar { position: static; width: 100%; flex: 1 1 auto; border-left: 0; }
+.sidecar-context { margin: 2px 0 0; font-size: 0.75rem; }
 .sidecar .icon-button svg { width: 17px; height: 17px; }
 .sidecar-transcript { flex: 1; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; padding: 16px; display: flex; flex-direction: column; gap: 22px; }
 .sidecar-welcome p { margin: 0 0 10px; font-size: 0.875rem; line-height: 1.65; }
@@ -729,6 +738,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .color-control input[type='color'] { width: 64px; height: 42px; padding: 3px; }
 .palette-preview { display: grid; gap: 12px; padding: 16px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
 .chat-style-options { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.realism-presets { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.welcome .realism-presets { text-align: left; }
 .chat-style-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); cursor: pointer; }
 .chat-style-option:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
 .chat-style-option input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }

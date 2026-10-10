@@ -221,3 +221,15 @@ def test_townsfolk_start_as_close_as_their_meetings_make_them():
     assert [starting_closeness(meet(count)) for count in (0, 2, 3, 5, 6, 20)] == [1, 1, 2, 2, 3, 3]
     assert starting_closeness({'match': {'noun': 'match'}, 'meetings': [{}] * 9, 'in_story': None}) == 1
     assert starting_closeness({'match': None, 'meetings': [{}] * 2, 'in_story': {'meetings': 4}}) == 3
+
+
+def test_settings_can_change_a_companion_who_is_not_open(client, companion):
+    from test_bring_characters import CARD, as_json, bring
+    mira = companion['id']
+    bring(client, 'dana.json', as_json(CARD))
+    capped = client.put('/api/closeness', params={'companion': mira}, json={'ceiling_level': 2, 'set_level': 2}).json()
+    assert capped['ceiling_level'] == 2 and capped['level'] == 2
+    assert client.get('/api/closeness', params={'companion': mira}).json()['ceiling_level'] == 2
+    # The open companion, Dana, is untouched.
+    assert view(client)['ceiling_level'] is None and view(client)['level'] == 1
+    assert client.get('/api/closeness', params={'companion': 'nobody'}).status_code == 404

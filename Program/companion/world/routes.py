@@ -8,6 +8,7 @@ from pydantic import Field
 from companion.characters import current
 from companion.clock import zone
 from companion.errors import require
+from companion.life import network
 from companion.models import Input
 from companion.world import catalog, changes, custom, generators, townsfolk
 from companion.world.schema import PlaceKind
@@ -139,7 +140,9 @@ def town(request: Request, data: dict) -> dict:
     """The city as the current companion's townsfolk live in it: each companion has their own."""
     with request.app.state.database.connect() as connection:
         companion = current(connection)
-    return data | {'town': companion.get('town_seed') or ''} if companion else data
+        town_seed = companion.get('town_seed') or '' if companion else ''
+        you = network.you(connection, town_seed)
+    return data | {'town': town_seed, 'you': you} if companion else data
 
 
 @router.get('/cities/{city_id}/places/{place_id}/people')

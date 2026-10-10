@@ -4,7 +4,7 @@ import { SETTINGS_TABS, availableTabs, pickTab, searchSettings } from '../../src
 import { readAdvanced, writeAdvanced } from '../../src/features/settings/advanced.ts'
 import { groupPrompts, placeholderHint } from '../../src/features/settings/prompts.ts'
 import { setupSteps } from '../../src/features/conversation/setup.ts'
-import type { Companion } from '../../src/types.ts'
+import type { Companion, LifeSettings, WorkspaceSettings } from '../../src/types.ts'
 
 test('a deep link opens its tab, and an unknown or unavailable one opens the first', () => {
   assert.equal(pickTab('images', true), 'images')
@@ -71,4 +71,32 @@ test('prompts are grouped in order and their placeholders explained', () => {
   assert.deepEqual(groups.map(([group, items]) => [group, items.map((item) => item.name)]), [['Chat and life', ['a', 'c']], ['Character drafting', ['b']]])
   assert.equal(placeholderHint(prompt('x', 'g', ['name', 'reason'], { name: "the companion's name" })), "Must keep: {{name}} (the companion's name), {{reason}}.")
   assert.equal(placeholderHint(prompt('x', 'g')), '')
+})
+
+test('everything that dials realism down is on the Realism tab, and search finds it there', () => {
+  const tab = (query: string) => searchSettings(query, true).map((match) => match.tab.id)
+  assert.equal(availableTabs(true).findIndex((item) => item.id === 'realism'), availableTabs(true).findIndex((item) => item.id === 'life') + 1)
+  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'drama', 'off plan', 'realism']) {
+    assert.ok(tab(query).length && tab(query).every((id) => id === 'realism'), query)
+  }
+  assert.equal(pickTab('realism', true), 'realism')
+})
+
+test('realism presets match the settings they set, and a new world starts on real life', async () => {
+  const { REALISM_PRESETS, matchPreset } = await import('../../src/features/settings/presetChoices.ts')
+  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true } as unknown as LifeSettings
+  const fresh = {} as WorkspaceSettings
+  assert.equal(matchPreset(life, fresh)?.id, 'real')
+  for (const preset of REALISM_PRESETS) {
+    assert.equal(matchPreset({ ...life, ...preset.life }, { ...fresh, ...preset.shown })?.id, preset.id)
+  }
+  assert.equal(matchPreset({ ...life, drama: 2 }, fresh), null)
+  assert.equal(new Set(REALISM_PRESETS.map((preset) => preset.label)).size, REALISM_PRESETS.length)
+})
+
+test('your own mix names the preset it is closest to', async () => {
+  const { nearestPreset } = await import('../../src/features/settings/presetChoices.ts')
+  const life = { drama: 3, paced_replies: false, day_shifts: true, on_her_mind: true } as unknown as LifeSettings
+  assert.equal(nearestPreset(life, {} as WorkspaceSettings).id, 'drama')
+  assert.equal(nearestPreset({ ...life, drama: 0, day_shifts: false }, {} as WorkspaceSettings).id, 'easy')
 })

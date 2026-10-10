@@ -146,9 +146,10 @@ def start(database: Database):
 
 def write_persona(connection, persona: dict, timestamp: str):
     """Who the user is in this world, for the prompt (companion/memory/context.py) and Matchlight."""
-    connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at) '
-                       'VALUES (1, ?, ?, ?, ?, ?, ?)', (persona['id'], persona['name'], persona['gender'],
-                                                        persona['age'], persona['about'], timestamp))
+    connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
+                       'townsfolk_key, town_seed) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       (persona['id'], persona['name'], persona['gender'], persona['age'], persona['about'],
+                        timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', '')))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
 
 
@@ -287,30 +288,36 @@ def starter_sheet(data: dict, seed: str) -> dict | None:
     return min(people, key=lambda sheet: generators.unit(sheet['key'], 'starter', seed), default=None)
 
 
-def starter(connection, data: dict, seed: str, timestamp: str, today: date):
+def starter(connection, data: dict, seed: str, timestamp: str, today: date, persona: dict | None = None):
     """Their profile from their town sheet, no model involved (companion/cast.py): a friend the user knows from
-    around town. The user can change them, find someone on Matchlight or make their own afterwards."""
-    sheet = starter_sheet(data, seed)
+    around town, or, when the user became a townsperson, someone from that person's own circle. The user can change
+    them, find someone on Matchlight or make their own afterwards."""
+    you = (persona or {}).get('townsfolk_key')
+    sheet = circle_sheet(data, you, seed) if you else starter_sheet(data, seed)
     if sheet is None:
         return
     met = {'match': None, 'meetings': [], 'focus': None, 'in_story': None}
     definition = cast.profile(data, sheet, met, today) | {'starting_closeness': 2}
+    if you:
+        definition |= {'starting_closeness': 3,
+                       'background': f"{definition['background']} {known_from(data, sheet, you, persona['name'])}"}
     made = characters.create_in(connection, timestamp, CharacterDefinition.model_validate(definition),
                                 'The first companion of a new world.')
     connection.execute('UPDATE companions SET townsfolk_key=?, town_seed=? WHERE id=?',
                        (sheet['key'], data.get('town', ''), made['id']))
 
 
-def build(database: Database, path: Path, persona: dict, city_id: str, seed: str):
-    """A new world's database: the user's settings, the persona, its own townsfolk and a starter companion."""
+def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None):
+    """A new world's database: the user's settings, the persona, its townsfolk (its own, or `town`'s when the user
+    became one of a town's people) and a starter companion."""
     restore.settle(database.path)
     made = Database(path, AppClock(database.clock.base))
     carry_settings(path, database.path, made.now())
     with made.connect(write=True) as connection:
         write_persona(connection, persona, made.now())
-        data = dating.city_for(connection, city_id, seed[:16])
+        data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
         today = made.clock.now().astimezone(zone(data['timezone'])).date()
-        starter(connection, data, seed, made.now(), today)
+        starter(connection, data, seed, made.now(), today, persona)
 
 
 def unique_name(data: dict, wanted: str) -> str:
@@ -321,8 +328,9 @@ def unique_name(data: dict, wanted: str) -> str:
 
 
 def create_world(database: Database, persona_id: str | None = None, name: str | None = None,
-                 city_id: str | None = None) -> dict:
-    """A new world for a persona (the active one by default), in the current city unless another is named."""
+                 city_id: str | None = None, town: str | None = None) -> dict:
+    """A new world for a persona (the active one by default), in the current city unless another is named. `town`
+    reuses a town's people instead of seeding new ones (Become a townsperson)."""
     data = registry(database)
     active = found(data['worlds'], data['active'], 'world')
     persona = found(data['personas'], persona_id or active['persona_id'], 'persona')
@@ -332,7 +340,7 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
     folder = f'{FOLDER}/{world_id}'
     path = database.root / folder / DATABASE
     try:
-        build(database, path, persona, city['id'], world_id)
+        build(database, path, persona, city['id'], world_id, town)
     except BaseException:
         shutil.rmtree(path.parent, ignore_errors=True)
         raise
@@ -343,6 +351,85 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
     data['worlds'].append(world)
     save(database.root, data)
     return world_view(database, data, world)
+
+
+# Becoming a townsperson (Feature Hit List #43) -------------------------------------------------------------
+# The user picks someone they or their companion met around town and starts a new life as them: a new world in the
+# same city with the same town's people, where that person is the user's persona. They never play two people in
+# one world, nothing carries over from the world they left (it waits as it was), and their persona text starts
+# from the person's town sheet, drafted by rules (companion/cast.py), for them to change like any persona.
+
+PRONOUN_GENDERS = {'she': 'woman', 'he': 'man', 'they': 'nonbinary'}
+
+
+def gender_of(sheet: dict) -> str:
+    """A townsperson's pronouns ("she/her") as a persona gender."""
+    return PRONOUN_GENDERS.get(str(sheet.get('pronouns') or '').split('/')[0].strip().casefold(), '')
+
+
+def circle_sheet(data: dict, you: str, seed: str) -> dict | None:
+    """Someone from the person's own circle at their usual place: a coworker, or a regular they see there."""
+    sheet = townsfolk.find(data, you)
+    if sheet is None:
+        return starter_sheet(data, seed)
+    around = [other for other in townsfolk.at_place(data, sheet['place']['id'])
+              if other['key'] != you and other['age'] >= STARTER_AGES[0]]
+    grown = [other for other in around if other['age'] <= STARTER_AGES[1]] or around
+    pick = min(grown, key=lambda other: generators.unit(other['key'], 'starter', seed), default=None)
+    return pick or next((other for other in [starter_sheet(data, seed)] if other and other['key'] != you), None)
+
+
+def known_from(data: dict, sheet: dict, you: str, name: str) -> str:
+    """How the starter companion knows the user, from where the two of them are in town."""
+    person = townsfolk.find(data, you)
+    if person is None:
+        return ''
+    first = name.split()[0] if name.split() else name
+    place = person['place']['name']
+    together = 'they work together' if person['staff'] and sheet['staff'] else \
+        'the user works' if person['staff'] else 'they are both regulars'
+    return f'Knows the user, {first}, from {place}, where {together}.'
+
+
+def sheet_text(definition: dict) -> str:
+    """The persona's starting text from the person's drafted profile, without how a companion met them."""
+    background = definition['background'].split(cast.SHARED[1])[0].strip()
+    parts = (definition['identity'], definition['personality'], background, f"Usually: {definition['routine']}",
+             definition.get('seen_as') and f"Comes across as: {definition['seen_as']}")
+    return '\n'.join(part for part in parts if part)
+
+
+def persona_for(data: dict, sheet: dict, today: date, timestamp: str) -> dict:
+    met = {'match': None, 'meetings': [], 'focus': None, 'in_story': None}
+    definition = cast.profile(data, sheet, met, today)
+    return {'id': identifier(), 'name': sheet['full'], 'gender': gender_of(sheet),
+            'age': sheet['age'], 'about': sheet_text(definition)[:2000], 'birthday': '', 'created_at': timestamp,
+            'townsfolk_key': sheet['key'], 'town_seed': data.get('town', '')}
+
+
+def become(state, key: str) -> dict:
+    """Start a new life as a townsperson the user or their companion has met, and switch to it."""
+    database = state.database
+    now = database.clock.now()
+    with database.connect() as connection:
+        focus = characters.require_current(connection)
+        already = optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (key,))
+        name = already and characters.by_id(connection, already['id'])['version']['name']
+        require(not name, f"{name} is already one of your companions, so you can't become them.", 409)
+        place_data, sheet, _meetings, _story = cast.townsperson(connection, focus, key, now)
+    town = place_data.get('town', '')
+    persona = persona_for(place_data, sheet, now.astimezone(zone(place_data['timezone'])).date(), database.now())
+    data = registry(database)
+    data['personas'].append(persona)
+    save(database.root, data)
+    try:
+        world = create_world(database, persona['id'], sheet['full'], place_data['id'], town)
+    except BaseException:
+        data = registry(database)
+        data['personas'] = [item for item in data['personas'] if item['id'] != persona['id']]
+        save(database.root, data)
+        raise
+    return switch(state, world['id'])
 
 
 # Personas -------------------------------------------------------------------------------------------------
