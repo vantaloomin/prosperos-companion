@@ -91,7 +91,7 @@ function Composer({ chat, connected }: { chat: SidecarChat; connected: boolean }
       <textarea ref={box} aria-label="Message to the sidecar" placeholder={chat.formOpen ? 'Paste a character or ask for a change' : 'Ask about a reply, a memory or the character'} rows={3} maxLength={40000}
         value={message} disabled={chat.busy} onChange={(event) => setMessage(event.target.value)} onKeyDown={keyDown} />
       <div className="sidecar-send">
-        {chat.formOpen ? <CardButton onText={setMessage} onError={chat.setError} disabled={chat.busy} /> : <span className="subtle">Ctrl+Enter sends</span>}
+        {chat.formOpen ? <CardButton onText={setMessage} onError={chat.setError} disabled={chat.busy} /> : <span className="subtle keyboard-hint">Ctrl+Enter sends</span>}
         <button type="submit" className="send-button" aria-label="Send to the sidecar" disabled={chat.busy || !message.trim() || !connected}><ArrowUp aria-hidden="true" /></button>
       </div>
     </form>

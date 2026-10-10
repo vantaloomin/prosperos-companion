@@ -11,7 +11,7 @@ import { Stamp } from '../../components/Stamp'
 import { CrisisNote } from '../../components/Safety'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Composer } from '../conversation/Composer'
-import { ChatsButton, ChatStyleSwitch } from '../conversation/ConversationHeader'
+import { ChatsButton, ChatStyleMenu, ChatStyleSwitch } from '../conversation/ConversationHeader'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { ChatsPanel } from '../chats/ChatsPanel'
 import { useMarkRead } from '../chats/useChats'
@@ -213,6 +213,7 @@ function GroupHeader({ group, go, onChange }: { group: Group; go: (view: View) =
       <ChatsButton listing={listing} button={chatsButton} onChats={() => setListing(!listing)} current={current} />
       <ChatStyleSwitch />
       <button ref={peopleButton} type="button" className="icon-button" aria-label="People in this group" aria-expanded={people} onClick={() => setPeople(!people)}><UsersRound aria-hidden="true" /></button>
+      <ChatStyleMenu />
     </header>
     {people && <GroupPeople group={group} go={go} onChange={onChange} onClose={() => setPeople(false)} />}
     {listing && <ChatsPanel go={go} onClose={() => setListing(false)} current={current} />}

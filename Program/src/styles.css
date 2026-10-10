@@ -159,6 +159,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .dating-progress span { display: block; height: 100%; width: 100%; background: var(--accent); animation: dating-install 1.6s ease-out; }
 @keyframes dating-install { from { width: 0; } to { width: 100%; } }
 @media (min-width: 721px) { .phone-only { display: none !important; } }
+@media (max-width: 720px) { .desktop-only { display: none !important; } }
+/* A phone keyboard has no Ctrl key. */
+@media (pointer: coarse) { .keyboard-hint { display: none; } }
 @media (prefers-reduced-motion: reduce) { .dating-progress span { animation: none; } }
 .dating-bar { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
 .dating-bar label { display: flex; align-items: center; gap: 8px; }
@@ -1492,4 +1495,17 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   /* Four profile tabs share a phone's width. */
   .profile-tabs { justify-content: space-between; }
   .profile-tabs button { padding-inline: 8px; }
+}
+
+/* The phone's chat header (Iris, review of #258): back, portrait, name and status on the first row; the icons on the
+   next, ending in More, which holds the chat style. No form controls in the header itself. */
+.header-break { flex-basis: 100%; height: 0; }
+.conversation-header .header-break + * { margin-left: 0; }
+.header-menu { position: relative; display: inline-flex; }
+.header-menu-panel { position: absolute; z-index: 30; left: 0; top: calc(100% + 6px); display: flex; flex-direction: column; gap: 6px; min-width: 180px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 0.8125rem; box-shadow: 0 6px 18px #0006; }
+.header-menu-panel .chat-style-switch { max-width: none; width: 100%; }
+@media (max-width: 720px) {
+  .conversation-header { row-gap: 8px; }
+  .conversation-header .chat-back { margin-right: -8px; }
+  .chat-shell:has(.chat-side) .conversation-header .chats-button, .conversation-header .chats-button { display: none; }
 }
