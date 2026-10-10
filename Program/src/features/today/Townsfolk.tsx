@@ -47,6 +47,7 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
       {person.reached.length > 0 && <p className="subtle">Already managed to {person.reached.join('; ')}.</p>}
       {person.routine && <p className="subtle">Usually {person.routine}.</p>}
       {person.flaw && <p>{person.flaw.charAt(0).toUpperCase()}{person.flaw.slice(1)}; seems to want {person.desire}.</p>}
+      <AdultSide person={person} />
       {!person.goal && <p className="subtle">Cross paths again to learn more.</p>}
       {now.isPending ? <Loading label="Finding them" /> : now.isError ? <ErrorNotice error={now.error} /> : now.data.now && <p className="subtle">{townNow(now.data.now)}</p>}
       <TownSwitch person={person} go={go} />
@@ -58,6 +59,17 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
 function ComesAcross({ person }: { person: Townsperson }) {
   if (!person.comes_across) return null
   return <p>{person.comes_across}{person.says_they_are ? ` Once said they're ${person.says_they_are}.` : ''}</p>
+}
+
+/** With Settings > Realism > Adult side of life on: all of it when Hidden values shows it, else only who they're
+ * drawn to, once the companion knows them well. */
+function AdultSide({ person }: { person: Townsperson }) {
+  const side = person.adult_side
+  if (side) {
+    const into = side.interest_labels.length ? ` Into: ${side.interest_labels.join(', ').toLowerCase()}.` : ''
+    return <p className="subtle">{side.orientation.charAt(0).toUpperCase()}{side.orientation.slice(1)}; {side.level_label.toLowerCase()}, {side.drive_label.toLowerCase()} drive.{into}</p>
+  }
+  return person.orientation ? <p className="subtle">Seems to be {person.orientation}.</p> : null
 }
 
 /** Another companion goes back to being the main character; anyone else becomes one from the town's profile of

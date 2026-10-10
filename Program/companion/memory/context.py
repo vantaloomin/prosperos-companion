@@ -47,7 +47,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import newcomers, perception
+from companion.world import intimacy, newcomers, perception
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -259,10 +259,12 @@ def emotional_lines(definition) -> list[str]:
     return lines or [NEUTRAL_ABSENCE]
 
 
-def character_text(version, connection=None) -> str:
+def character_text(version, connection=None, intimate: bool = False) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral.
 
-    With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced.
+    With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced. `intimate` adds
+    their adult side when Settings > Realism turns it on (companion/world/intimacy.py): only their own chat prompt
+    asks for it, never prompts whose words end up somewhere else (life events, the feed).
     """
     definition = version['definition']
     lines = [prompt_library.text(connection, 'chat-character', name=definition['name'],
@@ -282,6 +284,8 @@ def character_text(version, connection=None) -> str:
     if version.get('companion_id'):
         found = perception.for_companion(version['companion_id'], definition)
         lines.append(perception.own_text(found['public'], found['private']))
+    if intimate and (adult := intimacy.prompt_text(connection, version)):
+        lines.append(adult)
     if style := texting.instruction(definition):
         lines.append(style)
     return '\n'.join(lines)
@@ -726,7 +730,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     if group is not None:
         recent, older = [], messages + group['older']
     packet = Packet(budget)
-    packet.require('character', version['id'], character_text(version, connection))
+    packet.require('character', version['id'], character_text(version, connection, intimate=True))
     if who := persona_text(connection):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:

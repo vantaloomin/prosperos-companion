@@ -52,6 +52,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'presets-heading', title: 'Start from', keywords: 'realism realistic preset presets template templates difficulty easy life real life drama pull the strings control everything mode' },
       { heading: 'pace-heading', title: 'Their days', keywords: 'realism realistic pace paced replies reply right away instant busy later asleep wait off plan day shifts late plans fall through surprise drama storylines soap opera quiet' },
       { heading: 'closeness-settings-heading', title: 'Closeness', keywords: 'realism realistic closeness close stage level relationship friends set it to step closer back keep it at hold max maximum min minimum limit ceiling never closer than slow burn cooling silence' },
+      { heading: 'adult-side-heading', title: 'Adult side of life', keywords: 'realism realistic adult adults nsfw 18 sex sexual sexuality orientation gay straight bisexual kink kinks fetish deviancy adventurous drive intimacy intimate bedroom' },
       { heading: 'hidden-values-heading', title: 'Hidden values', keywords: 'realism realistic hidden values show reveal mood moods feeling feelings news word gets around odds dice why it went secret secrets slip on their mind thoughts' },
     ],
   },

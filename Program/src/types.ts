@@ -132,6 +132,24 @@ export interface CharacterDefinition {
   life_themes: string[]
   money: MoneySetup
   texting?: TextingStyle
+  /** Their adult side as the user set it (companion/world/intimacy.py); empty fields use the roll. */
+  intimacy?: IntimacySetup | null
+}
+
+export interface IntimacySetup { orientation: string; level: string; drive: string; interests: string[]; note: string }
+
+/** An adult side with labels for showing it (companion/world/intimacy.py view). */
+export interface AdultSide extends IntimacySetup { level_label: string; drive_label: string; interest_labels: string[] }
+
+/** What the character form offers for the adult side, and what the seed gives them as the form stands. */
+export interface AdultSideChoices {
+  rolled: AdultSide | null
+  /** False when their sheet reads as under 18: they never get one. */
+  adult: boolean
+  orientations: string[]
+  levels: { id: string; label: string; text: string }[]
+  drives: { id: string; label: string }[]
+  interests: { id: string; label: string; tier: number }[]
 }
 
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'
@@ -228,6 +246,10 @@ export interface WorkspaceSettings {
   show_news?: boolean
   /** Hidden values: "Why it went this way" and its odds under storylines, chapters and reactions; off unless turned on. */
   show_odds?: boolean
+  /** Settings > Realism > Adult side of life (companion/world/intimacy.py): adults only; off unless turned on. */
+  adult_side?: boolean
+  /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
+  show_adult_side?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
@@ -1158,6 +1180,10 @@ export interface Townsperson {
   comes_across: string | null
   /** From the third meeting: how they once described themselves. */
   says_they_are: string | null
+  /** With the adult side on: who they're drawn to, once the companion knows their heart. */
+  orientation?: string | null
+  /** With the adult side on and shown in Hidden values: all of it, for the user's eyes only. */
+  adult_side?: AdultSide | null
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
   /** How close they and the companion feel, both ways; read-only. */

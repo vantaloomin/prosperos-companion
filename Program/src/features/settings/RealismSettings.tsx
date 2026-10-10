@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { ChatList, Closeness as ClosenessState } from '../../types'
+import { SETTINGS_KEY, useWorkspaceSettings } from '../../companion'
+import type { ChatList, Closeness as ClosenessState, WorkspaceSettings } from '../../types'
 import { CHATS_KEY } from '../chats/useChats'
 import { CLOSENESS_KEY } from '../memories/closenessText'
 import { StageControls } from '../memories/Closeness'
@@ -115,4 +116,30 @@ function CompanionCloseness({ id, name, open }: { id: string; name: string; open
 function stageLine(state: ClosenessState, name: string) {
   const how = state.held_level ? ', kept there by you' : state.set_on ? ', set by you' : ''
   return `${name} is at ${state.name}${how}.`
+}
+
+/** The adult side of life (companion/world/intimacy.py): off until turned on, adults only, private to each person. */
+export function AdultSideSettings() {
+  const client = useQueryClient()
+  const settings = useWorkspaceSettings()
+  const [error, setError] = useState('')
+  const save = async (adult_side: boolean) => {
+    setError('')
+    try {
+      client.setQueryData(SETTINGS_KEY, await api<WorkspaceSettings>('/settings', { adult_side }, 'PUT'))
+      void client.invalidateQueries({ queryKey: ['townsfolk'] })
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'That setting was not saved.') }
+  }
+  return (
+    <section className="settings-section form-stack" aria-labelledby="adult-side-heading">
+      <div>
+        <h2 id="adult-side-heading">Adult side of life</h2>
+        <p className="subtle">Real people have a love life and desires of their own. Off until you turn it on.</p>
+      </div>
+      <Toggle label="Give adults an adult side" checked={settings.data?.adult_side === true} disabled={!settings.data} onChange={(checked) => void save(checked)}
+        hint="Every adult townsperson and companion gets who they're drawn to, how adventurous they are, their drive and a few things they're into, rolled by the app. Adults only: nobody under 18 ever gets one. It stays private to each person and only shapes them when romance or intimacy comes up. It never goes into pictures, the town paper or the feed."
+        tip="Change a companion's on their Character page, under More details. Hidden values can show what townsfolk are like this way." />
+      {error && <Notice tone="error">{error}</Notice>}
+    </section>
+  )
 }

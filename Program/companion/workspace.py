@@ -8,7 +8,7 @@ from companion.errors import require
 
 FLAGS = ('automatic_memory', 'sensitive_memory', 'share_profile_across_timelines', 'background_activity',
          'model_memory_suggestions', 'chat_sounds', 'chat_retro_dark', 'auto_launch', 'ask_about_people',
-         'story_mode', 'show_secret_slips', 'show_moods', 'show_news', 'show_odds',
+         'story_mode', 'show_secret_slips', 'show_moods', 'show_news', 'show_odds', 'adult_side', 'show_adult_side',
          'record_model_calls', 'recall_more', 'ooc_to_helper')
 # Changing any of these can make queued work stale, so they advance the permission revision.
 PERMISSIONS = {'automatic_memory', 'sensitive_memory', 'background_activity', 'model_memory_suggestions'}

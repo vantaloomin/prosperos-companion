@@ -1,0 +1,46 @@
+{
+  "_about": "The adult side of life (companion/world/intimacy.py): only ever for adults, only ever consensual between adults. Tier 1 is mild, 3 is bold. `text` goes in the person's own prompt after 'Into:'. tests/test_intimacy.py checks every entry against a list of banned themes.",
+  "levels": [
+    {"id": "reserved", "label": "Reserved", "text": "private and old-fashioned about it; it matters, but it stays behind closed doors and is rarely talked about"},
+    {"id": "conventional", "label": "Conventional", "text": "likes what they like and doesn't feel the need to experiment much"},
+    {"id": "curious", "label": "Curious", "text": "open to trying new things with someone they trust"},
+    {"id": "adventurous", "label": "Adventurous", "text": "enjoys exploring and is happy to suggest something new"},
+    {"id": "wild", "label": "Wild", "text": "very open and experimental, and comfortable saying exactly what they want"}
+  ],
+  "drives": [
+    {"id": "low", "label": "Low", "text": "a low drive; affection and closeness often matter more to them than sex"},
+    {"id": "average", "label": "Average", "text": "an average drive"},
+    {"id": "high", "label": "High", "text": "a high drive"}
+  ],
+  "orientations": ["straight", "gay", "lesbian", "bisexual", "pansexual", "queer", "asexual"],
+  "interests": [
+    {"id": "slow-romantic", "tier": 1, "label": "Slow and romantic", "text": "taking it slow and romantic"},
+    {"id": "kissing", "tier": 1, "label": "Long kisses", "text": "kissing for a long time"},
+    {"id": "cuddling-after", "tier": 1, "label": "Holding each other after", "text": "being held afterwards"},
+    {"id": "massage", "tier": 1, "label": "Massages", "text": "massages that turn into more"},
+    {"id": "spontaneous", "tier": 1, "label": "Spontaneous moments", "text": "spontaneous moments at home"},
+    {"id": "dressing-up", "tier": 1, "label": "Dressing up", "text": "dressing up for a partner"},
+    {"id": "lights-on", "tier": 1, "label": "Lights on", "text": "leaving the lights on"},
+    {"id": "morning", "tier": 1, "label": "Mornings", "text": "lazy mornings in bed"},
+    {"id": "shower", "tier": 1, "label": "Showering together", "text": "showering together"},
+    {"id": "teasing", "tier": 2, "label": "Teasing", "text": "playful teasing and making a partner wait"},
+    {"id": "talking", "tier": 2, "label": "Talking about it", "text": "saying what they want out loud"},
+    {"id": "praise", "tier": 2, "label": "Praise", "text": "being praised and praising a partner"},
+    {"id": "role-play", "tier": 2, "label": "Role-play", "text": "role-play with a partner, as adult characters"},
+    {"id": "toys", "tier": 2, "label": "Toys", "text": "using toys with a partner"},
+    {"id": "blindfolds", "tier": 2, "label": "Blindfolds and sensation", "text": "blindfolds and sensation play"},
+    {"id": "taking-charge", "tier": 2, "label": "Taking charge", "text": "taking charge"},
+    {"id": "being-led", "tier": 2, "label": "Being led", "text": "letting a partner take charge"},
+    {"id": "photos-for-partner", "tier": 2, "label": "Private photos", "text": "trading private photos with a partner they trust"},
+    {"id": "feet", "tier": 2, "label": "Feet", "text": "feet"},
+    {"id": "lingerie", "tier": 2, "label": "Lingerie", "text": "lingerie"},
+    {"id": "restraints", "tier": 3, "label": "Restraints", "text": "being tied up or tying a partner up, with an agreed safeword"},
+    {"id": "power-exchange", "tier": 3, "label": "Power exchange", "text": "power exchange in the bedroom, negotiated ahead and with a safeword"},
+    {"id": "spanking", "tier": 3, "label": "Spanking", "text": "spanking and rougher play, always agreed first"},
+    {"id": "control", "tier": 3, "label": "Edging", "text": "edging and being kept waiting"},
+    {"id": "leather-latex", "tier": 3, "label": "Leather and latex", "text": "leather and latex"},
+    {"id": "kink-community", "tier": 3, "label": "Kink community", "text": "the local kink community's meetups and events"},
+    {"id": "open-relationship", "tier": 3, "label": "Open relationships", "text": "the idea of an open relationship, if everyone agrees"},
+    {"id": "threesome", "tier": 3, "label": "A third person", "text": "the idea of inviting a third adult in, if everyone agrees"}
+  ]
+}

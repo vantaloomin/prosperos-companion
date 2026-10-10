@@ -14,9 +14,9 @@ from datetime import date, datetime, timedelta
 
 from companion.characters import for_timeline
 from companion.clock import stamp, zone
-from companion.database import decode, encode, many, optional
+from companion.database import decode, encode, many, optional, settings
 from companion.life import money, network
-from companion.world import generators, newcomers, perception, townsfolk
+from companion.world import generators, intimacy, newcomers, perception, townsfolk
 
 ACTIVE = True
 CHANCE = 0.15
@@ -216,11 +216,15 @@ def known(connection, companion: dict, now) -> list[dict]:
     """Townsfolk the companion has met, most recently seen first, with only what they have learned."""
     data = network.city(connection, companion)
     cast = town_cast(connection, companion, data)
+    found = settings(connection)
     result = []
     for key, meetings in history_for(connection, companion, cast, now).items():
         sheet = resolve(data, key, cast)
         if sheet:
-            result.append(revealed(sheet, data, meetings, now, companion))
+            person = revealed(sheet, data, meetings, now, companion)
+            if found['adult_side']:
+                person |= adult_side(sheet, len(meetings), bool(found['show_adult_side']))
+            result.append(person)
     return sorted(result, key=lambda person: person['last_met'], reverse=True)
 
 
@@ -247,6 +251,17 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
     return person
 
 
+def adult_side(sheet: dict, times: int, shown: bool) -> dict:
+    """With Settings > Realism > Adult side of life on (companion/world/intimacy.py): who they're drawn to once
+    the companion knows their heart, and, as a hidden value the user can show, all of it for the user's eyes only.
+    A companion living in town keeps theirs on their own sheet."""
+    found = None if sheet.get('cast') else intimacy.for_sheet(sheet)
+    if not found:
+        return {}
+    return {'orientation': found['orientation'] if times >= KNOWS_HEART else None,
+            'adult_side': intimacy.view(found) if shown else None}
+
+
 def text(person: dict) -> str:
     when = date.fromisoformat(person['last_met']).strftime('%d %B').lstrip('0')
     if person['kind'] == 'resident':
@@ -266,6 +281,8 @@ def text(person: dict) -> str:
         parts.append(f"They are trying to {person['goal']}.{lately}")
     if person['flaw']:
         parts.append(f"You've noticed they're {person['flaw']}; they seem to want {person['desire']}.")
+    if person.get('orientation'):
+        parts.append(f"From what you've picked up, they're {person['orientation']}.")
     if person.get('says_they_are'):
         parts.append(f"They once said they're {person['says_they_are']}.")
     if person.get('cast'):
