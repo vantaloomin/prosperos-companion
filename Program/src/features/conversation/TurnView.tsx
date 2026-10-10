@@ -193,7 +193,7 @@ function replyActions(message: Message, streaming: boolean, { onRemember, onEdit
 }
 
 /** What follows a reply once it shows: the picture it sent and a note on how it ended. The note is the app speaking,
- * not her, so it sits in its own box (styles.css .system-note). */
+ * not the companion, so it sits in its own box (styles.css .system-note). */
 function ReplyExtras({ message, name, note }: { message: Message; name: string; note: string | null }) {
   return (
     <>

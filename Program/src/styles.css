@@ -109,7 +109,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .message-companion.inactive .prose { color: var(--muted); }
 .reply-tools { display: flex; align-items: center; gap: 10px; }
 .pager { display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; color: var(--muted); }
-/* Notes from the app (a failed or stopped reply) in a box of their own, so they never read as her words. */
+/* Notes from the app (a failed or stopped reply) in a box of their own, so they never read as the companion's words. */
 .system-note { display: flex; align-items: flex-start; gap: 8px; width: fit-content; max-width: 100%; margin-top: 10px; padding: 8px 12px; border: 1px dashed var(--border); border-radius: 10px; background: var(--raised); color: var(--muted); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.8125rem; font-style: normal; line-height: 1.5; }
 .system-note > svg { width: 15px; height: 15px; margin-top: 2px; flex-shrink: 0; }
 .system-note > span { min-width: 0; overflow-wrap: anywhere; }
@@ -358,6 +358,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .unread-dot { display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
 .post-intro, .post-caption { font-family: 'Literata', Georgia, serif; font-size: 1.0625rem; line-height: 1.7; }
 .post-event + .post-event { padding-top: 10px; border-top: 1px solid var(--border); }
+.post-event > .post-image { margin-top: 8px; }
 .post-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 .reactions { display: inline-flex; gap: 2px; }
 .reaction { width: 36px; height: 36px; border-radius: 8px; font-size: 1.05rem; filter: grayscale(.7); opacity: .75; }
@@ -509,7 +510,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .meme-top { top: 8px; }
 .meme-bottom { bottom: 8px; }
 .post-image { display: grid; gap: 6px; }
-.post-image > img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 10px; background: var(--accent-tint); }
+/* The picture in its own shape; a tall one is cut at the bottom, never through the face at the top. */
+.post-image > img { display: block; width: 100%; height: auto; max-height: min(80vh, 760px); object-fit: cover; object-position: center top; border-radius: 10px; background: var(--accent-tint); }
 .post-image-frame { position: relative; width: 100%; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 10px; background: var(--accent-tint); }
 .image-line { margin: 0; }
 .image-line .text-button { margin-left: 10px; padding: 0; vertical-align: baseline; }
@@ -973,13 +975,13 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .prompt-default > summary { cursor: pointer; color: var(--muted); }
 .prompt-default pre { margin: 8px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; border: 1px solid var(--border); border-radius: 7px; background: var(--raised); font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; line-height: 1.5; }
 
-/* The companion's profile (src/features/profile): their card, then Messages, Posts and Character as tabs.
+/* The companion's profile (src/features/profile): Messages, Posts and Character as tabs at the top, then their card on Posts and Character.
    It takes the chat style's look; the Character tab's form keeps the app's own look, since it sits outside their world. */
 .profile { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .profile > .conversation, .profile > .page, .profile > .chat-shell { flex: 1; min-height: 0; }
 .profile-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .profile-scroll > .page { overflow: visible; padding-top: 22px; }
-.profile-card { padding-bottom: 4px; }
+.profile-card { padding-bottom: 16px; }
 .profile-titlebar { display: none; }
 .profile-cover { height: 120px; border-bottom: 1px solid var(--border); background: linear-gradient(120deg, var(--accent-tint), #4a3d28 55%, var(--raised)); }
 .profile-who { display: flex; align-items: flex-end; gap: 16px; margin: -44px 40px 0; }
@@ -996,7 +998,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-ties { margin-top: 6px; }
 .profile-interests li { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.75rem; }
 .profile-tabs { flex: none; display: flex; gap: 4px; padding: 0 32px; border-bottom: 1px solid var(--border); background: var(--canvas); }
-.with-card .profile-tabs { position: sticky; top: 0; z-index: 2; margin-top: 16px; padding: 0 40px; }
 .profile-tabs button { padding: 12px 14px 10px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 0.875rem; font-weight: 500; }
 .profile-tabs button:hover { color: var(--text); }
 .profile-tabs button[aria-current='page'] { color: var(--text); border-bottom-color: var(--accent); }
@@ -1056,8 +1057,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-retro .profile-tabs { gap: 2px; margin: 6px 10px 0; padding: 4px 4px 0; border: 0; border-bottom: 2px solid #ffffff; background: var(--surface); }
 .profile-retro .profile-tabs button { padding: 4px 12px; border: 2px outset #f2f1ee; border-bottom: 0; border-radius: 3px 3px 0 0; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; }
 .profile-retro .profile-tabs button[aria-current='page'] { position: relative; top: 2px; padding-bottom: 6px; background: var(--surface); font-weight: 700; }
+.profile-retro.with-card .profile-card { margin-top: 0; }
 .profile-retro > .conversation.chat-retro, .profile-retro > .chat-shell > .chat-retro { margin-top: 0; border-top: 0; }
-.profile-retro .feed { margin: 0 10px 10px; padding: 14px 16px; border: 2px outset #e8e6e1; border-top: 0; background: var(--surface); }
+.profile-retro .feed { margin: 10px 10px 10px; padding: 14px 16px; border: 2px outset #e8e6e1; background: var(--surface); }
 .profile-retro .feed h2 { font-family: inherit; font-size: 1rem; font-weight: 700; }
 .profile-retro .post { gap: 8px; padding: 10px 12px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); }
 .profile-retro .post-avatar { width: 32px; height: 32px; border-radius: 0; border: 1px solid var(--border); }
@@ -1091,10 +1093,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @media (max-width: 720px) {
   .profile-cover { height: 96px; }
   .profile-who, .profile-bio, .profile-facts, .profile-interests { margin-inline: 16px; }
-  .profile-tabs, .with-card .profile-tabs { padding: 0 8px; }
+  .profile-tabs { padding: 0 8px; }
   .profile-community .profile-card { margin: 12px 12px 0; }
   .profile-retro .profile-card, .profile-retro .profile-tabs { margin-inline: 4px; }
-  .profile-retro .feed { margin: 0 4px 4px; padding: 12px; }
+  .profile-retro .feed { margin: 4px; padding: 12px; }
   .profile-retro .profile-tabs { padding: 4px 4px 0; }
   /* The icon alone, so a long name keeps its width; the button is still named "Message". */
   .profile-message { min-width: 40px; padding-inline: 10px; }
@@ -1319,12 +1321,12 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .crisis-note { margin: 4px 0 14px; }
 }
 
-/* On her mind (features/today/OnHerMind.tsx): a folded line under the day's heading. */
-.on-her-mind { margin-top: 6px; max-width: 640px; }
-.on-her-mind summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 0.92rem; }
-.on-her-mind summary svg { width: 15px; height: 15px; }
-.on-her-mind ul { margin-top: 8px; gap: 6px; }
-.on-her-mind time { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
+/* On their mind (features/today/OnTheirMind.tsx): a folded line under the day's heading. */
+.on-their-mind { margin-top: 6px; max-width: 640px; }
+.on-their-mind summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 0.92rem; }
+.on-their-mind summary svg { width: 15px; height: 15px; }
+.on-their-mind ul { margin-top: 8px; gap: 6px; }
+.on-their-mind time { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
 
 /* Group chat moods (features/groups/GroupChat.tsx): read-only, under each person in the people panel. */
 .group-mood { display: block; font-size: 0.85rem; }

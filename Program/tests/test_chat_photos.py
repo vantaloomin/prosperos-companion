@@ -264,6 +264,8 @@ def unasked(monkeypatch):
     monkeypatch.setattr(photos, 'SHARE_CHANCE', 1)
     monkeypatch.setattr(photos, 'SHARE_SELFIE_SHARE', 0)
     monkeypatch.setattr(photos, 'SHARE_KINDS', {'work', 'study', 'errand', 'social', 'leisure'})
+    # A cold turns the slot into rest at home, which is never shared; the companion's seed decides it.
+    monkeypatch.setattr('companion.life.body.COLD_CHANCE', {'winter': 0, 'other': 0})
     return photos
 
 

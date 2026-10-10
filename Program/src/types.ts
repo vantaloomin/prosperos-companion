@@ -445,7 +445,7 @@ export interface Today {
   day: { date: string; body: BodyState | null }
   /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
   occasions?: Occasion[]
-  /** On her mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
+  /** On their mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
   mind?: { thoughts: Thought[] } | null
   moments: Moment[]
   dreams: Dream[]

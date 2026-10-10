@@ -36,7 +36,7 @@ choice to show them is remembered in this browser.
 
 While a text model is connected, each text field, the skills, flaws, interests, the weekly
 routine and the life themes have **Help me write …** below them. The user may say what should
-change ("less polite", "she has a sister"), and `POST /api/companion/draft/field` returns a new
+change ("less polite", "they have a sister"), and `POST /api/companion/draft/field` returns a new
 value written to fit the rest of the character as it stands in the form. **Put back what was
 there** restores the previous text. This works when creating and when editing a companion.
 
@@ -62,8 +62,8 @@ than 18 is refused. The reply goes through the same checks as a quick-start draf
 ## The sidecar
 
 While the form is open, the app-wide **Sidecar** ([sidecar.md](sidecar.md)) edits the form itself:
-the user can paste more about the character or ask for changes in plain words ("make her older",
-"he has a sister", "less formal"), and each proposed field change goes into the form with
+the user can paste more about the character or ask for changes in plain words ("make them older",
+"they have a sister", "less formal"), and each proposed field change goes into the form with
 **Apply**, **Dismiss** and **Undo**. Nothing is saved until the user saves the form. A long paste
 on a still-empty form is split as above instead, and offered as one "Fill the form from your
 character" proposal. The relationship, home city and emotional traits are never changed by it.

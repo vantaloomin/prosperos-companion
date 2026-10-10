@@ -145,7 +145,7 @@ function AddForm({ view, act, onDone }: { view: WardrobeView; act: Act; onDone: 
       <input id="wardrobe-add-name" aria-describedby="wardrobe-add-name-hint" value={name} maxLength={120} required placeholder="a mustard corduroy jacket" onChange={(event) => setName(event.target.value)} />
       <small id="wardrobe-add-name-hint" className="subtle">Colour and kind, the way you would describe it. Pictures use these words.</small>
       <label htmlFor="wardrobe-add-description">Note (optional)</label>
-      <input id="wardrobe-add-description" value={description} maxLength={300} placeholder="A gift from her sister" onChange={(event) => setDescription(event.target.value)} />
+      <input id="wardrobe-add-description" value={description} maxLength={300} placeholder="A gift from their sister" onChange={(event) => setDescription(event.target.value)} />
       <Toggle label="A favourite (worn often)" checked={favorite} onChange={setFavorite} />
       <div className="rename-row">
         <button type="submit" className="button primary" disabled={!name.trim()}>Add</button>

@@ -430,7 +430,7 @@ With model memory on (the default), each completed companion message of four wor
 message it answered, to the memory model at maintenance priority. The rules missed most of what the six-month
 test needed: "we're the Harbor Hellions" answering "what's your derby team called?", relatives named in passing,
 a car or a tattoo. The model answers with a category (the rule categories plus `detail`, subject like "car"), a
-subject and a value in her own words; an answer whose value is not mostly the message's own words, or names a
+subject and a value in their own words; an answer whose value is not mostly the message's own words, or names a
 message outside the batch, is dropped. The rest go through the same `self_facts.record` as rule-found facts, so
 the same checks below hold a new value as a conflict. The prompt is editable ("Noting the companion's own facts").
 

@@ -247,9 +247,9 @@ sections a message asked about. Its card has two switches, plus an optional TMDB
   fresh for 24 hours; after a failed or refused try the next one waits an hour. It is skipped for a companion who
   does not live in the present day (a city whose era is not `modern`). While fresh, the top two of each list go
   into every reply's context as one section, **What's out and trending right now**, placed with the other daily
-  sections (after the calendar) so it does not break prompt caching; it says she knows them as anyone online
+  sections (after the calendar) so it does not break prompt caching; it says the companion knows them as anyone online
   does but has not watched, played, read or heard them. The top movie, show, song and book can also turn up in
-  today's status posts on her feed ("Everyone keeps talking about … Worth it?"), never on a past day's.
+  today's status posts on their feed ("Everyone keeps talking about … Worth it?"), never on a past day's.
 
 | | |
 | --- | --- |

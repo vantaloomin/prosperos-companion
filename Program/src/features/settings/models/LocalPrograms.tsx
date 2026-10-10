@@ -4,12 +4,24 @@ import { Notice } from '../../../components/Feedback'
 import { TextInput, Toggle } from '../../../components/Fields'
 import { shownPath } from '../../../paths'
 import { usePhoneStatus } from '../../phone/phoneAccess'
-import { STATE_TEXT, programFor, useLauncher, type LocalProgram } from './launcher'
+import { STATE_TEXT, programFor, useLauncher, type LauncherView, type LocalProgram } from './launcher'
 
 const failure = (error: unknown) => error instanceof Error ? error.message : 'That did not work.'
-const PLACEHOLDERS: Record<LocalProgram['program'], string> = {
-  lmstudio: 'C:\\Users\\you\\.lmstudio\\bin\\lms.exe', ollama: 'C:\\Users\\you\\AppData\\Local\\Programs\\Ollama\\ollama.exe',
-  kobold: 'C:\\koboldcpp\\koboldcpp.exe', comfyui: 'C:\\ComfyUI_windows_portable',
+type Placeholders = Record<LocalProgram['program'] | 'model', string>
+/** Example paths in the shape this computer uses. */
+const PLACEHOLDERS: Record<LauncherView['system'], Placeholders> = {
+  windows: {
+    lmstudio: 'C:\\Users\\you\\.lmstudio\\bin\\lms.exe', ollama: 'C:\\Users\\you\\AppData\\Local\\Programs\\Ollama\\ollama.exe',
+    kobold: 'C:\\koboldcpp\\koboldcpp.exe', comfyui: 'C:\\ComfyUI_windows_portable', model: 'C:\\Models\\model.gguf',
+  },
+  mac: {
+    lmstudio: '~/.lmstudio/bin/lms', ollama: '/usr/local/bin/ollama', kobold: '~/koboldcpp/koboldcpp',
+    comfyui: '~/ComfyUI', model: '~/Models/model.gguf',
+  },
+  linux: {
+    lmstudio: '~/.lmstudio/bin/lms', ollama: '/usr/local/bin/ollama', kobold: '~/koboldcpp/koboldcpp',
+    comfyui: '~/ComfyUI', model: '~/Models/model.gguf',
+  },
 }
 
 /** Settings > Models: start LM Studio, Ollama, KoboldCpp or ComfyUI from here, and optionally with the Companion. */
@@ -26,7 +38,7 @@ export function LocalPrograms() {
       <p className="subtle">Start the programs your local models run in, with the address, model and context size set above. They keep running after the Companion closes.</p>
     </div>
     <ul className="model-profiles">
-      {data.programs.map(item => <ProgramRow key={item.program} item={item} act={act} launcher={launcher} />)}
+      {data.programs.map(item => <ProgramRow key={item.program} item={item} act={act} launcher={launcher} examples={PLACEHOLDERS[data.system] ?? PLACEHOLDERS.windows} />)}
     </ul>
     {error && <Notice tone="error">{error}</Notice>}
     <Toggle label="Start these when the Companion starts" checked={data.auto_launch} onChange={(checked) => void act(() => launcher.setAuto(checked))}
@@ -36,7 +48,7 @@ export function LocalPrograms() {
 
 type Launcher = ReturnType<typeof useLauncher>
 
-function ProgramRow({ item, act, launcher }: { item: LocalProgram; act: (work: () => Promise<unknown>) => Promise<void>; launcher: Launcher }) {
+function ProgramRow({ item, act, launcher, examples }: { item: LocalProgram; act: (work: () => Promise<unknown>) => Promise<void>; launcher: Launcher; examples: Placeholders }) {
   const [editing, setEditing] = useState(false)
   const missing = !item.path
   const save = (body: { path: string; model_path?: string }) => act(async () => { await launcher.choose(item.program, body); setEditing(false) })
@@ -44,9 +56,9 @@ function ProgramRow({ item, act, launcher }: { item: LocalProgram; act: (work: (
     <div>
       <h3>{item.label}</h3>
       <p className="subtle">For {item.used_by.map(use => use.name).join(', ')} · {item.address}</p>
-      <p className="subtle" role="status">{STATE_TEXT[item.state]}{item.message ? ` ${item.message}` : ''}</p>
-      {!editing && <p className="subtle">{whereText(item)}</p>}
-      {(editing || missing || item.needs_model) && <WhereForm item={item} save={save} cancel={editing ? () => setEditing(false) : undefined} />}
+      <StateLines item={item} />
+      {!editing && !runsElsewhere(item) && <p className="subtle">{whereText(item)}</p>}
+      {(editing || asksWhere(item)) && <WhereForm item={item} examples={examples} save={save} cancel={editing ? () => setEditing(false) : undefined} />}
     </div>
     <div className="form-actions">
       <LaunchButton item={item} onLaunch={() => void act(() => launcher.launch(item.program))} />
@@ -55,19 +67,32 @@ function ProgramRow({ item, act, launcher }: { item: LocalProgram; act: (work: (
   </li>
 }
 
+/** How it is doing, and the system's own words under a failure so support can read them. */
+function StateLines({ item }: { item: LocalProgram }) {
+  return <>
+    <p className="subtle" role="status">{item.message || STATE_TEXT[item.state]}</p>
+    {item.detail && <p className="subtle"><small>{shownPath(item.detail)}</small></p>}
+  </>
+}
+
+/** Running but not found here (started some other way): it runs, so there is nothing to ask for until it stops. */
+const runsElsewhere = (item: LocalProgram) => item.state === 'running' && !item.path
+const asksWhere = (item: LocalProgram) => (!item.path && !runsElsewhere(item)) || item.needs_model
+
 function whereText(item: LocalProgram) {
   if (!item.path) return 'Not found on this PC.'
   return shownPath(item.path) + (item.model_path ? ` · ${shownPath(item.model_path)}` : '')
 }
 
 /** Where the program is, typed only when it was not found, and KoboldCpp's model file. */
-function WhereForm({ item, save, cancel }: { item: LocalProgram; save: (body: { path: string; model_path?: string }) => void; cancel?: () => void }) {
+function WhereForm({ item, examples, save, cancel }: { item: LocalProgram; examples: Placeholders; save: (body: { path: string; model_path?: string }) => void; cancel?: () => void }) {
   const [path, setPath] = useState(item.path)
   const [model, setModel] = useState(item.model_path)
   const kobold = item.program === 'kobold'
   return <div className="form-stack where-form">
-    <TextInput label={item.program === 'comfyui' ? 'ComfyUI folder or app' : `Where ${item.label} is`} value={path} onChange={setPath} maxLength={1000} placeholder={PLACEHOLDERS[item.program]} />
-    {kobold && <TextInput label="Model file" value={model} onChange={setModel} maxLength={1000} placeholder="C:\Models\model.gguf" hint="The .gguf file KoboldCpp loads, or a .kcpps settings file." />}
+    <TextInput label={item.program === 'comfyui' ? 'ComfyUI folder, app or launch script' : `Where ${item.label} is`} value={path} onChange={setPath} maxLength={1000} placeholder={examples[item.program]}
+      hint={item.program === 'comfyui' ? 'A .bat, .cmd or .sh you start ComfyUI with runs as it is, with its own settings. Its port should match the address above.' : undefined} />
+    {kobold && <TextInput label="Model file" value={model} onChange={setModel} maxLength={1000} placeholder={examples.model} hint="The .gguf file KoboldCpp loads, or a .kcpps settings file." />}
     <div className="form-actions">
       <button type="button" className="button primary" onClick={() => save(kobold ? { path, model_path: model } : { path })}>Save</button>
       {cancel && <button type="button" className="button" onClick={cancel}>Cancel</button>}

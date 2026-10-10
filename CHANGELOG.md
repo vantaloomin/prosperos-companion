@@ -80,7 +80,7 @@
 - **News travels:** news spreads one person a day; companions can text "Did you hear about…?"; Today
   shows who has heard.
 - **Moods** for every companion, by rules; the cold shoulder in groups and an opt-in "People can walk out".
-- **On her mind:** one private thought a day on Today.
+- **On their mind:** one private thought a day on Today.
 - **Hidden values** in Settings > Life: moods, who heard the news and the odds stay hidden by default.
 - **AI notices and crisis help:** first-run notice with an 18+ checkbox, an "AI can make mistakes" line
   in every chat, an app note with crisis lines when a message sounds like self-harm.

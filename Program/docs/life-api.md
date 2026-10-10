@@ -904,7 +904,7 @@ POST /api/today/seen
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
 | `last_seen_at` | When the user last marked Today as seen |
 | `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
-| `mind` | On her mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
+| `mind` | On their mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
 | `moments` | Little things: the Life deck's moments of the last week, newest first: `{day, title, text, source, picked_by}`, plus `odds` with Hidden values > odds on (see below) |
 | `dreams` | Dreams of the last week, newest first: `{day, text, sleep_talk}`, `day` being the morning after (see below) |
 
@@ -912,7 +912,7 @@ Call `POST /api/today/seen` once the user has looked at Today, so the next visit
 start from here. It never moves backward if the clock does. Event objects in `changes`, `review`
 and `plans` have the same shape as `GET /api/events`.
 
-### On her mind
+### On their mind
 
 Each evening (from 18:00 the companion's time) Today gets one private thought for that day, worked out by
 rules in `companion/life/thoughts.py` from what actually happened: a storyline beat or a new life chapter, how a
@@ -944,7 +944,7 @@ and which cards can; cards that need someone in the circle or a job wait for one
 steps aside; a card that could give away a secret the companion keeps is never drawn. A day is drawn once, when
 Today is opened or in the background, and kept in `life_moments`.
 
-The companion is told today's moment in the chat context ("Something small from your day today"), On her mind can
+The companion is told today's moment in the chat context ("Something small from your day today"), On their mind can
 pick it, and a card with a `share` line can become a first message. With Hidden values > odds on, Today shows each
 card's source and odds, and the change endpoint makes it go another way: `another` draws a different card, and
 `nothing` makes the day a quiet one. Either returns the week as in `moments`.
