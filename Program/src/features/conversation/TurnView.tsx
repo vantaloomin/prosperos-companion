@@ -100,7 +100,7 @@ function MessageActions({ message, actions, onSheet, children }: { message: Mess
       {actions.length > 0 && <>
         <button type="button" className="text-button message-more" onClick={onSheet}><Ellipsis aria-hidden="true" /><span className="visually-hidden">Message actions</span></button>
         <span className="message-tools">
-          {actions.map(([label, icon, action]) => <button key={label} type="button" className="text-button" onClick={() => action(message)}>{icon}{label}</button>)}
+          {actions.map(([label, icon, action]) => <button key={label} type="button" className="text-button" title={label} onClick={() => action(message)}>{icon}<span className="tool-label">{label}</span></button>)}
         </span>
       </>}
       {children}
