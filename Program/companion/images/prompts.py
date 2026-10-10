@@ -14,7 +14,7 @@ from companion.life import feed, home, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -206,7 +206,8 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
         (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
     opening = FRAMINGS[framing].format(subject=subject.lower(), possessive=possessive) if FRAMINGS[framing] else \
         ''
-    parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment.', f'{look}.' if look else '', setting, action,
+    parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
+             f'{look}.' if look else '', setting, action,
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
              light(event.get('hour'), event.get('weather')), camera(style, framing)]
     return ' '.join(part for part in parts if part)
@@ -310,7 +311,10 @@ def stale(connection, inputs) -> bool:
     return False
 
 
-# How a chat photo frames the moment: the default photo, a selfie, or what they can see.
+# How a chat photo frames the moment: the default photo, a selfie, or what they can see. A plain
+# moment says where the face is: left to itself, Krea 2 crops a candid shot at the chin or the
+# shoulders as often as not, and a picture of someone with no face in it is no picture of them.
+MOMENT = 'a medium shot with {possessive} whole head and face in the frame'
 FRAMINGS = {
     'moment': '',
     'selfie': "a fictional selfie taken at arm's length with a phone's front camera, face and shoulders in "

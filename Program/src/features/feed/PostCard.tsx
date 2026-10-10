@@ -37,14 +37,7 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
     <article ref={card} className={`post${hidden ? ' hidden-post' : ''}`} aria-labelledby={`post-${post.id}`}>
       <PostHeader post={post} />
       {post.intro && <p className="post-intro">{post.intro}</p>}
-      {post.events.map((event) => (
-        <div key={event.id} className="post-event">
-          <p className="post-caption">{event.caption}</p>
-          {event.caption !== event.summary && <p className="subtle">{event.summary}</p>}
-        </div>
-      ))}
-      {post.source === 'social' && <SocialBody post={post} answer={actions.answer} />}
-      {post.image && <PostImage post={post} image={post.image} onChange={actions.refresh} />}
+      <PostBody post={post} actions={actions} />
       <Audience audience={post.audience} />
       <div className="post-actions">
         <span className="reactions" role="group" aria-label="React">
@@ -69,6 +62,26 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
       )}
     </article>
   )
+}
+
+function PostBody({ post, actions }: { post: FeedPost; actions: PostActions }) {
+  const imageFirst = post.events.length > 1
+  return <>
+    <PostEvents post={post} imageFirst={imageFirst} refresh={actions.refresh} />
+    {post.source === 'social' && <SocialBody post={post} answer={actions.answer} />}
+    {post.image && !imageFirst && <PostImage post={post} image={post.image} onChange={actions.refresh} />}
+  </>
+}
+
+/** What happened. A post of several moments is illustrated by its first, so the picture sits under that one. */
+function PostEvents({ post, imageFirst, refresh }: { post: FeedPost; imageFirst: boolean; refresh: () => void }) {
+  return post.events.map((event, index) => (
+    <div key={event.id} className="post-event">
+      <p className="post-caption">{event.caption}</p>
+      {event.caption !== event.summary && <p className="subtle">{event.summary}</p>}
+      {index === 0 && imageFirst && post.image && <PostImage post={post} image={post.image} onChange={refresh} />}
+    </div>
+  ))
 }
 
 function PostHeader({ post }: { post: FeedPost }) {
