@@ -91,3 +91,10 @@ test('realism presets match the settings they set, and a new world starts on rea
   assert.equal(matchPreset({ ...life, drama: 2 }, fresh), null)
   assert.equal(new Set(REALISM_PRESETS.map((preset) => preset.label)).size, REALISM_PRESETS.length)
 })
+
+test('your own mix names the preset it is closest to', async () => {
+  const { nearestPreset } = await import('../../src/features/settings/presetChoices.ts')
+  const life = { drama: 3, paced_replies: false, day_shifts: true, on_her_mind: true } as unknown as LifeSettings
+  assert.equal(nearestPreset(life, {} as WorkspaceSettings).id, 'drama')
+  assert.equal(nearestPreset({ ...life, drama: 0, day_shifts: false }, {} as WorkspaceSettings).id, 'easy')
+})

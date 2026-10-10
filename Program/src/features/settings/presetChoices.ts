@@ -31,19 +31,28 @@ export const REALISM_PRESETS: RealismPreset[] = [
     life: { drama: 0, paced_replies: false, day_shifts: false, on_her_mind: true }, shown: HIDDEN,
   },
   {
-    id: 'strings', label: 'I pull the strings', description: 'Replies right away, and every hidden value on show: moods, who has heard what, and the odds, with a way to make things go another way.',
+    id: 'strings', label: 'I pull the strings', description: 'Everyday drama and plans that sometimes go wrong, as in real life, but replies right away and every hidden value on show: moods, who has heard what, and the odds, with a way to make things go another way.',
     life: { drama: 1, paced_replies: false, day_shifts: true, on_her_mind: true },
     shown: { show_moods: true, show_news: true, show_odds: true, show_secret_slips: true },
   },
 ]
 
-/** The preset the current settings match exactly, or null for the user's own mix. */
-export function matchPreset(life: LifeSettings, workspace: WorkspaceSettings): RealismPreset | null {
+/** How many of a preset's settings differ from the current ones. */
+function distance(preset: RealismPreset, life: LifeSettings, workspace: WorkspaceSettings): number {
   const shown: ShownPart = {
     show_moods: !!workspace.show_moods, show_news: !!workspace.show_news, show_odds: !!workspace.show_odds,
     show_secret_slips: workspace.show_secret_slips !== false,
   }
-  return REALISM_PRESETS.find((preset) =>
-    (Object.keys(preset.life) as (keyof LifePart)[]).every((key) => life[key] === preset.life[key])
-    && (Object.keys(preset.shown) as (keyof ShownPart)[]).every((key) => shown[key] === preset.shown[key])) ?? null
+  return (Object.keys(preset.life) as (keyof LifePart)[]).filter((key) => life[key] !== preset.life[key]).length
+    + (Object.keys(preset.shown) as (keyof ShownPart)[]).filter((key) => shown[key] !== preset.shown[key]).length
+}
+
+/** The preset the current settings match exactly, or null for the user's own mix. */
+export function matchPreset(life: LifeSettings, workspace: WorkspaceSettings): RealismPreset | null {
+  return REALISM_PRESETS.find((preset) => distance(preset, life, workspace) === 0) ?? null
+}
+
+/** For "your own mix, based on ...": the preset with the fewest settings changed (the first wins a tie). */
+export function nearestPreset(life: LifeSettings, workspace: WorkspaceSettings): RealismPreset {
+  return REALISM_PRESETS.reduce((best, preset) => distance(preset, life, workspace) < distance(best, life, workspace) ? preset : best)
 }

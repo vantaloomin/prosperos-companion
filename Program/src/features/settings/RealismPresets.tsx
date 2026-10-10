@@ -6,7 +6,7 @@ import type { LifeSettings, WorkspaceSettings } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { SectionPending } from '../../components/SectionPending'
 import { GROUPS_KEY } from '../groups/groupState'
-import { REALISM_PRESETS, matchPreset, type RealismPreset } from './presetChoices'
+import { REALISM_PRESETS, matchPreset, nearestPreset, type RealismPreset } from './presetChoices'
 import { LIFE_KEY, type SaveResult } from './useLifeSettings'
 
 /** Wolfenstein-style starting points (src/features/settings/presetChoices.ts); a tap applies one, and any change after is your own mix. */
@@ -36,17 +36,18 @@ export function RealismPresets({ heading, title, intro }: { heading: string; tit
     <section className="settings-section form-stack" aria-labelledby={heading}>
       <div>
         <h2 id={heading}>{title}</h2>
-        <p className="subtle">{intro ?? (current ? 'Pick how you want it to feel. Closeness stays as you set it for each companion.' : 'Your own mix right now. Pick one to start over from it. Closeness stays as you set it for each companion.')}</p>
+        <p className="subtle">{intro ?? 'Pick how you want it to feel. Closeness stays as you set it for each companion.'}</p>
       </div>
       <fieldset className="chat-style-options realism-presets">
         <legend className="visually-hidden">Realism preset</legend>
         {REALISM_PRESETS.map((preset) => (
           <label key={preset.id} className="chat-style-option">
-            <input type="radio" name={name} value={preset.id} checked={picked === preset.id} onChange={() => void apply(preset)} />
-            <span className="chat-style-text"><span>{preset.label}</span><small>{preset.description}</small></span>
+            <input type="radio" name={name} value={preset.id} checked={picked === preset.id} aria-describedby={`${name}-${preset.id}`} onChange={() => void apply(preset)} />
+            <span className="chat-style-text"><span>{preset.label}</span><small id={`${name}-${preset.id}`}>{preset.description}</small></span>
           </label>
         ))}
       </fieldset>
+      {!picked && <p className="subtle">Your own mix, based on {nearestPreset(life.data, workspace.data).label}.</p>}
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
