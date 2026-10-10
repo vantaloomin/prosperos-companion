@@ -26,6 +26,7 @@
   "mix": {
    "anglo": 7,
    "irish": 2,
+   "french-canadian": 1.5,
    "italian": 0.8,
    "jewish": 0.2,
    "slavic": 0.2,
@@ -2276,7 +2277,7 @@
   {
    "id": "ridge-road-veterinary",
    "name": "Ridge Road Veterinary Clinic",
-   "kind": "shopping",
+   "kind": "vet",
    "neighborhood": "ridge-road",
    "summary": "The town vet in a converted farmhouse, treating dogs, cats, goats and the occasional cow, with pet supplies in the front room and a waiting room where everyone compares notes on their animals.",
    "tags": [

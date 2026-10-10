@@ -387,7 +387,7 @@ PLACES = [
           'with a stage and a sprung floor: contra dances, a winter farmers market on Saturdays, community '
           'suppers and the 4-H show.', ['grange', 'community', 'dances', 'winter-market'], '$', 'indoor', ALL,
           ['morning', 'evening']),
-    place('ridge-road-veterinary', 'Ridge Road Veterinary Clinic', 'shopping', 'ridge-road', 'The town vet in a '
+    place('ridge-road-veterinary', 'Ridge Road Veterinary Clinic', 'vet', 'ridge-road', 'The town vet in a '
           'converted farmhouse, treating dogs, cats, goats and the occasional cow, with pet supplies in the '
           'front room and a waiting room where everyone compares notes on their animals.', ['veterinarian', 'animals', 'practical'], '$$',
           'indoor', ['solo', 'family'], DAY),
@@ -616,7 +616,7 @@ CITY = {
     'speeds': {'walk': 4.5, 'car': 40, 'bus': 22, 'ferry': 15, 'bike-share': 14},
     # Rough heritage weights for a midcoast Maine town: mostly old Yankee and Irish families, an Italian
     # community from the quarry days and a little of everywhere through the college and hospital.
-    'names': {'mix': {'anglo': 7, 'irish': 2, 'italian': 0.8, 'jewish': 0.2, 'slavic': 0.2, 'hispanic': 0.3,
+    'names': {'mix': {'anglo': 7, 'irish': 2, 'french-canadian': 1.5, 'italian': 0.8, 'jewish': 0.2, 'slavic': 0.2, 'hispanic': 0.3,
                        'black-american': 0.2, 'east-asian': 0.2, 'south-asian': 0.15, 'arabic': 0.1,
                        'west-african': 0.1}},
     'sources': {
