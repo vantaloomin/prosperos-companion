@@ -530,3 +530,27 @@ def test_an_older_workspace_gets_automatic_events_once(tmp_path, clock):
         connection.execute('UPDATE life_settings SET automatic_events=0')
     with Database(path, clock).connect() as connection:
         assert connection.execute('SELECT automatic_events FROM life_settings').fetchone()[0] == 0
+
+
+def test_one_agenda_extension_reads_a_days_weather_and_happenings_once():
+    from companion.life.agenda import SameDay
+
+    class Counting:
+        calls = 0
+
+        def weather(self, city, day):
+            Counting.calls += 1
+            return {'season': 'winter'}
+
+        def happenings(self, city, day):
+            Counting.calls += 1
+            return []
+
+    world, day = SameDay(Counting()), date(2026, 1, 5)
+    for _ in range(3):
+        assert world.weather('Baltimore', day) == {'season': 'winter'}
+        assert world.happenings('Baltimore', day) == []
+    assert Counting.calls == 2
+    # A world without climate or events still answers as none.
+    assert SameDay(object()).weather('Baltimore', day) is None
+    assert SameDay(object()).happenings('Baltimore', day) == []

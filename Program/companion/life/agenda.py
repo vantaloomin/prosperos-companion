@@ -72,8 +72,34 @@ def seed_for(timeline_id, subject, slot_key) -> str:
     return f'agenda:{timeline_id}:{subject}:{slot_key}'
 
 
+class SameDay:
+    """The world for the length of one extension. Every subject asks for the city's weather and happenings day after
+    day (their plans, whether it is winter for a cold), and each lookup reads the city's data afresh: a month away
+    asked hundreds of times, which made the first open after a month take seconds. Callers copy what they keep."""
+
+    def __init__(self, world):
+        self.world = world
+        self.seen = {}
+
+    def __getattr__(self, name):
+        return getattr(self.world, name)
+
+    def remembered(self, name, city, day, empty):
+        if (name, city, day) not in self.seen:
+            lookup = getattr(self.world, name, None)
+            self.seen[name, city, day] = lookup(city, day) if lookup else empty
+        return self.seen[name, city, day]
+
+    def weather(self, city, day):
+        return self.remembered('weather', city, day, None)
+
+    def happenings(self, city, day):
+        return self.remembered('happenings', city, day, [])
+
+
 def extend(connection, companion, world, now) -> dict:
     """Bring every subject's agenda up to a week ahead and settle what has ended. Cheap: no model."""
+    world = SameDay(world)
     if chapters.advance(connection, companion, world, now):
         companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
