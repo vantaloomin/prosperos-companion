@@ -89,7 +89,7 @@ function Controls({ name, state, change }: { name: string; state: ClosenessState
 }
 
 /**
- * Where closeness stands and how far it may go: steps, Set it to, Keep it at, Never closer than and gentle cooling.
+ * Where closeness stands and how far it may go: Set it to, Never closer than, steps, Keep it at and gentle cooling.
  * Memories shows these for the open companion; Settings > Realism for any companion (`path` names which).
  */
 export function StageControls({ name, state, change, path = '/closeness' }: { name: string; state: ClosenessState; change: Change; path?: string }) {
@@ -109,26 +109,26 @@ export function StageControls({ name, state, change, path = '/closeness' }: { na
     on ? 'Long silences now cool things a little.' : 'Time apart no longer lowers closeness.')
   return (
     <>
-      <div className="closeness-steps" role="group" aria-label="Move closeness">
-        <button type="button" className="button" disabled={state.grown_level <= 1} onClick={() => setTo(state.grown_level - 1)}><ChevronDown aria-hidden="true" />One step back</button>
-        <button type="button" className="button" disabled={state.grown_level >= state.stages.length} onClick={() => setTo(state.grown_level + 1)}><ChevronUp aria-hidden="true" />One step closer</button>
-      </div>
       <Field label="Set it to" hint="It keeps growing from the stage you pick.">{(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value="" onChange={(event) => { if (event.target.value) setTo(Number(event.target.value)) }}>
           <option value="">Choose a stage</option>
           {state.stages.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
         </select>
       )}</Field>
-      <Field label="Keep it at" hint="Stays put, higher or lower, until you let it grow again.">{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={state.held_level ?? ''} onChange={(event) => hold(event.target.value)}>
-          <option value="">Keeps growing</option>
-          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>Keep at {stage}</option>)}
-        </select>
-      )}</Field>
       <Field label="Never closer than" hint="Grows as usual up to this stage, then stops. Good for a slow burn.">{(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={state.ceiling_level ?? ''} onChange={(event) => cap(event.target.value)}>
           <option value="">No limit</option>
           {state.stages.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
+        </select>
+      )}</Field>
+      <div className="closeness-steps" role="group" aria-label="Move closeness">
+        <button type="button" className="button" disabled={state.grown_level <= 1} onClick={() => setTo(state.grown_level - 1)}><ChevronDown aria-hidden="true" />One step back</button>
+        <button type="button" className="button" disabled={state.grown_level >= state.stages.length} onClick={() => setTo(state.grown_level + 1)}><ChevronUp aria-hidden="true" />One step closer</button>
+      </div>
+      <Field label="Keep it at" hint="Stays put, higher or lower, until you let it grow again.">{(id, describedBy) => (
+        <select id={id} aria-describedby={describedBy} value={state.held_level ?? ''} onChange={(event) => hold(event.target.value)}>
+          <option value="">Keeps growing</option>
+          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>Keep at {stage}</option>)}
         </select>
       )}</Field>
       <Toggle label="Let long silences cool things a little" checked={state.cooling} onChange={cool}

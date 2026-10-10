@@ -41,7 +41,7 @@ export function LifeSettings({ name }: { name: string }) {
     <section className="settings-section form-stack" aria-labelledby="life-heading">
       <div>
         <h2 id="life-heading">{name}'s life</h2>
-        <p className="subtle">When you come back, a few things that fit {name}'s routine are written for the time you were away. Nothing is written for time while paused. How real it all feels (their pace, plans going wrong, drama, closeness and what stays hidden) is under Realism.</p>
+        <p className="subtle">When you come back, a few things that fit {name}'s routine are written for the time you were away. Nothing is written for time while paused. Drama, pace and closeness are in Realism.</p>
       </div>
       <Toggle label="Catch up when you return" checked={data.catch_up_on_return} onChange={(value) => void save({ catch_up_on_return: value })}
         hint="Off: nothing is written for the time you were away, and their life picks up from when you return." />
