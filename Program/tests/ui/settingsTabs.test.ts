@@ -4,7 +4,7 @@ import { SETTINGS_TABS, availableTabs, pickTab, searchSettings } from '../../src
 import { readAdvanced, writeAdvanced } from '../../src/features/settings/advanced.ts'
 import { groupPrompts, placeholderHint } from '../../src/features/settings/prompts.ts'
 import { setupSteps } from '../../src/features/conversation/setup.ts'
-import type { Companion } from '../../src/types.ts'
+import type { Companion, LifeSettings, WorkspaceSettings } from '../../src/types.ts'
 
 test('a deep link opens its tab, and an unknown or unavailable one opens the first', () => {
   assert.equal(pickTab('images', true), 'images')
@@ -78,4 +78,16 @@ test('everything that dials realism down is on the Realism tab, and search finds
     assert.ok(tab(query).length && tab(query).every((id) => id === 'realism'), query)
   }
   assert.equal(pickTab('realism', true), 'realism')
+})
+
+test('realism presets match the settings they set, and a new world starts on real life', async () => {
+  const { REALISM_PRESETS, matchPreset } = await import('../../src/features/settings/realismPresets.ts')
+  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true } as unknown as LifeSettings
+  const fresh = {} as WorkspaceSettings
+  assert.equal(matchPreset(life, fresh)?.id, 'real')
+  for (const preset of REALISM_PRESETS) {
+    assert.equal(matchPreset({ ...life, ...preset.life }, { ...fresh, ...preset.shown })?.id, preset.id)
+  }
+  assert.equal(matchPreset({ ...life, drama: 2 }, fresh), null)
+  assert.equal(new Set(REALISM_PRESETS.map((preset) => preset.label)).size, REALISM_PRESETS.length)
 })

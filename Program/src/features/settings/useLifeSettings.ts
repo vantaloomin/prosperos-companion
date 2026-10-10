@@ -17,8 +17,9 @@ export function useLifeSettings() {
     setPending((current) => ({ ...current, ...change }))
     try {
       const saved = await api<LifeSettings>('/life/settings', change, 'PUT')
-      setPending(saved)
       client.setQueryData(LIFE_KEY, saved)
+      // The saved settings are the query's now, so a preset applied elsewhere on the page shows through.
+      setPending({})
       void client.invalidateQueries({ queryKey: ['today'] })
       setResult(done ? { tone: 'info', text: done } : null)
       return true

@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { ChatList, Closeness as ClosenessState } from '../../types'
+import type { ChatList, Closeness as ClosenessState, LifeSettings, WorkspaceSettings } from '../../types'
+import { SETTINGS_KEY, useWorkspaceSettings } from '../../companion'
+import { GROUPS_KEY } from '../groups/groupState'
+import { REALISM_PRESETS, matchPreset, type RealismPreset } from './realismPresets'
 import { CHATS_KEY } from '../chats/useChats'
 import { CLOSENESS_KEY } from '../memories/closenessText'
 import { StageControls } from '../memories/Closeness'
@@ -10,12 +13,58 @@ import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { SectionPending } from '../../components/SectionPending'
-import { useLifeSettings, type SaveResult } from './useLifeSettings'
+import { LIFE_KEY, useLifeSettings, type SaveResult } from './useLifeSettings'
 
-/** The opening line of Settings > Realism (Iris's wording). */
+/** The top of Settings > Realism: Iris's opening line and one-tap presets for the world-wide settings below. */
 export function RealismIntro() {
   return (
-    <p className="subtle settings-intro">How true to life the world is. Everything here can be changed back any time.</p>
+    <>
+      <p className="subtle settings-intro">How true to life the world is. Everything here can be changed back any time.</p>
+      <RealismPresets />
+    </>
+  )
+}
+
+/** Wolfenstein-style starting points (src/features/settings/realismPresets.ts); a tap applies one, and any change after is your own mix. */
+function RealismPresets() {
+  const client = useQueryClient()
+  const workspace = useWorkspaceSettings()
+  const life = useQuery({ queryKey: LIFE_KEY, queryFn: () => api<LifeSettings>('/life/settings') })
+  const [result, setResult] = useState<SaveResult>(null)
+  const [applying, setApplying] = useState<string | null>(null)
+  const name = useId()
+  if (!life.data || !workspace.data) return <SectionPending queries={[life, workspace]} heading="presets-heading" title="Start from" />
+  const current = matchPreset(life.data, workspace.data)
+  const apply = async (preset: RealismPreset) => {
+    setApplying(preset.id)
+    try {
+      client.setQueryData(LIFE_KEY, await api<LifeSettings>('/life/settings', preset.life, 'PUT'))
+      client.setQueryData(SETTINGS_KEY, await api<WorkspaceSettings>('/settings', preset.shown, 'PUT'))
+      for (const queryKey of [['today'], ['news'], ['reactions'], GROUPS_KEY, ['group']]) void client.invalidateQueries({ queryKey })
+      setResult({ tone: 'info', text: `${preset.label}: done. Change anything below to make it your own.` })
+    } catch (error) {
+      setResult({ tone: 'error', text: error instanceof Error ? error.message : 'Not saved.' })
+    }
+    setApplying(null)
+  }
+  const picked = applying ?? current?.id
+  return (
+    <section className="settings-section form-stack" aria-labelledby="presets-heading">
+      <div>
+        <h2 id="presets-heading">Start from</h2>
+        <p className="subtle">{current ? 'Pick how you want it to feel. Closeness stays as you set it for each companion.' : 'Your own mix right now. Pick one to start over from it. Closeness stays as you set it for each companion.'}</p>
+      </div>
+      <fieldset className="chat-style-options realism-presets">
+        <legend className="visually-hidden">Realism preset</legend>
+        {REALISM_PRESETS.map((preset) => (
+          <label key={preset.id} className="chat-style-option">
+            <input type="radio" name={name} value={preset.id} checked={picked === preset.id} onChange={() => void apply(preset)} />
+            <span className="chat-style-text"><span>{preset.label}</span><small>{preset.description}</small></span>
+          </label>
+        ))}
+      </fieldset>
+      {result && <Notice tone={result.tone}>{result.text}</Notice>}
+    </section>
   )
 }
 
@@ -108,7 +157,7 @@ function CompanionCloseness({ id, name, open }: { id: string; name: string; open
 }
 
 /** "Mira is at Friends.", saying so when the user set or keeps it there. */
-export function stageLine(state: ClosenessState, name: string) {
+function stageLine(state: ClosenessState, name: string) {
   const how = state.held_level ? ', kept there by you' : state.set_on ? ', set by you' : ''
   return `${name} is at ${state.name}${how}.`
 }

@@ -3,7 +3,8 @@
 ## Unreleased
 
 - **Realism in one place:** a new Realism tab in Settings gathers everything that makes the world feel like
-  real life, so you can dial any of it down: how close you get with each companion (step it closer, set it,
+  real life. Start from one of four presets (I want real life, Bring on the drama, I want an easy life, I pull
+  the strings), then dial anything up or down: how close you get with each companion (step it closer, set it,
   keep it there, never closer than, gentle cooling), whether they reply at their own pace, whether their days
   go off plan, how much drama there is, and Hidden values. Closeness can now be changed there for any
   companion, not only the one that's open.

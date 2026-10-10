@@ -49,6 +49,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   {
     // Every setting that dials real life down or off, in one place (Vanta, 2026-10-10).
     id: 'realism', label: 'Realism', sections: [
+      { heading: 'presets-heading', title: 'Start from', keywords: 'realism realistic preset presets template templates difficulty easy life real life drama pull the strings control everything mode' },
       { heading: 'pace-heading', title: 'Their days', keywords: 'realism realistic pace paced replies reply right away instant busy later asleep wait off plan day shifts late plans fall through surprise drama storylines soap opera quiet' },
       { heading: 'closeness-settings-heading', title: 'Closeness', keywords: 'realism realistic closeness close stage level relationship friends set it to step closer back keep it at hold max maximum min minimum limit ceiling never closer than slow burn cooling silence' },
       { heading: 'hidden-values-heading', title: 'Hidden values', keywords: 'realism realistic hidden values show reveal mood moods feeling feelings news word gets around odds dice why it went secret secrets slip on their mind thoughts' },
