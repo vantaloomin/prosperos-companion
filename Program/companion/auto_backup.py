@@ -60,7 +60,8 @@ def due(database_path: Path, now: datetime, every: str) -> bool:
 
 
 def kept(entries: list[tuple[datetime, Path]]) -> set[Path]:
-    """The newest backup of each of the last DAILY_KEPT days with one, then the newest of each of WEEKLY_KEPT weeks."""
+    """The newest backup of each of the last DAILY_KEPT days with one, then the newest of each of WEEKLY_KEPT weeks
+    before them. A week the dailies reach into is theirs, so the weeklies cover WEEKLY_KEPT whole weeks further back."""
     days: dict[date, Path] = {}
     weeks: dict[tuple, Path] = {}
     for when, path in entries:  # Newest first, so the first seen of a day or week is its newest.
@@ -68,6 +69,8 @@ def kept(entries: list[tuple[datetime, Path]]) -> set[Path]:
             days.setdefault(when.date(), path)
             continue
         week = when.isocalendar()[:2]
+        if week == min(days).isocalendar()[:2]:
+            continue
         if len(weeks) < WEEKLY_KEPT or week in weeks:
             weeks.setdefault(week, path)
     return set(days.values()) | set(weeks.values())
