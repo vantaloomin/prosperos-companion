@@ -320,7 +320,8 @@ answers "Billy is still angry at Sally." With moods shown (below), the people pa
 ("Seems hurt by Sally: found out …"), and who they're not speaking to. The speaker's own mood is in their group
 section with the reason ("why: …"); nobody else's mood reaches their prompt. In their own chat, the per-reply
 notes carry "How you feel right now" ("You're subdued and a bit sullen: shorter, quieter replies … (why: …). Let
-it color your tone; never say it as a rule."), so the user notices it from how they talk.
+it show in how you write …, not just in what you say. Never explain it unless asked."), so the user notices it from
+how they write, not only what they say.
 
 Moods are hidden values: the people panel's mood line, the "Seems a bit sad" line on Today (`feeling` in `GET
 /api/today`, and the absence mood) show only with Settings > Realism > Hidden values > "Show how they're feeling" on
