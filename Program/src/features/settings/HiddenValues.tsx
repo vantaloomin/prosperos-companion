@@ -8,7 +8,7 @@ import { Notice } from '../../components/Feedback'
 import { GROUPS_KEY } from '../groups/groupState'
 import { LIFE_KEY } from './useLifeSettings'
 
-type Flag = 'show_moods' | 'show_news' | 'show_odds' | 'show_secret_slips'
+type Flag = 'show_moods' | 'show_news' | 'show_odds' | 'show_secret_slips' | 'show_adult_side'
 
 /** Hidden values: what companions feel, who has heard their news and the odds behind how things went shape every
  * reply, but stay unseen unless the user turns them on, so by default you find out the way you would in life. */
@@ -19,7 +19,7 @@ export function HiddenValues({ name }: { name: string }) {
   const [error, setError] = useState('')
   const flag = (key: Flag, shown = false) => settings.data?.[key] ?? shown
   const refresh = () => {
-    for (const queryKey of [['today'], ['news'], ['reactions'], GROUPS_KEY, ['group']]) void client.invalidateQueries({ queryKey })
+    for (const queryKey of [['today'], ['news'], ['reactions'], ['townsfolk'], GROUPS_KEY, ['group']]) void client.invalidateQueries({ queryKey })
   }
   const save = async (change: Partial<Record<Flag, boolean>>) => {
     setError('')
@@ -48,6 +48,10 @@ export function HiddenValues({ name }: { name: string }) {
         hint={`Each evening Today gets one private thought, worked out from what happened in ${whose} day. Folded until you open it, never part of the chat, and never anything ${keeps} secret.`} />
       <Toggle label="Say when a secret slips out" checked={flag('show_secret_slips', true)} onChange={(checked) => void save({ show_secret_slips: checked })}
         hint="A note under a group message when someone lets a secret slip. Off: you only find out from what they say; everyone there still knows it, and Secrets on the Groups page still shows who knows." />
+      {settings.data?.adult_side && (
+        <Toggle label="Show townsfolk's adult side" checked={flag('show_adult_side')} onChange={(checked) => void save({ show_adult_side: checked })}
+          hint="Around town on Today: who each person is drawn to, how adventurous they are and what they're into. Off: you only learn who someone is drawn to once your companion knows them well." />
+      )}
       {error && <Notice tone="error">{error}</Notice>}
     </section>
   )

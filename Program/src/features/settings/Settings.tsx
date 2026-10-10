@@ -12,7 +12,7 @@ import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
 import { LifeSettings } from './LifeSettings'
-import { ClosenessSettings, PaceSettings, RealismIntro } from './RealismSettings'
+import { AdultSideSettings, ClosenessSettings, PaceSettings, RealismIntro } from './RealismSettings'
 import { NotificationSettings } from './NotificationSettings'
 import { PhoneSettings } from './PhoneSettings'
 import { PromptSettings } from './PromptSettings'
@@ -96,7 +96,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     general: <><TimezoneSettings /><ChatStyleSettings /><OocSettings /><PauseSettings /><BackgroundSettings /></>,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
     life: <><LifeSettings name={name} /><Cities /></>,
-    realism: <><RealismIntro /><PaceSettings /><ClosenessSettings name={name} /><HiddenValues name="" /></>,
+    realism: <><RealismIntro /><PaceSettings /><ClosenessSettings name={name} /><AdultSideSettings /><HiddenValues name="" /></>,
     memory: <MemorySettings />,
     lookups: <ContextSettings name={name} />,
     images: <ImageSettings />,

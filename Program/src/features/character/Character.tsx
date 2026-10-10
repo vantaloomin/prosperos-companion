@@ -19,6 +19,7 @@ import { Wardrobe } from './Wardrobe'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
+import { AdultSideFields } from './AdultSideFields'
 import { LooksFields } from './LooksFields'
 import { QuickStart } from './QuickStart'
 import { scheduleProblems } from './schedule'
@@ -141,6 +142,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
           {help('routine', 'their routine')}
           <LifeFields definition={definition} set={set} themes={texts.themes} setThemes={setText('themes')} help={help} />
           <PerceptionFields definition={cleaned} seenAs={definition.seen_as ?? ''} seesSelf={definition.sees_self ?? ''} set={set} />
+          <AdultSideFields definition={cleaned} value={definition.intimacy} set={set} />
           <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
           <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
             hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />
