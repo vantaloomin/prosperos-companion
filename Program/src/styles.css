@@ -681,6 +681,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .sidecar-send .send-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
 .sidecar-send .send-button:disabled { opacity: .45; }
 .sidecar-send .send-button svg { width: 18px; height: 18px; }
+.sidecar-send .send-button { margin-left: auto; }
 .reply-sidecar { padding: 2px; opacity: .7; }
 .reply-sidecar svg { width: 14px; height: 14px; }
 @media (max-width: 1100px) { .sidecar { width: 330px; flex-basis: 330px; } }
