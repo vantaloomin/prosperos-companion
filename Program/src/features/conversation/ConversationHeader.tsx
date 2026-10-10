@@ -1,5 +1,5 @@
 import type { RefObject } from 'react'
-import { GitBranch, MessagesSquare, Search, UsersRound } from 'lucide-react'
+import { GitBranch, MessageSquareText, MessagesSquare, Search, UsersRound } from 'lucide-react'
 import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
 import { useChatStyle } from './useChatStyle'
@@ -8,6 +8,8 @@ import { useLocalTime } from './clock'
 import { useChats } from '../chats/useChats'
 import { StatusText } from '../status/StatusLine'
 import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/chatText'
+import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
+import { toggleSidecar } from '../sidecar/toggle'
 
 type Props = { companion: Companion; listing: boolean; chatsButton: RefObject<HTMLButtonElement | null>; onChats: () => void; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void }
 
@@ -28,6 +30,7 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
       {onGroups && <button type="button" className="icon-button" aria-label="Group chats: start a new group" title="Group chats" onClick={onGroups}><UsersRound aria-hidden="true" /></button>}
       <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
       <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
+      <SidecarButton />
     </header>
   )
 }
@@ -40,6 +43,17 @@ export function ChatsButton({ listing, button, onChats, current = null }: { list
   return (
     <button ref={button} type="button" className="icon-button chats-button" aria-label={chatsButtonLabel(waiting)} aria-expanded={listing} onClick={onChats}>
       <MessagesSquare aria-hidden="true" />{waiting > 0 && <span className="unread-badge" aria-hidden="true">{badge(waiting)}</span>}
+    </button>
+  )
+}
+
+/** On a phone the sidecar has no rail button, so it opens from here as a sheet. The side rail keeps its own. */
+function SidecarButton() {
+  const open = useSidecarOpen()
+  const waiting = useSidecarWaiting()
+  return (
+    <button type="button" className="icon-button sidecar-button phone-only" aria-label={waiting ? 'Sidecar, something waiting' : 'Sidecar'} aria-pressed={open} onClick={() => toggleSidecar(open)}>
+      <MessageSquareText aria-hidden="true" />{waiting && <span className="nav-dot" aria-hidden="true" />}
     </button>
   )
 }

@@ -1,5 +1,4 @@
-import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Heart, MessageSquareText, Settings as SettingsIcon, UserRound, UsersRound } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Companion } from './types'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
@@ -16,12 +15,12 @@ import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
 import { Welcome } from './features/character/Welcome'
 import { AiNotice } from './features/character/AiNotice'
-import { sidecar, useSidecarMode, useSidecarOpen, useSidecarWaiting } from './features/sidecar/store'
-import { current as sidecarWindow } from './features/sidecar/popout'
+import { useSidecarMode, useSidecarOpen, useSidecarWaiting } from './features/sidecar/store'
 import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
-import { badge, unreadOf } from './features/chats/chatText'
-import { WorldButton } from './features/worlds/WorldButton'
+import { unreadOf } from './features/chats/chatText'
+import { AppNav } from './features/nav/AppNav'
+import { RAIL_IDS, fromToday } from './features/nav/navText'
 import { useAppColors } from './features/settings/useAppColors'
 
 // Chat opens first, so it ships in the main bundle; every other view loads the first time it is opened.
@@ -42,34 +41,15 @@ const Worlds = lazy(() => import('./features/worlds/Worlds').then((m) => ({ defa
 const WhoKnowsWho = lazy(() => import('./features/web/WhoKnowsWho').then((m) => ({ default: m.WhoKnowsWho })))
 const CityMap = lazy(() => import('./features/map/CityMap').then((m) => ({ default: m.CityMap })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
+const ChatsHome = lazy(() => import('./features/chats/ChatsHome').then((m) => ({ default: m.ChatsHome })))
 
-// The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
-const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
-  { id: 'conversation', label: 'Profile', icon: UserRound },
-  { id: 'groups', label: 'Groups', icon: UsersRound },
-  { id: 'dating', label: 'Matchlight', icon: Heart },
-  { id: 'story', label: 'Story', icon: BookOpen },
-  { id: 'today', label: 'Today', icon: CalendarDays },
-  { id: 'memories', label: 'Memories', icon: BookHeart },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon },
-]
-
-// Views outside the nav: worlds, and the map and Who knows who opened from Today.
-const OTHER_VIEWS = new Set(['worlds', 'people', 'map'])
+// Views outside the side rail: the phone's Chats list, worlds, and the map and Who knows who opened from Today.
+const OTHER_VIEWS = new Set(['chats', 'worlds', 'people', 'map'])
 const LINKED = ['settings/', 'match/', 'chat/', 'group/', 'map/']
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return OTHER_VIEWS.has(id) || VIEWS.some((view) => view.id === id) || profileTab(id) || LINKED.some((prefix) => id.startsWith(prefix)) ? id as View : 'conversation'
-}
-
-/** Views opened from Today, so its nav button stays lit on them. */
-function fromToday(view: View) {
-  return view === 'people' || view === 'map' || view.startsWith('map/')
-}
-
-function isCurrent(id: View, view: View) {
-  return view === id || (id === 'today' && fromToday(view)) || (id === 'conversation' && profileTab(view) !== null) || (id === 'settings' && view.startsWith('settings/')) || (id === 'groups' && view.startsWith('group/'))
+  return OTHER_VIEWS.has(id) || RAIL_IDS.has(id) || profileTab(id) || LINKED.some((prefix) => id.startsWith(prefix)) ? id as View : 'conversation'
 }
 
 export default function App() {
@@ -89,8 +69,8 @@ export default function App() {
   useTexts(!!companion.data)
   useChatLink(view, setView)
   const chats = useChats(!!companion.data).data?.chats ?? []
-  // Unread one-to-one chats count on Profile, group chats on Groups.
-  const unread: Partial<Record<string, number>> = { conversation: unreadOf(chats, 'companion'), groups: unreadOf(chats, 'group') }
+  // Unread one-to-one chats count on Profile, group chats on Groups, and both on the phone's Chats.
+  const unread = { companion: unreadOf(chats, 'companion'), group: unreadOf(chats, 'group') }
   useFocusOnViewChange(view)
   // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
   const storyOn = !!useWorkspaceSettings().data?.story_mode
@@ -102,21 +82,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
-      <nav className="app-nav" aria-label="Views">
-        <WorldButton current={view === 'worlds'} onOpen={() => go('worlds')} />
-        {VIEWS.filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon }) => (
-          <Fragment key={id}>
-            {/* The sidecar opens beside any view, so it is a toggle rather than a view. */}
-            {id === 'settings' && <button type="button" className="nav-sidecar" aria-pressed={sidecarOpen} onClick={() => toggleSidecar(sidecarOpen)}>
-              <MessageSquareText aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
-            </button>}
-            <button type="button" aria-current={isCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}>
-              <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <Download className="nav-badge" aria-label="not installed" />}
-              {!!unread[id] && <span className="nav-count" aria-label={`${unread[id]} unread`}>{badge(unread[id])}</span>}<span>{label}</span>
-            </button>
-          </Fragment>
-        ))}
-      </nav>
+      <AppNav view={view} go={go} storyOn={storyOn} datingInstalled={datingInstalled} unread={unread} sidecarOpen={sidecarOpen} sidecarWaiting={sidecarWaiting} />
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/debug')} />
         {companion.isPending ? <Loading label="Opening your companion" />
@@ -137,14 +103,6 @@ function SidecarHost({ view, go }: { view: View; go: (view: View) => void }) {
       {mode === 'window' ? <SidecarWindow><Sidecar view={view} go={go} windowed /></SidecarWindow> : <Sidecar view={view} go={go} />}
     </Suspense>
   )
-}
-
-/** The nav button: opens the sidecar where it last was, brings its window forward, or closes the docked panel. */
-function toggleSidecar(open: boolean) {
-  const popped = sidecarWindow()
-  if (open && popped) popped.focus()
-  else if (open) sidecar.setOpen(false)
-  else sidecar.show()
 }
 
 /** #chat/<id>, from a notification tapped while the app was closed: open that companion's chat. */
@@ -184,12 +142,13 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
 }
 
 function inWorkspace(view: View) {
-  return view === 'worlds' || view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
+  return view === 'chats' || view === 'worlds' || view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
     || view === 'groups' || view.startsWith('group/')
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
   const storyOn = useWorkspaceSettings().data?.story_mode
+  if (view === 'chats') return <ChatsHome go={go} />
   if (view === 'worlds') return <Worlds />
   if (view === 'dating') return <Dating go={go} />
   if (view === 'groups') return <Groups go={go} />
