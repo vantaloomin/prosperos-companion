@@ -14,6 +14,7 @@ nudged by their temperament and dragged by their flaw, makes progress, stalls or
 once enough progress is made they reach it and move on to their next goal. No model is involved.
 """
 import functools
+import json
 from datetime import date, datetime
 
 from companion.world import catalog, generators
@@ -82,13 +83,8 @@ TEMPERAMENTS = {
     'driven': ('driven', 'had the look of someone with somewhere to be', 0.15),
     'dreamy': ('dreamy', 'kept drifting off mid-sentence', -0.05),
 }
-QUIRKS = (
-    'remembers everyone\'s usual order', 'hums under their breath', 'wears the same green scarf every day',
-    'carries a battered notebook everywhere', 'can\'t resist a terrible pun', 'knows every dog in the neighborhood '
-    'by name', 'is always running five minutes late', 'collects odd little trinkets', 'names every plant they own',
-    'has an opinion about everyone\'s shoes', 'talks to pigeons', 'sketches people when they think no one is looking',
-    'whistles the same tune all day', 'keeps sweets in every pocket',
-)
+QUIRK_BANK = json.loads((catalog.DATA / 'quirks.json').read_text(encoding='utf-8'))['quirks']
+QUIRKS = tuple(item['text'] for item in QUIRK_BANK)
 # Flaws: (text, slows their goal down, setback wording with {name}).
 FLAWS = {
     'proud': ('too proud to ask for help', False, '{name} turned down help they needed and paid for it'),
@@ -110,36 +106,31 @@ DESIRES = {
     'needed': 'to be needed', 'security': 'never to worry about money again', 'belonging': 'to belong somewhere',
     'escape': 'to get out of this city someday', 'family': 'to make their family proud',
 }
-# Goals: id, wording (modern, period), steps to reach it, where they practise (place kind, part of day) or
-# None, progress line, done line. Lines start with the person's given name.
-GOALS = (
-    ('own-place', ('save up to open a place of their own', 'save enough to open a shop of their own'), 6, None,
-     '{name} put another chunk of pay into the savings', '{name} finally signed for a little place of their own'),
-    ('race', ('run their first marathon', 'walk the long road to the coast and back'), 5, ('park', 'morning'),
-     '{name} went further than ever on a long morning run', '{name} made it the whole way and has the blisters to prove it'),
-    ('band', ('get their band a real gig', 'get their troupe a proper engagement'), 5, ('venue', 'evening'),
-     '{name}\'s band finally sounded tight at practice', '{name}\'s band played its first real show'),
-    ('exam', ('pass a licensing exam', 'earn their guild papers'), 4, ('library', 'evening'),
-     '{name} got through another chapter of study', '{name} passed, and can\'t stop grinning about it'),
-    ('novel', ('finish writing a novel', 'finish the book they have been writing for years'), 7, ('cafe', 'morning'),
-     '{name} wrote another chapter', '{name} typed the last line of their novel'),
-    ('reconcile', ('patch things up with an estranged sibling', 'make peace with a brother or sister they fell out '
-     'with'), 4, None, '{name} sent their sibling a message and got an answer', '{name} and their sibling are speaking again'),
-    ('move', ('save enough to move somewhere bigger', 'save enough to take better rooms'), 5, None,
-     '{name} went to see a place they might be able to afford', '{name} moved into a bigger place'),
-    ('language', ('learn a new language before a big trip', 'learn a foreign tongue'), 5, ('library', 'afternoon'),
-     '{name} got through a whole conversation in their new language', '{name} can finally hold their own in it'),
-    ('promotion', ('get promoted', 'be made head of the place they work'), 5, None,
-     '{name} got trusted with something bigger at work', '{name} got the promotion'),
-    ('art', ('get their paintings into a show', 'get their pictures hung in a proper gallery'), 5, ('park', 'afternoon'),
-     '{name} finished a painting they are actually proud of', '{name} has their work hanging in a show'),
-    ('dog', ('adopt a dog', 'take in a dog of their own'), 3, None,
-     '{name} visited the shelter again and has a favorite', '{name} adopted a scruffy dog'),
-    ('strong', ('get properly strong', 'win the strongman contest at the fair'), 5, ('gym', 'evening'),
-     '{name} hit a new personal best', '{name} did it, and won\'t stop talking about it'),
-    ('side', ('get a side business off the ground', 'build up a little trade on the side'), 6, None,
-     '{name} landed another paying customer on the side', '{name}\'s side business is paying its own way now'),
-)
+
+
+def _more_traits():
+    """The rest of the temperaments, flaws and desires live in the phrase bank (world/data/perception.json), each
+    with a `town` part giving what the sheet needs, so the bank can grow them without code changes."""
+    found = json.loads((catalog.DATA / 'perception.json').read_text(encoding='utf-8'))
+    for key, item in found['temperaments'].items():
+        if 'town' in item:
+            TEMPERAMENTS.setdefault(key, (key, item['town']['impression'], item['town']['lift']))
+    for key, item in found['flaws'].items():
+        if 'town' in item:
+            FLAWS.setdefault(key, (item['town']['text'], item['town']['slows'], item['town']['setback']))
+    for key, item in found['desires'].items():
+        if 'town' in item:
+            DESIRES.setdefault(key, item['town']['text'])
+
+
+_more_traits()
+# Goals come from the bank (world/data/goals.json) as (id, (modern, period wording), steps, (place kind, part of
+# day) where they practise or None, progress line, done line); lines start with the person's given name.
+GOAL_BANK = json.loads((catalog.DATA / 'goals.json').read_text(encoding='utf-8'))['goals']
+GOALS = tuple((item['id'], (item['text'], item['period']), item['steps'],
+               tuple(item['practice']) if item['practice'] else None, item['progress'], item['done'])
+              for item in GOAL_BANK)
+GOAL_INTERESTS = {item['id']: item['interest'] for item in GOAL_BANK}
 # An era's own wording for some goals, where the period one above doesn't fit it.
 ERA_GOALS = {
     'jazz-age': {'race': 'finish the city marathon', 'band': 'get their band a real engagement at a good club',
@@ -147,7 +138,9 @@ ERA_GOALS = {
                  'dog': 'take in a dog of their own', 'side': 'get a little business going on the side'},
 }
 GOAL_KINDS = {'park': ('park', 'garden', 'trail'), 'venue': ('venue', 'tavern', 'nightlife'),
-              'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',)}
+              'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',), 'market': ('market',),
+              'workshop': ('workshop',), 'museum': ('museum',), 'beach': ('beach',), 'temple': ('temple',),
+              'restaurant': ('restaurant',)}
 COMPANY_SPOTS = ('bar', 'tavern', 'nightlife')
 BASE_PROGRESS = 0.4
 SETBACK = 0.88
