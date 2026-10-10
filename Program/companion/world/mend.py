@@ -18,11 +18,11 @@ from companion.world.schema import City
 
 ID = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 GROUPS = ('neighborhoods', 'places', 'colleges', 'employers', 'career_hubs', 'transit', 'annual_events')
-SOURCED = (*GROUPS, 'local_color', 'prices')
+SOURCED = (*GROUPS, 'local_color', 'prices', 'notables')
 LISTS = (*SOURCED, 'careers', 'holidays')
 SINGULAR = {'neighborhoods': 'neighbourhood', 'places': 'place', 'colleges': 'college', 'employers': 'employer',
             'career_hubs': 'career hub', 'transit': 'transit line', 'annual_events': 'event',
-            'local_color': 'local colour', 'prices': 'price', 'careers': 'career', 'holidays': 'holiday'}
+            'local_color': 'local colour', 'prices': 'price', 'notables': 'notable', 'careers': 'career', 'holidays': 'holiday'}
 USER_SOURCE = {'kind': 'user', 'title': 'Written by the user', 'license': 'User content', 'retrieved': '2000-01-01'}
 # Keys the app itself adds to a loaded city (a city saved from the API, say), dropped without a note.
 LOADER_KEYS = ('data_version', 'builtin', 'origin', 'pack_file', 'revision', 'created_at', 'updated_at', 'import_notes')
@@ -194,6 +194,7 @@ class _Mender:
         self.hubs(hoods)
         places = {place.get('id') for place in self.records('places') if isinstance(place, dict)}
         self.prune('local_color', 'places', places | set(hoods.ids), 'places')
+        self.placed(places)
         self.prune('neighborhoods', 'transit', {line.get('id') for line in self.records('transit')
                                                 if isinstance(line, dict)}, 'transit lines')
 
@@ -244,6 +245,18 @@ class _Mender:
             kept.append(hub)
         if 'career_hubs' in self.data:
             self.data['career_hubs'] = kept
+
+    def placed(self, places: set) -> None:
+        """Leave out notables placed somewhere the city does not have: nowhere clear to put them."""
+        kept = []
+        for person in self.records('notables'):
+            if isinstance(person, dict) and person.get('place') not in places:
+                self.note(f'{self.label("notables", person)}: left out, the place "{person.get("place")}" '
+                          'is not in the city.')
+            else:
+                kept.append(person)
+        if isinstance(self.data.get('notables'), list):
+            self.data['notables'] = kept
 
     def prune(self, group: str, field: str, known: set, what: str) -> None:
         """Drop references to records the city does not have."""

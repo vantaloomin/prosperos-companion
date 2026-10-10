@@ -146,3 +146,17 @@ def test_sources_written_as_a_list_keep_their_ids():
     data = catalog.prepare(city, mend=True)
     assert list(data['sources']) == list(template('2026-10-08')['sources'])
     assert any('sources list' in note for note in data['import_notes'])
+
+
+def test_notables_at_places_the_city_lacks_are_left_out_with_a_note():
+    city = copy.deepcopy(template('2026-10-08'))
+    place = city['places'][0]['id']
+    person = {'name': 'Mara Quill', 'pronouns': 'she/her', 'age': 30, 'role': 'regular', 'about': 'A poet.'}
+    city['notables'] = [person | {'id': 'mara', 'place': place}, person | {'id': 'ghost', 'place': 'nowhere'}]
+    data = catalog.prepare(city, mend=True)
+    assert [item['id'] for item in data['notables']] == ['mara']
+    assert data['notables'][0]['source'] in data['sources']
+    assert any('Mara Quill' in note and 'nowhere' in note for note in data['import_notes'])
+    exact = city | {'notables': [item | {'source': 'user'} for item in city['notables']]}
+    with pytest.raises(ValueError, match='unknown places'):
+        catalog.prepare(exact)

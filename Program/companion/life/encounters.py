@@ -14,9 +14,9 @@ from datetime import date, datetime, timedelta
 
 from companion.characters import for_timeline
 from companion.clock import stamp, zone
-from companion.database import decode, encode, many, optional
+from companion.database import decode, encode, many, optional, settings
 from companion.life import money, network
-from companion.world import generators, life_details, newcomers, perception, townsfolk
+from companion.world import generators, intimacy, life_details, newcomers, perception, townsfolk
 
 ACTIVE = True
 CHANCE = 0.15
@@ -219,11 +219,15 @@ def known(connection, companion: dict, now) -> list[dict]:
     """Townsfolk the companion has met, most recently seen first, with only what they have learned."""
     data = network.city(connection, companion)
     cast = town_cast(connection, companion, data)
+    found = settings(connection)
     result = []
     for key, meetings in history_for(connection, companion, cast, now).items():
         sheet = resolve(data, key, cast)
         if sheet:
-            result.append(revealed(sheet, data, meetings, now, companion))
+            person = revealed(sheet, data, meetings, now, companion)
+            if found['adult_side']:
+                person |= adult_side(sheet, len(meetings), bool(found['show_adult_side']))
+            result.append(person)
     return sorted(result, key=lambda person: person['last_met'], reverse=True)
 
 
@@ -238,7 +242,7 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
               'first_met': meetings[0]['local_date'], 'first_place': meetings[0]['place'],
               'last_met': last['local_date'], 'last_place': last['place'],
               'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None,
-              'cast': sheet.get('cast'), 'comes_across': None, 'says_they_are': None}
+              'cast': sheet.get('cast'), 'comes_across': None, 'says_they_are': None, 'about': sheet.get('about')}
     person |= perception.revealed(data, sheet, times)
     person |= life_details.revealed(data, sheet, times)
     if times >= KNOWS_GOAL:
@@ -249,6 +253,17 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
         person |= {'flaw': sheet.get('flaw_text') or townsfolk.FLAWS[sheet['flaw']][0],
                    'desire': townsfolk.DESIRES[sheet['desire']]}
     return person
+
+
+def adult_side(sheet: dict, times: int, shown: bool) -> dict:
+    """With Settings > Realism > Adult side of life on (companion/world/intimacy.py): who they're drawn to once
+    the companion knows their heart, and, as a hidden value the user can show, all of it for the user's eyes only.
+    A companion living in town keeps theirs on their own sheet."""
+    found = None if sheet.get('cast') else intimacy.for_sheet(sheet)
+    if not found:
+        return {}
+    return {'orientation': found['orientation'] if times >= KNOWS_HEART else None,
+            'adult_side': intimacy.view(found) if shown else None}
 
 
 def text(person: dict) -> str:
@@ -263,13 +278,16 @@ def text(person: dict) -> str:
     parts = [f"- {person['full']}, about {round(person['age'], -1) if person['age'] >= 25 else person['age']}, "
              f"{where}{hood}: {person['temperament']}, {person['quirk']}. You've crossed paths {times}, "
              f"last on {when} at {person['last_place']}."]
-    if person.get('comes_across'):
-        parts.append(f"How they come across: {person['comes_across']}")
+    parts += [f"{label}: {person[field]}" for field, label in (('about', 'Who they are'),
+                                                             ('comes_across', 'How they come across'))
+              if person.get(field)]
     if person['goal']:
         lately = f" Last you heard: {person['lately']}." if person['lately'] else ''
         parts.append(f"They are trying to {person['goal']}.{lately}")
     if person['flaw']:
         parts.append(f"You've noticed they're {person['flaw']}; they seem to want {person['desire']}.")
+    if person.get('orientation'):
+        parts.append(f"From what you've picked up, they're {person['orientation']}.")
     if person.get('facts'):
         parts.append(f"What you know of their life: {'; '.join(person['facts'])}.")
     if person.get('stories'):

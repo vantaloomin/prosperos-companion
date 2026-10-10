@@ -49,6 +49,15 @@ class TextingStyle(Input):
     typos: bool = False
 
 
+class IntimacySetup(Input):
+    """What the user set about a companion's adult side (companion/world/intimacy.py); empty uses the roll."""
+    orientation: Literal['', 'straight', 'gay', 'lesbian', 'bisexual', 'pansexual', 'queer', 'asexual'] = ''
+    level: Literal['', 'reserved', 'conventional', 'curious', 'adventurous', 'wild'] = ''
+    drive: Literal['', 'low', 'average', 'high'] = ''
+    interests: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=12)
+    note: str = Field(default='', max_length=600)
+
+
 class MoneySetup(Input):
     """How the companion's money works (companion/life/money.py). Everything else comes from city data."""
     # A career id from the world data; empty guesses one from who they are, else an ordinary wage.
@@ -114,6 +123,8 @@ class CharacterDefinition(Input):
     texting: TextingStyle = Field(default_factory=TextingStyle)
     birthday: str = Field(default='', pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
     money: MoneySetup = Field(default_factory=MoneySetup)
+    # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
+    intimacy: IntimacySetup | None = None
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
@@ -267,6 +278,9 @@ class SettingsUpdate(Input):
     show_moods: bool | None = None
     show_news: bool | None = None
     show_odds: bool | None = None
+    # The adult side of life (companion/world/intimacy.py) and whether townsfolk's shows.
+    adult_side: bool | None = None
+    show_adult_side: bool | None = None
     # They can ask to remember more (companion/memory/look_back.py).
     recall_more: bool | None = None
     # Out-of-character messages go to the helper (Settings > Chat).

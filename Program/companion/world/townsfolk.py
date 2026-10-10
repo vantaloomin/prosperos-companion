@@ -203,7 +203,7 @@ def at_place(data: dict, place_id: str) -> list[dict]:
     place = catalog.find(data, place_id)
     if not place or place not in data['places']:
         return []
-    return not_you(data, [person(data, place, index) for index in range(count(data, place))])
+    return not_you(data, [person(data, place, index) for index in range(everyone(data, place))])
 
 
 def not_you(data: dict, sheets: list[dict]) -> list[dict]:
@@ -230,6 +230,15 @@ def count(data: dict, place: dict) -> int:
     return PEOPLE[0] + int(generators.unit(seed, 'count') * (PEOPLE[1] - PEOPLE[0] + 1))
 
 
+def notables_at(data: dict, place_id: str) -> list[dict]:
+    """The city's named people (schema.Notable) placed here, after the seeded ones."""
+    return [item for item in data.get('notables', ()) if item['place'] == place_id]
+
+
+def everyone(data: dict, place: dict) -> int:
+    return count(data, place) + len(notables_at(data, place['id']))
+
+
 def find(data: dict, key: str) -> dict | None:
     """The person a key names in this city, or None."""
     parts = key.split(':')
@@ -243,7 +252,7 @@ def find(data: dict, key: str) -> dict | None:
         return resident(data, hood_id, index)
     place = catalog.find(data, parts[2])
     index = int(parts[3])
-    if not place or place not in data['places'] or index >= count(data, place):
+    if not place or place not in data['places'] or index >= everyone(data, place):
         return None
     return person(data, place, index)
 
@@ -257,20 +266,14 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     place = catalog.find(data, place_id)
     key = f"town:{data['id']}:{place['id']}:{index}"
     seed = seed_for(data, key)
-    roles = ROLES.get(place['kind'], (REGULAR,))
-    # The first person at a staffed place runs it day to day; the second is another role there or a regular,
-    # the rest are regulars or anyone else the place draws.
-    staffed = [role for role in roles if role[2]]
-    others = [role for role in roles if not staffed or role != staffed[0]] or list(roles)
-    if index == 0 and staffed:
-        role = staffed[0]
-    elif index == 1:
-        role = generators.pick(seed, 'role', others)
-    else:
-        role = generators.pick(seed, 'role', [role for role in others if not role[2]] or others)
-    title = role_title(data, role, place)
-    age = 19 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 52)
-    name = generators.name(data, seed=seed, age=age)
+    # Past the seeded people come the place's notables; anyone further along is drawn like the seeded ones.
+    named = notables_at(data, place['id'])[max(index - count(data, place), 0):]
+    notable = named[0] if index >= count(data, place) and named else None
+    role = (notable['role'], notable['role'], notable['staff']) if notable else _role(place, index, seed)
+    title = notable['role'] if notable else role_title(data, role, place)
+    age = notable['age'] if notable else \
+        19 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 52)
+    name = _named(notable) if notable else generators.name(data, seed=seed, age=age)
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
     order = goal_order(data, seed)
     sheet = {
@@ -287,6 +290,10 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         'goals': order,
         'night_owl': generators.unit(seed, 'owl') < 0.25,
     }
+    if notable:
+        sheet |= {'notable': notable['id'], 'about': notable['about'], 'occupation': notable['role']}
+        if notable.get('temperament') in TEMPERAMENTS:
+            sheet['temperament'] = notable['temperament']
     parts = place.get('day_parts') or ['afternoon']
     if role[2]:
         off = sorted(generators.pick(seed, f'off-{n}', list(range(7))) for n in range(2))
@@ -298,6 +305,26 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         part = generators.pick(seed, 'visit', parts)
         sheet['visits'] = {'days': days, 'part': part, 'window': list(VISITS[part])}
     return sheet
+
+
+def _role(place: dict, index: int, seed: str) -> tuple:
+    """The first person at a staffed place runs it day to day; the second is another role there or a regular,
+    the rest are regulars or anyone else the place draws."""
+    roles = ROLES.get(place['kind'], (REGULAR,))
+    staffed = [role for role in roles if role[2]]
+    others = [role for role in roles if not staffed or role != staffed[0]] or list(roles)
+    if index == 0 and staffed:
+        return staffed[0]
+    if index == 1:
+        return generators.pick(seed, 'role', others)
+    return generators.pick(seed, 'role', [role for role in others if not role[2]] or others)
+
+
+def _named(notable: dict) -> dict:
+    """A notable's name in the shape generators.name gives."""
+    given = notable.get('given') or notable['name'].split()[0]
+    return {'given': given, 'family': notable['name'].removeprefix(given).strip(), 'full': notable['name'],
+            'pronouns': notable['pronouns'], 'group': '', 'culture': None}
 
 
 def role_title(data: dict, role: tuple, place: dict | None = None) -> str:

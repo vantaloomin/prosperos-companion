@@ -293,6 +293,25 @@ class Price(Record):
         return self
 
 
+class Notable(Record):
+    """A named person a city places in town, such as a character from the setting a pack draws on. They join the
+    townsfolk at their place and live by the same rules (shifts or visits, goals, meetings), but with the name,
+    role and description given here instead of drawn ones. Notables are never on the dating app."""
+    id: Id
+    name: Text
+    # What people call them; the first word of `name` when left out.
+    given: str = Field(default='', max_length=60)
+    pronouns: Literal['she/her', 'he/him', 'they/them'] = 'they/them'
+    age: int = Field(ge=16, le=120)
+    place: Id
+    role: Annotated[str, Field(min_length=1, max_length=80)]
+    # Works there (keeps shifts) or only turns up as a regular (keeps visits).
+    staff: bool = False
+    about: Text
+    temperament: Id | None = None
+    source: Id
+
+
 # Where a townsperson goes to work on a goal (companion/world/townsfolk.py GOAL_KINDS).
 PracticeSpot = Literal['park', 'venue', 'library', 'cafe', 'gym', 'market', 'workshop', 'museum', 'beach', 'temple',
                        'restaurant']
@@ -390,6 +409,8 @@ class City(Record):
     holidays: list[Holiday] = Field(default_factory=list, max_length=100)
     # Sea, rivers and lakes, drawn on the map of a city without a street map.
     water: list[Water] = Field(default_factory=list, max_length=12)
+    # Named people placed in town (a pack's characters), beside the seeded townsfolk.
+    notables: list[Notable] = Field(default_factory=list, max_length=200)
     # Quirks and goals of the city's own for its townsfolk (companion/world/townsfolk.py).
     townsfolk: Townsfolk | None = None
 
@@ -403,7 +424,7 @@ class City(Record):
             raise ValueError(f'Duplicate ids {sorted({i for i in ids if ids.count(i) > 1})}.')
         cited = [(item.id, item.source) for item in records]
         cited += [('climate', self.climate.source)] if self.climate else []
-        cited += [(item.id, item.source) for item in [*self.local_color, *self.prices]]
+        cited += [(item.id, item.source) for item in [*self.local_color, *self.prices, *self.notables]]
         missing = [name for name, source in cited if source not in self.sources]
         if missing:
             raise ValueError(f'Unknown sources cited by {missing}.')
@@ -422,6 +443,17 @@ class City(Record):
         stray = [item.id for item in self.neighborhoods if not set(item.transit) <= lines]
         if stray:
             raise ValueError(f'Unknown transit lines named by {stray}.')
+        return self
+
+    @model_validator(mode='after')
+    def check_notables(self):
+        places = {item.id for item in self.places}
+        stray = [item.id for item in self.notables if item.place not in places]
+        if stray:
+            raise ValueError(f'Notables placed at unknown places: {stray}.')
+        people = [item.id for item in self.notables]
+        if len(people) != len(set(people)):
+            raise ValueError(f'Duplicate notables {sorted({i for i in people if people.count(i) > 1})}.')
         return self
 
 
