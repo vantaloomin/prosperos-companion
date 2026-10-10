@@ -81,7 +81,7 @@ test('everything that dials realism down is on the Realism tab, and search finds
 })
 
 test('realism presets match the settings they set, and a new world starts on real life', async () => {
-  const { REALISM_PRESETS, matchPreset } = await import('../../src/features/settings/realismPresets.ts')
+  const { REALISM_PRESETS, matchPreset } = await import('../../src/features/settings/presetChoices.ts')
   const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true } as unknown as LifeSettings
   const fresh = {} as WorkspaceSettings
   assert.equal(matchPreset(life, fresh)?.id, 'real')
