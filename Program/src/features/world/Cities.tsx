@@ -177,8 +177,12 @@ function CityShelves({ cities, featured, actions }: { cities: CityListing[]; fea
 function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
   const jump = (id: string) => {
     const card = document.getElementById(`city-${id}`)
-    card?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    card?.focus({ preventScroll: true })
+    if (!card) return
+    const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    card.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'start' })
+    card.focus({ preventScroll: true })
+    card.classList.add('jumped')
+    window.setTimeout(() => card.classList.remove('jumped'), 2000)
   }
   return (
     <div className="featured-cities" role="region" aria-labelledby="featured-cities-heading">
