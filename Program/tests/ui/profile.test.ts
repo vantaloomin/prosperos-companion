@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { PROFILE_TABS, circleText, handle, profileClass, profileTab, showsCard } from '../../src/features/profile/profileText.ts'
 
-test('the profile holds Messages, Posts and Character under their old addresses', () => {
-  assert.deepEqual(PROFILE_TABS.map((tab) => [tab.id, tab.label]), [['conversation', 'Messages'], ['feed', 'Posts'], ['character', 'Character']])
+test('the profile holds Messages, Posts, Memories and Character under their old addresses', () => {
+  assert.deepEqual(PROFILE_TABS.map((tab) => [tab.id, tab.label]), [['conversation', 'Messages'], ['feed', 'Posts'], ['memories', 'Memories'], ['character', 'Character']])
+  assert.equal(profileTab('memories'), 'memories')
   assert.equal(profileTab('conversation'), 'conversation')
   assert.equal(profileTab('feed'), 'feed')
   assert.equal(profileTab('portraits'), 'character')
@@ -17,6 +18,7 @@ test('the card shows above Posts and Character, and Messages keeps only the tabs
   assert.equal(showsCard('feed'), true)
   assert.equal(showsCard('character'), true)
   assert.equal(showsCard('conversation'), false)
+  assert.equal(showsCard('memories'), false)
   assert.equal(showsCard('portraits'), false)
 })
 

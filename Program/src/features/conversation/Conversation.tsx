@@ -262,7 +262,7 @@ function ConversationTop({ companion, go, onJump, timeline, stage, photoId }: { 
   const toggle = (panel: 'chats' | 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
     <ConversationHeader companion={companion} listing={open === 'chats'} chatsButton={chatsButton} onChats={() => toggle('chats')} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={() => go('groups')} />
+      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={() => go('groups')} onBack={() => go('chats')} />
     {open === 'chats' && <ChatsPanel go={go} onClose={() => setOpen(null)} />}
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
