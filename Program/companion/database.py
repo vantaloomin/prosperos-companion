@@ -229,6 +229,9 @@ ADDED_COLUMNS = (
     # Out-of-character messages go to the helper (the composer and Settings > General): the switch and the markers.
     ('workspace_settings', 'ooc_to_helper', 'INTEGER NOT NULL DEFAULT 1 CHECK (ooc_to_helper IN (0, 1))'),
     ('workspace_settings', 'ooc_markers', "TEXT NOT NULL DEFAULT ''"),
+    # A status line the user set for a companion, and when (companion/life/status.py); empty lets the app write it.
+    ('companions', 'status_text', "TEXT NOT NULL DEFAULT ''"),
+    ('companions', 'status_set_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

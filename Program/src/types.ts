@@ -1,3 +1,4 @@
+import type { CompanionStatus } from './features/status/statusText'
 import type { RoutineBlock } from './features/character/schedule'
 import type { ColorScheme, Palette } from './features/settings/palette'
 
@@ -189,6 +190,8 @@ export interface Companion {
   portrait_reference_id?: string | null
   /** Set once the user seeds townsfolk of their own; empty means the city's shared townsfolk. */
   town_seed?: string
+  /** Their status line, or away line while they sleep, work or are out (companion/life/status.py). */
+  status?: CompanionStatus | null
 }
 
 export interface WorkspaceSettings {
@@ -881,7 +884,8 @@ export interface DesktopNotification { id: string; kind: 'post' | 'digest' | 'me
 
 export interface TextCheck { state: string; kind?: string; message: Message | null; companion_id?: string; focus?: boolean }
 
-/** One chat in the chat list (companion/chats.py): a companion's, and later group chats. Never says who is around. */
+/** One chat in the chat list (companion/chats.py): a companion's, and later group chats. Never says who is online; a
+ * companion's status may carry an away message, as a hint only. */
 export interface Chat {
   kind: string
   id: string
@@ -892,6 +896,8 @@ export interface Chat {
   unread: number
   last: { role: 'user' | 'companion'; text: string; at: string } | null
   active_at: string
+  /** A companion's status line (companion/life/status.py); absent for group chats. */
+  status?: CompanionStatus | null
 }
 export interface ChatList { chats: Chat[]; unread: number }
 

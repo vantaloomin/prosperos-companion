@@ -1,8 +1,9 @@
 import type { Chat } from '../../types'
+import { shown } from '../status/statusText.ts'
 
-/** The line under a chat's name: their latest message, or yours with "You: " in front. */
-export function preview(chat: Pick<Chat, 'last' | 'name'>): string {
-  if (!chat.last) return `Say hi to ${chat.name}.`
+/** The line under a chat's name: their latest message, or yours with "You: " in front; their status before any. */
+export function preview(chat: Pick<Chat, 'last' | 'name' | 'status'>): string {
+  if (!chat.last) return shown(chat.status)?.text ?? `Say hi to ${chat.name}.`
   return chat.last.role === 'user' ? `You: ${chat.last.text}` : chat.last.text
 }
 

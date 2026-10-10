@@ -485,3 +485,8 @@ class NewWorld(Input):
 class RecapRead(Input):
     """The catch-up the user read, by the message it followed (companion/recap.py)."""
     since: str = Field(min_length=1, max_length=40)
+
+
+class StatusUpdate(Input):
+    """The user's status line for a companion (companion/life/status.py); empty lets the app write it."""
+    text: str = Field(default='', max_length=200)

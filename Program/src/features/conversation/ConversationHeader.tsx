@@ -6,6 +6,7 @@ import { useChatStyle } from './useChatStyle'
 import { usePortrait } from './portrait'
 import { useLocalTime } from './clock'
 import { useChats } from '../chats/useChats'
+import { StatusText } from '../status/StatusLine'
 import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/chatText'
 
 type Props = { companion: Companion; listing: boolean; chatsButton: RefObject<HTMLButtonElement | null>; onChats: () => void; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void }
@@ -20,6 +21,7 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
       {portrait ? <img className="portrait" src={portrait} alt="" aria-hidden="true" /> : <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>}
       <div className="conversation-title">
         <h1>{name}</h1>
+        <p className="conversation-status"><StatusText name={name} status={companion.status} /></p>
         <p className="subtle">{[timeline, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
       </div>
       <ChatStyleSwitch />

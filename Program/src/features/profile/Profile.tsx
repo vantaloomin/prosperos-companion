@@ -8,6 +8,7 @@ import { tieText, tieWhy } from '../memories/pairText'
 import { usePortrait } from '../conversation/portrait'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
+import { StatusEditor } from '../status/StatusLine'
 import { PROFILE_TABS, circleText, handle, profileClass, profileTab, showsCard } from './profileText'
 
 /**
@@ -56,6 +57,7 @@ function ProfileCard({ companion, message }: { companion: Companion; message: ()
         <div className="profile-name">
           <h1>{name}</h1>
           {handle(name) && <p className="profile-handle">{handle(name)}</p>}
+          <StatusEditor id={companion.id} name={name} status={companion.status} />
         </div>
         <button type="button" className="button primary profile-message" aria-label="Message" onClick={message}><MessageCircle aria-hidden="true" /><span>Message</span></button>
       </div>
@@ -86,7 +88,8 @@ function ProfileTies({ name }: { name: string }) {
   )
 }
 
-/** Where they live, their time of day and how many people are in their life; never whether they are free. */
+/** Where they live, their time of day and how many people are in their life. Their status above may say they are
+ * away, as an away message would; nothing here says whether they are online. */
 function ProfileFacts({ companion }: { companion: Companion }) {
   const { location, home_city: homeCity, timezone } = companion.version.definition
   const time = useLocalTime(timezone)

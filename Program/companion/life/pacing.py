@@ -1,6 +1,7 @@
 """Replies at the companion's pace (realism: people answer later, or briefly, when they are busy).
 
-The companion decides, not the user: the app never says whether they are free. With the Life
+The companion decides, not the user: replies are never locked. Their status line may show an away message
+from the same blocks ("at work till 6", companion/life/status.py) as a hint, never an online dot. With the Life
 setting `paced_replies` on (the default), a reply to a message sent while they are at work or out
 is, by a seeded choice, one of: written now but shown later (8 to 45 minutes at work, 5 to 25 out,
 never past the end of the block), a quick holding text now ("in a meeting, give me a bit") with the

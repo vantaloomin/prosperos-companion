@@ -31,6 +31,7 @@ from companion import (
 )
 from companion.identity import APP_ID, VERSION
 from companion.imports import cards
+from companion.life import status
 from companion.memory import consolidation, formation, pairs, records
 from companion.models import (
     CastDraftRequest,
@@ -59,6 +60,7 @@ from companion.models import (
     SettingsUpdate,
     SidecarRequest,
     StartOverConfirm,
+    StatusUpdate,
     TimelineFork,
     TimelineUpdate,
     TownSeed,
@@ -126,7 +128,15 @@ def save_connection(request: Request, body: ConnectionUpdate):
 @router.get('/companion')
 def read_companion(request: Request):
     with db(request).connect() as connection:
-        return {'companion': characters.current(connection)}
+        companion = characters.current(connection)
+        found = companion and status.view(connection, companion, db(request).clock.now())
+        return {'companion': companion and {**companion, 'status': found}}
+
+
+@router.put('/companion/{companion_id}/status')
+def set_status(request: Request, companion_id: str, body: StatusUpdate):
+    """The user's own status line for a companion; an empty one lets the app write it again."""
+    return status.set_line(db(request), companion_id, body.text)
 
 
 @router.post('/companion')
