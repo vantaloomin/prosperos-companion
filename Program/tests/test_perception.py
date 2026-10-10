@@ -6,6 +6,7 @@ from collections import Counter
 from test_drafting import GOOD, connect, replying
 from test_social_circle import make
 
+from companion import cast
 from companion.characters import require_current
 from companion.life import encounters
 from companion.memory.context import character_text
@@ -20,7 +21,7 @@ def walk(node, path=()):
     """Every phrase in the bank with the path to it (keywords and ids aside)."""
     if isinstance(node, dict):
         for key, value in node.items():
-            if key not in ('keywords', 'id', 'tags', 'inner', 'about', 'gap_kinds') and not key.endswith('_by_id'):
+            if key not in ('keywords', 'id', 'tags', 'inner', 'about', 'gap_kinds', 'town') and not key.endswith('_by_id'):
                 yield from walk(value, (*path, key))
     elif isinstance(node, list):
         for item in node:
@@ -33,7 +34,10 @@ def test_the_bank_is_big_varied_and_safe_to_say_about_anyone():
     bank = perception.bank()
     assert set(bank['temperaments']) == set(townsfolk.TEMPERAMENTS)
     assert set(bank['flaws']) == set(townsfolk.FLAWS) and set(bank['desires']) == set(townsfolk.DESIRES)
-    assert len(bank['tells']) >= 60 and len(bank['self_stories']) >= 40 and len(bank['sore_spots']) >= 40
+    for kind in ('tells', 'self_stories', 'sore_spots', 'temperaments', 'flaws', 'desires'):
+        assert len(bank[kind]) >= 100, kind
+    assert len(set(townsfolk.QUIRKS)) == len(townsfolk.QUIRKS) >= 100
+    assert not [quirk for quirk in townsfolk.QUIRKS if GENDERED.search(quirk)]
     for kind in ('tells', 'self_stories', 'sore_spots'):
         assert len(bank[f'{kind}_by_id']) == len(bank[kind]), f'{kind} ids repeat'
     phrases = list(walk({key: value for key, value in bank.items() if not key.endswith('_by_id')}))
@@ -48,6 +52,21 @@ def test_the_bank_is_big_varied_and_safe_to_say_about_anyone():
             assert not text.endswith('.'), (path, text)
         else:
             assert text[-1] in '.!?', (path, text)
+
+
+def test_traits_from_the_bank_give_the_town_sheet_what_it_needs():
+    bank = perception.bank()
+    for key, item in bank['temperaments'].items():
+        impression, lift = townsfolk.TEMPERAMENTS[key][1:]
+        assert impression[:1].islower() and not impression.endswith('.') and -0.1 <= lift <= 0.2, key
+        voice = cast.VOICES.get(key) or item['town']['voice']
+        assert voice.endswith('.') and not GENDERED.search(voice), key
+    for key in bank['flaws']:
+        text, slows, setback = townsfolk.FLAWS[key]
+        assert text[:1].islower() and isinstance(slows, bool) and setback.startswith('{name} '), key
+        assert not GENDERED.search(text + setback), key
+    for key in bank['desires']:
+        assert townsfolk.DESIRES[key][:1].islower() and not GENDERED.search(townsfolk.DESIRES[key]), key
 
 
 def test_the_same_person_always_gets_the_same_lines():

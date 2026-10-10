@@ -22,7 +22,7 @@ from companion.text_models import config_for, key_for
 from companion.traits import ABSENCE_WORDS
 from companion.world import catalog, custom, generators, naming, perception
 
-PROMPT_VERSION = 'character-draft-3'
+PROMPT_VERSION = 'character-draft-4'
 PROMPTS = Path(__file__).parent / 'prompts'
 # Requested by the user and waited on, so it goes ahead of background life and memory work.
 DRAFTING = Work(5, 'character drafting')

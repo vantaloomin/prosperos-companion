@@ -33,7 +33,7 @@ def test_the_sidecar_sees_the_conversation_and_memories_but_is_never_part_of_the
     remember(client, 'job', 'Works at a bakery')
     answers(provider, json.dumps({'reply': 'That reply fits her.', 'changes': []}))
     result = ask(client, 'Was her last reply in character?', view='conversation')
-    assert result == {'reply': 'That reply fits her.', 'changes': [], 'prompt_version': 'character-draft-3'}
+    assert result == {'reply': 'That reply fits her.', 'changes': [], 'prompt_version': 'character-draft-4'}
     request = provider.requests[-1]
     assert '[m1] The user' in request['system'] and '[m2] Mira' in request['system'] and 'I adore jazz.' in request['system']
     assert 'job: Works at a bakery' in request['system'] and 'looking at the chat' in request['system']

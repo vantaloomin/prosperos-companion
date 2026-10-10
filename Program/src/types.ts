@@ -1185,6 +1185,10 @@ export interface Townsperson {
   orientation?: string | null
   /** With the adult side on and shown in Hidden values: all of it, for the user's eyes only. */
   adult_side?: AdultSide | null
+  /** What the companion has picked up about their life (companion/world/life_details.py), a little more each meeting. */
+  facts?: string[]
+  /** Stories from their past they have told, from the fourth meeting, one per meeting. */
+  stories?: string[]
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
   /** How close they and the companion feel, both ways; read-only. */

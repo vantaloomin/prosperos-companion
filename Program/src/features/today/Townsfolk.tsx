@@ -43,6 +43,7 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
     <div className="town-detail">
       <p>About {person.age}, {person.temperament}; {person.quirk}.</p>
       <ComesAcross person={person} />
+      <LifeDetails person={person} />
       {person.goal && <p>Trying to {person.goal}.{person.lately ? ` Last heard: ${person.lately}.` : ''}</p>}
       {person.reached.length > 0 && <p className="subtle">Already managed to {person.reached.join('; ')}.</p>}
       {person.routine && <p className="subtle">Usually {person.routine}.</p>}
@@ -70,6 +71,17 @@ function AdultSide({ person }: { person: Townsperson }) {
     return <p className="subtle">{side.orientation.charAt(0).toUpperCase()}{side.orientation.slice(1)}; {side.level_label.toLowerCase()}, {side.drive_label.toLowerCase()} drive.{into}</p>
   }
   return person.orientation ? <p className="subtle">Seems to be {person.orientation}.</p> : null
+}
+
+/** What they have told about their life, and the stories they have shared. */
+function LifeDetails({ person }: { person: Townsperson }) {
+  const facts = person.facts ?? []
+  const stories = person.stories ?? []
+  if (facts.length === 0 && stories.length === 0) return null
+  return (<>
+    {facts.length > 0 && <p>{facts.map((fact) => fact.charAt(0).toUpperCase() + fact.slice(1)).join('. ')}.</p>}
+    {stories.length > 0 && <p className="subtle">Told the story of the time they {stories.join('; and the time they ')}.</p>}
+  </>)
 }
 
 /** Another companion goes back to being the main character; anyone else becomes one from the town's profile of

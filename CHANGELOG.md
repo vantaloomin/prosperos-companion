@@ -49,6 +49,13 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.7.1 (2026-10-10)
+
+- **Livelier replies:** companions skip recaps and filler questions, replies are about a quarter shorter, and an
+  upset mood shows in how they write.
+- **Less stereotyped characters:** drafting no longer defaults to the cool, in-control type for a job, and
+  contradictions vary.
+
 ## v0.7.0 (2026-10-10)
 
 - **Life deck:** a small moment drawn into each day with the seeded dice; the companion knows it, Today lists the

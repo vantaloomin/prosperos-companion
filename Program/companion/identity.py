@@ -9,7 +9,7 @@ from pathlib import Path
 
 APP_ID = 'prospero-companion'
 APP_NAME = 'Prospero Companion'
-VERSION = '0.7.0'
+VERSION = '0.7.1'
 SCHEMA_VERSION = 1
 CREDENTIAL_SERVICE = 'Prospero Companion'
 ARCHIVE_FORMAT = 'prospero-companion-archive'

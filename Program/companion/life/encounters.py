@@ -16,7 +16,7 @@ from companion.characters import for_timeline
 from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional, settings
 from companion.life import money, network
-from companion.world import generators, intimacy, newcomers, perception, townsfolk
+from companion.world import generators, intimacy, life_details, newcomers, perception, townsfolk
 
 ACTIVE = True
 CHANCE = 0.15
@@ -182,6 +182,9 @@ def line(sheet: dict, data: dict, times: int, place: dict, day: date, home: str 
     fresh = last is None or townsfolk.week_of(last) != townsfolk.week_of(day)
     if state['beat'] == 'achieved' and fresh:
         return f"Ran into {sheet['name']}, who had big news: {lower(state['line'])}."
+    story = life_details.newly_told(data, sheet, times + 1)
+    if story:
+        return f"Caught up with {sheet['name']} ({said}), who told the story of the time they {story}."
     if not fresh:
         return f"Caught up with {sheet['name']} ({said}) again."
     news = f" {state['line']}." if state['line'] else f" {sheet['name']} is still trying to {state['goal']['text']}."
@@ -241,6 +244,7 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
               'goal': None, 'lately': None, 'reached': [], 'routine': None, 'flaw': None, 'desire': None,
               'cast': sheet.get('cast'), 'comes_across': None, 'says_they_are': None}
     person |= perception.revealed(data, sheet, times)
+    person |= life_details.revealed(data, sheet, times)
     if times >= KNOWS_GOAL:
         state = townsfolk.story(sheet, data, date.fromisoformat(last['local_date']))
         person |= {'goal': state['goal']['text'], 'lately': state['line'] or None, 'reached': state['reached'],
@@ -283,6 +287,10 @@ def text(person: dict) -> str:
         parts.append(f"You've noticed they're {person['flaw']}; they seem to want {person['desire']}.")
     if person.get('orientation'):
         parts.append(f"From what you've picked up, they're {person['orientation']}.")
+    if person.get('facts'):
+        parts.append(f"What you know of their life: {'; '.join(person['facts'])}.")
+    if person.get('stories'):
+        parts.append('Stories they have told you: the time they ' + '; the time they '.join(person['stories']) + '.')
     if person.get('says_they_are'):
         parts.append(f"They once said they're {person['says_they_are']}.")
     if person.get('cast'):
