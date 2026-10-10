@@ -46,6 +46,17 @@ ROLES = {
     'docks': (('dockworker', 'dockhand', True), ('harbor clerk', "harbormaster's clerk", True), REGULAR),
     'guildhall': (('clerk', 'guild clerk', True), REGULAR),
     'square': (('street vendor', 'hawker', True), ('street musician', 'street musician', False), REGULAR),
+    'vet': (('veterinarian', 'animal doctor', True), ('vet tech', "animal doctor's assistant", True), REGULAR),
+}
+# An era's own titles where the period ones above don't fit it, by modern role: the 1920s have soda jerks and
+# bandleaders rather than counter hands and fiddlers.
+ERA_ROLES = {
+    'jazz-age': {'barista': 'soda jerk', 'line cook': 'short-order cook', 'DJ': 'bandleader',
+                 'bouncer': 'doorman', 'front desk clerk': 'desk clerk', 'stall vendor': 'pushcart peddler',
+                 'library assistant': 'library page', 'personal trainer': 'boxing coach',
+                 'front desk attendant': 'attendant', 'docent': 'museum guide', 'concessions worker': 'peanut vendor',
+                 'shop clerk': 'salesclerk', 'store manager': 'floorwalker', 'craftsperson': 'tradesman',
+                 'harbor clerk': 'harbor clerk', 'street vendor': 'pushcart peddler', 'morning runner': 'early walker'},
 }
 OUTDOOR = (('groundskeeper', 'groundskeeper', True), ('dog walker', 'dog walker', False),
            ('morning runner', 'early walker', False), ('street musician', 'street musician', False), REGULAR)
@@ -129,6 +140,12 @@ GOALS = (
     ('side', ('get a side business off the ground', 'build up a little trade on the side'), 6, None,
      '{name} landed another paying customer on the side', '{name}\'s side business is paying its own way now'),
 )
+# An era's own wording for some goals, where the period one above doesn't fit it.
+ERA_GOALS = {
+    'jazz-age': {'race': 'finish the city marathon', 'band': 'get their band a real engagement at a good club',
+                 'exam': 'pass a licensing exam', 'strong': 'win the amateur boxing tournament',
+                 'dog': 'take in a dog of their own', 'side': 'get a little business going on the side'},
+}
 GOAL_KINDS = {'park': ('park', 'garden', 'trail'), 'venue': ('venue', 'tavern', 'nightlife'),
               'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',)}
 COMPANY_SPOTS = ('bar', 'tavern', 'nightlife')
@@ -213,7 +230,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         role = generators.pick(seed, 'role', others)
     else:
         role = generators.pick(seed, 'role', [role for role in others if not role[2]] or others)
-    title = role[0] if modern(data) else role[1]
+    title = role_title(data, role)
     age = 19 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 52)
     name = generators.name(data, seed=seed, age=age)
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
@@ -245,6 +262,13 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     return sheet
 
 
+def role_title(data: dict, role: tuple) -> str:
+    """What the role is called in the city's era."""
+    if modern(data):
+        return role[0]
+    return ERA_ROLES.get(data.get('era', ''), {}).get(role[0], role[1])
+
+
 def _occupation(data: dict, key: str, age: int) -> str:
     if age >= generators.RETIRED_AT:
         return 'retired'
@@ -261,9 +285,11 @@ def _occupation(data: dict, key: str, age: int) -> str:
 def goal(sheet: dict, data_or_modern, number: int) -> dict:
     """Their `number`th goal (0 is the first), with its wording for the era."""
     is_modern = data_or_modern if isinstance(data_or_modern, bool) else modern(data_or_modern)
+    era = '' if isinstance(data_or_modern, bool) else data_or_modern.get('era', '')
     found = {item[0]: item for item in GOALS}[sheet['goals'][number % len(sheet['goals'])]]
     goal_id, wording, steps, practice, progress, done = found
-    return {'id': goal_id, 'text': wording[0] if is_modern else wording[1], 'steps': steps, 'practice': practice,
+    text = wording[0] if is_modern else ERA_GOALS.get(era, {}).get(goal_id, wording[1])
+    return {'id': goal_id, 'text': text, 'steps': steps, 'practice': practice,
             'progress': progress.format(name=sheet['name']), 'done': done.format(name=sheet['name'])}
 
 

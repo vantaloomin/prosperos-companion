@@ -78,7 +78,13 @@ def holiday_calendars() -> dict[str, dict]:
 
 ERA_CALENDARS = {'victorian': 'uk-victorian', 'steampunk': 'uk-victorian', 'medieval': 'medieval-england',
                  'frontier': 'us-1880s'}
-US_NAMES = {'us', 'usa', 'united states', 'united states of america'}
+US_NAMES = {'us', 'usa', 'u.s.', 'u.s.a.', 'united states', 'united states of america'}
+UK_NAMES = {'uk', 'u.k.', 'united kingdom', 'great britain', 'britain', 'england', 'wales'}
+KOREA_NAMES = {'south korea', 'korea', 'republic of korea'}
+# Today's calendar by country, and an era's by country where it differs from place to place.
+MODERN_CALENDARS = {**dict.fromkeys(US_NAMES, 'us'), **dict.fromkeys(UK_NAMES, 'uk'),
+                    **dict.fromkeys(KOREA_NAMES, 'south-korea'), 'japan': 'japan'}
+COUNTRY_CALENDARS = {'jazz-age': dict.fromkeys(US_NAMES, 'us-1920s')}
 
 
 def calendar_id(data: dict) -> str | None:
@@ -86,8 +92,11 @@ def calendar_id(data: dict) -> str | None:
     chosen = data.get('calendar')
     if chosen:
         return None if chosen == 'none' else chosen
+    country = data['country'].strip().lower()
     if data['era'] in ('modern', 'future', 'other'):
-        return 'us' if data['country'].lower() in US_NAMES else None
+        return MODERN_CALENDARS.get(country)
+    if data['era'] in COUNTRY_CALENDARS:
+        return COUNTRY_CALENDARS[data['era']].get(country)
     return ERA_CALENDARS.get(data['era'])
 
 
@@ -222,7 +231,7 @@ def city(city_id: str, extra: dict[str, dict] | None = None) -> dict:
 
 
 CATEGORIES = ('real', 'other-eras', 'fictional')
-PAST_ERAS = {'victorian', 'frontier', 'medieval', 'other'}
+PAST_ERAS = {'victorian', 'frontier', 'jazz-age', 'medieval', 'other'}
 
 
 def category(data: dict) -> str:

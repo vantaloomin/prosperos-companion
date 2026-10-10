@@ -31,7 +31,7 @@ COST_EXPONENT = 0.3
 WAGE_MULTIPLE = (1.0, 1.7, 2.8, 5.0)
 RENT_MULTIPLE = (2.4, 3.4, 5.0, 8.0)
 WORK_DAYS = {'month': 22, 'week': 6}
-ESSENTIALS = {'modern': 0.3, 'other': 0.4}
+ESSENTIALS = {'modern': 0.3, 'jazz-age': 0.35, 'other': 0.4}
 # Share of what is left after rent and essentials that goes on fun; the rest is saved.
 STYLES = {'careful': 0.45, 'balanced': 0.65, 'spender': 0.9}
 # How fast the fun money goes through a pay cycle; spenders run dry before payday.
@@ -48,6 +48,8 @@ UNITS = (('studio',), ('studio',), ('one_bedroom', 'studio'), ('two_bedroom', 'o
 UNIT_LABELS = {
     'modern': {'studio': 'a studio', 'one_bedroom': 'a one-bedroom', 'two_bedroom': 'a two-bedroom',
                'shared': 'a room in a shared place'},
+    'jazz-age': {'studio': 'a furnished room', 'one_bedroom': 'a two-room flat', 'two_bedroom': 'a four-room flat',
+                 'shared': 'a room in a boarding house'},
     'other': {'studio': 'a rented room', 'one_bedroom': 'a couple of rented rooms', 'two_bedroom': 'a small house',
               'shared': 'a shared room'},
 }
@@ -79,12 +81,16 @@ OUTING_NAMES = {'dinner': 'dinner out', 'drinks': 'a night out for drinks', 'sho
 SPLURGES = {
     'modern': ('new running shoes', 'a really nice dinner out', 'concert tickets', 'an impulse-buy jacket',
                'a stack of new books', 'a fancy coffee machine', 'takeout three nights in a row'),
+    'jazz-age': ('a new cloche hat', 'a steak dinner downtown', 'a night at a speakeasy', 'a stack of phonograph '
+                 'records', 'orchestra seats at a revue', 'silk stockings', 'a new radio set on the installment plan'),
     'other': ('a new hat', 'a good meal at the inn', 'a bottle of something fine', 'ribbon and lace',
               'a seat at the theatre', 'a pair of fine gloves'),
 }
 SURPRISES = {
     'modern': ('a vet bill', 'a cracked phone screen', 'a parking ticket', 'a dentist visit', 'new tyres',
                'a broken laptop charger', 'an overdue utility bill'),
+    'jazz-age': ('a doctor\'s house call', 'a resoled pair of shoes', 'a dentist\'s bill', 'a cracked window',
+                 'a coal delivery', 'a fine from the magistrate', 'a coat that needed mending'),
     'other': ('a doctor\'s visit', 'a broken boot heel', 'a fine from the watch', 'a cracked window',
               'a lame horse\'s shoeing', 'a coat that needed mending'),
 }
@@ -93,6 +99,10 @@ GOALS = {
                ('a trip abroad', 'a used car', 'a new laptop', 'a deposit on a nicer place'),
                ('a trip abroad', 'a down payment fund', 'a new car', 'a sabbatical fund'),
                ('a down payment', 'a long trip abroad', 'a small investment portfolio', 'a renovation')),
+    'jazz-age': (('a good winter coat', 'a radio set', 'a little nest egg', 'a trip to visit family'),
+                 ('a phonograph', 'a week at the shore', 'a nest egg in the savings bank', 'a better flat'),
+                 ('a secondhand Ford', 'a few shares of stock', 'a trip to Europe', 'a down payment on a house'),
+                 ('a new motorcar', 'a summer place', 'a portfolio of stocks', 'a trip to Europe')),
     'other': (('a good winter coat', 'new boots', 'a little nest egg', 'a trip to visit family'),
               ('a good winter coat', 'a trip to the seaside', 'a nest egg', 'a better room')),
 }
@@ -139,7 +149,8 @@ def city_for(definition: dict) -> dict | None:
 
 
 def era_of(city: dict) -> str:
-    return 'modern' if city['era'] in ('modern', 'future') else 'other'
+    """The era's wording for money: modern, the 1920s, or any other past."""
+    return 'modern' if city['era'] in ('modern', 'future') else city['era'] if city['era'] in ESSENTIALS else 'other'
 
 
 def has_money(city: dict) -> bool:
@@ -365,11 +376,22 @@ def saved_since(found: Profile, since: date, day: date) -> float:
     return max(total, 0)
 
 
+# Currencies without minor units, and symbols written before the number.
+WHOLE = {'JPY', 'KRW'}
+PREFIXES = ('$', '£', '€', '¥', '₩', '₹')
+
+
 def amount(value: float, currency: dict) -> str:
-    rounded = round(value, -1) if value >= 200 else round(value) if value >= 10 else round(value, 1)
+    """A rough amount as people say it: $1,240, £85, ¥68,000, ₩1,250,000."""
+    if value >= 100_000:
+        rounded = round(value, -3)
+    elif value >= 200:
+        rounded = round(value, -1)
+    else:
+        rounded = round(value) if value >= 10 or currency.get('code') in WHOLE else round(value, 1)
     number = f'{rounded:,.0f}' if rounded == int(rounded) else f'{rounded:,.1f}'
     symbol = currency['symbol']
-    if symbol in ('$', '£', '€', '¥'):
+    if symbol in PREFIXES:
         return f'{symbol}{number}'
     return f'{number} {symbol or currency["name"]}'.strip()
 
@@ -383,7 +405,7 @@ def happened(item, day: date) -> dict | None:
 # What their home costs to keep, as shares of a month's take-home (so it works in any currency), and
 # what a home change costs by its spend tier.
 UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005,
-          'car': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
+          'car': 0.08, 'motorcar': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
 PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 
 

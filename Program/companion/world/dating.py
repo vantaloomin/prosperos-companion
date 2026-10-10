@@ -78,6 +78,10 @@ STYLES = {
                'hand-made and patched', 'bright synthetic colors', 'sharp and tailored'),
     'period': ('neat Sunday best', 'well-worn working clothes', 'a little dandyish', 'plain and sensible',
                'fashionable to the last button', 'mended but spotless', 'bright ribbons and a good hat'),
+    # An era's own looks, where the period ones above don't fit it.
+    'jazz-age': ('a sharp three-piece suit', 'beads, fringe and a short hemline', 'a cloche hat pulled low',
+                 'Oxford bags and a sweater vest', 'well-worn working clothes', 'neat Sunday best',
+                 'two-tone shoes and a pocket square', 'mended but spotless', 'a raccoon coat and college colors'),
 }
 DETAILS = ('freckles', 'dimples', 'a gap-toothed smile', 'glasses', 'laugh lines', 'a crooked smile',
            'a scar through one eyebrow', 'very long eyelashes', 'a small mole above the lip', 'a broken nose that '
@@ -234,7 +238,7 @@ def looks(sheet: dict, data: dict) -> dict:
     details = list(DETAILS) + (list(MODERN_DETAILS) if era != 'period' else [])
     found = {'height_cm': height_cm(seed, who, era != 'period'), 'build': build(seed, sheet, who),
              'hair': hair(seed, sheet, who, era), 'eyes': f"{weighted(seed, 'eyes', EYES[region(sheet)])} eyes",
-             'style': generators.pick(seed, 'style', list(STYLES[era])),
+             'style': generators.pick(seed, 'style', list(STYLES.get(data.get('era', ''), STYLES[era]))),
              'detail': generators.pick(seed, 'detail', details)}
     if who == 'man' and generators.unit(seed, 'beard') < 0.35:
         found['beard'] = generators.pick(seed, 'beard-how', list(BEARDS))

@@ -53,7 +53,8 @@ PLACE_KINDS = {
     'theatre': 'venue', 'cinema': 'venue', 'concert-hall': 'venue', 'gallery': 'museum', 'zoo': 'attraction',
     'aquarium': 'attraction', 'monument': 'landmark', 'plaza': 'square', 'harbor': 'docks', 'harbour': 'docks',
     'port': 'docks', 'hike': 'trail', 'hiking': 'trail', 'church': 'temple', 'hotel': 'inn', 'arena': 'stadium',
-    'farmers-market': 'market', 'botanical-garden': 'garden',
+    'farmers-market': 'market', 'botanical-garden': 'garden', 'veterinarian': 'vet', 'veterinary': 'vet',
+    'vet-clinic': 'vet', 'veterinary-clinic': 'vet', 'animal-hospital': 'vet', 'pet-clinic': 'vet',
 }
 TRANSIT_KINDS = {'metro': 'subway', 'underground': 'subway', 'tube': 'subway', 'train': 'commuter-rail',
                  'rail': 'commuter-rail', 'regional-rail': 'commuter-rail', 'tramway': 'tram', 'trolley': 'streetcar',

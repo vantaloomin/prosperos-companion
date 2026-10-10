@@ -27,6 +27,12 @@ WORKPLACE_KINDS = {
     'bartender': ('bar', 'nightlife', 'tavern', 'inn'), 'retail-associate': ('shopping',), 'tour-guide': ('attraction', 'landmark'),
     'performer': ('venue',), 'musician': ('venue', 'bar'), 'fitness-trainer': ('fitness',),
     'lifeguard': ('beach',), 'surf-instructor': ('beach',),
+    # The 1920s (jazz-age careers).
+    'speakeasy-bartender': ('bar', 'nightlife'), 'jazz-musician': ('nightlife', 'venue', 'bar'),
+    'chorus-dancer': ('venue', 'nightlife'), 'hatcheck-attendant': ('nightlife', 'restaurant'),
+    'soda-jerk': ('cafe',), 'department-store-clerk': ('shopping',), 'grocer': ('market', 'shopping'),
+    'druggist': ('shopping',), 'antiquarian-bookseller': ('shopping',), 'librarian': ('library',),
+    'museum-curator': ('museum',), 'minister': ('temple',),
 }
 # Where any career in a sector can plausibly work, for cities that name no employer for it.
 SECTOR_KINDS = {
@@ -35,6 +41,8 @@ SECTOR_KINDS = {
     'religion': ('temple',), 'trade': ('market', 'guildhall', 'workshop'), 'crafts': ('workshop',),
     'fitness': ('fitness',), 'recreation': ('beach', 'park'), 'logistics': ('docks',),
 }
+# Places people go to on an errand, never for an outing (a vet clinic); asked for only by kind.
+ERRAND_KINDS = {'vet'}
 RAIL = {'subway', 'light-rail', 'commuter-rail', 'streetcar', 'monorail', 'tram'}
 # Shared lines other than rail, and private ways to travel, fastest first.
 LINES = {'bus', 'ferry', 'water-taxi', 'boat', 'airship', 'stagecoach'}
@@ -111,7 +119,11 @@ def easter(year: int) -> date:
 
 
 def holiday_date(holiday: dict, year: int) -> date | None:
-    """The date a holiday falls on in this year, or None when its rule names no such day (31 June, a 5th Monday)."""
+    """The date a holiday falls on in this year, or None when its rule names no such day (31 June, a 5th Monday, a
+    year its table of dates lacks)."""
+    if holiday.get('dates'):
+        found = holiday['dates'].get(str(year))
+        return date.fromisoformat(f'{year}-{found}') if found else None
     if holiday['easter'] is not None:
         return easter(year) + timedelta(days=holiday['easter'])
     month = holiday['month']
@@ -222,8 +234,8 @@ def outing(data: dict, *, seed: str, day: date | None = None, day_part: str = 'a
     """
     around = catalog.neighborhood(data, neighborhood) if neighborhood else None
     weather = conditions(data, day, seed) if day else None
-    pool = [place for place in data['places'] if place['id'] not in exclude and (not kinds or place['kind'] in kinds)
-            and _affordable(place, budget)]
+    pool = [place for place in data['places'] if place['id'] not in exclude and _affordable(place, budget)
+            and (place['kind'] in kinds if kinds else place['kind'] not in ERRAND_KINDS)]
     season = weather['season'] if weather else None
     attempts = (
         lambda p: day_part in p['day_parts'] and company in p['good_for'],
@@ -384,6 +396,12 @@ def _workplace(data: dict, career: dict, seed: str, given: str | None, avoid=())
 
 # --- Housing ---
 
+def rent_step(rent: float) -> int:
+    """What to round a rent to, by its size, so it suits the currency: yen and won by the thousand, dollars and
+    pounds by 25, shillings or pennies by 5 or 1."""
+    return 1000 if rent >= 40_000 else 25 if rent >= 400 else 5 if rent >= 40 else 1
+
+
 @detached
 def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | None = None,
          vibe: str | None = None, near: str | None = None) -> dict:
@@ -415,8 +433,7 @@ def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | 
     if chosen['rent']:
         low, high = chosen['rent'][bedrooms]
         top = max(low, min(high, budget)) if budget is not None else high
-        # Round to a step that suits the currency: dollars by 25, shillings or pennies by 5 or 1.
-        step = 25 if high >= 400 else 5 if high >= 40 else 1
+        step = rent_step(high)
         result |= {'rent': low + round(unit(seed, 'rent') * (top - low) / step) * step, 'rent_range': [low, high]}
     return result | provenance(data, [chosen['id']])
 
@@ -689,6 +706,11 @@ def local_color(data: dict, *, seed: str, kinds: list[str] | None = None, day: d
     return sorted(pool, key=lambda item: unit(seed, 'color', item['id']))[:count]
 
 
+def figure(value: float) -> str:
+    """A price as people write it: 4.5, 12, 1,200 or 850,000 (never 8.5e+05, which `:g` gives for won)."""
+    return f'{value:,.0f}' if value == int(value) else f'{value:,.2f}'.rstrip('0').rstrip('.')
+
+
 def facts(data: dict, neighborhood: str | None = None, limit: int = 8) -> list[str]:
     """Short factual lines for a prompt, so the model describes real places instead of inventing them."""
     lines = [f'{data["name"]}, {data["region"]}: {data["summary"]}']
@@ -700,7 +722,8 @@ def facts(data: dict, neighborhood: str | None = None, limit: int = 8) -> list[s
     if data['prices']:
         symbol = data['currency']['symbol']
         lines.append('Typical prices: ' + '; '.join(
-            f'{item["item"]} {symbol}{item["low"]:g}–{symbol}{item["high"]:g}' + (f' {item["per"]}' if item['per'] else '')
+            f'{item["item"]} {symbol}{figure(item["low"])}–{symbol}{figure(item["high"])}' +
+            (f' {item["per"]}' if item['per'] else '')
             for item in data['prices'][:limit]))
     for item in data['local_color'][:limit]:
         lines.append(f'Local {item["kind"]}: {item["name"]}: {item["summary"]}')

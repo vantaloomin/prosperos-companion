@@ -27,6 +27,7 @@ from companion.life.clothing import (
     CODES,
     FASHION_WORDS,
     GARMENTS,
+    JAZZ_AGE_PIECES,
     KIT_COLORS,
     MODERN_PIECES,
     OTHER_PIECES,
@@ -195,8 +196,11 @@ def fits(piece: tuple, found: dict, tier: int | None = None) -> bool:
     return lowest <= tier and who in ('*', found['who'])
 
 
+ERA_PIECES = {'jazz-age': JAZZ_AGE_PIECES}
+
+
 def catalog_for(found: dict) -> tuple:
-    return MODERN_PIECES if found['era'] == 'modern' else OTHER_PIECES
+    return MODERN_PIECES if found['era'] == 'modern' else ERA_PIECES.get(found['era'], OTHER_PIECES)
 
 
 def piece_weight(piece: tuple, found: dict) -> float:
@@ -211,7 +215,7 @@ def name_piece(seed: str, label: str, piece: tuple, found: dict) -> str:
     name, category, _occasions, styles, _who, _lowest, palette = piece
     color = ''
     if palette == 'style' and found['era'] != 'modern':
-        color = generators.pick(seed, f'{label}:color', list(PALETTES['other']))
+        color = generators.pick(seed, f'{label}:color', list(PALETTES.get(found['era'], PALETTES['other'])))
     elif palette == 'style' and generators.unit(seed, label, 'neutral') < NEUTRAL_SHARE.get(category, 0):
         color = generators.pick(seed, f'{label}:color', list(NEUTRALS[:4] if category == 'suit' else NEUTRALS))
     elif palette == 'style':

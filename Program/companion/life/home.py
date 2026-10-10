@@ -67,6 +67,9 @@ VEHICLES = {
     'horse': (('a patient bay mare', 'a stubborn gray gelding'), 'the horse', 'resting a sore hoof',
               'found {name} favouring a sore hoof'),
     'bicycle': (('a black safety bicycle',), 'the bicycle', 'waiting on a new wheel', 'bent a wheel on {name}'),
+    'motorcar': (('a secondhand Model T with a hand crank', 'a black touring car with a cracked running board',
+                  'a dusty roadster with a rumble seat'), 'the motorcar', 'up on blocks at the garage',
+                 'had {name} towed to the garage'),
 }
 # name, what using it at home looks like, interest stems, modern only (None) or any era
 FAVORITES = (
@@ -175,7 +178,7 @@ def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = ''
              if re.search(rf"\b{re.escape(housing_text(kind))}s?\b", lived, re.IGNORECASE)]
     housing = named[0] if named else generators.pick(seed, 'housing', hood['housing'])
     name = home_name(housing, budget.unit, data)
-    step = 25 if budget.rent >= 400 else 5 if budget.rent >= 40 else 1
+    step = generators.rent_step(budget.rent)
     return {'kind': 'home', 'name': name, 'variety': housing, 'details': {
         'description': f"{name} in {hood['name']}", 'neighborhood': hood['name'], 'city': data['name'],
         'bedrooms': budget.unit, 'rent': int(round(budget.rent / step) * step), 'rent_range': None,
@@ -208,6 +211,10 @@ def vehicle_item(seed: str, data: dict | None) -> dict | None:
         car = 0.5 if not data else 0.3 if 'subway' in speeds else 0.65
         roll = generators.unit(seed, 'vehicle')
         variety = 'car' if roll < car else 'bike' if roll < car + 0.2 else 'scooter' if roll < car + 0.25 else None
+    elif data['era'] == 'jazz-age':
+        # In the 1920s about one city household in four or five had a motorcar.
+        roll = generators.unit(seed, 'vehicle')
+        variety = 'motorcar' if roll < 0.22 else 'bicycle' if roll < 0.32 else None
     else:
         riding = 'horse' in data['speeds']
         variety = ('horse' if riding else 'bicycle') if generators.unit(seed, 'vehicle') < 0.35 else None

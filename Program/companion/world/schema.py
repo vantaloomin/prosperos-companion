@@ -17,7 +17,7 @@ DayPart = Literal['morning', 'afternoon', 'evening', 'late']
 # Kinds the generators reason about. Place kinds, college types, transit kinds and local colour kinds are open:
 # a city may add its own (a bowling alley, a film school), which work everywhere a specific kind is not asked for.
 PLACE_KINDS = ('attraction', 'museum', 'park', 'beach', 'landmark', 'venue', 'stadium', 'market', 'shopping',
-                    'restaurant', 'cafe', 'bar', 'nightlife', 'fitness', 'library', 'trail',
+                    'restaurant', 'cafe', 'bar', 'nightlife', 'fitness', 'library', 'trail', 'vet',
                     # Kinds for historical, fictional and original settings.
                     'tavern', 'inn', 'temple', 'guildhall', 'workshop', 'square', 'docks', 'garden')
 PlaceKind = Id
@@ -35,7 +35,7 @@ TRANSIT_KINDS = ('subway', 'light-rail', 'commuter-rail', 'bus', 'ferry', 'water
 TransitKind = Id
 # What a city is: a real place, a well-known fictional setting, or an original one (built in or the user's own).
 Setting = Literal['real', 'fictional', 'original']
-Era = Literal['modern', 'victorian', 'medieval', 'fantasy', 'steampunk', 'frontier', 'future', 'other']
+Era = Literal['modern', 'victorian', 'medieval', 'fantasy', 'steampunk', 'frontier', 'jazz-age', 'future', 'other']
 ScheduleKind = Literal['office', 'shift-day', 'shift-night', 'rotating', 'evening', 'early', 'flexible', 'academic']
 
 
@@ -54,7 +54,7 @@ class Source(Record):
 
 
 class Rent(Record):
-    """Typical monthly asking rent ranges in US dollars. Estimates for fiction, not listings."""
+    """Typical asking rent ranges in the city's currency, per its `rent_period`. Estimates for fiction, not listings."""
     studio: tuple[int, int]
     one_bedroom: tuple[int, int]
     two_bedroom: tuple[int, int]
@@ -218,8 +218,13 @@ class CityNames(Record):
     year: int | None = Field(default=None, ge=1, le=3000)
 
 
+Year = Annotated[str, Field(pattern=r'^\d{4}$')]
+MonthDay = Annotated[str, Field(pattern=r'^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$')]
+
+
 class Holiday(Record):
-    """One holiday, by exactly one rule: a fixed date, the nth weekday of a month, or days from Easter."""
+    """One holiday, by exactly one rule: a fixed date, the nth weekday of a month, days from Easter, or a table of
+    dates by year (holidays on a lunar calendar, or set by astronomy, such as Seollal or an equinox)."""
     id: Id
     name: Text
     kind: Literal['public', 'observance', 'feast']
@@ -230,17 +235,23 @@ class Holiday(Record):
     weekday: int | None = Field(default=None, ge=0, le=6)
     nth: int | None = Field(default=None, ge=-1, le=5)
     easter: int | None = Field(default=None, ge=-70, le=70)
+    # "MM-DD" by year ("2026": "02-17"); a year missing from the table has no such holiday.
+    dates: dict[Year, MonthDay] | None = Field(default=None, min_length=1)
 
     @model_validator(mode='after')
     def check(self):
+        plain = (self.month, self.day, self.weekday, self.nth, self.easter) == (None,) * 5
         shapes = {
             'fixed': self.month is not None and self.day is not None and self.weekday is None and self.nth is None,
             'weekday': self.month is not None and self.day is None and self.weekday is not None
             and self.nth not in (None, 0),
             'easter': self.easter is not None and self.month is None,
+            'dates': self.dates is not None and plain,
         }
-        if sum(shapes.values()) != 1 or (self.easter is not None and (self.weekday, self.nth) != (None, None)):
-            raise ValueError(f'Holiday {self.id} needs one rule: month and day, month weekday and nth, or easter.')
+        if sum(shapes.values()) != 1 or (self.easter is not None and (self.weekday, self.nth) != (None, None)) or \
+                (self.dates is not None and not plain):
+            raise ValueError(f'Holiday {self.id} needs one rule: month and day, month weekday and nth, easter, '
+                             'or dates by year.')
         return self
 
 
