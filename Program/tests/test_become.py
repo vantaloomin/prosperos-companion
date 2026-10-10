@@ -58,7 +58,8 @@ def test_someone_who_became_a_companion_is_already_one(client, met):
     _mira, person, _town = met
     switch(client, person['key'])
     response = client.post('/api/worlds/become', json={'key': person['key']})
-    assert response.status_code == 409 and 'already one of your companions' in response.json()['detail']
+    assert response.status_code == 409
+    assert response.json()['detail'] == f"{person['full']} is already one of your companions, so you can't become them."
 
 
 def test_the_persona_text_is_theirs_to_change(client, met):
