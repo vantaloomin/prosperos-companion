@@ -840,6 +840,13 @@ sources = {
  },
 }
 
+# The harbour opens south onto the sea; the estuary the city is piled into runs down from the north-east.
+water = [
+    {'kind': 'sea', 'name': 'Sea of Neokosmos', 'side': 'south'},
+    {'kind': 'river', 'name': 'The estuary', 'width_km': 0.5,
+     'points': [[38.748, -27.192], [38.733, -27.204], [38.722, -27.215], [38.712, -27.226]]},
+]
+
 CITY = {
  'schema_version': 1, 'id': 'grandport', 'name': 'Grandport', 'setting': 'fictional', 'era': 'fantasy',
  'category': 'fictional',
@@ -856,7 +863,7 @@ CITY = {
  'sources': sources, 'neighborhoods': neighborhoods, 'places': places, 'colleges': colleges,
  'employers': employers, 'career_hubs': career_hubs, 'transit': transit, 'climate': climate,
  'annual_events': annual_events, 'careers': careers, 'names': names, 'local_color': local_color,
- 'prices': prices, 'calendar': 'none', 'holidays': holidays, 'notables': notables,
+ 'prices': prices, 'calendar': 'none', 'holidays': holidays, 'notables': notables, 'water': water,
 }
 if __name__ == '__main__':
  OUT.write_text(json.dumps(CITY, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')

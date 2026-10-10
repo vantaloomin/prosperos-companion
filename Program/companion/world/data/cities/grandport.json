@@ -4756,5 +4756,35 @@
    "about": "A former noblewoman turned dancer: tall, sun-tanned, long black hair, light blue eyes, white silk trimmed in gold. Every smile is calculated; she means to be powerful again.",
    "source": "wiki"
   }
+ ],
+ "water": [
+  {
+   "kind": "sea",
+   "name": "Sea of Neokosmos",
+   "side": "south"
+  },
+  {
+   "kind": "river",
+   "name": "The estuary",
+   "width_km": 0.5,
+   "points": [
+    [
+     38.748,
+     -27.192
+    ],
+    [
+     38.733,
+     -27.204
+    ],
+    [
+     38.722,
+     -27.215
+    ],
+    [
+     38.712,
+     -27.226
+    ]
+   ]
+  }
  ]
 }
