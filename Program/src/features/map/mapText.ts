@@ -6,7 +6,9 @@ export interface MapPlace {
   pins: Pin[]; spots: string[]; history: { id: string; summary: string; at: string }[]; regulars: string[]
 }
 export interface MapHood { id: string; name: string; lat: number; lon: number; next: string[] }
-export interface CityMapData { city: { id: string; name: string; lat: number; lon: number; real: boolean }; hoods: MapHood[]; places: MapPlace[]; story: boolean }
+/** Sea, a river or a lake from the city data, for the drawn map: a sea by the side the city faces, a river or lake by points. */
+export interface MapWater { kind: 'sea' | 'river' | 'lake'; name: string; side: 'north' | 'south' | 'east' | 'west' | null; points: [number, number][]; width_km: number }
+export interface CityMapData { city: { id: string; name: string; lat: number; lon: number; real: boolean }; hoods: MapHood[]; places: MapPlace[]; water?: MapWater[]; story: boolean }
 
 /** Which glyph a place gets: the most telling of its pins, else a plain dot. */
 const ORDER: Pin[] = ['scene', 'home', 'work', 'usual', 'recent']
@@ -37,67 +39,4 @@ export function byHood(places: MapPlace[]): [string, MapPlace[]][] {
   for (const place of places) groups.set(place.hood, [...groups.get(place.hood) ?? [], place])
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
     .map(([hood, items]) => [hood, items.sort((a, b) => Number(!a.pins.length) - Number(!b.pins.length) || a.name.localeCompare(b.name))])
-}
-
-export interface Bubble { id: string; name: string; x: number; y: number; r: number; places: { place: MapPlace; x: number; y: number }[] }
-const GAP = 16
-
-/**
- * The sketch map's layout: each neighbourhood a round shape where the city data puts it, pushed apart until
- * none overlap, with its places in a loose grid inside. Not to scale, and it says so.
- */
-export function sketch(data: CityMapData): { bubbles: Bubble[]; width: number; height: number } {
-  if (!data.hoods.length) return { bubbles: [], width: 400, height: 300 }
-  const squash = Math.cos((data.city.lat * Math.PI) / 180)
-  const xs = data.hoods.map((hood) => hood.lon * squash), ys = data.hoods.map((hood) => hood.lat)
-  const scale = 900 / Math.max(Math.max(...xs) - Math.min(...xs) || 1, Math.max(...ys) - Math.min(...ys) || 1)
-  const bubbles: Bubble[] = data.hoods.map((hood) => {
-    const count = data.places.filter((place) => place.hood_id === hood.id).length
-    const r = Math.max(46, (Math.ceil(Math.sqrt(count)) * GAP) / 1.25 + 22)
-    return { id: hood.id, name: hood.name, x: (hood.lon * squash - Math.min(...xs)) * scale, y: (Math.max(...ys) - hood.lat) * scale, r, places: [] }
-  })
-  separate(bubbles)
-  const left = Math.min(...bubbles.map((bubble) => bubble.x - bubble.r)) - 40, top = Math.min(...bubbles.map((bubble) => bubble.y - bubble.r)) - 60
-  for (const bubble of bubbles) {
-    bubble.x -= left; bubble.y -= top
-    bubble.places = grid(bubble, data.places.filter((place) => place.hood_id === bubble.id))
-  }
-  return { bubbles, width: Math.max(...bubbles.map((bubble) => bubble.x + bubble.r)) + 40, height: Math.max(...bubbles.map((bubble) => bubble.y + bubble.r)) + 40 }
-}
-
-/** Pushes overlapping neighbourhoods apart until each has room. */
-function separate(bubbles: Bubble[]) {
-  for (let round = 0; round < 200; round++) {
-    let moved = false
-    for (const a of bubbles) for (const b of bubbles) if (a !== b && pushApart(a, b)) moved = true
-    if (!moved) return
-  }
-}
-
-function pushApart(a: Bubble, b: Bubble): boolean {
-  const dx = b.x - a.x || 0.1, dy = b.y - a.y || 0.1, distance = Math.hypot(dx, dy), need = a.r + b.r + 18
-  if (distance >= need) return false
-  const push = (need - distance) / 2
-  a.x -= (dx / distance) * push; a.y -= (dy / distance) * push
-  b.x += (dx / distance) * push; b.y += (dy / distance) * push
-  return true
-}
-
-function grid(bubble: Bubble, places: MapPlace[]): Bubble['places'] {
-  const columns = Math.max(1, Math.ceil(Math.sqrt(places.length)))
-  const rows = Math.ceil(places.length / columns)
-  return places.map((place, index) => ({
-    place, x: bubble.x + ((index % columns) - (columns - 1) / 2) * GAP, y: bubble.y + 10 + (Math.floor(index / columns) - (rows - 1) / 2) * GAP,
-  }))
-}
-
-/** Each pair of neighbouring neighbourhoods once, for the sketch's dotted lines. */
-export function pairs(hoods: MapHood[]): [string, string][] {
-  const seen = new Set<string>()
-  const found: [string, string][] = []
-  for (const hood of hoods) for (const other of hood.next) {
-    const key = [hood.id, other].sort().join('|')
-    if (!seen.has(key)) { seen.add(key); found.push([hood.id, other]) }
-  }
-  return found
 }

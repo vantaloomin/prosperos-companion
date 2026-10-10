@@ -16,7 +16,7 @@ const StreetMap = lazy(() => import('./StreetMap').then((m) => ({ default: m.Str
 
 /**
  * The city map (Hit List #40): where they live, work and go, and every place in their city to click. A real
- * city gets a street map; fictional, original and private cities, or a street map that cannot load, a sketch
+ * city gets a street map; fictional, original and private cities, or a street map that cannot load, a drawn map
  * of the neighbourhoods. Opened from Today, Story mode and "Show on map" links; never shows where you are.
  */
 export function CityMap({ companion, place, go }: { companion: Companion; place: string | null; go: (view: View) => void }) {
@@ -52,8 +52,8 @@ interface ViewProps { data: CityMapData; street: boolean; failed: boolean; selec
 
 function MapView({ data, street, failed, selected, onSelect, onFail }: ViewProps) {
   if (street) return <Suspense fallback={<Loading label="Loading the street map" />}><StreetMap data={data} selected={selected} onSelect={onSelect} onFail={onFail} /></Suspense>
-  const caption = failed ? `Couldn't load the street map, so this is a sketch of ${data.city.name}'s neighbourhoods.`
-    : 'Sketch map. Neighbourhoods are placed by how they connect, not to scale.'
+  const caption = failed ? `Couldn't load the street map, so this is a drawn map of ${data.city.name}. Neighbourhoods are placed by how they connect, not to scale.`
+    : 'Drawn map. Neighbourhoods are placed by how they connect, not to scale.'
   return <SketchMap data={data} selected={selected} onSelect={onSelect} caption={caption} />
 }
 

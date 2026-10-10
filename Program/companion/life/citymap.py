@@ -134,4 +134,4 @@ def build(connection, companion: dict, now, story_on: bool) -> dict:
     return {'city': {'id': data['id'], 'name': data['name'], 'lat': data['lat'], 'lon': data['lon'], 'real': real(data)},
             'hoods': [{'id': hood['id'], 'name': hood['name'], 'lat': hood['lat'], 'lon': hood['lon'],
                        'next': next_to[hood['id']]} for hood in hoods.values()],
-            'places': ([found] if found else []) + places, 'story': story_on}
+            'places': ([found] if found else []) + places, 'water': data.get('water') or [], 'story': story_on}
