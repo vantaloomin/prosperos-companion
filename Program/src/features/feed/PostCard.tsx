@@ -35,7 +35,7 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
   const hidden = post.status === 'hidden'
   return (
     <article ref={card} className={`post${hidden ? ' hidden-post' : ''}`} aria-labelledby={`post-${post.id}`}>
-      <PostHeader post={post} />
+      <PostHeader post={post} name={name} />
       {post.intro && <p className="post-intro">{post.intro}</p>}
       <PostBody post={post} actions={actions} />
       <Audience audience={post.audience} />
@@ -84,11 +84,13 @@ function PostEvents({ post, imageFirst, refresh }: { post: FeedPost; imageFirst:
   ))
 }
 
-function PostHeader({ post }: { post: FeedPost }) {
+/** A friend's post says who they are to the companion ("Kimberly's mom"), never to the user. */
+function PostHeader({ post, name }: { post: FeedPost; name: string }) {
+  const role = post.author.role && `${name.trim().split(/\s+/)[0]}'s ${post.author.role}`
   return (
     <header className="post-header">
       <PostAvatar post={post} />
-      <span id={`post-${post.id}`} className="speaker">{post.author.name}{post.author.role && <span className="post-role"> · {post.author.role}</span>}{!post.read && <span className="unread-dot" role="img" aria-label="unread" />}</span>
+      <span id={`post-${post.id}`} className="speaker">{post.author.name}{role && <span className="post-role"> · {role}</span>}{!post.read && <span className="unread-dot" role="img" aria-label="unread" />}</span>
       <Stamp value={post.occurs_at} />
     </header>
   )
