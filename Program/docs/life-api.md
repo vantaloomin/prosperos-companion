@@ -371,6 +371,19 @@ GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the ci
 GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # a neighborhood's residents
 ```
 
+### Who knows who
+
+Today > Who knows who draws everyone the user has met or heard about as a web (`companion/life/web.py`):
+the companions and their ties to each other, each companion's circle and how its members know each other,
+people met through them, townsfolk met around town (staff at the same place are coworkers), the people the
+user told a companion about, Matchlight matches and, with Story mode on, people met in the story. It is read
+from what the app already keeps, with no model and nothing stored; secrets, closeness and moods stay out.
+Dragged bubbles keep their place in this browser.
+
+```http
+GET /api/life/web    # {nodes: [{id, name, kind, detail, hood, companion_id?, main?}], links: [{source, target, label, kind}]}
+```
+
 ### Shared or seeded townsfolk
 
 A city's townsfolk are the same for every companion living in it, so the shipped cities come with their own

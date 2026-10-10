@@ -1359,3 +1359,43 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .away-recap h2 { font-size: 0.95rem; margin: 0 0 6px; }
 .away-recap ul { margin: 0 0 4px; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 2px; }
 .away-recap .text-button { padding-left: 0; }
+
+/* Who knows who (src/features/web): a draggable web of people. */
+.web-page { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.web-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 16px 24px; border-bottom: 1px solid var(--border); }
+.web-title { margin-right: auto; } .web-title h1 { font-size: 1.25rem; } .web-title p { margin: 0; }
+.web-search { position: relative; } .web-search input { min-height: 40px; width: 200px; }
+.web-results { position: absolute; z-index: 5; top: 44px; left: 0; min-width: 240px; padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); list-style: none; }
+.web-results button { display: block; width: 100%; padding: 8px 10px; border-radius: 6px; text-align: left; }
+.web-results button:hover { background: var(--accent-tint); }
+.web-filter select { min-height: 40px; }
+.web-canvas { flex: 1; width: 100%; min-height: 360px; touch-action: none; cursor: grab; user-select: none; }
+.web-canvas:active { cursor: grabbing; }
+.web-link { stroke: var(--border); stroke-width: 1.5; animation: web-fade .6s ease-out; }
+.web-link.tie-you, .web-link.tie-partner { stroke: var(--accent); stroke-opacity: .7; }
+.web-link.tie-family { stroke: var(--muted); stroke-width: 2; }
+.web-link.tie-work { stroke-dasharray: 6 4; stroke: var(--faint); }
+.web-link.tie-met { stroke-dasharray: 2 4; }
+.web-link.tie-ex { stroke: var(--danger); stroke-opacity: .5; stroke-dasharray: 8 3 2 3; }
+.web-node { cursor: pointer; animation: web-fade .6s ease-out; }
+.web-node circle:first-child { fill: var(--raised); stroke: var(--faint); stroke-width: 1.5; }
+.web-node.kind-you circle:first-child { fill: var(--accent); stroke: var(--accent-hover); }
+.web-node.kind-companion circle:first-child { fill: var(--accent-tint); stroke: var(--accent); stroke-width: 2.5; }
+.web-node.kind-yours circle:first-child, .web-node.kind-match circle:first-child { stroke: var(--accent); }
+.web-node.kind-townsperson circle:first-child, .web-node.kind-acquaintance circle:first-child { fill: var(--surface); }
+.web-node .web-hit { fill: transparent; stroke: none; }
+.web-node text { fill: var(--text); font-size: 11px; text-anchor: middle; paint-order: stroke; stroke: var(--canvas); stroke-width: 3px; pointer-events: none; }
+.web-node.selected circle:first-child { stroke: var(--accent-hover); stroke-width: 3.5; }
+.web-node.faded, .web-link.faded { opacity: .25; }
+@keyframes web-fade { from { opacity: 0; } }
+.web-card { position: absolute; z-index: 4; top: 96px; right: 24px; width: 340px; max-height: calc(100% - 120px); overflow-y: auto; padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px #0006; }
+.web-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; } .web-card h2 { font-size: 1.05rem; }
+.web-ties { margin: 12px 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.web-list { padding: 20px 24px 40px; overflow-y: auto; } .web-list section + section { margin-top: 20px; } .web-list ul { list-style: none; padding: 0; }
+.web-list h2 { font-size: 0.95rem; margin-bottom: 6px; }
+.web-empty { padding: 40px 24px; }
+.today-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+@media (max-width: 720px) {
+  .web-bar { padding: 12px 16px; } .web-search input { width: 150px; }
+  .web-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55%; border-radius: 14px 14px 0 0; }
+}

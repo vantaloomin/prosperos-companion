@@ -17,6 +17,10 @@ export type View = 'conversation' | 'dating' | 'story' | 'today' | 'feed' | 'mem
   | 'groups' | `group/${string}`
   /** Worlds and personas (src/features/worlds). */
   | 'worlds'
+  /** Who knows who (src/features/web), opened from Today. */
+  | 'people'
+  /** The city map (src/features/map), opened from Today, Story mode and "Show on map" links; #map/<place id> centres on a place. */
+  | 'map' | `map/${string}`
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

@@ -27,6 +27,7 @@ from companion.life import (
     social,
     storylines,
     today,
+    web,
 )
 from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
@@ -247,6 +248,15 @@ def read_acquaintances(request: Request):
     with database.connect() as connection:
         companion = require_current(connection)
         return network.acquaintances(connection, companion['active_timeline_id'], database.clock.now())
+
+
+@router.get('/web')
+def read_web(request: Request):
+    """Who knows who: everyone the user has met or heard about and how they are tied (companion/life/web.py)."""
+    database = db(request)
+    with database.connect() as connection:
+        require_current(connection)
+        return web.build(connection, database.clock.now(), bool(settings(connection)['story_mode']))
 
 
 @router.get('/townsfolk')
