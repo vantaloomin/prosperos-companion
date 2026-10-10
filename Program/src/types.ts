@@ -167,7 +167,7 @@ export interface AdultSideChoices {
   adult: boolean
   orientations: string[]
   levels: { id: string; label: string; text: string }[]
-  drives: { id: string; label: string }[]
+  drives: { id: string; label: string; text: string }[]
   groups: { id: string; label: string }[]
   interests: { id: string; label: string; tier: number; group: string }[]
 }

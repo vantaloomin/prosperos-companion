@@ -68,9 +68,9 @@ function AdultSide({ person }: { person: Townsperson }) {
   const side = person.adult_side
   if (side) {
     const into = side.interest_labels.length ? ` Into: ${side.interest_labels.join(', ').toLowerCase()}.` : ''
-    return <p className="subtle">{side.orientation.charAt(0).toUpperCase()}{side.orientation.slice(1)}; {side.level_label.toLowerCase()}, {side.drive_label.toLowerCase()} drive.{into}</p>
+    return <p className="subtle"><span className="adult-side-label">Adult side ·</span> {side.orientation.charAt(0).toUpperCase()}{side.orientation.slice(1)}; {side.level_label.toLowerCase()}, {side.drive_label.toLowerCase()} drive.{into}</p>
   }
-  return person.orientation ? <p className="subtle">Seems to be {person.orientation}.</p> : null
+  return person.orientation ? <p className="subtle"><span className="adult-side-label">Adult side ·</span> Seems to be {person.orientation}.</p> : null
 }
 
 /** What they have told about their life, and the stories they have shared. */

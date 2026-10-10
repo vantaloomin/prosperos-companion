@@ -173,7 +173,7 @@ def options() -> dict:
     """What the character form offers."""
     return {'orientations': bank()['orientations'],
             'levels': [{'id': entry['id'], 'label': entry['label'], 'text': entry['text']} for entry in bank()['levels']],
-            'drives': [{'id': entry['id'], 'label': entry['label']} for entry in bank()['drives']],
+            'drives': [{'id': entry['id'], 'label': entry['label'], 'text': entry['text']} for entry in bank()['drives']],
             'groups': bank()['groups'],
             'interests': [{'id': entry['id'], 'label': entry['label'], 'tier': entry['tier'], 'group': entry['group']}
                           for entry in bank()['interests']]}
