@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MapPin, RotateCcw, Send } from 'lucide-react'
+import { Map as MapIcon, MapPin, RotateCcw, Send } from 'lucide-react'
 import { api, newId } from '../../api'
 import type { View } from '../../companion'
 import type { CitySummary, Story as StoryData, StoryMessage, StoryScene } from '../../types'
@@ -9,7 +9,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { aroundText, placeGroups, sceneTime, whereText } from './storyText'
+import { aroundText, placeGroups, sceneTime, spotsText, whereText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 import { CityOptions } from '../world/CityOptions'
 
@@ -37,7 +37,7 @@ export function Story({ go }: { go: (view: View) => void }) {
       <header className="story-header">
         <h1 id="story-heading">Story</h1>
         <p className="subtle">Your own story around town, told by a narrator. Your companion never sees it.</p>
-        <SceneBar scene={story.data.scene} onMove={(body) => run(null, () => api<StoryData>('/story/scene', body, 'PUT').then(update))} />
+        <SceneBar scene={story.data.scene} onMap={() => go(`map/${encodeURIComponent(story.data.scene.place.id)}`)} onMove={(body) => run(null, () => api<StoryData>('/story/scene', body, 'PUT').then(update))} />
         <StoryPeople people={story.data.people} canSwitch={story.data.can_switch} go={go}
           onFind={(key) => void run(null, () => api<StoryData>('/story/find', { key }).then(update))} />
       </header>
@@ -51,15 +51,19 @@ export function Story({ go }: { go: (view: View) => void }) {
   )
 }
 
-function SceneBar({ scene, onMove }: { scene: StoryScene; onMove: (body: { city_id: string; place_id?: string }) => Promise<void> }) {
+function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => void; onMove: (body: { city_id: string; place_id?: string }) => Promise<void> }) {
   const [moving, setMoving] = useState(false)
   return (
     <div className="story-scene">
       <p><MapPin aria-hidden="true" /> <strong>{whereText(scene)}</strong></p>
       <p className="subtle">{sceneTime(scene.local_time)}{scene.weather ? ` · ${scene.weather}` : ''}</p>
+      {!!scene.place.spots?.length && <p className="subtle">{spotsText(scene.place.spots)}</p>}
       <p>{aroundText(scene.around)}</p>
       {moving ? <GoElsewhere scene={scene} onDone={() => setMoving(false)} onMove={onMove} />
-        : <button type="button" className="button" onClick={() => setMoving(true)}>Go somewhere else…</button>}
+        : <div className="form-actions">
+          <button type="button" className="button" onClick={() => setMoving(true)}>Go somewhere else…</button>
+          <button type="button" className="button" onClick={onMap}><MapIcon aria-hidden="true" />Map</button>
+        </div>}
     </div>
   )
 }

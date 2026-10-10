@@ -6,12 +6,14 @@ import { ChatAvatar } from './ChatsPanel'
 import { useChats, useOpenChat } from './useChats'
 import { useChatListCollapsed, useChatListWidth } from './layout'
 import { CollapseButton, ResizeHandle } from './SideControls'
+import { StatusText } from '../status/StatusLine'
 
 /**
  * The chat list beside the chat on a wide screen, in the look of the app each style borrows from: a rail of
  * round pictures for Community, a buddy list window for Retro IM, a tray of ringed pictures across the top for
  * Feed, a cast of portrait cards for Visual novel and a conversation list for Bubbles. Only
- * names, the latest message, when, and what is unread: never whether anyone is online, away or typing.
+ * names, the latest message, when, what is unread and, in the buddy list, their status or away message
+ * (companion/life/status.py): never an online or idle dot, and never whether anyone is typing.
  * Phones use the Chats button instead (ChatsPanel). It can be hidden, and the side lists made wider or narrower,
  * on this device (layout.ts).
  */
@@ -92,8 +94,11 @@ function BuddyList({ chats, busy, here, current, dark, onOpen }: ListProps & { d
           <li key={`${chat.kind}:${chat.id}`}>
             <button type="button" className={`buddy${here(chat) ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat, current)}
               aria-current={here(chat) ? 'true' : undefined} disabled={busy !== null} onClick={() => onOpen(chat)}>
-              <span className="buddy-name">{chat.name}</span>
-              {chat.unread > 0 && <span className="buddy-count" aria-hidden="true">({badge(chat.unread)})</span>}
+              <span className="buddy-text">
+                <span className="buddy-top"><span className="buddy-name">{chat.name}</span>
+                  {chat.unread > 0 && <span className="buddy-count" aria-hidden="true">({badge(chat.unread)})</span>}</span>
+                <StatusText name={chat.name} status={chat.status} className="buddy-status" />
+              </span>
             </button>
           </li>
         ))}

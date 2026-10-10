@@ -749,6 +749,10 @@ CITY = {
         price('tobacco', 'Shag tobacco', 0.25, 0.33, 'an ounce, 3d.-4d.'),
         price('boots', 'Working boots', 8, 15, 'a pair'),
     ],
+    # Drawn on the map, since the city has no street map (src/features/map/drawn.ts).
+    'water': [{'kind': 'river', 'name': 'Thames', 'width_km': 0.3, 'points': [
+        [51.470, -0.300], [51.468, -0.215], [51.480, -0.170], [51.486, -0.126], [51.500, -0.121], [51.508, -0.102],
+        [51.506, -0.080], [51.505, -0.055], [51.507, -0.036], [51.492, -0.015]]}],
 }
 
 if __name__ == '__main__':

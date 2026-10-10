@@ -98,6 +98,8 @@ class Place(Record):
     # Empty means all year.
     seasons: list[Season] = Field(default_factory=list)
     cuisine: str = Field(default='', max_length=60)
+    # Named spots inside (the terrace, the café on L5), used as detail (companion/world/inside.py).
+    spots: list[Text] = Field(default_factory=list, max_length=8)
     source: Id
 
 
@@ -340,6 +342,25 @@ class Townsfolk(Record):
     goals: list[TownGoal] = Field(default_factory=list, max_length=40)
 
 
+class Water(Record):
+    """Sea, a river or a lake, for the drawn map of a city without a street map (src/features/map/drawn.ts)."""
+    kind: Literal['sea', 'river', 'lake']
+    name: str = Field(default='', max_length=80)
+    # A sea: the side of the city its coast faces.
+    side: Literal['north', 'south', 'east', 'west'] | None = None
+    # A river: [lat, lon] points along it, in order (two or more); a lake: its centre (one).
+    points: list[tuple[float, float]] = Field(default_factory=list, max_length=40)
+    width_km: float = Field(default=0.3, gt=0, le=20)
+
+    @model_validator(mode='after')
+    def check(self):
+        needs = {'sea': self.side is not None, 'river': len(self.points) >= 2, 'lake': len(self.points) == 1}
+        if not needs[self.kind]:
+            raise ValueError({'sea': 'A sea needs a side.', 'river': 'A river needs two or more points.',
+                              'lake': 'A lake needs one point, its centre.'}[self.kind])
+        return self
+
+
 class City(Record):
     """One city. Minimums are small so a user can start a city of their own with a neighborhood and a place."""
     schema_version: Literal[1]
@@ -386,6 +407,8 @@ class City(Record):
     calendar: Id | None = None
     # Holidays particular to this city, beside its calendar's.
     holidays: list[Holiday] = Field(default_factory=list, max_length=100)
+    # Sea, rivers and lakes, drawn on the map of a city without a street map.
+    water: list[Water] = Field(default_factory=list, max_length=12)
     # Named people placed in town (a pack's characters), beside the seeded townsfolk.
     notables: list[Notable] = Field(default_factory=list, max_length=200)
     # Quirks and goals of the city's own for its townsfolk (companion/world/townsfolk.py).

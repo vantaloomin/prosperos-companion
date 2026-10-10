@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Newspaper, Play, RotateCcw, X } from 'lucide-react'
+import { Check, Map as MapIcon, Network, Newspaper, Play, RotateCcw, X } from 'lucide-react'
 import { api } from '../../api'
 import { SETTINGS_KEY, type View } from '../../companion'
 import type { Companion, LifeEvent, PauseRecord, Today as TodayData } from '../../types'
@@ -72,7 +72,11 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           <Feeling data={data} name={name} />
           {data.mind && <OnTheirMind thoughts={data.mind.thoughts} name={name} />}
         </div>
-        {data.feed_unread > 0 && <button type="button" className="button" onClick={() => go('feed')}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
+        <div className="today-actions">
+          {data.feed_unread > 0 && <button type="button" className="button" onClick={() => go('feed')}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
+          <button type="button" className="button" onClick={() => go('map')}><MapIcon aria-hidden="true" />Map</button>
+          <button type="button" className="button" onClick={() => go('people')}><Network aria-hidden="true" />Who knows who</button>
+        </div>
       </header>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       <StateNotices data={data} name={name} onResume={resume} />

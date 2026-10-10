@@ -27,7 +27,7 @@ None of these are required, but each one gives the life sim and the companion mo
 
 | Part | What it adds |
 | --- | --- |
-| Food and drink in every neighbourhood | Places to grab coffee, eat out and meet friends close to home. Give places a `kind` (`cafe`, `restaurant`, `bar`, `park`, `museum`, `venue`...), a `cost` (`free`, `$` to `$$$$`), who they suit (`good_for`: `solo`, `friends`, `date`, `family`, `coworkers`) and when they're open (`day_parts`: `morning`, `afternoon`, `evening`, `late`). |
+| Food and drink in every neighbourhood | Places to grab coffee, eat out and meet friends close to home. Give places a `kind` (`cafe`, `restaurant`, `bar`, `park`, `museum`, `venue`...), a `cost` (`free`, `$` to `$$$$`), who they suit (`good_for`: `solo`, `friends`, `date`, `family`, `coworkers`) and when they're open (`day_parts`: `morning`, `afternoon`, `evening`, `late`). A place may also list up to eight named `spots` inside it (`"the café on L5"`, `"out on the roof terrace"`), used as detail; without them the app picks a few by kind. |
 | `employers` and `careers` | Real jobs to have, at named workplaces. An employer lists the job ids it hires for. |
 | `colleges` | Somewhere to study, with what each is `known_for`. |
 | Neighbourhood rents and `housing` | What living there costs (`rent_tier`, and `rent` ranges for a studio, one and two bedrooms). |
@@ -36,6 +36,7 @@ None of these are required, but each one gives the life sim and the companion mo
 | `local_color` | Dishes, drinks, sayings, teams and customs, so the companion can mention them without inventing them. |
 | `prices` | Everyday costs (coffee, a pint, a bus fare) in the city's `currency`. |
 | `transit` | Lines that neighbourhoods name, for getting around. |
+| `water` | Sea, rivers and lakes for the drawn map of a city without a street map (fictional, original and private cities). A sea gives the `side` its coast faces (`north`, `south`, `east`, `west`); a river gives two or more `[lat, lon]` `points` in order; a lake gives one point, its centre. Each may have a `name` and a `width_km`. |
 | `setting` and `era` | `real`, `fictional` or `original`, and `modern`, `victorian`, `medieval`, `fantasy`, `steampunk`, `frontier`, `jazz-age` (the 1920s), `future` or `other`. Real-world lookups only run for real, modern cities. |
 
 Aim for 8 to 25 neighbourhoods with three or more places each, including somewhere to eat or drink in every one. The built-in cities have about 80 to 170 places.

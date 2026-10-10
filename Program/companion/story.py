@@ -18,7 +18,7 @@ from companion.life import agenda, encounters, network
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import config_for, default_name, key_for
-from companion.world import catalog, changes, custom, generators, life_details, newcomers, townsfolk
+from companion.world import catalog, changes, custom, generators, inside, life_details, newcomers, townsfolk
 
 JOB = 'story'
 DEFAULT_CITY = 'baltimore'
@@ -122,7 +122,7 @@ def scene(connection, now: datetime) -> dict:
     hood = townsfolk.neighborhood_name(data, place['neighborhood'])
     return {'city': {'id': data['id'], 'name': data['name'], 'era': data.get('era', 'modern')},
             'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'summary': place.get('summary', ''),
-                      'neighborhood': hood},
+                      'neighborhood': hood, 'spots': inside.names(inside.for_place(place))},
             'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather) if weather else '',
             'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
             'known': story_people.known(connection)}
@@ -154,6 +154,8 @@ def scene_text(view: dict) -> str:
     lines = [f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {data['name']}. {place['summary']}",
              f"City: {data['summary']}" + ('' if townsfolk.modern(data) else f" The era is {data['era']}."),
              f"Local time: {when}, {moment.strftime('%H:%M')} ({townsfolk.part_of_day(moment.hour * 60 + moment.minute)})."]
+    if place.get('spots'):
+        lines.append(f"Spots here, for detail only (nobody moves between them): {', '.join(place['spots'])}.")
     if view['weather']:
         lines.append(f"Weather: {view['weather']}")
     lines.append('Who is here (their names are for you; the user knows only the names of people they have met):')

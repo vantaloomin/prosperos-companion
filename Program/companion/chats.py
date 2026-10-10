@@ -8,6 +8,7 @@ once its time has come. Nothing here says whether anyone is around: no presence,
 from companion.characters import current
 from companion.clock import stamp
 from companion.database import many, one, optional
+from companion.life import status
 
 PREVIEW = 120
 
@@ -55,10 +56,12 @@ def companion_chats(connection, now) -> list[dict]:
     rows = many(connection, 'SELECT c.id, c.active_timeline_id, c.created_at, v.name FROM companions c '
                 'JOIN character_versions v ON v.id=c.active_version_id')
     chats = []
+    statuses = status.for_all(connection, now)
     for row in rows:
         last = latest(connection, row['active_timeline_id'], now)
         chats.append({'kind': 'companion', 'id': row['id'], 'thread_id': row['active_timeline_id'],
                       'name': row['name'], 'focus': bool(focus and focus['id'] == row['id']),
+                      'status': statuses.get(row['id']),
                       'unread': unread(connection, row['active_timeline_id'], now), 'last': last,
                       'active_at': last['at'] if last else row['created_at']})
     return chats

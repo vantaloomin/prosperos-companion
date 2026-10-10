@@ -36,7 +36,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
-from companion.world import generators
+from companion.world import generators, inside
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
@@ -219,6 +219,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
                                scope['world'], scope['now'])
+        entry = with_spot(connection, timeline_id, subject, entry, slot.local_date, seed)
         if entry:
             recent.append(entry['activity'])
     connection.execute(
@@ -227,6 +228,15 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         (identifier(), timeline_id, subject, slot.key, stamp(starts_at), stamp(ends_at), slot.local_date.isoformat(),
          encode(block), encode(entry) if entry else None, scope['basis'], stamp(scope['now'])))
     return 1
+
+
+def with_spot(connection, timeline_id, subject, entry, day, seed) -> dict | None:
+    """Now and then where inside the place (or which room at home) the companion's entry happened
+    (companion/world/inside.py)."""
+    if subject != COMPANION or not entry:
+        return entry
+    home_item = next((item for item in home.items_on(connection, timeline_id, day) if item['kind'] == 'home'), None)
+    return inside.touch(entry, seed, home_item)
 
 
 def compose_entry(connection, scope: dict, slot, view: dict, company: list, recent: list, seed: str) -> dict | None:

@@ -47,6 +47,11 @@ export function whereText(scene: StoryScene): string {
   return `${scene.place.name}, ${scene.place.neighborhood}, ${scene.city.name}`
 }
 
+/** "Inside: the back patio, the bar seats" */
+export function spotsText(spots: string[]): string {
+  return `Inside: ${spots.join(', ')}`
+}
+
 /** "Met once · now working as the barista at The Daily Grind" */
 export function personLine(person: StoryPerson): string {
   const times = person.meetings === 1 ? 'once' : person.meetings === 2 ? 'twice' : `${person.meetings} times`

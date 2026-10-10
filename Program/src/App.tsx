@@ -39,6 +39,8 @@ const SidecarWindow = lazy(() => import('./features/sidecar/SidecarWindow').then
 const Groups = lazy(() => import('./features/groups/Groups').then((m) => ({ default: m.Groups })))
 const GroupChat = lazy(() => import('./features/groups/GroupChat').then((m) => ({ default: m.GroupChat })))
 const Worlds = lazy(() => import('./features/worlds/Worlds').then((m) => ({ default: m.Worlds })))
+const WhoKnowsWho = lazy(() => import('./features/web/WhoKnowsWho').then((m) => ({ default: m.WhoKnowsWho })))
+const CityMap = lazy(() => import('./features/map/CityMap').then((m) => ({ default: m.CityMap })))
 const Feed = lazy(() => import('./features/feed/Feed').then((m) => ({ default: m.Feed })))
 
 // The companion's profile holds the chat (Messages), the feed (Posts) and the character as tabs.
@@ -52,13 +54,22 @@ const VIEWS: { id: View; label: string; icon: typeof UserRound }[] = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 
+// Views outside the nav: worlds, and the map and Who knows who opened from Today.
+const OTHER_VIEWS = new Set(['worlds', 'people', 'map'])
+const LINKED = ['settings/', 'match/', 'chat/', 'group/', 'map/']
+
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
-  return id === 'worlds' || VIEWS.some((view) => view.id === id) || profileTab(id) || id.startsWith('settings/') || id.startsWith('match/') || id.startsWith('chat/') || id.startsWith('group/') ? id as View : 'conversation'
+  return OTHER_VIEWS.has(id) || VIEWS.some((view) => view.id === id) || profileTab(id) || LINKED.some((prefix) => id.startsWith(prefix)) ? id as View : 'conversation'
+}
+
+/** Views opened from Today, so its nav button stays lit on them. */
+function fromToday(view: View) {
+  return view === 'people' || view === 'map' || view.startsWith('map/')
 }
 
 function isCurrent(id: View, view: View) {
-  return view === id || (id === 'conversation' && profileTab(view) !== null) || (id === 'settings' && view.startsWith('settings/')) || (id === 'groups' && view.startsWith('group/'))
+  return view === id || (id === 'today' && fromToday(view)) || (id === 'conversation' && profileTab(view) !== null) || (id === 'settings' && view.startsWith('settings/')) || (id === 'groups' && view.startsWith('group/'))
 }
 
 export default function App() {
@@ -195,6 +206,7 @@ function CompanionView({ view, companion, go }: { view: View; companion: Compani
   if (view === 'portraits') return <Portraits companion={companion} go={go} />
   if (view === 'today') return <Today companion={companion} go={go} />
   if (view === 'feed') return <Feed companion={companion} go={go} />
+  if (fromToday(view)) return view === 'people' ? <WhoKnowsWho go={go} /> : <CityMap companion={companion} place={view.startsWith('map/') ? decodeURIComponent(view.slice(4)) : null} go={go} />
   if (view === 'memories') return <Memories companion={companion} />
   return <Conversation companion={companion} go={go} />
 }
