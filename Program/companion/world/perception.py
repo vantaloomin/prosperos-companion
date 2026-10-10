@@ -23,7 +23,7 @@ The bank is data (world/data/perception.json), so it can grow without code chang
 """
 import json
 import re
-from functools import cache
+from functools import cache, lru_cache
 
 from companion.database import decode
 from companion.world import catalog, generators, townsfolk
@@ -174,16 +174,25 @@ def words(text: str) -> str:
     return ' ' + re.sub(r"[^a-z0-9']+", ' ', text.casefold().replace('’', "'")) + ' '
 
 
+@lru_cache(maxsize=4096)
+def keyword(word: str) -> str:
+    """A bank keyword as whole-word search text. The bank is fixed, so each is normalised once."""
+    return f' {words(word).strip()} '
+
+
 def hits(text: str, keywords) -> int:
-    return sum(1 for word in keywords if f' {words(word).strip()} ' in text)
+    return sum(1 for word in keywords if keyword(word) in text)
 
 
 def matched(text: str, entries: dict[str, dict], seed: str, label: str) -> str | None:
-    """The entry whose keywords the text uses most, ties broken by seed; None when nothing matches."""
-    scored = [(hits(text, item.get('keywords', ())), generators.unit(seed, f'perception-match-{label}', key), key)
-              for key, item in entries.items()]
-    best = max(scored, default=(0, 0, None))
-    return best[2] if best[0] > 0 else None
+    """The entry whose keywords the text uses most, ties broken by seed; None when nothing matches. Only the tied
+    entries get a seeded draw: a new day asks this for every person around, against every bank entry."""
+    scored = [(hits(text, item.get('keywords', ())), key) for key, item in entries.items()]
+    top = max((score for score, _key in scored), default=0)
+    if top <= 0:
+        return None
+    return max((generators.unit(seed, f'perception-match-{label}', key), key) for score, key in scored
+               if score == top)[1]
 
 
 def sheet_text(definition: dict) -> dict[str, str]:
