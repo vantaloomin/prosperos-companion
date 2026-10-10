@@ -56,6 +56,9 @@ FOLLOW_UP_AFTER = timedelta(hours=1)
 NEWS_WITHIN = timedelta(hours=24)
 SILENCE = timedelta(hours=ABSENCE_HOURS * 2)
 MAX_LENGTH = 600
+# A first text the model wrote but that could not be used, with no template to fall back on, waits this long before
+# the model is asked for it again: the open app checks every minute or so.
+RETRY_AFTER = timedelta(hours=1)
 # A first message whose opening words match one of the last REPEAT_WINDOW companion messages is a copy.
 REPEAT_WINDOW = 300
 REPEAT_OPENING = 80
@@ -442,6 +445,8 @@ class Openers:
         self.scheduler = scheduler
         # Voice notes (companion/voice/notes.py), set by the app; without it every first text is a text.
         self.voice = None
+        # When the model last wrote an unusable first text, by (companion id, trigger key).
+        self.unusable: dict[tuple[str, str], object] = {}
 
     async def check(self) -> dict:
         """At most one first message per check, from whichever companion has a reason and is free to send it.
@@ -475,7 +480,7 @@ class Openers:
             if not found and reason:
                 return {'state': reason, 'message': None}
         for trigger in found:
-            if trigger.template is None and config is None:
+            if trigger.template is None and (config is None or self.resting(companion_id, trigger, now)):
                 continue
             try:
                 sent = await self.send(companion, trigger, config, now)
@@ -490,9 +495,14 @@ class Openers:
         engine = self.voice.plan(companion, trigger.key, now) if self.voice else None
         text, wording = await self.write(companion['id'], trigger, config, now, voice=engine is not None)
         if not text:
+            self.unusable[companion['id'], trigger.key] = now
             return None
         note = await self.voice.record(companion, engine, text) if engine else None
         return self.save(companion, trigger, text, wording, now, note)
+
+    def resting(self, companion_id, trigger, now) -> bool:
+        tried = self.unusable.get((companion_id, trigger.key))
+        return tried is not None and now - tried < RETRY_AFTER
 
     async def write(self, companion_id, trigger, config, now, voice=False) -> tuple[str | None, str]:
         with self.database.connect() as connection:

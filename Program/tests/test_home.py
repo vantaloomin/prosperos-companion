@@ -192,3 +192,13 @@ def test_a_fork_keeps_the_home_as_it_was(client, baltimore, clock):
         logged = connection.execute("SELECT MAX(local_date) FROM home_log WHERE timeline_id='fork'").fetchone()[0]
     assert forked == parent
     assert logged is None or logged <= '2026-11-15'
+
+
+def test_a_home_made_on_a_us_evening_is_there_that_evening(client, companion):
+    from companion.characters import require_current
+    from companion.life import home, wardrobe
+    with client.app.state.database.connect(write=True) as connection:
+        timeline_id = require_current(connection)['active_timeline_id']
+        connection.execute("UPDATE timelines SET created_at='2026-10-10T01:30:00+00:00' WHERE id=?", (timeline_id,))
+        for module in (home, wardrobe):
+            assert module.started_on(connection, timeline_id, 'America/New_York').isoformat() == '2026-10-09'
