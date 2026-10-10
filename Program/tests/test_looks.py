@@ -73,3 +73,15 @@ def test_a_townsperson_keeps_their_matchlight_looks():
     found, card = looks.for_sheet(sheet, data), dating.looks(sheet, data)
     assert found['height_cm'] == card['height_cm'] and found['hair'] == card['hair'] and found['build'] == card['build']
     assert found == looks.for_sheet(sheet, data) and found['age'] == sheet['age']
+
+
+def test_a_drawn_build_or_weight_follows_what_the_user_set():
+    she = {'identity': 'She is a nurse.'}
+    heavy = looks.for_companion('abc', {**she, 'looks': {'height_cm': 160, 'weight_kg': 110}})
+    light = looks.for_companion('abc', {**she, 'looks': {'height_cm': 147, 'weight_kg': 41}})
+    assert heavy['build'] == 'full-figured' and light['build'] == 'slim'
+    slim = looks.for_companion('abc', {**she, 'looks': {'height_cm': 165, 'build': 'slim'}})
+    assert 18 <= slim['weight_kg'] / 1.65 ** 2 <= 21
+    # What the user set stays as they set it, even when it is unusual.
+    mine = looks.for_companion('abc', {**she, 'looks': {'weight_kg': 120, 'build': 'slim'}})
+    assert mine['weight_kg'] == 120 and mine['build'] == 'slim'

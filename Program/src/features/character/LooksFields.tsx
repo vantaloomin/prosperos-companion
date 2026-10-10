@@ -13,8 +13,8 @@ interface Props { definition: () => CharacterDefinition; looks: Looks | undefine
 /** Face shape, height, build and the rest, so every picture shows the same person. Each is optional: left empty, the app draws it. */
 export function LooksFields({ definition, looks, set }: Props) {
   const current = { ...emptyLooks(), ...looks }
-  // Only what else they are (pronouns, heritage, the appearance text) changes what is drawn, so their own fields ask for nothing.
-  const body = useSettled({ ...definition(), looks: emptyLooks() })
+  // What is drawn follows who they are (pronouns, heritage, the appearance text), and a drawn build or weight follows the height, weight or build set here.
+  const body = useSettled({ ...definition(), looks: current })
   const found = useQuery({
     queryKey: ['looks', body],
     queryFn: () => api<LooksSuggestions>('/companion/looks', { definition: body }),

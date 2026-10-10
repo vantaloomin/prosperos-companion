@@ -142,8 +142,31 @@ def written(definition: dict) -> dict:
 
 
 def for_companion(companion_id: str, definition: dict) -> dict:
-    """A companion's sheet: what the user set wins, field by field; the rest is drawn from their id."""
-    return {**automatic(definition, companion_id), **written(definition)}
+    """A companion's sheet: what the user set wins, field by field; the rest is drawn from their id, and a drawn
+    build or weight follows the height, weight or build the user set (`agreed`)."""
+    own = written(definition)
+    return agreed({**automatic(definition, companion_id), **own}, own, companion_id, pronouns_of(definition))
+
+
+def agreed(sheet: dict, own: dict, seed: str, pronouns: str) -> dict:
+    """A user-set weight picks the build that fits it; a user-set build or height re-works a drawn weight. What
+    the user set themselves is never changed, and a field the appearance text covers stays left out."""
+    if not sheet.get('height_cm'):
+        return sheet
+    if 'weight_kg' in own and 'build' not in own and sheet.get('build'):
+        return {**sheet, 'build': build_for(own['weight_kg'], sheet['height_cm'], pronouns)}
+    if 'weight_kg' not in own and sheet.get('weight_kg') and own.keys() & {'build', 'height_cm'}:
+        return {**sheet, 'weight_kg': weight_kg(seed, sheet['height_cm'], sheet.get('build') or '')}
+    return sheet
+
+
+def build_for(kg: int, cm: int, pronouns: str) -> str:
+    """The build whose usual body-mass index is nearest this weight and height, among the builds Matchlight uses for
+    them (leaving out the ones that name a height)."""
+    bmi = kg / (cm / 100) ** 2
+    builds = [build for build in dating.BUILDS[dating.GENDER_OF.get(pronouns, 'nonbinary')]
+              if build not in ('tall and lean', 'petite')]
+    return min(builds, key=lambda build: abs(bank()['bmi'][build][0] - bmi))
 
 
 # In words -----------------------------------------------------------------------------------------
