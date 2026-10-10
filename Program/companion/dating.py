@@ -7,7 +7,7 @@ through the same path as switching to a townsperson (companion/cast.py), and is 
 companion. No companion prompt reads the app itself: a companion never knows who else the user swiped on.
 
 Modern and future cities have a dating app. Older eras have the same thing in period form: a personal
-column in the paper (Victorian, steampunk, frontier) or the town matchmaker (medieval and fantasy).
+column in the paper (Victorian, steampunk, frontier, the 1920s) or the town matchmaker (medieval and fantasy).
 """
 from companion import story, story_people
 from companion.characters import current
@@ -22,7 +22,7 @@ APP_NAME = 'Matchlight'
 DECK_SIZE = 5
 DATE_KINDS = ('cafe', 'restaurant', 'bar', 'tavern', 'nightlife', 'park', 'garden', 'museum', 'venue', 'beach',
               'market', 'landmark', 'attraction', 'square', 'trail', 'inn')
-COLUMN_ERAS = ('victorian', 'steampunk', 'frontier')
+COLUMN_ERAS = ('victorian', 'steampunk', 'frontier', 'jazz-age')
 # What the user sees, by the kind of matchmaking the city's era has.
 SURFACES = {
     'app': {'title': APP_NAME, 'noun': 'a dating app', 'like': 'Like', 'pass': 'Pass',

@@ -139,6 +139,10 @@
     "tax season",
     "audits",
     "reconciliations"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -166,6 +170,10 @@
     "grading",
     "students",
     "field trips"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -180,6 +188,10 @@
     "office hours",
     "papers",
     "students"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -208,6 +220,10 @@
     "exams",
     "study groups",
     "campus life"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -235,6 +251,10 @@
     "prep",
     "family meal",
     "new menu items"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -248,6 +268,10 @@
     "regulars",
     "cocktails",
     "closing time"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -261,6 +285,10 @@
     "tables",
     "tips",
     "regulars"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -283,6 +311,9 @@
    "schedule": "rotating",
    "pay": "$$",
    "summary": "Dealing table games on rotating casino shifts.",
+   "needs": [
+    "casino"
+   ],
    "themes": [
     "tables",
     "tourists",
@@ -326,6 +357,10 @@
     "dough",
     "early mornings",
     "new recipes"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -353,6 +388,10 @@
     "rehearsal",
     "new songs",
     "students"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -366,6 +405,10 @@
     "stories",
     "sources",
     "deadlines"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -405,6 +448,10 @@
     "duty days",
     "deployments",
     "shipmates"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -484,6 +531,10 @@
     "shows",
     "rehearsal",
     "backstage"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -497,6 +548,10 @@
     "showings",
     "open houses",
     "clients"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -510,6 +565,10 @@
     "job sites",
     "crew",
     "inspections"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -536,6 +595,10 @@
     "cases",
     "home visits",
     "paperwork"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -575,6 +638,10 @@
     "auditions",
     "classes",
     "callbacks"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -588,6 +655,10 @@
     "the water",
     "sunscreen",
     "rescues and false alarms"
+   ],
+   "eras": [
+    "modern",
+    "jazz-age"
    ]
   },
   {
@@ -604,6 +675,709 @@
     "swell",
     "students",
     "the ocean"
+   ]
+  },
+  {
+   "id": "switchboard-operator",
+   "name": "Telephone operator",
+   "sector": "communications",
+   "schedule": "rotating",
+   "pay": "$",
+   "summary": "Plugging calls through at a telephone exchange switchboard, headset on, \"Number, please.\"",
+   "themes": [
+    "the switchboard",
+    "party lines",
+    "the supervisor",
+    "overheard calls"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "newsboy",
+   "name": "Newsboy",
+   "sector": "media",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Hawking the morning and evening editions on a busy corner.",
+   "themes": [
+    "headlines",
+    "extra editions",
+    "regulars",
+    "the corner"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "stenographer",
+   "name": "Stenographer",
+   "sector": "business",
+   "schedule": "office",
+   "pay": "$",
+   "summary": "Taking dictation in shorthand and typing letters in an office typing pool.",
+   "themes": [
+    "dictation",
+    "the typing pool",
+    "the boss",
+    "lunch hour"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "office-clerk",
+   "name": "Office clerk",
+   "sector": "business",
+   "schedule": "office",
+   "pay": "$",
+   "summary": "Ledgers, filing and invoices at a desk in a big firm downtown.",
+   "themes": [
+    "ledgers",
+    "filing",
+    "the office manager",
+    "payday"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "speakeasy-bartender",
+   "name": "Speakeasy bartender",
+   "sector": "hospitality",
+   "schedule": "evening",
+   "pay": "$$",
+   "summary": "Mixing bathtub gin into cocktails behind an unmarked door, with one eye on the street.",
+   "themes": [
+    "regulars",
+    "the password",
+    "raids",
+    "bootleg liquor"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "jazz-musician",
+   "name": "Jazz musician",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "pay": "$",
+   "summary": "Playing hot jazz in clubs and dance halls, then jamming after hours.",
+   "themes": [
+    "gigs",
+    "the band",
+    "after-hours jams",
+    "new records"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "chorus-dancer",
+   "name": "Chorus dancer",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "pay": "$",
+   "summary": "Kicking in the line of a revue: two shows a night and rehearsals by day.",
+   "themes": [
+    "the show",
+    "rehearsals",
+    "stage-door admirers",
+    "the producer"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "hatcheck-attendant",
+   "name": "Hatcheck attendant",
+   "sector": "hospitality",
+   "schedule": "evening",
+   "pay": "$",
+   "summary": "Minding coats and hats at a nightclub or smart restaurant, living on tips.",
+   "themes": [
+    "tips",
+    "regulars",
+    "gossip",
+    "closing time"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "longshoreman",
+   "name": "Longshoreman",
+   "sector": "logistics",
+   "schedule": "early",
+   "pay": "$$",
+   "summary": "Loading and unloading ships at the piers, hired by the day at the shape-up.",
+   "themes": [
+    "the shape-up",
+    "the gang boss",
+    "cargo",
+    "the union"
+   ],
+   "eras": [
+    "jazz-age"
+   ],
+   "needs": [
+    "docks"
+   ]
+  },
+  {
+   "id": "fisherman",
+   "name": "Fisherman",
+   "sector": "fishing",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Out before dawn on a fishing boat, back to sell the catch at the wharf.",
+   "themes": [
+    "the catch",
+    "the weather",
+    "the boat",
+    "the wharf"
+   ],
+   "eras": [
+    "jazz-age"
+   ],
+   "needs": [
+    "docks"
+   ]
+  },
+  {
+   "id": "streetcar-motorman",
+   "name": "Streetcar motorman",
+   "sector": "transit",
+   "schedule": "rotating",
+   "pay": "$$",
+   "summary": "Driving a streetcar along its line while the conductor takes the fares.",
+   "themes": [
+    "the route",
+    "the conductor",
+    "passengers",
+    "the car barn"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "taxi-driver",
+   "name": "Taxi driver",
+   "sector": "transit",
+   "schedule": "rotating",
+   "pay": "$",
+   "summary": "Driving a cab for a fleet, cruising for fares day or night.",
+   "themes": [
+    "fares",
+    "the meter",
+    "tips",
+    "late-night passengers"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "chauffeur",
+   "name": "Chauffeur",
+   "sector": "domestic",
+   "schedule": "flexible",
+   "pay": "$$",
+   "summary": "Driving and keeping the motorcar for a wealthy family.",
+   "themes": [
+    "the motorcar",
+    "the family",
+    "waiting outside",
+    "other drivers"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "pullman-porter",
+   "name": "Pullman porter",
+   "sector": "railroad",
+   "schedule": "rotating",
+   "pay": "$",
+   "summary": "Making up berths and seeing to passengers on overnight sleeping cars, days away from home.",
+   "themes": [
+    "passengers",
+    "long runs",
+    "tips",
+    "the union"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "department-store-clerk",
+   "name": "Department store clerk",
+   "sector": "retail",
+   "schedule": "office",
+   "pay": "$",
+   "summary": "Selling behind a counter at a big department store, under the floorwalker's eye.",
+   "themes": [
+    "customers",
+    "the floorwalker",
+    "sales",
+    "the employee discount"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "grocer",
+   "name": "Grocer",
+   "sector": "retail",
+   "schedule": "early",
+   "pay": "$$",
+   "summary": "Running a corner grocery: credit for regulars, deliveries and a long day.",
+   "themes": [
+    "regulars",
+    "deliveries",
+    "the books",
+    "neighborhood news"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "soda-jerk",
+   "name": "Soda jerk",
+   "sector": "food",
+   "schedule": "flexible",
+   "pay": "$",
+   "summary": "Pulling sodas and sundaes at a drugstore fountain, with a paper hat and the slang to match.",
+   "themes": [
+    "the fountain",
+    "regulars",
+    "sundaes",
+    "flirting customers"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "iceman",
+   "name": "Iceman",
+   "sector": "trades",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Delivering blocks of ice up the stairs to iceboxes on a regular route.",
+   "themes": [
+    "the route",
+    "the ice wagon",
+    "customers",
+    "hot days"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "milkman",
+   "name": "Milkman",
+   "sector": "food",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Delivering milk, cream and eggs door to door before dawn.",
+   "themes": [
+    "the route",
+    "the horse or truck",
+    "customers",
+    "early mornings"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "factory-hand",
+   "name": "Factory hand",
+   "sector": "manufacturing",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Long shifts on a factory line, six days a week, with the whistle marking the day.",
+   "themes": [
+    "the line",
+    "the foreman",
+    "the whistle",
+    "the union"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "mill-hand",
+   "name": "Textile mill hand",
+   "sector": "manufacturing",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Tending looms or spinning frames in a textile mill, deafened by the noise.",
+   "themes": [
+    "the looms",
+    "the overseer",
+    "piecework",
+    "lint"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "garment-worker",
+   "name": "Garment worker",
+   "sector": "manufacturing",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Sewing piecework at a machine in a garment loft.",
+   "themes": [
+    "piecework",
+    "the foreman",
+    "the union",
+    "deadlines"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "housemaid",
+   "name": "Housemaid",
+   "sector": "domestic",
+   "schedule": "early",
+   "pay": "$",
+   "summary": "Cleaning, laundry and serving for a well-off household, live-in or by the day.",
+   "themes": [
+    "the household",
+    "the mistress",
+    "a half day off",
+    "other servants"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "garage-mechanic",
+   "name": "Garage mechanic",
+   "sector": "trades",
+   "schedule": "early",
+   "pay": "$$",
+   "summary": "Fixing motorcars and trucks at a garage and filling station.",
+   "themes": [
+    "engines",
+    "customers",
+    "spare parts",
+    "the new models"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "radio-repairman",
+   "name": "Radio repairman",
+   "sector": "technology",
+   "schedule": "office",
+   "pay": "$$",
+   "summary": "Building and fixing the new home radio sets, and selling a few.",
+   "themes": [
+    "radio sets",
+    "tubes",
+    "customers",
+    "the latest broadcasts"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "telegraph-operator",
+   "name": "Telegraph operator",
+   "sector": "communications",
+   "schedule": "rotating",
+   "pay": "$$",
+   "summary": "Sending and receiving telegrams in Morse at a telegraph office.",
+   "themes": [
+    "telegrams",
+    "Morse",
+    "urgent messages",
+    "night shifts"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "linotype-operator",
+   "name": "Linotype operator",
+   "sector": "media",
+   "schedule": "evening",
+   "pay": "$$",
+   "summary": "Setting the newspaper's type on a clattering Linotype before the presses roll.",
+   "themes": [
+    "deadlines",
+    "the press room",
+    "hot metal",
+    "the late edition"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "police-patrolman",
+   "name": "Police patrolman",
+   "sector": "law",
+   "schedule": "rotating",
+   "pay": "$$",
+   "summary": "Walking a beat and calling in from the box on the corner.",
+   "themes": [
+    "the beat",
+    "the sergeant",
+    "the precinct",
+    "Prohibition"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "private-detective",
+   "name": "Private detective",
+   "sector": "law",
+   "schedule": "flexible",
+   "pay": "$$",
+   "summary": "Tailing husbands, finding missing persons and serving papers out of a small office.",
+   "themes": [
+    "clients",
+    "stakeouts",
+    "cases",
+    "the police"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "lawyer",
+   "name": "Lawyer",
+   "sector": "legal",
+   "schedule": "office",
+   "pay": "$$$",
+   "summary": "Wills, contracts and court days at a downtown practice.",
+   "themes": [
+    "clients",
+    "court days",
+    "the partners",
+    "briefs"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "bank-teller",
+   "name": "Bank teller",
+   "sector": "finance",
+   "schedule": "office",
+   "pay": "$$",
+   "summary": "Counting cash behind the brass grille at a bank.",
+   "themes": [
+    "depositors",
+    "the vault",
+    "the cashier",
+    "balancing up"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "stockbroker",
+   "name": "Stockbroker",
+   "sector": "finance",
+   "schedule": "office",
+   "pay": "$$$",
+   "summary": "Buying and selling on the ticker for clients, many of them on margin.",
+   "themes": [
+    "the ticker",
+    "clients",
+    "hot tips",
+    "the bull market"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "trained-nurse",
+   "name": "Trained nurse",
+   "sector": "healthcare",
+   "schedule": "rotating",
+   "pay": "$",
+   "summary": "Ward duty at a hospital in a starched cap, or private nursing in a patient's home.",
+   "themes": [
+    "patients",
+    "the ward sister",
+    "night duty",
+    "the doctors"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "physician",
+   "name": "Physician",
+   "sector": "healthcare",
+   "schedule": "flexible",
+   "pay": "$$$",
+   "summary": "Office hours and house calls with a black bag.",
+   "themes": [
+    "patients",
+    "house calls",
+    "the hospital",
+    "epidemics"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "druggist",
+   "name": "Druggist",
+   "sector": "healthcare",
+   "schedule": "office",
+   "pay": "$$",
+   "summary": "Mixing prescriptions at the drugstore counter, whiskey \"for medicinal purposes\" included.",
+   "themes": [
+    "prescriptions",
+    "regulars",
+    "the fountain",
+    "patent medicines"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "librarian",
+   "name": "Librarian",
+   "sector": "education",
+   "schedule": "office",
+   "pay": "$",
+   "summary": "Lending, cataloguing and reading-room duty at a public or college library.",
+   "themes": [
+    "the reading room",
+    "the card catalogue",
+    "regulars",
+    "new acquisitions"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "museum-curator",
+   "name": "Museum curator",
+   "sector": "education",
+   "schedule": "office",
+   "pay": "$$",
+   "summary": "Cataloguing collections, mounting exhibits and corresponding with collectors.",
+   "themes": [
+    "collections",
+    "exhibits",
+    "collectors",
+    "the trustees"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "antiquarian-bookseller",
+   "name": "Antiquarian bookseller",
+   "sector": "retail",
+   "schedule": "office",
+   "pay": "$$",
+   "summary": "Buying and selling old and rare books from a cramped shop, and hunting them at estate sales.",
+   "themes": [
+    "rare books",
+    "collectors",
+    "estate sales",
+    "the back room"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "minister",
+   "name": "Minister",
+   "sector": "religion",
+   "schedule": "flexible",
+   "pay": "$",
+   "summary": "Sunday sermons, weddings, funerals and calls on the sick of the parish.",
+   "themes": [
+    "sermons",
+    "the congregation",
+    "funerals",
+    "the parish"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "undertaker",
+   "name": "Undertaker",
+   "sector": "trades",
+   "schedule": "flexible",
+   "pay": "$$",
+   "summary": "Running the funeral parlor: laying out the dead, arranging services, comforting families.",
+   "themes": [
+    "funerals",
+    "families",
+    "the parlor",
+    "night calls"
+   ],
+   "eras": [
+    "jazz-age"
+   ]
+  },
+  {
+   "id": "bootlegger",
+   "name": "Bootlegger",
+   "sector": "underworld",
+   "schedule": "evening",
+   "pay": "$$$",
+   "summary": "Running illegal liquor from the boats and the stills to the speakeasies.",
+   "themes": [
+    "shipments",
+    "payoffs",
+    "rivals",
+    "Prohibition agents"
+   ],
+   "eras": [
+    "jazz-age"
    ]
   }
  ]

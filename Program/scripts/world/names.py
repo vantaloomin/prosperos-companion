@@ -34,6 +34,8 @@ CULTURES = {
     'slavic': {'poland': 0.4, 'russia': 0.35, 'local': 0.25},
     'arabic': {'arab': 0.8, 'local': 0.2},
     'west-african': {'nigeria': 0.6, 'ghana': 0.4},
+    'german': {'local': 0.65, 'germany': 0.35},
+    'french-canadian': {'local': 0.55, 'france': 0.45},
 }
 
 
@@ -206,10 +208,40 @@ MODERN = {
         'Agyeman Appiah Amoah Ansah Acheampong Addo Adjei Antwi Boakye Darko Frimpong Gyamfi Kyei Nkrumah Obeng '
         'Ofori Opoku Osei Quaye Sarpong Tetteh Yeboah Amponsah Annan Nyarko Agyei Badu Diop Fall Sow Camara '
         'Toure Keita Coulibaly Kone Sylla Bah Conteh Kamara Sesay Koroma Bangura Njoku'),
+    # German Americans, the largest immigrant heritage of the 1920s, mostly in the Midwest, Pennsylvania and the
+    # big northern cities: surnames as families kept or anglicized them (general knowledge, estimate)
+    'german': group(
+        'Anna Emma Frieda Gertrude Hilda Martha Bertha Elsie Lena Clara Louise Minnie',
+        'Karl Otto Fritz Hans Herman Wilhelm Ernst Heinrich August Gustav Albert Walter',
+        'Marion',
+        'Schmidt Schneider Fischer Weber Meyer Wagner Becker Schulz Hoffmann Koch Bauer Richter Klein Wolf '
+        'Schroeder Neumann Schwarz Zimmermann Braun Krueger Hofmann Hartmann Lange Schmitt Werner Krause Meier '
+        'Lehmann Schmid Schulze Maier Koehler Herrmann Walter Mayer Huber Kaiser Fuchs Peters Lang Scholz Moeller '
+        'Weiss Jung Hahn Vogel Friedrich Keller Guenther Frank Berger Winkler Roth Beck Lorenz Baumann Franke '
+        'Albrecht Schuster Simon Ludwig Boehm Winter Kraus Martin Schumacher Kraemer Vogt Stein Jaeger Otto '
+        'Sommer Gross Seidel Heinrich Brandt Haas Schreiber Graf Dietrich Ziegler Kuhn Kuehn Pohl Engel Horn '
+        'Busch Bergmann Thomas Voigt Sauer Arnold Wolff Pfeiffer Heller Brenner Eckert Dreyer Muench Ritter '
+        'Uhl Diehl Gerber Hauser Kessler Lutz Metzger Nagel Reinhardt Spengler Stahl Strauss Vogler Wendt'),
+    # Québécois and Franco-American families (New England mill towns, Quebec): given names from the local and
+    # French birth-year lists, family names always from these (general knowledge of the commonest Quebec
+    # surnames, estimate)
+    'french-canadian': group(
+        'Marie Jeanne Yvonne Rita Cécile Thérèse Lucille Simone Monique Diane Nathalie Isabelle',
+        'Joseph Jean Louis Henri Armand Lucien Marcel Roger Normand Gilles Denis Luc',
+        'Claude Dominique',
+        'Gagnon Roy Côté Bouchard Gauthier Morin Lavoie Fortin Gagné Ouellet Pelletier Bélanger Lévesque '
+        'Bergeron Leblanc Paquette Girard Simard Boucher Caron Beaulieu Cloutier Dubé Poirier Fournier Lapointe '
+        'Leclerc Lefebvre Poulin Thibault St-Pierre Nadeau Martin Landry Martel Bédard Grenier Lessard Bernier '
+        'Richard Michaud Hébert Desjardins Couture Turcotte Lachance Parent Blais Gosselin Savard Proulx '
+        'Beaudoin Demers Perreault Boudreau Lemieux Cyr Perron Dufour Dion Mercier Bolduc Bérubé Boisvert '
+        'Langlois Ménard Thibodeau Ouellette Doucette Thériault Plourde Pépin Gendron Vachon Labrie Tremblay '
+        'Rousseau Laflamme Comeau Arsenault Cormier Robichaud LeBlanc Benoit Cadieux Charron Daigle Gervais'),
 }
 
 for key, links in CULTURES.items():
     MODERN[key]['cultures'] = links
+# Franco-American families kept their Quebec surnames whichever names their children were given.
+MODERN['french-canadian']['own_family'] = True
 
 VICTORIAN = {
     'english': group(
@@ -1144,6 +1176,11 @@ NAMES = {
         'frontier': {'bank': 'frontier', 'mix': {'american': 6, 'mexican': 3, 'cornish': 1.5, 'irish': 1.5,
                                                  'german': 1, 'chinese': 0.6}},
         'fantasy': {'bank': 'storybook', 'mix': {}},
+        # An American city in 1926, after the great migrations from Ireland, Italy, Germany and Eastern Europe
+        # and the Great Migration north; born 1860-1908, they take given names from their birth year.
+        'jazz-age': {'bank': 'modern', 'mix': {'anglo': 5, 'irish': 1.6, 'german': 1.4, 'italian': 1.2,
+                                               'jewish': 0.9, 'slavic': 0.8, 'black-american': 0.9,
+                                               'hispanic': 0.15, 'east-asian': 0.1}},
     },
 }
 

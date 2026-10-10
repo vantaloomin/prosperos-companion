@@ -14,6 +14,7 @@ from datetime import date, timedelta
 
 from companion.errors import DomainError
 from companion.world import catalog, naming
+from companion.world.schema import HEARSAY_KINDS
 
 COSTS = ['free', '$', '$$', '$$$', '$$$$']
 SEASONS = {12: 'winter', 1: 'winter', 2: 'winter', 3: 'spring', 4: 'spring', 5: 'spring', 6: 'summer',
@@ -27,6 +28,12 @@ WORKPLACE_KINDS = {
     'bartender': ('bar', 'nightlife', 'tavern', 'inn'), 'retail-associate': ('shopping',), 'tour-guide': ('attraction', 'landmark'),
     'performer': ('venue',), 'musician': ('venue', 'bar'), 'fitness-trainer': ('fitness',),
     'lifeguard': ('beach',), 'surf-instructor': ('beach',),
+    # The 1920s (jazz-age careers).
+    'speakeasy-bartender': ('bar', 'nightlife'), 'jazz-musician': ('nightlife', 'venue', 'bar'),
+    'chorus-dancer': ('venue', 'nightlife'), 'hatcheck-attendant': ('nightlife', 'restaurant'),
+    'soda-jerk': ('cafe',), 'department-store-clerk': ('shopping',), 'grocer': ('market', 'shopping'),
+    'druggist': ('shopping',), 'antiquarian-bookseller': ('shopping',), 'librarian': ('library',),
+    'museum-curator': ('museum',), 'minister': ('temple',),
 }
 # Where any career in a sector can plausibly work, for cities that name no employer for it.
 SECTOR_KINDS = {
@@ -35,6 +42,8 @@ SECTOR_KINDS = {
     'religion': ('temple',), 'trade': ('market', 'guildhall', 'workshop'), 'crafts': ('workshop',),
     'fitness': ('fitness',), 'recreation': ('beach', 'park'), 'logistics': ('docks',),
 }
+# Places people go to on an errand, never for an outing (a vet clinic); asked for only by kind.
+ERRAND_KINDS = {'vet'}
 RAIL = {'subway', 'light-rail', 'commuter-rail', 'streetcar', 'monorail', 'tram'}
 # Shared lines other than rail, and private ways to travel, fastest first.
 LINES = {'bus', 'ferry', 'water-taxi', 'boat', 'airship', 'stagecoach'}
@@ -79,6 +88,53 @@ def provenance(data: dict, refs: list[str]) -> dict:
     return {'city': data['id'], 'data_version': data['data_version'], 'refs': refs, 'sources': cited}
 
 
+def rank_pick(seed: str, label: str, weights: dict):
+    """Weighted choice that is stable per item: each item draws its own number, so adding or dropping one
+    item (or changing its weight) moves only the people who had it or now get it, never everyone else."""
+    if not weights:
+        return None
+    return max(sorted(weights), key=lambda item: unit(seed, label, item) ** (1 / weights[item]))
+
+
+# How much more often people in a city work a career the city itself is built around. Every career the era
+# offers counts 1; a career of the city's own counts CITY_CAREER more; each employer hiring it adds by its size;
+# each career hub of its sector adds HUB_SECTOR; each place it works at (a cafe for a soda jerk) adds PLACE_JOB,
+# up to PLACE_CAP places. So a fishing town is mostly fishermen and cannery hands, while a big city with dozens
+# of employers stays varied.
+CITY_CAREER = 3.0
+EMPLOYER_SIZES = {'small': 4.0, 'medium': 10.0, 'large': 20.0}
+HUB_SECTOR = 0.5
+PLACE_JOB = 0.25
+PLACE_CAP = 4
+
+
+def career_weights(data: dict, offered: dict[str, dict]) -> dict[str, float]:
+    """How often residents work each offered career in this city: its own industries count far more."""
+    weights = dict.fromkeys(offered, 1.0)
+    for career in data.get('careers', []):
+        if career['id'] in weights:
+            weights[career['id']] += CITY_CAREER
+    for employer in data.get('employers', []):
+        hires = set(employer['careers']) & set(weights)
+        for career in hires:
+            weights[career] += EMPLOYER_SIZES.get(employer.get('size'), EMPLOYER_SIZES['small']) / len(hires)
+    sectors = [sector for hub in data.get('career_hubs', []) for sector in hub.get('sectors', [])]
+    kinds = [place['kind'] for place in data.get('places', [])]
+    for key, career in offered.items():
+        workplaces = sum(kinds.count(kind) for kind in WORKPLACE_KINDS.get(key, ()))
+        weights[key] += HUB_SECTOR * sectors.count(career['sector']) + PLACE_JOB * min(workplaces, PLACE_CAP)
+    return weights
+
+
+def town_career(data: dict, seed: str, label: str = 'career', fits=None) -> dict | None:
+    """A career for someone living in this city, weighted towards the city's own industries (career_weights).
+    `fits(career_id)` keeps only careers that suit them (their age, say)."""
+    offered = catalog.careers_for(data)
+    weights = {key: weight for key, weight in career_weights(data, offered).items() if not fits or fits(key)}
+    chosen = rank_pick(seed, label, weights)
+    return offered[chosen] if chosen else None
+
+
 # --- Climate and the calendar ---
 
 def conditions(data: dict, day: date, seed: str = '') -> dict | None:
@@ -111,7 +167,11 @@ def easter(year: int) -> date:
 
 
 def holiday_date(holiday: dict, year: int) -> date | None:
-    """The date a holiday falls on in this year, or None when its rule names no such day (31 June, a 5th Monday)."""
+    """The date a holiday falls on in this year, or None when its rule names no such day (31 June, a 5th Monday, a
+    year its table of dates lacks)."""
+    if holiday.get('dates'):
+        found = holiday['dates'].get(str(year))
+        return date.fromisoformat(f'{year}-{found}') if found else None
     if holiday['easter'] is not None:
         return easter(year) + timedelta(days=holiday['easter'])
     month = holiday['month']
@@ -155,30 +215,66 @@ def holidays(data: dict, start: date, end: date | None = None) -> list[dict]:
 # --- Getting around ---
 
 def commute(data: dict, origin: str, destination: str, mode: str | None = None) -> dict:
-    """An estimated trip between two neighborhoods, by the given mode or the likeliest one."""
+    """An estimated trip between two neighborhoods, by the given mode or the likeliest one.
+
+    The likeliest is walking when it is close, else a line both ends share (rail first), else two lines that meet
+    at a neighborhood both serve with one change between them (`change`), else a private way to travel."""
     start, end = catalog.neighborhood(data, origin), catalog.neighborhood(data, destination)
     km = round(catalog.distance_km(start, end) * 1.3 + 0.4, 1)
     shared = [line for line in data['transit'] if line['id'] in start['transit'] and line['id'] in end['transit']]
-    rail = next((line for line in shared if line['kind'] in RAIL), None)
-    bus = next((line for line in shared if line['kind'] in LINES), None)
-    line = None
+    change = None
     if mode is None:
-        if km <= 1.6:
-            mode = 'walk'
-        elif rail:
-            mode, line = rail['kind'], rail
-        elif bus and start['walkability'] != 'low' and km <= 8:
-            mode, line = bus['kind'], bus
-        else:
-            mode = next((kind for kind in PRIVATE if kind in data['speeds']), 'walk')
-    elif mode in RAIL or mode in LINES:
-        line = next((item for item in shared if item['kind'] == mode), None)
+        mode, line, change = _likeliest(data, start, end, km, shared)
+    else:
+        line = next((item for item in shared if item['kind'] == mode), None) if mode in RAIL or mode in LINES else None
     speed = data['speeds'].get(mode) or DEFAULT_SPEEDS.get(mode, 4.5)
     works = _works(start, end, mode)
     minutes = round(km / speed * 60 + OVERHEAD.get(mode, 8)) + sum(item['delay'] for item in works)
     trip = {'from': origin, 'to': destination, 'mode': mode, 'line': line['name'] if line else None,
             'distance_km': km, 'minutes': max(minutes, 3), 'estimate': True}
+    if change:
+        first, second, hub = change
+        trip |= {'line': f"{first['name']}, then {second['name']}", 'change': {'at': hub['id'], 'name': hub['name'],
+                 'lines': [first['name'], second['name']]}, 'minutes': trip['minutes'] + TRANSFER_WAIT}
     return trip | ({'works': [item['summary'] for item in works]} if works else {})
+
+
+# Minutes added for changing lines on the way: the walk across the platform and the wait for the next train.
+TRANSFER_WAIT = 7
+
+
+def _likeliest(data: dict, start: dict, end: dict, km: float, shared: list[dict]) -> tuple:
+    """(mode, line, change) for the likeliest way to make a trip; change is (first line, second line, where)."""
+    rail = next((line for line in shared if line['kind'] in RAIL), None)
+    bus = next((line for line in shared if line['kind'] in LINES), None)
+    bus_ok = start['walkability'] != 'low' and km <= 8
+    if km <= 1.6:
+        return 'walk', None, None
+    if rail:
+        return rail['kind'], rail, None
+    if bus and bus_ok:
+        return bus['kind'], bus, None
+    change = _change(data, start, end, bus_ok)
+    if change:
+        return change[0]['kind'], None, change
+    return next((kind for kind in PRIVATE if kind in data['speeds']), 'walk'), None, None
+
+
+def _change(data: dict, start: dict, end: dict, bus_ok: bool) -> tuple | None:
+    """Two lines, one from each end, that meet at a neighborhood both serve: rail to rail first, then the shortest
+    way round. Buses and boats count only where a direct bus would (bus_ok). Deterministic: ties keep data order."""
+    lines = {line['id']: line for line in data['transit'] if line['kind'] in RAIL or (bus_ok and line['kind'] in LINES)}
+    firsts = [lines[key] for key in start['transit'] if key in lines]
+    seconds = [lines[key] for key in end['transit'] if key in lines]
+    options = []
+    for hub in data['neighborhoods']:
+        for first in firsts:
+            for second in seconds:
+                if first['id'] != second['id'] and {first['id'], second['id']} <= set(hub['transit']):
+                    railless = (first['kind'] not in RAIL) + (second['kind'] not in RAIL)
+                    around = catalog.distance_km(start, hub) + catalog.distance_km(hub, end)
+                    options.append((railless, round(around, 3), len(options), (first, second, hub)))
+    return min(options)[3] if options else None
 
 
 def _works(start: dict, end: dict, mode: str) -> list[dict]:
@@ -222,8 +318,8 @@ def outing(data: dict, *, seed: str, day: date | None = None, day_part: str = 'a
     """
     around = catalog.neighborhood(data, neighborhood) if neighborhood else None
     weather = conditions(data, day, seed) if day else None
-    pool = [place for place in data['places'] if place['id'] not in exclude and (not kinds or place['kind'] in kinds)
-            and _affordable(place, budget)]
+    pool = [place for place in data['places'] if place['id'] not in exclude and _affordable(place, budget)
+            and (place['kind'] in kinds if kinds else place['kind'] not in ERRAND_KINDS)]
     season = weather['season'] if weather else None
     attempts = (
         lambda p: day_part in p['day_parts'] and company in p['good_for'],
@@ -384,6 +480,12 @@ def _workplace(data: dict, career: dict, seed: str, given: str | None, avoid=())
 
 # --- Housing ---
 
+def rent_step(rent: float) -> int:
+    """What to round a rent to, by its size, so it suits the currency: yen and won by the thousand, dollars and
+    pounds by 25, shillings or pennies by 5 or 1."""
+    return 1000 if rent >= 40_000 else 25 if rent >= 400 else 5 if rent >= 40 else 1
+
+
 @detached
 def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | None = None,
          vibe: str | None = None, near: str | None = None) -> dict:
@@ -415,8 +517,7 @@ def home(data: dict, *, seed: str, bedrooms: str = 'one_bedroom', budget: int | 
     if chosen['rent']:
         low, high = chosen['rent'][bedrooms]
         top = max(low, min(high, budget)) if budget is not None else high
-        # Round to a step that suits the currency: dollars by 25, shillings or pennies by 5 or 1.
-        step = 25 if high >= 400 else 5 if high >= 40 else 1
+        step = rent_step(high)
         result |= {'rent': low + round(unit(seed, 'rent') * (top - low) / step) * step, 'rent_range': [low, high]}
     return result | provenance(data, [chosen['id']])
 
@@ -548,13 +649,12 @@ def _career_for(data: dict, seed: str, age: int, employer: str | None) -> str | 
     if age >= RETIRED_AT:
         return None
     record = catalog.find(data, employer) if employer else None
-    offered = catalog.careers_for(data)
     if record and record.get('careers'):
+        offered = catalog.careers_for(data)
         options = [career for career in record['careers'] if career in offered]
-    else:
-        options = [career for career, value in offered.items()
-                   if AGES.get(career, (0, 99))[0] <= age <= AGES.get(career, (0, 99))[1]]
-    return pick(seed, 'career', sorted(options)) if options else None
+        return pick(seed, 'career', sorted(options)) if options else None
+    found = town_career(data, seed, fits=lambda career: AGES.get(career, (0, 99))[0] <= age <= AGES.get(career, (0, 99))[1])
+    return found['id'] if found else None
 
 
 def _haunts(data: dict, seed: str, hood: str, count: int = 3) -> list[dict]:
@@ -682,11 +782,18 @@ def price(data: dict, item: str, *, seed: str) -> dict:
 @detached
 def local_color(data: dict, *, seed: str, kinds: list[str] | None = None, day: date | None = None,
                 count: int = 3) -> list[dict]:
-    """A few things locals eat, drink, say or do, for flavour. Seasonal items appear only in season on `day`."""
+    """A few things locals eat, drink, say, do or tell, for flavour. Seasonal items appear only in season on `day`.
+    Each is marked `hearsay` when it is a legend or rumour: something people say, never confirmed fact."""
     season = SEASONS[day.month] if day else None
     pool = [item for item in data['local_color'] if (not kinds or item['kind'] in kinds)
             and (not season or not item['seasons'] or season in item['seasons'])]
-    return sorted(pool, key=lambda item: unit(seed, 'color', item['id']))[:count]
+    return [item | {'hearsay': item['kind'] in HEARSAY_KINDS}
+            for item in sorted(pool, key=lambda item: unit(seed, 'color', item['id']))[:count]]
+
+
+def figure(value: float) -> str:
+    """A price as people write it: 4.5, 12, 1,200 or 850,000 (never 8.5e+05, which `:g` gives for won)."""
+    return f'{value:,.0f}' if value == int(value) else f'{value:,.2f}'.rstrip('0').rstrip('.')
 
 
 def facts(data: dict, neighborhood: str | None = None, limit: int = 8) -> list[str]:
@@ -700,8 +807,16 @@ def facts(data: dict, neighborhood: str | None = None, limit: int = 8) -> list[s
     if data['prices']:
         symbol = data['currency']['symbol']
         lines.append('Typical prices: ' + '; '.join(
-            f'{item["item"]} {symbol}{item["low"]:g}–{symbol}{item["high"]:g}' + (f' {item["per"]}' if item['per'] else '')
+            f'{item["item"]} {symbol}{figure(item["low"])}–{symbol}{figure(item["high"])}' +
+            (f' {item["per"]}' if item['per'] else '')
             for item in data['prices'][:limit]))
     for item in data['local_color'][:limit]:
-        lines.append(f'Local {item["kind"]}: {item["name"]}: {item["summary"]}')
+        lines.append(color_line(item))
     return lines
+
+
+def color_line(item: dict) -> str:
+    """One local colour item for a prompt; a legend or rumour is marked as hearsay, so it is never told as fact."""
+    if item['kind'] in HEARSAY_KINDS:
+        return f'Local {item["kind"]} (hearsay locals tell, not confirmed fact): {item["name"]}: {item["summary"]}'
+    return f'Local {item["kind"]}: {item["name"]}: {item["summary"]}'
