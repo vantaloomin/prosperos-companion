@@ -133,12 +133,12 @@ def report_restore(name: str, result) -> int:
 
 
 def restore_backup(archive: Path) -> int:
-    """Replace the workspace with a backup while nothing else can open it (the port is held)."""
-    from companion import restore
+    """Replace the active world with a backup while nothing else can open it (the port is held)."""
+    from companion import restore, worlds
     from companion.errors import DomainError
     from companion.identity import database_path
     try:
-        result = restore.replace_workspace(archive, database_path())
+        result = restore.replace_workspace(archive, worlds.active_path(database_path()))
     except DomainError as error:
         result = error
     return report_restore(archive.name, result)
@@ -190,7 +190,7 @@ def main(argv=None) -> int:
     parser.add_argument('--port', type=int, default=DEFAULT_PORT)
     parser.add_argument('--no-browser', action='store_true')
     parser.add_argument('--restore', type=Path, metavar='BACKUP',
-                        help='Replace the workspace with a backup (the current one is set aside), then exit.')
+                        help='Replace the world you are in with a backup (the current one is set aside), then exit.')
     args = parser.parse_args(argv)
     if not 1024 <= args.port <= 65535:
         parser.error('Choose a port between 1024 and 65535.')

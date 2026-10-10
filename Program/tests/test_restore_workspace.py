@@ -125,3 +125,23 @@ def test_a_damaged_backup_cannot_be_chosen(client, app, companion):
     assert client.get('/api/backups').json()['backups'][0]['readable'] is False
     assert client.post('/api/backups/broken.zip/restore').status_code == 422
     assert client.get('/api/backups').json()['pending'] is None
+
+
+def test_the_launcher_restores_the_world_you_are_in(client, app, companion, monkeypatch, capsys, tmp_path):
+    import socket
+
+    from companion import launch
+    made = client.post('/api/worlds', json={}).json()
+    assert client.post(f"/api/worlds/{made['id']}/switch").status_code == 200
+    archive = Path(client.post('/api/backups').json()['path'])
+    first = app.state.database.home
+    client.close()
+    monkeypatch.setenv('COMPANION_DATA_DIR', str(first.parent))
+    monkeypatch.delenv('COMPANION_DB', raising=False)
+    monkeypatch.chdir(tmp_path)
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    assert launch.main(['--restore', str(archive), '--port', str(port)]) == 0
+    assert list((first.parent / made['folder']).glob('replaced-*/companion.sqlite3'))
+    assert not list(first.parent.glob('replaced-*'))
