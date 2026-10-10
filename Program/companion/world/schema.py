@@ -255,12 +255,15 @@ class Holiday(Record):
         return self
 
 
-LOCAL_COLOR_KINDS = ('dish', 'drink', 'saying', 'custom', 'team', 'shop', 'other')
+# 'legend' and 'rumor' are hearsay: what locals tell, never confirmed fact (generators.local_color and facts say so).
+LOCAL_COLOR_KINDS = ('dish', 'drink', 'saying', 'custom', 'team', 'shop', 'legend', 'rumor', 'other')
+HEARSAY_KINDS = ('legend', 'rumor')
 SOURCE_KINDS = ('curated', 'wikidata', 'openstreetmap', 'government', 'user', 'other')
 
 
 class LocalColor(Record):
-    """Something locals eat, drink, say, root for or do, so the model can mention it without inventing it."""
+    """Something locals eat, drink, say, root for, do or tell (a legend, a rumour), so the model can mention it
+    without inventing it."""
     id: Id
     name: Text
     kind: Id  # LOCAL_COLOR_KINDS, or a city's own
@@ -286,6 +289,36 @@ class Price(Record):
         if self.low > self.high:
             raise ValueError(f'Price {self.id} runs low to high.')
         return self
+
+
+# Where a townsperson goes to work on a goal (companion/world/townsfolk.py GOAL_KINDS).
+PracticeSpot = Literal['park', 'venue', 'library', 'cafe', 'gym', 'market', 'workshop', 'museum', 'beach', 'temple',
+                       'restaurant']
+
+
+class TownQuirk(Record):
+    """A quirk particular to the city's townsfolk, beside the shared bank (world/data/quirks.json)."""
+    text: Text  # A subject-less clause: 'keeps the tide table pinned by the door'.
+    bio: str = Field(default='', max_length=400)  # First-person line for their dating profile.
+
+
+class TownGoal(Record):
+    """A goal particular to the city's townsfolk, beside the shared bank (world/data/goals.json), in its era's words."""
+    id: Id
+    text: Text  # Completes 'trying to ...'.
+    steps: int = Field(ge=1, le=12)
+    practice: tuple[PracticeSpot, DayPart] | None = None
+    progress: Text  # Starts with {name}.
+    done: Text  # Starts with {name}.
+    interest: str = Field(default='', max_length=80)
+    bio: str = Field(default='', max_length=400)
+
+
+class Townsfolk(Record):
+    """How the city flavours its townsfolk: quirks and goals they draw beside the shared ones, more often than any
+    one shared quirk or goal, so the town's people sound like the town."""
+    quirks: list[TownQuirk] = Field(default_factory=list, max_length=40)
+    goals: list[TownGoal] = Field(default_factory=list, max_length=40)
 
 
 class City(Record):
@@ -334,6 +367,8 @@ class City(Record):
     calendar: Id | None = None
     # Holidays particular to this city, beside its calendar's.
     holidays: list[Holiday] = Field(default_factory=list, max_length=100)
+    # Quirks and goals of the city's own for its townsfolk (companion/world/townsfolk.py).
+    townsfolk: Townsfolk | None = None
 
     @model_validator(mode='after')
     def check(self):

@@ -545,7 +545,7 @@ def test_local_color_is_seeded_and_seasonal():
     assert [entry['id'] for entry in winter] == ['hon']
     summer = generators.local_color(data, seed='s', day=date(2026, 7, 10), count=5)
     assert {entry['id'] for entry in summer} == {'hon', 'soft-shells'}
-    assert generators.local_color(data, seed='s', kinds=['dish']) == [item]
+    assert generators.local_color(data, seed='s', kinds=['dish']) == [item | {'hearsay': False}]
     assert any(line.startswith('Local saying: Hon') for line in generators.facts(data))
     with pytest.raises(ValidationError, match='unknown places'):
         catalog.prepare(plain(baltimore()) | {'local_color': [item | {'places': ['atlantis']}]})

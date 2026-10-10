@@ -100,6 +100,9 @@ def calendar_id(data: dict) -> str | None:
     return ERA_CALENDARS.get(data['era'])
 
 
+OMIT_WHEN_EMPTY = {'townsfolk'}
+
+
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError.
 
@@ -109,7 +112,9 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     if mend:
         raw, notes = mending.mend(raw if isinstance(raw, dict) else json.loads(raw))
     model = City.model_validate(raw) if isinstance(raw, dict) else City.model_validate_json(raw)
-    data = model.model_dump(mode='json')
+    # The townsfolk block is optional and newer than most cities: left out when absent, so their data_version
+    # stays the same.
+    data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     known = careers_for(data)
     for employer in data['employers']:
         unknown = set(employer['careers']) - set(known)
