@@ -24,7 +24,7 @@ from companion.world import catalog, dating, generators, newcomers, townsfolk
 
 ADULT_AT = 18
 # How many interests each level draws, and the boldest tier it reaches.
-DRAWS = {'reserved': (0, 0), 'conventional': (1, 1), 'curious': (2, 2), 'adventurous': (2, 3), 'wild': (3, 3)}
+DRAWS = {'reserved': (0, 0), 'conventional': (1, 1), 'curious': (2, 2), 'adventurous': (3, 3), 'wild': (4, 3)}
 DRIVES = {'low': 1, 'average': 2, 'high': 1}
 # A companion whose own words say they're under 18 never gets an adult side (fail closed). Background is left
 # out: "as a teen" there is a memory, not their age now.
@@ -174,5 +174,6 @@ def options() -> dict:
     return {'orientations': bank()['orientations'],
             'levels': [{'id': entry['id'], 'label': entry['label'], 'text': entry['text']} for entry in bank()['levels']],
             'drives': [{'id': entry['id'], 'label': entry['label']} for entry in bank()['drives']],
-            'interests': [{'id': entry['id'], 'label': entry['label'], 'tier': entry['tier']}
+            'groups': bank()['groups'],
+            'interests': [{'id': entry['id'], 'label': entry['label'], 'tier': entry['tier'], 'group': entry['group']}
                           for entry in bank()['interests']]}

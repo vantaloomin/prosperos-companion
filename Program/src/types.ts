@@ -149,7 +149,8 @@ export interface AdultSideChoices {
   orientations: string[]
   levels: { id: string; label: string; text: string }[]
   drives: { id: string; label: string }[]
-  interests: { id: string; label: string; tier: number }[]
+  groups: { id: string; label: string }[]
+  interests: { id: string; label: string; tier: number; group: string }[]
 }
 
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'

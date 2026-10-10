@@ -64,11 +64,16 @@ function Interests({ choices, rolled, current, update }: Omit<FormProps, 'romanc
   return (
     <Field label="Into" hint={own ? 'Picked by you.' : 'Rolled by the app. Tick or untick to choose your own.'}>
       {(id, describedBy) => (
-        <div id={id} className="check-grid" role="group" aria-describedby={describedBy}>
-          {choices.interests.map((entry) => (
-            <label key={entry.id}>
-              <input type="checkbox" checked={into.includes(entry.id)} onChange={(event) => toggle(entry.id, event.target.checked)} /> {entry.label}
-            </label>
+        <div id={id} className="form-stack" aria-describedby={describedBy}>
+          {choices.groups.map((group) => (
+            <div key={group.id} className="check-grid" role="group" aria-label={group.label}>
+              <strong className="check-grid-heading">{group.label}</strong>
+              {choices.interests.filter((entry) => entry.group === group.id).map((entry) => (
+                <label key={entry.id}>
+                  <input type="checkbox" checked={into.includes(entry.id)} onChange={(event) => toggle(entry.id, event.target.checked)} /> {entry.label}
+                </label>
+              ))}
+            </div>
           ))}
         </div>
       )}

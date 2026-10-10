@@ -616,6 +616,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .perception-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .perception-field select { width: 100%; min-width: 0; text-overflow: ellipsis; }
 .check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 6px 12px; }
+.check-grid-heading { grid-column: 1 / -1; font-size: 0.875rem; }
 .check-grid label { display: flex; align-items: center; gap: 6px; font-weight: normal; }
 .vibes { display: flex; flex-direction: column; gap: 8px; }
 .vibe-picks { display: flex; flex-wrap: wrap; gap: 6px; }

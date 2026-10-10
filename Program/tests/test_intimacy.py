@@ -34,6 +34,9 @@ def test_the_bank_only_holds_things_between_consenting_adults():
         assert not BANNED.search(words), words
     assert {entry['tier'] for entry in data['interests']} == {1, 2, 3}
     assert len({entry['id'] for entry in data['interests']}) == len(data['interests'])
+    groups = {group['id'] for group in data['groups']}
+    assert all(entry['group'] in groups for entry in data['interests'])
+    assert {entry['group'] for entry in data['interests']} == groups
 
 
 def test_nobody_under_18_gets_one():
@@ -90,7 +93,7 @@ def test_it_is_off_by_default_and_only_their_own_prompt_has_it(client, companion
 def test_what_the_user_sets_wins_and_a_young_sheet_gets_nothing(client, companion):
     client.put('/api/settings', json={'adult_side': True})
     revise(client, identity='32, a librarian.', relationship='romance',
-           intimacy={'orientation': '', 'level': 'wild', 'drive': 'low', 'interests': ['restraints', 'nonsense'],
+           intimacy={'orientation': '', 'level': 'wild', 'drive': 'low', 'interests': ['rope', 'nonsense'],
                      'note': 'Likes being asked first.'})
     prompt = preview(client)
     assert 'How adventurous: wild' in prompt and 'a low drive' in prompt and 'an agreed safeword' in prompt
