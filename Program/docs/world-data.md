@@ -104,7 +104,7 @@ event's generation inputs.
 | `job` | Careers come from `catalog.careers_for(data)`: the shared ones for the city's era plus its own. Returns `career`, `employer` (`name`, `id`, `named`, `fit`), `neighborhood`, `schedule`, `commute` (when `home` is given). `fit` says how the employer was found: `employer` (a named employer for that career), `college` (students), `workplace` (a fitting place, such as a cafe for a barista or a tavern for a career in hospitality), `hub` (an unnamed workplace in a matching career hub) or `weak` (no matching sector in this city). Unnamed employers are described, never given invented names. |
 | `schedule` | Routine blocks in exactly the character `schedule` shape of the [life simulation API](life-api.md): `work` (or `study`), `sleep`, `after-work` leisure when there is time, and `day-off` leisure. They can be passed straight to `POST /api/companion`. |
 | `home` | `neighborhood`, `housing` type, `bedrooms`, `rent` within the neighbourhood's range and the budget (in the city's `currency` per `rent_period`), `rent_range`; both `null` where the setting has no rents. |
-| `commute` | `mode`, `line` (transit name or `null`), `distance_km`, `minutes`; walking for short trips, a shared rail line, then a shared bus, then a car. All values are estimates. |
+| `commute` | `mode`, `line` (transit name or `null`), `distance_km`, `minutes`; walking for short trips, a shared rail line, then a shared bus, then one change of line (`line` reads "A, then B", with `change: {at, name, lines}` and seven minutes added), then a car. All values are estimates. |
 | `circle` | `family` (the companion's family name, given or chosen) and `people`, closest first: close friend, coworker, sibling, friend, parent, neighbor, friend, cousin, old classmate, friend, mentor, coworker (up to 12). Coworkers share the companion's `employer` (or `career` when only that is known; with neither there are no coworkers). Neighbors live in the `home` neighbourhood. Parents and siblings share the family name and heritage group; cousins do half the time. Relatives live out of town about 40% of the time. Ages sit around the companion's `age`. Names are unique within a circle. |
 | `resident` | `id` (stable for the seed), `role`, `closeness` (`close`, `regular`, `occasional`), `name`, `age`, `local`, `home` (a `home` result), `job` (a `job` result with a commute from home, or `null` when retired at 67 or out of town), `schedule` (routine blocks like `job`'s; a simple retired day; `null` out of town) and `haunts` (up to three affordable cafes, bars, parks and the like near home). Feed `schedule` to the background simulation the same way as a companion's. |
 | `name` | `given`, `family`, `full`, `pronouns` (`she/her`, `he/him` or `they/them`) and `group` (the heritage group drawn from). |
@@ -167,9 +167,18 @@ gets a short "names for anyone new" context section of ready-made names for the 
 spread of ages (`companion/world/newcomers.py`), so the model never has to invent one.
 
 **Local colour.** Each city lists things locals eat, drink, say, root for and do (`local_color`, with
-`kind` dish, drink, saying, custom, team, shop or other), with the places they are easiest to find and
+`kind` dish, drink, saying, custom, team, shop, legend, rumor or other), with the places they are easiest to find and
 the seasons they belong to. `local_color` picks a few for a seed, in season on `day`, so the model can
-mention crab feasts or a ventanita coffee without inventing them.
+mention crab feasts or a ventanita coffee without inventing them. Legends and rumours come back with
+`hearsay: true` and reach prompts as "Local legend (hearsay locals tell, not confirmed fact): …", never as fact.
+
+**A town's own townsfolk.** A city may add an optional `townsfolk` block with `quirks` and `goals` of its own
+(Pellmouth's people keep the tide table pinned by the door); each is drawn five times as often as a single shared
+one. Residents' and regulars' jobs follow the town: a career counts more when the city lists it, when its
+employers hire for it (by employer size), when a career hub matches its sector and when fitting places exist, so a
+quarry town has quarry workers rather than stockbrokers. Staff titles depend on the place as well as its kind (a
+soda jerk only at a soda fountain, a floorwalker only at a department store, a ticket taker at a paid attraction).
+A career can `need` a place kind or an employer that hires it (casino dealers need a casino).
 
 **Prices.** Each city with money lists typical prices for everyday things (`prices`: coffee, a pint,
 a fare, a week's groceries, a night's lodging) as `low`–`high` ranges in its own currency, with a
