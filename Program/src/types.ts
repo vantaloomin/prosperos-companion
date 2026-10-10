@@ -103,6 +103,23 @@ export type Intensity = 'mild' | 'moderate' | 'strong'
 
 export interface EmotionalTrait { name: string; intensity: Intensity; note: string }
 
+/** What they look like, field by field; empty strings and nulls are drawn for them, leaving out what Appearance says. */
+export interface Looks {
+  age: number | null
+  height_cm: number | null
+  weight_kg: number | null
+  build: string
+  skin: string
+  face: string
+  jaw: string
+  nose: string
+  eyes: string
+  eye_shape: string
+  hair: string
+  facial_hair: string
+  feature: string
+}
+
 export interface CharacterDefinition {
   name: string
   /** "MM-DD"; empty picks a date for them. */
@@ -115,6 +132,8 @@ export interface CharacterDefinition {
   interests: string[]
   background: string
   appearance: string
+  /** Face shape, height, build and the rest (companion/world/looks.py); an empty field is drawn for them. */
+  looks?: Looks
   routine: string
   location: string
   relationship: Relationship
