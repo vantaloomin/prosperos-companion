@@ -14,6 +14,16 @@ test('who is around reads as a sentence', () => {
   assert.equal(aroundText(['the barista', 'a regular', 'a neighbor']), 'The barista, a regular and a neighbor are here.')
 })
 
+test('unnamed people who read the same are counted, not repeated', () => {
+  const local = (hood: string) => `a local from ${hood}`
+  assert.equal(aroundText(['the barista', local('Little Italy'), local('Little Italy'), local('Harbor East'), local('Little Italy'), local('Fells Point')]),
+    'The barista, three locals from Little Italy, a local from Harbor East and a local from Fells Point are here.')
+  assert.equal(aroundText([local('Canton'), local('Canton')]), 'Two locals from Canton are here.')
+  assert.equal(aroundText(['a neighbor waiting for the bus', 'a neighbor waiting for the bus']), 'Two neighbors waiting for the bus are here.')
+  assert.equal(aroundText(['the barista', 'the barista', 'the waitress', 'the waitress']), 'Two baristas and two waitresses are here.')
+  assert.equal(aroundText(['Dana, the barista', 'Dana, the barista']), 'Dana, the barista and Dana, the barista are here.')
+})
+
 test('places are grouped by neighborhood', () => {
   const place = (id: string, neighborhood: string) => ({ id, name: id, kind: 'cafe', neighborhood })
   assert.deepEqual(placeGroups([place('b', 'Canton'), place('a', 'Fells Point'), place('c', 'Canton')]).map(([hood, items]) => [hood, items.map((item) => item.id)]),

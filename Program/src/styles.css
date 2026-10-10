@@ -283,6 +283,21 @@ textarea { resize: vertical; line-height: 1.6; }
   .message.pressing { transform: scale(.97); }
 }
 @media (hover: none) and (prefers-reduced-motion: reduce) { .message { transition: none; } .message.pressing { transform: none; } }
+/* A narrow window with a mouse: in the flow the hidden buttons would wrap into empty rows between a message and its
+   time, so they float as one row of icons on the message's top edge while it is hovered or focused, as Slack and
+   Discord do, and never move the list or cover the text. The labels stay as tooltips and for screen readers. */
+@media (max-width: 720px) and (hover: hover) {
+  .message { position: relative; }
+  .message .message-tools { display: none; position: absolute; top: 0; right: 8px; z-index: 2; transform: translateY(-50%); gap: 2px;
+    padding: 2px 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 2px 8px #0006; }
+  .message:is(:hover, :focus-within) { content-visibility: visible; }
+  .message:is(:hover, :focus-within) .message-tools { display: flex; }
+  .message .message-tools .text-button, .chat-retro .message .message-tools .text-button { min-width: 28px; min-height: 28px; padding: 0; justify-content: center; }
+  /* Novel cards clip what pokes out, and Retro lines have no gap between them: the row sits inside their right end. */
+  .chat-novel .message .message-tools { top: 8px; transform: none; }
+  .chat-retro .message .message-tools { top: -6px; right: 4px; transform: none; }
+  .message .message-tools .tool-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 
 /* The sheet: a dimmed chat, the message lifted above a group of large rows, and Cancel apart, as phone apps do. */
 .message-sheet { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 560px; max-height: 100dvh; margin: 0 auto; padding: 0 10px calc(10px + env(safe-area-inset-bottom));

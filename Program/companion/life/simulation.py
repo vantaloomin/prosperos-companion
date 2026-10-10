@@ -629,6 +629,11 @@ class LifeEngine:
             upcoming = {row['slot_key']: decode(row['entry']) if row['entry'] else None for row in many(
                 connection, "SELECT slot_key, entry FROM life_agenda WHERE timeline_id=? AND subject=? "
                 "AND status='upcoming' AND basis=?", (run['timeline_id'], agenda.COMPANION, version['id']))}
+            # A slot that already has a plan (made during an earlier slot) is not planned again.
+            planned_slots = {row['slot'] for row in many(
+                connection, "SELECT json_extract(details, '$.target_slot') AS slot FROM life_events WHERE "
+                "timeline_id=? AND kind='plan' AND status IN ('proposed', 'committed')", (run['timeline_id'],))}
+        future = [slot for slot in future if slot['key'] not in planned_slots]
         planned = composer.plan_ahead(version['definition'], self.world, key, future, upcoming)
         if planned is None:
             return {}
