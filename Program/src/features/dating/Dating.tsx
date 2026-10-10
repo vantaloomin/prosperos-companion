@@ -10,6 +10,7 @@ import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
 import { Photo } from './Photo'
+import { CityOptions } from '../world/CityOptions'
 import { AboutYou, IntoWho, Setup, WhatYouWant } from './Setup'
 
 const DATING_KEY = ['dating']
@@ -104,7 +105,7 @@ function LookingIn({ data, onEdit, onMove }: { data: DatingData; onEdit: () => v
     <div className="dating-bar">
       <label><MapPin aria-hidden="true" /> Looking in
         <select value={data.city.id} onChange={(event) => onMove(event.target.value)}>
-          {(cities.data ?? [data.city]).map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+          <CityOptions cities={cities.data ?? [data.city]} />
         </select>
       </label>
       <p className="subtle">{interestText(profile)} <button type="button" className="text-button inline" onClick={onEdit}>Edit your profile</button></p>

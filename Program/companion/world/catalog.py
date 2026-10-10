@@ -221,13 +221,30 @@ def city(city_id: str, extra: dict[str, dict] | None = None) -> dict:
     return found
 
 
+CATEGORIES = ('real', 'other-eras', 'fictional')
+PAST_ERAS = {'victorian', 'frontier', 'medieval', 'other'}
+
+
+def category(data: dict) -> str:
+    """The city's shelf in city lists: 'custom' for the user's own, else its named category, else one worked out from
+    its setting and era. A real or realistic past (an original frontier town) is another era; legends are fiction."""
+    if data.get('origin', 'user') == 'user':
+        return 'custom'
+    if data.get('category') in CATEGORIES:
+        return data['category']
+    setting, era = data.get('setting', 'real'), data.get('era', 'modern')
+    if era == 'modern':
+        return 'real' if setting == 'real' else 'fictional'
+    return 'other-eras' if era in PAST_ERAS and setting != 'fictional' else 'fictional'
+
+
 def summary(data: dict) -> dict:
     keys = ('id', 'name', 'setting', 'era', 'basis', 'region', 'country', 'timezone', 'aliases', 'summary',
             'data_version')
     return {key: data[key] for key in keys} | {
         'counts': {key: len(data[key]) for key in ('neighborhoods', 'places', 'colleges', 'employers',
                                                    'annual_events')}, 'builtin': data.get('builtin', False),
-        'origin': data.get('origin', 'user'), 'distribution': data['distribution'],
+        'origin': data.get('origin', 'user'), 'category': category(data), 'distribution': data['distribution'],
         'import_notes': data.get('import_notes', [])}
 
 

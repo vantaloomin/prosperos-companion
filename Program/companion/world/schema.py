@@ -306,6 +306,10 @@ class City(Record):
     # 'private' marks a personal city pack (for example fan fiction of owned settings): loaded from a local
     # folder, never shipped or committed.
     distribution: Literal['public', 'private'] = 'public'
+    # Where the city sits in city lists: 'real' (real places today), 'other-eras' (a real or realistic past) or
+    # 'fictional'. Open text so a stray word never stops a city loading; when it is not one of those three it is
+    # worked out from the setting and era (catalog.category).
+    category: str = Field(default='', max_length=40)
     # For fictional settings: the work it draws on and why it may be shipped (for example, public domain).
     basis: str = Field(default='', max_length=400)
     region: Text
