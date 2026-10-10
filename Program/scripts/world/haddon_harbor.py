@@ -903,6 +903,13 @@ CITY = {
         price('transfer-station', 'Transfer station sticker', 25, 40, 'a year'),
         price('gas', 'Gasoline', 3.2, 3.9, 'a gallon'),
     ],
+    'water': [
+        {'kind': 'sea', 'name': 'Penobscot Bay', 'side': 'east', 'width_km': 3},
+        {'kind': 'river', 'name': 'Mill River', 'width_km': 0.06, 'points': [
+            [43.996, -69.332], [43.986, -69.319], [43.978, -69.310], [43.974, -69.305], [43.969, -69.300],
+            [43.965, -69.293]]},
+        {'kind': 'lake', 'name': 'Long Pond', 'width_km': 1.2, 'points': [[44.026, -69.284]]},
+    ],
 }
 
 if __name__ == '__main__':

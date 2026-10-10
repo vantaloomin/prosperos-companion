@@ -1150,6 +1150,14 @@ CITY = {
         price('haircut', 'Haircut', 3000, 6000),
         price('wage', 'Day\'s pay', 8000, 12000, 'a day\'s take-home for an ordinary job'),
     ],
+    'water': [
+        {'kind': 'sea', 'name': 'Osaka Bay', 'side': 'west', 'width_km': 5},
+        {'kind': 'river', 'name': 'Yodo River', 'width_km': 0.6, 'points': [
+            [34.760, 135.565], [34.735, 135.530], [34.716, 135.500], [34.708, 135.470], [34.695, 135.440]]},
+        {'kind': 'river', 'name': 'Okawa', 'width_km': 0.12, 'points': [
+            [34.712, 135.523], [34.700, 135.518], [34.693, 135.510], [34.692, 135.495], [34.689, 135.478],
+            [34.680, 135.460]]},
+    ],
 }
 
 if __name__ == '__main__':

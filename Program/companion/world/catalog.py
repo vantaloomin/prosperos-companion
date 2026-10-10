@@ -329,9 +329,11 @@ def _featured() -> dict:
 
 
 def featured(extra: dict[str, dict] | None = None) -> dict:
-    """The release's featured cities that load, in its order, with `new` while the app is on that release."""
+    """The release's featured cities that load, in its order. While the app is on that release `new` is true,
+    and so is each city's own `new` when it first shipped in it."""
     data = _featured()
     known = cities() | (extra or {})
-    return {'release': data['release'], 'title': data['title'], 'note': data['note'],
-            'new': '.'.join(VERSION.split('.')[:2]) == data['release'],
-            'cities': [summary(known[city_id]) for city_id in data['cities'] if city_id in known]}
+    current = '.'.join(VERSION.split('.')[:2]) == data['release']
+    return {'release': data['release'], 'title': data['title'], 'note': data['note'], 'new': current,
+            'cities': [summary(known[city_id]) | {'new': current and city_id in data['new_cities']}
+                       for city_id in data['cities'] if city_id in known]}

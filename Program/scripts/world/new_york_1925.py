@@ -1100,6 +1100,17 @@ CITY = {
         price('furnished-room', 'Furnished room', 4, 8, 'a week'),
         price('groceries', 'Week\'s groceries for a family', 8, 12, 'a week'),
     ],
+    'water': [
+        {'kind': 'sea', 'name': 'Lower New York Bay', 'side': 'south', 'width_km': 4},
+        {'kind': 'river', 'name': 'Hudson River', 'width_km': 1.2, 'points': [
+            [40.690, -74.025], [40.710, -74.020], [40.730, -74.013], [40.760, -74.004], [40.790, -73.985],
+            [40.830, -73.955], [40.865, -73.933]]},
+        {'kind': 'river', 'name': 'East River', 'width_km': 0.6, 'points': [
+            [40.698, -74.008], [40.704, -73.990], [40.710, -73.973], [40.735, -73.970], [40.760, -73.955],
+            [40.784, -73.938], [40.800, -73.927]]},
+        {'kind': 'river', 'name': 'Harlem River', 'width_km': 0.2, 'points': [
+            [40.800, -73.927], [40.820, -73.933], [40.845, -73.930], [40.872, -73.912]]},
+    ],
 }
 
 if __name__ == '__main__':

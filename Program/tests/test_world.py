@@ -633,8 +633,12 @@ def test_surf_instructors_work_only_where_there_is_surf():
 def test_featured_cities_list_only_cities_that_load_and_are_new_on_their_release(client, monkeypatch):
     shipped = catalog._featured()
     assert len(shipped['cities']) <= 4
-    monkeypatch.setattr(catalog, '_featured', lambda: shipped | {'release': '0.1', 'cities': ['miami', 'atlantis']})
+    assert set(shipped['new_cities']) <= set(shipped['cities']) <= set(catalog.cities())
+    monkeypatch.setattr(catalog, '_featured', lambda: shipped | {
+        'release': '0.1', 'cities': ['miami', 'atlantis', 'baltimore'], 'new_cities': ['miami']})
     featured = client.get('/api/world/featured').json()
-    assert [city['id'] for city in featured['cities']] == ['miami'] and featured['new'] is False
+    assert [city['id'] for city in featured['cities']] == ['miami', 'baltimore'] and featured['new'] is False
+    assert not any(city['new'] for city in featured['cities'])
     monkeypatch.setattr(catalog, 'VERSION', '0.1.4')
-    assert client.get('/api/world/featured').json()['new'] is True
+    featured = client.get('/api/world/featured').json()
+    assert featured['new'] is True and [city['new'] for city in featured['cities']] == [True, False]
