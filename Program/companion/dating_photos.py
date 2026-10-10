@@ -19,6 +19,7 @@ from companion.images.content import classify
 from companion.images.routing import eligible, route
 from companion.world import dating as rules
 from companion.world import generators
+from companion.world import looks as appearance
 
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person, cartoon'
 WHO = {'woman': 'a woman', 'man': 'a man', 'nonbinary': 'a person'}
@@ -32,7 +33,8 @@ SETTINGS = {'cafe': 'sitting in a cafe', 'restaurant': 'at a restaurant table', 
             'tavern': 'in a busy tavern', 'park': 'outdoors in a park', 'garden': 'outdoors in a garden',
             'library': 'between library shelves', 'fitness': 'at the gym', 'market': 'at a market stall',
             'beach': 'on a beach boardwalk', 'trail': 'on a hiking trail', 'square': 'in a city square'}
-PROMPT = ('{frame}: {who}, {age} years old, {build} build, {hair}, {eyes}{beard}, {detail}, dressed in {style}, '
+PROMPT = ('{frame}: {who}, {age} years old, {build} build, {skin} skin, {face} face, {jaw}, {nose}, {hair}, {eyes}'
+          '{beard}, {detail}, dressed in {style}, '
           '{setting}. Head and shoulders, looking at the camera with a {smile}, natural light, real skin texture, '
           'fully clothed.')
 SMILES = ('warm smile', 'shy smile', 'easy grin', 'half smile', 'confident smile')
@@ -49,10 +51,13 @@ def inputs(sheet: dict, data: dict) -> dict:
     """The fixed prompt for this person's portrait."""
     found = rules.details(sheet, data)
     looks, seed = found['looks'], sheet.get('seed', sheet['key'])
+    # The rest of their face from the same sheet their pictures as a companion would use (companion/world/looks.py).
+    face = appearance.for_sheet(sheet, data)
     setting = SETTINGS.get(sheet['place'].get('kind'), 'at home') if dating.surface(data) == 'app' else \
         'plain studio backdrop'
     prompt = PROMPT.format(frame=FRAMES[dating.surface(data)], who=WHO[found['gender']], age=max(sheet['age'], 18),
-                           build=looks['build'], hair=looks['hair'], eyes=looks['eyes'],
+                           build=looks['build'], skin=face['skin'], face=face['face'], jaw=face['jaw'],
+                           nose=face['nose'], hair=looks['hair'], eyes=looks['eyes'],
                            beard=f", {looks['beard']}" if looks.get('beard') else '', detail=looks['detail'],
                            style=looks['style'], setting=setting, smile=generators.pick(seed, 'smile', list(SMILES)))
     return {'prompt': prompt, 'negative': NEGATIVE, 'aspect': 'portrait',

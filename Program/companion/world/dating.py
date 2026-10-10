@@ -224,6 +224,14 @@ def build(seed: str, sheet: dict, who: str) -> str:
         generators.pick(seed, 'build', list(BUILDS[who]))
 
 
+def fitted(drawn: str, tall: int, who: str) -> str:
+    """A build that names a height agrees with the height drawn: no 5'2" 'tall and lean', no 6' 'petite'."""
+    mean = HEIGHT[who][0]
+    if drawn == 'tall and lean' and tall < mean + 5:
+        return 'lean'
+    return 'slim' if drawn == 'petite' and tall > mean else drawn
+
+
 def era_kind(data: dict) -> str:
     era = data.get('era', 'modern')
     return 'future' if era == 'future' else 'modern' if townsfolk.modern(data) else 'period'
@@ -232,7 +240,8 @@ def era_kind(data: dict) -> str:
 def looks(sheet: dict, data: dict) -> dict:
     seed, who, era = townsfolk.drawn(sheet), gender(sheet), era_kind(data)
     details = list(DETAILS) + (list(MODERN_DETAILS) if era != 'period' else [])
-    found = {'height_cm': height_cm(seed, who, era != 'period'), 'build': build(seed, sheet, who),
+    tall = height_cm(seed, who, era != 'period')
+    found = {'height_cm': tall, 'build': fitted(build(seed, sheet, who), tall, who),
              'hair': hair(seed, sheet, who, era), 'eyes': f"{weighted(seed, 'eyes', EYES[region(sheet)])} eyes",
              'style': generators.pick(seed, 'style', list(STYLES[era])),
              'detail': generators.pick(seed, 'detail', details)}

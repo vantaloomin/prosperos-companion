@@ -54,6 +54,8 @@ def test_a_townsperson_gets_a_full_profile_from_their_sheet(client, clock, chatt
     assert definition.identity.startswith(str(person['age'])) and definition.personality and definition.voice
     assert definition.flaws and 'Mira' in definition.background and definition.routine
     assert {day for block in definition.schedule if block.kind == 'sleep' for day in block.days} == set(range(7))
+    # They keep the face and build they had in town, so their pictures show the same person.
+    assert definition.looks.age == person['age'] and definition.looks.height_cm and definition.looks.face
     # Staff work their shift; anyone else with a career works or studies (a graduate student has classes).
     assert any(block.kind in ('work', 'study') for block in definition.schedule) == (
         person['kind'] == 'staff' or bool(definition.money.career))

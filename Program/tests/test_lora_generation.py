@@ -26,7 +26,9 @@ def plan(draft, shots=None, **extra):
 def test_the_draft_builds_a_varied_shot_list_from_the_appearance(client, companion):
     appearance(client, companion, 'Short silver hair, freckles, green coat.')
     draft = ok(client.get('/api/lora/generations/draft'))
-    assert draft['base'] == 'Mira, Short silver hair, freckles, green coat'
+    # Their looks sheet sits between the name and the description, leaving out the hair and freckles it already names.
+    assert draft['base'].startswith('Mira, a') and draft['base'].endswith(', Short silver hair, freckles, green coat')
+    assert ' skin, ' in draft['base'] and 'hair' not in draft['base'].split(', Short')[0]
     labels = [shot['label'] for shot in draft['shots']]
     assert len(labels) == 14 and sum(label.startswith('Full body') for label in labels) == 3
     assert {'Laughing', 'Profile', 'Light: night', 'Outfit: smart'} <= set(labels)
