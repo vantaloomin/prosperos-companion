@@ -9,7 +9,8 @@ import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { RELATIONSHIPS, guessTimezone, stageNames } from './definition'
 import { PasteCharacter } from './PasteCharacter'
 import type { SplitResult } from './helper'
-import { defaultCity, placeGroups } from './places'
+import { defaultCity } from './places'
+import { CityOptions } from '../world/CityOptions'
 import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
 import { CitiesUnavailable } from '../world/CitiesUnavailable'
 
@@ -106,11 +107,7 @@ function Picks({ request, set, cities, homeCity, pickCity }: PicksProps) {
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={homeCity} onChange={(event) => pickCity(event.target.value)}>
             <option value="">Anywhere, today</option>
-            {placeGroups(cities.data ?? []).map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.cities.map((city) => <option key={city.id} value={city.id}>{city.name}, {city.region}</option>)}
-              </optgroup>
-            ))}
+            <CityOptions cities={cities.data ?? []} withRegion />
           </select>
         )}
       </Field>

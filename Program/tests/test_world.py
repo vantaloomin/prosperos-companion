@@ -149,6 +149,9 @@ def test_free_text_locations_resolve_to_cities_and_neighborhoods():
 
 def test_world_api(client):
     cities = client.get('/api/world/cities').json()
+    shelves = {city['id']: city['category'] for city in cities}
+    assert shelves['baltimore'] == 'real' and shelves['london-1895'] == shelves['whitlock'] == 'other-eras'
+    assert shelves['camelot'] == shelves['calderwick'] == shelves['emerald-city'] == 'fictional'
     assert 'baltimore' in {city['id'] for city in cities}
     assert client.get('/api/world/cities/atlantis').status_code == 404
     places = client.get('/api/world/cities/baltimore/places', params={'kind': 'museum'}).json()
@@ -201,6 +204,7 @@ def test_users_build_their_own_cities(client):
     assert client.post('/api/world/cities', json=template | {'id': 'baltimore'}).status_code == 409
     listed = {item['id']: item for item in client.get('/api/world/cities').json()}
     assert listed['port-calloway']['builtin'] is False and listed['baltimore']['builtin'] is True
+    assert listed['port-calloway']['category'] == 'custom'
 
     job = client.get('/api/world/cities/port-calloway/generate/job', params={'career': 'barista', 'seed': 's'})
     assert job.status_code == 200 and job.json()['neighborhood']['id'] == 'old-town'
