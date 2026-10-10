@@ -292,7 +292,10 @@ textarea { resize: vertical; line-height: 1.6; }
     padding: 2px 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 2px 8px #0006; }
   .message:is(:hover, :focus-within) { content-visibility: visible; }
   .message:is(:hover, :focus-within) .message-tools { display: flex; }
-  .message .message-tools .text-button { padding: 5px 6px; }
+  .message .message-tools .text-button, .chat-retro .message .message-tools .text-button { min-width: 28px; min-height: 28px; padding: 0; justify-content: center; }
+  /* Novel cards clip what pokes out, and Retro lines have no gap between them: the row sits inside their right end. */
+  .chat-novel .message .message-tools { top: 8px; transform: none; }
+  .chat-retro .message .message-tools { top: -6px; right: 4px; transform: none; }
   .message .message-tools .tool-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
