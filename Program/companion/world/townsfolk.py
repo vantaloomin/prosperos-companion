@@ -266,8 +266,9 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     place = catalog.find(data, place_id)
     key = f"town:{data['id']}:{place['id']}:{index}"
     seed = seed_for(data, key)
-    seeded = count(data, place)
-    notable = notables_at(data, place['id'])[index - seeded] if index >= seeded else None
+    # Past the seeded people come the place's notables; anyone further along is drawn like the seeded ones.
+    named = notables_at(data, place['id'])[max(index - count(data, place), 0):]
+    notable = named[0] if index >= count(data, place) and named else None
     role = (notable['role'], notable['role'], notable['staff']) if notable else _role(place, index, seed)
     title = notable['role'] if notable else role_title(data, role, place)
     age = notable['age'] if notable else \

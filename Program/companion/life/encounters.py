@@ -278,10 +278,9 @@ def text(person: dict) -> str:
     parts = [f"- {person['full']}, about {round(person['age'], -1) if person['age'] >= 25 else person['age']}, "
              f"{where}{hood}: {person['temperament']}, {person['quirk']}. You've crossed paths {times}, "
              f"last on {when} at {person['last_place']}."]
-    if person.get('about'):
-        parts.append(f"Who they are: {person['about']}")
-    if person.get('comes_across'):
-        parts.append(f"How they come across: {person['comes_across']}")
+    parts += [f"{label}: {person[field]}" for field, label in (('about', 'Who they are'),
+                                                             ('comes_across', 'How they come across'))
+              if person.get(field)]
     if person['goal']:
         lately = f" Last you heard: {person['lately']}." if person['lately'] else ''
         parts.append(f"They are trying to {person['goal']}.{lately}")
