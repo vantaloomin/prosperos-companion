@@ -54,6 +54,8 @@ def test_every_template_reads_right():
                 assert dream['told'].startswith('Last night you dreamed')
                 if 'you' in dream['text'].split():
                     assert 'the user' in dream['told']
+    # Templates say "every piece was {object}" and "knew everything about them": the things are always many.
+    assert not [thing for thing in dreams.data()['object'] if thing.split()[0] in {'a', 'an', 'one', 'the'}]
 
 
 def test_the_user_only_turns_up_as_a_second_person():

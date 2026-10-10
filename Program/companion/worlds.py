@@ -413,6 +413,9 @@ def become(state, key: str) -> dict:
     now = database.clock.now()
     with database.connect() as connection:
         focus = characters.require_current(connection)
+        already = optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (key,))
+        name = already and characters.by_id(connection, already['id'])['version']['name']
+        require(not name, f"{name} is already one of your companions, so you can't become them.", 409)
         place_data, sheet, _meetings, _story = cast.townsperson(connection, focus, key, now)
     town = place_data.get('town', '')
     persona = persona_for(place_data, sheet, now.astimezone(zone(place_data['timezone'])).date(), database.now())

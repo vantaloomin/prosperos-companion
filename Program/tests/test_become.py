@@ -1,6 +1,6 @@
 """Become a townsperson (companion/worlds.py, Feature Hit List #43): a new life as someone met around town."""
 import pytest
-from test_cast import chatty, met_someone, ok, steady  # noqa: F401 - fixtures
+from test_cast import chatty, met_someone, ok, steady, switch  # noqa: F401 - fixtures
 
 from companion.characters import require_current
 from companion.life import network
@@ -52,6 +52,14 @@ def test_only_someone_met_can_be_become(client, met):
     response = client.post('/api/worlds/become', json={'key': person['key'].rsplit(':', 1)[0] + ':99'})
     assert response.status_code == 404
     assert len(ok(client.get('/api/worlds'))['personas']) == 1
+
+
+def test_someone_who_became_a_companion_is_already_one(client, met):
+    _mira, person, _town = met
+    switch(client, person['key'])
+    response = client.post('/api/worlds/become', json={'key': person['key']})
+    assert response.status_code == 409
+    assert response.json()['detail'] == f"{person['full']} is already one of your companions, so you can't become them."
 
 
 def test_the_persona_text_is_theirs_to_change(client, met):
