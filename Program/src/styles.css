@@ -578,6 +578,16 @@ textarea { resize: vertical; line-height: 1.6; }
 .text-button[aria-pressed='true'] { color: var(--accent); }
 @media (max-width: 720px) { .eval-table thead { display: none; } .eval-table tr, .eval-table th, .eval-table td { display: block; } }
 .lora-strength { max-width: 7rem; }
+.city-filters { display: grid; gap: 10px; min-width: 0; }
+.city-filters .search-field { display: flex; align-items: center; gap: 8px; max-width: 360px; }
+.city-filters .search-field svg { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
+.city-filters .search-field input { flex: 1; min-width: 0; }
+.city-chips .subtle { margin-left: 2px; }
+@media (max-width: 720px) {
+  .vibe-picks.city-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .city-chips .vibe-pick { flex: 0 0 auto; }
+  .city-filters .search-field { max-width: none; }
+}
 .city-group h3 { margin: 12px 0 2px; font-size: 1rem; }
 .city-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
 .city-card { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }

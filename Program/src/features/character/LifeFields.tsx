@@ -7,6 +7,7 @@ import { MoneyFields } from './MoneyFields'
 import { ScheduleEditor } from './ScheduleEditor'
 import type { DraftField } from './drafting'
 import { CitiesUnavailable } from '../world/CitiesUnavailable'
+import { CityOptions } from '../world/CityOptions'
 
 interface Props { definition: CharacterDefinition; set: (change: Partial<CharacterDefinition>) => void; themes: string; setThemes: (value: string) => void; help?: (field: DraftField, label: string) => ReactNode }
 
@@ -23,7 +24,7 @@ export function LifeFields({ definition, set, themes, setThemes, help }: Props) 
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={definition.home_city} onChange={(event) => chooseCity(event.target.value)}>
             <option value="">None</option>
-            {(cities.data ?? []).map((city) => <option key={city.id} value={city.id}>{city.name}, {city.region}</option>)}
+            <CityOptions cities={cities.data ?? []} withRegion />
           </select>
         )}
       </Field>

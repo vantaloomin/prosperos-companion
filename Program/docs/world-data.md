@@ -15,6 +15,14 @@ Built-in cities come in three kinds (`setting`):
 | `fictional` | Well-known settings that are free to ship: the Emerald City of Oz (Baum's public-domain books), London in 1895 (Conan Doyle's Holmes stories) Camelot (Malory, Tennyson and other public-domain Arthurian sources) and Ellerbrück, a fairy-tale market town drawn from Grimm, Perrault and Andersen. Settings owned by others (Gotham, Night City, Baldur's Gate) are not shipped; users can build cities like them for themselves. |
 | `original` | Settings written for the Companion: Whitlock, an 1880s territorial railroad and mining town, and Calderwick, an industrial canal city with a steampunk lean. |
 
+City lists (Settings > Cities and every city picker) shelve cities as **Real / Modern**, **Other Eras**,
+**Fictional** and **Custom**. Custom holds the user's own cities. Any other city can name its shelf in
+`category` (`real`, `other-eras` or `fictional`); otherwise it is worked out from `setting` and `era`: a real
+city of today is Real / Modern, a real or original city in a past era (`victorian`, `frontier`, `medieval`,
+`other`) is Other Eras, and the rest are Fictional. London 1895 is a `fictional` setting that names
+`other-eras`, since it is real London with Holmes's places added. The summary from `GET /api/world/cities`
+carries the result as `category`.
+
 Users can also build their own cities (see [Building a city](#building-a-city)). `GET /api/world/cities`
 lists what a workspace actually has. Each city has neighbourhoods (with approximate centres, typical rents and
 housing), places (attractions, museums, parks, venues, food, bars, shopping), colleges, major

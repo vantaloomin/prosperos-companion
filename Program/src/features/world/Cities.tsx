@@ -1,13 +1,13 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Download, FilePlus2, FolderSync, Pencil, Trash2, Upload } from 'lucide-react'
+import { Copy, Download, FilePlus2, FolderSync, Pencil, Search, Trash2, Upload } from 'lucide-react'
 import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { TextInput } from '../../components/Fields'
 import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { cityFacts, definitionOf, exportName, groupCities, GROUPS, parseDefinition, slugify, type BrokenCity, type CityListing, type PackReport } from './cityText'
+import { cityFacts, definitionOf, exportName, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
 const BROKEN_KEY = ['broken-cities']
@@ -78,7 +78,6 @@ export function Cities() {
     } catch (error) { fail(error) } finally { void refresh() }
   }
 
-  const groups = cities.data ? groupCities(cities.data) : null
   return (
     <section className="settings-section form-stack" aria-labelledby="cities-heading">
       <div>
@@ -103,32 +102,15 @@ export function Cities() {
           Your city {city.name} no longer loads, so it is left out of every list. {city.error} Save it as a file, fix it, delete it here, then open the fixed file.
         </Notice>
       ))}
-      {groups && GROUPS.filter((group) => groups[group.origin].length > 0 || group.origin === 'user').map((group) => (
-        <div key={group.origin} className="city-group">
-          <h3>{group.title}</h3>
-          <p className="subtle">{groups[group.origin].length === 0 ? 'None yet.' : group.note}</p>
-          <ul className="city-list">
-            {groups[group.origin].map((city) => (
-              <li key={city.id} className="city-card">
-                <header>
-                  <h4>{city.name}{city.distribution === 'private' && <span className="badge">Private</span>}</h4>
-                  <p className="subtle">{[city.region, city.country].filter(Boolean).join(', ')} · {cityFacts(city)}</p>
-                </header>
-                <p>{city.summary}</p>
-                <div className="person-actions">
-                  {city.origin === 'user' && <button type="button" className="text-button" onClick={() => void startEdit(city)}><Pencil aria-hidden="true" />Edit</button>}
-                  <button type="button" className="text-button" onClick={() => setCopying(city)}><Copy aria-hidden="true" />Copy</button>
-                  {city.distribution === 'public' && <button type="button" className="text-button" onClick={() => void exportCity(city)}><Download aria-hidden="true" />Save as file</button>}
-                  {city.origin === 'user' && <button type="button" className="text-button" onClick={() => setDeleting(city)}><Trash2 aria-hidden="true" />Delete</button>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {cities.data && <CityShelves cities={cities.data} actions={(city) => <>
+        {city.origin === 'user' && <button type="button" className="text-button" onClick={() => void startEdit(city)}><Pencil aria-hidden="true" />Edit</button>}
+        <button type="button" className="text-button" onClick={() => setCopying(city)}><Copy aria-hidden="true" />Copy</button>
+        {city.distribution === 'public' && <button type="button" className="text-button" onClick={() => void exportCity(city)}><Download aria-hidden="true" />Save as file</button>}
+        {city.origin === 'user' && <button type="button" className="text-button" onClick={() => setDeleting(city)}><Trash2 aria-hidden="true" />Delete</button>}
+      </>} />}
       <Packs onReloaded={() => void refresh()} />
       {copying && <CopyDialog city={copying} onClose={() => setCopying(null)}
-        onCopied={(name) => { setCopying(null); setFeedback({ tone: 'info', text: `Copied as ${name}. It is under Your cities.` }); void refresh() }} />}
+        onCopied={(name) => { setCopying(null); setFeedback({ tone: 'info', text: `Copied as ${name}. It is under Custom.` }); void refresh() }} />}
       {deleting && (
         <ConfirmDialog title={`Delete ${deleting.name}?`} onClose={() => setDeleting(null)} actions={<>
           <button type="button" className="button" onClick={() => setDeleting(null)}>Cancel</button>
@@ -139,6 +121,54 @@ export function Cities() {
       )}
     </section>
   )
+}
+
+/** The city list: a filter chip per shelf with its count, a search box, then a headed section per shelf (PRD W5). */
+function CityShelves({ cities, actions }: { cities: CityListing[]; actions: (city: CityListing) => ReactNode }) {
+  const [shown, setShown] = useState<CityCategory | 'all'>('all')
+  const [query, setQuery] = useState('')
+  const shelves = shelveCities(cities)
+  const found = shelves.map((shelf) => ({ ...shelf, cities: shelf.cities.filter((city) => matchesCity(city, query)) }))
+    .filter((shelf) => shown === 'all' || shelf.id === shown)
+  const searching = query.trim().length > 0
+  const total = found.reduce((sum, shelf) => sum + shelf.cities.length, 0)
+  const chip = (id: CityCategory | 'all', title: string, count: number) => (
+    <button key={id} type="button" className="vibe-pick" aria-pressed={shown === id} onClick={() => setShown(id)}>{title} <span className="subtle">{count}</span></button>
+  )
+  return (<>
+    <div className="city-filters">
+      <div className="vibe-picks city-chips" role="group" aria-label="Show cities">
+        {chip('all', 'All', cities.length)}
+        {shelves.map((shelf) => chip(shelf.id, shelf.title, shelf.cities.length))}
+      </div>
+      <div className="search-field">
+        <Search aria-hidden="true" />
+        <label className="visually-hidden" htmlFor="city-search">Find a city</label>
+        <input id="city-search" type="search" placeholder="Find a city" value={query} onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => { if (event.key === 'Escape') setQuery('') }} />
+      </div>
+    </div>
+    <p className="visually-hidden" aria-live="polite">{searching ? `${total} ${total === 1 ? 'city' : 'cities'} found` : ''}</p>
+    {searching && total === 0 && <p className="subtle">No cities match “{query.trim()}”.</p>}
+    {found.filter((shelf) => shelf.cities.length > 0 || (shelf.id === 'custom' && !searching)).map((shelf) => (
+      <div key={shelf.id} className="city-group">
+        <h3>{shelf.title}</h3>
+        {shelf.cities.length === 0 && <p className="subtle">None yet. New city or Copy makes one.</p>}
+        <ul className="city-list">
+          {shelf.cities.map((city) => (
+            <li key={city.id} className="city-card">
+              <header>
+                <h4>{city.name}{city.origin === 'pack' && <span className="badge">Pack</span>}{city.distribution === 'private' && <span className="badge">Private</span>}</h4>
+                <p className="subtle">{[city.region, city.country].filter(Boolean).join(', ')} · {cityFacts(city)}</p>
+              </header>
+              <p>{city.summary}</p>
+              <div className="person-actions">{actions(city)}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </>)
 }
 
 function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: () => void; onSaved: (city: CityListing) => void }) {

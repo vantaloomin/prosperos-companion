@@ -11,6 +11,7 @@ import { InfoTip } from '../../components/InfoTip'
 import { AiFooter, CrisisNote } from '../../components/Safety'
 import { aroundText, placeGroups, sceneTime, whereText } from './storyText'
 import { StoryPeople } from './StoryPeople'
+import { CityOptions } from '../world/CityOptions'
 
 const STORY_KEY = ['story']
 const OUT_OF_STORY = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)).'
@@ -72,7 +73,7 @@ function GoElsewhere({ scene, onDone, onMove }: GoProps) {
     <div className="story-go form-actions">
       <label>City
         <select value={scene.city.id} onChange={(event) => void onMove({ city_id: event.target.value })}>
-          {(cities.data ?? [scene.city]).map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+          <CityOptions cities={cities.data ?? [scene.city]} />
         </select>
       </label>
       <label>Place

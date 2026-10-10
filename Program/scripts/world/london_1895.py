@@ -73,6 +73,7 @@ MET, DISTRICT, TUBE, NLR = 'metropolitan-railway', 'district-railway', 'city-and
 
 CITY = {
     'schema_version': 1, 'id': 'london-1895', 'name': 'London, 1895', 'setting': 'fictional', 'era': ERA,
+    'category': 'other-eras',
     'basis': 'Real late-Victorian London, as it stood in 1895, together with the places of Arthur Conan Doyle\'s '
              'Sherlock Holmes stories, all of which are in the public domain in the US. Nothing is taken from '
              'later films, television or pastiches.',
