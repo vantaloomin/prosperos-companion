@@ -6,9 +6,9 @@ import type { LifeSettings, WorkspaceSettings } from '../../types'
 import { Toggle } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { GROUPS_KEY } from '../groups/groupState'
+import { LIFE_KEY } from './useLifeSettings'
 
 type Flag = 'show_moods' | 'show_news' | 'show_odds' | 'show_secret_slips'
-const LIFE_KEY = ['life-settings']
 
 /** Hidden values: what companions feel, who has heard their news and the odds behind how things went shape every
  * reply, but stay unseen unless the user turns them on, so by default you find out the way you would in life. */
@@ -53,7 +53,7 @@ export function HiddenValues({ name }: { name: string }) {
   )
 }
 
-/** "Mira", "Mira's", "Mira keeps"; with no companion yet, "your companions", "their", "they keep". */
+/** "Mira", "Mira's", "Mira keeps"; without a name (Settings > Realism covers everyone), "each companion", "their", "they keep". */
 function phrases(name: string) {
-  return name ? { who: name, whose: `${name}'s`, keeps: `${name} keeps` } : { who: 'your companions', whose: 'their', keeps: 'they keep' }
+  return name ? { who: name, whose: `${name}'s`, keeps: `${name} keeps` } : { who: 'each companion', whose: 'their', keeps: 'they keep' }
 }

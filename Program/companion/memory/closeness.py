@@ -14,7 +14,7 @@ pressure the user or to reward time spent.
 """
 from datetime import date
 
-from companion.characters import require_current
+from companion.characters import by_id, require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
@@ -276,19 +276,28 @@ def set_to(current: dict, level: int, timestamp: str) -> dict:
     return values
 
 
-def view(database) -> dict:
+def chosen(connection, companion_id: str | None) -> dict:
+    """The companion asked for (Settings > Realism picks any of them), else the one open now."""
+    if not companion_id:
+        return require_current(connection)
+    companion = by_id(connection, companion_id)
+    require(companion is not None and companion.get('active_timeline_id'), 'That companion is not in this world.', 404)
+    return companion
+
+
+def view(database, companion_id: str | None = None) -> dict:
     with database.connect() as connection:
-        return state(connection, require_current(connection), database.clock.now())
+        return state(connection, chosen(connection, companion_id), database.clock.now())
 
 
-def update(database, body) -> dict:
+def update(database, body, companion_id: str | None = None) -> dict:
     """Set the stage (it keeps growing from there), hold it (or let it grow again with null), cap it, turn
-    gentle cooling on or off and set the nickname, as given."""
+    gentle cooling on or off and set the nickname, as given, for the companion asked for or the open one."""
     values = {key: getattr(body, key) for key in body.model_fields_set}
     if 'nickname' in values:
         values['nickname'] = (values['nickname'] or '').strip()[:NICKNAME_LIMIT]
     with database.connect(write=True) as connection:
-        companion = require_current(connection)
+        companion = chosen(connection, companion_id)
         timestamp, now = database.now(), database.clock.now()
         level = values.pop('set_level', None)
         if level:

@@ -648,7 +648,7 @@ companion heard today or yesterday can open a conversation ("Did you hear about 
 that companion has told the user. Only life events travel, never anything from the user's chats, and the prompt
 says they don't know whether the user has heard, so no companion seems to have read the user's other chats.
 Group chats: see docs/group-chat.md. Today shows "Word getting around": the companion's recent news and who has
-heard it, from whom, once anyone has, only with Settings > Life > Hidden values > "Show who has heard their news"
+heard it, from whom, once anyone has, only with Settings > Realism > Hidden values > "Show who has heard their news"
 on (workspace `show_news`, off by default; `GET /api/life/news` returns `[]` while it is off). Word travels either
 way.
 
@@ -927,7 +927,7 @@ emotional trait the character was not given is ever implied.
 The wording is a fixed template. With background activity and `phrase_with_model` both on, the life model polishes
 one thought a tick at background priority; a polish that drops their name, names a clock time or runs long is
 thrown away and the template stays. Thoughts never reach the chat context, so the companion never knows they were
-read. The Life setting `on_her_mind` (Settings > Life > Hidden values, on by default) hides them and stops new ones being written.
+read. The Life setting `on_her_mind` (Settings > Realism > Hidden values, on by default) hides them and stops new ones being written.
 
 ### Little things: the Life deck and random tables
 

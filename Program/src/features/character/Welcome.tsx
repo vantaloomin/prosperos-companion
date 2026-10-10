@@ -6,6 +6,7 @@ import type { Connection } from '../../types'
 import { useHardware } from '../settings/models/hardware'
 import { usePhoneStatus } from '../phone/phoneAccess'
 import { welcomeSteps } from './welcomeSteps'
+import { RealismPresets } from '../settings/RealismPresets'
 
 /** The first screen with no companion: connect the model they think with, then create them. */
 export function Welcome({ go }: { go: (view: View) => void }) {
@@ -31,6 +32,9 @@ export function Welcome({ go }: { go: (view: View) => void }) {
           </li>
         ))}
       </ol>
+      {/* Wolfenstein-style presets (Vanta, 2026-10-10): one is already picked, so this never holds anything up. */}
+      <RealismPresets heading="welcome-presets-heading" title="How should it feel?"
+        intro="One is picked for you. Tap another if you like; you can change it any time in Settings > Realism." />
       {!remote && hardware.data && <div className="welcome-hardware subtle">
         <p>On this computer: {hardware.data.can_run.join(' ')}</p>
         {hardware.data.warnings.length > 0 && <p>Settings &gt; Models has {hardware.data.warnings.length === 1 ? 'a warning' : 'warnings'} about the models you set up.</p>}
