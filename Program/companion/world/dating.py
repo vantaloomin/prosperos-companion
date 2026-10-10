@@ -78,6 +78,10 @@ STYLES = {
                'hand-made and patched', 'bright synthetic colors', 'sharp and tailored'),
     'period': ('neat Sunday best', 'well-worn working clothes', 'a little dandyish', 'plain and sensible',
                'fashionable to the last button', 'mended but spotless', 'bright ribbons and a good hat'),
+    # An era's own looks, where the period ones above don't fit it.
+    'jazz-age': ('a sharp three-piece suit', 'beads, fringe and a short hemline', 'a cloche hat pulled low',
+                 'Oxford bags and a sweater vest', 'well-worn working clothes', 'neat Sunday best',
+                 'two-tone shoes and a pocket square', 'mended but spotless', 'a raccoon coat and college colors'),
 }
 DETAILS = ('freckles', 'dimples', 'a gap-toothed smile', 'glasses', 'laugh lines', 'a crooked smile',
            'a scar through one eyebrow', 'very long eyelashes', 'a small mole above the lip', 'a broken nose that '
@@ -87,8 +91,6 @@ BEARDS = ('a full beard', 'stubble', 'a neat moustache', 'a trimmed beard')
 
 # The bio -----------------------------------------------------------------------------------------------
 
-QUIRK_BIO = {item['text']: item['bio'] for item in townsfolk.QUIRK_BANK}
-GOAL_BIO = {item['id']: item['bio'] for item in townsfolk.GOAL_BANK}
 LOOKING_TEXT = {'serious': 'a relationship', 'casual': 'something casual', 'friends': 'new friends'}
 PART_TEXT = {'morning': 'mornings', 'afternoon': 'afternoons', 'evening': 'evenings', 'late': 'late evenings'}
 # A personal-column notice, in older eras: what they seek, by what they are looking for.
@@ -220,7 +222,7 @@ def looks(sheet: dict, data: dict) -> dict:
     tall = height_cm(seed, who, era != 'period')
     found = {'height_cm': tall, 'build': fitted(build(seed, sheet, who), tall, who),
              'hair': hair(seed, sheet, who, era), 'eyes': f"{weighted(seed, 'eyes', EYES[region(sheet)])} eyes",
-             'style': generators.pick(seed, 'style', list(STYLES[era])),
+             'style': generators.pick(seed, 'style', list(STYLES.get(data.get('era', ''), STYLES[era]))),
              'detail': generators.pick(seed, 'detail', details)}
     if who == 'man' and generators.unit(seed, 'beard') < 0.35:
         found['beard'] = generators.pick(seed, 'beard-how', list(BEARDS))
@@ -283,8 +285,8 @@ def haunt_text(sheet: dict) -> str:
 def bio(sheet: dict, data: dict, after: str, day: date) -> str:
     """Up to three short lines from what the sheet says about them."""
     seed = townsfolk.drawn(sheet)
-    goal_id = townsfolk.story(sheet, data, day)['goal']['id']
-    lines = [GOAL_BIO.get(goal_id, ''), QUIRK_BIO.get(sheet['quirk'], ''), haunt_text(sheet)]
+    lines = [townsfolk.story(sheet, data, day)['goal']['bio'], townsfolk.quirk_bio(data, sheet['quirk']),
+             haunt_text(sheet)]
     if sheet.get('occupation') == 'retired':
         lines.insert(0, 'Retired, and busier than ever.')
     lines = sorted((line for line in lines if line), key=lambda line: generators.unit(seed, 'bio', line))[:3]

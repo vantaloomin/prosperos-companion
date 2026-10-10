@@ -19,7 +19,7 @@ from datetime import date
 from companion.clock import parse, stamp
 from companion.database import decode, encode, many, optional
 from companion.life import circle, composer
-from companion.world import catalog, generators, newcomers
+from companion.world import generators, newcomers
 
 MAX_DEPTH = 4
 SIZE = (4, 7)
@@ -108,9 +108,9 @@ def named(data: dict, key: str, age: int, family: str | None, used: set, theirs:
 def occupation(data: dict, key: str, age: int) -> str:
     if age >= generators.RETIRED_AT:
         return 'retired'
-    careers = catalog.careers_for(data) if data.get('places') else {}
-    options = sorted(career['name'] for career in careers.values())
-    return generators.pick(key, 'career', options).lower() if options else ''
+    # Weighted towards the city's own industries, like its townsfolk (generators.town_career).
+    career = generators.town_career(data, key) if data.get('places') else None
+    return career['name'].lower() if career else ''
 
 
 def city(connection, companion: dict) -> dict:

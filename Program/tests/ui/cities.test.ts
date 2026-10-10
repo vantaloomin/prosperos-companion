@@ -53,3 +53,4 @@ test('facts read naturally', () => {
   assert.equal(cityFacts(city()), 'Real city · modern · 21 neighbourhoods, 124 places')
   assert.equal(cityFacts(city({ setting: 'original', counts: { ...city().counts, neighborhoods: 1, places: 1 } })), 'Original setting · modern · 1 neighbourhood, 1 place')
 })
+

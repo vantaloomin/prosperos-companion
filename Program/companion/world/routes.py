@@ -57,6 +57,11 @@ def list_cities(request: Request):
     return [catalog.summary(data) for data in [*catalog.cities().values(), *user_cities(request).values()]]
 
 
+@router.get('/featured')
+def read_featured(request: Request):
+    return catalog.featured(user_cities(request))
+
+
 @router.get('/broken-cities')
 def list_broken_cities(request: Request):
     """The user's cities that no longer load, so Settings can offer to save or delete them."""
