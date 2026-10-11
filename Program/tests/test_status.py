@@ -75,3 +75,35 @@ def test_away_times_read_the_way_people_write_them():
     assert status.clock_text(datetime(2026, 10, 5, 18, 0)) == '6'
     assert status.clock_text(datetime(2026, 10, 5, 17, 30)) == '5:30'
     assert status.clock_text(datetime(2026, 10, 5, 0, 15)) == '12:15'
+
+
+def test_retro_im_draws_era_away_messages_from_the_bank(client, clock):
+    """Retro IM swaps the everyday and away lines for 2000s away messages; other styles keep the plain ones."""
+    make(client, 'Warm and curious.', interests=['birdwatching'])
+    bank = status.retro_bank()
+    assert client.put('/api/settings', json={'chat_style': 'retro'}).status_code == 200
+    at(clock, 10)
+    assert read(client)['away']['text'] in {line.format(until='5') for line in bank['away']['work']}
+    everyday = set(bank['fake_deep'] + bank['emo'] + bank['random'])
+    seen = set()
+    for day in range(5, 25):
+        at(clock, 8, day=day)
+        seen.add(read(client)['text'])
+    assert any(line in everyday or any(song in line for song in bank['songs']) for line in seen), seen
+    assert client.put('/api/settings', json={'chat_style': 'feed'}).status_code == 200
+    at(clock, 10)
+    assert read(client)['away']['text'] in {'at work till 5', 'working, back at 5', 'on the clock till 5'}
+
+
+def test_the_retro_bank_is_big_and_never_says_online():
+    bank = status.retro_bank()
+    for kind in ('fake_deep', 'emo', 'random', 'songs'):
+        assert len(bank[kind]) >= 100 and len(set(bank[kind])) == len(bank[kind]), kind
+    assert set(bank['away']) == set(status.AWAY) and all(len(lines) >= 30 for lines in bank['away'].values())
+    longest = max(bank['songs'], key=len)
+    lines = [line.format(song=longest) for line in bank['song_lines']]
+    lines += bank['fake_deep'] + bank['emo'] + bank['random']
+    lines += [line.format(until='12:30') for kind in bank['away'].values() for line in kind]
+    for line in lines:
+        assert not any(word in line.lower() for word in ('online', 'idle', 'typing', 'offline')), line
+        assert len(line) <= status.LIMIT, line
