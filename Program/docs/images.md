@@ -63,7 +63,10 @@ backend is off until the user sets it up, and text never waits for an image. The
 - **Check** asks the server for its node list and reports every missing node or model file, using
   the chosen file names; nothing is installed or downloaded. A custom workflow in ComfyUI's API
   format replaces the built-in one, with `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
-  `{{height}}` where the request's values belong.
+  `{{height}}` where the request's values belong. On the PC, **Workflow** and **Workflow for pictures
+  made from a reference** under the backend show the saved workflows, indented, to read or edit;
+  saving an empty main workflow (**Use the built-in one**) goes back to the built-in one. A paired
+  phone never sees or changes them.
 - **Codex** uses Codex's own `image_generation` feature (stable and on by default in codex-cli
   0.160.1). Each image is one turn of `codex exec --json --skip-git-repo-check --ephemeral
   --ignore-user-config --ignore-rules --sandbox read-only --cd <empty scratch folder> -`, with a
@@ -303,6 +306,7 @@ All writes need the `x-companion-client: workspace` header.
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
 | `POST /api/images/backends/{id}/check` | `{ok, summary, details}`; spends no generation quota |
+| `GET /api/images/backends/{id}/workflows` | ComfyUI's saved `{workflow, reference_workflow}` text (empty when unset), for editing on the PC; refused from a paired phone |
 | `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, sampler_defaults, options, krea, character_lora}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, Krea 2's first and listed in `krea` |
 | `GET /api/images/model-links` | `{links: [{name, role, file, url, licence}]}`: download pages for the built-in workflow's files |
 | `POST /api/images/backends/{id}/unblock` | The user signed in to Codex again |

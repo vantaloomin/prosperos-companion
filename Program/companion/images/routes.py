@@ -89,6 +89,16 @@ def update_backend(request: Request, backend_id: str, body: BackendFields):
     return result
 
 
+@router.get('/backends/{backend_id}/workflows')
+def backend_workflows(request: Request, backend_id: str):
+    """A ComfyUI backend's saved workflows, for editing on the PC. The listing says only whether each is set."""
+    if getattr(request.state, 'device', None) is not None:
+        raise DomainError(f'Workflows of image backends are changed {ON_THE_PC}.', 403)
+    with db(request).connect() as connection:
+        config = decode(backends.get(connection, backend_id)['config'])
+    return {key: config.get(key) or '' for key in ('workflow', 'reference_workflow')}
+
+
 @router.post('/backends/{backend_id}/move')
 def move_backend(request: Request, backend_id: str, body: BackendMove):
     return {'backends': backends.move(db(request), backend_id, body.position)}

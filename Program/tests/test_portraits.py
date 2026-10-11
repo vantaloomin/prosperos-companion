@@ -238,3 +238,14 @@ def test_comfyui_uploads_the_reference_into_its_own_workflow():
     with pytest.raises(AdapterError) as error:
         asyncio.run(adapter.generate(request_for('comfyui', {'base_url': 'http://127.0.0.1:8188'}, reference=png())))
     assert error.value.code == 'incompatible'
+
+
+def test_the_pc_reads_a_comfyui_backends_saved_workflows(client, companion):
+    comfy = add_backend(client, kind='comfyui', base_url='http://127.0.0.1:8188')
+    assert ok(client.get(f"/api/images/backends/{comfy['id']}/workflows")) == {'workflow': '', 'reference_workflow': ''}
+    main = json.dumps({'1': {'class_type': 'CLIPTextEncode', 'inputs': {'text': '{{prompt}}'}}})
+    ok(client.put(f"/api/images/backends/{comfy['id']}", json={'workflow': main, 'reference_workflow': REFERENCE_WORKFLOW}))
+    assert ok(client.get(f"/api/images/backends/{comfy['id']}/workflows")) == {
+        'workflow': main, 'reference_workflow': REFERENCE_WORKFLOW}
+    back = ok(client.put(f"/api/images/backends/{comfy['id']}", json={'workflow': ''}))
+    assert back['custom_workflow'] is False and back['reference_workflow'] is True

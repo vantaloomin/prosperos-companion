@@ -115,7 +115,10 @@ function BackendSetup({ backend, phone, put }: { backend: ImageBackend; phone: b
     {(!phone || phoneEdits(backend)) && <BackendConnection backend={backend} save={put} />}
     <BackendStyle backend={backend} save={(style) => put({ style })} />
     <ComfyFiles backend={backend} put={put} />
-    {backend.kind === 'comfyui' && !phone && <ReferenceWorkflow backend={backend} save={(value) => put({ reference_workflow: value })} />}
+    {backend.kind === 'comfyui' && !phone && <>
+      <WorkflowEditor backend={backend} field="workflow" save={(value) => put({ workflow: value })} />
+      <WorkflowEditor backend={backend} field="reference_workflow" save={(value) => put({ reference_workflow: value })} />
+    </>}
   </>
 }
 
@@ -392,21 +395,59 @@ function ModelLinks({ links }: { links: ModelLink[] }) {
   </div>
 }
 
-/** ComfyUI makes a picture that follows another (the profile pictures) only with the user's own workflow for it. */
-function ReferenceWorkflow({ backend, save }: { backend: ImageBackend; save: (value: string) => Promise<unknown> }) {
+type WorkflowField = 'workflow' | 'reference_workflow'
+
+const WORKFLOWS: Record<WorkflowField, { title: string; label: string; set: string; unset: string; placeholder: string; clear: string; hint: string }> = {
+  workflow: {
+    title: 'Workflow', label: 'Workflow', set: '(yours)', unset: '(built-in)', clear: 'Use the built-in one',
+    placeholder: 'Paste a workflow to use instead of the built-in one',
+    hint: "ComfyUI's API format (\"Save (API format)\") with {{prompt}}, plus any of {{negative}}, {{seed}}, {{width}} and {{height}}. Empty uses the built-in Krea 2 Turbo workflow.",
+  },
+  reference_workflow: {
+    title: 'Workflow for pictures made from a reference', label: 'Reference workflow', set: '(set)', unset: '(none)', clear: 'Remove it',
+    placeholder: 'Paste a workflow',
+    hint: "Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with {{prompt}} and {{reference_image}} as a LoadImage node's image, plus any of {{negative}}, {{seed}}, {{width}} and {{height}}. There is no built-in one.",
+  },
+}
+
+/** Saved workflows come back indented so they can be read and edited; anything else is shown as saved. */
+const readable = (text: string) => { try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text } }
+
+/** A ComfyUI backend's own workflow, or the one for pictures that follow another (the profile pictures).
+ * The listing only says whether one is set, so the saved text is read when the section opens. */
+function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field: WorkflowField; save: (value: string) => Promise<boolean> }) {
+  const copy = WORKFLOWS[field]
+  const set = field === 'workflow' ? backend.custom_workflow : backend.reference_workflow
+  const [saved, setSaved] = useState<string | null>(null)
   const [text, setText] = useState('')
+  const [error, setError] = useState('')
+  const load = async () => {
+    try {
+      const value = readable((await api<Record<WorkflowField, string>>(`/images/backends/${backend.id}/workflows`))[field])
+      setSaved(value); setText(value); setError('')
+    } catch (failed) { setError(failure(failed, 'The saved workflow could not be read.')) }
+  }
+  const store = async (value: string) => { if (await save(value)) { setSaved(readable(value)); setText(readable(value)) } }
   return (
-    <details>
-      <summary className="subtle">Workflow for pictures made from a reference {backend.reference_workflow ? '(set)' : '(none)'}</summary>
+    <details onToggle={(event) => { if (event.currentTarget.open && saved === null) void load() }}>
+      <summary className="subtle">{copy.title} {set ? copy.set : copy.unset}</summary>
       <div className="form-stack">
-        <TextArea label="Reference workflow" value={text} rows={3} onChange={setText}
-          hint="Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with {{prompt}} and {{reference_image}} as a LoadImage node's image, plus any of {{negative}}, {{seed}}, {{width}} and {{height}}. There is no built-in one." />
-        <div className="form-actions">
-          <button type="button" className="button" disabled={!text.trim()} onClick={() => void save(text.trim())}>Save workflow</button>
-          {backend.reference_workflow && <button type="button" className="text-button danger-text" onClick={() => void save('')}>Remove it</button>}
-        </div>
+        {error && <Notice tone="error">{error}</Notice>}
+        <TextArea label={copy.label} value={text} rows={text ? 12 : 3} onChange={setText} placeholder={copy.placeholder} hint={copy.hint} />
+        <WorkflowActions text={text} saved={saved} clear={set ? copy.clear : ''} store={store} undo={() => setText(saved ?? '')} />
       </div>
     </details>
+  )
+}
+
+function WorkflowActions({ text, saved, clear, store, undo }: { text: string; saved: string | null; clear: string; store: (value: string) => Promise<void>; undo: () => void }) {
+  const edited = saved !== null && text !== saved
+  return (
+    <div className="form-actions">
+      <button type="button" className="button" disabled={!text.trim() || text === saved} onClick={() => void store(text.trim())}>Save workflow</button>
+      {edited && <button type="button" className="button" onClick={undo}>Undo changes</button>}
+      {clear && <button type="button" className="text-button danger-text" onClick={() => void store('')}>{clear}</button>}
+    </div>
   )
 }
 
