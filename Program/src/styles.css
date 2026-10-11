@@ -351,6 +351,7 @@ textarea { resize: vertical; line-height: 1.6; }
 @media (max-width: 720px) {
   .settings-layout { flex-direction: column; gap: 16px; }
   .settings-nav { flex: 0 0 auto; width: 100%; position: static; gap: 10px; }
+  .settings-panel { width: 100%; }
   .settings-tabs { flex-direction: row; width: 100%; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
   .advanced-switch { padding: 0; border-top: 0; }
   .settings-tabs [role='tab'] { white-space: nowrap; flex: 0 0 auto; }
@@ -763,6 +764,11 @@ textarea { resize: vertical; line-height: 1.6; }
 .model-profile h3 { margin: 2px 0 4px; }
 .model-profile .form-actions { flex-wrap: wrap; }
 .model-jobs { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: 0.8125rem; margin-top: 6px; }
+.model-usage { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 8px 0 0; font-size: 0.8125rem; }
+.model-usage dt { color: var(--muted); }
+.model-usage dd { margin: 0; font-variant-numeric: tabular-nums; }
+.usage-meter { display: block; width: 120px; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--raised); overflow: hidden; }
+.usage-meter span { display: block; height: 100%; background: var(--accent); }
 .model-profile-editor { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .provider-picker { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
 .provider-picker legend { margin-bottom: 8px; font-weight: 500; }

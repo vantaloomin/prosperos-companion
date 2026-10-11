@@ -38,6 +38,15 @@ Not copied from the Study: the LM Studio native protocol and its verified backgr
 (local servers use the OpenAI-compatible API, and background work here yields between streamed
 chunks through the scheduler), versioned profiles and exact retries, and usage and cost summaries.
 
+### Credits and usage
+
+A profile card shows credits or usage when its service reports them for free, without calling a model
+(`companion/providers/balance.py`): OpenRouter (credits left, the key's own limit if it has one, and
+today's spend), NanoGPT, DeepSeek and Moonshot (account balance), and Codex / ChatGPT (the plan and its
+5-hour and weekly limits from `codex app-server` `account/rateLimits/read`). Other services, and any
+lookup that fails, show nothing. Each card asks once when Settings > Models opens; the answer is kept for
+five minutes, and Check connection asks again. Nothing polls in the background.
+
 ## Jobs
 
 | Job | What uses it |
@@ -127,5 +136,6 @@ local server.
 | `POST /api/models/profiles`, `PUT`/`DELETE /api/models/profiles/{id}` | Add, edit (with `expected_revision`), delete |
 | `POST /api/models/discover` | Test an unsaved form; reuses a profile's saved key when given its `profile_id` |
 | `POST /api/models/profiles/{id}/check` | Test a saved profile |
+| `GET /api/models/profiles/{id}/usage` | Credits or usage the service reports for free, or `null`; `?fresh=true` skips the five-minute cache |
 | `PUT /api/models/routes` | `{job, profile_id}`; `null` returns the job to the conversation profile |
 | `GET /api/hardware` | This computer: `computer`, `can_run` lines, the `local_text` and `local_images` checked, and `warnings` (`area`, `tone`, `text`); `?fresh=true` scans again |
