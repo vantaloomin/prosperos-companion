@@ -34,6 +34,7 @@ from companion.life import (
     reactions,
     recommendations,
     storylines,
+    traditions,
     trips,
     wardrobe,
 )
@@ -652,7 +653,7 @@ def offer_life(packet, connection, companion, now):
         packet.offer('lately', identity, text)
     for item in recommendations.progress(connection, timeline_id):
         packet.offer('recommendations', item['id'], recommendations.context_text(item))
-    offer_home(packet, connection, timeline_id, today)
+    offer_home(packet, connection, companion, today)
     for identity, text in wardrobe.context_lines(connection, timeline_id, date.fromisoformat(today), now):
         packet.offer('wearing' if ':now:' in identity else 'wardrobe', identity, text)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
@@ -709,9 +710,12 @@ def offer_daily(packet, connection, version, now):
                                                   f"{digest['retrieved_at'][:10]}: «{lookups.culture_text(digest)}»")
 
 
-def offer_home(packet, connection, timeline_id, today: str):
-    for identity, text in home.context_lines(connection, timeline_id, date.fromisoformat(today)):
+def offer_home(packet, connection, companion, today: str):
+    """Their home and belongings, and what is up at home for the season (companion/life/traditions.py)."""
+    for identity, text in home.context_lines(connection, companion['active_timeline_id'], date.fromisoformat(today)):
         packet.offer('home', identity, text)
+    if line := traditions.decoration_line(connection, companion, date.fromisoformat(today)):
+        packet.offer('home', f'decorations:{today}', line)
 
 
 def fresh(item: dict, since: str | None) -> bool:

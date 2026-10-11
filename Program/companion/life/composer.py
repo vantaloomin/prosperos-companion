@@ -208,6 +208,36 @@ def birthday(slot: dict, definition: dict, world, seed: str, recent_activities, 
             'weather': conditions, 'composer_version': COMPOSER_VERSION}
 
 
+# A family tradition (companion/life/traditions.py): on the holiday, the day's free time goes to it.
+TRADITION = activity('tradition', (), ['{name} spent {holiday} at their {role} {host}\'s, the way they always do.',
+                                       '{name} went home to their {role} {host}\'s for {holiday}.'],
+                     ['Same table, same stories.', 'Full. So full.', 'Family, food and the usual chaos.',
+                      'Home for the holiday.'], ['warm', 'happy', 'content'])
+TRADITION_ALONE = ('{name} hosted {holiday} at their place, the way they always do.',
+                   '{name} spent {holiday} with friends, the way they always do.')
+
+
+def tradition(slot: dict, definition: dict, seed: str) -> dict | None:
+    """On a holiday the family keeps, a free afternoon or evening goes to the tradition."""
+    found = (definition.get('traditions') or {}).get(slot['local_date'])
+    block = slot['block']
+    if not found or block['kind'] not in BIRTHDAY_KINDS or (block['start'] < block['end'] < '14:00'):
+        return None
+    rng = random.Random(f'{seed}:tradition')
+    host = found.get('host')
+    if host and not found.get('friends'):
+        summary = TRADITION.summaries[0 if host['local'] else 1].format(
+            name=definition['name'], holiday=found['name'], role=host['role'], host=host['name'])
+    elif host:
+        summary = f"{definition['name']} spent {found['name']} with {host['name']}, the way they always do."
+    else:
+        summary = TRADITION_ALONE[found.get('friends', False)].format(name=definition['name'], holiday=found['name'])
+    return {'summary': summary, 'post': rng.choice(TRADITION.captions), 'mood': rng.choice(TRADITION.moods),
+            'activity': TRADITION.key, 'place': None, 'holiday': found['holiday'],
+            'with': {'id': host['id'], 'name': host['name']} if host and host['local'] else None,
+            'weather': block.get('weather'), 'composer_version': COMPOSER_VERSION}
+
+
 def happenings(world, definition: dict, local_date: str) -> list[dict]:
     """The city's annual events held on this date, from the world data. [] when the world has none."""
     lookup, city = getattr(world, 'happenings', None), home_city(definition)
