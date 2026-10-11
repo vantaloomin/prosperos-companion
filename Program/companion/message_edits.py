@@ -11,7 +11,7 @@ from companion import self_facts
 from companion.characters import for_timeline, require_current
 from companion.database import identifier, one
 from companion.errors import require
-from companion.life import own_plans
+from companion.life import outings, own_plans
 
 TEXT_LIMIT = 8000
 # A reply the user stopped, or one the model cut short, can be finished by hand.
@@ -52,11 +52,13 @@ def edit(database, message_id: str, text: str, expected_text: str) -> dict:
         connection.execute("DELETE FROM self_facts WHERE message_id=? AND status IN ('noted', 'conflict')",
                            (message_id,))
         connection.execute('DELETE FROM companion_plans WHERE message_id=?', (message_id,))
+        connection.execute("DELETE FROM outings WHERE message_id=? AND status='planned'", (message_id,))
         # The memory model reads the new wording again too.
         connection.execute('DELETE FROM self_fact_jobs WHERE message_id=?', (message_id,))
         edited = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
         if edited['active']:
             self_facts.note(connection, edited, now)
-            own_plans.note(connection, edited, for_timeline(connection, edited['timeline_id'])
-                           or require_current(connection), now)
+            owner = for_timeline(connection, edited['timeline_id']) or require_current(connection)
+            own_plans.note(connection, edited, owner, now)
+            outings.note(connection, edited, owner, now)
         return {'id': message_id, 'text': edited['text'], 'previous_text': message['text']}

@@ -6,6 +6,11 @@ function days(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
 }
 
+/** Where a purchase this pay period went: "At home, they …", "Out with you, they paid for dinner at …". */
+export function boughtFor(kind?: 'home' | 'clothes' | 'outing' | 'trip'): string {
+  return { clothes: 'For their wardrobe', outing: 'Out with you', trip: 'Away', home: 'At home' }[kind ?? 'home']
+}
+
 export function shortDate(iso: string): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
 }

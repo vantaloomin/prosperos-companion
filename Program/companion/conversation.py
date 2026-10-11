@@ -28,7 +28,7 @@ from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import occasions, own_plans, pacing, recommendations
+from companion.life import occasions, outings, own_plans, pacing, recommendations
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -67,6 +67,8 @@ def record_user(database, body) -> dict:
         formation.enqueue(connection, message, database.now())
         recommendations.note(connection, message, database.now())
         occasions.note(connection, message, database.now())
+        # Asked out, the companion settles where and when before the reply is written (companion/life/outings.py).
+        outings.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
         return message
@@ -517,6 +519,7 @@ class Conversation:
                 finished = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())
+                outings.note(connection, finished, companion, self.database.now())
 
 
 def model_of(prepared) -> str:

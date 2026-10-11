@@ -17,6 +17,7 @@ import { Reactions } from './Reactions'
 import { Storylines } from './Storylines'
 import { Townsfolk } from './Townsfolk'
 import { OnTheirMind } from './OnTheirMind'
+import { OutTogether, Trips } from './OutTogether'
 import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
@@ -108,7 +109,9 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           </EventItem>
         ))}
       </Section>
+      <OutTogether name={name} />
       <Plans data={data} name={name} />
+      <Trips name={name} />
       <Recommendations name={name} />
       <Chapters name={name} />
       <WordGetsAround name={name} />

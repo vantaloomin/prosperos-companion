@@ -1760,3 +1760,49 @@ CREATE TABLE IF NOT EXISTS scrapbook_seen (
   seen_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, key)
 );
+
+-- Go somewhere together (companion/life/outings.py): an outing with the user the app settled from a message that asked
+-- for it (or a firm plan in a companion reply): when, what and the place the companion picked (`named` when the user
+-- named it). `rolls` counts "somewhere else"; `ended_at` is heading home early; `cost` is the companion's share.
+CREATE TABLE IF NOT EXISTS outings (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL UNIQUE REFERENCES messages(id),
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  activity TEXT NOT NULL,
+  asked_date TEXT,
+  place TEXT NOT NULL,
+  named INTEGER NOT NULL DEFAULT 0 CHECK (named IN (0, 1)),
+  cost REAL NOT NULL DEFAULT 0,
+  rolls INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'cancelled', 'done')),
+  ended_at TEXT,
+  cancelled_at TEXT,
+  memory_id TEXT,
+  photo_post_id TEXT,
+  photo_tried INTEGER NOT NULL DEFAULT 0 CHECK (photo_tried IN (0, 1)),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS outings_companion ON outings(companion_id, local_date);
+
+-- Trips and postcards (companion/life/trips.py): a weekend away the app decided for a timeline, two to three weeks
+-- ahead. `company` is who they go with or stay with (JSON, or NULL alone); `landmark` is the postcard's.
+CREATE TABLE IF NOT EXISTS trips (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  city_id TEXT NOT NULL,
+  city_name TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('getaway', 'family')),
+  company TEXT,
+  landmark TEXT,
+  sunny INTEGER NOT NULL DEFAULT 0 CHECK (sunny IN (0, 1)),
+  cost REAL NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'cancelled')),
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, start_date)
+);
