@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
@@ -115,7 +115,10 @@ function BackendSetup({ backend, phone, put }: { backend: ImageBackend; phone: b
     {(!phone || phoneEdits(backend)) && <BackendConnection backend={backend} save={put} />}
     <BackendStyle backend={backend} save={(style) => put({ style })} />
     <ComfyFiles backend={backend} put={put} />
-    {backend.kind === 'comfyui' && !phone && <ReferenceWorkflow backend={backend} save={(value) => put({ reference_workflow: value })} />}
+    {backend.kind === 'comfyui' && !phone && <>
+      <WorkflowEditor backend={backend} field="workflow" save={(value) => put({ workflow: value })} />
+      <WorkflowEditor backend={backend} field="reference_workflow" save={(value) => put({ reference_workflow: value })} />
+    </>}
   </>
 }
 
@@ -146,7 +149,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
         hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
       <BackendSetup backend={backend} phone={phone} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
-      <div className="post-actions">
+      <div className="post-actions backend-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === 0} aria-label={`Move ${backend.label} up`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index - 1 }))}><ArrowUp aria-hidden="true" />Up</button>
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === count - 1} aria-label={`Move ${backend.label} down`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index + 1 }))}><ArrowDown aria-hidden="true" />Down</button>
@@ -392,22 +395,93 @@ function ModelLinks({ links }: { links: ModelLink[] }) {
   </div>
 }
 
-/** ComfyUI makes a picture that follows another (the profile pictures) only with the user's own workflow for it. */
-function ReferenceWorkflow({ backend, save }: { backend: ImageBackend; save: (value: string) => Promise<unknown> }) {
+type WorkflowField = 'workflow' | 'reference_workflow'
+type SavedWorkflows = Record<WorkflowField | 'built_in', string>
+
+const tokens = (...names: string[]) => names.map((name, index) => <span key={name}>{index ? (index === names.length - 1 ? ' and ' : ', ') : ''}<code>{`{{${name}}}`}</code></span>)
+
+const WORKFLOWS: Record<WorkflowField, { title: string; label: string; set: string; unset: string; placeholder: string; clear: string; cleared: string; hint: ReactNode }> = {
+  workflow: {
+    title: 'Workflow', label: 'Workflow', set: '(yours)', unset: '(built-in)', clear: 'Use the built-in one',
+    cleared: 'Back to the built-in workflow.', placeholder: 'Paste a workflow',
+    hint: <>ComfyUI's API format ("Save (API format)") with <code>{'{{prompt}}'}</code>, plus any of {tokens('negative', 'seed', 'width', 'height')}. Empty uses the built-in Krea 2 Turbo workflow.</>,
+  },
+  reference_workflow: {
+    title: 'Workflow for pictures made from a reference', label: 'Reference workflow', set: '(set)', unset: '(none)',
+    clear: 'Remove this workflow', cleared: 'Workflow removed.', placeholder: 'Paste a workflow',
+    hint: <>Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with <code>{'{{prompt}}'}</code> and <code>{'{{reference_image}}'}</code> as a LoadImage node's image, plus any of {tokens('negative', 'seed', 'width', 'height')}. There is no built-in one.</>,
+  },
+}
+
+/** Saved workflows come back indented so they can be read and edited; anything else is shown as saved. */
+const readable = (text: string) => { try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text } }
+
+/** Why a workflow is not JSON, with the line it broke on when the browser says where. */
+function jsonProblem(text: string): string {
+  try { JSON.parse(text); return '' } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    const line = /line (\d+)/.exec(message)?.[1] ?? (/position (\d+)/.exec(message) ? String(text.slice(0, Number(/position (\d+)/.exec(message)?.[1])).split('\n').length) : '')
+    return `This is not valid JSON${line ? ` (near line ${line})` : ''}. Check for a missing comma, quote or bracket. Nothing was saved.`
+  }
+}
+
+/** The saved text, the box and what was just cleared, read when the section first opens. */
+function useWorkflow(backend: ImageBackend, field: WorkflowField, save: (value: string) => Promise<boolean>) {
+  const [saved, setSaved] = useState<string | null>(null)
+  const [builtIn, setBuiltIn] = useState('')
   const [text, setText] = useState('')
+  const [error, setError] = useState('')
+  const [removed, setRemoved] = useState('')
+  const load = async () => {
+    try {
+      const found = await api<SavedWorkflows>(`/images/backends/${backend.id}/workflows`)
+      setSaved(readable(found[field])); setText(readable(found[field])); setBuiltIn(readable(found.built_in)); setError('')
+    } catch (failed) { setError(failure(failed, 'The saved workflow could not be read.')) }
+  }
+  const store = async (value: string) => {
+    const problem = value ? jsonProblem(value) : ''
+    setError(problem)
+    if (problem || !(await save(value))) return
+    setRemoved(value ? '' : saved ?? ''); setSaved(readable(value)); setText(readable(value))
+  }
+  const edit = (value: string) => { setText(value); setError(''); setRemoved('') }
+  return { saved, builtIn, text, error, removed, load, store, edit }
+}
+
+/** A ComfyUI backend's own workflow, or the one for pictures that follow another (the profile pictures). */
+function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field: WorkflowField; save: (value: string) => Promise<boolean> }) {
+  const copy = WORKFLOWS[field]
+  const set = field === 'workflow' ? backend.custom_workflow : backend.reference_workflow
+  const flow = useWorkflow(backend, field, save)
+  const startFrom = field === 'workflow' && !set && !flow.text ? flow.builtIn : ''
   return (
-    <details>
-      <summary className="subtle">Workflow for pictures made from a reference {backend.reference_workflow ? '(set)' : '(none)'}</summary>
-      <div className="form-stack">
-        <TextArea label="Reference workflow" value={text} rows={3} onChange={setText}
-          hint="Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with {{prompt}} and {{reference_image}} as a LoadImage node's image, plus any of {{negative}}, {{seed}}, {{width}} and {{height}}. There is no built-in one." />
-        <div className="form-actions">
-          <button type="button" className="button" disabled={!text.trim()} onClick={() => void save(text.trim())}>Save workflow</button>
-          {backend.reference_workflow && <button type="button" className="text-button danger-text" onClick={() => void save('')}>Remove it</button>}
-        </div>
+    <details onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
+      <summary className="subtle">{copy.title} {set ? copy.set : copy.unset}</summary>
+      <div className="form-stack workflow-editor">
+        <Field label={copy.label} hint={copy.hint}>{(id, describedBy) =>
+          <textarea id={id} rows={12} value={flow.text} placeholder={copy.placeholder} spellCheck={false} aria-describedby={describedBy}
+            aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />}</Field>
+        <WorkflowActions flow={flow} copy={copy} set={set} startFrom={startFrom} />
       </div>
     </details>
   )
+}
+
+type Workflow = ReturnType<typeof useWorkflow>
+
+/** Save and undo first; resetting sits at the far end, muted, and can be undone right after. */
+function WorkflowActions({ flow, copy, set, startFrom }: { flow: Workflow; copy: (typeof WORKFLOWS)[WorkflowField]; set: boolean; startFrom: string }) {
+  const edited = flow.saved !== null && flow.text !== flow.saved
+  return <>
+    {flow.error && <Notice tone="error">{flow.error}</Notice>}
+    {flow.removed && <Notice action={<button type="button" className="text-button" onClick={() => void flow.store(flow.removed)}>Undo</button>}>{copy.cleared}</Notice>}
+    <div className="form-actions">
+      <button type="button" className="button primary" disabled={!flow.text.trim() || flow.text === flow.saved} onClick={() => void flow.store(flow.text.trim())}>Save workflow</button>
+      {edited && <button type="button" className="button" onClick={() => flow.edit(flow.saved ?? '')}>Undo changes</button>}
+      {startFrom && <button type="button" className="text-button" onClick={() => flow.edit(startFrom)}>Start from the built-in one</button>}
+      {set && <button type="button" className="text-button subtle workflow-reset" onClick={() => void flow.store('')}>{copy.clear}</button>}
+    </div>
+  </>
 }
 
 function BackendSummary({ backend }: { backend: ImageBackend }) {
