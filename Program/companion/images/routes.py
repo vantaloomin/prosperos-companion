@@ -9,7 +9,14 @@ from companion.database import decode
 from companion.errors import DomainError
 from companion.images import backends, jobs, photos, storage
 from companion.images.adapters.base import AdapterError
-from companion.images.adapters.comfyui import FILE_INPUTS, SAMPLER_LISTS, default_files, default_sampler, krea_first
+from companion.images.adapters.comfyui import (
+    FILE_INPUTS,
+    SAMPLER_LISTS,
+    built_in,
+    default_files,
+    default_sampler,
+    krea_first,
+)
 from companion.images.adapters.hosted import api_base
 from companion.images.models import (
     BackendCreate,
@@ -96,7 +103,8 @@ def backend_workflows(request: Request, backend_id: str):
         raise DomainError(f'Workflows of image backends are changed {ON_THE_PC}.', 403)
     with db(request).connect() as connection:
         config = decode(backends.get(connection, backend_id)['config'])
-    return {key: config.get(key) or '' for key in ('workflow', 'reference_workflow')}
+    return {**{key: config.get(key) or '' for key in ('workflow', 'reference_workflow')},
+            'built_in': json.dumps(built_in(config))}
 
 
 @router.post('/backends/{backend_id}/move')
