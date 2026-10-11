@@ -296,8 +296,9 @@ textarea { resize: vertical; line-height: 1.6; }
 @media (hover: none) and (prefers-reduced-motion: reduce) { .message { transition: none; } .message.pressing { transform: none; } }
 /* A narrow window with a mouse: in the flow the hidden buttons would wrap into empty rows between a message and its
    time, so they float as one row of icons on the message's top edge while it is hovered or focused, as Slack and
-   Discord do, and never move the list or cover the text. The labels stay as tooltips and for screen readers. */
-@media (max-width: 720px) and (hover: hover) {
+   Discord do, and never move the list or cover the text. The labels stay as tooltips and for screen readers. A wide
+   window does the same, so the hidden buttons never hold room (Feed's time wrapping, a blank line in Retro). */
+@media (hover: hover) {
   .message { position: relative; }
   .message .message-tools { display: none; position: absolute; top: 0; right: 8px; z-index: 2; transform: translateY(-50%); gap: 2px;
     padding: 2px 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 2px 8px #0006; }
@@ -905,6 +906,15 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .message .stamp-lead { display: block; grid-column: 1; font-size: 0.75rem; line-height: 1.75; color: var(--faint); }
 .chat-retro .message .stamp-lead::before { content: '[' / ''; }
 .chat-retro .message .stamp-lead::after { content: ']' / ''; }
+/* A phone has no room for a hanging column: the stamp and name lead the first line, and the text wraps back to the
+   left edge under them, as IM clients did in a small window. */
+@media (max-width: 720px) {
+  .chat-retro .message, .group-chat.chat-retro .message { display: block; }
+  .chat-retro .message .stamp-lead { display: inline; margin-right: 6px; line-height: 1.5; }
+  .chat-retro .message .speaker { margin-right: 6px; }
+  .chat-retro .message > .prose, .chat-retro .message > .prose > p:first-child { display: inline; }
+  .chat-retro .message > header > :is(.message-actions, .reply-tools) { float: right; margin-left: 8px; }
+}
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
 .chat-retro .turn-actions { margin: 0 0 8px; }
@@ -1533,6 +1543,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @media (prefers-reduced-motion: reduce) { .leaflet-marker-icon.map-pin.pin-scene { animation: none; } }
 .leaflet-container { font-family: inherit; }
 .map-key { position: relative; }
+/* A narrow phone keeps the city's name on one line: the Key and List buttons show their icons only. */
+@media (max-width: 420px) { .map-bar .map-bar-label { display: none; } }
 .map-key-card { position: absolute; z-index: 1000; right: 0; top: 46px; min-width: 260px; padding: 10px 12px; list-style: none; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); display: grid; gap: 8px; font-size: 0.8125rem; }
 .map-key-card li { display: flex; align-items: center; gap: 10px; } .map-key-card .map-pin { width: 18px; height: 18px; }
 .map-card { position: absolute; z-index: 1000; top: 16px; right: 16px; width: 360px; max-height: calc(100% - 32px); overflow-y: auto; padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px #0006; display: grid; gap: 10px; }

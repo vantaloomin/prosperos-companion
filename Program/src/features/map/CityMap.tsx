@@ -33,8 +33,8 @@ export function CityMap({ companion, place, go }: { companion: Companion; place:
         <button type="button" className="icon-button" aria-label="Back" onClick={() => window.history.length > 1 ? window.history.back() : go('today')}><ArrowLeft aria-hidden="true" /></button>
         <h1 id="map-title">{data.city.name}</h1>
         <MapKey />
-        <button type="button" className="button" aria-pressed={asList} onClick={() => setAsList(!asList)}>
-          {asList ? <MapIcon aria-hidden="true" /> : <List aria-hidden="true" />}{asList ? 'Map' : 'List'}
+        <button type="button" className="button" aria-pressed={asList} aria-label={asList ? 'Map' : 'List'} onClick={() => setAsList(!asList)}>
+          {asList ? <MapIcon aria-hidden="true" /> : <List aria-hidden="true" />}<span className="map-bar-label">{asList ? 'Map' : 'List'}</span>
         </button>
       </header>
       <MapArea data={data} asList={asList} selected={selected} onSelect={setSelected} streetsFailed={streetsFailed} onFail={() => setStreetsFailed(true)} companion={companion} go={go} />
@@ -72,7 +72,7 @@ function MapKey() {
   const pins: (Pin | 'place')[] = ['home', 'usual', 'recent', 'scene', 'place']
   return (
     <div className="map-key">
-      <button type="button" className="button" aria-expanded={open} onClick={() => setOpen(!open)}><KeyRound aria-hidden="true" />Key</button>
+      <button type="button" className="button" aria-expanded={open} aria-label="Key" onClick={() => setOpen(!open)}><KeyRound aria-hidden="true" /><span className="map-bar-label">Key</span></button>
       {open && <ul className="map-key-card">
         {pins.map((pin) => <li key={pin}><span className={`map-pin pin-${pin}`} dangerouslySetInnerHTML={{ __html: pinMarkup(pin) }} />{PIN_LABELS[pin]}</li>)}
       </ul>}
