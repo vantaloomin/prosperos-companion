@@ -99,6 +99,13 @@ def no_unasked_pictures(monkeypatch):
     monkeypatch.setattr('companion.images.photos.UNASKED', False)
 
 
+@pytest.fixture(autouse=True)
+def no_character_sheets(monkeypatch):
+    """A Codex picture is made after a character sheet; test_character_sheet turns it on, since the extra
+    call would change the request counts of unrelated tests."""
+    monkeypatch.setattr('companion.images.sheet.ENABLED', False)
+
+
 @pytest.fixture
 def clock():
     return FixedClock(START)

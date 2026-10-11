@@ -1806,3 +1806,20 @@ CREATE TABLE IF NOT EXISTS trips (
   created_at TEXT NOT NULL,
   UNIQUE (timeline_id, start_date)
 );
+
+-- Character reference sheets (companion/images/sheet.py): a three-panel sheet Codex makes before any other picture
+-- of a companion, which later Codex pictures of them follow. `fingerprint` is their looks in words when it was made,
+-- so an edited appearance gets a new sheet. The file is in images/sheets/.
+CREATE TABLE IF NOT EXISTS character_sheets (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  fingerprint TEXT NOT NULL,
+  file TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  backend_id TEXT,
+  from_picture INTEGER NOT NULL DEFAULT 0 CHECK (from_picture IN (0, 1)),
+  width INTEGER,
+  height INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS character_sheets_companion ON character_sheets(companion_id, fingerprint, created_at);
