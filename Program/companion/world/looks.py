@@ -16,7 +16,7 @@ import functools
 import json
 import re
 
-from companion.world import catalog, dating, generators
+from companion.world import catalog, dating, generators, intimacy
 
 NUMBERS = ('age', 'height_cm', 'weight_kg')
 WORDS = ('build', 'skin', 'face', 'jaw', 'nose', 'eyes', 'eye_shape', 'hair', 'facial_hair', 'feature')
@@ -145,7 +145,9 @@ def for_companion(companion_id: str, definition: dict) -> dict:
     """A companion's sheet: what the user set wins, field by field; the rest is drawn from their id, and a drawn
     build or weight follows the height, weight or build the user set (`agreed`)."""
     own = written(definition)
-    return agreed({**automatic(definition, companion_id), **own}, own, companion_id, pronouns_of(definition))
+    sheet = agreed({**automatic(definition, companion_id), **own}, own, companion_id, pronouns_of(definition))
+    # The age always follows their own words: someone they describe as younger than 18 gets none drawn here.
+    return {**sheet, 'age': None} if intimacy.reads_as_minor(definition) else sheet
 
 
 def agreed(sheet: dict, own: dict, seed: str, pronouns: str) -> dict:

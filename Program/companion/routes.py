@@ -191,7 +191,7 @@ def looks_suggestions(request: Request, body: PerceptionRequest):
     with request.app.state.database.connect() as connection:
         companion = characters.current(connection)
     automatic = looks.for_companion(companion['id'], body.definition) if companion else None
-    return {'automatic': automatic, 'options': looks.options()}
+    return {'automatic': automatic, 'covered': sorted(looks.covered(body.definition.get('appearance', ''))), 'options': looks.options()}
 
 
 @router.post('/companion/draft/card')

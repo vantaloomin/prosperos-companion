@@ -122,7 +122,7 @@ def scene(connection, now: datetime) -> dict:
     hood = townsfolk.neighborhood_name(data, place['neighborhood'])
     return {'city': {'id': data['id'], 'name': data['name'], 'era': data.get('era', 'modern')},
             'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'summary': place.get('summary', ''),
-                      'neighborhood': hood, 'spots': inside.names(inside.for_place(place))},
+                      'neighborhood': hood, 'spots': inside.names(inside.for_place(place, data.get('era')))},
             'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather) if weather else '',
             'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
             'known': story_people.known(connection)}

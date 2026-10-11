@@ -51,6 +51,18 @@ def test_nobody_under_18_gets_one():
     assert not intimacy.reads_as_minor({'identity': '34, a nurse. Moved here at 12.', 'background': 'As a teen she ran.'})
 
 
+def test_the_ways_people_write_a_young_age_all_read_as_under_18():
+    for text in ('June Park, 16. She works weekends at a bakery.', '16. Works as a barista.', 'Mia Lane, 16.',
+                 'Sixteen years old and restless.', 'A 16 y.o. skater.', 'A junior at Poly High.', 'Freshman, 17',
+                 'She is in eleventh grade.', 'An 11th grader who skates.'):
+        assert intimacy.reads_as_minor({'identity': text}), text
+        assert intimacy.rolled_for_companion(None, 'c1', None, {'identity': text}) is None
+    for text in ('Mira Okafor, 29. Works as a nurse.', '28. Works as a barista.', 'She teaches tenth grade at Poly.',
+                 'A senior at a high-rise firm.', 'Born 1990, she works at the docks.'):
+        assert not intimacy.reads_as_minor({'identity': text}), text
+    assert intimacy.stated_ages({'identity': 'Mira Okafor, 29. Works as a nurse.'}) == [29]
+
+
 def test_every_townsperson_is_an_adult_and_rolls_the_same_every_time():
     data = catalog.city('baltimore')
     sheets = [townsfolk.person(data, place, index) for place in data['places'][:40] for index in range(3)]

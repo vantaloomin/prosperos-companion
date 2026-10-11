@@ -307,6 +307,8 @@ textarea { resize: vertical; line-height: 1.6; }
   /* Novel cards clip what pokes out, and Retro lines have no gap between them: the row sits inside their right end. */
   .chat-novel .message .message-tools { top: 8px; transform: none; }
   .chat-retro .message .message-tools { top: -6px; right: 4px; transform: none; }
+  /* Bubbles put the time under the bubble, so the top edge is the text itself: the row sits just above the bubble. */
+  .chat-bubbles .message .message-tools { transform: translateY(-100%); }
   .message .message-tools .tool-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
@@ -883,6 +885,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .message > header { display: contents; }
 .chat-retro .message > :not(header), .chat-retro .message > header > :not(.speaker, .stamp-lead) { grid-column: 3; }
 .chat-retro .message-actions, .chat-retro .reply-tools { order: 2; justify-self: start; gap: 10px; }
+/* A group line has only the heart: it stays at the end of the line instead of a row of its own. */
+.group-chat.chat-retro .message { grid-template-columns: auto auto minmax(0, 1fr) auto; }
+.group-chat.chat-retro .message .reply-tools { grid-column: 4; grid-row: 1; order: 0; align-self: start; }
 .chat-retro .link-notes, .chat-retro .system-note { order: 3; }
 .chat-retro .system-note { border-radius: 0; border-style: dotted; font-family: inherit; }
 .chat-retro .chat-photo { margin: 2px 0 4px; }

@@ -46,10 +46,14 @@ export function PlaceCard({ inline, place, city, story, companion, onClose, go }
         </li>)}</ul>
       </section>}
       {place.regulars.length > 0 && <p className="subtle">Regulars: {place.regulars.join(', ')}</p>}
-      {!home && (story
-        ? <button type="button" className="button primary" onClick={() => void goThere()}>Go there</button>
-        : <button type="button" className="button primary" onClick={suggest}>Suggest going together</button>)}
+      {!home && <PlaceAction story={story} here={place.pins.includes('scene')} goThere={() => void goThere()} suggest={suggest} />}
       {error && <p className="field-error" role="alert">{error}</p>}
     </aside>
   )
+}
+
+/** With Story mode on, moving the scene there (not offered where the scene already is); else an invitation draft. */
+function PlaceAction({ story, here, goThere, suggest }: { story: boolean; here: boolean; goThere: () => void; suggest: () => void }) {
+  if (!story) return <button type="button" className="button primary" onClick={suggest}>Suggest going together</button>
+  return here ? null : <button type="button" className="button primary" onClick={goThere}>Go there</button>
 }

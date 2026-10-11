@@ -52,3 +52,13 @@ def test_home_activities_use_a_room_the_home_has_and_details_never_pile_up():
     assert all(inside.touch(woven, f's{n}', home) is woven for n in range(30))
     shift = {'summary': 'Worked.', 'activity': 'steady-shift', 'place': {'id': 'x', 'kind': 'cafe'}}
     assert all(inside.touch(shift, f's{n}') is shift for n in range(30))
+
+
+def test_a_period_or_fantasy_place_never_gets_a_modern_spot():
+    for city_id in ('grandport', 'pellmouth', 'new-york-1925'):
+        data = catalog.city(city_id)
+        for place in data['places']:
+            spots = inside.for_place(place, data.get('era'))
+            assert spots and not set(spots) & inside.MODERN_SPOTS, (city_id, place['id'], spots)
+    shop = {'id': 'mall', 'kind': 'shopping'}
+    assert set(inside.for_place(shop, 'modern')) <= set(inside.BY_KIND['shopping'])

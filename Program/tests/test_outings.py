@@ -36,6 +36,23 @@ def test_questions_about_their_plans_the_past_and_refusals_are_not_asking():
         assert asked(text) is None, text
 
 
+def test_staying_in_a_call_a_story_or_a_vague_wish_is_not_going_out():
+    for text in ("Want to come over to my place for dinner tomorrow? I'll cook", 'Want to watch a movie together on facetime?',
+                 'Would you like a cup of tea?', 'You want to hear about my coffee disaster?',
+                 'We should grab coffee sometime soon.'):
+        assert asked(text) is None, text
+    assert asked("Next time we should get drinks at the Owl Bar", firm=True) is None
+    assert asked('Want to grab some tea Sunday?') == ('coffee', '2026-10-11', None, None)
+
+
+def test_a_date_with_its_weekday_is_the_date_and_the_place_fits_the_word():
+    assert asked('Want to go to the aquarium on Saturday, November 14?')[:2] == ('museum', '2026-11-14')
+    data = catalog.city('baltimore')
+    picks = {outings.pick_place(data, 'museum', date(2026, 11, 14), '14:00', {}, f's{n}', False, 'aquarium')['name']
+             for n in range(5)}
+    assert picks == {'National Aquarium'}
+
+
 def test_the_companion_only_makes_firm_plans_themselves():
     assert asked("We should get drinks Saturday!", firm=True) == ('drinks', '2026-10-10', None, None)
     assert asked('Should we get drinks Saturday?', firm=True) is None

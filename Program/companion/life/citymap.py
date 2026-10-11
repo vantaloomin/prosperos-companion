@@ -26,8 +26,9 @@ NEXT_TO = 2
 
 
 def real(data: dict) -> bool:
-    """A real, public city gets a street map; anything else a sketch."""
-    return data.get('setting', 'real') == 'real' and data.get('distribution', 'public') == 'public'
+    """A real, public city of today gets a street map; anything else (New York in 1925 too) a sketch."""
+    return data.get('setting', 'real') == 'real' and data.get('distribution', 'public') == 'public' and \
+        (data.get('era') or 'modern') == 'modern'
 
 
 def offset(place_id: str) -> tuple[float, float]:
@@ -48,9 +49,11 @@ def neighbours(hoods: list[dict]) -> dict[str, list[str]]:
 
 
 def history(connection, timeline_id: str, now) -> list[dict]:
-    """Committed events at a named place, newest first: {id, place, summary, at, block}."""
+    """Committed events at a named place in their own city, newest first: {id, place, summary, at, block}. A plan
+    is not a visit, and a trip's places are in another city (whose ids can match ones here)."""
     rows = many(connection, "SELECT id, summary, starts_at, details FROM life_events WHERE timeline_id=? AND "
                 "status='committed' AND starts_at<=? AND json_extract(details, '$.place.id') IS NOT NULL "
+                "AND kind<>'plan' AND json_extract(details, '$.trip') IS NULL "
                 'ORDER BY starts_at DESC LIMIT 400', (timeline_id, stamp(now)))
     found = []
     for row in rows:
@@ -104,11 +107,11 @@ def scene_place(connection, data: dict) -> str | None:
     return row['place_id'] if row['city_id'] == data['id'] else None
 
 
-def place_view(place: dict, hood: dict, pins: set[str], events: list[dict], people: list[str]) -> dict:
+def place_view(place: dict, hood: dict, pins: set[str], events: list[dict], people: list[str], era=None) -> dict:
     north, east = offset(place['id'])
     return {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'hood': hood['name'], 'hood_id': hood['id'],
             'lat': round(hood['lat'] + north, 6), 'lon': round(hood['lon'] + east, 6), 'approx': True,
-            'pins': sorted(pins), 'spots': inside.names(inside.for_place(place)),
+            'pins': sorted(pins), 'spots': inside.names(inside.for_place(place, era)),
             'history': [{'id': event['id'], 'summary': event['summary'], 'at': event['at']} for event in events[:HISTORY]],
             'regulars': sorted(set(people))}
 
@@ -128,7 +131,7 @@ def build(connection, companion: dict, now, story_on: bool) -> dict:
         hood = hoods.get(place['neighborhood'])
         if hood:
             pins = marked.get(place['id'], set()) | ({'scene'} if place['id'] == scene else set())
-            places.append(place_view(place, hood, pins, by_place.get(place['id'], []), people.get(place['id'], [])))
+            places.append(place_view(place, hood, pins, by_place.get(place['id'], []), people.get(place['id'], []), data.get('era')))
     found = home_pin(connection, companion, data, hoods, now)
     next_to = neighbours(list(hoods.values()))
     return {'city': {'id': data['id'], 'name': data['name'], 'lat': data['lat'], 'lon': data['lon'], 'real': real(data)},
