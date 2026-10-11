@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api'
 import type { ModelProfile } from './types'
 
-export interface UsageItem { label: string; amount?: number; currency?: string; of?: number; percent_used?: number; resets_at?: string; count?: number }
+export interface UsageItem { label: string; amount?: number; currency?: string; of?: number; percent_used?: number; resets_at?: string; count?: number; spent?: boolean }
 export interface Usage { items: UsageItem[]; plan?: string | null; checked_at: string }
 
 const usageKey = (profile: ModelProfile) => ['model-usage', profile.id, profile.revision]
@@ -36,3 +36,10 @@ export function valueText(item: UsageItem) {
   return item.count !== undefined ? item.count.toLocaleString() : ''
 }
 
+
+/** Worth flagging: money left under a tenth of the total (or under 1 with no total), or a limit over 80% used. */
+export function isLow(item: UsageItem) {
+  if (item.percent_used !== undefined) return item.percent_used > 80
+  if (item.amount === undefined || item.spent) return false
+  return item.of ? item.amount < item.of * 0.1 : item.amount < 1
+}

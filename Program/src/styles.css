@@ -764,11 +764,14 @@ textarea { resize: vertical; line-height: 1.6; }
 .model-profile h3 { margin: 2px 0 4px; }
 .model-profile .form-actions { flex-wrap: wrap; }
 .model-jobs { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: 0.8125rem; margin-top: 6px; }
-.model-usage { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 8px 0 0; font-size: 0.8125rem; }
+.model-usage { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 8px 0 0; font-size: 0.8125rem; animation: usage-in 0.25s ease-out; }
 .model-usage dt { color: var(--muted); }
-.model-usage dd { margin: 0; font-variant-numeric: tabular-nums; }
-.usage-meter { display: block; width: 120px; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--raised); overflow: hidden; }
+.model-usage dd { display: inline-grid; margin: 0; font-variant-numeric: tabular-nums; }
+.model-usage dd.low { color: var(--accent); }
+.usage-meter { display: block; width: 100%; max-width: 160px; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
 .usage-meter span { display: block; height: 100%; background: var(--accent); }
+@keyframes usage-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .model-usage { animation: none; } }
 .model-profile-editor { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .provider-picker { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
 .provider-picker legend { margin-bottom: 8px; font-weight: 500; }

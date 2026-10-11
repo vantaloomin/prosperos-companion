@@ -71,9 +71,9 @@ async def openrouter(client, config, key) -> list[dict]:
             items.append(money('Credits left', total - used, of=total))
     if isinstance(this_key, dict) and isinstance(data := this_key.get('data'), dict):
         if isinstance(data.get('limit'), int | float) and isinstance(data.get('limit_remaining'), int | float):
-            items.append(money('This key’s limit', data['limit_remaining'], of=data['limit']))
+            items.append(money('Key limit left', data['limit_remaining'], of=data['limit']))
         if isinstance(data.get('usage_daily'), int | float):
-            items.append(money('Used today', data['usage_daily']))
+            items.append({**money('Used today', data['usage_daily']), 'spent': True})
         free = data.get('free_model_daily_requests')
         if data.get('is_free_tier') and isinstance(free, dict) and isinstance(free.get('limit'), int) and free['limit']:
             items.append({'label': 'Free requests today', 'percent_used': percent(free.get('used'), free['limit'])})

@@ -24,8 +24,8 @@ def test_openrouter_shows_credits_the_key_limit_and_today():
                                                   'is_free_tier': False}})
     result = look(OPENROUTER, handler)
     assert result['items'] == [{'label': 'Credits left', 'amount': 48.5, 'currency': 'USD', 'of': 100.0},
-                               {'label': 'This key’s limit', 'amount': 4.66, 'currency': 'USD', 'of': 50.0},
-                               {'label': 'Used today', 'amount': 0.7, 'currency': 'USD'}]
+                               {'label': 'Key limit left', 'amount': 4.66, 'currency': 'USD', 'of': 50.0},
+                               {'label': 'Used today', 'amount': 0.7, 'currency': 'USD', 'spent': True}]
 
 
 def test_openrouter_keeps_what_answered_when_one_lookup_is_refused():
@@ -33,7 +33,7 @@ def test_openrouter_keeps_what_answered_when_one_lookup_is_refused():
         if request.url.path.endswith('/credits'):
             return httpx.Response(403)
         return httpx.Response(200, json={'data': {'limit': None, 'usage_daily': 1.25}})
-    assert look(OPENROUTER, handler)['items'] == [{'label': 'Used today', 'amount': 1.25, 'currency': 'USD'}]
+    assert look(OPENROUTER, handler)['items'] == [{'label': 'Used today', 'amount': 1.25, 'currency': 'USD', 'spent': True}]
 
 
 def test_nanogpt_deepseek_and_moonshot_balances():
