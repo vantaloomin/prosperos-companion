@@ -17,6 +17,7 @@ the decorations in the home section of the context and in pictures taken at home
 """
 import json
 import random
+import re
 from datetime import date, timedelta
 from functools import cache
 from pathlib import Path
@@ -181,6 +182,12 @@ def voiced(text: str, voice: str) -> str:
     return text.replace('{their}', voice)
 
 
+def stored(text: str) -> str:
+    """What the user typed on the Character page, which shows "their mom", back in the form every voice reads
+    from: the companion's own prompt then says "your mom", not "their mom"."""
+    return re.sub(r'\btheir\b', '{their}', text.strip())
+
+
 def on_dates(connection, companion: dict, city: dict | None, start: date, end: date) -> dict[str, dict]:
     """Traditions falling between two local dates: {date: {holiday, name, host, text}} for the agenda."""
     rows = {row['holiday']: row for row in kept(connection, companion['active_timeline_id'])}
@@ -196,6 +203,11 @@ def on_dates(connection, companion: dict, city: dict | None, start: date, end: d
                 'host': {'id': host['id'], 'name': host['name'], 'role': host['role'],
                          'local': bool(decode(host['schedule']))} if host else None})
     return found
+
+
+def busy(connection, companion: dict, start: date, end: date) -> bool:
+    """Whether a kept tradition falls between these local dates, so nothing else is planned then."""
+    return bool(on_dates(connection, companion, city_for(connection, companion['version']['definition']), start, end))
 
 
 def entry_with(city: dict, holiday: str) -> str:
@@ -257,7 +269,7 @@ def row(connection, timeline_id: str, tradition_id: str) -> dict:
 def edit(connection, timeline_id: str, tradition_id: str, text: str, now):
     row(connection, timeline_id, tradition_id)
     connection.execute('UPDATE family_traditions SET text=?, edited=1, updated_at=? WHERE id=?',
-                       (text.strip(), stamp(now), tradition_id))
+                       (stored(text), stamp(now), tradition_id))
 
 
 def set_removed(connection, timeline_id: str, tradition_id: str, gone: bool, now):
@@ -275,7 +287,7 @@ def add(connection, companion: dict, holiday: str, text: str, now):
     require(existing is None, 'They already have a tradition for that holiday. Edit that one instead.', 409)
     connection.execute("INSERT INTO family_traditions (id, timeline_id, holiday, host_id, text, origin, edited, "
                        "created_at, updated_at) VALUES (?, ?, ?, NULL, ?, 'user', 1, ?, ?)",
-                       (identifier(), timeline_id, holiday, text.strip(), stamp(now), stamp(now)))
+                       (identifier(), timeline_id, holiday, stored(text), stamp(now), stamp(now)))
 
 
 def rebuild(connection, companion: dict, holiday: str, now):
@@ -320,7 +332,7 @@ def offset(seed: str, season: str, year: int, most: int) -> int:
 TIED = {
     'halloween': ('halloween', lambda day, year, seed: (date(year, 10, 1) + timedelta(days=offset(seed, 'halloween', year, 20)),
                                                         date(year, 11, 1))),
-    'autumn': ('thanksgiving', lambda day, year, seed: (date(year, 9, 20), day)),
+    'autumn': ('thanksgiving', lambda day, year, seed: (date(year, 9, 20), day + timedelta(days=1))),
     'spring': ('easter', lambda day, year, seed: (day - timedelta(days=14 - offset(seed, 'spring', year, 7)),
                                                   day + timedelta(days=3))),
     'july': ('independence-day', lambda day, year, seed: (date(year, 6, 27), date(year, 7, 6))),
@@ -358,6 +370,11 @@ def windows(seed: str, city: dict, year: int) -> list[tuple[str, date, date]]:
 
 def seasons_up(seed: str, city: dict | None, day: date) -> list[str]:
     """The seasons whose decorations are up on this day, by how keen this home is."""
+    return [season for season, _year in up_on(seed, city, day)]
+
+
+def up_on(seed: str, city: dict | None, day: date) -> list[tuple[str, int]]:
+    """(season, the year its decorations went up) for those up on this day."""
     if not city:
         return []
     keen = generators.unit(seed, 'decorations', 'keen')
@@ -368,8 +385,8 @@ def seasons_up(seed: str, city: dict | None, day: date) -> list[str]:
         for season, up, down in windows(seed, city, year):
             wanted = season in BIG or (season == 'halloween' and keen >= BIG_ONLY) or \
                 (season in KEEN and keen >= HALLOWEEN_TOO)
-            if wanted and up <= day < down and season not in found:
-                found.append(season)
+            if wanted and up <= day < down and season not in {item for item, _year in found}:
+                found.append((season, year))
     return found
 
 
@@ -377,11 +394,11 @@ def decorations(seed: str, city: dict | None, day: date) -> list[str]:
     """What is up at home today, one seeded piece per season (the same piece all season)."""
     calendar = calendar_of(city)
     result = []
-    for season in seasons_up(seed, city, day):
+    for season, year in up_on(seed, city, day):
+        # The window's own year, so the piece stays the same all season (the July one spans June and July).
         choices = [item['text'] for item in data()['decorations']
                    if item['season'] == season and calendar in item['calendars']]
         if choices:
-            year = day.year if day.month > 6 else day.year - 1
             result.append(choices[int(generators.unit(seed, 'decoration', season, str(year)) * len(choices))])
     return result
 

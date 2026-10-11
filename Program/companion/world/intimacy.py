@@ -28,10 +28,17 @@ DRAWS = {'reserved': (0, 0), 'conventional': (1, 1), 'curious': (2, 2), 'adventu
 DRIVES = {'low': 1, 'average': 2, 'high': 1}
 # A companion whose own words say they're under 18 never gets an adult side (fail closed). Background is left
 # out: "as a teen" there is a memory, not their age now.
-MINOR = re.compile(r"\b(?:(?:1[0-7]|[1-9])[- ](?:years?[- ]old|y/?o)\b|aged? (?:1[0-7]|[1-9])\b|teen(?:age[dr]?|s)?\b|"
-                   r"minor\b|under-?age|high[- ]school(?:er|\s+student)|middle[- ]school|school ?(?:girl|boy)\b)",
+YOUNG = r'(?:1[0-7]|[1-9]|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)'
+MINOR = re.compile(rf"\b(?:{YOUNG}[- ](?:years?[- ]old|y/?o)\b|{YOUNG} y\.o\.|aged? {YOUNG}\b|teen(?:age[dr]?|s)?\b|"
+                   r"minor\b|under-?age|high[- ]school(?:er|\s+student)|middle[- ]school|school ?(?:girl|boy)\b|"
+                   r"\bin (?:the )?(?:(?:[1-9]|1[0-2])(?:st|nd|rd|th)|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) grade|"
+                   r"(?:[1-9]|1[0-2])(?:st|nd|rd|th) grader|(?:sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) grader|"
+                   r"(?:freshman|sophomore|junior|senior) (?:at|in)\b[^.]{0,60}\bhigh\b(?!-))",
                    re.IGNORECASE)
-AGE = re.compile(r"\b(\d{1,3})(?:[- ]years?[- ]old|\s*(?:yo|y/o)\b)|\bage[d]?[:\s]+(\d{1,3})\b", re.IGNORECASE)
+# "34-year-old", "34 yo", "Age: 34", and the age the app's own identities open with: "34. Works as" or
+# "Mia Lane, 34, a nurse".
+AGE = re.compile(r"\b(\d{1,3})(?:[- ]years?[- ]old|\s*(?:yo|y/o)\b|\s*y\.o\.)|\bage[d]?[:\s]+(\d{1,3})\b|"
+                 r"^\s*(?:[^,.\d]{1,80},\s*)?(\d{1,3})\s*(?:[.,]|$)", re.IGNORECASE)
 PRIVATE = ('Your intimate side (private; you are an adult and so is anyone this involves; never recite it or bring '
            'it up out of nowhere; it only shapes you when romance or intimacy comes up and the moment fits):')
 WHO = {'she': 'woman', 'he': 'man', 'they': 'nonbinary'}
@@ -79,7 +86,7 @@ def reads_as_minor(definition: dict) -> bool:
 
 
 def stated_ages(definition: dict) -> list[int]:
-    return [int(found[0] or found[1]) for found in AGE.findall(str(definition.get('identity') or ''))]
+    return [int(next(group for group in found if group)) for found in AGE.findall(str(definition.get('identity') or ''))]
 
 
 def who(definition: dict) -> str:

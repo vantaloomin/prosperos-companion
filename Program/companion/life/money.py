@@ -453,6 +453,13 @@ def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
              'for': item.get('for', 'home')} for item in purchases if item.get('cost') or PURCHASES.get(item['spend'])]
 
 
+def spendable(connection, timeline_id: str, definition: dict, day: date) -> float:
+    """What is left to spend on this day once the home's rent and this cycle's outings, trips, clothes and home
+    purchases are counted, as the Today panel shows it."""
+    found = snapshot(definition, day.isoformat(), household(connection, timeline_id, definition, day))
+    return found['left'] if found['available'] else 0.0
+
+
 def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dict:
     """The budget as the Today panel and chat context see it on this local date. `home` is from
     `household`: with it, rent and upkeep come from their home and its purchases count as spending."""

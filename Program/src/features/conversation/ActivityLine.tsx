@@ -7,7 +7,7 @@ import { activityLine, nextChange, type Phase } from './activity'
 
 /**
  * One small line above the message box saying what the app is doing: sending, getting a reply ready,
- * waiting for the model, writing, or Delivered when a reply is held for later (never that they are away).
+ * waiting for the model or writing; nothing while a reply is held for later (never that they are away).
  * It always takes its space, so text
  * coming and going never moves the conversation.
  */

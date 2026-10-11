@@ -85,3 +85,10 @@ def test_a_drawn_build_or_weight_follows_what_the_user_set():
     # What the user set stays as they set it, even when it is unusual.
     mine = looks.for_companion('abc', {**she, 'looks': {'weight_kg': 120, 'build': 'slim'}})
     assert mine['weight_kg'] == 120 and mine['build'] == 'slim'
+
+
+def test_someone_whose_identity_says_they_are_under_18_is_never_given_an_adult_age():
+    sheet = looks.for_companion('c1', {'identity': 'June Park, 16. She works weekends at a bakery.'})
+    assert sheet['age'] is None
+    assert 'years old' not in looks.text(sheet) and 'twenties' not in looks.picture(sheet, 'she')
+    assert looks.for_companion('c1', {'identity': 'June Park, 26. She runs a bakery.'})['age'] == 26

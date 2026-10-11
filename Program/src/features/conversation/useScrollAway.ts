@@ -11,14 +11,16 @@ export function useScrollAway(transcriptRef: RefObject<HTMLDivElement | null>, p
   const [away, setAway] = useState(false)
   // Set while the arrow's smooth scroll runs, so its in-between positions don't shrink the box again.
   const jumpingRef = useRef(false)
-  // The last height seen, so a scroll caused by the layout changing (the keyboard, the box growing) isn't read as the
-  // reader scrolling up.
+  // The last heights seen, so a scroll caused by the layout changing (the keyboard, the box growing, messages that
+  // were drawn at an estimated height getting their real one) isn't read as the reader scrolling up.
   const heightRef = useRef(0)
+  const contentRef = useRef(0)
   const onScroll = useCallback(() => {
     const element = transcriptRef.current
     if (!element) return
-    const resized = element.clientHeight !== heightRef.current
+    const resized = element.clientHeight !== heightRef.current || element.scrollHeight !== contentRef.current
     heightRef.current = element.clientHeight
+    contentRef.current = element.scrollHeight
     const atBottom = element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM_PX
     if (jumpingRef.current || (resized && pinnedRef.current)) {
       if (atBottom) jumpingRef.current = false
@@ -38,12 +40,15 @@ export function useScrollAway(transcriptRef: RefObject<HTMLDivElement | null>, p
     pinnedRef.current = true
     setAway(false)
   }, [transcriptRef, pinnedRef])
-  // The box growing back (or the keyboard opening) makes the transcript shorter; stay at the bottom when pinned there.
+  // The box growing back (or the keyboard opening) makes the transcript shorter, and messages off screen are drawn at an
+  // estimated height until they show (styles.css, content-visibility), so the history grows after the jump to the
+  // bottom: stay at the bottom when pinned there.
   useEffect(() => {
     const element = transcriptRef.current
     if (!element || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(() => { if (pinnedRef.current) element.scrollTop = element.scrollHeight })
     observer.observe(element)
+    if (element.firstElementChild) observer.observe(element.firstElementChild)
     return () => observer.disconnect()
   }, [transcriptRef, pinnedRef])
   return { away, onScroll, toLatest }

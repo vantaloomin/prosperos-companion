@@ -33,7 +33,7 @@ ACTIVITIES = {
     'dinner': (r'dinner|supper|a bite|eat out|grab food', ('restaurant', 'tavern', 'inn'), '19:00', 2.0, 'dinner',
                'dinner'),
     'lunch-out': (r'lunch|brunch', ('cafe', 'restaurant', 'market'), '12:30', 1.5, 'lunch-out', 'lunch'),
-    'coffee': (r'coffee|a cuppa|tea', ('cafe',), '10:30', 1.0, 'coffee', 'coffee'),
+    'coffee': (r'coffee|a cuppa|(?:get|grab|have|for) (?:a |some )?tea', ('cafe',), '10:30', 1.0, 'coffee', 'coffee'),
     'drinks': (r'drinks?|a beer|beers|cocktails?|a pint|some wine', ('bar', 'nightlife', 'tavern'), '20:00', 2.5,
                'drinks', 'drinks'),
     'show': (r'a show|concert|gig|a play|theat(?:er|re)|movies?|a film|the cinema|comedy', ('venue', 'stadium'),
@@ -51,6 +51,15 @@ ASKING = re.compile(r"\b(?:let'?s|lets|we should|shall we|wanna|want to|would yo
                     r"how about|what about|are you free|you free|up for|care to|come with me|join me|"
                     r"go out with me|take you|treat you)\b", re.IGNORECASE)
 TOGETHER = re.compile(r"\b(?:we|us|together|with me|you and me|you and i)\b", re.IGNORECASE)
+# Staying in, a call or a story is not going out: "come over for dinner, I'll cook", "a movie on FaceTime", "want to
+# hear about my coffee disaster?", "walk me through it".
+STAY = re.compile(r"\b(?:my place|your place|my apartment|your apartment|at home|at mine|at yours|come over|stay in|"
+                  r"i'?ll cook|cook(?:ing)? (?:for|dinner|together)|order in|takeout|take-out|facetime|video call|"
+                  r"on (?:a )?call|stream (?:it|one|a)|netflix|walk (?:me|you|us) through|hear about|tell you about)\b",
+                  re.IGNORECASE)
+# "Sometime", "next time": a wish, not a plan for a day.
+VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one of these days|when you'?re back|"
+                   r"at some point|again sometime)\b", re.IGNORECASE)
 # A plan the companion makes in their own reply counts only when it is firm.
 FIRM = re.compile(r"\b(?:let'?s|we should|we're going|we are going|i'll take you|i'm taking you)\b", re.IGNORECASE)
 STARTS = re.compile(rf"^(?:{'|'.join(value[0] for value in ACTIVITIES.values())})\b", re.IGNORECASE)
@@ -94,7 +103,7 @@ def named_place(sentence: str, data: dict | None) -> dict | None:
 def asked(sentence: str, firm: bool, day: date | None) -> bool:
     """Whether a sentence asks to go somewhere together (or, from the companion, firmly says they will). A short
     question that starts with the outing and names a day ("Drinks Friday?") asks too."""
-    if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence):
+    if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence) or STAY.search(sentence):
         return False
     question = sentence.rstrip().endswith('?')
     if firm:
@@ -110,6 +119,25 @@ def which(sentence: str, place: dict | None) -> str | None:
     if place:
         return activity_for_place(place)
     return 'dinner' if OUT.search(sentence) else None
+
+
+def word_for(sentence: str, activity: str) -> str:
+    """The word that named the outing ("the aquarium", "a movie"), so the companion's pick can fit it."""
+    found = re.search(rf'\b(?:{ACTIVITIES[activity][0]})\b', sentence, re.IGNORECASE)
+    return found.group(0).lower() if found else ''
+
+
+# What a place's name, summary or tags should say for the word asked; and places nobody goes out to.
+WANTS = {'aquarium': r'aquarium', 'movie': r'cinema|film|movie|picture house|theat', 'film': r'cinema|film|movie|theat',
+         'cinema': r'cinema|film|movie', 'concert': r'music|concert|hall|jazz|orchestra|symphony|band', 'gig': r'music|club|band',
+         'play': r'theat|play|stage|playhouse', 'theat': r'theat|play|stage', 'comedy': r'comedy|club', 'gallery': r'gallery|art',
+         'hike': r'trail|hike|hill|mountain', 'picnic': r'park|lawn|garden', 'brunch': r'brunch|breakfast|cafe|diner'}
+NOT_OUTINGS = re.compile(r'\b(?:station|hospital|clinic|church|cathedral|chapel|campus|university|transit|airport|'
+                         r'terminal|ship|cemetery)\b', re.IGNORECASE)
+
+
+def described(item: dict) -> str:
+    return ' '.join([item['name'], item.get('summary', ''), *item.get('tags', ())])
 
 
 def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
@@ -130,8 +158,11 @@ def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bo
         activity = which(sentence, place)
         if activity is None:
             continue
+        # "We should grab coffee sometime" is a wish; "How about a date sometime?" asks, and the companion picks the day.
+        if day is None and (firm or VAGUE.search(sentence) and not sentence.rstrip().endswith('?')):
+            return None
         at, _said = own_plans.clock(sentence)
-        return {'activity': activity, 'day': day, 'at': at, 'place': place,
+        return {'activity': activity, 'day': day, 'at': at, 'place': place, 'word': word_for(sentence, activity),
                 'sentence': sentence[:300]}
     return None
 
@@ -146,11 +177,18 @@ def busy_at(schedule, day: date, at: str) -> bool:
     return False
 
 
-def taken(connection, companion_id: str, day: date) -> bool:
-    """Another outing, or a trip away, already has this day."""
-    from companion.life import trips
+def cut_short(schedule, day: date, at: str, end: str) -> bool:
+    """Work, study or sleep starts before the outing would be over (a shift at 3 for a museum at 2)."""
+    return any(day.weekday() in block.days and block.view()['kind'] in NOT_BUSY and at < block.view()['start'] < end
+               for block in schedule)
+
+
+def taken(connection, companion: dict, day: date) -> bool:
+    """Another outing, a trip away or a family tradition already has this day."""
+    from companion.life import traditions, trips
     return bool(optional(connection, "SELECT id FROM outings WHERE companion_id=? AND local_date=? AND status!="
-                         "'cancelled'", (companion_id, day.isoformat()))) or trips.away_on(connection, companion_id, day)
+                         "'cancelled'", (companion['id'], day.isoformat()))) or \
+        trips.away_on(connection, companion['id'], day) or traditions.busy(connection, companion, day, day)
 
 
 def first_day(local_now: datetime, at: str) -> date:
@@ -173,7 +211,8 @@ def when_free(connection, companion: dict, wanted: dict, local_now: datetime) ->
             day = start + timedelta(days=offset)
             if wanted['firm'] and offset:
                 return None
-            if not busy_at(schedule, day, at) and not taken(connection, companion['id'], day):
+            if not busy_at(schedule, day, at) and not cut_short(schedule, day, at, until(at, wanted['activity'])) \
+                    and not taken(connection, companion, day):
                 return day, at
     return None
 
@@ -199,9 +238,15 @@ def likes_of(definition: dict) -> set[str]:
 
 
 def pick_place(data: dict, activity: str, day: date, at: str, definition: dict, seed: str,
-               cheap: bool) -> dict | None:
-    """The companion's pick: a place for this outing open at that time and in season, within budget."""
+               cheap: bool, word: str = '') -> dict | None:
+    """The companion's pick: a place for this outing open at that time and in season, within budget, that fits the
+    word asked ("the aquarium") when one does."""
     options = [item for item in data['places'] if item['kind'] in kinds(activity) and fits(item, day, at)]
+    if activity in ('museum', 'walk', 'show'):
+        options = [item for item in options if not NOT_OUTINGS.search(item['name'])] or options
+    wants = next((pattern for stem, pattern in WANTS.items() if stem in word), None)
+    if wants:
+        options = [item for item in options if re.search(wants, described(item), re.IGNORECASE)] or options
     options = [item for item in options if not cheap or item.get('cost', '') in CHEAP] or options
     if not options:
         return None
@@ -214,16 +259,17 @@ def place_view(item: dict, data: dict) -> dict:
     return {'id': item['id'], 'name': item['name'], 'kind': item['kind'], 'neighborhood': hoods.get(
             item['neighborhood'], ''), 'summary': item.get('summary', ''), 'cost': item.get('cost', ''),
             'cuisine': item.get('cuisine', ''), 'city': data['name'], 'city_id': data['id'],
-            'spots': inside.for_place(item)}
+            'spots': inside.for_place(item, data.get('era'))}
 
 
-def bill(definition: dict, activity: str, day: date) -> tuple[float, bool]:
-    """(their share of the bill, whether it fits their budget that day); nothing where money does not apply."""
+def bill(definition: dict, activity: str, day: date, left: float | None = None) -> tuple[float, bool]:
+    """(their share of the bill, whether it fits what they have `left` that day, else their bare budget); nothing
+    where money does not apply."""
     found = money.profile(definition)
     if not found:
         return 0.0, True
     cost = money.cost(found, ACTIVITIES[activity][4])
-    return round(cost, 2), cost <= money.left_on(found, day)
+    return round(cost, 2), cost <= (money.left_on(found, day) if left is None else left)
 
 
 def until(at: str, activity: str) -> str:
@@ -256,11 +302,14 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
 
 def save(connection, companion, message, wanted, data, day: date, at: str, timestamp: str) -> dict | None:
     definition = companion['version']['definition']
-    cost, affordable = bill(definition, wanted['activity'], day)
+    cost, affordable = bill(definition, wanted['activity'], day,
+                            money.spendable(connection, companion['active_timeline_id'], definition, day))
     item = wanted['place'] or pick_place(data, wanted['activity'], day, at, definition, f"outing:{message['id']}",
-                                         not affordable)
+                                         not affordable, wanted.get('word', ''))
     if item is None:
         return None
+    if item.get('cost') == 'free':
+        cost, affordable = 0.0, True
     outing_id = identifier()
     connection.execute(
         'INSERT INTO outings (id, companion_id, message_id, local_date, at_time, until_time, activity, asked_date, '
@@ -534,6 +583,8 @@ def undo(connection, companion: dict, outing_id: str, now: datetime) -> dict:
         connection.execute('UPDATE outings SET ended_at=NULL WHERE id=?', (outing_id,))
     else:
         require(undoable_cancel(outing, companion['version']['timezone'], now), 'That can no longer be undone.', 409)
+        require(not taken(connection, companion, date.fromisoformat(outing['local_date'])),
+                'Another plan has that day now.', 409)
         connection.execute("UPDATE outings SET status='planned', cancelled_at=NULL WHERE id=?", (outing_id,))
     return get(connection, outing_id)
 

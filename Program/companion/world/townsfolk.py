@@ -390,12 +390,16 @@ SHARED_GOALS = {goal[0]: (*goal, GOAL_INTERESTS[goal[0]], item['bio']) for goal,
 def goal_order(data: dict, seed: str) -> list[str]:
     """The order someone works through goals: a seeded shuffle where the city's own goals come up more often.
     Without any, the order is the plain shuffle by each goal's draw."""
-    own = {item['id'] for item in town(data)['goals']}
+    return list(_goal_order(seed, tuple(item['id'] for item in town(data)['goals'])))
 
+
+@functools.lru_cache(maxsize=8192)
+def _goal_order(seed: str, own: tuple) -> tuple:
+    # Every resident sorts a hundred goals by their draws, and a new day reads the same residents again and again.
     def draw(goal_id):
         roll = generators.unit(seed, 'goal', goal_id)
         return 1 - (1 - roll) ** (1 / TOWN_WEIGHT) if goal_id in own else roll
-    return sorted(goal_bank(data), key=draw)
+    return tuple(sorted(SHARED_GOALS | dict.fromkeys(own), key=draw))
 
 
 def goal(sheet: dict, data_or_modern, number: int) -> dict:

@@ -186,11 +186,12 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         return 0
     schedule, _default = routine.blocks(definition)
     recent = recent_activities(connection, timeline_id, subject, stamp(start))
-    days_off = public_holidays(world, definition, start, end)
+    days_off = days_off_for(world, definition, subject, start, end)
     days = {}
     written = 0
     scope = {'timeline_id': timeline_id, 'subject': subject, 'definition': definition, 'basis': basis, 'world': world,
-             'shifting': disruptions.enabled(connection), 'now': now, 'companion': companion}
+             'shifting': disruptions.enabled(connection), 'now': now, 'companion': companion,
+             'era': (circle.city_data(definition, world) or {}).get('era')}
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
                     (timeline_id, subject, slot.key)):
@@ -247,7 +248,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
                                scope['world'], scope['now'])
-        entry = with_spot(connection, timeline_id, subject, entry, slot.local_date, seed)
+        entry = with_spot(connection, timeline_id, subject, entry, slot.local_date, seed, scope['era'])
         if entry:
             recent.append(entry['activity'])
     connection.execute(
@@ -276,13 +277,13 @@ def write_trip_slot(connection, scope: dict, slot, facts: dict) -> int:
     return 1
 
 
-def with_spot(connection, timeline_id, subject, entry, day, seed) -> dict | None:
+def with_spot(connection, timeline_id, subject, entry, day, seed, era=None) -> dict | None:
     """Now and then where inside the place (or which room at home) the companion's entry happened
     (companion/world/inside.py)."""
     if subject != COMPANION or not entry:
         return entry
     home_item = next((item for item in home.items_on(connection, timeline_id, day) if item['kind'] == 'home'), None)
-    return inside.touch(entry, seed, home_item)
+    return inside.touch(entry, seed, home_item, era)
 
 
 def compose_entry(connection, scope: dict, slot, view: dict, company: list, recent: list, seed: str) -> dict | None:
@@ -339,6 +340,15 @@ def day_block(block: dict, facts: dict) -> dict:
     if facts['happenings']:
         block['happenings'] = facts['happenings']
     return block
+
+
+def days_off_for(world, definition, subject, start, end) -> dict[str, str]:
+    """Public holidays, and for the companion their family traditions' days too: Christmas Eve at their brother's
+    is a day off even when it isn't a public holiday."""
+    found = public_holidays(world, definition, start, end)
+    if subject != COMPANION:
+        return found
+    return {**{day: kept['name'] for day, kept in (definition.get('traditions') or {}).items()}, **found}
 
 
 def public_holidays(world, definition, start, end) -> dict[str, str]:

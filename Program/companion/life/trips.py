@@ -164,13 +164,22 @@ def sunny(city: dict, day: date) -> bool:
     return bool(weather) and by_water and weather['high_f'] >= WARM_F and not weather['rain']
 
 
-def cost(definition: dict, nights: int, day: date) -> float | None:
-    """What the trip costs, or None when they cannot afford it then; 0 where money does not apply."""
+def cost(definition: dict, nights: int, day: date, left: float | None = None) -> float | None:
+    """What the trip costs, or None when they cannot afford it with what is `left` then (else their bare budget); 0
+    where money does not apply."""
     found = money.profile(definition)
     if not found:
         return 0.0
     price = money.monthly_share(found) * COST_SHARE[nights] * (1 if found.period == 'month' else 12 / 52)
-    return round(price, 2) if price <= money.left_on(found, day) else None
+    return round(price, 2) if price <= (money.left_on(found, day) if left is None else left) else None
+
+
+def booked(connection, companion: dict, days: list[date]) -> bool:
+    """An outing with the user or a family tradition already has one of these days."""
+    from companion.life import traditions
+    return bool(optional(connection, "SELECT id FROM outings WHERE companion_id=? AND local_date>=? AND local_date<=? "
+                         "AND status!='cancelled'", (companion['id'], days[0].isoformat(), days[-1].isoformat()))) or \
+        traditions.busy(connection, companion, days[0], days[-1])
 
 
 def decide(connection, companion: dict, home: dict, saturday: date) -> dict | None:
@@ -179,13 +188,13 @@ def decide(connection, companion: dict, home: dict, saturday: date) -> dict | No
     seed = f'trip:{timeline_id}:{saturday.isoformat()}'
     days = days_off(home, saturday)
     holidays = public_holidays(home, days[0], days[-1])
-    if not free(definition, days, holidays):
+    if not free(definition, days, holidays) or booked(connection, companion, days):
         return None
     if generators.unit(seed, 'go') >= (LONG_CHANCE if len(days) == 3 else CHANCE):
         return None
     nights = len(days)
     picked = where(connection, timeline_id, home, definition, nights, seed)
-    price = cost(definition, nights, days[0])
+    price = cost(definition, nights, days[0], money.spendable(connection, timeline_id, definition, days[0]))
     if not picked or price is None:
         return None
     city, kind, company = picked

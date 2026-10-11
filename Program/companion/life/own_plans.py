@@ -103,6 +103,9 @@ def plain(text: str) -> str:
     return ' '.join(re.sub(r"[^a-z0-9 ]+", '', text.lower().replace('’', "'").replace("'", '')).split())
 
 
+WEEKDAY_BEFORE_DATE = re.compile(rf'\b(?:on )?{dates.DAY},?\s+(?=(?:the )?{dates.MONTH}\b)', re.IGNORECASE)
+
+
 def when(clause: str, today: date, holidays: dict[str, date]) -> tuple[date, str, str | None] | None:
     """(date, the words that said it, a time those words imply) for the one day a clause names."""
     for name in sorted(holidays, key=len, reverse=True):
@@ -112,6 +115,8 @@ def when(clause: str, today: date, holidays: dict[str, date]) -> tuple[date, str
     if match := ORDINAL.search(clause):
         day = nth_day(today, int(match.group(2)), match.group(1))
         return (day, match.group(0), None) if day else None
+    # "Saturday, November 14" names the date; the weekday in front only confirms it.
+    clause = WEEKDAY_BEFORE_DATE.sub('', clause)
     span = dates.resolve(clause, datetime.combine(today, time(12), UTC), 'UTC')
     if span and span.certain and span.end - span.start == timedelta(days=1):
         words = re.search(rf"\b(?:on |this |for )?{re.escape(span.phrase)}\b", clause, re.IGNORECASE)

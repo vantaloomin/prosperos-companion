@@ -49,6 +49,20 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.8.1 (2026-10-11)
+
+- **Going out together:** staying in, a call or a story no longer counts as an outing; a vague "sometime" stays a
+  wish; dates like "Saturday, November 14" land on the right day; the named place is the place, free places are
+  free, and undo or a work shift can't double up a day.
+- **Trips and traditions:** trips avoid planned days and traditions and check the real budget; postcards arrive on
+  their own; Christmas Eve and New Year's Eve are days off; reworded traditions keep their voice.
+- **Maps and Who knows who:** plans don't count as visits, New York 1925 gets a drawn map, no modern spots in
+  period places, a stalled street map falls back to the drawn one, keyboard pins, and the close-circle filter works.
+- **Chats:** chats open at the newest message, a held reply no longer shows "Delivered", and narrow-window message
+  buttons no longer cover text.
+- **Also:** pack characters can't become a starter companion, Looks says "none" for blanks, and a new day is about
+  twice as fast.
+
 ## v0.8.0 (2026-10-11)
 
 - **Maps:** street maps for real cities and drawn maps (districts, streets, parks, water) for the rest; place cards

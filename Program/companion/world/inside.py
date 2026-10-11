@@ -45,6 +45,14 @@ BY_KIND = {
     'docks': ('at the end of the pier', 'by the fish sellers', 'on the harbour wall', 'outside the harbour office'),
 }
 ANYWHERE = ('at the entrance', 'in a quiet corner', 'by the front windows')
+# Spots only a modern place has: no jukebox in a 1925 speakeasy, no food court in Grandport.
+MODERN_ERAS = {'modern', 'future'}
+MODERN_SPOTS = {'in the jukebox corner', 'in the food court', 'by the escalators', 'at the café on the top floor',
+                'in the weights room', 'on the treadmills', 'in the studio at the back', 'in the changing rooms',
+                'in the museum café', 'in the gift shop', 'at the viewing deck', 'at the café inside',
+                'in the queue at the entrance', 'at the concourse food stands', 'at the snack shack',
+                'by the lifeguard tower', 'at the study carrels', 'in the café on the ground floor', 'by the playground',
+                "at the chef's counter", 'out on the smoking terrace', 'by the pool table', 'in the bookshop upstairs'}
 PREPOSITION = re.compile(r'^(?:out on|up on|up in|down by|out in|along|at|in|on|by|under) ', re.IGNORECASE)
 LEAD = re.compile(r'^(?:at|in|on|by|out|up|down|along|under|inside|near) ', re.IGNORECASE)
 SENTENCES = ('Spent most of it {where}.', 'Ended up {where}.', 'Settled in {where} for a while.')
@@ -76,12 +84,15 @@ def placed(spot: str) -> str:
     return spot if LEAD.match(spot) else f'at {spot}'
 
 
-def for_place(place: dict) -> list[str]:
-    """Two to four spots for a place (any dict with id, kind and maybe spots), the same every time."""
+def for_place(place: dict, era: str | None = 'modern') -> list[str]:
+    """Two to four spots for a place (any dict with id, kind and maybe spots), the same every time, fitting the
+    city's era."""
     own = [placed(spot.strip()) for spot in place.get('spots') or () if spot and spot.strip()]
     if own:
         return own[:LIMIT]
     options = list(BY_KIND.get(place.get('kind', ''), ANYWHERE))
+    if (era or 'modern') not in MODERN_ERAS:
+        options = [spot for spot in options if spot not in MODERN_SPOTS] or list(ANYWHERE)
     count = 2 + int(generators.unit(place.get('id', ''), 'spot-count') * 3)
     ranked = sorted(options, key=lambda spot: generators.unit(place.get('id', ''), 'spot', spot))
     return ranked[:min(count, len(options))]
@@ -106,14 +117,14 @@ def names(spots: list[str]) -> list[str]:
     return [name(spot) for spot in spots]
 
 
-def sentence(entry: dict, seed: str, home: dict | None = None) -> str:
+def sentence(entry: dict, seed: str, home: dict | None = None, era: str | None = 'modern') -> str:
     """Now and then a short detail for an agenda entry: where in the place (or at home) it happened.
     Empty most of the time, and always when the entry has no place and nothing fits at home."""
     if generators.unit(seed, 'inside') >= SHARE:
         return ''
     place = entry.get('place')
     if place:
-        spot = generators.pick(seed, 'inside-spot', for_place(place))
+        spot = generators.pick(seed, 'inside-spot', for_place(place, era))
         return generators.pick(seed, 'inside-line', list(SENTENCES)).format(where=spot) if spot else ''
     rooms = set(for_home(home))
     fitting = [room for room in HOME_ROOMS.get(entry.get('activity', ''), ()) if room in rooms]
@@ -122,12 +133,12 @@ def sentence(entry: dict, seed: str, home: dict | None = None) -> str:
     return generators.pick(seed, 'inside-line', list(HOME_SENTENCES)).format(where=fitting[0])
 
 
-def touch(entry: dict | None, seed: str, home: dict | None = None) -> dict | None:
+def touch(entry: dict | None, seed: str, home: dict | None = None, era: str | None = 'modern') -> dict | None:
     """The entry with a spot detail added to its summary, when one is drawn. An entry another hook
     already added to (a belonging, a home change) is left alone, so a summary never piles up details."""
     if not entry or entry.get('home') or entry.get('wardrobe') or entry.get('inside') or entry.get('activity') in WORKING:
         return entry
-    line = sentence(entry, seed, home)
+    line = sentence(entry, seed, home, era)
     if not line:
         return entry
     return {**entry, 'summary': f"{entry['summary'].rstrip()} {line}", 'inside': line}

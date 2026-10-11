@@ -16,7 +16,8 @@ export const TIE_LABELS: Record<TieKind, string> = {
   you: 'Yours', family: 'Family', partner: 'Partners', work: 'Work', neighbor: 'Neighbours', ex: 'Exes', friend: 'Friends', met: 'Met',
 }
 
-/** Everyone within `steps` links of one person, them included. */
+/** Everyone within `steps` links of one person, them included. The user knows everyone on the web, so a path
+ * through them doesn't count, or every circle would be the whole web. */
 export function within(data: WebData, id: string, steps: number): Set<string> {
   const found = new Set([id])
   let edge = [id]
@@ -24,7 +25,7 @@ export function within(data: WebData, id: string, steps: number): Set<string> {
     const next: string[] = []
     for (const link of data.links) {
       for (const [a, b] of [[link.source, link.target], [link.target, link.source]]) {
-        if (edge.includes(a) && !found.has(b)) { found.add(b); next.push(b) }
+        if (edge.includes(a) && !found.has(b) && (a !== 'you' || id === 'you')) { found.add(b); next.push(b) }
       }
     }
     edge = next

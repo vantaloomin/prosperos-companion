@@ -6,15 +6,14 @@ export type Phase = 'preparing' | 'looking' | 'waiting' | 'remembering' | 'writi
 
 /**
  * The line under the conversation saying what the app is doing. It describes the app's work, never
- * whether the companion is online or away: a reply held by pacing reads only as "Delivered", like any text
- * that reached them, and a failed one shows on its own with Retry.
+ * whether the companion is online or away: a reply held by pacing shows nothing at all, like any text that
+ * reached someone who hasn't answered yet, and a failed one shows on its own with Retry.
  */
 export function activityLine(messages: Message[], phases: Record<string, Phase>, sending: boolean, now: number): string {
   if (sending) return 'Sending…'
   const companion = messages.filter((message) => message.role === 'companion' && !message.superseded_at)
   const writing = companion.find((message) => message.status === 'streaming' && !isHeld(message, now))
   if (writing) return phaseLine(phases[writing.id])
-  if (companion.some((message) => waitsUntilLater(message, now))) return 'Delivered'
   return ''
 }
 
