@@ -110,20 +110,29 @@ PLACE_CAP = 4
 
 def career_weights(data: dict, offered: dict[str, dict]) -> dict[str, float]:
     """How often residents work each offered career in this city: its own industries count far more."""
-    weights = dict.fromkeys(offered, 1.0)
-    for career in data.get('careers', []):
-        if career['id'] in weights:
-            weights[career['id']] += CITY_CAREER
-    for employer in data.get('employers', []):
-        hires = set(employer['careers']) & set(weights)
+    return dict(_career_weights(
+        tuple((key, career['sector']) for key, career in offered.items()),
+        tuple(career['id'] for career in data.get('careers', [])),
+        tuple((tuple(employer['careers']), employer.get('size')) for employer in data.get('employers', [])),
+        tuple(sector for hub in data.get('career_hubs', []) for sector in hub.get('sectors', [])),
+        tuple(place['kind'] for place in data.get('places', []))))
+
+
+@functools.lru_cache(maxsize=64)
+def _career_weights(offered: tuple, own: tuple, employers: tuple, sectors: tuple, kinds: tuple) -> tuple:
+    # Read for every townsperson the city draws, so a city's weights are worked out once.
+    weights = dict.fromkeys((key for key, _ in offered), 1.0)
+    for career in own:
+        if career in weights:
+            weights[career] += CITY_CAREER
+    for careers, size in employers:
+        hires = set(careers) & set(weights)
         for career in hires:
-            weights[career] += EMPLOYER_SIZES.get(employer.get('size'), EMPLOYER_SIZES['small']) / len(hires)
-    sectors = [sector for hub in data.get('career_hubs', []) for sector in hub.get('sectors', [])]
-    kinds = [place['kind'] for place in data.get('places', [])]
-    for key, career in offered.items():
+            weights[career] += EMPLOYER_SIZES.get(size, EMPLOYER_SIZES['small']) / len(hires)
+    for key, sector in offered:
         workplaces = sum(kinds.count(kind) for kind in WORKPLACE_KINDS.get(key, ()))
-        weights[key] += HUB_SECTOR * sectors.count(career['sector']) + PLACE_JOB * min(workplaces, PLACE_CAP)
-    return weights
+        weights[key] += HUB_SECTOR * sectors.count(sector) + PLACE_JOB * min(workplaces, PLACE_CAP)
+    return tuple(weights.items())
 
 
 def town_career(data: dict, seed: str, label: str = 'career', fits=None) -> dict | None:

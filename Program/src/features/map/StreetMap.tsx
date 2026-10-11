@@ -9,6 +9,8 @@ interface Props { data: CityMapData; selected: string | null; onSelect: (id: str
 
 // A street map that keeps failing (offline, blocked) gives way to the sketch.
 const FAILED_TILES = 6
+// Tiles that never answer (a proxy that holds the request) count as failing too.
+const FIRST_TILE_MS = 8000
 
 /** Real public cities: OpenStreetMap tiles with their attribution, and the places as pins. */
 export function StreetMap({ data, selected, onSelect, onFail }: Props) {
@@ -22,9 +24,11 @@ export function StreetMap({ data, selected, onSelect, onFail }: Props) {
     if (!box.current) return
     const created = L.map(box.current, { zoomControl: true, attributionControl: true }).setView([data.city.lat, data.city.lon], 13)
     let failures = 0
+    const waiting = window.setTimeout(() => callbacks.current.onFail(), FIRST_TILE_MS)
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).on('tileerror', () => { failures += 1; if (failures === FAILED_TILES) callbacks.current.onFail() }).addTo(created)
+    }).on('tileload', () => window.clearTimeout(waiting))
+      .on('tileerror', () => { failures += 1; if (failures === FAILED_TILES) callbacks.current.onFail() }).addTo(created)
     for (const place of data.places) {
       const pin = mainPin(place)
       const icon = L.divIcon({ className: `map-pin pin-${pin}`, html: pinMarkup(pin), iconSize: pin === 'place' ? [12, 12] : [26, 26] })
@@ -35,10 +39,10 @@ export function StreetMap({ data, selected, onSelect, onFail }: Props) {
       markers.current.set(place.id, marker)
     }
     const marked = data.places.filter((place) => place.pins.length)
-    if (marked.length > 1) created.fitBounds(L.latLngBounds(marked.map((place) => [place.lat, place.lon])), { padding: [60, 60], maxZoom: 14 })
+    if (marked.length > 1) created.fitBounds(L.latLngBounds(marked.map((place) => [place.lat, place.lon])), { padding: [60, 60], maxZoom: 14, animate: false })
     map.current = created
     const found = markers.current
-    return () => { created.remove(); found.clear(); map.current = null }
+    return () => { window.clearTimeout(waiting); created.remove(); found.clear(); map.current = null }
   }, [data])
   useEffect(() => {
     for (const [id, marker] of markers.current) marker.getElement()?.classList.toggle('selected', id === selected)

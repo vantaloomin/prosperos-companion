@@ -23,6 +23,11 @@ test('filters keep you and the links between the people they keep', () => {
   assert.equal(filtered(data, { kind: 'companions' }).links.length, 1)
   assert.deepEqual(filtered(data, { kind: 'hood', hood: 'Canton' }).nodes.map((node) => node.id), ['you', 'companion:1', 'town:b:cafe:0'])
   assert.deepEqual([...within(data, 'circle:t:0/1', 2)].sort(), ['circle:t:0', 'circle:t:0/1', 'companion:1'])
+  // You know everyone, so a path through you doesn't pull the whole web into someone's circle.
+  const yours: WebData = { nodes: [...data.nodes, { id: 'told:0', name: 'Aunt Jo', kind: 'yours', detail: '', hood: '' }],
+    links: [...data.links, { source: 'you', target: 'told:0', label: 'your aunt', kind: 'you' }] }
+  assert.ok(!within(yours, 'circle:t:0', 2).has('told:0'))
+  assert.ok(within(yours, 'you', 1).has('told:0'))
   assert.equal(filtered(data, { kind: 'near', id: 'circle:t:0/1' }).nodes.length, 4)
   assert.equal(filtered(data, { kind: 'everyone' }).links.length, 4)
 })

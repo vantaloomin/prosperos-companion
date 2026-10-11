@@ -400,6 +400,9 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 
 
 # In priority order; later features add their own.
+# What may go out while the user hasn't answered the last text: a birthday, and a trip's postcard (its afternoon
+# passes otherwise).
+PAST_WAITING = {'occasion', 'postcard'}
 FINDERS = [occasion, trips.postcard_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
            dream_news, little_news, usual_time, check_in]
 
@@ -493,7 +496,7 @@ class Openers:
                 return {'state': reason, 'message': None}
             config = config_for(connection, CHAT)
             found = [trigger for trigger in candidates(connection, companion, now)
-                     if not occasions_only or trigger.kind == 'occasion']
+                     if not occasions_only or trigger.kind in PAST_WAITING]
             if not found and reason:
                 return {'state': reason, 'message': None}
         for trigger in found:
@@ -579,7 +582,7 @@ class Openers:
             # character changed. Try again on the next check.
             if (timeline_id != companion['active_timeline_id'] or latest['active_version_id'] != companion[
                     'active_version_id'] or held(connection, latest, one(
-                    connection, 'SELECT * FROM life_settings WHERE id=1'), now, trigger.kind == 'occasion')
+                    connection, 'SELECT * FROM life_settings WHERE id=1'), now, trigger.kind in PAST_WAITING)
                     or optional(connection, 'SELECT id FROM openers WHERE timeline_id=? AND trigger_key=?',
                                 (timeline_id, trigger.key))):
                 return {'state': 'superseded', 'message': None}

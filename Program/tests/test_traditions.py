@@ -129,3 +129,9 @@ def test_the_user_can_reword_drop_restore_and_add(client, baltimore, clock):
     again = client.post('/api/life/traditions', json={'holiday': free['id'], 'text': 'Twice?'})
     assert again.status_code == 409
     assert client.post('/api/life/traditions', json={'holiday': 'not-a-holiday', 'text': 'x'}).status_code == 422
+
+
+def test_a_tradition_the_user_rewords_still_reads_in_the_companions_own_voice():
+    text = traditions.stored("Thanksgiving is at their dad Richard's.  ")
+    assert text == "Thanksgiving is at {their} dad Richard's."
+    assert traditions.voiced(text, 'your') == "Thanksgiving is at your dad Richard's."

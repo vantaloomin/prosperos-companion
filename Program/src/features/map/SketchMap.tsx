@@ -77,7 +77,8 @@ function PlacePin({ place, x, y, selected, onSelect }: PinProps) {
   const pin = mainPin(place)
   return (
     <g className={`sketch-pin map-pin pin-${pin}${selected ? ' selected' : ''}`} transform={`translate(${x} ${y})`}
-      role="button" tabIndex={0} aria-label={place.name} onClick={() => onSelect(place.id)}>
+      role="button" tabIndex={0} aria-label={place.name} onClick={() => onSelect(place.id)}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(place.id) } }}>
       <circle className="sketch-hit" r={14} />
       {pin === 'place' ? <><circle className="sketch-dot" r={4.5} /><text className="sketch-label sketch-hover-label" x={9} y={4}>{place.name}</text></> : <>
         <circle className="sketch-badge" r={13} />

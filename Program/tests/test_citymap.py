@@ -9,6 +9,7 @@ from test_social_circle import make
 from companion.characters import require_current
 from companion.database import encode
 from companion.life import body, citymap
+from companion.world import catalog
 
 
 @pytest.fixture(autouse=True)
@@ -92,3 +93,9 @@ def test_a_city_can_name_its_sea_rivers_and_lakes_for_the_drawn_map():
     for bad in ({'kind': 'sea'}, {'kind': 'river', 'points': [(1.0, 2.0)]}, {'kind': 'lake', 'points': []}):
         with pytest.raises(ValidationError):
             Water(**bad)
+
+
+def test_only_real_cities_of_today_get_a_street_map():
+    assert citymap.real(catalog.city('baltimore'))
+    assert not citymap.real(catalog.city('new-york-1925'))
+    assert not citymap.real(catalog.city('grandport'))

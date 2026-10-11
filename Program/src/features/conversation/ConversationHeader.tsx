@@ -26,7 +26,9 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
       <div className="conversation-title">
         <h1>{name}</h1>
         <p className="conversation-status"><StatusText name={name} status={companion.status} /></p>
-        <p className="subtle">{[timeline, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
+        <p className="subtle desktop-only">{[timeline, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
+        {/* A phone has room for one line: their time and the neighbourhood. */}
+        <p className="subtle phone-only">{[timeline, time, location?.split(',')[0]].filter(Boolean).join(' · ')}</p>
       </div>
       <ChatStyleSwitch />
       <span className="header-break phone-only" aria-hidden="true" />

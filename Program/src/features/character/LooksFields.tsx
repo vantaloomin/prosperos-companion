@@ -6,7 +6,7 @@ import { useSettled } from './useSettled'
 import { emptyLooks, heightLabel, looksWords, numberChoices, weightLabel, type LooksWord } from './looksText'
 
 /** What each empty field uses once saved (companion/world/looks.py), and suggestions for the word fields. */
-interface LooksSuggestions { automatic: Looks | null; options: Partial<Record<LooksWord, string[]>> }
+interface LooksSuggestions { automatic: Looks | null; covered?: string[]; options: Partial<Record<LooksWord, string[]>> }
 
 interface Props { definition: () => CharacterDefinition; looks: Looks | undefined; set: (change: Partial<CharacterDefinition>) => void }
 
@@ -22,18 +22,19 @@ export function LooksFields({ definition, looks, set }: Props) {
   })
   const automatic = found.data?.automatic ?? null
   const change = (field: keyof Looks, value: string | number | null) => set({ looks: { ...current, [field]: value } })
-  const left = (shown: string | null) => automatic ? (shown ? `Left empty: ${shown}` : 'Left empty: as Appearance says') : 'Left empty, picked for them when you save'
+  const covered = coveredBy(found.data)
+  const left = (shown: string | null, field: keyof Looks) => emptyText(automatic !== null, covered.has(field), shown)
   return (
     <fieldset className="form-stack">
       <legend>Looks</legend>
       <small className="subtle">Pictures of them use these, so they look like the same person every time. Leave any field empty and the app picks one that fits; where Appearance already says it, Appearance wins.</small>
       <div className="form-grid">
-        <NumberChoice label="Age" value={current.age} choices={numberChoices('age')} format={(age) => `${age}`} empty={left(automatic?.age ? `${automatic.age}` : null)} onChange={(value) => change('age', value)} />
-        <NumberChoice label="Height" value={current.height_cm} choices={numberChoices('height')} format={heightLabel} empty={left(automatic?.height_cm ? heightLabel(automatic.height_cm) : null)} onChange={(value) => change('height_cm', value)} />
-        <NumberChoice label="Weight" value={current.weight_kg} choices={numberChoices('weight')} format={weightLabel} empty={left(automatic?.weight_kg ? weightLabel(automatic.weight_kg) : null)} onChange={(value) => change('weight_kg', value)} />
+        <NumberChoice label="Age" value={current.age} choices={numberChoices('age')} format={(age) => `${age}`} empty={left(automatic?.age ? `${automatic.age}` : null, 'age')} onChange={(value) => change('age', value)} />
+        <NumberChoice label="Height" value={current.height_cm} choices={numberChoices('height')} format={heightLabel} empty={left(automatic?.height_cm ? heightLabel(automatic.height_cm) : null, 'height_cm')} onChange={(value) => change('height_cm', value)} />
+        <NumberChoice label="Weight" value={current.weight_kg} choices={numberChoices('weight')} format={weightLabel} empty={left(automatic?.weight_kg ? weightLabel(automatic.weight_kg) : null, 'weight_kg')} onChange={(value) => change('weight_kg', value)} />
         {looksWords.map(({ field, label }) => (
           <WordField key={field} field={field} label={label} value={current[field]} options={found.data?.options[field] ?? []}
-            empty={left(automatic?.[field] || null)} onChange={(value) => change(field, value)} />
+            empty={left(automatic?.[field] || null, field)} onChange={(value) => change(field, value)} />
         ))}
       </div>
     </fieldset>
@@ -62,4 +63,14 @@ function WordField({ field, label, value, options, empty, onChange }: WordProps)
       placeholder={empty} onChange={(event) => onChange(event.target.value)} />
     {options.length > 0 && <datalist id={`looks-${field}`}>{options.map((option) => <option key={option} value={option} />)}</datalist>}
   </>}</Field>
+}
+
+/** The "left empty" choice: what is drawn, or that Appearance says it; a field drawn as nothing (no facial hair) is none. */
+function emptyText(saved: boolean, covered: boolean, shown: string | null) {
+  if (!saved) return 'Left empty, picked for them when you save'
+  return shown ? `Left empty: ${shown}` : covered ? 'Left empty: as Appearance says' : 'Left empty: none'
+}
+
+function coveredBy(found: LooksSuggestions | undefined) {
+  return new Set(found?.covered ?? [])
 }

@@ -282,9 +282,10 @@ def switch_persona(state, persona_id: str) -> dict:
 # New worlds -----------------------------------------------------------------------------------------------
 
 def starter_sheet(data: dict, seed: str) -> dict | None:
-    """A grown-up townsperson to be the new world's first companion, the same one for the same world."""
+    """A grown-up townsperson to be the new world's first companion, the same one for the same world. Never one of a
+    pack's own named characters: they belong to the setting's author."""
     people = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])
-              if STARTER_AGES[0] <= sheet['age'] <= STARTER_AGES[1]]
+              if STARTER_AGES[0] <= sheet['age'] <= STARTER_AGES[1] and not sheet.get('notable')]
     return min(people, key=lambda sheet: generators.unit(sheet['key'], 'starter', seed), default=None)
 
 
