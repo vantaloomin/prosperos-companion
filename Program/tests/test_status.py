@@ -107,3 +107,21 @@ def test_the_retro_bank_is_big_and_never_says_online():
     for line in lines:
         assert not any(word in line.lower() for word in ('online', 'idle', 'typing', 'offline')), line
         assert len(line) <= status.LIMIT, line
+
+
+def test_your_own_lyrics_join_retro_im_from_a_file_in_the_data_folder(client, clock):
+    """retro-lyrics.txt next to the database: comments are skipped, and lyrics show as a quoted line."""
+    make(client, 'Warm and curious.', interests=['birdwatching'])
+    assert client.put('/api/settings', json={'chat_style': 'retro'}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        path = status.lyrics_path(connection)
+    assert path.name == 'retro-lyrics.txt'
+    status.lyrics_template(path.parent)
+    assert path.read_text(encoding='utf-8').startswith('#')
+    path.write_text(path.read_text(encoding='utf-8') + 'a lyric only on this computer\n\n# skipped\n', encoding='utf-8')
+    seen = set()
+    for day in range(5, 30):
+        at(clock, 8, day=day)
+        seen.add(read(client)['text'])
+    assert '♫ a lyric only on this computer ♫' in seen, seen
+    assert not any('skipped' in line for line in seen)

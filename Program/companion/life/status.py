@@ -17,10 +17,14 @@ the companion would share, so a secret never shows.
 While the chat style is Retro IM, the everyday and away lines come from a bank of 2000s away messages instead
 (world/data/retro_status.json): fake-deep lines, a song on repeat, sparkly emo when they feel low, random
 inside jokes, and era-style away lines. Big events, payday, sick days and plans still show as usual.
+
+Song lyrics are not in the app (it is public). A person can keep their own in retro-lyrics.txt in the data folder,
+one per line; when it has any, quoted lyrics join the mix. The file stays on their computer and is never shared.
 """
 import json
 from datetime import timedelta
 from functools import cache
+from pathlib import Path
 
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional
@@ -51,6 +55,13 @@ PLAN_DAYS = 3
 LOW = ('annoyed', 'hurt', 'angry', 'anxious', 'sad')
 # How often each kind of Retro IM line comes up for an everyday status.
 RETRO_KINDS = (('fake_deep', 3.0), ('songs', 3.0), ('random', 3.0), ('emo', 1.0))
+LYRICS_WEIGHT = 3.0
+LYRICS_FILE = 'retro-lyrics.txt'
+LYRICS_TEMPLATE = """# Your own song lyrics for Retro IM status messages (Prospero's Companion).
+# Put one lyric per line, the way you'd type it into an away message. Lines starting with # are skipped.
+# While this file has any lyrics, companions sometimes show one as their status in the Retro IM chat style.
+# This file stays on this computer: the app never sends it anywhere, and backups leave it out.
+"""
 
 
 @cache
@@ -58,11 +69,48 @@ def retro_bank() -> dict:
     return json.loads((catalog.DATA / 'retro_status.json').read_text(encoding='utf-8'))
 
 
-def retro_line(seed: str, kind: str = '') -> str:
-    """A 2000s away message: of the given kind, else a weighted pick of fake-deep, a song, a joke or emo."""
+def lyrics_path(connection) -> Path | None:
+    """retro-lyrics.txt in the data folder every world shares (worlds live in worlds/<id>/ below it)."""
+    found = next((row[2] for row in connection.execute('PRAGMA database_list') if row[1] == 'main'), '')
+    if not found:
+        return None
+    folder = Path(found).parent
+    return (folder.parent.parent if folder.parent.name == 'worlds' else folder) / LYRICS_FILE
+
+
+@cache
+def read_lyrics(path: str, _changed: float) -> tuple[str, ...]:
+    lines = Path(path).read_text(encoding='utf-8', errors='replace').splitlines()
+    kept = (' '.join(line.split())[:LIMIT] for line in lines if line.strip() and not line.lstrip().startswith('#'))
+    return tuple(dict.fromkeys(kept))
+
+
+def lyrics(connection) -> tuple[str, ...]:
+    """The person's own lyrics, re-read whenever the file changes; none if it is missing or unreadable."""
+    path = lyrics_path(connection)
+    try:
+        return read_lyrics(str(path), path.stat().st_mtime) if path else ()
+    except OSError:
+        return ()
+
+
+def lyrics_template(root: Path):
+    """Leaves an empty, explained retro-lyrics.txt in the data folder so people can find where lyrics go."""
+    path = Path(root) / LYRICS_FILE
+    try:
+        if not path.exists():
+            path.write_text(LYRICS_TEMPLATE, encoding='utf-8')
+    except OSError:
+        pass
+
+
+def retro_line(seed: str, kind: str = '', own: tuple[str, ...] = ()) -> str:
+    """A 2000s away message: of the given kind, else a weighted pick of fake-deep, a song, a joke, emo or a lyric."""
     bank = retro_bank()
-    kind = kind or generators.pick(seed, 'retro-kind', [name for name, _ in RETRO_KINDS],
-                                   [weight for _, weight in RETRO_KINDS])
+    kinds = RETRO_KINDS + ((('lyrics', LYRICS_WEIGHT),) if own else ())
+    kind = kind or generators.pick(seed, 'retro-kind', [name for name, _ in kinds], [weight for _, weight in kinds])
+    if kind == 'lyrics':
+        return f'♫ {generators.pick(seed, "retro-lyric", list(own))} ♫'[:LIMIT]
     if kind == 'songs':
         song = generators.pick(seed, 'retro-song', bank['songs'])
         return generators.pick(seed, 'retro-song-line', bank['song_lines']).format(song=song)
@@ -162,7 +210,7 @@ def written(connection, companion: dict, now, retro: bool = False) -> str:
     if events:
         return events[0][1][:LIMIT]
     return (day_line(connection, companion, now, seed) or mood_line(connection, companion, now, seed, retro)
-            or plan_line(connection, companion, now, seed) or (retro_line(seed) if retro else everyday(companion, seed)))
+            or plan_line(connection, companion, now, seed) or (retro_line(seed, own=lyrics(connection)) if retro else everyday(companion, seed)))
 
 
 def users_line(connection, companion: dict, now) -> str:
