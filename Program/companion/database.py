@@ -201,6 +201,9 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'show_moods', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_moods IN (0, 1))'),
     ('workspace_settings', 'show_news', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1))'),
     ('workspace_settings', 'show_odds', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1))'),
+    # The adult side of life (companion/world/intimacy.py): off unless the user turns it on in Settings > Realism.
+    ('workspace_settings', 'adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (adult_side IN (0, 1))'),
+    ('workspace_settings', 'show_adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_adult_side IN (0, 1))'),
     # Record model calls (companion/model_calls.py): off unless the user turns it on in Settings > Debug.
     ('workspace_settings', 'record_model_calls', 'INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
@@ -229,6 +232,9 @@ ADDED_COLUMNS = (
     # Out-of-character messages go to the helper (the composer and Settings > General): the switch and the markers.
     ('workspace_settings', 'ooc_to_helper', 'INTEGER NOT NULL DEFAULT 1 CHECK (ooc_to_helper IN (0, 1))'),
     ('workspace_settings', 'ooc_markers', "TEXT NOT NULL DEFAULT ''"),
+    # A status line the user set for a companion, and when (companion/life/status.py); empty lets the app write it.
+    ('companions', 'status_text', "TEXT NOT NULL DEFAULT ''"),
+    ('companions', 'status_set_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

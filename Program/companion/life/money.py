@@ -31,7 +31,7 @@ COST_EXPONENT = 0.3
 WAGE_MULTIPLE = (1.0, 1.7, 2.8, 5.0)
 RENT_MULTIPLE = (2.4, 3.4, 5.0, 8.0)
 WORK_DAYS = {'month': 22, 'week': 6}
-ESSENTIALS = {'modern': 0.3, 'other': 0.4}
+ESSENTIALS = {'modern': 0.3, 'jazz-age': 0.35, 'other': 0.4}
 # Share of what is left after rent and essentials that goes on fun; the rest is saved.
 STYLES = {'careful': 0.45, 'balanced': 0.65, 'spender': 0.9}
 # How fast the fun money goes through a pay cycle; spenders run dry before payday.
@@ -48,6 +48,8 @@ UNITS = (('studio',), ('studio',), ('one_bedroom', 'studio'), ('two_bedroom', 'o
 UNIT_LABELS = {
     'modern': {'studio': 'a studio', 'one_bedroom': 'a one-bedroom', 'two_bedroom': 'a two-bedroom',
                'shared': 'a room in a shared place'},
+    'jazz-age': {'studio': 'a furnished room', 'one_bedroom': 'a two-room flat', 'two_bedroom': 'a four-room flat',
+                 'shared': 'a room in a boarding house'},
     'other': {'studio': 'a rented room', 'one_bedroom': 'a couple of rented rooms', 'two_bedroom': 'a small house',
               'shared': 'a shared room'},
 }
@@ -79,12 +81,16 @@ OUTING_NAMES = {'dinner': 'dinner out', 'drinks': 'a night out for drinks', 'sho
 SPLURGES = {
     'modern': ('new running shoes', 'a really nice dinner out', 'concert tickets', 'an impulse-buy jacket',
                'a stack of new books', 'a fancy coffee machine', 'takeout three nights in a row'),
+    'jazz-age': ('a new cloche hat', 'a steak dinner downtown', 'a night at a speakeasy', 'a stack of phonograph '
+                 'records', 'orchestra seats at a revue', 'silk stockings', 'a new radio set on the installment plan'),
     'other': ('a new hat', 'a good meal at the inn', 'a bottle of something fine', 'ribbon and lace',
               'a seat at the theatre', 'a pair of fine gloves'),
 }
 SURPRISES = {
     'modern': ('a vet bill', 'a cracked phone screen', 'a parking ticket', 'a dentist visit', 'new tyres',
                'a broken laptop charger', 'an overdue utility bill'),
+    'jazz-age': ('a doctor\'s house call', 'a resoled pair of shoes', 'a dentist\'s bill', 'a cracked window',
+                 'a coal delivery', 'a fine from the magistrate', 'a coat that needed mending'),
     'other': ('a doctor\'s visit', 'a broken boot heel', 'a fine from the watch', 'a cracked window',
               'a lame horse\'s shoeing', 'a coat that needed mending'),
 }
@@ -93,6 +99,10 @@ GOALS = {
                ('a trip abroad', 'a used car', 'a new laptop', 'a deposit on a nicer place'),
                ('a trip abroad', 'a down payment fund', 'a new car', 'a sabbatical fund'),
                ('a down payment', 'a long trip abroad', 'a small investment portfolio', 'a renovation')),
+    'jazz-age': (('a good winter coat', 'a radio set', 'a little nest egg', 'a trip to visit family'),
+                 ('a phonograph', 'a week at the shore', 'a nest egg in the savings bank', 'a better flat'),
+                 ('a secondhand Ford', 'a few shares of stock', 'a trip to Europe', 'a down payment on a house'),
+                 ('a new motorcar', 'a summer place', 'a portfolio of stocks', 'a trip to Europe')),
     'other': (('a good winter coat', 'new boots', 'a little nest egg', 'a trip to visit family'),
               ('a good winter coat', 'a trip to the seaside', 'a nest egg', 'a better room')),
 }
@@ -139,7 +149,8 @@ def city_for(definition: dict) -> dict | None:
 
 
 def era_of(city: dict) -> str:
-    return 'modern' if city['era'] in ('modern', 'future') else 'other'
+    """The era's wording for money: modern, the 1920s, or any other past."""
+    return 'modern' if city['era'] in ('modern', 'future') else city['era'] if city['era'] in ESSENTIALS else 'other'
 
 
 def has_money(city: dict) -> bool:
@@ -365,11 +376,22 @@ def saved_since(found: Profile, since: date, day: date) -> float:
     return max(total, 0)
 
 
+# Currencies without minor units, and symbols written before the number.
+WHOLE = {'JPY', 'KRW'}
+PREFIXES = ('$', '£', '€', '¥', '₩', '₹')
+
+
 def amount(value: float, currency: dict) -> str:
-    rounded = round(value, -1) if value >= 200 else round(value) if value >= 10 else round(value, 1)
+    """A rough amount as people say it: $1,240, £85, ¥68,000, ₩1,250,000."""
+    if value >= 100_000:
+        rounded = round(value, -3)
+    elif value >= 200:
+        rounded = round(value, -1)
+    else:
+        rounded = round(value) if value >= 10 or currency.get('code') in WHOLE else round(value, 1)
     number = f'{rounded:,.0f}' if rounded == int(rounded) else f'{rounded:,.1f}'
     symbol = currency['symbol']
-    if symbol in ('$', '£', '€', '¥'):
+    if symbol in PREFIXES:
         return f'{symbol}{number}'
     return f'{number} {symbol or currency["name"]}'.strip()
 
@@ -383,22 +405,23 @@ def happened(item, day: date) -> dict | None:
 # What their home costs to keep, as shares of a month's take-home (so it works in any currency), and
 # what a home change costs by its spend tier.
 UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005,
-          'car': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
+          'car': 0.08, 'motorcar': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
 PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 
 
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
-    """The home's rent, pets and vehicles, and what home changes and new clothes cost this pay cycle,
-    read through home.py's `monthly_costs` and `purchases` and wardrobe.py's `purchases`. None before
-    the home exists or where money does not apply."""
-    from companion.life import home, wardrobe  # both build from this budget, so import late
+    """The home's rent, pets and vehicles, and what home changes, new clothes, outings with the user and trips cost
+    this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, outings.py's and trips.py's
+    `purchases`. None before the home exists or where money does not apply."""
+    from companion.life import home, outings, trips, wardrobe  # all build from this budget, so import late
 
     found = profile(definition)
     costs = home.monthly_costs(connection, timeline_id, day) if found else None
     if not costs:
         return None
     start = cycle_start(found, day)
-    bought = home.purchases(connection, timeline_id, start, day) + wardrobe.purchases(connection, timeline_id, start, day)
+    bought = [*home.purchases(connection, timeline_id, start, day), *wardrobe.purchases(connection, timeline_id, start, day),
+              *outings.purchases(connection, timeline_id, start, day), *trips.purchases(connection, timeline_id, start, day)]
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date'])}
 
 
@@ -422,10 +445,12 @@ def with_home(found: Profile, costs: dict) -> Profile:
 
 
 def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
-    """Home changes and clothes this cycle with what they cost ({label, on, cost, for})."""
+    """Home changes, clothes, outings and trips this cycle with what they cost ({label, on, cost, for}). Outings and
+    trips carry their own cost."""
     month = monthly_share(found)
-    return [{'label': item['text'], 'on': item['date'], 'cost': round(PURCHASES.get(item['spend'], 0) * month, 2),
-             'for': item.get('for', 'home')} for item in purchases if PURCHASES.get(item['spend'])]
+    return [{'label': item['text'], 'on': item['date'],
+             'cost': round(item.get('cost') or PURCHASES.get(item['spend'], 0) * month, 2),
+             'for': item.get('for', 'home')} for item in purchases if item.get('cost') or PURCHASES.get(item['spend'])]
 
 
 def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dict:
@@ -481,8 +506,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:
-        where = 'on clothes' if item['for'] == 'clothes' else 'at home'
-        lines.append((f"bought:{item['on']}" + (':clothes' if item['for'] == 'clothes' else ''), f"- This pay period you spent money {where}: you {item['label']}."))
+        where = SPENT_ON.get(item['for'], 'at home')
+        lines.append((f"bought:{item['on']}" + (f":{item['for']}" if item['for'] != 'home' else ''), f"- This pay period you spent money {where}: you {item['label']}."))
     lines.append(('payday', '- ' + payday_text(view, local_date)))
     if view['splurge']:
         lines.append(('splurge', f"- This pay period you splurged on {view['splurge']['label']}."))
@@ -494,6 +519,9 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     progress = 'saving has stalled for now' if found['stalled'] else f"about {round(found['share'] * 100)}% there"
     lines.append(('goal', f"- Saving for {found['label']}: {progress}."))
     return [(f'money:{local_date}:{key}', line) for key, line in lines]
+
+
+SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

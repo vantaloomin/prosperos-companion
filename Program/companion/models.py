@@ -49,6 +49,15 @@ class TextingStyle(Input):
     typos: bool = False
 
 
+class IntimacySetup(Input):
+    """What the user set about a companion's adult side (companion/world/intimacy.py); empty uses the roll."""
+    orientation: Literal['', 'straight', 'gay', 'lesbian', 'bisexual', 'pansexual', 'queer', 'asexual'] = ''
+    level: Literal['', 'reserved', 'conventional', 'curious', 'adventurous', 'wild'] = ''
+    drive: Literal['', 'low', 'average', 'high'] = ''
+    interests: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=12)
+    note: str = Field(default='', max_length=600)
+
+
 class MoneySetup(Input):
     """How the companion's money works (companion/life/money.py). Everything else comes from city data."""
     # A career id from the world data; empty guesses one from who they are, else an ordinary wage.
@@ -58,6 +67,23 @@ class MoneySetup(Input):
     saving_for: str = Field(default='', max_length=120)
     goal: float = Field(default=0, ge=0, le=100_000_000)
     goal_since: str = Field(default='', pattern=r'^(\d{4}-\d{2}-\d{2})?$')
+
+
+class Looks(Input):
+    """What they look like, field by field (companion/world/looks.py); an empty field is drawn for them."""
+    age: int | None = Field(default=None, ge=18, le=120)
+    height_cm: int | None = Field(default=None, ge=120, le=230)
+    weight_kg: int | None = Field(default=None, ge=35, le=250)
+    build: str = Field(default='', max_length=120)
+    skin: str = Field(default='', max_length=120)
+    face: str = Field(default='', max_length=120)
+    jaw: str = Field(default='', max_length=120)
+    nose: str = Field(default='', max_length=120)
+    eyes: str = Field(default='', max_length=120)
+    eye_shape: str = Field(default='', max_length=120)
+    hair: str = Field(default='', max_length=200)
+    facial_hair: str = Field(default='', max_length=120)
+    feature: str = Field(default='', max_length=200)
 
 
 class CharacterDefinition(Input):
@@ -72,6 +98,8 @@ class CharacterDefinition(Input):
     interests: list[str] = Field(default_factory=list, max_length=50)
     background: str = Field(default='', max_length=12000)
     appearance: str = Field(default='', max_length=4000)
+    # Face shape, height, build and the rest, so every picture shows the same person; empty fields are drawn.
+    looks: Looks = Field(default_factory=Looks)
     routine: str = Field(default='', max_length=8000)
     location: str = Field(default='', max_length=200)
     # City id in the installed world data (for example "baltimore"); events use its real places.
@@ -95,6 +123,8 @@ class CharacterDefinition(Input):
     texting: TextingStyle = Field(default_factory=TextingStyle)
     birthday: str = Field(default='', pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
     money: MoneySetup = Field(default_factory=MoneySetup)
+    # Their adult side, only used with Settings > Realism > Adult side of life on; None uses the roll.
+    intimacy: IntimacySetup | None = None
 
 
 DraftField = Literal['identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
@@ -248,6 +278,9 @@ class SettingsUpdate(Input):
     show_moods: bool | None = None
     show_news: bool | None = None
     show_odds: bool | None = None
+    # The adult side of life (companion/world/intimacy.py) and whether townsfolk's shows.
+    adult_side: bool | None = None
+    show_adult_side: bool | None = None
     # They can ask to remember more (companion/memory/look_back.py).
     recall_more: bool | None = None
     # Out-of-character messages go to the helper (Settings > Chat).
@@ -485,3 +518,8 @@ class NewWorld(Input):
 class RecapRead(Input):
     """The catch-up the user read, by the message it followed (companion/recap.py)."""
     since: str = Field(min_length=1, max_length=40)
+
+
+class StatusUpdate(Input):
+    """The user's status line for a companion (companion/life/status.py); empty lets the app write it."""
+    text: str = Field(default='', max_length=200)

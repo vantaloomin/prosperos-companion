@@ -49,6 +49,30 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.8.0 (2026-10-11)
+
+- **Maps:** street maps for real cities and drawn maps (districts, streets, parks, water) for the rest; place cards
+  show who goes there, with Suggest going together and, in Story mode, Go there.
+- **Who knows who:** a draggable web of everyone you've met or heard about, with search, filters and a list view.
+- **Status messages:** an AIM-style status line for every companion, away lines while they sleep, work or go out,
+  and editable on the profile card. Still no presence dots.
+- **Spots inside places:** named spots in places and homes for life events and Story scenes.
+- **Go somewhere together:** ask a companion out and it really happens, at a real place in town, and the outing
+  shows up in their day and their memories.
+- **Trips and postcards:** companions take trips of their own and send postcards while they're away.
+- **Family traditions:** their families keep their own holidays and traditions through the year.
+- **Our year so far:** a scrapbook that looks back on your year together.
+- **Eight new cities and the Jazz Age:** Chicago, New Orleans, London today, Jeju, Osaka, New York 1925, Haddon
+  Harbor and Pellmouth, plus a 1920s era; townsfolk jobs fit their town.
+- **Grandport** from Oak's Neokosmos, with its named characters in town; any city pack can place named characters.
+- **Featured and sorted cities:** Real / Modern, Other Eras, Fictional and Custom shelves with search, and a
+  Featured strip (Baltimore, Grandport, Pellmouth, Osaka).
+- **Townsfolk with a past** and **Looks** sheets for everyone, so pictures stay one person.
+- **Phone tab bar:** five tabs (Chats, Today, Story, Matchlight, Settings).
+- **Adult side of life:** an opt-in Realism switch, off by default, adults only.
+- **Fixes:** no duplicate Today plans, no repeated unnamed locals in Story, no blank gaps in phone chats, and
+  message buttons in one row in narrow windows.
+
 ## v0.7.1 (2026-10-10)
 
 - **Livelier replies:** companions skip recaps and filler questions, replies are about a quarter shorter, and an

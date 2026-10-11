@@ -87,6 +87,13 @@ def no_storylines(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_trips(monkeypatch):
+    """Weekends away (companion/life/trips.py) are seeded dice; their own tests turn them on."""
+    from companion.life import trips
+    monkeypatch.setattr(trips, 'ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_unasked_pictures(monkeypatch):
     """Unasked chat pictures are a seeded chance; test_chat_photos turns them on where it needs them."""
     monkeypatch.setattr('companion.images.photos.UNASKED', False)

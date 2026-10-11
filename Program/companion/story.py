@@ -18,7 +18,7 @@ from companion.life import agenda, encounters, network
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import config_for, default_name, key_for
-from companion.world import catalog, changes, custom, generators, newcomers, townsfolk
+from companion.world import catalog, changes, custom, generators, inside, life_details, newcomers, townsfolk
 
 JOB = 'story'
 DEFAULT_CITY = 'baltimore'
@@ -122,7 +122,7 @@ def scene(connection, now: datetime) -> dict:
     hood = townsfolk.neighborhood_name(data, place['neighborhood'])
     return {'city': {'id': data['id'], 'name': data['name'], 'era': data.get('era', 'modern')},
             'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'summary': place.get('summary', ''),
-                      'neighborhood': hood},
+                      'neighborhood': hood, 'spots': inside.names(inside.for_place(place))},
             'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather) if weather else '',
             'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
             'known': story_people.known(connection)}
@@ -134,7 +134,17 @@ def person_line(person: dict, place: dict, data: dict, known: dict | None = None
     pronouns = f", {sheet['pronouns']}" if sheet.get('pronouns') else ''
     return (f"- {seen[0].upper()}{seen[1:]}: {sheet['full']}{pronouns}, {sheet['age']}, {person['doing']}, "
             f"{sheet.get('occupation') or sheet['role']}. {townsfolk.first_impression(sheet).capitalize()}; "
-            f"{sheet['quirk']}. Mood: {person['mood']}.{story_people.remembered(known)}{person.get('note', '')}")
+            f"{sheet['quirk']}.{life_text(data, sheet)} Mood: {person['mood']}.{story_people.remembered(known)}"
+            f"{person.get('note', '')}")
+
+
+def life_text(data: dict, sheet: dict) -> str:
+    """Where they come from, a taste and a story they might tell, for the model to use or leave."""
+    found = life_details.for_sheet(data, sheet)
+    if not found:
+        return ''
+    story = f" Might tell the story of the time they {found['stories'][0]}." if found['stories'] else ''
+    return f" {found['origin'][:1].upper()}{found['origin'][1:]}; {found['likes'][0]}.{story}"
 
 
 def scene_text(view: dict) -> str:
@@ -144,6 +154,8 @@ def scene_text(view: dict) -> str:
     lines = [f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {data['name']}. {place['summary']}",
              f"City: {data['summary']}" + ('' if townsfolk.modern(data) else f" The era is {data['era']}."),
              f"Local time: {when}, {moment.strftime('%H:%M')} ({townsfolk.part_of_day(moment.hour * 60 + moment.minute)})."]
+    if place.get('spots'):
+        lines.append(f"Spots here, for detail only (nobody moves between them): {', '.join(place['spots'])}.")
     if view['weather']:
         lines.append(f"Weather: {view['weather']}")
     lines.append('Who is here (their names are for you; the user knows only the names of people they have met):')

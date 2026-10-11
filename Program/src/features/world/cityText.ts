@@ -12,6 +12,9 @@ export interface CityListing {
   counts: Record<'neighborhoods' | 'places' | 'colleges' | 'employers' | 'annual_events', number>
   builtin: boolean
   origin: 'builtin' | 'pack' | 'user'
+  /** The city's shelf in city lists, decided by the server (companion/world/catalog.py `category`). */
+  category?: string
+  aliases?: string[]
   distribution: 'public' | 'private'
   /** What the server mended or added when it loaded the city; empty when it loaded as written. */
   import_notes?: string[]
@@ -47,16 +50,37 @@ export function parseDefinition(text: string): Parsed {
   return { ok: true, value: value as Record<string, unknown> }
 }
 
-export const GROUPS: { origin: CityListing['origin']; title: string; note: string }[] = [
-  { origin: 'user', title: 'Your cities', note: 'Saved in this workspace and carried by backups.' },
-  { origin: 'pack', title: 'City packs', note: 'Loaded from a folder on this computer. Copy one to change it.' },
-  { origin: 'builtin', title: 'Built in', note: 'Ship with the Companion. Copy one to make it yours.' },
+/** A release's featured cities (GET /world/featured); `new` while the app is on that release. */
+export interface FeaturedCities<T = CityListing> { release: string; title: string; note: string; new: boolean; cities: (T & { new?: boolean })[] }
+
+export type CityCategory = 'real' | 'other-eras' | 'fictional' | 'custom'
+
+export const CATEGORIES: { id: CityCategory; title: string }[] = [
+  { id: 'real', title: 'Real / Modern' }, { id: 'other-eras', title: 'Other Eras' },
+  { id: 'fictional', title: 'Fictional' }, { id: 'custom', title: 'Custom' },
 ]
 
-export function groupCities(cities: CityListing[]): Record<CityListing['origin'], CityListing[]> {
-  const groups: Record<CityListing['origin'], CityListing[]> = { user: [], pack: [], builtin: [] }
-  for (const city of [...cities].sort((a, b) => a.name.localeCompare(b.name))) groups[city.origin].push(city)
-  return groups
+interface Shelved { name: string; category?: string }
+
+/** The city's shelf; a city the server sent without one (an older server, or a scene's own city) counts as real. */
+export function categoryOf(city: Shelved): CityCategory {
+  return CATEGORIES.some((item) => item.id === city.category) ? city.category as CityCategory : 'real'
+}
+
+export interface Shelf<T> { id: CityCategory; title: string; cities: T[] }
+
+/** Every shelf in order, each sorted by name. Empty shelves are kept so a list can say "None yet". */
+export function shelveCities<T extends Shelved>(cities: T[]): Shelf<T>[] {
+  const sorted = [...cities].sort((a, b) => a.name.localeCompare(b.name))
+  return CATEGORIES.map((item) => ({ ...item, cities: sorted.filter((city) => categoryOf(city) === item.id) }))
+}
+
+const fold = (text: string) => text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+/** Whether a city matches what was typed into the city search: its name, other names, region or country. */
+export function matchesCity(city: Pick<CityListing, 'name' | 'region' | 'country' | 'aliases'>, query: string): boolean {
+  const wanted = fold(query.trim())
+  return !wanted || [city.name, city.region, city.country, ...(city.aliases ?? [])].some((text) => fold(text).includes(wanted))
 }
 
 const SETTINGS: Record<CityListing['setting'], string> = { real: 'Real city', fictional: 'Fictional setting', original: 'Original setting' }

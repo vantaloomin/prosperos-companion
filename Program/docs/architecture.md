@@ -539,6 +539,22 @@ job may change ([image generation](images.md)).
 `companion/life/today.py` assembles the Today view and records the last visit (`visits`), which
 only moves forward.
 
+### Status messages
+
+`companion/life/status.py` gives each companion a status line they "set" themselves, like an AIM away
+message, written by rules and templates with no model. A chapter or storyline beat from the last two days
+that they would share comes first, then payday, a sick day or a day off, their mood, a plan in the next three
+days, else an everyday line from their interests. It is drawn once per local half day, so it changes at most
+twice a day unless something big happens. While a sleep, work, study, errand or social block is on (the
+agenda's, else the routine's, as for paced replies), an away line from that block shows instead ("at work
+till 6", "zzz") with a moon, briefcase or pin glyph. It never locks the chat and never reflects the user;
+there are still no online dots, read receipts or typing indicators. The user can write their own
+(`PUT /api/companion/{id}/status {text}`, stored in `companions.status_text`); it stays until a chapter or
+beat newer than it, and an empty line lets the app write it again. `GET /api/companion` and each companion
+in `GET /api/chats` carry `status: {text, set_by, away}`. It shows under the name in the Retro IM buddy
+list, on the profile card (where it is edited) and in the chat header, and in a chat list row before any
+message.
+
 ## Notifications
 
 `companion/notifications.py` implements the PRD's notification rules. They are off by default.

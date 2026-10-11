@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { CharacterDefinition } from '../../types'
 import { Field } from '../../components/Fields'
+import { useSettled } from './useSettled'
 
 /** Bank picks that fit the sheet's words (companion/world/perception.py), and what an empty field uses once saved. */
 export interface PerceptionSuggestions {
@@ -55,15 +55,4 @@ function Pickable({ label, value, rows, maxLength, options, onChange, placeholde
       )}
     </Field>
   )
-}
-
-/** The sheet once typing pauses, so suggestions follow the form without a request per keystroke. */
-function useSettled(value: CharacterDefinition, delay = 600): CharacterDefinition {
-  const [settled, setSettled] = useState(value)
-  const key = JSON.stringify(value)
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSettled(JSON.parse(key) as CharacterDefinition), delay)
-    return () => window.clearTimeout(timer)
-  }, [key, delay])
-  return settled
 }

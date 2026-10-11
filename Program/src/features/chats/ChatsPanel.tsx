@@ -14,10 +14,7 @@ import { useChatListCollapsed } from './layout'
  * how many are unread. Never whether anyone is around. On a phone it covers the screen.
  */
 export function ChatsPanel({ go, onClose, current = null }: { go: (view: View) => void; onClose: () => void; current?: OpenChat }) {
-  const chats = useChats()
-  const { open, busy, error } = useOpenChat(go)
   const [collapsed, setCollapsed] = useChatListCollapsed()
-  const choose = async (chat: Chat) => { if (await open(chat, isOpen(chat, current))) onClose() }
   return (
     <div className="conversation-search chats-panel" role="region" aria-label="Chats" onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
       <div className="search-bar chats-bar">
@@ -26,26 +23,36 @@ export function ChatsPanel({ go, onClose, current = null }: { go: (view: View) =
         {collapsed && <button type="button" className="text-button side-expand" onClick={() => { setCollapsed(false); onClose() }}><PanelLeftOpen aria-hidden="true" />Keep beside the chat</button>}
         <button type="button" className="icon-button" aria-label="Close chats" onClick={onClose}><X aria-hidden="true" /></button>
       </div>
-      <div className="search-results">
-        {chats.isPending && <Loading label="Loading your chats" />}
-        {chats.isError && <ErrorNotice error={chats.error} />}
-        {error && <Notice tone="error">{error}</Notice>}
-        <ul className="chat-list">
-          {(chats.data?.chats ?? []).map((chat) => (
-            <li key={`${chat.kind}:${chat.id}`}>
-              <button type="button" className={`chat-row${isOpen(chat, current) ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat, current)}
-                aria-current={isOpen(chat, current) ? 'true' : undefined} disabled={busy !== null} onClick={() => void choose(chat)}>
-                <ChatAvatar chat={chat} />
-                <span className="chat-row-text">
-                  <span className="chat-row-top"><strong>{chat.name}</strong>{chat.last && <Stamp className="chat-row-time" value={chat.last.at} />}</span>
-                  <span className="chat-row-preview">{busy === chat.id ? 'Opening…' : preview(chat)}</span>
-                </span>
-                {chat.unread > 0 && <span className="unread-badge" aria-hidden="true">{badge(chat.unread)}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <ChatList go={go} current={current} onOpened={onClose} />
+    </div>
+  )
+}
+
+/** The rows themselves, shared by this panel and the phone's Chats tab (ChatsHome). */
+export function ChatList({ go, current = null, onOpened }: { go: (view: View) => void; current?: OpenChat; onOpened?: () => void }) {
+  const chats = useChats()
+  const { open, busy, error } = useOpenChat(go)
+  const choose = async (chat: Chat) => { if (await open(chat, isOpen(chat, current))) onOpened?.() }
+  return (
+    <div className="search-results">
+      {chats.isPending && <Loading label="Loading your chats" />}
+      {chats.isError && <ErrorNotice error={chats.error} />}
+      {error && <Notice tone="error">{error}</Notice>}
+      <ul className="chat-list">
+        {(chats.data?.chats ?? []).map((chat) => (
+          <li key={`${chat.kind}:${chat.id}`}>
+            <button type="button" className={`chat-row${isOpen(chat, current) ? ' current' : ''}${chat.unread ? ' unread' : ''}`} aria-label={chatLabel(chat, current)}
+              aria-current={isOpen(chat, current) ? 'true' : undefined} disabled={busy !== null} onClick={() => void choose(chat)}>
+              <ChatAvatar chat={chat} />
+              <span className="chat-row-text">
+                <span className="chat-row-top"><strong>{chat.name}</strong>{chat.last && <Stamp className="chat-row-time" value={chat.last.at} />}</span>
+                <span className="chat-row-preview">{busy === chat.id ? 'Opening…' : preview(chat)}</span>
+              </span>
+              {chat.unread > 0 && <span className="unread-badge" aria-hidden="true">{badge(chat.unread)}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

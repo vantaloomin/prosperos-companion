@@ -9,12 +9,31 @@ export function sceneTime(localTime: string): string {
   return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`
 }
 
-/** "Nobody you would notice is here.", "The barista is here.", "A regular and a neighbor are here." */
+const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
+
+function plural(word: string): string {
+  if (/(s|sh|ch|x|z)$/.test(word)) return `${word}es`
+  return /[^aeiou]y$/.test(word) ? `${word.slice(0, -1)}ies` : `${word}s`
+}
+
+/** Unnamed people who read the same are counted: three of "a local from Canton" are "three locals from Canton". */
+export function grouped(around: string[]): string[] {
+  const counts = new Map<string, number>()
+  for (const who of around) counts.set(who, (counts.get(who) ?? 0) + 1)
+  return [...counts.entries()].flatMap(([who, count]) => {
+    const unnamed = /^(?:an?|the) (\S+)(.*)$/.exec(who)
+    if (count === 1) return [who]
+    if (!unnamed) return Array<string>(count).fill(who)
+    return [`${COUNTS[count] ?? count} ${plural(unnamed[1])}${unnamed[2]}`]
+  })
+}
+
+/** "Nobody you would notice is here.", "The barista is here.", "A regular and two neighbors are here." */
 export function aroundText(around: string[]): string {
   if (!around.length) return 'Nobody you would notice is here.'
-  const names = around.map((who, index) => index ? who : who[0].toUpperCase() + who.slice(1))
+  const names = grouped(around).map((who, index) => index ? who : who[0].toUpperCase() + who.slice(1))
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
-  return `${list} ${names.length === 1 ? 'is' : 'are'} here.`
+  return `${list} ${around.length === 1 ? 'is' : 'are'} here.`
 }
 
 /** The city's places by neighborhood, for the place picker. */
@@ -26,6 +45,11 @@ export function placeGroups(places: StoryPlace[]): [string, StoryPlace[]][] {
 
 export function whereText(scene: StoryScene): string {
   return `${scene.place.name}, ${scene.place.neighborhood}, ${scene.city.name}`
+}
+
+/** "Inside: the back patio, the bar seats" */
+export function spotsText(spots: string[]): string {
+  return `Inside: ${spots.join(', ')}`
 }
 
 /** "Met once · now working as the barista at The Daily Grind" */

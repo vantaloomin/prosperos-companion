@@ -14,6 +14,8 @@ nudged by their temperament and dragged by their flaw, makes progress, stalls or
 once enough progress is made they reach it and move on to their next goal. No model is involved.
 """
 import functools
+import json
+import re
 from datetime import date, datetime
 
 from companion.world import catalog, generators
@@ -46,7 +48,59 @@ ROLES = {
     'docks': (('dockworker', 'dockhand', True), ('harbor clerk', "harbormaster's clerk", True), REGULAR),
     'guildhall': (('clerk', 'guild clerk', True), REGULAR),
     'square': (('street vendor', 'hawker', True), ('street musician', 'street musician', False), REGULAR),
+    'vet': (('veterinarian', 'animal doctor', True), ('vet tech', "animal doctor's assistant", True), REGULAR),
 }
+# An era's own titles where the period ones above don't fit it, by modern role: the 1920s have soda jerks and
+# bandleaders rather than counter hands and fiddlers.
+ERA_ROLES = {
+    'jazz-age': {'barista': 'counter hand', 'line cook': 'short-order cook', 'DJ': 'bandleader',
+                 'bouncer': 'doorman', 'front desk clerk': 'desk clerk', 'stall vendor': 'pushcart peddler',
+                 'library assistant': 'library page', 'personal trainer': 'boxing coach',
+                 'front desk attendant': 'attendant', 'docent': 'museum guide', 'concessions worker': 'peanut vendor',
+                 'shop clerk': 'salesclerk', 'store manager': 'shopkeeper', 'craftsperson': 'tradesman',
+                 'harbor clerk': 'harbor clerk', 'street vendor': 'pushcart peddler', 'morning runner': 'early walker',
+                 'ticket taker': 'ticket taker'},
+    'victorian': {'ticket taker': 'ticket collector'},
+    'steampunk': {'ticket taker': 'ticket collector'},
+    'frontier': {'ticket taker': 'ticket taker'},
+}
+# Titles that depend on what the place is, not only its kind, checked in order: (kinds, modern role, words found in
+# the place's name, summary or tags, titles). Titles are keyed by era, then 'period' (any other era before today)
+# and 'modern'; with no title for the city's era the usual one stands. So the soda jerk works at a soda fountain
+# and the baker at a bakery, and the floorwalker only walks a department store's floor.
+PLACE_TITLES = (
+    (('cafe',), 'barista', ('soda fountain', 'drugstore', 'drug store', 'lunch counter', 'spa', 'ice cream'),
+     {'jazz-age': 'soda jerk', 'modern': 'counter server'}),
+    (('cafe',), 'barista', ('bakery', 'bakehouse', 'bakers', 'oven', 'pastry', 'konditorei', 'knish', 'panadería'),
+     {'period': 'baker', 'modern': 'baker'}),
+    (('cafe',), 'barista', ('tea room', 'tearoom', 'tea shop', 'tea parlor', 'tea parlour', 'tea garden', 'tea gardens',
+                            'teas', 'lunchroom', 'coffee house', 'coffee room', 'coffee rooms', 'coffee tavern'),
+     {'period': 'waiter', 'modern': 'server'}),
+    (('shopping',), 'store manager', ('general store', 'mercantile'), {'period': 'storekeeper'}),
+    (('shopping',), 'store manager', ('department store',),
+     {'jazz-age': 'floorwalker', 'period': 'shopwalker', 'modern': 'floor manager'}),
+    (('shopping',), 'store manager', ('books', 'bookshop', 'bookshops', 'bookstall', 'booksellers'),
+     {'period': 'bookseller', 'modern': 'bookseller'}),
+    (('shopping',), 'store manager', ('antiques',), {'period': 'antiques dealer', 'modern': 'antiques dealer'}),
+    (('shopping',), 'store manager', ('apothecary', 'herbs', 'drugstore', 'chemist'),
+     {'jazz-age': 'druggist', 'period': 'apothecary'}),
+    (('shopping',), 'store manager', ('grocery', 'grocer', 'groceries', 'appetizing'), {'period': 'grocer'}),
+    (('shopping',), 'store manager', ('chandlery',), {'period': 'ship chandler', 'modern': 'ship chandler'}),
+    (('shopping',), 'store manager', ('pawnshop', 'pawnbroker'), {'period': 'pawnbroker', 'modern': 'pawnbroker'}),
+    (('landmark', 'attraction'), 'tour guide', ('lighthouse',),
+     {'period': 'lighthouse keeper', 'modern': 'lighthouse keeper'}),
+    (('landmark', 'attraction'), 'tour guide', ('coast guard',), {'period': 'surfman', 'modern': 'coast guardsman'}),
+    (('landmark', 'attraction'), 'tour guide', ('railroad', 'railway', 'depot', 'terminal'),
+     {'jazz-age': 'redcap', 'period': 'porter', 'modern': 'station agent'}),
+    (('landmark', 'attraction'), 'tour guide', ('church', 'meetinghouse', 'mission'),
+     {'period': 'sexton', 'modern': 'caretaker'}),
+    (('landmark', 'attraction'), 'tour guide', ('rides', 'amusements', 'funhouse'),
+     {'period': 'barker', 'modern': 'ride operator'}),
+    (('landmark', 'attraction'), 'tour guide', ('seances', 'sittings', 'spiritualism'),
+     {'period': 'medium', 'modern': 'psychic'}),
+    (('landmark', 'attraction'), 'ticket taker', ('gate', 'gates', 'gatehouse'), {'period': 'gatekeeper'}),
+    (('landmark', 'attraction'), 'ticket taker', ('free',), {'period': 'watchman', 'modern': 'attendant'}),
+)
 OUTDOOR = (('groundskeeper', 'groundskeeper', True), ('dog walker', 'dog walker', False),
            ('morning runner', 'early walker', False), ('street musician', 'street musician', False), REGULAR)
 for _kind in ('park', 'garden', 'trail', 'beach'):
@@ -71,13 +125,8 @@ TEMPERAMENTS = {
     'driven': ('driven', 'had the look of someone with somewhere to be', 0.15),
     'dreamy': ('dreamy', 'kept drifting off mid-sentence', -0.05),
 }
-QUIRKS = (
-    'remembers everyone\'s usual order', 'hums under their breath', 'wears the same green scarf every day',
-    'carries a battered notebook everywhere', 'can\'t resist a terrible pun', 'knows every dog in the neighborhood '
-    'by name', 'is always running five minutes late', 'collects odd little trinkets', 'names every plant they own',
-    'has an opinion about everyone\'s shoes', 'talks to pigeons', 'sketches people when they think no one is looking',
-    'whistles the same tune all day', 'keeps sweets in every pocket',
-)
+QUIRK_BANK = json.loads((catalog.DATA / 'quirks.json').read_text(encoding='utf-8'))['quirks']
+QUIRKS = tuple(item['text'] for item in QUIRK_BANK)
 # Flaws: (text, slows their goal down, setback wording with {name}).
 FLAWS = {
     'proud': ('too proud to ask for help', False, '{name} turned down help they needed and paid for it'),
@@ -99,38 +148,44 @@ DESIRES = {
     'needed': 'to be needed', 'security': 'never to worry about money again', 'belonging': 'to belong somewhere',
     'escape': 'to get out of this city someday', 'family': 'to make their family proud',
 }
-# Goals: id, wording (modern, period), steps to reach it, where they practise (place kind, part of day) or
-# None, progress line, done line. Lines start with the person's given name.
-GOALS = (
-    ('own-place', ('save up to open a place of their own', 'save enough to open a shop of their own'), 6, None,
-     '{name} put another chunk of pay into the savings', '{name} finally signed for a little place of their own'),
-    ('race', ('run their first marathon', 'walk the long road to the coast and back'), 5, ('park', 'morning'),
-     '{name} went further than ever on a long morning run', '{name} made it the whole way and has the blisters to prove it'),
-    ('band', ('get their band a real gig', 'get their troupe a proper engagement'), 5, ('venue', 'evening'),
-     '{name}\'s band finally sounded tight at practice', '{name}\'s band played its first real show'),
-    ('exam', ('pass a licensing exam', 'earn their guild papers'), 4, ('library', 'evening'),
-     '{name} got through another chapter of study', '{name} passed, and can\'t stop grinning about it'),
-    ('novel', ('finish writing a novel', 'finish the book they have been writing for years'), 7, ('cafe', 'morning'),
-     '{name} wrote another chapter', '{name} typed the last line of their novel'),
-    ('reconcile', ('patch things up with an estranged sibling', 'make peace with a brother or sister they fell out '
-     'with'), 4, None, '{name} sent their sibling a message and got an answer', '{name} and their sibling are speaking again'),
-    ('move', ('save enough to move somewhere bigger', 'save enough to take better rooms'), 5, None,
-     '{name} went to see a place they might be able to afford', '{name} moved into a bigger place'),
-    ('language', ('learn a new language before a big trip', 'learn a foreign tongue'), 5, ('library', 'afternoon'),
-     '{name} got through a whole conversation in their new language', '{name} can finally hold their own in it'),
-    ('promotion', ('get promoted', 'be made head of the place they work'), 5, None,
-     '{name} got trusted with something bigger at work', '{name} got the promotion'),
-    ('art', ('get their paintings into a show', 'get their pictures hung in a proper gallery'), 5, ('park', 'afternoon'),
-     '{name} finished a painting they are actually proud of', '{name} has their work hanging in a show'),
-    ('dog', ('adopt a dog', 'take in a dog of their own'), 3, None,
-     '{name} visited the shelter again and has a favorite', '{name} adopted a scruffy dog'),
-    ('strong', ('get properly strong', 'win the strongman contest at the fair'), 5, ('gym', 'evening'),
-     '{name} hit a new personal best', '{name} did it, and won\'t stop talking about it'),
-    ('side', ('get a side business off the ground', 'build up a little trade on the side'), 6, None,
-     '{name} landed another paying customer on the side', '{name}\'s side business is paying its own way now'),
-)
+
+
+def _more_traits():
+    """The rest of the temperaments, flaws and desires live in the phrase bank (world/data/perception.json), each
+    with a `town` part giving what the sheet needs, so the bank can grow them without code changes."""
+    found = json.loads((catalog.DATA / 'perception.json').read_text(encoding='utf-8'))
+    for key, item in found['temperaments'].items():
+        if 'town' in item:
+            TEMPERAMENTS.setdefault(key, (key, item['town']['impression'], item['town']['lift']))
+    for key, item in found['flaws'].items():
+        if 'town' in item:
+            FLAWS.setdefault(key, (item['town']['text'], item['town']['slows'], item['town']['setback']))
+    for key, item in found['desires'].items():
+        if 'town' in item:
+            DESIRES.setdefault(key, item['town']['text'])
+
+
+_more_traits()
+# Goals come from the bank (world/data/goals.json) as (id, (modern, period wording), steps, (place kind, part of
+# day) where they practise or None, progress line, done line); lines start with the person's given name.
+GOAL_BANK = json.loads((catalog.DATA / 'goals.json').read_text(encoding='utf-8'))['goals']
+GOALS = tuple((item['id'], (item['text'], item['period']), item['steps'],
+               tuple(item['practice']) if item['practice'] else None, item['progress'], item['done'])
+              for item in GOAL_BANK)
+GOAL_INTERESTS = {item['id']: item['interest'] for item in GOAL_BANK}
+# How much more often a townsperson draws one of the city's own quirks or goals (its `townsfolk` block) than any
+# one shared one, so a handful of them flavour about a quarter of the town.
+TOWN_WEIGHT = 5.0
+# An era's own wording for some goals, where the period one above doesn't fit it.
+ERA_GOALS = {
+    'jazz-age': {'race': 'finish the city marathon', 'band': 'get their band a real engagement at a good club',
+                 'exam': 'pass a licensing exam', 'strong': 'win the amateur boxing tournament',
+                 'dog': 'take in a dog of their own', 'side': 'get a little business going on the side'},
+}
 GOAL_KINDS = {'park': ('park', 'garden', 'trail'), 'venue': ('venue', 'tavern', 'nightlife'),
-              'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',)}
+              'library': ('library',), 'cafe': ('cafe',), 'gym': ('fitness',), 'market': ('market',),
+              'workshop': ('workshop',), 'museum': ('museum',), 'beach': ('beach',), 'temple': ('temple',),
+              'restaurant': ('restaurant',)}
 COMPANY_SPOTS = ('bar', 'tavern', 'nightlife')
 BASE_PROGRESS = 0.4
 SETBACK = 0.88
@@ -148,7 +203,7 @@ def at_place(data: dict, place_id: str) -> list[dict]:
     place = catalog.find(data, place_id)
     if not place or place not in data['places']:
         return []
-    return not_you(data, [person(data, place, index) for index in range(count(data, place))])
+    return not_you(data, [person(data, place, index) for index in range(everyone(data, place))])
 
 
 def not_you(data: dict, sheets: list[dict]) -> list[dict]:
@@ -175,6 +230,15 @@ def count(data: dict, place: dict) -> int:
     return PEOPLE[0] + int(generators.unit(seed, 'count') * (PEOPLE[1] - PEOPLE[0] + 1))
 
 
+def notables_at(data: dict, place_id: str) -> list[dict]:
+    """The city's named people (schema.Notable) placed here, after the seeded ones."""
+    return [item for item in data.get('notables', ()) if item['place'] == place_id]
+
+
+def everyone(data: dict, place: dict) -> int:
+    return count(data, place) + len(notables_at(data, place['id']))
+
+
 def find(data: dict, key: str) -> dict | None:
     """The person a key names in this city, or None."""
     parts = key.split(':')
@@ -188,7 +252,7 @@ def find(data: dict, key: str) -> dict | None:
         return resident(data, hood_id, index)
     place = catalog.find(data, parts[2])
     index = int(parts[3])
-    if not place or place not in data['places'] or index >= count(data, place):
+    if not place or place not in data['places'] or index >= everyone(data, place):
         return None
     return person(data, place, index)
 
@@ -202,22 +266,16 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     place = catalog.find(data, place_id)
     key = f"town:{data['id']}:{place['id']}:{index}"
     seed = seed_for(data, key)
-    roles = ROLES.get(place['kind'], (REGULAR,))
-    # The first person at a staffed place runs it day to day; the second is another role there or a regular,
-    # the rest are regulars or anyone else the place draws.
-    staffed = [role for role in roles if role[2]]
-    others = [role for role in roles if not staffed or role != staffed[0]] or list(roles)
-    if index == 0 and staffed:
-        role = staffed[0]
-    elif index == 1:
-        role = generators.pick(seed, 'role', others)
-    else:
-        role = generators.pick(seed, 'role', [role for role in others if not role[2]] or others)
-    title = role[0] if modern(data) else role[1]
-    age = 19 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 52)
-    name = generators.name(data, seed=seed, age=age)
+    # Past the seeded people come the place's notables; anyone further along is drawn like the seeded ones.
+    named = notables_at(data, place['id'])[max(index - count(data, place), 0):]
+    notable = named[0] if index >= count(data, place) and named else None
+    role = (notable['role'], notable['role'], notable['staff']) if notable else _role(place, index, seed)
+    title = notable['role'] if notable else role_title(data, role, place)
+    age = notable['age'] if notable else \
+        19 + round((generators.unit(seed, 'age-a') + generators.unit(seed, 'age-b')) / 2 * 52)
+    name = _named(notable) if notable else generators.name(data, seed=seed, age=age)
     hoods = [place['neighborhood']] + [hood['id'] for hood in catalog.nearby(data, place['neighborhood'], 3)]
-    order = sorted(GOALS, key=lambda goal: generators.unit(seed, 'goal', goal[0]))
+    order = goal_order(data, seed)
     sheet = {
         'key': key, 'seed': seed, 'name': name['given'], 'full': name['full'], 'pronouns': name['pronouns'], 'age': age,
         'heritage': name['culture'] or name['group'],
@@ -226,12 +284,16 @@ def _build(data: dict, place_id: str, index: int) -> dict:
         'home': generators.pick(seed, 'home', hoods, [3, 1, 1, 1][:len(hoods)]),
         'occupation': title if role[2] else _occupation(data, seed, age),
         'temperament': generators.pick(seed, 'temperament', sorted(TEMPERAMENTS)),
-        'quirk': generators.pick(seed, 'quirk', list(QUIRKS)),
+        'quirk': quirk_for(data, seed),
         'flaw': generators.pick(seed, 'flaw', sorted(FLAWS)),
         'desire': generators.pick(seed, 'desire', sorted(DESIRES)),
-        'goals': [goal[0] for goal in order],
+        'goals': order,
         'night_owl': generators.unit(seed, 'owl') < 0.25,
     }
+    if notable:
+        sheet |= {'notable': notable['id'], 'about': notable['about'], 'occupation': notable['role']}
+        if notable.get('temperament') in TEMPERAMENTS:
+            sheet['temperament'] = notable['temperament']
     parts = place.get('day_parts') or ['afternoon']
     if role[2]:
         off = sorted(generators.pick(seed, f'off-{n}', list(range(7))) for n in range(2))
@@ -245,25 +307,105 @@ def _build(data: dict, place_id: str, index: int) -> dict:
     return sheet
 
 
+def _role(place: dict, index: int, seed: str) -> tuple:
+    """The first person at a staffed place runs it day to day; the second is another role there or a regular,
+    the rest are regulars or anyone else the place draws."""
+    roles = ROLES.get(place['kind'], (REGULAR,))
+    staffed = [role for role in roles if role[2]]
+    others = [role for role in roles if not staffed or role != staffed[0]] or list(roles)
+    if index == 0 and staffed:
+        return staffed[0]
+    if index == 1:
+        return generators.pick(seed, 'role', others)
+    return generators.pick(seed, 'role', [role for role in others if not role[2]] or others)
+
+
+def _named(notable: dict) -> dict:
+    """A notable's name in the shape generators.name gives."""
+    given = notable.get('given') or notable['name'].split()[0]
+    return {'given': given, 'family': notable['name'].removeprefix(given).strip(), 'full': notable['name'],
+            'pronouns': notable['pronouns'], 'group': '', 'culture': None}
+
+
+def role_title(data: dict, role: tuple, place: dict | None = None) -> str:
+    """What the role is called in the city's era, at this place (PLACE_TITLES)."""
+    era = data.get('era', '')
+    for kinds, modern_role, words, titles in PLACE_TITLES:
+        if place and place['kind'] in kinds and role[0] == modern_role and _mentions(place, words):
+            title = titles.get(era) or titles.get('modern' if modern(data) else 'period')
+            if title:
+                return title
+    if modern(data):
+        return role[0]
+    return ERA_ROLES.get(era, {}).get(role[0], role[1])
+
+
+def _mentions(place: dict, words) -> bool:
+    """Whether any of these words or phrases is in the place's name, summary or tags (or is its cost, 'free')."""
+    text = ' '.join([place['name'], place.get('summary', ''), *place.get('tags', []), place.get('cost', '')])
+    found = f" {' '.join(re.findall(r'[^\W_]+', text.casefold()))} "
+    return any(f' {word} ' in found for word in words)
+
+
 def _occupation(data: dict, key: str, age: int) -> str:
     if age >= generators.RETIRED_AT:
         return 'retired'
-    # Picked from every career of the era first, so leaving one out of a city (a surf instructor in
-    # Baltimore) moves only the residents who had it, not everyone after it in the list.
-    offered = {career['name'] for career in catalog.careers_for(data).values()}
-    options = sorted(career['name'] for career in catalog.careers_for(data, needs_met=False).values())
-    chosen = generators.pick(key, 'career', options)
-    if chosen not in offered:
-        chosen = generators.pick(key, 'career-here', sorted(offered))
-    return chosen.lower() if chosen else ''
+    # Weighted towards the city's own industries, and stable per career: leaving one out of a city (a surf
+    # instructor in Baltimore) moves only the residents who had it, not everyone else.
+    chosen = generators.town_career(data, key)
+    return chosen['name'].lower() if chosen else ''
+
+
+def town(data: dict) -> dict:
+    """The city's own quirks and goals for its townsfolk (schema.Townsfolk), or none."""
+    return data.get('townsfolk') or {'quirks': [], 'goals': []}
+
+
+def quirk_for(data: dict, seed: str) -> str:
+    """A quirk from the shared bank or, more often than any one shared quirk, the city's own."""
+    own = [item['text'] for item in town(data)['quirks']]
+    return generators.pick(seed, 'quirk', [*QUIRKS, *own], [1.0] * len(QUIRKS) + [TOWN_WEIGHT] * len(own))
+
+
+def quirk_bio(data: dict, text: str) -> str:
+    """The first-person dating-profile line for a quirk, shared or the city's own."""
+    return QUIRK_BIOS.get(text) or next((item['bio'] for item in town(data)['quirks'] if item['text'] == text), '')
+
+
+QUIRK_BIOS = {item['text']: item['bio'] for item in QUIRK_BANK}
+
+
+def goal_bank(data: dict) -> dict[str, tuple]:
+    """Every goal a townsperson here can have by id, as (id, (modern, period wording), steps, practice, progress,
+    done, interest, bio): the shared bank, then the city's own (which win on a shared id)."""
+    own = {item['id']: (item['id'], (item['text'], item['text']), item['steps'],
+                        tuple(item['practice']) if item['practice'] else None, item['progress'], item['done'],
+                        item['interest'], item['bio']) for item in town(data)['goals']}
+    return SHARED_GOALS | own
+
+
+SHARED_GOALS = {goal[0]: (*goal, GOAL_INTERESTS[goal[0]], item['bio']) for goal, item in zip(GOALS, GOAL_BANK, strict=True)}
+
+
+def goal_order(data: dict, seed: str) -> list[str]:
+    """The order someone works through goals: a seeded shuffle where the city's own goals come up more often.
+    Without any, the order is the plain shuffle by each goal's draw."""
+    own = {item['id'] for item in town(data)['goals']}
+
+    def draw(goal_id):
+        roll = generators.unit(seed, 'goal', goal_id)
+        return 1 - (1 - roll) ** (1 / TOWN_WEIGHT) if goal_id in own else roll
+    return sorted(goal_bank(data), key=draw)
 
 
 def goal(sheet: dict, data_or_modern, number: int) -> dict:
     """Their `number`th goal (0 is the first), with its wording for the era."""
     is_modern = data_or_modern if isinstance(data_or_modern, bool) else modern(data_or_modern)
-    found = {item[0]: item for item in GOALS}[sheet['goals'][number % len(sheet['goals'])]]
-    goal_id, wording, steps, practice, progress, done = found
-    return {'id': goal_id, 'text': wording[0] if is_modern else wording[1], 'steps': steps, 'practice': practice,
+    era = '' if isinstance(data_or_modern, bool) else data_or_modern.get('era', '')
+    found = goal_bank(data_or_modern if isinstance(data_or_modern, dict) else {})[sheet['goals'][number % len(sheet['goals'])]]
+    goal_id, wording, steps, practice, progress, done, interest, bio = found
+    text = wording[0] if is_modern else ERA_GOALS.get(era, {}).get(goal_id, wording[1])
+    return {'id': goal_id, 'text': text, 'steps': steps, 'practice': practice, 'interest': interest, 'bio': bio,
             'progress': progress.format(name=sheet['name']), 'done': done.format(name=sheet['name'])}
 
 
@@ -298,7 +440,8 @@ def _weeks(key: str, temperament: str, flaw: str, weeks: int, steps_key: tuple) 
 def story(sheet: dict, data: dict, day: date) -> dict:
     """Where their goals stand on `day`: the current goal, progress, this week's beat and goals reached."""
     weeks = min(max(week_of(day), 0), MAX_WEEKS)
-    steps = tuple({item[0]: item[2] for item in GOALS}[goal_id] for goal_id in sheet['goals'])
+    bank = goal_bank(data)
+    steps = tuple(bank[goal_id][2] for goal_id in sheet['goals'])
     history = _weeks(drawn(sheet), sheet['temperament'], sheet['flaw'], weeks, steps)
     number, progress, beat = history[-1] if week_of(day) >= 0 else (0, 0, 'stall')
     reached = [goal(sheet, data, n)['text'] for n in range(number)][-3:]
@@ -489,17 +632,17 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
     occupation = _occupation(data, seed, age)
     haunt = generators.pick(seed, 'haunt', where['haunts']) if where['haunts'] else None
     place = view(haunt) if haunt else street(data, hood_id)
-    order = sorted(GOALS, key=lambda goal: generators.unit(seed, 'goal', goal[0]))
+    order = goal_order(data, seed)
     sheet = {
         'key': key, 'seed': seed, 'name': '', 'full': '', 'pronouns': '', 'age': age, 'kind': 'resident',
         'role': occupation or 'local', 'staff': False, 'place': place, 'home': hood_id, 'occupation': occupation,
         'street': street(data, hood_id),
         'spots': {kind: generators.pick(seed, f'spot-{kind}', options) for kind, options in where['spots'].items()},
         'temperament': generators.pick(seed, 'temperament', sorted(TEMPERAMENTS)),
-        'quirk': generators.pick(seed, 'quirk', list(QUIRKS)),
+        'quirk': quirk_for(data, seed),
         'flaw': generators.pick(seed, 'flaw', sorted(FLAWS)),
         'desire': generators.pick(seed, 'desire', sorted(DESIRES)),
-        'goals': [goal[0] for goal in order],
+        'goals': order,
         'night_owl': generators.unit(seed, 'owl') < 0.2,
         'errand_day': int(generators.unit(seed, 'errand') * 7),
     }

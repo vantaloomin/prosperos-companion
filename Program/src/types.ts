@@ -1,3 +1,4 @@
+import type { CompanionStatus } from './features/status/statusText'
 import type { RoutineBlock } from './features/character/schedule'
 import type { ColorScheme, Palette } from './features/settings/palette'
 
@@ -103,6 +104,23 @@ export type Intensity = 'mild' | 'moderate' | 'strong'
 
 export interface EmotionalTrait { name: string; intensity: Intensity; note: string }
 
+/** What they look like, field by field; empty strings and nulls are drawn for them, leaving out what Appearance says. */
+export interface Looks {
+  age: number | null
+  height_cm: number | null
+  weight_kg: number | null
+  build: string
+  skin: string
+  face: string
+  jaw: string
+  nose: string
+  eyes: string
+  eye_shape: string
+  hair: string
+  facial_hair: string
+  feature: string
+}
+
 export interface CharacterDefinition {
   name: string
   /** "MM-DD"; empty picks a date for them. */
@@ -115,6 +133,8 @@ export interface CharacterDefinition {
   interests: string[]
   background: string
   appearance: string
+  /** Face shape, height, build and the rest (companion/world/looks.py); an empty field is drawn for them. */
+  looks?: Looks
   routine: string
   location: string
   relationship: Relationship
@@ -132,6 +152,25 @@ export interface CharacterDefinition {
   life_themes: string[]
   money: MoneySetup
   texting?: TextingStyle
+  /** Their adult side as the user set it (companion/world/intimacy.py); empty fields use the roll. */
+  intimacy?: IntimacySetup | null
+}
+
+export interface IntimacySetup { orientation: string; level: string; drive: string; interests: string[]; note: string }
+
+/** An adult side with labels for showing it (companion/world/intimacy.py view). */
+export interface AdultSide extends IntimacySetup { level_label: string; drive_label: string; interest_labels: string[] }
+
+/** What the character form offers for the adult side, and what the seed gives them as the form stands. */
+export interface AdultSideChoices {
+  rolled: AdultSide | null
+  /** False when their sheet reads as under 18: they never get one. */
+  adult: boolean
+  orientations: string[]
+  levels: { id: string; label: string; text: string }[]
+  drives: { id: string; label: string; text: string }[]
+  groups: { id: string; label: string }[]
+  interests: { id: string; label: string; tier: number; group: string }[]
 }
 
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'
@@ -147,7 +186,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[] }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -189,6 +228,8 @@ export interface Companion {
   portrait_reference_id?: string | null
   /** Set once the user seeds townsfolk of their own; empty means the city's shared townsfolk. */
   town_seed?: string
+  /** Their status line, or away line while they sleep, work or are out (companion/life/status.py). */
+  status?: CompanionStatus | null
 }
 
 export interface WorkspaceSettings {
@@ -228,6 +269,10 @@ export interface WorkspaceSettings {
   show_news?: boolean
   /** Hidden values: "Why it went this way" and its odds under storylines, chapters and reactions; off unless turned on. */
   show_odds?: boolean
+  /** Settings > Realism > Adult side of life (companion/world/intimacy.py): adults only; off unless turned on. */
+  adult_side?: boolean
+  /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
+  show_adult_side?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
@@ -409,7 +454,7 @@ export interface LifeEvent {
   kind: 'routine' | 'plan' | 'ordinary' | 'thread'
   status: 'proposed' | 'committed' | 'rejected' | 'superseded'
   summary: string
-  details: { label?: string; activity?: string; post?: string; mood?: string; local_date?: string; timezone?: string }
+  details: { label?: string; activity?: string; post?: string; mood?: string; local_date?: string; timezone?: string; place?: { id: string; name: string } | null }
   starts_at: string
   ends_at: string
   revision: number
@@ -493,7 +538,7 @@ export interface FeedPost {
 
 export interface FeedPage { posts: FeedPost[]; next_before: string | null; unread: number }
 
-export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string; era?: string }
+export interface CitySummary { id: string; name: string; region: string; country: string; timezone: string; summary: string; era?: string; category?: string }
 
 export interface ContextReceipt { budget_tokens: number; estimated_tokens: number; included: Record<string, string[]>; omitted: Record<string, string[]> }
 export interface ContextPreview { system: string; note: string; history: { role: 'user' | 'assistant'; content: string }[]; messages: { role: 'user' | 'assistant'; content: string }[]; receipt: ContextReceipt }
@@ -881,7 +926,8 @@ export interface DesktopNotification { id: string; kind: 'post' | 'digest' | 'me
 
 export interface TextCheck { state: string; kind?: string; message: Message | null; companion_id?: string; focus?: boolean }
 
-/** One chat in the chat list (companion/chats.py): a companion's, and later group chats. Never says who is around. */
+/** One chat in the chat list (companion/chats.py): a companion's, and later group chats. Never says who is online; a
+ * companion's status may carry an away message, as a hint only. */
 export interface Chat {
   kind: string
   id: string
@@ -892,6 +938,8 @@ export interface Chat {
   unread: number
   last: { role: 'user' | 'companion'; text: string; at: string } | null
   active_at: string
+  /** A companion's status line (companion/life/status.py); absent for group chats. */
+  status?: CompanionStatus | null
 }
 export interface ChatList { chats: Chat[]; unread: number }
 
@@ -1065,7 +1113,24 @@ export interface Storyline {
   unfolding: boolean
 }
 
-export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string }
+export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string }
+
+/** A holiday the companion's family keeps (companion/life/traditions.py). */
+export interface Tradition { id: string; holiday: string; name: string; text: string; origin: 'seeded' | 'user'; edited: boolean; next: string | null }
+export interface TraditionsView { traditions: Tradition[]; removed: Tradition[]; holidays: { id: string; name: string }[]; decorations: string[] }
+
+/** Our year so far (companion/life/scrapbook.py): the stretches there are, and one stretch's pages. */
+export interface ScrapbookPeriod { key: string; title: string; start: string; end: string }
+export interface ScrapbookListing { periods: ScrapbookPeriod[]; featured: string | null; featured_days: number }
+export interface ScrapbookItem { date?: string; text: string }
+export type ScrapbookPage =
+  | { kind: 'cover'; title: string; subtitle: string; stats: { value: string; label: string }[] }
+  | { kind: 'first'; title: string; date: string; said: string; reply: string | null }
+  | { kind: 'photos'; title: string; photos: { ref: string; summary: string; date: string | null }[] }
+  | { kind: 'jokes'; title: string; items: ScrapbookItem[]; note: string | null }
+  | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
+  | { kind: 'closing'; title: string; text: string }
+export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 
 export interface HomeItem {
@@ -1158,6 +1223,14 @@ export interface Townsperson {
   comes_across: string | null
   /** From the third meeting: how they once described themselves. */
   says_they_are: string | null
+  /** With the adult side on: who they're drawn to, once the companion knows their heart. */
+  orientation?: string | null
+  /** With the adult side on and shown in Hidden values: all of it, for the user's eyes only. */
+  adult_side?: AdultSide | null
+  /** What the companion has picked up about their life (companion/world/life_details.py), a little more each meeting. */
+  facts?: string[]
+  /** Stories from their past they have told, from the fourth meeting, one per meeting. */
+  stories?: string[]
   /** Another of the user's companions, living in town by rules since stepping back: their companion id. */
   cast: string | null
   /** How close they and the companion feel, both ways; read-only. */
@@ -1212,7 +1285,11 @@ export interface DebugTime {
 }
 
 /** Story mode (companion/story.py): the user's own story with a narrator, apart from the companion. */
-export interface StoryPlace { id: string; name: string; kind: string; neighborhood: string; summary?: string }
+export interface StoryPlace {
+  id: string; name: string; kind: string; neighborhood: string; summary?: string
+  /** Named spots inside, for detail (companion/world/inside.py): "the back patio". */
+  spots?: string[]
+}
 export interface StoryScene {
   city: { id: string; name: string; era: string }
   place: StoryPlace

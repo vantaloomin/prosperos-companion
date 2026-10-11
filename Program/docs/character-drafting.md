@@ -9,8 +9,8 @@ draft filled in for review. Nothing is saved until the user creates the companio
 ## Quick start
 
 The quick start shows three picks: a name (optional; left empty, the draft suggests one), a rough
-age, and **Where and when**, a home city from the world catalogue grouped by era (Today,
-Victorian, Steampunk, the frontier, Medieval, Fantasy; "Anywhere, today" for none). **More
+age, and **Where and when**, a home city from the world catalogue: the release's Featured cities first, then the shelves Real / Modern,
+Other Eras, Fictional and Custom ("Anywhere, today" for none). **More
 options**, folded by default, holds an idea in a line or two, the relationship (friendship unless
 picked otherwise), a few vibe words, and whether the character may have emotional edges.
 **Create my companion** sends this to

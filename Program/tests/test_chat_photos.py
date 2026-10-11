@@ -90,8 +90,8 @@ def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, cloc
     shown = client.get(f"/api/images/photos/{reply['id']}").json()
     assert shown['status'] == 'completed' and shown['ref']
     assert len(adapters['comfyui'].requests) == 1
-    # Not in the feed until the moment is an event.
-    assert client.get('/api/feed').json()['posts'] == []
+    # Not in the feed until the moment is an event. (A seeded status post can land on this very minute.)
+    assert [post for post in client.get('/api/feed').json()['posts'] if post['source'] != 'social'] == []
     # Asking again in the same moment shows the same photo, without making another.
     again = ask(client, 'wyd', 'ask-0002')['photo']
     assert again['post_id'] == photo['post_id'] and again['ref'] == shown['ref']

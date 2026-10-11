@@ -6,7 +6,7 @@ import type { Companion, WorkspaceSettings } from './types'
 import type { SettingsTab } from './features/settings/sections'
 
 /** A view, as named in the address after #. Settings can name a tab too: #settings/models. */
-export type View = 'conversation' | 'dating' | 'story' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'portraits' | 'settings' | `settings/${SettingsTab}`
+export type View = 'conversation' | 'chats' | 'dating' | 'story' | 'today' | 'feed' | 'memories' | 'character' | 'appearance' | 'portraits' | 'settings' | `settings/${SettingsTab}`
   /** A dating match becoming a companion: #match/<their key>. */
   | `match/${string}`
   /** Making a townsperson the main character: #cast/<their key>. */
@@ -17,6 +17,12 @@ export type View = 'conversation' | 'dating' | 'story' | 'today' | 'feed' | 'mem
   | 'groups' | `group/${string}`
   /** Worlds and personas (src/features/worlds). */
   | 'worlds'
+  /** Who knows who (src/features/web), opened from Today. */
+  | 'people'
+  /** The city map (src/features/map), opened from Today, Story mode and "Show on map" links; #map/<place id> centres on a place. */
+  | 'map' | `map/${string}`
+  /** Our year so far (src/features/year), opened from Memories and from Today on an anniversary. */
+  | 'year'
 
 export const COMPANION_KEY = ['companion']
 export const HISTORY_KEY = ['conversation']

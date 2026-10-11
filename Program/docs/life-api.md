@@ -364,11 +364,54 @@ wherever their rules take them. A meeting counts once its slot has happened and 
 (`entry.townsfolk = {key, times}`), and forks keep meetings before the fork. The chat context lists the six
 most recently seen, with only what the companion has learned. No model is involved.
 
+Each townsperson also has a life so far (`companion/world/life_details.py`, bank in
+`companion/world/data/life_details.json`): where they come from, their work history (years at the job they have
+now, or retirement, and one or two jobs before it from the city's careers for the era), a family detail or two
+fitted to their age, maybe a named pet, two tastes and four stories from their past. People at one place or on one
+street never tell the same story. The companion learns where they are from at the first meeting, their work and a
+taste at the second, family and pets at the third, then one story per meeting, which the diary line mentions.
+These reach the chat context, Around town (`facts`, `stories`), Story mode's people and the profile drafted when
+a townsperson becomes the main character. The bank grows without code changes; `tests/test_life_details.py`
+checks its rules (subject-less lowercase clauses, no final period, no gendered words, a `period` alternative where
+wording is modern). Goals and quirks are data too (`world/data/goals.json`, `world/data/quirks.json`, each with the
+line a dating profile shows), as are the temperaments, flaws and desires in `perception.json` (their `town` part).
+
 ```http
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
 GET /api/life/townsfolk/person?key=<key>    # one of them, plus `now`: where their rules put them right now
 GET /api/world/cities/<id>/places/<place>/people?on=<date>&at=<HH:MM>   # the city's full view of a place's people
 GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # a neighborhood's residents
+```
+
+### The city map
+
+Today > Map, Story mode's Map button and the "Show on map" links on Today open the companion's city
+(`companion/life/citymap.py`). Every place in the city pack is a pin, placed near its neighbourhood's centre
+(packs have no per-place coordinates, so the card says "Location approximate"). Their home, their usual
+places (two or more visits in 60 days), places from the last two weeks and Story mode's scene are marked;
+companions have no set workplace yet, so nothing is marked as work. A place's card shows its spots, the last
+three things that happened there with them, the townsfolk they know who are regulars there, and "Go there"
+(Story mode on, moves the scene) or "Suggest going together" (puts a line in their composer, never sends it).
+Real public cities use OpenStreetMap tiles in the interface, which needs internet; fictional, original and
+private cities, or a street map that fails to load, get a drawn map in the same colours: each neighbourhood a
+district shaped by its neighbours, with side streets, main roads to the districts it borders, parks, and any
+sea, rivers and lakes the city file names (`water`), labelled not to scale. The map never shows where the user is. No model is involved.
+
+```http
+GET /api/life/map    # {city: {id, name, lat, lon, real}, hoods: [{id, name, lat, lon, next}], places: [...], water: [...], story}
+```
+
+### Who knows who
+
+Today > Who knows who draws everyone the user has met or heard about as a web (`companion/life/web.py`):
+the companions and their ties to each other, each companion's circle and how its members know each other,
+people met through them, townsfolk met around town (staff at the same place are coworkers), the people the
+user told a companion about, Matchlight matches and, with Story mode on, people met in the story. It is read
+from what the app already keeps, with no model and nothing stored; secrets, closeness and moods stay out.
+Dragged bubbles keep their place in this browser.
+
+```http
+GET /api/life/web    # {nodes: [{id, name, kind, detail, hood, companion_id?, main?}], links: [{source, target, label, kind}]}
 ```
 
 ### Shared or seeded townsfolk
@@ -1075,6 +1118,50 @@ discussed with the same endpoints. Likes and comments are derived, not stored: t
 post, the active circle and the clock, arriving within a few hours of the post, at most three
 comments each. No line is said twice on one post or repeated on the few posts just before it. The companion likes and comments on friends' posts. A renamed friend shows their new
 name; a removed one's posts and comments leave the feed. A branched timeline keeps the social posts from before it split off, with their read, reaction and answer state.
+
+## Going out together and trips
+
+### Plans with the user
+
+When the user asks the companion out ("Want to get dinner Friday?", "Drinks with me Thursday?",
+"Coffee Saturday?"), or the companion firmly proposes a plan in a reply, the app saves an outing
+([companion/life/outings.py](../companion/life/outings.py)). Rules decide everything; the model only
+talks about it:
+
+- **What**: dinner, lunch, coffee, drinks, a show, a museum, a walk or a market, from the words used.
+- **When**: the asked day and time, else the activity's usual time. A day blocked by work, study,
+  sleep, another outing or a trip moves to the next free one within a week, and the companion is
+  told the asked day did not work.
+- **Where**: the companion picks a real place in their city that fits the activity, the time of day,
+  the season, their tastes and their budget (cheap places when money is tight). A place the user
+  names is kept.
+
+The plan becomes an agenda block with `with_user: true` (no busy hold, no away line). While it is
+under way the chat gets the scene: the place, the spot inside, dishes and prices, and the weather,
+and the companion talks face to face. When it ends it leaves a shared memory, a moment picture for
+the feed (when an image backend is set up), and the bill comes out of their money (`for: outing`).
+
+### Trips
+
+Every few weeks a companion with money to spare may book a weekend, or a long weekend around a
+public holiday, in another real city of the same era within reach
+([companion/life/trips.py](../companion/life/trips.py)). It is with family who live there, a circle
+member, or alone. The trip blocks the waking slots of those days with places in the destination,
+ends with the trip home (and maybe a sunburn the next day after a sunny weekend), sends the user a
+postcard picture on the first afternoon, and takes its cost from the budget (`for: trip`).
+
+### Endpoints
+
+- `GET /api/life/outings` returns `{outings, trips}` for the active timeline. Each item has a
+  `state` of `planned`, `now`, `done` or `cancelled`; outings carry `place`, `named` (the user named
+  the place), `asked_date` (when the day moved) and `cost_text`; trips carry `company`, `landmark`,
+  `cost_text` and `postcard_message_id`. Outings with the user show on Today under Out together;
+  trips show read-only under Trips.
+- `POST /api/life/outings/{id}/cancel`, `/elsewhere` (the companion picks another place),
+  `/home` (end an outing under way now) and `/undo`. `undo` on an item says it can be taken back:
+  calling it off, for the rest of that day while it has not started; heading home, for two
+  minutes, and nothing (memory, bill, photo) is kept until then.
+- Trips are the companion's own life, so there is nothing to change on them.
 
 ## Emotional traits and absence mood
 

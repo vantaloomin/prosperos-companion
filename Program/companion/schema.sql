@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   show_news INTEGER NOT NULL DEFAULT 0 CHECK (show_news IN (0, 1)),
   -- "Why it went this way": the odds behind how a turning went (companion/consequences.py).
   show_odds INTEGER NOT NULL DEFAULT 0 CHECK (show_odds IN (0, 1)),
+  -- Settings > Realism > Adult side of life (companion/world/intimacy.py): off until the user turns it on; showing
+  -- what townsfolk are like that way is a hidden value.
+  adult_side INTEGER NOT NULL DEFAULT 0 CHECK (adult_side IN (0, 1)),
+  show_adult_side INTEGER NOT NULL DEFAULT 0 CHECK (show_adult_side IN (0, 1)),
   -- Settings > Debug: write every model request and response in full to logs/model-calls (companion/model_calls.py).
   record_model_calls INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1)),
   paused_at TEXT,
@@ -1728,4 +1732,77 @@ CREATE TABLE IF NOT EXISTS dreams (
   sleep_talk TEXT,
   created_at TEXT NOT NULL,
   PRIMARY KEY (timeline_id, night)
+);
+
+-- Family traditions (companion/life/traditions.py): a few holidays the companion's family keeps, seeded once per
+-- timeline from companion/world/data/traditions.json and the circle. `text` keeps a {their} token for "their" or
+-- "your"; `host_id` is the circle member it happens with. The user can reword one (edited), drop it (removed) or
+-- add their own (origin 'user').
+CREATE TABLE IF NOT EXISTS family_traditions (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  holiday TEXT NOT NULL,
+  host_id TEXT,
+  text TEXT NOT NULL,
+  origin TEXT NOT NULL CHECK (origin IN ('seeded', 'user')),
+  edited INTEGER NOT NULL DEFAULT 0 CHECK (edited IN (0, 1)),
+  removed INTEGER NOT NULL DEFAULT 0 CHECK (removed IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, holiday)
+);
+
+-- Our year so far (companion/life/scrapbook.py): the scrapbooks Today has pointed to and the user opened or put
+-- away, so the card on Today shows once per anniversary or New Year.
+CREATE TABLE IF NOT EXISTS scrapbook_seen (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  seen_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, key)
+);
+
+-- Go somewhere together (companion/life/outings.py): an outing with the user the app settled from a message that asked
+-- for it (or a firm plan in a companion reply): when, what and the place the companion picked (`named` when the user
+-- named it). `rolls` counts "somewhere else"; `ended_at` is heading home early; `cost` is the companion's share.
+CREATE TABLE IF NOT EXISTS outings (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  message_id TEXT NOT NULL UNIQUE REFERENCES messages(id),
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  until_time TEXT NOT NULL,
+  activity TEXT NOT NULL,
+  asked_date TEXT,
+  place TEXT NOT NULL,
+  named INTEGER NOT NULL DEFAULT 0 CHECK (named IN (0, 1)),
+  cost REAL NOT NULL DEFAULT 0,
+  rolls INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'cancelled', 'done')),
+  ended_at TEXT,
+  cancelled_at TEXT,
+  memory_id TEXT,
+  photo_post_id TEXT,
+  photo_tried INTEGER NOT NULL DEFAULT 0 CHECK (photo_tried IN (0, 1)),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS outings_companion ON outings(companion_id, local_date);
+
+-- Trips and postcards (companion/life/trips.py): a weekend away the app decided for a timeline, two to three weeks
+-- ahead. `company` is who they go with or stay with (JSON, or NULL alone); `landmark` is the postcard's.
+CREATE TABLE IF NOT EXISTS trips (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  city_id TEXT NOT NULL,
+  city_name TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('getaway', 'family')),
+  company TEXT,
+  landmark TEXT,
+  sunny INTEGER NOT NULL DEFAULT 0 CHECK (sunny IN (0, 1)),
+  cost REAL NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'cancelled')),
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, start_date)
 );

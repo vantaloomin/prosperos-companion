@@ -14,12 +14,14 @@ from companion.life import (
     agenda,
     chapters,
     circle,
+    citymap,
     deck,
     encounters,
     feed,
     money,
     mood,
     network,
+    outings,
     reactions,
     recommendations,
     routine,
@@ -27,6 +29,8 @@ from companion.life import (
     social,
     storylines,
     today,
+    trips,
+    web,
 )
 from companion.memory import pairs
 from companion.models import Input, LifeSettingsUpdate, MessageCreate
@@ -247,6 +251,47 @@ def read_acquaintances(request: Request):
     with database.connect() as connection:
         companion = require_current(connection)
         return network.acquaintances(connection, companion['active_timeline_id'], database.clock.now())
+
+
+@router.get('/map')
+def read_map(request: Request):
+    """The companion's city with their places marked, for the map (companion/life/citymap.py)."""
+    database = db(request)
+    with database.connect() as connection:
+        companion = require_current(connection)
+        return citymap.build(connection, companion, database.clock.now(), bool(settings(connection)['story_mode']))
+
+
+@router.get('/outings')
+def read_outings(request: Request):
+    """Going out with the user and trips away (companion/life/outings.py, trips.py), from two weeks ago on."""
+    database = db(request)
+    with database.connect() as connection:
+        companion, now = require_current(connection), database.clock.now()
+        return {'outings': outings.listing(connection, companion, now), 'trips': trips.listing(connection, companion, now)}
+
+
+@router.post('/outings/{outing_id}/{action}')
+def change_outing(request: Request, outing_id: str, action: Literal['cancel', 'elsewhere', 'home', 'undo']):
+    """Call an outing off, have the companion pick somewhere else, head home early, or undo calling it off or
+    heading home."""
+    database = db(request)
+    change = {'cancel': outings.cancel, 'elsewhere': outings.elsewhere, 'home': outings.head_home,
+              'undo': outings.undo}[action]
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        changed = change(connection, companion, outing_id, database.clock.now())
+    request.app.state.life.extend_agenda('return')
+    return changed
+
+
+@router.get('/web')
+def read_web(request: Request):
+    """Who knows who: everyone the user has met or heard about and how they are tied (companion/life/web.py)."""
+    database = db(request)
+    with database.connect() as connection:
+        require_current(connection)
+        return web.build(connection, database.clock.now(), bool(settings(connection)['story_mode']))
 
 
 @router.get('/townsfolk')

@@ -13,6 +13,7 @@ members' happened entries are their visible diary.
 from datetime import timedelta
 
 from companion import consequences, self_facts
+from companion.almanac.context import city_for as almanac_city
 from companion.characters import by_id
 from companion.characters import current as in_focus
 from companion.clock import parse, stamp
@@ -27,16 +28,19 @@ from companion.life import (
     home,
     network,
     occasions,
+    outings,
     own_plans,
     reactions,
     recommendations,
     routine,
     storylines,
+    traditions,
+    trips,
     wardrobe,
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
-from companion.world import generators
+from companion.world import generators, inside
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
@@ -64,8 +68,18 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
                        f"{person['id']}:{person['revision']}"))
     # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
     result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id']),
-                               'own_birthday': occasions.own_birthday(companion)}, version['id']))
+                               'own_birthday': occasions.own_birthday(companion),
+                               'traditions': kept_traditions(connection, companion, now)}, version['id']))
     return result
+
+
+def kept_traditions(connection, companion, now) -> dict[str, dict]:
+    """The family's traditions on the dates an extension can write (companion/life/traditions.py), seeded the first
+    time the circle exists."""
+    city = almanac_city(connection, companion['version']['definition'])
+    traditions.ensure(connection, companion, city, now)
+    return traditions.on_dates(connection, companion, city, (now - BACKFILL - timedelta(days=1)).date(),
+                               (now + HORIZON + timedelta(days=1)).date())
 
 
 def seed_for(timeline_id, subject, slot_key) -> str:
@@ -106,6 +120,8 @@ def extend(connection, companion, world, now) -> dict:
     if chapters.advance(connection, companion, world, now):
         companion = by_id(connection, companion['id'])  # A new job or home shapes the days ahead.
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
+    trips.plan_ahead(connection, companion, world, now)
+    outings.finish_due(connection, companion, now)
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
     # Removed people's upcoming entries go; what already happened stays.
@@ -145,10 +161,16 @@ def catch_up_in_steps(database, companion_id, world, now):
 def extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion=None) -> int:
     stale = connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
                                'AND basis!=?', (timeline_id, subject, basis)).rowcount
-    plans = {}
+    plans, away = {}, {}
     if subject == COMPANION:
-        plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, (now - BACKFILL).date().isoformat()))
-        stale += repin(connection, timeline_id, plans)
+        since = (now - BACKFILL).date().isoformat()
+        plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
+        # Outings with the user take their slots the way the companion's own plans do (companion/life/outings.py).
+        for local_date, found in outings.as_plans(connection, timeline_id, since).items():
+            plans[local_date] = plans.get(local_date, []) + found
+        away = trips.by_date(connection, timeline_id, since)
+        plans = {local_date: found for local_date, found in plans.items() if local_date not in away}
+        stale += repin(connection, timeline_id, plans) + trips.repin(connection, timeline_id, away)
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, subject))
     # A timeline's days begin when it last became active: nothing is filled in for time it spent
@@ -177,7 +199,9 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
         if local_date not in days:
             days[local_date] = day_facts(connection, timeline_id, subject, definition, world, slot.local_date,
                                          days_off.get(local_date))
-            if local_date in plans:
+            if local_date in away:
+                days[local_date]['trip'] = away[local_date]
+            elif local_date in plans:
                 days[local_date]['plans'] = plans[local_date]
                 days[local_date]['pinned'] = own_plans.assign(plans[local_date], [
                     holiday_block(block.view(), days_off.get(local_date)) for block in schedule
@@ -191,6 +215,8 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
 
 def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     """Compose one slot and write it, shifted when the day does not go to plan (companion/life/disruptions.py)."""
+    if facts.get('trip') and slot.block.kind not in routine.RESTING:
+        return write_trip_slot(connection, scope, slot, facts)
     timeline_id, subject, definition = scope['timeline_id'], scope['subject'], scope['definition']
     block, entry, shift = day_block(slot.block.view(), facts), None, None
     seed = seed_for(timeline_id, subject, slot.key)
@@ -211,7 +237,9 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         view = {**slot.view(), 'block': block, 'starts_at': stamp(starts_at), 'ends_at': stamp(ends_at)}
         if slot.block.key in pinned:
             plan = pinned[slot.block.key]
-            entry = plan and own_plans.entry(plan, block, definition)
+            block = outings.marked(block, plan)
+            entry = plan and (outings.entry(plan, block, definition) if 'outing' in plan else
+                              own_plans.entry(plan, block, definition))
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
             entry = disruptions.entry_with(entry, shift, definition['name'])
@@ -219,6 +247,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
                                scope['world'], scope['now'])
+        entry = with_spot(connection, timeline_id, subject, entry, slot.local_date, seed)
         if entry:
             recent.append(entry['activity'])
     connection.execute(
@@ -229,6 +258,33 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     return 1
 
 
+def write_trip_slot(connection, scope: dict, slot, facts: dict) -> int:
+    """A waking slot of a day away (companion/life/trips.py): spent in the other city, with the trip's own weather."""
+    trip, timeline_id = facts['trip'], scope['timeline_id']
+    block = trips.block(day_block(slot.block.view(), {**facts, 'weather': None, 'happenings': []}), trip)
+    schedule, _default = routine.blocks(scope['definition'])
+    entry = trips.entry(trip, {**slot.view(), 'block': block}, scope['definition'], scope['world'],
+                        seed_for(timeline_id, COMPANION, slot.key),
+                        trips.ends(schedule, slot.local_date, trip, slot.block.key))
+    if entry['weather']:
+        block['weather'] = entry['weather']
+    connection.execute(
+        'INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, block, entry, '
+        'basis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (identifier(), timeline_id, COMPANION, slot.key, stamp(slot.starts_at), stamp(slot.ends_at),
+         slot.local_date.isoformat(), encode(block), encode(entry), scope['basis'], stamp(scope['now'])))
+    return 1
+
+
+def with_spot(connection, timeline_id, subject, entry, day, seed) -> dict | None:
+    """Now and then where inside the place (or which room at home) the companion's entry happened
+    (companion/world/inside.py)."""
+    if subject != COMPANION or not entry:
+        return entry
+    home_item = next((item for item in home.items_on(connection, timeline_id, day) if item['kind'] == 'home'), None)
+    return inside.touch(entry, seed, home_item)
+
+
 def compose_entry(connection, scope: dict, slot, view: dict, company: list, recent: list, seed: str) -> dict | None:
     """What a waking slot holds: for the companion a recommendation's session, a friend's gathering
     (companion/life/network.py) or the composer's pick, maybe with a run-in or a townsperson met there
@@ -236,6 +292,8 @@ def compose_entry(connection, scope: dict, slot, view: dict, company: list, rece
     timeline_id, definition, world, block = scope['timeline_id'], scope['definition'], scope['world'], view['block']
     if scope['subject'] != COMPANION:
         return composer.compose(view, definition, world, seed, recent[-3:], company, [])
+    if (kept := composer.tradition(view, definition, seed)) and not tradition_done(connection, timeline_id, view):
+        return kept
     celebrants = birthdays(connection, timeline_id, view['local_date'], company)
     entry = recommendations.session_for(connection, timeline_id, slot, block, definition, seed, company)
     if not entry and not celebrants and scope['companion']:
@@ -243,6 +301,13 @@ def compose_entry(connection, scope: dict, slot, view: dict, company: list, rece
     entry = entry or composer.compose(view, definition, world, seed, recent[-3:], company, celebrants)
     entry = network.run_in(connection, timeline_id, entry, view, block, seed)
     return encounters.meet(connection, scope['companion'], entry, view, block, seed)
+
+
+def tradition_done(connection, timeline_id, view: dict) -> bool:
+    """A holiday's tradition fills one slot of the day, the first free one."""
+    return optional(connection, "SELECT 1 FROM life_agenda WHERE timeline_id=? AND subject=? AND local_date=? "
+                    "AND json_extract(entry, '$.activity')='tradition' LIMIT 1",
+                    (timeline_id, COMPANION, view['local_date'])) is not None
 
 
 def repin(connection, timeline_id, plans: dict) -> int:

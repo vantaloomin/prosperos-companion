@@ -29,17 +29,21 @@ AFTER = {
     'dinner': (('tired', 0.25),),
     'busy-shift': (('worn out', 0.5),),
     'workout': (('sore', 0.5),),
+    # Home from a trip (companion/life/trips.py), after a sunny beach weekend or any other.
+    'trip-home-sun': (('sunburnt', 0.55), ('tired', 0.5)),
+    'trip-home': (('tired', 0.6),),
 }
 # Which state wins when the day before left more than one.
-ORDER = ('sick', 'hungover', 'tired', 'worn out', 'sore')
+ORDER = ('sick', 'hungover', 'tired', 'worn out', 'sore', 'sunburnt')
 LOW = {'tired', 'hungover', 'worn out'}
 MOODS = {'sick': 'under the weather', 'hungover': 'sluggish', 'tired': 'tired', 'worn out': 'drained',
-         'sore': 'sore'}
+         'sore': 'sore', 'sunburnt': 'sunburnt'}
 CAUSES = {
     'drinks': 'after drinks{at} last night', 'birthday': "after celebrating {friend}'s birthday",
     'festival': 'after a long day out at {event}', 'show': 'after a late show{at}',
     'dinner': 'after a late dinner{at}', 'busy-shift': 'after a hectic day at work',
     'workout': "after yesterday's workout",
+    'trip-home-sun': 'after a sunny weekend in {event}', 'trip-home': 'after the trip back from {event}',
 }
 
 
@@ -69,7 +73,8 @@ def sick(seed: str, day: date, world, definition) -> bool:
 def cause(entry: dict) -> str:
     place, friend = entry.get('place') or {}, entry.get('with') or {}
     return CAUSES[entry['activity']].format(at=f" at {place['name']}" if place.get('name') else '',
-                                            event=place.get('name') or 'the festival',
+                                            event=place.get('name') or (entry.get('trip') or {}).get('city')
+                                            or 'the festival',
                                             friend=friend.get('name') or 'a friend')
 
 

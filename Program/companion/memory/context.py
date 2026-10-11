@@ -28,11 +28,14 @@ from companion.life import (
     money,
     network,
     occasions,
+    outings,
     own_plans,
     pacing,
     reactions,
     recommendations,
     storylines,
+    traditions,
+    trips,
     wardrobe,
 )
 from companion.life import mood as moods
@@ -47,7 +50,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import newcomers, perception
+from companion.world import intimacy, looks, newcomers, perception
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -188,6 +191,10 @@ NOW = {
        # How they feel right now, from their own day and how the user talks to them (companion/moods.py).
        'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
                   'never explain it unless asked)',
+       # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
+       'together': 'Going out with the user, and your trips (decided: you agreed to these plans and picked the '
+                   'places, and your trips are booked; keep to them, never move them or name another place, and '
+                   'when the time comes they happen as listed)',
        'day_shifts': 'How today has gone off plan so far (decided: mention it the way a person would, never '
                      'contradict it)',
        'intentions': 'What you are likely to do next (not happened yet; mention only as intentions, '
@@ -266,10 +273,22 @@ def emotional_lines(definition) -> list[str]:
     return lines or [NEUTRAL_ABSENCE]
 
 
-def character_text(version, connection=None) -> str:
+def list_lines(definition) -> list[str]:
+    """Their skills, flaws and interests, each when the sheet has any."""
+    lines = ['Skills: ' + '; '.join(definition['skills'])] if definition.get('skills') else []
+    if definition.get('flaws'):
+        lines.append(FLAWS + '; '.join(definition['flaws']))
+    if definition.get('interests'):
+        lines.append('Interests: ' + ', '.join(definition['interests']))
+    return lines
+
+
+def character_text(version, connection=None, intimate: bool = False) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral.
 
-    With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced.
+    With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced. `intimate` adds
+    their adult side when Settings > Realism turns it on (companion/world/intimacy.py): only their own chat prompt
+    asks for it, never prompts whose words end up somewhere else (life events, the feed).
     """
     definition = version['definition']
     lines = [prompt_library.text(connection, 'chat-character', name=definition['name'],
@@ -278,17 +297,16 @@ def character_text(version, connection=None) -> str:
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
+    if version.get('companion_id') and (sheet := looks.text(looks.for_companion(version['companion_id'], definition))):
+        lines.append(f'Looks: {sheet}')
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
-    if definition.get('skills'):
-        lines.append('Skills: ' + '; '.join(definition['skills']))
-    if definition.get('flaws'):
-        lines.append(FLAWS + '; '.join(definition['flaws']))
-    if definition.get('interests'):
-        lines.append('Interests: ' + ', '.join(definition['interests']))
+    lines += list_lines(definition)
     if version.get('companion_id'):
         found = perception.for_companion(version['companion_id'], definition)
         lines.append(perception.own_text(found['public'], found['private']))
+    if intimate and (adult := intimacy.prompt_text(connection, version)):
+        lines.append(adult)
     if style := texting.instruction(definition):
         lines.append(style)
     return '\n'.join(lines)
@@ -635,7 +653,7 @@ def offer_life(packet, connection, companion, now):
         packet.offer('lately', identity, text)
     for item in recommendations.progress(connection, timeline_id):
         packet.offer('recommendations', item['id'], recommendations.context_text(item))
-    offer_home(packet, connection, timeline_id, today)
+    offer_home(packet, connection, companion, today)
     for identity, text in wardrobe.context_lines(connection, timeline_id, date.fromisoformat(today), now):
         packet.offer('wearing' if ':now:' in identity else 'wardrobe', identity, text)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
@@ -645,6 +663,21 @@ def offer_life(packet, connection, companion, now):
         packet.offer('companion_life', event['id'], f"- {when}: {event['summary']}")
     for identity, text in city_changes.context_lines(connection, version, now):
         packet.offer('city_news', identity, text)
+
+
+def offer_together(packet, connection, companion, now, recent, group=None):
+    """Outings with the user and trips away, in a 1:1 chat. The messages since the companion last wrote are the turn
+    being answered, so an outing they settled is one the reply announces."""
+    if group is not None:
+        return
+    turn = set()
+    for message in reversed(recent):
+        if message['role'] != 'user':
+            break
+        turn.add(message['id'])
+    for identity, text in [*outings.context_lines(connection, companion, now, turn),
+                           *trips.context_lines(connection, companion, now)]:
+        packet.offer('together', identity, text)
 
 
 def offer_attachments(packet, connection, latest, photo):
@@ -677,9 +710,12 @@ def offer_daily(packet, connection, version, now):
                                                   f"{digest['retrieved_at'][:10]}: «{lookups.culture_text(digest)}»")
 
 
-def offer_home(packet, connection, timeline_id, today: str):
-    for identity, text in home.context_lines(connection, timeline_id, date.fromisoformat(today)):
+def offer_home(packet, connection, companion, today: str):
+    """Their home and belongings, and what is up at home for the season (companion/life/traditions.py)."""
+    for identity, text in home.context_lines(connection, companion['active_timeline_id'], date.fromisoformat(today)):
         packet.offer('home', identity, text)
+    if line := traditions.decoration_line(connection, companion, date.fromisoformat(today)):
+        packet.offer('home', f'decorations:{today}', line)
 
 
 def fresh(item: dict, since: str | None) -> bool:
@@ -733,7 +769,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     if group is not None:
         recent, older = [], messages + group['older']
     packet = Packet(budget)
-    packet.require('character', version['id'], character_text(version, connection))
+    packet.require('character', version['id'], character_text(version, connection, intimate=True))
     if who := persona_text(connection):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
@@ -759,6 +795,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_daily(packet, connection, version, now)
     people.offer(packet, connection, companion, groups['people'], groups['boundaries'], now, since)
     offer_life(packet, connection, companion, now)
+    offer_together(packet, connection, companion, now, recent, group)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     offer_attachments(packet, connection, latest, photo)

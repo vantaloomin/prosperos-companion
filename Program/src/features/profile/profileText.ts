@@ -1,18 +1,20 @@
 import type { ChatStyle } from '../../types'
 
-/** The companion's profile holds three views; the address keeps the older names so every link still works. */
-export type ProfileTab = 'conversation' | 'feed' | 'character'
+/** The companion's profile holds four views; the address keeps the older names so every link still works. */
+export type ProfileTab = 'conversation' | 'feed' | 'memories' | 'character'
 
 export const PROFILE_TABS: { id: ProfileTab; label: string }[] = [
   { id: 'conversation', label: 'Messages' },
   { id: 'feed', label: 'Posts' },
+  { id: 'memories', label: 'Memories' },
   { id: 'character', label: 'Character' },
 ]
 
 /** Which profile tab a view sits under, or null when the view is not part of the profile. */
 export function profileTab(view: string): ProfileTab | null {
-  if (view === 'conversation' || view === 'feed' || view === 'character') return view
+  if (view === 'conversation' || view === 'feed' || view === 'memories' || view === 'character') return view
   if (view === 'appearance' || view === 'portraits' || view.startsWith('cast/')) return 'character'
+  if (view === 'year') return 'memories'
   return null
 }
 

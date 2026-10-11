@@ -386,6 +386,19 @@ def test_a_plan_is_not_an_outing_until_its_slot_happens(client, life, clock, mon
     assert client.get('/api/today').json()['plans']['companion'] == []
 
 
+def test_one_upcoming_slot_never_gets_two_plans(client, life, clock, monkeypatch):
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 1)
+    set_life(client, automatic_events=True, catch_up_max_events=6, catch_up_lookback_hours=96)
+    for _ in range(4):
+        clock.advance(timedelta(days=1))
+        reconcile(client)
+    plans = [event for event in all_events(client) if event['kind'] == 'plan']
+    targets = [plan['details']['target_slot'] for plan in plans]
+    assert len(plans) > 1 and len(targets) == len(set(targets))
+    shown = client.get('/api/today').json()['plans']['companion']
+    assert len({item['details']['target_slot'] for item in shown}) == len(shown)
+
+
 def test_the_shipped_city_data_is_the_default_world(tmp_path, clock, provider, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
