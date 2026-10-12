@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 
 from companion import text_models
 from companion.database import decode
+from companion.providers import balance
 from companion.providers.config import ConnectionProbe, ProfileCreate, ProfileUpdate, RouteUpdate
 
 router = APIRouter(prefix='/api/models')
@@ -55,6 +56,18 @@ async def check_profile(profile_id: str, request: Request):
     config = {**decode(row['config']), 'credential_ref': row['credential_ref']}
     return await request.app.state.conversation.provider.check(config, text_models.key_for(request.app.state.vault,
                                                                                             config))
+
+
+@router.get('/profiles/{profile_id}/usage')
+async def profile_usage(profile_id: str, request: Request, fresh: bool = False):
+    """Credits or usage the service reports for free, or null; never spends tokens."""
+    with db(request).connect() as connection:
+        row = text_models.profile_row(connection, profile_id)
+    config = {**decode(row['config']), 'credential_ref': row['credential_ref']}
+    if not balance.has_lookup(config):
+        return None
+    key = text_models.key_for(request.app.state.vault, config)
+    return await request.app.state.conversation.provider.usage((row['id'], row['revision']), config, key, fresh)
 
 
 @router.put('/routes')

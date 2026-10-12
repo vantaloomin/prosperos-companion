@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import httpx
 
 from companion.errors import DomainError, require
+from companion.providers import balance
 from companion.providers.codex import CodexProvider
 from companion.providers.discovery import discover_models
 from companion.providers.discovery_errors import check_with_deadline
@@ -240,6 +241,10 @@ class ChatProvider:
         async with httpx.AsyncClient(transport=self.transport, timeout=15, trust_env=False,
                                      follow_redirects=False) as client:
             return await check_with_deadline(discover_models, client, config, key)
+
+    async def usage(self, profile_key: tuple, config: dict, key: str | None, fresh: bool = False) -> dict | None:
+        """Credits or plan limits when the service reports them for free; None otherwise."""
+        return await balance.cached(profile_key, config, key, fresh, transport=self.transport, codex=self.codex)
 
 
 # (provider, model) pairs that ran out of reply room while reasoning, for this run of the app.
