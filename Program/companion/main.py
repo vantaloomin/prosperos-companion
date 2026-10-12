@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from companion import (
     auto_backup,
     dating_routes,
+    export_routes,
     group_routes,
     groups,
     local_zone,
@@ -266,6 +267,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(group_routes.router)
     app.include_router(group_routes.secrets_router)
     app.include_router(dating_routes.router)
+    app.include_router(export_routes.router)
     app.include_router(lora_routes.router)
     if app.state.lora_maker:
         app.include_router(lora_routes.maker_router)
