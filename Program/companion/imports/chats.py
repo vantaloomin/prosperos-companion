@@ -2,7 +2,9 @@
 
 Reading the two formats is adapted from prosperos-study server/migration/transcript_conversion.py
 (`sillytavern`, `role_messages`). Changes: nothing is reviewed or mapped by hand; the user's lines become
-the user's, everyone else's the companion's; system, narrator and hidden lines are left out; the selected
+the user's, the character's the companion's; system, narrator and hidden lines are left out, and so, in a
+SillyTavern group chat, are the other characters' lines (the companion is the one whose name they have, else the one
+who speaks most); the selected
 swipe is taken and its date read (`send_date` in SillyTavern's several formats, ISO text or epoch numbers).
 
 The world exists outside of the user, so an import asks nothing: the messages land before everything
@@ -19,6 +21,7 @@ import binascii
 import hashlib
 import json
 import re
+from collections import Counter
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -55,6 +58,7 @@ class Line:
     role: str
     text: str
     at: datetime | None
+    speaker: str = ''
 
 
 # Reading the file ---------------------------------------------------------------------------------
@@ -102,14 +106,26 @@ def shaped(found) -> tuple[str, list, object]:
     return 'messages', rows, role_line
 
 
-def read(raw: bytes, timezone: str) -> tuple[str, list[Line], int]:
-    """(format, lines kept, lines left out)."""
+def read(raw: bytes, timezone: str, names: tuple[str, ...] = ()) -> tuple[str, list[Line], int]:
+    """(format, lines kept, lines left out). `names` are the companion's, to find them in a group chat."""
     kind, rows, reader = shaped(records(raw))
     require(len(rows) <= MAX_LINES, f'Chats are limited to {MAX_LINES:,} messages per file.', 413)
     lines = [reader(row, timezone) for row in rows]
-    kept = [line for line in lines if line]
+    kept = one_character([line for line in lines if line], names)
     require(kept, 'There are no messages from you or the character in this file.', 422)
     return kind, kept, len(lines) - len(kept)
+
+
+def one_character(lines: list[Line], names: tuple[str, ...]) -> list[Line]:
+    """In a group chat (more than one character speaks), only the user's lines and this companion's: the
+    character with the companion's name, else the one who speaks most. Other characters' lines are left out."""
+    speakers = Counter(line.speaker for line in lines if line.role == 'companion' and line.speaker)
+    if len(speakers) < 2:
+        return lines
+    wanted = {name.strip().casefold() for name in names if name.strip()}
+    chosen = next((name for name, _ in speakers.most_common() if name.casefold() in wanted),
+                  speakers.most_common(1)[0][0])
+    return [line for line in lines if line.role == 'user' or line.speaker in ('', chosen)]
 
 
 def clipped(text) -> str:
@@ -129,9 +145,9 @@ def tavern_line(row, timezone) -> Line | None:
     extra = row.get('extra') if isinstance(row, dict) else None
     if not isinstance(row, dict) or row.get('is_system') or (isinstance(extra, dict) and extra.get('type') == 'narrator'):
         return None
-    text = clipped(chosen_swipe(row))
-    return Line('user' if row.get('is_user') else 'companion', text, when(row.get('send_date'), timezone)) \
-        if text else None
+    text, name = clipped(chosen_swipe(row)), row.get('name')
+    return Line('user' if row.get('is_user') else 'companion', text, when(row.get('send_date'), timezone),
+                name.strip() if isinstance(name, str) else '') if text else None
 
 
 def content(value) -> str:
@@ -316,9 +332,9 @@ def bring(database, filename: str, data: str, companion_id: str | None = None) -
     raw = decoded(data)
     digest, now = hashlib.sha256(raw).hexdigest(), database.clock.now()
     with database.connect() as connection:
-        companion_for(connection, companion_id)
+        name = companion_for(connection, companion_id)['version']['definition']['name']
         timezone = settings(connection)['user_timezone']
-    kind, lines, skipped = read(raw, timezone)
+    kind, lines, skipped = read(raw, timezone, (name, name.split()[0] if name.split() else name))
     with database.connect(write=True) as connection:
         companion = companion_for(connection, companion_id)
         timeline_id = companion['active_timeline_id']
