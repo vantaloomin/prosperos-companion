@@ -40,7 +40,7 @@ def starts(connection, now) -> list[datetime]:
           SELECT m.role, m.created_at,
                  LAG(m.created_at) OVER (PARTITION BY m.timeline_id ORDER BY m.seq) AS previous_at,
                  LAG(m.id) OVER (PARTITION BY m.timeline_id ORDER BY m.seq) AS previous_id
-          FROM messages m WHERE m.status='complete' AND m.active=1)
+          FROM messages m WHERE m.status='complete' AND m.active=1 AND m.import_id IS NULL)
         WHERE role='user' AND created_at>=? AND created_at<=?""",
                 (stamp(now - LOOKBACK), stamp(now)))
     openers = {row['message_id'] for row in many(connection, 'SELECT message_id FROM openers')}

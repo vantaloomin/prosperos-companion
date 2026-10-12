@@ -100,7 +100,7 @@ def with_user(connection, companion, day: date, now) -> bool:
         return False
     start = datetime.combine(day, time(0), zone(companion['version']['timezone']))
     return optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='user' AND created_at>=? AND "
-                    'created_at<? LIMIT 1', (companion['active_timeline_id'], stamp(start),
+                    'created_at<? AND import_id IS NULL LIMIT 1', (companion['active_timeline_id'], stamp(start),
                                              stamp(start + timedelta(days=1)))) is not None
 
 

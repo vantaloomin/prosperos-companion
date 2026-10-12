@@ -239,6 +239,8 @@ ADDED_COLUMNS = (
     # profile and 'scheme' uses color_scheme. Workspaces from before keep the scheme they saved, so the column comes in
     # as 'scheme' here while new workspaces start on 'system' (schema.sql).
     ('workspace_settings', 'theme', "TEXT NOT NULL DEFAULT 'scheme' CHECK (theme IN ('system', 'scheme', 'paper'))"),
+    # A message brought in from an old chat file (companion/imports/chats.py): older history, never new talk.
+    ('messages', 'import_id', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

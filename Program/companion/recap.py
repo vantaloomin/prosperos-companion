@@ -20,8 +20,9 @@ MOST_EVENTS = 3
 
 
 def last_from_user(connection, timeline_id: str) -> str | None:
+    # An old chat brought in (companion/imports/chats.py) is history, not the user's last visit.
     row = optional(connection, "SELECT MAX(created_at) AS at FROM messages WHERE timeline_id=? AND role='user' "
-                   'AND active=1', (timeline_id,))
+                   'AND active=1 AND import_id IS NULL', (timeline_id,))
     return row and row['at']
 
 

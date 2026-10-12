@@ -18,7 +18,7 @@ from companion.characters import by_id, require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
 from companion.errors import require
-from companion.memory.records import eligible
+from companion.memory.records import eligible, from_old_chats
 
 SHARED_LAYERS = ('shared_experience', 'relationship')
 # Points to reach each stage: one per day talked, plus one per shared moment up to the days talked.
@@ -95,16 +95,21 @@ def options(connection, timeline_id) -> dict:
 
 
 def talk_days(connection, timeline_id, since, timezone) -> list[str]:
-    """Distinct local dates the user wrote on, in order. Deleted and inactive messages do not count."""
+    """Distinct local dates the user wrote on, in order. Deleted and inactive messages do not count, and
+    neither does an old chat brought in (companion/imports/chats.py): history never jumps the stage."""
     rows = many(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND role='user' AND active=1 "
-                "AND status='complete' AND redacted_at IS NULL AND created_at>=?", (timeline_id, since or ''))
+                "AND status='complete' AND redacted_at IS NULL AND import_id IS NULL AND created_at>=?",
+                (timeline_id, since or ''))
     return sorted({local_day(row['created_at'], timezone) for row in rows})
 
 
 def shared_moments(connection, companion, timeline_id, now, since) -> list[dict]:
-    """Eligible shared moments, so excluded, corrected-away or deleted memories never count."""
+    """Eligible shared moments, so excluded, corrected-away or deleted memories never count; nor do those only
+    an old chat brought in says."""
+    history = from_old_chats(connection, timeline_id)
     return sorted((memory for memory in eligible(connection, companion, timeline_id, stamp(now))
-                   if memory['layer'] in SHARED_LAYERS and memory['created_at'] >= (since or '')),
+                   if memory['layer'] in SHARED_LAYERS and memory['created_at'] >= (since or '')
+                   and memory['id'] not in history),
                   key=lambda memory: memory['created_at'])
 
 

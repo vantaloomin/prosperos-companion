@@ -1808,3 +1808,22 @@ CREATE TABLE IF NOT EXISTS trips (
   created_at TEXT NOT NULL,
   UNIQUE (timeline_id, start_date)
 );
+
+-- Old chats brought in as older history (companion/imports/chats.py). Their messages carry `import_id`,
+-- so they read as history without counting as new conversation: no replies, notifications, moods,
+-- closeness or consequences come from them. `sha256` keeps the same file from coming in twice on one timeline.
+CREATE TABLE IF NOT EXISTS chat_imports (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  filename TEXT NOT NULL,
+  format TEXT NOT NULL CHECK (format IN ('sillytavern', 'messages')),
+  sha256 TEXT NOT NULL,
+  messages INTEGER NOT NULL,
+  skipped INTEGER NOT NULL,
+  memories INTEGER NOT NULL,
+  dated INTEGER NOT NULL CHECK (dated IN (0, 1)),
+  first_at TEXT NOT NULL,
+  last_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

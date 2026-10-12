@@ -163,7 +163,7 @@ def with_you(connection, companion, day: date, now) -> list[tuple]:
         found.append((2, f'closeness:{level}', STAGES[level].format(first=first)))
     start, end = local_bounds(day, zone(companion['version']['timezone']))
     if optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='user' AND created_at>=? "
-                'AND created_at<? LIMIT 1', (companion['active_timeline_id'], stamp(start), stamp(end))):
+                'AND created_at<? AND import_id IS NULL LIMIT 1', (companion['active_timeline_id'], stamp(start), stamp(end))):
         found.append((1, 'talked', pick(f"talked:{companion['id']}:{day}", TALKED).format(first=first)))
     return found
 

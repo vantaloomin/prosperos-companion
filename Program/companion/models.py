@@ -173,6 +173,13 @@ class CharacterCardFile(Input):
     data: str = Field(min_length=1, max_length=14_000_000)
 
 
+class ChatFile(Input):
+    """An old chat file (companion/imports/chats.py), base64 encoded, for a companion or the one in focus."""
+    filename: str = Field(min_length=1, max_length=260)
+    data: str = Field(min_length=1, max_length=14_000_000)
+    companion_id: str | None = Field(default=None, max_length=100)
+
+
 class LoreSwitch(Input):
     """Turn an imported lorebook, or one of its entries, on or off (companion/lore.py)."""
     enabled: bool
