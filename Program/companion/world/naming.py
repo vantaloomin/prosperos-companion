@@ -9,6 +9,7 @@ nothing here produces them, and any name a model writes is checked against them.
 import json
 import re
 from functools import cache
+from importlib import resources
 
 from companion.world import catalog
 from companion.world.schema import GivenNames
@@ -42,6 +43,30 @@ def culture(key: str) -> dict:
 def local_culture(country: str | None) -> str:
     """The culture whose names are local in this country; the United States lists where none fits."""
     return data()['countries'].get((country or '').strip().lower(), 'us')
+
+
+@cache
+def zone_countries() -> dict[str, str]:
+    """Each time zone's country, from the tz database's own tables (tzdata's zone.tab and iso3166.tab)."""
+    try:
+        base = resources.files('tzdata').joinpath('zoneinfo')
+        rows = [[line.split('\t') for line in (base / name).read_text(encoding='utf-8').splitlines()
+                 if line and not line.startswith('#')] for name in ('iso3166.tab', 'zone.tab')]
+    except (ModuleNotFoundError, OSError):
+        return {}
+    names = {row[0]: row[1].strip() for row in rows[0] if len(row) > 1}
+    return {row[2].strip(): names[row[0]] for row in rows[1] if len(row) > 2 and row[0] in names}
+
+
+def country_for_zone(timezone: str | None) -> str | None:
+    """The country a city's time zone is in, spelled as the name data knows it when it can be ("Korea (South)" is
+    South Korea), so a city with no country of its own still gets local names: Seoul's people are Korean."""
+    found = zone_countries().get(timezone or '')
+    if not found:
+        return None
+    inner = re.fullmatch(r'(.+?) \((.+)\)', found)
+    spellings = [f'{inner.group(2)} {inner.group(1)}', inner.group(1), inner.group(2)] if inner else [found]
+    return next((spelling for spelling in spellings if spelling.casefold() in data()['countries']), spellings[0])
 
 
 def links(group: dict, city: dict) -> dict[str, float]:

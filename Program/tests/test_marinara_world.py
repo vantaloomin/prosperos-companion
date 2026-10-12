@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from companion.world import catalog, marinara
+from companion.world import catalog, marinara, naming
 
 TODAY = '2026-10-12'
 
@@ -218,3 +218,12 @@ def test_deleting_the_city_deletes_its_lore_in_every_world(client, companion):
     assert world_books(client) == []
     assert client.post(f"/api/worlds/{made['id']}/switch").status_code == 200
     assert world_books(client) == [], 'the copy in the world made there goes too'
+
+
+def test_a_city_with_no_country_takes_it_from_its_time_zone_so_names_are_local():
+    value = copy.deepcopy(sample())
+    value['definition']['locations'][0]['name'] = 'Seoul'
+    made = marinara.convert(value, TODAY)
+    assert (made['city']['country'], made['city']['timezone']) == ('South Korea', 'Asia/Seoul')
+    assert any('so it is South Korea' in note for note in made['notes'])
+    assert naming.local_culture(made['city']['country']) == 'korea'
