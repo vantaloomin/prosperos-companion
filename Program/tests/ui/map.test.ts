@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { byHood, historyLine, mainPin, suggestion, type CityMapData, type MapPlace } from '../../src/features/map/mapText.ts'
-import { drawn, inside, pathOf } from '../../src/features/map/drawn.ts'
+import { drawn, inside, labels, pathOf } from '../../src/features/map/drawn.ts'
 
 const place = (id: string, hood: string, pins: MapPlace['pins'] = []): MapPlace => ({
   id, name: id, kind: 'cafe', hood: hood === 'a' ? 'Alder' : 'Birch', hood_id: hood, lat: 0, lon: 0, approx: true, pins, spots: [], history: [], regulars: [],
@@ -55,4 +55,23 @@ test('the drawn map is the same every time, and draws the water the city names',
   assert.ok(first.height > drawn(city()).height, 'room for the sea')
   assert.deepEqual(first.water.map((item) => [item.kind, item.name]), [['sea', 'Grey Sea'], ['river', 'Ash']])
   assert.match(pathOf(first.water[1].path, false, true), /^M-?[\d.]+ -?[\d.]+C/)
+})
+
+test('names on the drawn map do not run into each other', () => {
+  const crowded = city([{ kind: 'river', name: 'The Long Winding River', side: null, width_km: 0.05, points: [[40, -70.002], [40.005, -69.995], [40.01, -69.99]] }])
+  crowded.places = Array.from({ length: 30 }, (_, index) => ({ ...place(`p${index}`, index % 2 ? 'a' : 'b', [index % 3 ? 'usual' : 'recent']), name: `A rather long place name ${index}` }))
+  const laid = labels(drawn(crowded))
+  const box = (label: (typeof laid)[number]) => {
+    const width = label.text.length * 6.8, left = label.anchor === 'start' ? label.x : label.anchor === 'end' ? label.x - width : label.x - width / 2
+    return { left, right: left + width, top: label.y - 11, bottom: label.y + 2 }
+  }
+  const shown = laid.filter((label) => label.shown)
+  shown.forEach((a, index) => shown.slice(index + 1).forEach((b) => {
+    const one = box(a), two = box(b)
+    assert.ok(one.right <= two.left || two.right <= one.left || one.bottom <= two.top || two.bottom <= one.top, `${a.text} clears ${b.text}`)
+  }))
+  assert.deepEqual(laid.filter((label) => label.kind === 'district').map((label) => label.shown), [true, true, true])
+  assert.ok(laid.some((label) => label.kind === 'place' && label.shown && label.anchor !== 'start'), 'a name in the way moves to the other side of its pin')
+  assert.ok(laid.some((label) => !label.shown), 'a name with no room is left off')
+  assert.deepEqual(labels(drawn(crowded)), laid)
 })
