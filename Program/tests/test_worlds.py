@@ -175,3 +175,16 @@ def test_a_world_the_user_named_keeps_its_name(client):
     ok(client.post('/api/companion', json={'name': 'Wren', 'timezone': 'America/New_York',
                                            'home_city': 'haddon-harbor'}))
     assert listing(client)['world']['name'] == 'Home'
+
+
+def test_a_new_persona_lives_in_the_city_the_user_picked(client, companion):
+    # The user says where; everyone in it, the first companion too, is decided for them.
+    made = ok(client.post('/api/worlds/personas', json={'name': 'Casey', 'city_id': 'haddon-harbor'}))
+    world = made['worlds'][0]
+    assert world['city_id'] == 'haddon-harbor' and world['name'].startswith('Haddon Harbor')
+    assert len(world['companions']) == 1
+    # Without a pick it is the city the user is in now; a city that does not exist makes nothing.
+    assert ok(client.post('/api/worlds/personas', json={'name': 'Drew'}))['worlds'][0]['city_id'] == 'baltimore'
+    before = len(listing(client)['personas'])
+    assert client.post('/api/worlds/personas', json={'name': 'Ellis', 'city_id': 'nowhere'}).status_code == 404
+    assert len(listing(client)['personas']) == before

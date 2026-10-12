@@ -13,7 +13,7 @@ settings, their own cities, paired phones) is carried over from the world they l
 
 "The world exists outside of User" (Vanta, 2026-10-08): nobody sets anything up. An existing workspace silently
 becomes the first world, with a persona made from what the app already knows about the user; a new persona or
-world arrives ready, in the current city with fresh townsfolk and a starter companion drawn from them, and the
+world arrives ready, in the city the user picked (the current one unless they pick another) with fresh townsfolk and a starter companion drawn from them, and the
 user changes whatever they like afterwards.
 """
 import json
@@ -461,7 +461,8 @@ def become(state, key: str) -> dict:
 
 def create_persona(database: Database, body) -> dict:
     """A new persona with a world of their own. Who the user is stays theirs to say (Vanta, 2026-10-09): the name
-    they typed, and nothing the app makes up; what they leave blank stays blank. The world is decided for them."""
+    they typed, and nothing the app makes up; what they leave blank stays blank. Where they live is theirs to pick
+    too, the current city unless they pick another; everyone in it is decided for them."""
     name = (body.name or '').strip()
     require(bool(name), 'Give the new persona a name.', 422)
     data = registry(database)
@@ -470,7 +471,13 @@ def create_persona(database: Database, body) -> dict:
                'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now()}
     data['personas'].append(persona)
     save(database.root, data)
-    world = create_world(database, persona_id)
+    try:
+        world = create_world(database, persona_id, city_id=getattr(body, 'city_id', None))
+    except BaseException:
+        data = registry(database)
+        data['personas'] = [item for item in data['personas'] if item['id'] != persona_id]
+        save(database.root, data)
+        raise
     return {**persona, 'worlds': [world]}
 
 

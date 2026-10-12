@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { PersonaForm } from './PersonaForm'
+import { CityPick } from './CityPick'
 import { enter, useWorlds, WORLDS_KEY } from './useWorlds'
 import { companionsLine, initial, personaName, personaRef, personaTitle } from './worldsText'
 
@@ -39,16 +40,16 @@ export function Worlds() {
       </header>
       <div className="worlds-list">
         {data.personas.map((persona) => (
-          <PersonaWorlds key={persona.id} persona={persona} run={run} store={store}
+          <PersonaWorlds key={persona.id} persona={persona} cityId={data.world.city_id} run={run} store={store}
             onSwitch={(world) => void switchTo(`/worlds/${world.id}/switch`, world.name)}
             onSwitchPersona={() => void switchTo(`/worlds/personas/${persona.id}/switch`, personaRef(persona))} />
         ))}
         {making
-          ? <PersonaForm onCancel={() => setMaking(false)} onSaved={() => { setMaking(false); void client.invalidateQueries({ queryKey: WORLDS_KEY }) }} />
+          ? <PersonaForm cityId={data.world.city_id} onCancel={() => setMaking(false)} onSaved={() => { setMaking(false); void client.invalidateQueries({ queryKey: WORLDS_KEY }) }} />
           : <div className="form-actions">
               <button type="button" className="button" onClick={() => setMaking(true)}><UserRoundPlus aria-hidden="true" />New persona</button>
             </div>}
-        <div id="persona-edit"><PersonaForm key={data.persona.id} persona={data.persona} onSaved={(saved) => { if (saved) store(saved) }} /></div>
+        <div id="persona-edit"><PersonaForm key={data.persona.id} persona={data.persona} cityId={data.world.city_id} onSaved={(saved) => { if (saved) store(saved) }} /></div>
       </div>
     </section>
   )
@@ -61,11 +62,11 @@ function addName() {
   field?.focus()
 }
 
-interface PersonaWorldsProps { persona: Persona; run: Run; store: (data: WorldsData) => void; onSwitch: (world: World) => void; onSwitchPersona: () => void }
+interface PersonaWorldsProps { persona: Persona; cityId: string; run: Run; store: (data: WorldsData) => void; onSwitch: (world: World) => void; onSwitchPersona: () => void }
 
-function PersonaWorlds({ persona, run, store, onSwitch, onSwitchPersona }: PersonaWorldsProps) {
-  const client = useQueryClient()
+function PersonaWorlds({ persona, cityId, run, store, onSwitch, onSwitchPersona }: PersonaWorldsProps) {
   const [deleting, setDeleting] = useState(false)
+  const [adding, setAdding] = useState(false)
   const removable = !persona.active && persona.worlds.every((world) => !world.first)
   return (
     <section className="persona-worlds" aria-label={personaTitle(persona)}>
@@ -73,10 +74,9 @@ function PersonaWorlds({ persona, run, store, onSwitch, onSwitchPersona }: Perso
       <ul className="world-rows">
         {persona.worlds.map((world) => <WorldRow key={world.id} world={world} run={run} store={store} onSwitch={() => onSwitch(world)} />)}
       </ul>
-      <button type="button" className="text-button" onClick={() => void run(async () => {
-        await api('/worlds', { persona_id: persona.id })
-        await client.invalidateQueries({ queryKey: WORLDS_KEY })
-      })}><Plus aria-hidden="true" />New world for {personaRef(persona)}</button>
+      {adding
+        ? <NewWorld persona={persona} cityId={cityId} run={run} onDone={() => setAdding(false)} />
+        : <button type="button" className="text-button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />New world for {personaRef(persona)}</button>}
       {deleting && <ConfirmDialog title={`Delete ${personaRef(persona)}?`} onClose={() => setDeleting(false)} actions={<>
         <button type="button" className="button" onClick={() => setDeleting(false)}>Keep</button>
         <button type="button" className="button danger" onClick={() => void run(async () => { store(await api<WorldsData>(`/worlds/personas/${persona.id}`, undefined, 'DELETE')); setDeleting(false) })}>Delete</button>
@@ -84,6 +84,27 @@ function PersonaWorlds({ persona, run, store, onSwitch, onSwitchPersona }: Perso
         <p>Their {persona.worlds.length === 1 ? 'world goes' : `${persona.worlds.length} worlds go`} with them, with every companion and chat in it. A backup of each is kept in the data folder, under backups/deleted-worlds.</p>
       </ConfirmDialog>}
     </section>
+  )
+}
+
+/** Where the persona's new world is: the city the user is in now unless they pick another. */
+function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: string; run: Run; onDone: () => void }) {
+  const client = useQueryClient()
+  const [city, setCity] = useState(cityId)
+  const [making, setMaking] = useState(false)
+  const make = () => { setMaking(true); return run(async () => {
+    await api('/worlds', { persona_id: persona.id, city_id: city || undefined })
+    await client.invalidateQueries({ queryKey: WORLDS_KEY })
+    onDone()
+  }).finally(() => setMaking(false)) }
+  return (
+    <form className="new-world form-stack" aria-label={`New world for ${personaRef(persona)}`} onSubmit={(event) => { event.preventDefault(); void make() }}>
+      <CityPick value={city} currentId={cityId} onChange={setCity} />
+      <div className="form-actions">
+        <button type="submit" className="button primary" disabled={making}>{making ? 'Making the world…' : 'Make this world'}</button>
+        <button type="button" className="text-button" onClick={onDone}>Cancel</button>
+      </div>
+    </form>
   )
 }
 
