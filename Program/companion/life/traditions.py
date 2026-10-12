@@ -252,9 +252,18 @@ def view(connection, companion: dict, now) -> dict:
                       key=lambda found: found['next'] or '9999')
 
     taken = {row['holiday'] for row in rows}
-    return {'traditions': listed(False), 'removed': listed(True),
-            'holidays': [{'id': key, 'name': name} for key, name in names.items() if key not in taken],
+    return {'traditions': listed(False), 'removed': listed(True), 'holidays': free(city, names, taken, today),
             'decorations': decorations(home_seed(connection, timeline_id), city, today)}
+
+
+def free(city: dict | None, names: dict[str, str], taken: set[str], today: date) -> list[dict]:
+    """Holidays without a tradition, the next one coming up first, so adding one starts from it."""
+    upcoming = {}
+    for item in dated(city, today, today + timedelta(days=366)) if city else ():
+        upcoming.setdefault(item['id'], item['date'])
+    order = list(names)
+    return [{'id': key, 'name': names[key]} for key in sorted(
+        (key for key in names if key not in taken), key=lambda key: (upcoming.get(key, date.max), order.index(key)))]
 
 
 # --- Edits ------------------------------------------------------------------------------------------
