@@ -11,12 +11,39 @@ AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'erran
 RECENT_LIMIT = 10
 
 
-def availability(slot) -> dict:
-    """Routine availability explains a slow or short reply; it never locks the conversation (C5)."""
+def availability(slot: dict | None) -> dict:
+    """Availability explains a slow or short reply; it never locks the conversation (C5). It reads the
+    precomputed day, so a holiday or a sick day is not work, and a block out with the user is free."""
     if slot is None:
         return {'state': 'free', 'label': '', 'until': None}
-    return {'state': AVAILABILITY.get(slot.block.kind, 'free'), 'label': slot.block.label,
-            'until': stamp(slot.ends_at)}
+    block = slot['block']
+    state = 'free' if block.get('sick_day') or block.get('with_user') else AVAILABILITY.get(block['kind'], 'free')
+    return {'state': state, 'label': block['label'], 'until': slot['ends_at']}
+
+
+AGENDA = ("SELECT slot_key, local_date, block, starts_at, ends_at FROM life_agenda WHERE timeline_id=? "
+          "AND subject='companion' AND {where} ORDER BY starts_at {order} LIMIT 1")
+
+
+def agenda_slot(row: dict | None) -> dict | None:
+    return row and {'key': row['slot_key'], 'block': decode(row['block']), 'local_date': row['local_date'],
+                    'starts_at': row['starts_at'], 'ends_at': row['ends_at']}
+
+
+def day_now(connection, companion, now) -> tuple[dict | None, dict | None, bool]:
+    """(current, next, default schedule): the precomputed agenda's blocks where it has them (Thanksgiving is a
+    day off, not work), else the routine's."""
+    version, timeline_id, moment = companion['version'], companion['active_timeline_id'], stamp(now)
+    schedule, default = routine.blocks(version['definition'])
+    current, upcoming = routine.current_and_next(schedule, version['timezone'], now)
+    planned_now = agenda_slot(optional(connection, AGENDA.format(where='starts_at<=? AND ends_at>?', order='DESC'),
+                                       (timeline_id, moment, moment)))
+    planned_next = agenda_slot(optional(connection, AGENDA.format(where='starts_at>?', order=''),
+                                        (timeline_id, moment)))
+    if planned_next and upcoming and parse(planned_next['starts_at']) > upcoming.starts_at:
+        planned_next = None
+    return (planned_now or (current.view() if current else None),
+            planned_next or (upcoming.view() if upcoming else None), default)
 
 
 def last_seen(connection, timeline_id) -> str | None:
@@ -102,10 +129,8 @@ def view(database) -> dict:
             'day': day(connection, timeline_id, now.astimezone(zone(version['timezone'])).date().isoformat()),
             'occasions': occasions.occasions(connection, companion, now),
         }
-    schedule, default = routine.blocks(version['definition'])
-    current, upcoming = routine.current_and_next(schedule, version['timezone'], now)
-    result['routine'] = {'default_schedule': default, 'current': current.view() if current else None,
-                         'next': upcoming.view() if upcoming else None}
+        current, upcoming, default = day_now(connection, companion, now)
+    result['routine'] = {'default_schedule': default, 'current': current, 'next': upcoming}
     result['availability'] = availability(current)
     result['mind'] = thoughts.view(database)
     result['moments'] = deck.view(database)
