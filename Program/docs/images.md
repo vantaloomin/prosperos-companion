@@ -280,6 +280,36 @@ step can be skipped and run again from the Character page (**Profile pictures**)
   the LoRA maker's own list leaves out.
 - Every reference path has only been tested against stand-ins (a fake `codex`, mocked HTTP for
   OpenRouter, OpenAI and ComfyUI), not a real backend.
+- On Codex, picture 1 is made from the companion's character sheet (below).
+
+## Character sheet (Codex)
+
+Before the first picture of a companion goes to a **Codex** backend, the app asks Codex for a
+character reference sheet (`companion/images/sheet.py`): one landscape picture, 1536 x 1024, in three
+panels on a grey studio background: a close-up of the face, a front view from the neck down, and a
+back view from head to feet. The sheet is saved as the companion's identity reference (in
+`images/sheets/`, table `character_sheets`) and never posted. The picture that was asked for is
+then made with the sheet attached, so the first picture of someone costs two Codex calls. Every
+later Codex picture of them (feed posts, chat photos and selfies, memes of them, profile picture 1
+and the LoRA maker's prepared pictures) attaches the same sheet and asks Codex to keep the face,
+hair, skin tone and build and to take the outfit, pose and setting from its own description.
+
+- The sheet's prompt is a fixed template (Vanta's production reference-sheet prompt, 2026-10-11),
+  filled without a model: their looks sheet and the visible part of their appearance, the profile
+  picture's everyday outfit unless the appearance says what they wear, and the backend's picture
+  style (`backends.style_for`). It asks for the largest landscape size Codex makes rather than 16K.
+- When they already have a profile picture, it is attached and the sheet follows it; otherwise the
+  description is the reference.
+- Editing their looks or appearance makes a new sheet the next time a Codex picture of them is made.
+- The sheet is classified and must be eligible for the backend like any request. When it is not, or
+  it fails for a reason other than sign-in, the picture is made from the description alone. A
+  sign-in error fails the picture and stops the Codex queue as usual.
+- The sheet and the picture run one after the other inside the single Codex slot, so Codex calls
+  stay serial. Views (pictures of what they see), memes of something else, other backends and
+  Matchlight photos make no sheet.
+- Pictures that follow the sheet record "text description and their character sheet" as how they
+  drew the character. Sheets go with the character (kept by Start over, removed with the companion)
+  and are carried in backups.
 
 ## Interface
 

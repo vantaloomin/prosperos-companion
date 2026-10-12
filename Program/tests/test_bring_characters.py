@@ -90,11 +90,12 @@ def test_lore_reaches_the_prompt_when_it_comes_up(client, connected, provider):
     bring(client, 'dana.json', as_json(CARD))
     send(client, 'How was your day?', 'message-one')
     prompt = provider.requests[-1]['prompt']
-    assert 'Works at Mercy Hospital.' in prompt and 'Mike' not in prompt
+    # Seeded townsfolk can be called Mike too, so the check is for the lore line itself.
+    assert 'Works at Mercy Hospital.' in prompt and 'younger brother, Mike' not in prompt
     send(client, 'How is mike doing?', 'message-two')
     request = provider.requests[-1]
     assert 'Works at Mercy Hospital.' in request['system']
-    assert 'Dana Reyes has a younger brother, Mike' in request['prompt'] and 'Mike' not in request['system']
+    assert 'Dana Reyes has a younger brother, Mike' in request['prompt'] and 'younger brother, Mike' not in request['system']
     assert 'A pattern entry.' not in request['prompt'] and 'Turned off.' not in request['prompt']
 
 

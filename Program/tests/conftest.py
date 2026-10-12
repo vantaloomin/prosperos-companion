@@ -101,6 +101,13 @@ def no_unasked_pictures(monkeypatch):
     monkeypatch.setattr('companion.images.photos.UNASKED', False)
 
 
+@pytest.fixture(autouse=True)
+def no_character_sheets(monkeypatch):
+    """A Codex picture is made after a character sheet; test_character_sheet turns it on, since the extra
+    call would change the request counts of unrelated tests."""
+    monkeypatch.setattr('companion.images.sheet.ENABLED', False)
+
+
 def pytest_collection_modifyitems(config, items):
     """COMPANION_TEST_SHARD=2/3 runs the second third of the tests, picked by test name, so a slow CI runner can
     spread one suite over several jobs (.github/workflows/ci.yml)."""
