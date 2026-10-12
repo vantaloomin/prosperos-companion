@@ -133,6 +133,18 @@ def test_removing_someone_ends_their_storylines(client, social, monkeypatch):
     assert all(row['status'] == 'ended' for row in stored(client) if row['id'] == item['id'])
 
 
+def test_someone_leaving_after_a_storyline_settled_keeps_it(client, social, clock, monkeypatch):
+    monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('friend_new_job'),))
+    reconcile(client)
+    item = client.get('/api/life/storylines').json()[0]
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    client.post(f"/api/life/circle/{item['cast'][0]['id']}/remove")
+    reconcile(client)
+    assert [row['status'] for row in stored(client) if row['id'] == item['id']] == ['running']
+
+
 def test_a_new_beat_can_open_a_conversation(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
     monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('work_creep'),))
