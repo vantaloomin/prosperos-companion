@@ -128,3 +128,34 @@ def test_the_days_moment_is_drawn_before_their_thoughts_are_written(client, deal
     thoughts.view(database)
     with database.connect() as connection:
         assert connection.execute('SELECT COUNT(*) FROM life_moments').fetchone()[0] > 0
+
+
+# Cards whose text keeps a "they" that is about someone else, for every companion.
+OTHERS = {'friend-photo', 'friend-secret-crush', 'contact-1', 'contact-4', 'contact-5'}
+
+
+def test_card_texts_use_the_companions_own_pronouns_when_known():
+    import re
+
+    from companion.life import pronouns
+    she, unknown = {'name': 'Mira', 'identity': 'She is a nurse.'}, {'name': 'Sam', 'identity': 'A nurse.'}
+    for item in deck.cards():
+        text = item['text'].format(first='Mira', friend='Ana')
+        assert pronouns.said(text, deck.OWN, unknown) == text
+        if re.search(r"\b(they|their|them|theirs|they'd)\b", pronouns.said(text, deck.OWN, she)):
+            assert item['id'] in OTHERS, item['text']
+    said = {item['id']: pronouns.said(item['text'].format(first='Mira', friend='Ana'), deck.OWN, she)
+            for item in deck.cards()}
+    assert said['friend-secret-crush'] == 'Ana admitted to Mira they have a crush on someone and swore her to secrecy ' \
+        'about who.'
+    assert said['contact-1'] == 'A stranger asked Mira for directions and she walked them halfway there.'
+    assert said['momentum-1'] == "Someone asked Mira's opinion on something she actually knows about."
+
+
+def test_today_says_her_for_a_companion_described_as_she(client, monkeypatch):
+    monkeypatch.setattr(deck, 'ACTIVE', True)
+    response = client.post('/api/companion', json={'name': 'Mira', 'identity': 'She is a nurse.',
+                                                     'timezone': 'Europe/Lisbon'})
+    assert response.status_code == 200, response.text
+    only(monkeypatch, 'spilled-coffee')
+    assert moments(client)[0]['text'] == 'Mira spilled coffee down her shirt first thing.'

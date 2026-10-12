@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from companion.life import body, money, occasions
+from companion.life import body, money, occasions, pronouns
 
 COMPOSER_VERSION = 'compose-7'
 QUIET_SHARE = 0.2
@@ -236,6 +236,28 @@ def tradition(slot: dict, definition: dict, seed: str) -> dict | None:
             'activity': TRADITION.key, 'place': None, 'holiday': found['holiday'],
             'with': {'id': host['id'], 'name': host['name']} if host and host['local'] else None,
             'weather': block.get('weather'), 'composer_version': COMPOSER_VERSION}
+
+
+# Phrases about the companion in the tradition, own birthday and thread lines here, said with their own pronouns when
+# those are known (companion/life/pronouns.py). `said` runs when an event is read, so events already written read right
+# too. "at their" is only theirs in a tradition line, which its closing words mark, and "for their birthday" only in
+# their own birthday's lines (not "took Jo out for their birthday").
+TRADITION_MARK = 'the way they always do'
+TRADITION_OWN = ((' at their ', ' at {their} '), (TRADITION_MARK, 'the way {they} always {do}'))
+OWN_BIRTHDAY_LINE = re.compile(r' (?:treated themselves.*|went out\b.* with .+) for their birthday\.$')
+OWN_BIRTHDAY_SAID = (('treated themselves', 'treated {themselves}'), ('for their birthday', 'for {their} birthday'))
+OWN = (('went home to their ', 'went home to {their} '), ('celebrated their birthday', 'celebrated {their} birthday'),
+       ('retracing their steps', 'retracing {their} steps'), ('a cafe they stopped at', 'a cafe {they} stopped at'),
+       ('one they like almost', 'one {they} like{s} almost'))
+
+
+def said(text: str | None, definition: dict) -> str | None:
+    """A day event's summary with the companion's own pronouns, when those are known."""
+    if text and TRADITION_MARK in text:
+        text = pronouns.said(text, TRADITION_OWN, definition)
+    if text and OWN_BIRTHDAY_LINE.search(text):
+        text = pronouns.said(text, OWN_BIRTHDAY_SAID, definition)
+    return pronouns.said(text, OWN, definition)
 
 
 def happenings(world, definition: dict, local_date: str) -> list[dict]:

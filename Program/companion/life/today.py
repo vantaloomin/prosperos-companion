@@ -1,10 +1,10 @@
 """The Today view: the companion's routine, plans and what changed since the last visit (PRD Today, C5)."""
+from companion import events
 from companion import moods as feelings
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
-from companion.events import view as event_view
-from companion.life import agenda, circle, deck, dreams, feed, mood, occasions, routine, simulation, thoughts
+from companion.life import agenda, circle, composer, deck, dreams, feed, mood, occasions, routine, simulation, thoughts
 from companion.memory.records import OPEN_PLANS, eligible
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
@@ -51,7 +51,13 @@ def last_seen(connection, timeline_id) -> str | None:
     return row['last_seen_at'] if row else None
 
 
-def changes(connection, timeline_id, since) -> list[dict]:
+def event_view(row, definition: dict) -> dict:
+    """An event as Today shows it: its summary with the companion's own pronouns (companion/life/composer.said)."""
+    found = events.view(row)
+    return {**found, 'summary': composer.said(found['summary'], definition)}
+
+
+def changes(connection, timeline_id, since, definition: dict) -> list[dict]:
     """Events committed since the last visit, or the latest few on a first visit."""
     if since:
         rows = many(connection, "SELECT * FROM life_events WHERE timeline_id=? AND status='committed' "
@@ -59,7 +65,7 @@ def changes(connection, timeline_id, since) -> list[dict]:
     else:
         rows = many(connection, "SELECT * FROM life_events WHERE timeline_id=? AND status='committed' "
                     'ORDER BY starts_at DESC LIMIT ?', (timeline_id, RECENT_LIMIT))
-    return [event_view(row) for row in rows]
+    return [event_view(row, definition) for row in rows]
 
 
 def plans(connection, companion, now) -> dict:
@@ -85,8 +91,9 @@ def plans(connection, companion, now) -> dict:
         if slot not in seen:
             seen.add(slot)
             shown.append(row)
-    return {'shared': user_plans, 'companion': [event_view(row) for row in shown],
-            'threads': [event_view(row) for row in threads]}
+    definition = companion['version']['definition']
+    return {'shared': user_plans, 'companion': [event_view(row, definition) for row in shown],
+            'threads': [event_view(row, definition) for row in threads]}
 
 
 def day(connection, timeline_id, local_date) -> dict:
@@ -114,8 +121,8 @@ def view(database) -> dict:
             'user_timezone': workspace['user_timezone'], 'companion_timezone': version['timezone'],
             'companion_local_time': now.astimezone(zone(version['timezone'])).isoformat(timespec='minutes'),
             'paused': workspace['paused_at'] is not None, 'paused_at': workspace['paused_at'],
-            'changes': changes(connection, timeline_id, since),
-            'review': [event_view(row) for row in review],
+            'changes': changes(connection, timeline_id, since, version['definition']),
+            'review': [event_view(row, version['definition']) for row in review],
             'plans': plans(connection, companion, now),
             'feed_unread': feed.unread(connection, timeline_id),
             'last_run': simulation.run_view(latest_run),

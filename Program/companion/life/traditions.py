@@ -26,7 +26,7 @@ from companion.almanac.context import city_for
 from companion.clock import parse, stamp, zone
 from companion.database import decode, identifier, many, optional
 from companion.errors import require
-from companion.life import circle
+from companion.life import circle, pronouns
 from companion.world import catalog, generators
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'traditions.json'
@@ -122,17 +122,17 @@ def compose(entry: dict, host: dict | None, rng: random.Random, turn: int = 0) -
     return f"{opening} There's always {dish}. {ritual}"
 
 
-def teaser(connection, row: dict, holiday: str) -> str:
-    """A short line for Today: "Thanksgiving at their mom Valerie's in Hampden". Just the holiday once the user
-    has written their own."""
+def teaser(connection, row: dict, holiday: str, their: str = 'their') -> str:
+    """A short line for Today: "Thanksgiving at their mom Valerie's in Hampden" ("her mom" when the companion's
+    pronouns are known). Just the holiday once the user has written their own."""
     host = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['host_id'],)) if row['host_id'] else None
     if row['edited'] or row['origin'] == 'user':
         return holiday
     if not host:
-        return f'{holiday} at their own place'
+        return f'{holiday} at {their} own place'
     if 'friend' in host['role']:
-        return f"{holiday} with their friend {host['name']}"
-    return f"{holiday} at their {host['role']} {host['name']}'s{where(host)}"
+        return f"{holiday} with {their} friend {host['name']}"
+    return f"{holiday} at {their} {host['role']} {host['name']}'s{where(host)}"
 
 
 def seeded(timeline_id: str, city: dict, people: list[dict]) -> list[dict]:
@@ -215,14 +215,17 @@ def entry_with(city: dict, holiday: str) -> str:
 
 
 def upcoming(connection, companion: dict, today: date, days: int) -> list[dict]:
-    """Kept traditions whose holiday is within `days` of today: {holiday, name, date, days, text (your voice)}."""
+    """Kept traditions whose holiday is within `days` of today: {holiday, name, date, days, text (your voice), shown
+    and short (for Today, said with their pronouns)}."""
     city = city_for(connection, companion['version']['definition'])
     rows = {row['holiday']: row for row in kept(connection, companion['active_timeline_id'])}
     if not city or not rows:
         return []
+    their = pronouns.their(companion['version']['definition'])
     return [{'id': rows[item['id']]['id'], 'holiday': item['id'], 'name': item['name'], 'date': item['date'],
              'days': (item['date'] - today).days, 'text': voiced(rows[item['id']]['text'], 'your'),
-             'raw': rows[item['id']]['text'], 'short': teaser(connection, rows[item['id']], item['name'])}
+             'shown': voiced(rows[item['id']]['text'], their),
+             'short': teaser(connection, rows[item['id']], item['name'], their)}
             for item in dated(city, today, today + timedelta(days=days)) if item['id'] in rows]
 
 

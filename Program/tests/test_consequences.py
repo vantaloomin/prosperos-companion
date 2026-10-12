@@ -206,3 +206,44 @@ def test_a_gossip_is_likelier_to_pass_a_secret_on_the_closer_they_feel():
 
 def item_timeline(client):
     return stored(client)[0]['timeline_id']
+
+
+# Reasons whose "they" is about someone in the story, which stay for every companion. The pass_on tables are
+# read for any teller (a townsperson too) and never shown, so they keep "they".
+ABOUT_OTHERS = ('{a} and keeps telling them', '{a} is in their late', 'can talk them round', 'before they joined')
+
+
+def test_reasons_use_the_companions_own_pronouns_when_known():
+    import re
+
+    from companion.life import pronouns
+    she, unknown = {'name': 'Mira', 'identity': 'She is a nurse.'}, {'name': 'Sam', 'identity': 'A nurse.'}
+    names = {'name': 'Mira', 'a': 'Jo', 'b': 'Ana', 'trait': 'jealous', 'group': 'Friday chat'}
+    for choice, table in consequences.tables().items():
+        for option in table['options']:
+            for rule in option.get('rules', ()):
+                why = rule['why'].format(**names)
+                assert pronouns.said(why, consequences.OWN, unknown) == why
+                if re.search(r"\b(they|their|them|they're)\b", pronouns.said(why, consequences.OWN, she)):
+                    assert choice.endswith(':pass_on') or any(part.format(**names) in why for part in ABOUT_OTHERS), why
+    found = consequences.said([{'option': 0, 'odds': 1, 'reasons': ["Mira's description says they're restless",
+                                                                    'Mira is close to Jo and can talk them round']}], she)
+    assert found[0]['reasons'] == ["Mira's description says she is restless", 'Mira is close to Jo and can talk them round']
+
+
+def test_a_recorded_outcome_reads_with_her_pronouns(client):
+    response = client.post('/api/companion', json={'name': 'Mira', 'timezone': 'UTC', 'schedule': WORKDAY,
+                                                     'identity': 'She is a nurse.', 'personality': 'Restless.'})
+    assert response.status_code == 200, response.text
+    timeline_id, table = response.json()['active_timeline_id'], consequences.tables()['chapter:next']
+    with client.app.state.database.connect(write=True) as connection:
+        found = consequences.decide(connection, timeline_id=timeline_id, choice='chapter:next', subject='chapter:test',
+                                    facts={'can_move': 1, 'can_pet': 1, 'can_hobby': 0, 'can_friend_moves': 0,
+                                           'can_job': 1, 'sheet': ('restless',)},
+                                    names={'name': 'Mira'}, labels=['a'] * len(table['options']),
+                                    day='2026-10-12', timestamp='2026-10-12T00:00:00Z')
+        stored = connection.execute('SELECT options FROM consequences WHERE id=?', (found['id'],)).fetchone()[0]
+    reasons = [reason for item in client.get(f"/api/life/consequences/{found['id']}").json()['options']
+               for reason in item['reasons']]
+    assert {'Mira has no friend in her circle who could move', "Mira's description says she is restless"} <= set(reasons)
+    assert 'in their circle' in stored  # Stored as written, said when read.
