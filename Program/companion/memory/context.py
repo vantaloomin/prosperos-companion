@@ -20,6 +20,7 @@ from companion.life import (
     body,
     chapters,
     circle,
+    composer,
     deck,
     disruptions,
     dreams,
@@ -660,7 +661,8 @@ def offer_life(packet, connection, companion, now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
         when = parse(event['starts_at']).astimezone(zone(version['timezone'])).strftime('%A %d %B, %H:%M')
-        packet.offer('companion_life', event['id'], f"- {when}: {event['summary']}")
+        packet.offer('companion_life', event['id'],
+                     f"- {when}: {composer.said(event['summary'], version['definition'])}")
     for identity, text in city_changes.context_lines(connection, version, now):
         packet.offer('city_news', identity, text)
 

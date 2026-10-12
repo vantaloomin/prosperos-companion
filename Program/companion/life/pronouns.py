@@ -1,4 +1,5 @@
-"""The companion's own pronouns in rule and template text (storylines, dreams).
+"""The companion's own pronouns in rule and template text: storylines, dreams, traditions and day events, Life deck
+moments and the reasons an outcome went the way it did.
 
 Templates speak of the companion as "they", which product copy keeps when their pronouns are not known. When their
 description says "she" or "he" (companion/world/looks.pronouns_of reads it), the phrases that are about the companion
@@ -7,8 +8,10 @@ someone else in the same line stays. Swaps run when text is read, so lines alrea
 """
 from companion.world import looks
 
-FORMS = {'she/her': {'they': 'she', 'them': 'her', 'their': 'her', 'are': 'is', 'were': 'was'},
-         'he/him': {'they': 'he', 'them': 'him', 'their': 'his', 'are': 'is', 'were': 'was'}}
+FORMS = {'she/her': {'they': 'she', 'them': 'her', 'their': 'her', 'theirs': 'hers', 'themselves': 'herself', 'are': 'is', 'were': 'was',
+                     'do': 'does', 's': 's'},
+         'he/him': {'they': 'he', 'them': 'him', 'their': 'his', 'theirs': 'his', 'themselves': 'himself', 'are': 'is', 'were': 'was',
+                    'do': 'does', 's': 's'}}
 
 
 def forms(definition: dict) -> dict | None:
@@ -16,9 +19,15 @@ def forms(definition: dict) -> dict | None:
     return FORMS.get(looks.pronouns_of(definition))
 
 
+def their(definition: dict) -> str:
+    """"their", or "her" / "his" when the companion's pronouns are known."""
+    return (forms(definition) or {}).get('their', 'their')
+
+
 def said(text: str | None, swaps: tuple[tuple[str, str], ...], definition: dict) -> str | None:
     """The text with each phrase about the companion said with their pronouns; `{they}`, `{them}`, `{their}`,
-    `{are}` and `{were}` in the new phrase are filled from their forms."""
+    `{theirs}`, `{themselves}`, `{are}`, `{were}`, `{do}` and `{s}` (a verb's "s": "like{s}") in the new phrase are filled from
+    their forms."""
     found = forms(definition) if text else None
     if not found:
         return text

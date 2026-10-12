@@ -189,9 +189,11 @@ AHEAD = 7  # Days ahead an occasion or plan counts for "what if" answers.
 def what_if_note(connection, companion: dict, now) -> str:
     """The odds the app worked out for what could happen, for an out-of-character answer. Nothing here is rolled,
     so asking spoils nothing and changes nothing."""
-    lines = [f"- {item['label']} (due {item['on']}): {odds_text(item['options'])}"
+    definition = companion['version']['definition']
+    lines = [f"- {item['label']} (due {item['on']}): {odds_text(consequences.said(item['options'], definition))}"
              for item in storylines.upcoming_odds(connection, companion, now)]
-    lines += [f'- {situation}: {odds_text(found)}' for situation, found in user_what_ifs(connection, companion, now)]
+    lines += [f'- {situation}: {odds_text(consequences.said(found, definition))}'
+              for situation, found in user_what_ifs(connection, companion, now)]
     if not lines:
         return ''
     return ('If the user asks what would happen if something went a certain way, answer honestly from these odds, '

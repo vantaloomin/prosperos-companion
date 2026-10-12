@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, one, optional
-from companion.life import network, storylines
+from companion.life import composer, network, storylines
 from companion.world import paper
 
 MOST = 6
@@ -43,13 +43,13 @@ def stories(connection, companion: dict, now: datetime, since_day: str) -> list[
     return lines
 
 
-def events(connection, timeline_id: str, since: str, now: str, today: date) -> list[str]:
+def events(connection, timeline_id: str, since: str, now: str, today: date, definition: dict) -> list[str]:
     """The biggest things they did: plans and threads before ordinary days, newest first."""
     rows = many(connection, "SELECT kind, summary, details FROM life_events WHERE timeline_id=? AND status='committed' "
                 "AND kind!='routine' AND starts_at>? AND starts_at<=? ORDER BY kind='ordinary', starts_at DESC LIMIT ?",
                 (timeline_id, since, now, MOST_EVENTS))
     return [sentence(plan_said(row['summary'], decode(row['details']), today) if row['kind'] == 'plan'
-                     else row['summary']) for row in rows]
+                     else composer.said(row['summary'], definition)) for row in rows]
 
 
 PLANNING = re.compile(r'^(?P<who>.+?) is planning to (?P<what>.+) on (?P<day>[A-Z][a-z]+day)(?P<rest>.*)$')
@@ -107,7 +107,7 @@ def build(connection, companion: dict, now: datetime) -> dict | None:
     since_day, today = parse(since).astimezone(local).date(), now.astimezone(local).date()
     name = version['name'].split()[0] if version['name'].strip() else 'They'
     items = [*chapters(connection, timeline_id, since), *stories(connection, companion, now, since_day.isoformat()),
-             *events(connection, timeline_id, since, stamp(now), today), *townsfolk(connection, timeline_id, since, name),
+             *events(connection, timeline_id, since, stamp(now), today, version['definition']), *townsfolk(connection, timeline_id, since, name),
              *issues(connection, companion, since_day, today)]
     if not items:
         return None

@@ -33,6 +33,7 @@ from companion.database import decode, encode, identifier, many, one, optional, 
 from companion.errors import DomainError
 from companion.life import (
     chapters,
+    composer,
     deck,
     dreams,
     encounters,
@@ -160,7 +161,9 @@ def news(connection, companion, now) -> list[Trigger]:
     """An open question in the companion's life that just settled."""
     rows = recent_events(connection, companion['active_timeline_id'], now,
                          "kind='thread' AND json_extract(details, '$.state')='settled'")
-    return [Trigger(f"news:{row['id']}", 'news', f'Something in your own life just turned out: {row["summary"]} '
+    definition = companion['version']['definition']
+    return [Trigger(f"news:{row['id']}", 'news', 'Something in your own life just turned out: '
+                    f'{composer.said(row["summary"], definition)} '
                     'Tell the user, the way you would text a friend.', None, (row['id'],)) for row in rows]
 
 
