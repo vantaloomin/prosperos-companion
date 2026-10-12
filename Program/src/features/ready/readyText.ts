@@ -59,6 +59,9 @@ export function progressLine(view: ReadyView): string {
   return left ? `${amount} · ${left} left` : amount
 }
 
+/** Under a card already titled with the model: "Downloading · 5.4 of 17.6 GB · about 15 minutes left". */
+export const cardLine = (view: ReadyView) => view.status === 'downloading' && !view.waiting ? `Downloading · ${progressLine(view)}` : progressLine(view)
+
 export function heading(view: ReadyView): string {
   const name = modelOf(view).name
   if (view.status === 'cancelled') return 'Download cancelled.'

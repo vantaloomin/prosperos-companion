@@ -5,7 +5,7 @@ import { EXPORT_FORMATS, exportHref, type ExportTarget } from './exportText'
 export function ExportLinks({ target, onPick }: { target: ExportTarget; onPick?: () => void }) {
   return <>
     {EXPORT_FORMATS.map(({ format, label }) => (
-      <a key={format} className="text-button" href={exportHref(target, format)} download onClick={onPick}><Download aria-hidden="true" />{label}</a>
+      <a key={format} className="text-button export-link" href={exportHref(target, format)} download onClick={onPick}><Download aria-hidden="true" />{label}</a>
     ))}
   </>
 }

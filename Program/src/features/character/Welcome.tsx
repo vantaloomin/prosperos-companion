@@ -10,7 +10,7 @@ import { welcomeLede, welcomeSteps, type SetUp, type WelcomeStep } from './welco
 import { RealismPresets } from '../settings/RealismPresets'
 import { ConfirmDownload } from '../ready/ConfirmDownload'
 import { DownloadProgress } from '../ready/DownloadProgress'
-import { isActive, offered, type ReadyView } from '../ready/readyText'
+import { isActive, modelOf, offered, type ReadyView } from '../ready/readyText'
 import { useReady } from '../ready/useReady'
 
 /** The first screen with no companion: connect the model they think with, then create them. */
@@ -20,13 +20,14 @@ export function Welcome({ go }: { go: (view: View) => void }) {
   const remote = !!usePhoneStatus().data?.remote
   const ready = useReady(!remote).data
   const setUp = setUpState(ready, !!(connection.isSuccess && connection.data), remote)
-  const steps = welcomeSteps(connection.isSuccess ? connection.data : undefined, setUp)
+  const builtin = builtinName(ready)
+  const steps = welcomeSteps(connection.isSuccess ? connection.data : undefined, setUp, builtin)
   const hardware = useHardware()
   return (
     <section className="welcome">
       <p className="eyebrow">Prospero Companion</p>
       <h1>Meet someone new</h1>
-      <p className="lede">{welcomeLede(setUp)}</p>
+      <p className="lede">{welcomeLede(builtin ? 'active' : setUp)}</p>
       <ol className="welcome-steps">
         {steps.map((step) => <Step key={step.id} step={step} setUp={step.id === 'model' ? setUp : null} ready={ready} go={go} />)}
       </ol>
@@ -55,6 +56,7 @@ function SetUpButtons({ view, go, step }: { view: ReadyView; go: (view: View) =>
 
 function setUpState(ready: ReadyView | undefined, connected: boolean, remote: boolean): SetUp {
   if (!offered(ready, connected, remote)) return null
+  if (ready?.status === 'cancelled') return 'cancelled'
   return isActive(ready) ? 'active' : 'offer'
 }
 
@@ -64,10 +66,14 @@ function Step({ step, setUp, ready, go }: { step: WelcomeStep; setUp: SetUp; rea
       {step.done ? <CheckCircle2 aria-hidden="true" /> : <Circle aria-hidden="true" />}
       <div>
         <p className="step-label">{step.label}<span className="visually-hidden">{step.done ? ', done' : ', not done yet'}</span></p>
-        {setUp === 'active' && ready ? <DownloadProgress view={ready} /> : <p className="subtle">{step.detail}</p>}
+        {showsProgress(setUp, ready) ? <DownloadProgress view={ready as ReadyView} /> : <p className="subtle">{step.detail}</p>}
         {setUp === 'offer' && ready && <SetUpButtons view={ready} go={go} step={step} />}
         {step.action && <button type="button" className={step.primary ? 'button primary' : 'text-button'} onClick={() => go(step.view)}>{step.action}</button>}
       </div>
     </li>
   )
 }
+
+/** The built-in model's name once it does the chat job, so step 1 can say it runs on this computer. */
+const builtinName = (ready?: ReadyView) => ready?.status === 'ready' && ready.in_use ? modelOf(ready).name : ''
+const showsProgress = (setUp: SetUp, ready?: ReadyView) => !!setUp && setUp !== 'offer' && isActive(ready)

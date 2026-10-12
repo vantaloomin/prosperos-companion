@@ -53,3 +53,12 @@ test('the welcome offers it only on the PC, with no model, when the pick fits', 
   assert.ok(downloading.primary && downloading.action === 'Create your companion')
   assert.match(welcomeLede('offer'), /get the model/)
 })
+
+test('after a cancel step 2 goes back to its usual words, and a ready built-in model is named in step 1', () => {
+  const [, character] = welcomeSteps(null, 'cancelled')
+  assert.equal(character.action, 'Create without a model for now')
+  const connection = { model: 'Qwen3.8-27B-UD-Q4_K_XL', provider_name: 'Local / LM Studio', base_url: '' } as never
+  const [model] = welcomeSteps(connection, null, 'Qwen3.8 27B')
+  assert.ok(model.done)
+  assert.equal(model.detail, 'Using Qwen3.8 27B on this computer.')
+})

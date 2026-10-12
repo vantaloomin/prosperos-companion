@@ -9,7 +9,9 @@ import { LaunchFor } from './LocalPrograms'
 import { ModelUsage } from './ModelUsage'
 import { useModelUsage } from './usage'
 import { ProfileEditor } from './ProfileEditor'
-import { ReadyCard } from '../../ready/ReadyCard'
+import { ReadyCard, UseBuiltin } from '../../ready/ReadyCard'
+import { isActive } from '../../ready/readyText'
+import { useReady } from '../../ready/useReady'
 import { jobChoice } from './routing'
 import { isRecall, type ModelJob, type ModelProfile, type ModelsOverview } from './types'
 
@@ -41,13 +43,16 @@ function TextProfiles({ overview, editing, setEditing, refresh, result, setResul
   const addButton = useReturnFocus<HTMLButtonElement>(editing === 'new')
   const profiles = overview.profiles.filter(profile => !isRecall(profile.config))
   const done = finish(setEditing, setResult, refresh)
+  // While "Set it up for me" downloads, its card stands in for the "No model yet" line.
+  const ready = useReady().data
+  const builtinComing = isActive(ready) || ready?.status === 'ready'
   return <section className="settings-section form-stack" aria-labelledby="models-heading">
     <div>
       <h2 id="models-heading">Models</h2>
       <p className="subtle">A profile is one provider, model and key: hosted services, your Codex login, or a model running on this computer. The conversation profile does every job until you give a job its own. Saving never contacts the service.</p>
     </div>
     <ReadyCard hasProfiles={profiles.length > 0} />
-    {profiles.length === 0 && editing !== 'new' && <p className="subtle">No model yet. Until you add one, your messages are saved and replies wait.</p>}
+    {profiles.length === 0 && editing !== 'new' && !builtinComing && <p className="subtle">No model yet. Until you add one, your messages are saved and replies wait.</p>}
     <ProfileList profiles={profiles} overview={overview} editing={editing} setEditing={setEditing} done={done} refresh={refresh} setResult={setResult} />
     {editing === 'new' ? <ProfileEditor onDone={done} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => { setResult(null); setEditing('new') }}>Add a model profile</button></div>}
@@ -124,6 +129,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
     <div><span className="eyebrow">{profile.provider_name}</span><h3>{profile.name}</h3>
       <p className="subtle">{modelLine(profile)} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>
       <ModelUsage usage={usage} />
+      <UseBuiltin profileId={profile.id} />
       {jobs.length > 0 && <p className="model-jobs"><Check size={14} aria-hidden="true" />{jobs.map(job => job.name).join(', ')}</p>}
       {check && <p className="subtle" role="status">Connected. {check.count ? `${check.count} models available. ` : ''}No text was generated.{check.note ? ` ${check.note}` : ''}</p>}
     </div>

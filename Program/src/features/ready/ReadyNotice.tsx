@@ -20,7 +20,7 @@ function Done({ view, dismiss, openModels }: { view: ReadyView; dismiss: ReactNo
   }
   if (!view.in_use) {
     return <Notice action={<><button type="button" className="text-button" onClick={openModels}>Open Models</button>{dismiss}</>}>
-      {name} is ready. Your chat model is still the one you picked; you can switch in Settings &gt; Models.</Notice>
+      {name} is ready. Your chat model is still the one you picked.</Notice>
   }
   const written = view.queued?.status === 'done' ? ` The rest of ${view.queued.name} is written.` : ''
   return <Notice action={dismiss}>{name} is ready. It's now your chat model.{written}</Notice>
