@@ -91,22 +91,36 @@ class DatingPhotos:
         images.sharing.append(lambda: [meta for _task, meta in self.tasks.values()])
         images.others.append(self.dispatch)
 
+    def saved(self, row: dict | None) -> dict | None:
+        """The row, or None when it says completed but its file is gone (a backup made before photos were in
+        backups, or a file removed by hand): they are shown as having no photo, and asking makes it again."""
+        if row and row['status'] == 'completed' and self.path(row) is None:
+            return None
+        return row
+
+    def path(self, row: dict):
+        try:
+            return storage.path_of(self.database, row['file'] or '')
+        except FileNotFoundError:
+            return None
+
     def get(self, key: str) -> dict:
         with self.database.connect() as connection:
-            return view(optional(connection, 'SELECT * FROM dating_photos WHERE person_key=?', (key,)))
+            return view(self.saved(optional(connection, 'SELECT * FROM dating_photos WHERE person_key=?', (key,))))
 
     def file(self, key: str):
         with self.database.connect() as connection:
             row = optional(connection, "SELECT file FROM dating_photos WHERE person_key=? AND status='completed'",
                            (key,))
-        require(row is not None, 'There is no photo of them yet.', 404)
-        return storage.path_of(self.database, row['file'])
+        path = row and self.path(row)
+        require(path is not None, 'There is no photo of them yet.', 404)
+        return path
 
     def request(self, key: str) -> dict:
         """Ask for their photo: the saved one if there is one, else one is queued (once)."""
         with self.database.connect(write=True) as connection:
             row = optional(connection, 'SELECT * FROM dating_photos WHERE person_key=?', (key,))
-            if row and row['status'] != 'failed':
+            if row and row['status'] != 'failed' and self.saved(row):
                 return view(row)
             sheet, data, town = find(connection, key)
             built = inputs(sheet, data)
