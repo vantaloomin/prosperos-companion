@@ -65,6 +65,14 @@ export function clockTime(value: string, now: number): string {
   return `${(sameYear ? DAY : DAY_YEAR).format(then)}, ${clock}`
 }
 
+/** "Oct 12, 4:51 PM": the short date and clock time, with the year only when it is not this year's. */
+export function dayAndClock(value: string, now: number = Date.now()): string {
+  const then = Date.parse(value)
+  if (Number.isNaN(then)) return ''
+  const sameYear = new Date(then).getFullYear() === new Date(now).getFullYear()
+  return `${(sameYear ? DAY : DAY_YEAR).format(then)}, ${CLOCK.format(then)}`
+}
+
 /** The full date and time, shown on hover and focus. */
 export function exactTime(value: string): string {
   const then = Date.parse(value)
