@@ -30,3 +30,20 @@ test('a mix is the same when every value is', () => {
   assert.ok(sameMix({ ...defaults }, defaults))
   assert.ok(!sameMix({ ...defaults, beard: 40 }, defaults))
 })
+
+test('moving one build gives the others what is left, so the three make 100%', async () => {
+  const { rebalanceBuilds } = await import('../../src/features/settings/mixText.ts')
+  const moved = rebalanceBuilds(defaults, 'heavier', 50)
+  assert.deepEqual([moved.slender, moved.middle, moved.heavier], [25, 25, 50])
+  const all = rebalanceBuilds({ ...defaults, slender: 0, middle: 0, heavier: 100 }, 'heavier', 40)
+  assert.equal(all.slender + all.middle + all.heavier, 100)
+})
+
+test('the confirmation and screen readers say what the sliders say', async () => {
+  const { changesLine, valueText } = await import('../../src/features/settings/mixText.ts')
+  assert.equal(changesLine({ ...defaults, heavier: 50, slender: 25, middle: 25, height_man: 183 }, defaults),
+    'taller men, fewer slender builds, fewer in-between builds, more heavier builds')
+  assert.equal(valueText('height_woman', 162), '5 foot 4, 162 cm')
+  assert.equal(valueText('slender', 30), '30 percent slender')
+  assert.equal(valueText('bolder', 1, { '1': 'Bolder' }), 'Bolder')
+})

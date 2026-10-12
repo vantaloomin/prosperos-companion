@@ -50,6 +50,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
       <header className="page-header"><div>
         <h1 id="dating-heading">{data.words.title}</h1>
         <p className="subtle">Meet people around town. Someone you match with can become a companion. Your companions never see who you swipe on.</p>
+        {data.all_matches && <p className="subtle">Debug: everyone you like matches back. Turn off in <a href="#settings/debug" onClick={(event) => { event.preventDefault(); go('settings/debug') }}>Settings &gt; Debug</a>.</p>}
       </div></header>
       {error && <Notice tone="error">{error}</Notice>}
       {!data.profile ? <Setup words={data.words} surface={data.surface} persona={data.persona} onSave={async (profile) => { await save(profile) }} />

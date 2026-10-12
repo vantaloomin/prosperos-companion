@@ -48,3 +48,50 @@ export function sharesLine(shares: Record<string, number> | undefined, names: Re
 export function sameMix(a: MixValues, b: MixValues): boolean {
   return (Object.keys(b) as (keyof MixValues)[]).every((key) => Number(a[key]) === Number(b[key]))
 }
+
+export type BuildKey = 'slender' | 'middle' | 'heavier'
+const BUILD_KEYS: BuildKey[] = ['slender', 'middle', 'heavier']
+
+/** Moving one build slider gives the other two what is left, in the proportion they had, so the three always make
+ * 100% (both at 0: shared evenly). Values land on the slider's half-percent steps. */
+export function rebalanceBuilds(mix: MixValues, key: BuildKey, value: number): MixValues {
+  const others = BUILD_KEYS.filter((other) => other !== key)
+  const rest = 100 - value
+  const before = others.reduce((sum, other) => sum + mix[other], 0)
+  const first = Math.round((before ? rest * mix[others[0]] / before : rest / 2) * 2) / 2
+  return { ...mix, [key]: value, [others[0]]: first, [others[1]]: rest - first }
+}
+
+const HEIGHT_KEYS = new Set(['height_woman', 'height_man'])
+
+export function heightWords(cm: number): string {
+  const inches = Math.round(cm / 2.54)
+  return `${Math.floor(inches / 12)} foot ${inches % 12}, ${cm} cm`
+}
+
+/** What a screen reader says for a slider's value. */
+export function valueText(key: keyof MixValues, value: number, steps?: Record<string, string>): string {
+  if (steps) return steps[String(value)] ?? String(value)
+  if (HEIGHT_KEYS.has(key)) return heightWords(value)
+  const what: Partial<Record<keyof MixValues, string>> = {
+    nonbinary: 'nonbinary', women: 'women', slender: 'slender', middle: 'in between', heavier: 'heavier',
+    beard: 'of men with facial hair', gay: 'gay or lesbian', bisexual: 'bisexual',
+  }
+  return `${pct(value).replace('%', ' percent')} ${what[key] ?? ''}`.trim()
+}
+
+const CHANGE_WORDS: Record<keyof MixValues, [string, string]> = {
+  nonbinary: ['fewer nonbinary people', 'more nonbinary people'], women: ['more men', 'more women'],
+  height_woman: ['shorter women', 'taller women'], height_man: ['shorter men', 'taller men'],
+  slender: ['fewer slender builds', 'more slender builds'], middle: ['fewer in-between builds', 'more in-between builds'],
+  heavier: ['fewer heavier builds', 'more heavier builds'], beard: ['less facial hair', 'more facial hair'],
+  gay: ['fewer gay and lesbian people', 'more gay and lesbian people'], bisexual: ['fewer bisexual people', 'more bisexual people'],
+  bolder: ['a tamer adult side', 'a bolder adult side'], drive: ['lower drive', 'higher drive'],
+}
+
+/** "more heavier builds, taller men": what differs from the built-in mix, for the confirmation. */
+export function changesLine(mix: MixValues, defaults: MixValues): string {
+  return (Object.keys(CHANGE_WORDS) as (keyof MixValues)[])
+    .filter((key) => Number(mix[key]) !== Number(defaults[key]))
+    .map((key) => CHANGE_WORDS[key][Number(mix[key]) > Number(defaults[key]) ? 1 : 0]).join(', ')
+}

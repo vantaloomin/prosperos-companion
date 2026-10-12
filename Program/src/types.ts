@@ -1347,6 +1347,8 @@ export interface Dating {
   words: DatingWords
   city: { id: string; name: string }
   profile: DatingProfile | null
+  /** Settings > Debug > 100% Matchlight matches is on. */
+  all_matches?: boolean
   /** Who the user is in this world, so a new profile starts filled in. */
   persona?: { name: string; gender: string; age: number | null; about: string } | null
   /** Whether Story mode is on, so a match can be met there. */

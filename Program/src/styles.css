@@ -886,7 +886,11 @@ textarea { resize: vertical; line-height: 1.6; }
 /* "On this device" (Iris, v09-appearance-first-launch.md 1b to 1d). */
 .text-size { position: relative; }
 .text-size input[type='range'] { padding: 0; border: 0; background: none; accent-color: var(--accent); }
-.townsfolk-mix input[type='range'] { width: 100%; max-width: 36rem; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+.townsfolk-mix .mix-slider { position: relative; max-width: 36rem; }
+.townsfolk-mix input[type='range'] { width: 100%; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+.mix-now { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 0.875rem; }
+.mix-now dt { color: var(--muted); }
+.mix-now dd { margin: 0; }
 .range-ticks { position: relative; height: 1.2em; margin: 0 8px; color: var(--muted); font-size: 0.75rem; }
 .range-ticks span { position: absolute; transform: translateX(-50%); }
 .reading-fonts, .motion-choice { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }

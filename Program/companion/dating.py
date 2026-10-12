@@ -342,4 +342,5 @@ def state(database) -> dict:
                                                                  'age_min', 'age_max', 'bio')},
                 'persona': persona(connection), 'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
                 'deck': [dating.card(sheet, data, database.clock.now().date(), found) for sheet, found in shown],
-                'remaining': left, 'matches': matches(connection, database), 'date': date}
+                'remaining': left, 'matches': matches(connection, database), 'date': date,
+                'all_matches': bool(settings(connection).get('debug_all_matches'))}
