@@ -48,6 +48,23 @@ def test_a_broken_avatar_is_left_behind(client, companion):
     assert bring(client, 'Tamsin.marinara.json', as_json(value))['picture'] is False
 
 
+def test_a_webp_avatar_is_left_out_with_a_note(client, companion):
+    webp = b'RIFF' + (30).to_bytes(4, 'little') + b'WEBPVP8X' + bytes(8) + (511).to_bytes(3, 'little') * 2
+    value = character()
+    value['data']['avatar'] = 'data:image/webp;base64,' + base64.b64encode(webp).decode()
+    made = bring(client, 'Tamsin.marinara.json', as_json(value))
+    assert made['picture'] is False and 'WebP' in made['picture_note']
+    assert bring(client, 'Other.marinara.json', as_json(character(tiny_png())))['picture_note'] is None
+
+
+def test_a_nameless_card_reads_with_the_name_they_were_given(client, companion):
+    value = character()
+    value['data']['data']['name'] = ''
+    definition = bring(client, 'Nameless.marinara.json', as_json(value))['companion']['version']['definition']
+    assert definition['name'] and 'they restores' not in definition['background']
+    assert definition['background'].startswith(f"{definition['name']} restores old boats.")
+
+
 def test_a_marinara_lorebook_belongs_to_the_world(client, companion):
     value = envelope('marinara_lorebook', {'lorebook': {'name': 'Saltmarsh', 'description': 'The bay.'}, 'folders': [],
                                            'entries': [

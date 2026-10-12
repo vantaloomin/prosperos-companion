@@ -19,6 +19,8 @@ from companion import cast, characters, dating, worlds
 from companion.clock import zone
 from companion.database import encode, identifier
 from companion.errors import DomainError
+from companion.images.adapters.base import AdapterError
+from companion.images.storage import sniff
 from companion.imports import formats
 from companion.lora import references
 from companion.models import CharacterDefinition
@@ -69,21 +71,30 @@ def life(connection, database, character: dict, focus: dict | None) -> dict:
     return {key: made[key] for key in keep} | {'identity': made['identity'].split('. ', 1)[-1]}
 
 
-def definition(connection, database, character: dict, focus: dict | None) -> tuple[CharacterDefinition, str]:
-    """Their definition, and any description past the background's limit (kept as lore instead)."""
-    name = character['name'].strip()[:120]
+def texts(character: dict, name: str) -> tuple[dict, str]:
+    """Their written fields with the card's macros spelled out, and the whole description."""
     description = spelled(character['description'], name)
     backstory = spelled(character.get('backstory', ''), name)
     if backstory:  # Marinara Engine keeps a backstory apart from the description.
         description = f'{description}\n\nBackstory:\n{backstory}'.strip()
     examples = spelled(character['mes_example'], name)
-    values = life(connection, database, character, focus) | {
-        'name': name, 'background': description[:BACKGROUND],
-        'appearance': spelled(character.get('appearance', ''), name)[:LIMITS['appearance']],
-        'in_photos': spelled(character.get('in_photos', ''), name)[:LIMITS['in_photos']],
-        'personality': spelled(character['personality'], name)[:LIMITS['personality']],
-        'voice': f'How they write, from their examples:\n{examples}'[:LIMITS['voice']] if examples else ''}
-    made = characters.named(connection, CharacterDefinition.model_validate(values))
+    return {'name': name, 'background': description[:BACKGROUND],
+            'appearance': spelled(character.get('appearance', ''), name)[:LIMITS['appearance']],
+            'in_photos': spelled(character.get('in_photos', ''), name)[:LIMITS['in_photos']],
+            'personality': spelled(character['personality'], name)[:LIMITS['personality']],
+            'voice': f'How they write, from their examples:\n{examples}'[:LIMITS['voice']] if examples else ''}, \
+        description
+
+
+def definition(connection, database, character: dict, focus: dict | None) -> tuple[CharacterDefinition, str]:
+    """Their definition, and any description past the background's limit (kept as lore instead)."""
+    name = character['name'].strip()[:120]
+    values = life(connection, database, character, focus)
+    fields, description = texts(character, name)
+    made = characters.named(connection, CharacterDefinition.model_validate(values | fields))
+    if not name:  # A nameless card's "{{char}} restores old boats" reads with the name they were given.
+        fields, description = texts(character, made.name)
+        made = CharacterDefinition.model_validate(values | fields)
     return made, description[BACKGROUND:].strip()
 
 
@@ -137,6 +148,20 @@ def checked_picture(data: bytes | None) -> tuple[str, int, int] | None:
         return None
 
 
+def left_out(data: bytes | None, shape) -> str | None:
+    """Why the file's picture did not come along, when it had one."""
+    if not data or shape:
+        return None
+    try:
+        kind = sniff(data)[0]
+    except (AdapterError, ValueError):
+        kind = None
+    if kind == 'webp':
+        return ("Their picture is a WebP image, which reference pictures can't use yet, so it was left out. Saved "
+                'as PNG or JPEG, it can be added with their reference pictures.')
+    return "Their picture couldn't be used, so it was left out."
+
+
 def store_picture(database, data: bytes, kind: str) -> tuple[str, str]:
     reference_id = identifier()
     name = f'{reference_id}.{kind}'
@@ -166,7 +191,8 @@ def bring(database, filename: str, encoded: str) -> dict:
     shape = checked_picture(found['picture'])
     stored = store_picture(database, found['picture'], shape[0]) if shape else None
     try:
-        return bring_character(database, filename, found, stored, shape)
+        return bring_character(database, filename, found, stored, shape) | {'picture_note': left_out(found['picture'],
+                                                                                                    shape)}
     except BaseException:
         if stored:
             (references.directory(database) / stored[1]).unlink(missing_ok=True)
