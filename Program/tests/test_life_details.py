@@ -130,3 +130,14 @@ def test_goals_are_a_big_bank_the_town_can_use():
     for quirk in townsfolk.QUIRK_BANK:
         assert quirk['text'][:1].islower() and not quirk['text'].endswith('.'), quirk['text']
         assert quirk['bio'][-1] in '.!?' and not GENDERED.search(quirk['text'] + ' ' + quirk['bio']), quirk['text']
+
+
+def test_a_new_main_characters_profile_reads_as_sentences_with_real_interests():
+    data = catalog.city('baltimore')
+    kinds = set(townsfolk.ROLES) | {place['kind'] for place in data['places']}
+    found = {'meetings': [], 'in_story': None, 'match': None, 'focus': {'version': {'name': 'Mira'}}}
+    for place in data['places']:
+        for sheet in townsfolk.at_place(data, place['id']):
+            definition = cast.profile(data, sheet, found, date(2026, 3, 2))
+            assert definition['identity'].startswith(f"{sheet['age']} years old. ")
+            assert not set(definition['interests']) & kinds

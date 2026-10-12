@@ -62,3 +62,12 @@ def test_a_period_or_fantasy_place_never_gets_a_modern_spot():
             assert spots and not set(spots) & inside.MODERN_SPOTS, (city_id, place['id'], spots)
     shop = {'id': 'mall', 'kind': 'shopping'}
     assert set(inside.for_place(shop, 'modern')) <= set(inside.BY_KIND['shopping'])
+
+
+def test_a_1925_soda_fountain_has_stools_not_a_back_patio():
+    data = catalog.city('pellmouth')
+    for place in catalog.places(data, kind='cafe') + catalog.places(data, kind='restaurant'):
+        spots = inside.for_place(place, data['era'])
+        assert not [spot for spot in spots if 'patio' in spot or 'shared table' in spot], place['id']
+    fountain = catalog.find(data, 'tarbox-drug-store')
+    assert 'on a stool at the counter' in inside.for_place(fountain, data['era'])

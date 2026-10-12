@@ -40,9 +40,15 @@ export function outingTitle(outing: Pick<Outing, 'activity' | 'place'>): string 
 // A cuisine that already names the kind of place ("irish pub") stands alone.
 const PLACE_WORDS = /\b(?:pub|bar|cafe|café|bakery|diner|grill|tavern|bistro|brewery|deli|pizzeria|steakhouse|taqueria|izakaya|trattoria)$/
 
-/** "Greek restaurant in Harbor East", "Irish pub in Canton". */
+// Cuisines whose hyphen is part of the name ("Tex-Mex", not "Tex mex").
+const JOINED: Record<string, string> = {
+  'tex-mex': 'Tex-Mex', 'pan-asian': 'pan-Asian', 'asian-american': 'Asian-American', 'chinese-american': 'Chinese-American',
+  'irish-american': 'Irish-American', 'creole-italian': 'Creole-Italian', 'greek-turkish': 'Greek-Turkish', 'latin-asian': 'Latin-Asian',
+}
+
+/** "Greek restaurant in Harbor East", "Irish pub in Canton", "Tex-Mex restaurant in Fells Point". */
 export function placeLine(place: OutingPlace): string {
-  const cuisine = place.cuisine.replace(/-/g, ' ')
+  const cuisine = JOINED[place.cuisine] ?? place.cuisine.replace(/-/g, ' ')
   const kind = !cuisine ? place.kind : PLACE_WORDS.test(cuisine) ? cuisine : `${cuisine} ${place.kind}`
   const text = place.neighborhood ? `${kind} in ${place.neighborhood}` : kind
   return text.charAt(0).toUpperCase() + text.slice(1)

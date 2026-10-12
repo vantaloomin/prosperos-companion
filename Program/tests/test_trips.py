@@ -112,3 +112,21 @@ def test_a_sunny_weekend_can_leave_them_sunburnt():
     found = [body.after(f'seed-{index}', date(2026, 7, 6), [entry]) for index in range(40)]
     assert any(item and item['state'] == 'sunburnt' and item['because'] == 'after a sunny weekend in Miami'
                for item in found)
+
+
+def test_a_place_named_for_an_outing_reads_as_one():
+    class Place:
+        name, kind = 'Staten Island Ferry ride', 'attraction'
+
+        def view(self):
+            return {'name': self.name}
+
+    class World:
+        def places(self, *_args, **_kwargs):
+            return [Place()]
+
+    trip = {'id': 1, 'city_name': 'New York', 'city_id': 'new-york', 'kind': 'getaway', 'company': None}
+    slot = {'local_date': '2026-10-17', 'block': {'start': '10:00'}}
+    for seed in (f's{n}' for n in range(12)):
+        summary = trips.entry(trip, slot, {'name': 'Mira'}, World(), seed, None)['summary']
+        assert 'the Staten Island Ferry ride' in summary and 'saw' not in summary and ' at ' not in summary

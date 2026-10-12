@@ -135,3 +135,13 @@ def test_a_tradition_the_user_rewords_still_reads_in_the_companions_own_voice():
     text = traditions.stored("Thanksgiving is at their dad Richard's.  ")
     assert text == "Thanksgiving is at {their} dad Richard's."
     assert traditions.voiced(text, 'your') == "Thanksgiving is at your dad Richard's."
+
+
+def test_adding_a_tradition_starts_from_the_next_holiday(client, baltimore, clock):
+    panel = client.get('/api/life/traditions').json()
+    city = catalog.city('baltimore')
+    today = clock.now().astimezone(timezone(timedelta(hours=-4))).date()
+    free = {item['id'] for item in panel['holidays']}
+    coming = [item['id'] for item in traditions.dated(city, today, today + timedelta(days=366)) if item['id'] in free]
+    assert panel['holidays'][0]['id'] == coming[0]
+    assert [item['id'] for item in panel['holidays']][:3] == list(dict.fromkeys(coming))[:3]

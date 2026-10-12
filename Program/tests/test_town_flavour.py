@@ -41,7 +41,7 @@ def test_a_big_city_stays_varied():
 def test_career_weights_favour_the_citys_own_and_bigger_employers():
     data = catalog.city('pellmouth')
     weights = generators.career_weights(data, catalog.careers_for(data))
-    assert weights['quarry-worker'] > weights['fisherman'] > weights['stockbroker'] >= 1
+    assert weights['quarry-worker'] > weights['fisherman'] > weights['bank-teller'] >= 1
     assert min(weights.values()) >= 1
 
 
@@ -150,6 +150,13 @@ def test_casino_dealers_only_where_there_is_a_casino():
         assert 'casino-dealer' in catalog.careers_for(catalog.city(city_id))
     for city_id in ('los-angeles', 'san-diego', 'haddon-harbor'):
         assert 'casino-dealer' not in catalog.careers_for(catalog.city(city_id))
+
+
+def test_stockbrokers_only_where_there_is_an_exchange():
+    assert 'stockbroker' in catalog.careers_for(catalog.city('new-york-1925'))
+    data = catalog.city('pellmouth')
+    assert 'stockbroker' not in catalog.careers_for(data)
+    assert not occupations(data)['stockbroker']
 
 
 def test_commutes_change_lines_once_rather_than_drive():

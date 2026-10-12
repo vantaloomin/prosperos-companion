@@ -22,6 +22,7 @@ Song lyrics are not in the app (it is public). A person can keep their own in re
 one per line; when it has any, quoted lyrics join the mix. The file stays on their computer and is never shared.
 """
 import json
+import re
 from datetime import date, datetime, time, timedelta
 from functools import cache
 from pathlib import Path
@@ -55,6 +56,15 @@ PLAN_DAYS = 3
 LOW = ('annoyed', 'hurt', 'angry', 'anxious', 'sad')
 # How often each kind of Retro IM line comes up for an everyday status.
 RETRO_KINDS = (('fake_deep', 3.0), ('songs', 3.0), ('random', 3.0), ('emo', 1.0))
+# Retro IM work lines that only fit a desk job or a shop counter; anyone else (a boatbuilder, a nurse) gets the
+# lines that fit any work.
+DESK_LINES = re.compile(r'email|office|cubicle|desk|copier|copies|fax|printer|spreadsheet|computer|keyboard|memo|'
+                        r'meeting|reply-all|tech support|solitaire|clicking|elevator|water cooler|lanyard|wore a tie|'
+                        r'supply closet|chair|vending|microwave|break room|fluorescent|filing|stapling|phone|'
+                        r'mail|air conditioning|synergy|please hold', re.IGNORECASE)
+SHOP_LINES = re.compile(r'register|shelves|mall|sweaters|store|drive-thru|polo shirt|name tag|slinging coffee',
+                        re.IGNORECASE)
+SHOP_SECTORS = {'retail', 'hospitality', 'food'}
 LYRICS_WEIGHT = 3.0
 LYRICS_FILE = 'retro-lyrics.txt'
 LYRICS_TEMPLATE = """# Your own song lyrics for Retro IM status messages (Prospero's Companion).
@@ -154,8 +164,22 @@ def away(connection, companion: dict, now, retro: bool = False) -> dict | None:
         return None
     until = clock_text(local(companion, parse(ends_at)), retro)
     seed = f"{companion['id']}:{window(companion, now)}:{kind}"
-    lines = retro_bank()['away'][kind] if retro else list(AWAY[kind])
+    lines = retro_away(companion['version']['definition'], kind) if retro else list(AWAY[kind])
     return {'text': generators.pick(seed, 'away', lines).format(until=until), 'glyph': GLYPHS[kind]}
+
+
+def retro_away(definition: dict, kind: str) -> list[str]:
+    """Retro IM away lines that fit them: the plain ones before the age of away messages (no emails in 1925), and
+    at work only the lines that fit their job."""
+    found = money.profile(definition)
+    if found and found.era not in ('modern', 'future'):
+        return list(AWAY[kind])
+    lines = retro_bank()['away'][kind]
+    career = found and found.career
+    if kind != 'work' or not career:
+        return lines
+    desk, shop = career['schedule'] == 'office', career['sector'] in SHOP_SECTORS
+    return [line for line in lines if (desk or not DESK_LINES.search(line)) and (shop or not SHOP_LINES.search(line))]
 
 
 def big_events(connection, companion: dict, now) -> list[tuple[str, str, object]]:

@@ -16,7 +16,7 @@ meeting after that. The bank is data (world/data/life_details.json), so it can g
 import json
 from functools import cache
 
-from companion.world import catalog, generators, perception, townsfolk
+from companion.world import catalog, generators, perception, townsfolk, wording
 
 STORIES = 4
 STRETCH = 6  # Stories set aside for each person in a group, so the young can skip some.
@@ -147,9 +147,9 @@ def for_sheet(data: dict, sheet: dict) -> dict:
     if sheet.get('cast') or not sheet['key'].startswith('town:'):
         return {}
     seed, modern = townsfolk.drawn(sheet), townsfolk.modern(data)
-    return {'origin': origin(data, sheet, seed, modern), 'work': work(data, sheet, seed),
-            'family': family(sheet, seed), 'pet': pet(seed, modern), 'likes': likes(seed, modern),
-            'stories': stories(data, sheet, seed, modern)}
+    return wording.regional_all(data, {
+        'origin': origin(data, sheet, seed, modern), 'work': work(data, sheet, seed), 'family': family(sheet, seed),
+        'pet': pet(seed, modern), 'likes': likes(seed, modern), 'stories': stories(data, sheet, seed, modern)})
 
 
 def revealed(data: dict, sheet: dict, times: int) -> dict:

@@ -207,3 +207,13 @@ def test_replies_are_not_held_while_out_together():
     from companion.life import pacing
     assert pacing.busy_kind({'kind': 'social', 'with_user': True}) is None
     assert pacing.busy_kind({'kind': 'social'}) == 'social'
+
+
+def test_by_the_harbor_means_on_the_water_not_a_name_that_says_harbor():
+    data = catalog.city('haddon-harbor')
+    wanted = outings.proposal('Want to get dinner by the harbor on Friday?', date(2026, 10, 12), {}, data)
+    assert wanted['place'] is None and wanted['waterside']
+    picks = {outings.pick_place(data, 'dinner', date(2026, 7, 17), '19:00', {}, f's{n}', False, 'dinner', True)['name']
+             for n in range(30)}
+    assert 'Golden Harbor Chinese Restaurant' not in picks
+    assert all(outings.waterside(item, data) for item in data['places'] if item['name'] in picks)

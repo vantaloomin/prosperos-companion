@@ -141,7 +141,9 @@ def test_won_and_yen_read_as_people_write_them():
     yen = {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese yen'}
     assert money.amount(1_234_567, won) == '₩1,235,000' and money.amount(850_400, won) == '₩850,000'
     assert money.amount(68_432, yen) == '¥68,430' and money.amount(4.4, yen) == '¥4'
-    assert money.amount(4.4, {'code': 'USD', 'symbol': '$', 'name': 'US dollars'}) == '$4.4'
+    usd = {'code': 'USD', 'symbol': '$', 'name': 'US dollars'}
+    assert money.amount(4.4, usd) == '$4.40' and money.amount(5.5, usd) == '$5.50' and money.amount(5, usd) == '$5'
+    assert money.amount(0.05, usd) == '$0.05'
     assert generators.figure(1_200_000) == '1,200,000' and generators.figure(4.5) == '4.5'
     assert generators.rent_step(650_000) == 1000 and generators.rent_step(1900) == 25
     data = city_as('modern', 'South Korea', currency=won,

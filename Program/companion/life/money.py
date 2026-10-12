@@ -382,14 +382,15 @@ PREFIXES = ('$', '£', '€', '¥', '₩', '₹')
 
 
 def amount(value: float, currency: dict) -> str:
-    """A rough amount as people say it: $1,240, £85, ¥68,000, ₩1,250,000."""
+    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000."""
     if value >= 100_000:
         rounded = round(value, -3)
     elif value >= 200:
         rounded = round(value, -1)
     else:
-        rounded = round(value) if value >= 10 or currency.get('code') in WHOLE else round(value, 1)
-    number = f'{rounded:,.0f}' if rounded == int(rounded) else f'{rounded:,.1f}'
+        rounded = round(value) if value >= 10 or currency.get('code') in WHOLE else round(value, 2)
+    # Whole amounts without cents, the rest with both cent digits: $5, $5.50, never $5.5.
+    number = f'{rounded:,.0f}' if rounded == int(rounded) else f'{rounded:,.2f}'
     symbol = currency['symbol']
     if symbol in PREFIXES:
         return f'{symbol}{number}'

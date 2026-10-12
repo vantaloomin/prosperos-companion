@@ -28,6 +28,7 @@ from companion import (
     text_models,
     timelines,
     workspace,
+    worlds,
 )
 from companion.identity import APP_ID, VERSION
 from companion.images.prompts import in_photos
@@ -142,7 +143,9 @@ def set_status(request: Request, companion_id: str, body: StatusUpdate):
 
 @router.post('/companion')
 def create_companion(request: Request, body: CharacterDefinition):
-    return characters.create(db(request), body)
+    made = characters.create(db(request), body)
+    worlds.follow_first_companion(db(request))
+    return made
 
 
 @router.post('/companion/draft')

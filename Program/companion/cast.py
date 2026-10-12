@@ -39,6 +39,14 @@ VOICES = {
     'driven': 'Direct and to the point; always has a plan.',
     'dreamy': 'Wanders off on ideas and loses the thread, then laughs about it.',
 }
+# What being a regular at (or working at) a kind of place says they are into; a kind not listed (a landmark,
+# a square, their street) says nothing, so it never shows up as an interest itself.
+PLACE_INTERESTS = {
+    'cafe': 'coffee', 'restaurant': 'good food', 'market': 'cooking', 'bar': 'nights out', 'tavern': 'nights out',
+    'nightlife': 'dancing', 'library': 'reading', 'museum': 'history', 'park': 'walking', 'garden': 'gardening',
+    'trail': 'hiking', 'beach': 'the beach', 'fitness': 'the gym', 'stadium': 'sports', 'venue': 'live music',
+    'shopping': 'browsing the shops', 'workshop': 'making things', 'docks': 'boats',
+}
 # How a profile's line about who they know begins (shared_text).
 SHARED = ('Has crossed paths with', 'Has met the user', 'Matched with the user through')
 MATCHED = SHARED[2]
@@ -195,13 +203,14 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     goal_interest = state['goal']['interest']
     definition = {
         'name': sheet['full'],
-        'identity': f"{sheet['age']}. {work_text(data, sheet)} Lives in {home}.",
+        'identity': f"{sheet['age']} years old. {work_text(data, sheet)} Lives in {home}.",
         'personality': f"{name} is {temperament} and {sheet['quirk']}. People meeting {name} for the first time "
                        f"say they {townsfolk.first_impression(sheet)}. Underneath, {name} {wants(townsfolk.DESIRES[sheet['desire']])}.",
         'voice': VOICES.get(temperament) or perception.entry('temperament', temperament).get('town', {}).get('voice', ''),
         'flaws': [flaw[:1].upper() + flaw[1:] + '.'],
         'skills': [f"Knows the regulars and the rhythms of {sheet['place']['name']}."],
-        'interests': [item for item in (goal_interest, sheet['place']['kind']) if item],
+        'interests': list(dict.fromkeys(item for item in (goal_interest, PLACE_INTERESTS.get(sheet['place']['kind']))
+                                        if item)),
         'background': f"{life_details.background(data, sheet) or f'Has lived in {home} for years.'} Right now "
                       f"{name} is trying to {state['goal']['text']}.{lately}{reached} {met_text(found)}".rstrip(),
         'routine': townsfolk.routine_text(sheet)[:1].upper() + townsfolk.routine_text(sheet)[1:] + '.',
