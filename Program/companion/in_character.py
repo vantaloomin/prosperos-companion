@@ -38,6 +38,8 @@ BREAKS = re.compile('|'.join((
     r"\bI (?:don't|don’t|do not|can't|can’t|cannot) (?:have )?(?:access to )?real[- ]time\b",
     # An aside in double parentheses is the user's out-of-character syntax, never the character's.
     r"^\s*\(\(|\)\)\s*$",
+    # A caption tag echoed from the photo note ("[image: Megan had a busy shift.]"); the photo itself is attached.
+    r"^\s*\[(?:image|photo|picture|pic|selfie|attached image)\s*:",
 )), re.IGNORECASE)
 # A sentence ends at ., ! or ? (with any closing quotes, asterisks or brackets) followed by space, or at a line break.
 SENTENCE_END = re.compile(r"[.!?…]+[\"'”’*)\]_~]*\s+|\n+")

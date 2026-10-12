@@ -85,6 +85,10 @@ def disclosure(backend: dict) -> str | None:
             f'description) to {destination}. Their retention rules apply. Conversation and memories are '
             f'not sent. Reference pictures are sent only when you make profile pictures: the first one goes '
             f'along with the other two.')
+    if backend['kind'] == 'codex':
+        text += (' With Codex, each picture of your companion also sends their character sheet, and their first '
+                 'picture takes two requests: one to draw the sheet (from their profile picture, if they have one), '
+                 'then the picture.')
     if accepts_nsfw(backend) and not is_local(backend):
         text += (' NSFW requests go there too, so their terms decide what they will make and keep. '
                  'Prohibited requests are still never sent.')

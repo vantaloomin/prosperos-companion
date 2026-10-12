@@ -26,7 +26,7 @@ PRONOUNS = {'woman': 'she/her', 'man': 'he/him', 'nonbinary': 'they/them'}
 AGE_WORDS = {'twent': 25, 'thirt': 35, 'fort': 45, 'fift': 55, 'sixt': 65, 'sevent': 75}
 # What the free-text appearance already says, by field: a drawn value for that field is left out.
 COVERED = {
-    'height_cm': r"\b(?:tall|short|petite|height|lanky|towering|\d'\s?\d|\d{3}\s?cm|feet|ft)\b",
+    'height_cm': r"\b(?:tall|short|petite|height|lanky|towering|\d'\s?\d|\d{3}\s?cm|feet|foot|footer|ft|inch(?:es)?)\b",
     'weight_kg': r'\b(?:weighs?|weight|lbs?|pounds|kg)\b',
     'build': r'\b(?:slim|slender|skinny|thin|lean|athletic|muscular|curvy|stocky|heavyset|chubby|plump|build|built|'
              r'wiry|broad[- ]shouldered|broad shoulders|full[- ]figured|plus[- ]size|fat|toned|petite|lanky|burly|'

@@ -201,7 +201,8 @@ async def ensure(database, adapter, backend: dict, config: dict, key, raw_dir, c
         if existing is not None:
             return existing
         picture = profile_picture(database, connection, companion)
-    appearance = companion['version']['definition'].get('appearance', '')
+    definition = companion['version']['definition']
+    appearance = ' '.join(part for part in (definition.get('appearance', ''), definition.get('in_photos') or '') if part)
     prompt = compose(text, backends.style_for(backend, general_style), picture is not None, backend['kind'])
     classification = classify({'prompt': prompt, 'negative': prompts.NEGATIVE, 'appearance': appearance})
     if not eligible(classification, backend):

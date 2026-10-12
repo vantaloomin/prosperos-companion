@@ -37,6 +37,7 @@ NUMERIC = {'{{seed}}', '{{width}}', '{{height}}'}
 MODEL_KEYS = ('unet_name', 'ckpt_name')
 LORA_NODE = 'prospero-lora'
 REFERENCE = '{{reference_image}}'
+MARKERS = re.compile(r'\{\{(?:prompt|negative|seed|width|height|reference_image)\}\}')
 # The built-in workflow's loader inputs the user can choose files for: config key -> (node, input).
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
                'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
@@ -128,8 +129,9 @@ def fill(value, values: dict):
     if isinstance(value, str):
         if value in NUMERIC:
             return values[value]
-        for marker in ('{{prompt}}', '{{negative}}', REFERENCE):
-            value = value.replace(marker, values[marker])
+        # One pass, so a "{{negative}}" the user wrote inside their appearance is never filled in turn, and a number
+        # inside a longer value ("x_{{seed}}") is written as text.
+        return MARKERS.sub(lambda found: str(values[found.group(0)]), value)
     return value
 
 

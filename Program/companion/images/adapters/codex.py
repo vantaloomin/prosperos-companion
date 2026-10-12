@@ -109,8 +109,9 @@ def find_image(parsed, started: float) -> Path | None:
     folders = [root / thread] if thread else []
     for folder in [*folders, root]:
         if folder.is_dir():
-            # Requests are serial, so a PNG written since this one started is its output.
-            fresh = [path for path in folder.rglob('*.png') if path.stat().st_mtime >= started - 1]
+            # Requests are serial, so a PNG written since this one started is its output. No slack: the turn just
+            # before (a character sheet made for this picture) finished less than a second earlier.
+            fresh = [path for path in folder.rglob('*.png') if path.stat().st_mtime >= started]
             if fresh:
                 return max(fresh, key=lambda path: path.stat().st_mtime)
     return None

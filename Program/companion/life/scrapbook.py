@@ -147,7 +147,7 @@ def build(connection, companion: dict, key: str, now) -> dict:
 
 
 def cover(period, name, days, messages, sent) -> dict:
-    stats = [(len(days), 'Day talked', 'Days talked'), (len(messages), 'Message', 'Messages'),
+    stats = [(len(days), 'Day of talking', 'Days of talking'), (len(messages), 'Message', 'Messages'),
              (len(sent), f'Picture from {name}', f'Pictures from {name}')]
     return {'kind': 'cover', 'title': period['title'], 'subtitle': f'You and {name}',
             'stats': [{'value': f'{count:,}', 'label': one if count == 1 else many_}
