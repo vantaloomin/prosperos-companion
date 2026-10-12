@@ -152,7 +152,7 @@ def test_city_news_reads_naturally():
     today = date(2026, 10, 7)
     opening = {'kind': 'opening', 'name': 'Bloom Cafe', 'summary': '', 'starts': '2026-10-10'}
     assert social.change_text(opening, 'Fells Point', today) == \
-        "Bloom Cafe is opening in Fells Point on Saturday 10 October. Who's coming with me?"
+        "Bloom Cafe is opening in Fells Point on Saturday, October 10. Who's coming with me?"
     assert social.change_text({**opening, 'starts': '2026-10-01'}, '', today) == \
         'Bloom Cafe just opened. Who wants to try it?'
 

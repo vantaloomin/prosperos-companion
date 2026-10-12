@@ -22,7 +22,7 @@ export const PIN_LABELS: Record<Pin | 'place', string> = {
 
 /** "Coffee after work · Tue" */
 export function historyLine(item: { summary: string; at: string }, timeZone?: string): string {
-  const day = new Date(item.at).toLocaleDateString('en-US', { weekday: 'short', timeZone })
+  const day = new Date(item.at).toLocaleDateString(undefined, { weekday: 'short', timeZone })
   const text = item.summary.length > 70 ? `${item.summary.slice(0, 69).trimEnd()}…` : item.summary
   return `${text} · ${day}`
 }

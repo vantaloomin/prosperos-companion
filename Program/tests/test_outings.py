@@ -53,6 +53,19 @@ def test_a_date_with_its_weekday_is_the_date_and_the_place_fits_the_word():
     assert picks == {'National Aquarium'}
 
 
+def test_a_holiday_mentioned_in_passing_does_not_set_the_day():
+    holidays = {'thanksgiving': date(2026, 11, 26)}
+    data = catalog.city('baltimore')
+    found = outings.proposal("Let's go for a walk Sunday also my sister just texted me a seating chart for thanksgiving",
+                             TODAY, holidays, data)
+    assert (found['activity'], found['day']) == ('walk', date(2026, 10, 11))
+    found = outings.proposal('Dinner Friday? btw what are you doing for thanksgiving', TODAY, holidays, data)
+    assert found['day'] == date(2026, 10, 9)
+    # Asked for the holiday itself, the holiday is the day.
+    assert outings.proposal('Want to get dinner on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
+    assert outings.proposal('Dinner, on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
+
+
 def test_the_companion_only_makes_firm_plans_themselves():
     assert asked("We should get drinks Saturday!", firm=True) == ('drinks', '2026-10-10', None, None)
     assert asked('Should we get drinks Saturday?', firm=True) is None
@@ -103,10 +116,11 @@ def test_asked_out_they_pick_a_place_and_the_reply_is_told_before_it_is_written(
     assert place['city'] == 'Baltimore' and place['kind'] in {'restaurant', 'tavern', 'inn'} and place['spots']
     notes = provider.requests[-1]['prompt']
     assert 'Going out with the user' in notes and f"dinner at {place['name']}" in notes
-    assert 'You just said yes; tell them where and when.' in notes
+    assert 'Just agreed with the user (confirm it in your reply)' in notes and 'You agreed to go' in notes
+    assert notes.index('Just agreed') < notes.index('Going out with the user')
     # The next reply still knows the plan, but no longer announces it.
     send(client, 'See you then!', 'client-out-02')
-    assert 'You just said yes' not in provider.requests[-1]['prompt']
+    assert 'Just agreed' not in provider.requests[-1]['prompt']
     assert f"Thursday October 8 at 19:00: dinner at {place['name']}" in provider.requests[-1]['prompt']
     reconcile(client)
     block, entry = agenda_entry(client, 'evening@2026-10-08')

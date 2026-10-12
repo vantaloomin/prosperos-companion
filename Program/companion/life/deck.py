@@ -26,7 +26,7 @@ from companion import secrets
 from companion.clock import stamp
 from companion.database import many, optional
 from companion.errors import require
-from companion.life import chance, circle, storylines
+from companion.life import chance, circle, pronouns, storylines
 from companion.memory import pairs
 from companion.world import catalog
 
@@ -202,14 +202,28 @@ def first_name(name: str) -> str:
     return name.split()[0] if name.split() else name
 
 
+# Phrases about the companion in the cards' `text` (Today; the random tables' rows too), said with their own pronouns when those are known
+# (companion/life/pronouns.py). A "they" about someone else stays ("{friend} admitted they have a crush").
+OWN = (("a chore they'd", "a chore {they}'d"), ("something small they'd", "something small {they}'d"),
+       ("something they'd lost", "something {they}'d lost"), ("shop they'd never", "shop {they}'d never"),
+       ('teacher of theirs', 'teacher of {theirs}'), ('down their shirt', 'down {their} shirt'),
+       ('in their hand', 'in {their} hand'), ('a fee they forgot', 'a fee {they} forgot'),
+       ('lost their wallet', 'lost {their} wallet'), ('missed their train', 'missed {their} train'),
+       ("realized they'd promised", "realized {they}'d promised"), ('swore them to secrecy', 'swore {them} to secrecy'),
+       ('nice about them', 'nice about {them}'), ('something they actually know', 'something {they} actually know{s}'),
+       ('and they had to explain', 'and {they} had to explain'), ('and they walked them', 'and {they} walked them'),
+       ('save them a lot', 'save {them} a lot'))
+
+
 def worded(connection, moment: dict, companion, field: str) -> str:
-    """A card's `text`, `told` or `share` with today's names filled in."""
+    """A card's `text`, `told` or `share` with today's names filled in, and the companion's pronouns in `text`."""
     found = card(moment['card_id'])
     template = (found or {}).get(field) or ''
     friend = optional(connection, "SELECT name FROM circle_people WHERE id=? AND status='active'",
                       (moment['friend_id'],)) if moment.get('friend_id') else None
-    return template.format(first=first_name(companion['version']['definition']['name']),
-                           friend=first_name(friend['name']) if friend else 'a friend')
+    definition = companion['version']['definition']
+    text = template.format(first=first_name(definition['name']), friend=first_name(friend['name']) if friend else 'a friend')
+    return pronouns.said(text, OWN, definition) if field == 'text' else text
 
 
 def on_day(connection, companion, day: date) -> dict | None:

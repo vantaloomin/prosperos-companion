@@ -30,6 +30,7 @@ from companion import (
     workspace,
     worlds,
 )
+from companion.almanac.context import city_for
 from companion.identity import APP_ID, VERSION
 from companion.images.prompts import in_photos
 from companion.imports import cards
@@ -171,7 +172,8 @@ def perception_suggestions(request: Request, body: PerceptionRequest):
     saved companion, what an empty field uses. No model is involved."""
     with request.app.state.database.connect() as connection:
         companion = characters.current(connection)
-    found = perception.suggestions(body.definition, companion['id'] if companion else 'new')
+        city = city_for(connection, body.definition)
+    found = perception.suggestions(body.definition, companion['id'] if companion else 'new', city=city)
     return found if companion else {**found, 'automatic': None}
 
 

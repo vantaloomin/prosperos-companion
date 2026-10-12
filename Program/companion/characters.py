@@ -56,6 +56,14 @@ def for_timeline(connection, timeline_id: str) -> dict | None:
     return by_id(connection, row['companion_id']) if row else None
 
 
+def definition_for_timeline(connection, timeline_id: str) -> dict:
+    """The active character definition of the companion a timeline belongs to, {} when there is none; a light read
+    for wording (their pronouns), without their life chapters."""
+    row = optional(connection, 'SELECT v.definition FROM timelines t JOIN companions c ON c.id=t.companion_id '
+                   'JOIN character_versions v ON v.id=c.active_version_id WHERE t.id=?', (timeline_id,))
+    return decode(row['definition']) if row else {}
+
+
 def require_current(connection) -> dict:
     companion = current(connection)
     if companion is None:

@@ -64,6 +64,8 @@ VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one 
 FIRM = re.compile(r"\b(?:let'?s|we should|we're going|we are going|i'll take you|i'm taking you)\b", re.IGNORECASE)
 STARTS = re.compile(rf"^(?:{'|'.join(value[0] for value in ACTIVITIES.values())})\b", re.IGNORECASE)
 SHORT = 6
+# Run-on messages join an ask to other news with "also", "btw" or "anyway".
+ASIDE = re.compile(r"\s+(?:also|btw|anyway|plus|oh and|and also)\s+", re.IGNORECASE)
 WEEKEND = re.compile(r'\b(?:this|the) weekend\b', re.IGNORECASE)
 NOT_BUSY = {'work', 'study', 'sleep'}
 LOOK_DAYS = 7
@@ -147,11 +149,32 @@ def described(item: dict) -> str:
     return ' '.join([item['name'], item.get('summary', ''), *item.get('tags', ())])
 
 
-def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
-    if WEEKEND.search(sentence):
+def day_in(text: str, today: date, holidays: dict) -> date | None:
+    if WEEKEND.search(text):
         return today if today.weekday() >= 5 else today + timedelta(days=5 - today.weekday())
-    found = own_plans.when(sentence, today, holidays)
+    found = own_plans.when(text, today, holidays)
     return found[0] if found and found[0] >= today else None
+
+
+def asking_clause(sentence: str) -> str | None:
+    """The clause that asks to go out, when the sentence has others ("a walk Sunday also my sister ...")."""
+    parts = [part for clause in own_plans.CLAUSES.split(sentence) for part in ASIDE.split(clause or '') if part]
+    if len(parts) < 2:
+        return None
+    return next((part for part in parts if ASKING.search(part) or OUT.search(part) or any(
+        re.search(rf'\b(?:{value[0]})\b', part, re.IGNORECASE) for value in ACTIVITIES.values())), None)
+
+
+def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
+    """The day the ask names. A holiday named only outside the clause that asks ("a walk Sunday also my sister
+    texted a seating chart for thanksgiving") sets the day only when nothing else does."""
+    clause = asking_clause(sentence)
+    if clause:
+        near = {name: day for name, day in holidays.items()
+                if re.search(rf"\b{re.escape(name)}\b", clause.replace("'", ''), re.IGNORECASE)}
+        if found := day_in(sentence, today, near):
+            return found
+    return day_in(sentence, today, holidays)
 
 
 def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bool = False) -> dict | None:
@@ -481,17 +504,18 @@ def scene(connection, companion: dict, outing: dict) -> str:
     return '- ' + ' '.join(part.strip() for part in parts if part.strip())
 
 
-def planned_line(outing: dict, fresh: bool) -> str:
+def planned_line(outing: dict) -> str:
     line = f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}, with the user."
-    if outing['named']:
-        line += ' They picked the place.'
-    else:
-        line += ' You picked the place.'
-    if fresh:
-        line += ' You just said yes; tell them where and when.'
-        if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
-            line += f" They asked for {day_text(outing['asked_date'])}, but that did not work for you, so you offered " \
-                    'this day instead.'
+    return line + (' They picked the place.' if outing['named'] else ' You picked the place.')
+
+
+def booked_line(outing: dict) -> str:
+    """The outing settled for the turn being answered, as what the reply says (first in its notes)."""
+    line = f"- You agreed to go: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
+        'Confirm where and when in this reply, in your own words.'
+    if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
+        line += f" They asked for {day_text(outing['asked_date'])}, but you can't make that day, so say so and " \
+                f"that it is {day_text(outing['local_date'])} instead."
     return line
 
 
@@ -506,7 +530,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         if found == 'now':
             result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing)))
         elif found == 'planned':
-            result.append((f"outing:{outing['id']}", planned_line(outing, outing['message_id'] in fresh_ids)))
+            result.append((f"outing:{outing['id']}", planned_line(outing)))
+            if outing['message_id'] in fresh_ids:
+                result.append((f"outing:{outing['id']}:booked", booked_line(outing)))
         elif now - window(outing, version['timezone'])[1] < RECENT:
             paid = money_text(companion, outing)
             result.append((f"outing:{outing['id']}:done",

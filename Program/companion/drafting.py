@@ -431,7 +431,7 @@ class Draft:
         if isinstance(raw.get('perception'), dict):
             # Bank entries by id only; an id the bank doesn't have is dropped and the sheet's words fill in.
             picked = raw['perception']
-            definition |= perception.compose(definition, self.seed, picked, picked.get('gaps'))
+            definition |= perception.compose(definition, self.seed, picked, picked.get('gaps'), self.data)
         try:
             valid = CharacterDefinition.model_validate(definition).model_dump()
         except ValidationError as error:

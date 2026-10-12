@@ -20,6 +20,7 @@ from companion.life import (
     body,
     chapters,
     circle,
+    composer,
     deck,
     disruptions,
     dreams,
@@ -169,6 +170,8 @@ HEADINGS = {
 # Changes with every message: sent with the message being answered instead of in the system prompt, so the system
 # prompt and the conversation stay cacheable, and a small model reads them right next to what it answers.
 NOW = {
+       # An outing settled for the turn being answered (companion/life/outings.py): first, so the reply says it.
+       'booked': 'Just agreed with the user (confirm it in your reply)',
        # Saved since the conversation sent with this reply began (`fresh`): kept out of the system prompt until the
        # conversation's first turn moves on, so saving a memory mid-chat does not change it. Shown under their
        # section's own heading, marked as new.
@@ -660,7 +663,8 @@ def offer_life(packet, connection, companion, now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
         when = parse(event['starts_at']).astimezone(zone(version['timezone'])).strftime('%A %d %B, %H:%M')
-        packet.offer('companion_life', event['id'], f"- {when}: {event['summary']}")
+        packet.offer('companion_life', event['id'],
+                     f"- {when}: {composer.said(event['summary'], version['definition'])}")
     for identity, text in city_changes.context_lines(connection, version, now):
         packet.offer('city_news', identity, text)
 
@@ -677,7 +681,7 @@ def offer_together(packet, connection, companion, now, recent, group=None):
         turn.add(message['id'])
     for identity, text in [*outings.context_lines(connection, companion, now, turn),
                            *trips.context_lines(connection, companion, now)]:
-        packet.offer('together', identity, text)
+        packet.offer('booked' if identity.endswith(':booked') else 'together', identity, text)
 
 
 def offer_attachments(packet, connection, latest, photo):

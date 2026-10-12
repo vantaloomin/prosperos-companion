@@ -8,10 +8,10 @@ is left out of the feed and the unread count.
 Return batches make one digest post; background batches make one post per event (T5). The
 image columns are a hook for a later image job: the text never waits for an image.
 """
-from companion.characters import require_current
+from companion.characters import definition_for_timeline, require_current
 from companion.database import decode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import social
+from companion.life import composer, social
 
 REACTIONS = ('heart', 'laugh', 'wow', 'sad', 'hug')
 # A photo sent in chat waits on a post keyed to the event its slot will become (companion/images/photos.py).
@@ -58,12 +58,20 @@ def image_outdated(connection, post, shown) -> bool:
     return drawn != [(event['summary'], event['caption']) for event in shown][:len(drawn)]
 
 
+def said_events(connection, post, shown: list[dict]) -> list[dict]:
+    """The events with the companion's own pronouns (companion/life/composer.said); the image check compares the
+    words as written."""
+    definition = definition_for_timeline(connection, post['timeline_id']) if shown else {}
+    return [{**event, 'summary': composer.said(event['summary'], definition)} for event in shown]
+
+
 def post_view(connection, post) -> dict | None:
     removed = post['status'] == 'removed'
     shown = [] if removed else shown_events(connection, post['id'])
     if not shown and not removed:
         return None
-    return {'id': post['id'], 'kind': post['kind'], 'source': 'life', 'intro': post['intro'], 'events': shown,
+    return {'id': post['id'], 'kind': post['kind'], 'source': 'life', 'intro': post['intro'],
+            'events': said_events(connection, post, shown),
             'status': post['status'], 'read': post['read_at'] is not None, 'read_at': post['read_at'],
             'reaction': post['reaction'], 'occurs_at': post['occurs_at'], 'created_at': post['created_at'],
             'image': {'status': post['image_status'], 'job_id': post['image_job_id'], 'ref': post['image_ref'],

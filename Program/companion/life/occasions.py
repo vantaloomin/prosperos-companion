@@ -173,6 +173,6 @@ def occasion(kind, day: date, ahead: int, what: str, hint: str, span: str = '', 
     if person:
         found |= {'person': person['name'], 'relation': person['role']}
     if tradition:
-        found |= {'holiday': tradition['name'], 'tradition': traditions.voiced(tradition['raw'], 'their'),
+        found |= {'holiday': tradition['name'], 'tradition': tradition['shown'],
                   'teaser': tradition['short']}
     return found

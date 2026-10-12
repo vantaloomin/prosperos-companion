@@ -14,7 +14,7 @@ from datetime import timedelta
 
 from companion import consequences, self_facts
 from companion.almanac.context import city_for as almanac_city
-from companion.characters import by_id
+from companion.characters import by_id, definition_for_timeline
 from companion.characters import current as in_focus
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
@@ -437,6 +437,8 @@ def diary(connection, timeline_id, subject, limit=20, before=None) -> list[dict]
     shared = many(connection, "SELECT id, summary, starts_at, ends_at FROM life_events WHERE timeline_id=? "
                   "AND status='committed' AND json_extract(details, '$.with.id')=? AND starts_at<? "
                   'ORDER BY starts_at DESC LIMIT ?', (timeline_id, subject, before, limit))
+    definition = definition_for_timeline(connection, timeline_id) if shared else {}
+    shared = [{**event, 'summary': composer.said(event['summary'], definition)} for event in shared]
     result, used = [], set()
     for row in rows:
         item = entry_view(row)
