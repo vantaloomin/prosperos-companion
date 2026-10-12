@@ -23,6 +23,7 @@ contacts the service.
 | Local / LM Studio | loopback only | optional; `COMPANION_API_KEY` | Chat Completions |
 | Kobold | loopback only | none | native `/generate` |
 | Codex / ChatGPT | none | the Codex CLI's own login | `codex exec` in an empty read-only folder |
+| Claude Code / Claude plan | none | the Claude Code CLI's own login (your Claude plan) | `claude -p` in an empty folder, every tool off |
 
 **Test connection** lists the service's models (`GET /models`) without generating text, and fills
 the context size and longest reply from what the service reports; unreported limits stay manual,
@@ -33,6 +34,25 @@ and then asks `codex app-server` for `model/list`, the models the signed-in Chat
 the reasoning efforts each one reports. A CLI too old for `model/list` (or a failed call) gets a short
 fallback list of common Codex models instead, and the note under the button says which you are seeing. A saved key stays with its provider and address: changing either drops
 it from the vault rather than sending it somewhere new.
+
+### Claude Code / Claude plan
+
+Uses the official, unmodified `claude` program the user installed and signed in to themselves, so replies
+draw on their Claude plan (`companion/providers/claude_code.py`). The app finds `claude` on PATH, then at
+`~/.local/bin` (where the native installer puts it), or at the location set in the profile. It never
+installs Claude Code, changes PATH, reads or stores the login (no credential files, tokens or sign-in of
+its own), or passes `--bare` (bare mode ignores the plan login). `ANTHROPIC_API_KEY` is left out of the
+CLI's environment so a key set for the Anthropic provider never takes the place of the plan.
+
+Each reply is one `claude -p --output-format stream-json --include-partial-messages` turn in an empty
+temporary folder: the system prompt from a file there (`--system-prompt-file`, which also replaces Claude
+Code's own prompt), the conversation as one transcript on stdin, `--tools ""`, `--strict-mcp-config`,
+`--disable-slash-commands` and `--no-session-persistence`. Reasoning effort maps to `--effort`. Test
+connection runs `claude auth status`, keeps only whether it is signed in and whether that is an API key,
+and lists the model aliases (`sonnet`, `opus`, `haiku`, `fable`), since the CLI has no model list; any full
+model name can be typed instead. If the CLI is not signed in, it says to run `claude` once in a terminal.
+Claude follows Anthropic's usage policy, so the profile help says to keep adult scenes on another profile.
+Two requests run at once; no usage is shown on the card.
 
 Not copied from the Study: the LM Studio native protocol and its verified background interruption
 (local servers use the OpenAI-compatible API, and background work here yields between streamed

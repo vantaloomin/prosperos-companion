@@ -49,6 +49,8 @@ def resource_for(config):
         return 'local-inference', 1
     if config.get('provider') == 'codex':
         return 'codex-cli', 1
+    if config.get('provider') == 'claude_code':
+        return 'claude-cli', 2
     return f'{parts.scheme}://{parts.netloc.lower()}', 2
 
 

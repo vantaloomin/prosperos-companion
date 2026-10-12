@@ -26,6 +26,7 @@ from urllib.parse import urlsplit, urlunsplit
 from companion.clock import stamp
 from companion.database import identifier, settings
 from companion.providers.chat import provider_of
+from companion.providers.config import CLI_PROVIDERS
 from companion.providers.requests import REQUESTS, transcript
 
 KEEP_DAYS = 7
@@ -54,7 +55,7 @@ def request_body(config: dict, system: str, messages: list[dict]):
     """The body the provider is sent (companion/providers/requests.py); Codex gets the transcript on stdin."""
     provider = provider_of(config)
     try:
-        if provider == 'codex':
+        if provider in CLI_PROVIDERS:
             return transcript(system, messages)
         return REQUESTS[provider]({**config, 'provider': provider}, system, messages)[1]
     except Exception as error:  # noqa: BLE001 - the call itself reports a broken setting; the record says so.

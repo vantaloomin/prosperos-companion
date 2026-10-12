@@ -509,6 +509,12 @@ class PersonaInput(Input):
     birthday: Birthday | None = None
 
 
+class NewPersona(PersonaInput):
+    """A new persona, and the city their world is in: the current one unless the user picks another, or
+    `somewhere-new` for the app to pick (companion/worlds.py)."""
+    city_id: str | None = Field(None, min_length=1, max_length=120)
+
+
 class WorldChange(Input):
     """Rename a world, or give it to another persona."""
     name: str | None = Field(None, max_length=80)

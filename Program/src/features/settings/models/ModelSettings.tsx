@@ -124,7 +124,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
     if (!window.confirm(`Delete ${profile.name}? Its saved key is removed from your keychain${jobs.length ? ', and its jobs go back to the conversation profile' : ''}.`)) return
     void run(async () => { onChanged(await api<ModelsOverview>(`/models/profiles/${profile.id}`, undefined, 'DELETE')); setResult({ tone: 'info', text: `${profile.name} deleted.` }) })
   }
-  const where = profile.config.provider === 'codex' ? 'Codex CLI login' : profile.config.base_url
+  const where = profile.config.provider === 'codex' ? 'Codex CLI login' : profile.config.provider === 'claude_code' ? 'Claude Code login' : profile.config.base_url
   return <li className="model-profile">
     <div><span className="eyebrow">{profile.config.resource_group === 'builtin-chat' ? 'Local / Built-in' : profile.provider_name}</span><h3>{profile.name}</h3>
       <p className="subtle">{modelLine(profile)} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>

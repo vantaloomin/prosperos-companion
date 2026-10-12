@@ -948,6 +948,8 @@ export interface Chat {
   active_at: string
   /** A companion's status line (companion/life/status.py); absent for group chats. */
   status?: CompanionStatus | null
+  /** A companion's profile picture (lora_references), or null while they have none; absent for group chats. */
+  portrait_reference_id?: string | null
 }
 export interface ChatList { chats: Chat[]; unread: number }
 
