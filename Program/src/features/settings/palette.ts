@@ -3,12 +3,13 @@ import type { WorkspaceSettings } from '../../types'
 
 export interface Palette { accent: string; background: string; surface: string; text: string }
 export const COLOR_SCHEMES = [
-  { id: 'ink', label: 'Ink', swatch: '#191816' },
-  { id: 'slate', label: 'Slate', swatch: '#15181c' },
-  { id: 'umber', label: 'Umber', swatch: '#1c1714' },
-  { id: 'moss', label: 'Moss', swatch: '#171b17' },
-  { id: 'wine', label: 'Wine', swatch: '#1c1518' },
-  { id: 'ash', label: 'Ash', swatch: '#1b1b1b' },
+  // Each swatch is the scheme's surface, a shade lighter than its canvas, so the dark ones read as colors (Iris).
+  { id: 'ink', label: 'Ink', swatch: '#201f1c' },
+  { id: 'slate', label: 'Slate', swatch: '#1c2026' },
+  { id: 'umber', label: 'Umber', swatch: '#231e19' },
+  { id: 'moss', label: 'Moss', swatch: '#1e241d' },
+  { id: 'wine', label: 'Wine', swatch: '#251c20' },
+  { id: 'ash', label: 'Ash', swatch: '#242424' },
 ] as const
 export type ColorScheme = typeof COLOR_SCHEMES[number]['id'] | 'custom'
 // The app's error color, and a darker one for light backgrounds where the usual pink would not read.

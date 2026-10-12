@@ -126,7 +126,7 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
   }
   const where = profile.config.provider === 'codex' ? 'Codex CLI login' : profile.config.base_url
   return <li className="model-profile">
-    <div><span className="eyebrow">{profile.provider_name}</span><h3>{profile.name}</h3>
+    <div><span className="eyebrow">{profile.config.resource_group === 'builtin-chat' ? 'Local / Built-in' : profile.provider_name}</span><h3>{profile.name}</h3>
       <p className="subtle">{modelLine(profile)} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>
       <ModelUsage usage={usage} />
       <UseBuiltin profileId={profile.id} />

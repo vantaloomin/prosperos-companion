@@ -12,7 +12,7 @@ export function ReadyCard({ hasProfiles }: { hasProfiles: boolean }) {
   const view = useReady().data
   if (!view) return null
   if (isActive(view)) {
-    return <div className="model-profile ready-card"><div><span className="eyebrow">Local</span><h3>Built-in · {modelOf(view).name}</h3>
+    return <div className="model-profile ready-card"><div><span className="eyebrow">Local / Built-in</span><h3>Built-in · {modelOf(view).name}</h3>
       <DownloadProgress view={view} phone={remote} titled={false} /></div></div>
   }
   if (view.status === 'idle' && !remote && !hasProfiles && view.pick.fits) return <Offer view={view} />

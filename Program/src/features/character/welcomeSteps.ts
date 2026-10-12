@@ -11,15 +11,15 @@ const LOCAL_DETAIL = 'A free model that runs on your graphics card, so your chat
 
 /** Connecting a model comes first: the quick start, the paste box, the sidecar and every reply need one.
  * `connection` is undefined while it is still loading. While the model downloads, creating them is the next step. */
-export function welcomeSteps(connection: Connection | null | undefined, setUp: SetUp = null, builtin = ''): WelcomeStep[] {
-  return [modelStep(connection, !connection && setUp !== null, builtin), characterStep(connection, !connection && setUp === 'active')]
+export function welcomeSteps(connection: Connection | null | undefined, setUp: SetUp = null, builtin = '', getWording = false): WelcomeStep[] {
+  return [modelStep(connection, !connection && setUp !== null, builtin, getWording), characterStep(connection, !connection && setUp === 'active')]
 }
 
 /** `builtin` names the model "Set it up for me" made the chat model, said the way the user knows it. */
-function modelStep(connection: Connection | null | undefined, local: boolean, builtin: string): WelcomeStep {
+function modelStep(connection: Connection | null | undefined, local: boolean, builtin: string, getWording: boolean): WelcomeStep {
   const step = { id: 'model', done: !!connection, view: 'settings/models' as View }
   if (connection && builtin) return { ...step, label: '1. Get a text model', primary: false, detail: `Using ${builtin} on this computer.`, action: 'Change' }
-  if (connection) return { ...step, label: '1. Connect a text model', primary: false, detail: `Using ${connection.model} through ${connection.provider_name}.`, action: 'Change' }
+  if (connection) return { ...step, label: getWording ? '1. Get a text model' : '1. Connect a text model', primary: false, detail: `Using ${connection.model} through ${connection.provider_name}.`, action: 'Change' }
   if (local) return { ...step, label: '1. Get a text model', primary: false, detail: LOCAL_DETAIL, action: '' }
   return { ...step, label: '1. Connect a text model', primary: connection === null, detail: SERVICE_DETAIL, action: connection === null ? 'Set up a model' : '' }
 }

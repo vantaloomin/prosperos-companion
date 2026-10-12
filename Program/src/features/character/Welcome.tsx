@@ -21,13 +21,15 @@ export function Welcome({ go }: { go: (view: View) => void }) {
   const ready = useReady(!remote).data
   const setUp = setUpState(ready, !!(connection.isSuccess && connection.data), remote)
   const builtin = builtinName(ready)
-  const steps = welcomeSteps(connection.isSuccess ? connection.data : undefined, setUp, builtin)
+  // Once "Set it up for me" is part of this computer's story, step 1 and the lede keep its "get" wording.
+  const getWording = ready?.status === 'ready'
+  const steps = welcomeSteps(connection.isSuccess ? connection.data : undefined, setUp, builtin, getWording)
   const hardware = useHardware()
   return (
     <section className="welcome">
       <p className="eyebrow">Prospero Companion</p>
       <h1>Meet someone new</h1>
-      <p className="lede">{welcomeLede(builtin ? 'active' : setUp)}</p>
+      <p className="lede">{welcomeLede(getWording ? 'active' : setUp)}</p>
       <ol className="welcome-steps">
         {steps.map((step) => <Step key={step.id} step={step} setUp={step.id === 'model' ? setUp : null} ready={ready} go={go} />)}
       </ol>
