@@ -5,7 +5,7 @@
  * to the districts next to it, parks under green places, and any sea, river or lake the city data names. Places
  * sit on street corners. Not to scale, and the caption says so.
  */
-import type { CityMapData, MapPlace, MapWater } from './mapText'
+import { mainPin, type CityMapData, type MapPlace, type MapWater, type Pin } from './mapText.ts'
 
 export interface Point { x: number; y: number }
 export interface District { id: string; name: string; x: number; y: number; outline: Point[]; streets: [Point, Point][]; label: Point; places: { place: MapPlace; x: number; y: number }[] }
@@ -314,6 +314,66 @@ export function lakeOutline(water: DrawnWater): Point[] {
     const angle = (index / 32) * Math.PI * 2, bend = 1 + 0.12 * Math.sin(angle * 3 + phase)
     return { x: centre.x + Math.cos(angle) * water.width * bend, y: centre.y + Math.sin(angle) * water.width * 0.7 * bend }
   })
+}
+
+/** A name on the drawn map, where it fits; a place's or water's that fits nowhere is left off (a place's then shows on hover). */
+export interface MapLabel { key: string; kind: 'district' | 'water' | 'place'; text: string; x: number; y: number; anchor: 'start' | 'middle' | 'end'; shown: boolean }
+interface Box { x: number; y: number; w: number; h: number }
+
+// Rough text widths per letter at each label's size (styles.css), since the layout runs before anything is measured.
+const LETTER = { district: 7.4, water: 7.6, place: 6.8 }
+// How far each kind's letters reach above and below the baseline: capitals only for a neighbourhood.
+const INK = { district: [9, 1], water: [11, 4], place: [10, 3] } as const
+// The names that matter most claim their spot first: their home and the scene, then neighbourhoods, then their other places.
+const RANK: Record<Pin, number> = { scene: 0, home: 0, work: 0, usual: 2, recent: 3 }
+
+/**
+ * Keeps names from running into each other: each, most important first, takes the first of a few spots next to
+ * where it belongs that is clear of the names already placed and of the pins' badges; if none is clear, a
+ * neighbourhood's name takes the least crowded one and any other name is left off.
+ */
+export function labels(map: Drawn): MapLabel[] {
+  const pinned = map.districts.flatMap((district) => district.places).filter(({ place }) => mainPin(place) !== 'place')
+  // A badge is round, so a name may touch the corners of the square around it.
+  const taken: Box[] = pinned.map(({ x, y }) => ({ x: x - 11, y: y - 11, w: 22, h: 22 }))
+  const wanted = [
+    ...map.districts.map((district) => ({ rank: 1, key: `${district.id}-label`, kind: 'district' as const, text: district.name, spots: nameSpots(district.label, 4, district.name.length * LETTER.district) })),
+    ...pinned.map(({ place, x, y }) => ({ rank: RANK[mainPin(place) as Pin], key: `${place.id}-name`, kind: 'place' as const, text: place.name, spots: placeSpots(x, y) })),
+    ...map.water.filter((water) => water.name).map((water) => ({ rank: 4, key: `${water.name}-label`, kind: 'water' as const, text: water.name, spots: nameSpots(water.label, 0, water.name.length * LETTER.water) })),
+  ]
+  // A stable sort keeps the drawing order within a rank, so the same city lays out the same every time.
+  return wanted.map((item, index) => ({ item, index })).sort((a, b) => a.item.rank - b.item.rank || a.index - b.index).map(({ item }) => {
+    const width = item.text.length * LETTER[item.kind] + 4
+    const spots = item.spots.map((spot) => ({ spot, box: boxOf(spot, width, INK[item.kind]), hits: 0 }))
+    for (const spot of spots) spot.hits = taken.filter((other) => overlaps(spot.box, other)).length
+    // A neighbourhood's name always shows, where it runs into the fewest; a place's or water's only where it is clear.
+    const best = spots.reduce((most, spot) => spot.hits < most.hits ? spot : most)
+    const shown = best.hits === 0 || item.kind === 'district'
+    if (shown) taken.push(best.box)
+    return { key: item.key, kind: item.kind, text: item.text, ...best.spot, shown }
+  })
+}
+
+type Spot = Pick<MapLabel, 'x' | 'y' | 'anchor'>
+
+/** A name's own spot (a neighbourhood's baseline sits 4 below its point), then a little above or below it, then
+ * the same a third of its width to either side. */
+function nameSpots(at: Point, baseline: number, width: number): Spot[] {
+  return [0, -width / 3, width / 3].flatMap((dx) => [0, -14, 14, -28, 28].map((dy): Spot => ({ x: at.x + dx, y: at.y + baseline + dy, anchor: 'middle' })))
+}
+
+/** Right of the pin, then left, above and below it. */
+function placeSpots(x: number, y: number): Spot[] {
+  return [{ x: x + 17, y: y + 4, anchor: 'start' }, { x: x - 17, y: y + 4, anchor: 'end' }, { x, y: y - 18, anchor: 'middle' }, { x, y: y + 27, anchor: 'middle' }]
+}
+
+function boxOf(spot: Spot, width: number, [above, below]: readonly [number, number]): Box {
+  const left = spot.anchor === 'start' ? spot.x : spot.anchor === 'end' ? spot.x - width : spot.x - width / 2
+  return { x: left, y: spot.y - above, w: width, h: above + below }
+}
+
+function overlaps(a: Box, b: Box): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 }
 
 /** Kinds of place drawn as a patch of ground under their pin, like parks on a street map. */

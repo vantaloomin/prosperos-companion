@@ -53,8 +53,8 @@ Only each note's words and the voice go to a hosted engine. Keys are kept in the
 sherpa-onnx's ready-made `sherpa-onnx-offline-tts` program (Apache 2.0), so the Companion needs no new Python
 packages. Both come from sherpa-onnx's GitHub releases, pinned (sherpa-onnx 1.13.8, `kokoro-multi-lang-v1_0`) and
 checked against their SHA-256: about 378 MB in all, into the workspace's `voice/` folder, which backups leave out.
-Because voice notes are on by default, the download starts by itself when the app starts with background activity
-on and the built-in voice is the engine; Settings also has a Download button.
+Big downloads wait for a press: voice notes are on by default, but the built-in voice downloads only when you press
+Download in Settings > Models > Voice notes. Until then every first text stays a text.
 
 The program runs once per note in its own process, on the processor with at most four threads, one note at a time.
 A note takes a few seconds. British voices read with British pronunciation. `COMPANION_SHERPA_TTS` and

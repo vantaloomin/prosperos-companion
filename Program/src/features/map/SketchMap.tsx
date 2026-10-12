@@ -1,12 +1,14 @@
 import { useEffect, useId, useMemo, useRef } from 'react'
 import { mainPin, narrow, type CityMapData, type MapPlace } from './mapText'
-import { drawn, GROUNDS, lakeOutline, pathOf, type District, type Drawn } from './drawn'
+import { drawn, GROUNDS, labels, lakeOutline, pathOf, type District, type Drawn, type MapLabel } from './drawn'
 
 interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; caption: string }
 
 /** Fictional, original and private cities, or a street map that cannot load: a map drawn from the city data (drawn.ts). */
 export function SketchMap({ data, selected, onSelect, caption }: Props) {
   const map = useMemo(() => drawn(data), [data])
+  // Names placed so they do not run into each other (drawn.ts); a place's that does not fit shows on hover.
+  const names = useMemo(() => new Map(labels(map).map((label) => [label.key, label])), [map])
   const box = useRef<HTMLDivElement>(null)
   const prefix = useId().replace(/:/g, '')
   // Opens on the picked place, else their home, since the map is often bigger than the screen.
@@ -20,20 +22,18 @@ export function SketchMap({ data, selected, onSelect, caption }: Props) {
     <div ref={box} className="sketch-map">
       <p className="sketch-caption">{caption}</p>
       <svg viewBox={`0 0 ${map.width} ${map.height}`} style={{ width: map.width, height: map.height }} role="group" aria-label={`Map of ${data.city.name}`}>
-        <Ground map={map} prefix={prefix} />
+        <Ground map={map} prefix={prefix} names={names} />
         {map.districts.map((district) => district.places.map(({ place, x, y }) => (
-          <PlacePin key={place.id} place={place} x={x} y={y} selected={place.id === selected} onSelect={onSelect} />
+          <PlacePin key={place.id} place={place} x={x} y={y} named={names.get(`${place.id}-name`)?.shown ?? false} selected={place.id === selected} onSelect={onSelect} />
         )))}
-        {map.districts.map((district) => district.places.filter(({ place }) => mainPin(place) !== 'place').map(({ place, x, y }) => (
-          <text key={`${place.id}-name`} className="sketch-label" x={x + 17} y={y + 4} aria-hidden="true">{place.name}</text>
-        )))}
+        {[...names.values()].filter((label) => label.kind === 'place' && label.shown).map((label) => <Name key={label.key} label={label} className="sketch-label" />)}
       </svg>
     </div>
   )
 }
 
 /** Everything but the pins, dimmed like the street map's tiles. */
-function Ground({ map, prefix }: { map: Drawn; prefix: string }) {
+function Ground({ map, prefix, names }: { map: Drawn; prefix: string; names: Map<string, MapLabel> }) {
   return (
     <g className="drawn-ground" aria-hidden="true">
       <rect className="drawn-country" width={map.width} height={map.height} />
@@ -46,8 +46,8 @@ function Ground({ map, prefix }: { map: Drawn; prefix: string }) {
       {map.water.filter((water) => water.kind === 'lake').map((water) => <path key={water.name} className="drawn-water" d={pathOf(lakeOutline(water), true)} />)}
       {map.roads.map((road) => <path key={`${road.id}-casing`} className="drawn-road-casing" d={`M${road.from.x} ${road.from.y}Q${road.via.x} ${road.via.y} ${road.to.x} ${road.to.y}`} />)}
       {map.roads.map((road) => <path key={road.id} className="drawn-road" d={`M${road.from.x} ${road.from.y}Q${road.via.x} ${road.via.y} ${road.to.x} ${road.to.y}`} />)}
-      {map.water.filter((water) => water.name).map((water) => <text key={`${water.name}-label`} className="drawn-water-name" x={water.label.x} y={water.label.y}>{water.name}</text>)}
-      {map.districts.map((district) => <text key={`${district.id}-label`} className="drawn-name" x={district.label.x} y={district.label.y + 4}>{district.name}</text>)}
+      {[...names.values()].filter((label) => label.kind === 'water' && label.shown).map((label) => <Name key={label.key} label={label} className="drawn-water-name" />)}
+      {[...names.values()].filter((label) => label.kind === 'district').map((label) => <Name key={label.key} label={label} className="drawn-name" />)}
     </g>
   )
 }
@@ -70,10 +70,14 @@ function DistrictShape({ district, tint, clip }: { district: District; tint: num
   )
 }
 
-interface PinProps { place: MapPlace; x: number; y: number; selected: boolean; onSelect: (id: string) => void }
+function Name({ label, className }: { label: MapLabel; className: string }) {
+  return <text className={className} x={label.x} y={label.y} style={{ textAnchor: label.anchor }} aria-hidden="true">{label.text}</text>
+}
+
+interface PinProps { place: MapPlace; x: number; y: number; named: boolean; selected: boolean; onSelect: (id: string) => void }
 
 /** The same pins as the street map: a small dot for most places, a round badge with a glyph for theirs. */
-function PlacePin({ place, x, y, selected, onSelect }: PinProps) {
+function PlacePin({ place, x, y, named, selected, onSelect }: PinProps) {
   const pin = mainPin(place)
   return (
     <g className={`sketch-pin map-pin pin-${pin}${selected ? ' selected' : ''}`} transform={`translate(${x} ${y})`}
@@ -83,6 +87,7 @@ function PlacePin({ place, x, y, selected, onSelect }: PinProps) {
       {pin === 'place' ? <><circle className="sketch-dot" r={4.5} /><text className="sketch-label sketch-hover-label" x={9} y={4}>{place.name}</text></> : <>
         <circle className="sketch-badge" r={13} />
         <g className="sketch-glyph" transform="translate(-8 -8) scale(0.667)"><PinShape pin={pin} /></g>
+        {!named && <text className="sketch-label sketch-hover-label" x={17} y={4}>{place.name}</text>}
       </>}
       <title>{place.name}</title>
     </g>
