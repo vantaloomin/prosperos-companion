@@ -1843,3 +1843,10 @@ CREATE TABLE IF NOT EXISTS chat_imports (
   last_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+-- The town's mix (companion/world/mix.py, Settings > Debug): the shares townsfolk rolls use for looks and who people
+-- are drawn to. No row is the built-in mix. Each world keeps its own; a new world starts from the one it was made from.
+CREATE TABLE IF NOT EXISTS townsfolk_mix (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  mix TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

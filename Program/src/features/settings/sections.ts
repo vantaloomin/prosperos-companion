@@ -90,6 +90,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     id: 'debug', label: 'Debug', pcOnly: true, sections: [
       { heading: 'debug-heading', title: 'Debug time', keywords: 'debug test testing time travel jump skip ahead days fast forward speed accelerate spoof date clock' },
       { heading: 'model-calls-heading', title: 'Record model calls', keywords: 'log logs logging record recording full conversation conversations chats requests responses raw sent strange reply support troubleshoot' },
+      { heading: 'townsfolk-mix-heading', title: 'Townsfolk mix', keywords: 'townsfolk mix ratio ratios shares population generation generate new world reseed gender women men nonbinary height build weight beard facial hair orientation sexuality gay lesbian bisexual straight adult side adventurous drive sliders' },
     ],
   },
   {

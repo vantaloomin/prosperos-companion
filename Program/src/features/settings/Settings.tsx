@@ -8,6 +8,7 @@ import { ModelCalls } from './ModelCalls'
 import { Backups } from './Backups'
 import { DataFolder } from './DataFolder'
 import { DebugSettings } from './DebugSettings'
+import { TownsfolkMix } from './TownsfolkMix'
 import { ChatStyleSettings } from './ChatStyleSettings'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
@@ -103,7 +104,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     notifications: <NotificationSettings />,
     phone: <PhoneSettings />,
     data: <>{!remote && <DataFolder />}<Backups /></>,
-    debug: <><DebugSettings name={name} />{!remote && <ModelCalls />}</>,
+    debug: <><DebugSettings name={name} />{!remote && <ModelCalls />}{!remote && <TownsfolkMix />}</>,
     advanced: <><StoryModeSetting /><PromptSettings /></>,
   }
   return content[tab]

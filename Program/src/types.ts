@@ -1516,3 +1516,24 @@ export interface Worlds {
 
 /** While you were away (companion/recap.py): a catch-up after a few days without a message. */
 export interface AwayRecap { since: string; days: number; items: string[] }
+
+/** Settings > Debug > Townsfolk mix (companion/world/mix.py): the shares the townsfolk rolls use. */
+export interface MixValues {
+  nonbinary: number; women: number; height_woman: number; height_man: number
+  slender: number; middle: number; heavier: number; beard: number
+  gay: number; bisexual: number; bolder: number; drive: number
+}
+export interface MixTown {
+  city: string; people: number
+  genders: Record<'woman' | 'man' | 'nonbinary', number>
+  heights: Record<'woman' | 'man' | 'nonbinary', number | null>
+  builds: Record<'slender' | 'middle' | 'heavier', number>
+  beard: number; gay: number; bisexual: number
+  levels: Record<string, number>; drives: Record<string, number>
+}
+export interface TownsfolkMix {
+  mix: MixValues; defaults: MixValues; limits: Record<keyof MixValues, [number, number, number]>
+  bands: { ages: string; gay: number; bisexual_women: number; bisexual_men: number }[]
+  levels: Record<string, Record<string, number>>; drives: Record<string, Record<string, number>>
+  adult_side: boolean; town: MixTown | null
+}
