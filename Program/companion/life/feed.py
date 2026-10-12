@@ -60,9 +60,16 @@ def image_outdated(connection, post, shown) -> bool:
 
 def said_events(connection, post, shown: list[dict]) -> list[dict]:
     """The events with the companion's own pronouns (companion/life/composer.said); the image check compares the
-    words as written."""
+    words as written. `mine` is the caption and summary as the companion says them on their own post ("I worked
+    late"); summary and caption stay as written for chat."""
     definition = definition_for_timeline(connection, post['timeline_id']) if shown else {}
-    return [{**event, 'summary': composer.said(event['summary'], definition)} for event in shown]
+    return [{**event, 'summary': composer.said(event['summary'], definition), 'mine': mine(event, definition)}
+            for event in shown]
+
+
+def mine(event: dict, definition: dict) -> dict:
+    line = composer.mine(event['summary'], definition.get('name', ''))
+    return {'caption': line if event['caption'] == event['summary'] else event['caption'], 'summary': line}
 
 
 def post_view(connection, post) -> dict | None:

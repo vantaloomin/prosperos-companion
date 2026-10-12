@@ -25,7 +25,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle
+from companion.life import circle, composer
 from companion.world.generators import pick, unit
 
 KINDS = ('status', 'friend', 'birthday', 'holiday', 'city', 'question')
@@ -426,8 +426,13 @@ def view(row: dict, people: dict, companion_name: str) -> dict | None:
     if author is None and not removed:
         return None  # Its author left the circle.
     content = {} if removed else decode(row['content'])
+    text, context = content.get('text', ''), content.get('context', '')
+    if row['kind'] == 'friend' and author:
+        # A friend's entry names them in the third person; on their own post they say it as "I".
+        text, context = (composer.mine(text, author['name']) if text == context else text), \
+            composer.mine(context, author['name'])
     return {'id': row['id'], 'kind': row['kind'], 'source': 'social', 'author': author,
-            'intro': '', 'events': [], 'text': content.get('text', ''), 'context': content.get('context', ''),
+            'intro': '', 'events': [], 'text': text, 'context': context,
             'place': content.get('place', ''), 'options': content.get('options', []), 'answer': row['answer'],
             'status': row['status'], 'read': row['read_at'] is not None, 'read_at': row['read_at'],
             'reaction': row['reaction'], 'occurs_at': row['occurs_at'], 'created_at': row['created_at'],

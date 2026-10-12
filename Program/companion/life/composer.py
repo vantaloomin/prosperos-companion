@@ -251,13 +251,36 @@ OWN = (('went home to their ', 'went home to {their} '), ('celebrated their birt
        ('one they like almost', 'one {they} like{s} almost'))
 
 
-def said(text: str | None, definition: dict) -> str | None:
-    """A day event's summary with the companion's own pronouns, when those are known."""
+def said(text: str | None, definition: dict, found: dict | None = None) -> str | None:
+    """A day event's summary with the companion's own pronouns, when those are known (`found` gives other forms)."""
     if text and TRADITION_MARK in text:
-        text = pronouns.said(text, TRADITION_OWN, definition)
+        text = pronouns.said(text, TRADITION_OWN, definition, found)
     if text and OWN_BIRTHDAY_LINE.search(text):
-        text = pronouns.said(text, OWN_BIRTHDAY_SAID, definition)
-    return pronouns.said(text, OWN, definition)
+        text = pronouns.said(text, OWN_BIRTHDAY_SAID, definition, found)
+    return pronouns.said(text, OWN, definition, found)
+
+
+# A post is written by the one it is about, so the line under it says "I" (companion/life/feed.py, social.py): the
+# summaries name them in the third person. A name that starts a clause is "I", anywhere else "me"; "Sam's" is "my".
+SUBJECT_BEFORE = r'(?:^|[.;:!?,] |\b(?:but|and|so|while|because|when|that|then) )'
+I_VERBS = {'is': 'am', 'has': 'have', 'does': 'do', 'hosts': 'host', "isn't": "aren't", "hasn't": "haven't",
+           "doesn't": "don't"}
+
+
+def mine(text: str | None, name: str) -> str | None:
+    """A summary about `name` (the companion or a circle member) said by them: "Sam kept up" reads "I kept up"."""
+    if not text or not name:
+        return text
+    text = said(text, {}, pronouns.FIRST)
+    names = sorted({name.strip(), name.strip().split()[0]}, key=len, reverse=True)
+    who = '(?:' + '|'.join(re.escape(each) for each in names if each) + ')'
+    text = re.sub(rf'^{who} and ((?:[A-Z][\w.\'-]*)(?: [A-Z][\w.\'-]*)*) ', r'\1 and I ', text)
+    text = re.sub(rf"(^|[.;:!?] ){who}'s\b", lambda found: found.group(1) + 'My', text)
+    text = re.sub(rf"\b{who}'s\b", 'my', text)
+    text = re.sub(rf"({SUBJECT_BEFORE}){who} ([\w']+)\b",
+                  lambda found: f'{found.group(1)}I {I_VERBS.get(found.group(2), found.group(2))}', text)
+    text = re.sub(rf'\b{who}\b', 'me', text)
+    return text[0].upper() + text[1:]
 
 
 def happenings(world, definition: dict, local_date: str) -> list[dict]:

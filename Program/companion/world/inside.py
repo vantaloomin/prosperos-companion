@@ -60,7 +60,7 @@ ERA_SPOTS = {'jazz-age': {'cafe': ('on a stool at the counter', 'in a booth by t
                           'bar': ('in the back room',)}}
 PREPOSITION = re.compile(r'^(?:out on|up on|up in|down by|out in|along|at|in|on|by|under) ', re.IGNORECASE)
 LEAD = re.compile(r'^(?:at|in|on|by|out|up|down|along|under|inside|near) ', re.IGNORECASE)
-SENTENCES = ('Spent most of it {where}.', 'Ended up {where}.', 'Settled in {where} for a while.')
+SENTENCES = ('Spent most of it {where}.', 'Ended up {where}.', 'Settled down {where} for a while.')
 HOME_SENTENCES = ('Mostly {where}.', 'Stayed {where} for most of it.')
 # Which room an activity at home happens in, when the home has it.
 HOME_ROOMS = {'home-cooking': ('in the galley kitchen', 'in the kitchen'),
