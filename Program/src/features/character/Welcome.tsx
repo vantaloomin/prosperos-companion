@@ -26,7 +26,6 @@ export function Welcome({ go }: { go: (view: View) => void }) {
   // Once "Set it up for me" is part of this computer's story, step 1 and the lede keep its "get" wording.
   const getWording = ready?.status === 'ready'
   const steps = welcomeSteps(connection.isSuccess ? connection.data : undefined, setUp, builtin, getWording)
-  const hardware = useHardware()
   const arrival = useArrival()
   return (
     <section className="welcome">
@@ -35,11 +34,20 @@ export function Welcome({ go }: { go: (view: View) => void }) {
         {steps.map((step) => <Step key={step.id} step={step} setUp={step.id === 'model' ? setUp : null} ready={ready} go={go} />)}
       </ol>
       <Feel arrival={arrival} go={go} />
-      {!remote && hardware.data && <div className="welcome-hardware subtle">
-        <p>On this computer: {hardware.data.can_run.join(' ')}</p>
-        {hardware.data.warnings.length > 0 && <p>Settings &gt; Models has {hardware.data.warnings.length === 1 ? 'a warning' : 'warnings'} about the models you set up.</p>}
-      </div>}
+      {!remote && !arrival && <HardwareNote />}
     </section>
+  )
+}
+
+/** What this computer can run: first-install advice, so not shown to a user arriving in another world (Iris). */
+function HardwareNote() {
+  const hardware = useHardware()
+  if (!hardware.data) return null
+  return (
+    <div className="welcome-hardware subtle">
+      <p>On this computer: {hardware.data.can_run.join(' ')}</p>
+      {hardware.data.warnings.length > 0 && <p>Settings &gt; Models has {hardware.data.warnings.length === 1 ? 'a warning' : 'warnings'} about the models you set up.</p>}
+    </div>
   )
 }
 

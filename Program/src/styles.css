@@ -116,6 +116,9 @@ textarea { resize: vertical; line-height: 1.6; }
 .welcome-steps .text-button { padding-left: 0; }
 .welcome-hardware { text-align: left; width: 100%; }
 .welcome-back, .welcome-feels { margin: 0; }
+/* Tappable on a new world's welcome: accent, underlined on hover, 44px tall without moving the line. */
+.text-button.welcome-link { color: var(--accent); min-height: 44px; padding-top: 0; padding-bottom: 0; }
+.text-button.welcome-link:hover { text-decoration: underline; }
 .welcome-hardware p { margin: 0 0 6px; }
 .settings > .notice:first-of-type { margin-bottom: 16px; }
 .lede { color: var(--muted); line-height: 1.8; }

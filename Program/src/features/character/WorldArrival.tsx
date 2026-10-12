@@ -14,12 +14,12 @@ export function FeelsLike({ go }: { go: (view: View) => void }) {
   if (!life.data || !workspace.data) return null
   const label = matchPreset(life.data, workspace.data)?.label ?? 'Your own mix'
   return (
-    <p className="welcome-feels subtle">Feels like: {label} · <button type="button" className="text-button" onClick={() => go('settings/realism')}>Change in Settings &gt; Realism</button></p>
+    <p className="welcome-feels subtle">Feels like: {label} · <button type="button" className="text-button welcome-link" onClick={() => go('settings/realism')}>Change in Settings &gt; Realism</button></p>
   )
 }
 
 /** A way out for someone who opened a new world by accident. */
 export function BackTo({ world }: { world: World }) {
   const back = async () => { await api(`/worlds/${world.id}/switch`, {}); enter() }
-  return <p className="welcome-back"><button type="button" className="text-button" onClick={() => void back()}>Back to {world.name}</button></p>
+  return <p className="welcome-back"><button type="button" className="text-button welcome-link" onClick={() => void back()}>Back to {world.name}</button></p>
 }
