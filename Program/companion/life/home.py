@@ -1,10 +1,10 @@
 """The companion's home and belongings: where they live and the things they live with.
 
 Assembled once per timeline from the world data and a seed, without a model: a home from the
-city's housing and rent data (companion/world/generators.home), sometimes a pet, a few plants, a
-way to get around and a few favourite things suited to their interests and the city's era. It
-changes slowly: every two weeks a seeded draw may bring home a plant, lose one, send the car to
-the shop or add a favourite thing, each logged once on the day it happens.
+city's housing and rent data (companion/world/generators.home), sometimes a pet (always the ones the
+character sheet names), a few plants, a way to get around and a few favourite things suited to their
+interests and the city's era. It changes slowly: every two weeks a seeded draw may bring home a plant,
+lose one, send the car to the shop or add a favourite thing, each logged once on the day it happens.
 
 Belongings show up in the companion's own agenda entries (`touch`, called once from
 companion/life/agenda.py) as a plain sentence the model may rephrase, in image prompts for the
@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, money
+from companion.life import circle, money, named
 from companion.world import catalog, generators
 
 COMPANION = 'companion'
@@ -194,6 +194,12 @@ def pet_item(seed: str, era_modern: bool, label: str = 'pet') -> dict:
             'variety': variety, 'details': {'description': f'{description}, about {age} years old'}}
 
 
+def sheet_pets(definition: dict) -> list[dict]:
+    """The pets the character sheet names (companion/life/named.py): "a one-eyed cat named Pickle"."""
+    return [{'kind': 'pet', 'name': pet['name'], 'variety': pet['variety'],
+             'details': {'description': pet['description'], 'sheet': pet['name']}} for pet in named.pets_of(definition)]
+
+
 def plant_item(seed: str, era_modern: bool, label: str, taken=()) -> dict | None:
     choices = [plant for plant in PLANTS[era_modern] if f'the {plant}' not in taken]
     plant = generators.pick(seed, f'{label}:plant', choices)
@@ -239,7 +245,9 @@ def assemble(seed: str, definition: dict, data: dict | None) -> list[dict]:
     """Everything they start with: the same for the same seed, definition and city data."""
     era_modern = modern(data)
     items = [place_item(seed, definition, data)]
-    if generators.unit(seed, 'has-pet') < 0.55:
+    # The pets the sheet names are their pets; only a sheet that names none leaves it to chance.
+    items += sheet_pets(definition)
+    if not items[1:] and generators.unit(seed, 'has-pet') < 0.55:
         items.append(pet_item(seed, era_modern))
     names: list[str] = []
     for index in range(int(generators.unit(seed, 'plants') * 4)):
@@ -265,6 +273,7 @@ def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
     """The timeline's home state, assembling the home the first time it is needed."""
     state = optional(connection, 'SELECT * FROM home_state WHERE timeline_id=?', (timeline_id,))
     if state:
+        add_sheet_pets(connection, timeline_id, definition, date.fromisoformat(state['started']), now)
         return state
     seed, start = f'home:{timeline_id}', started_on(connection, timeline_id, definition.get('timezone'))
     data = circle.city_data(definition, world)
@@ -275,6 +284,19 @@ def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
                                                         'modern' if modern(data) else data['era'], stamp(now),
                                                         stamp(now)))
     return one(connection, 'SELECT * FROM home_state WHERE timeline_id=?', (timeline_id,))
+
+
+def add_sheet_pets(connection, timeline_id: str, definition: dict, since: date, now):
+    """Pets the sheet names that a home assembled earlier lacks (the sheet was edited, or the home is from before
+    sheets were read), there from the start. A pet the user renamed or removed counts as there."""
+    pets = sheet_pets(definition)
+    if not pets:
+        return
+    rows = many(connection, "SELECT name, details FROM home_items WHERE timeline_id=? AND kind='pet'", (timeline_id,))
+    there = {row['name'] for row in rows} | {decode(row['details']).get('sheet') for row in rows}
+    for pet in pets:
+        if pet['name'] not in there:
+            insert_item(connection, timeline_id, pet, 'generated', since, now)
 
 
 def insert_item(connection, timeline_id, item: dict, origin: str, since: date, now) -> str:
