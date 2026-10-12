@@ -103,11 +103,11 @@ def test_asked_out_they_pick_a_place_and_the_reply_is_told_before_it_is_written(
     assert place['city'] == 'Baltimore' and place['kind'] in {'restaurant', 'tavern', 'inn'} and place['spots']
     notes = provider.requests[-1]['prompt']
     assert 'Going out with the user' in notes and f"dinner at {place['name']}" in notes
-    assert 'Just booked (say this in your reply)' in notes and 'Confirm it in this reply' in notes
-    assert notes.index('Just booked') < notes.index('Going out with the user')
+    assert 'Just agreed with the user (confirm it in your reply)' in notes and 'You agreed to go' in notes
+    assert notes.index('Just agreed') < notes.index('Going out with the user')
     # The next reply still knows the plan, but no longer announces it.
     send(client, 'See you then!', 'client-out-02')
-    assert 'Just booked' not in provider.requests[-1]['prompt']
+    assert 'Just agreed' not in provider.requests[-1]['prompt']
     assert f"Thursday October 8 at 19:00: dinner at {place['name']}" in provider.requests[-1]['prompt']
     reconcile(client)
     block, entry = agenda_entry(client, 'evening@2026-10-08')

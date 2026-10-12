@@ -171,7 +171,7 @@ HEADINGS = {
 # prompt and the conversation stay cacheable, and a small model reads them right next to what it answers.
 NOW = {
        # An outing settled for the turn being answered (companion/life/outings.py): first, so the reply says it.
-       'booked': 'Just booked (say this in your reply)',
+       'booked': 'Just agreed with the user (confirm it in your reply)',
        # Saved since the conversation sent with this reply began (`fresh`): kept out of the system prompt until the
        # conversation's first turn moves on, so saving a memory mid-chat does not change it. Shown under their
        # section's own heading, marked as new.

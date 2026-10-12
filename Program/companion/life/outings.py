@@ -488,8 +488,8 @@ def planned_line(outing: dict) -> str:
 
 def booked_line(outing: dict) -> str:
     """The outing settled for the turn being answered, as what the reply says (first in its notes)."""
-    line = f"- You just said yes: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
-        'Confirm it in this reply: say where and when, in your own words.'
+    line = f"- You agreed to go: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
+        'Confirm where and when in this reply, in your own words.'
     if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
         line += f" They asked for {day_text(outing['asked_date'])}, but you can't make that day, so say so and " \
                 f"that it is {day_text(outing['local_date'])} instead."
