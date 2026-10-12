@@ -2,7 +2,7 @@
 import { cliProviders, embeddingProviders, initialConfig, type ProfileConfig } from './types.ts'
 
 export interface DiscoveredModel { id: string; name: string; context_tokens: number | null; max_output_tokens: number | null; limit_source: 'provider' | 'unreported'; supported_parameters?: string[]; supported_efforts?: string[] }
-export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string }
+export interface Discovery { available: boolean; models: string[]; model_details?: DiscoveredModel[]; generated: false; note?: string; location?: string }
 
 /** Reported limits fill the profile; the longest reply never rises above what the model reports. */
 export function discoveredSettings(model: DiscoveredModel, current: ProfileConfig): Partial<ProfileConfig> {
@@ -27,6 +27,8 @@ export function typedModelSettings(id: string, current: ProfileConfig, models: D
 export function applyDiscovered(result: Discovery, config: ProfileConfig): ProfileConfig {
   const models = result.model_details ?? []
   const selected = models.find(model => model.id === config.model) ?? (!config.model && models.length === 1 ? models[0] : undefined)
+    // The app decides: a Claude plan profile starts on Sonnet, which every plan includes.
+    ?? (!config.model && config.provider === 'claude_code' ? models.find(model => model.id === 'sonnet') : undefined)
   return selected ? { ...config, ...discoveredSettings(selected, config) } : config
 }
 

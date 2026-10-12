@@ -102,7 +102,7 @@ def test_a_missing_login_says_how_to_sign_in(stand_in, monkeypatch):
 def test_test_connection_checks_the_login_and_lists_the_model_names(stand_in, monkeypatch):
     provider = claude_code.ClaudeCodeProvider()
     result = asyncio.run(provider.check(config(), None))
-    assert result['models'] == ['sonnet', 'opus', 'haiku', 'fable']
+    assert result['models'] == ['sonnet', 'opus', 'haiku', 'fable'] and result['location'] == sys.executable
     assert result['model_details'][0]['supported_efforts'] == list(claude_code.EFFORTS)
     assert 'signed in' in result['note'] and 'API key' not in result['note']
     monkeypatch.setenv('STAND_IN_LOGIN', 'key')

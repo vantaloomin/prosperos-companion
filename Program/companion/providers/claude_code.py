@@ -156,7 +156,8 @@ class ClaudeCodeProvider:
                     await process.wait()
 
     async def check(self, config: dict, _key: str | None) -> dict:
-        state = await login_state(executable_path(config))
+        executable = executable_path(config)
+        state = await login_state(executable)
         models = [{'id': model, 'name': name, 'context_tokens': None, 'max_output_tokens': None,
                    'limit_source': 'unreported', 'supported_efforts': list(EFFORTS)} for model, name in MODELS]
         note = 'Claude Code is signed in. These names always use the newest model of each family; your plan ' \
@@ -164,4 +165,4 @@ class ClaudeCodeProvider:
         if 'api' in state['method'].lower():
             note += ' Claude Code is signed in with an API key, so replies are billed to that key, not your plan.'
         return {'available': True, 'models': [model['id'] for model in models], 'model_details': models,
-                'generated': False, 'note': note}
+                'generated': False, 'note': note, 'location': executable}

@@ -23,6 +23,8 @@ test('a typed ID forgets reported limits unless it matches a listed model', () =
 test('a test picks the only returned model, and otherwise keeps the choice', () => {
   assert.equal(applyDiscovered({ available: true, models: [], model_details: [mystery], generated: false }, configFor('local')).model, 'mystery')
   assert.equal(applyDiscovered({ available: true, models: [], model_details: [mystery, sonnet], generated: false }, configFor('local')).model, '')
+  const plan = (id: string): DiscoveredModel => ({ id, name: id, context_tokens: null, max_output_tokens: null, limit_source: 'unreported' })
+  assert.equal(applyDiscovered({ available: true, models: [], model_details: [plan('opus'), plan('sonnet')], generated: false }, configFor('claude_code')).model, 'sonnet')
 })
 
 test('model search matches every word in the name or ID', () => {
