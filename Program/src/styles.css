@@ -222,7 +222,13 @@ textarea { resize: vertical; line-height: 1.6; }
   .app-nav .rail-only { display: none; }
   .app-nav button { flex: 1 1 0; min-width: 44px; min-height: 48px; padding: 6px 2px; font-size: 0.6875rem; }
   /* At large text sizes a label wraps onto a second line rather than pushing the icons off the bar. */
-  .app-nav button > span:last-child { white-space: normal; text-align: center; line-height: 1.15; overflow-wrap: anywhere; }
+  /* Tab labels grow with the text size up to 14px, as phone tab bars do, so they never cut a word or push the icons off. */
+  .app-nav button { font-size: min(0.6875rem, 14px); }
+  .app-nav button > span:last-child { white-space: nowrap; }
+  /* At large text sizes the chat header's lines stay one line each and end in an ellipsis, so the back chevron and
+     "…" keep their place and the messages keep most of the screen. */
+  .conversation-title :is(h1, h2, p) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conversation-title { min-width: 0; }
   .app-nav button:last-child { margin-top: 0; }
   .app-nav .nav-chats { order: 1; }
   .app-nav .nav-today { order: 2; }
@@ -893,6 +899,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .download-facts dt { color: var(--muted); font-size: 0.8125rem; }
 .download-facts dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
 .download-facts .short dd, .download-short { color: var(--danger); }
+.download-facts a { color: var(--accent); }
 .download-progress { display: grid; gap: 6px; }
 .download-progress p { margin: 0; }
 .download-title { font-weight: 600; }

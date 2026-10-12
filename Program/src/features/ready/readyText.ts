@@ -19,7 +19,7 @@ export const isRunning = (view?: ReadyView | null) => !!view && (view.status ===
 /** "10.5 GB", or "25 MB" for the small runtime. */
 export function size(bytes: number): string {
   if (bytes < 1e9) return `${Math.max(1, Math.round(bytes / 1e6))} MB`
-  return `${(bytes / 1e9).toFixed(1)} GB`
+  return bytes >= 100e9 ? `${Math.round(bytes / 1e9)} GB` : `${(bytes / 1e9).toFixed(1)} GB`
 }
 
 /** Rounded so it never flickers: "about 2 minutes", "about 40 minutes", "about 1 hour". */
