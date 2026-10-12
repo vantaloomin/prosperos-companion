@@ -358,6 +358,10 @@ textarea { resize: vertical; line-height: 1.6; }
   .message .message-tools .text-button, .chat-retro .message .message-tools .text-button { min-width: 28px; min-height: 28px; padding: 0; justify-content: center; }
   /* Novel cards clip what pokes out, and Retro lines have no gap between them: the row sits inside their right end. */
   .chat-novel .message .message-tools { top: 8px; transform: none; }
+  /* Feed and Novel keep the time at the right end of the name row: the row sits on that line just left of the time
+     (and the pager and sidecar button), so it never covers them, at any window width. */
+  :is(.chat-feed, .chat-novel) .message > header > :is(.reply-tools, .message-actions) { position: relative; }
+  :is(.chat-feed, .chat-novel) .message .message-tools { top: 50%; right: calc(100% + 8px); transform: translateY(-50%); }
   .chat-retro .message .message-tools { top: -6px; right: 4px; transform: none; }
   /* Bubbles put the time under the bubble, so the top edge is the text itself: the row sits just above the bubble. */
   .chat-bubbles .message .message-tools { transform: translateY(-100%); }
