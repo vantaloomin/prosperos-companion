@@ -143,7 +143,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .story-empty { text-align: center; margin-top: 24px; }
 .story-notice, .story-footer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .story-notice { padding-top: 12px; }
-.story-footer { padding-bottom: 16px; }
+.story-footer { padding-bottom: 16px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
 /* The dating app (src/features/dating): one card at a time; older eras show a newspaper notice. */
 .dating-setup { max-width: 520px; }
 .dating-setup label { display: flex; flex-direction: column; gap: 4px; }
@@ -1627,6 +1627,9 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .header-menu { position: relative; display: inline-flex; }
 .header-menu-panel { position: absolute; z-index: 30; left: 0; top: calc(100% + 6px); display: flex; flex-direction: column; gap: 6px; min-width: 180px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 0.8125rem; box-shadow: 0 6px 18px #0006; }
 .header-menu-panel .chat-style-switch { max-width: none; width: 100%; }
+.header-menu-panel > label { display: flex; flex-direction: column; gap: 6px; }
+/* On a wide screen the More button ends the header, so its panel opens leftward and stays on screen. */
+@media (min-width: 721px) { .header-menu-panel { left: auto; right: 0; } }
 @media (max-width: 720px) {
   .conversation-header { row-gap: 8px; }
   .conversation-header .chat-back { margin-right: -8px; }
