@@ -1,0 +1,191 @@
+"""Set it up for me (companion/ready.py): the model it picks, the confirmed download that resumes, and the built-in
+chat profile it leaves (companion/providers/builtin_chat.py)."""
+import hashlib
+import time
+
+import httpx
+import pytest
+from fastapi.testclient import TestClient
+
+from companion import ready
+from companion.identity import CLIENT_HEADER
+from companion.main import create_app
+from companion.providers import builtin_chat, builtin_recall
+from companion.providers.chat import ChatProvider
+from companion.providers.vault import MemoryVault
+from companion.text_models import config_for
+from tests.conftest import send
+from tests.test_builtin_recall import Machine, runtime_zip
+
+MODEL = b'GGUF' + bytes(range(256)) * 40
+
+
+def card(name, memory, usable=None):
+    return {'index': 0, 'name': name, 'memory_gb': memory, 'usable_gb': usable or memory, 'used_gb': None,
+            'shared': False}
+
+
+def report(gpus, images=()):
+    return {'computer': {'gpus': gpus, 'memory_gb': 32.0}, 'local_images': list(images)}
+
+
+def test_the_biggest_model_that_fits_whole_is_picked():
+    assert ready.pick(report([card('RTX 4090', 24.0)]))[0]['key'] == 'qwen3.8-27b'
+    assert ready.pick(report([card('RTX 4070', 12.0)]))[0]['key'] == 'qwen3.5-9b-q8'
+    assert ready.pick(report([card('RTX 3060 Ti', 8.0)]))[0]['key'] == 'qwen3.5-9b'
+    small, why = ready.pick(report([card('GTX 1650', 4.0)]))
+    assert small['key'] == 'qwen3.5-4b' and 'GTX 1650' in why
+    tiny, why = ready.pick(report([card('Old card', 2.0)]))
+    assert tiny['key'] == 'qwen3.5-4b' and 'processor' in why
+    none, why = ready.pick(report([]))
+    assert none['key'] == 'qwen3.5-4b' and 'processor' in why
+
+
+def test_local_pictures_on_the_same_card_keep_their_room():
+    comfy = {'label': 'ComfyUI', 'size_gb': 11.0}
+    chosen, why = ready.pick(report([card('RTX 4090', 24.0)], [comfy]))
+    assert chosen['key'] == 'qwen3.5-9b-q8' and 'beside your local pictures' in why
+    # A second card that holds the pictures leaves the big one to the chat model.
+    two = report([card('RTX 5090', 32.0), {**card('RTX 4090', 24.0), 'index': 1}], [comfy])
+    assert ready.pick(two)[0]['key'] == 'qwen3.8-27b'
+
+
+def test_every_model_is_pinned_and_needs_no_click_through():
+    for item in ready.MODELS:
+        assert len(item['revision']) == 40 and len(item['sha256']) == 64 and item['bytes'] > 10**9
+        assert ready.url(item).startswith('https://huggingface.co/unsloth/') and item['revision'] in ready.url(item)
+    assert ready.LICENCE == 'Apache 2.0'
+
+
+class Hub(Machine):
+    """The PC plus Hugging Face: serves the model file, honours ranges, and can drop the connection once."""
+
+    def __init__(self, archive):
+        super().__init__(archive)
+        self.drop_after = None
+        self.ranges = []
+        self.chats = []
+
+    def handle(self, request: httpx.Request) -> httpx.Response:
+        if request.url.host == 'huggingface.co':
+            return self.serve(request)
+        if request.url.path.endswith('/chat/completions'):
+            self.chats.append(request.url.port)
+            return httpx.Response(200, text='data: {"choices":[{"delta":{"content":"hey"}}]}\n\ndata: [DONE]\n\n',
+                                  headers={'content-type': 'text/event-stream'})
+        return super().handle(request)
+
+    def serve(self, request):
+        start = int(request.headers['range'].split('=')[1].rstrip('-')) if 'range' in request.headers else 0
+        self.ranges.append(start)
+        body = MODEL[start:]
+        if self.drop_after is not None:
+            cut, self.drop_after = self.drop_after, None
+            return httpx.Response(206 if start else 200, stream=Dropping(body[:cut]))
+        return httpx.Response(206 if start else 200, content=body)
+
+
+class Dropping(httpx.AsyncByteStream):
+    def __init__(self, data):
+        self.data = data
+
+    async def __aiter__(self):
+        yield self.data
+        raise httpx.ReadError('connection reset')
+
+
+class FakeHardware:
+    def __init__(self, gpus):
+        self.gpus = gpus
+
+    def report(self, _database, fresh=False):
+        return {'computer': {'gpus': self.gpus, 'memory_gb': 32.0, 'system': 'Windows', 'cores': 16,
+                             'gpu_note': None}, 'can_run': [], 'local_text': [], 'local_images': [], 'warnings': []}
+
+
+@pytest.fixture
+def hub(monkeypatch):
+    archive = runtime_zip()
+    monkeypatch.setattr(builtin_recall, 'platform_key', lambda: 'windows-x64')
+    monkeypatch.setattr(builtin_chat, 'GPU_RUNTIMES', {'windows-x64': (
+        'llama-gpu.zip', len(archive), hashlib.sha256(archive).hexdigest())})
+    monkeypatch.setattr(builtin_recall, 'POLL_SECONDS', 0.01)
+    monkeypatch.setattr(ready, 'SPARE_BYTES', 0)
+    monkeypatch.setattr(ready.asyncio, 'sleep', fast_sleep)
+    monkeypatch.delenv(builtin_recall.SERVER_ENV, raising=False)
+    small = {**ready.MODELS[-1], 'bytes': len(MODEL), 'sha256': hashlib.sha256(MODEL).hexdigest()}
+    monkeypatch.setattr(ready, 'MODELS', [*ready.MODELS[:-1], small])
+    return Hub(archive)
+
+
+SLEEP = ready.asyncio.sleep
+
+
+async def fast_sleep(seconds):
+    await SLEEP(min(seconds, 0.01))
+
+
+@pytest.fixture
+def client(tmp_path, clock, hub):
+    transport = httpx.MockTransport(hub.handle)
+    app = create_app(tmp_path / 'workspace' / 'companion.sqlite3', clock=clock, vault=MemoryVault(), life_tasks=False,
+                     provider=ChatProvider(transport), builtin_spawn=hub.spawn, builtin_transport=transport,
+                     hardware=FakeHardware([card('GTX 1650', 4.0)]))
+    with TestClient(app, headers={CLIENT_HEADER: 'workspace'}) as test_client:
+        yield test_client
+
+
+def settled(client, seconds=10):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        view = client.get('/api/ready').json()
+        if view['status'] not in ('downloading', 'checking'):
+            return view
+        time.sleep(0.02)
+    raise AssertionError('the download kept running')
+
+
+def test_nothing_downloads_until_the_user_confirms(client, hub):
+    view = client.get('/api/ready').json()
+    assert view['status'] == 'idle' and view['pick']['key'] == 'qwen3.5-4b'
+    assert view['pick']['bytes'] == len(MODEL) and view['pick']['quant'] == 'Q4_K_M' and view['pick']['fits']
+    assert view['runtime']['installed'] is False and hub.ranges == []
+    assert client.post('/api/ready', json={'model': 'gpt-9'}).status_code == 422
+
+
+def test_set_it_up_downloads_resumes_and_makes_the_chat_profile(client, hub):
+    hub.drop_after = 1000
+    assert client.post('/api/ready', json={'model': 'qwen3.5-4b'}).json()['status'] == 'downloading'
+    view = settled(client)
+    assert view['status'] == 'ready', view['message']
+    assert hub.ranges == [0, 1000]  # The dropped download carried on from where it stopped.
+    assert view['received'] == view['total'] == len(MODEL) and view['runtime']['installed']
+    with client.app.state.database.connect() as connection:
+        config = config_for(connection, 'chat')
+    assert config['profile_name'] == 'Built-in · Qwen3.5 4B' and config['resource_group'] == 'builtin-chat'
+    assert config['model'] == 'Qwen3.5-4B-Q4_K_M' and config['provider'] == 'local'
+    process = hub.processes[-1]
+    assert '--jinja' in process.arguments and process.arguments[process.arguments.index('-ngl') + 1] == '999'
+
+
+def test_a_reply_starts_the_server_and_asks_it(client, hub, companion):
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    assert settled(client)['status'] == 'ready'
+    port = int(hub.processes[-1].arguments[hub.processes[-1].arguments.index('--port') + 1])
+    send(client, 'hi', 'ready-message-1')
+    assert hub.chats and hub.chats[-1] == port
+
+
+def test_a_bad_download_is_thrown_away(client, hub, monkeypatch):
+    broken = {**ready.MODELS[-1], 'sha256': '0' * 64}
+    monkeypatch.setattr(ready, 'MODELS', [*ready.MODELS[:-1], broken])
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    view = settled(client)
+    assert view['status'] == 'failed' and 'checksum' in view['message']
+    assert not list((client.app.state.builtin_chat.folder / 'models').glob('*.partial'))
+
+
+def test_not_enough_disk_space_says_so(client, monkeypatch):
+    monkeypatch.setattr(ready.Ready, 'free_bytes', lambda self: 10)
+    response = client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    assert response.status_code == 409 and 'disk space' in response.json()['detail']

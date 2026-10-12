@@ -14,6 +14,7 @@ import httpx
 
 from companion.errors import DomainError, require
 from companion.providers import balance
+from companion.providers.builtin_chat import RESOURCE_GROUP as BUILTIN_CHAT
 from companion.providers.codex import CodexProvider
 from companion.providers.discovery import discover_models
 from companion.providers.discovery_errors import check_with_deadline
@@ -156,6 +157,18 @@ class ChatProvider:
         self.codex = codex or CodexProvider()
         # Instant replies on local models: each companion's prompt start kept and put back (prompt_cache.py).
         self.prompts = PromptCache()
+        # The built-in chat model's server (builtin_chat.py), set by the app.
+        self.builtin_chat = None
+
+    async def builtin_address(self, config: dict) -> dict:
+        """The built-in chat profile asks the server where it runs now, starting it on the first reply."""
+        if config.get('resource_group') != BUILTIN_CHAT or self.builtin_chat is None:
+            return config
+        try:
+            return {**config, 'base_url': await self.builtin_chat.address()}
+        except DomainError as error:
+            raise DomainError(f'The built-in chat model is not running: {error.message}', 503, 'connection') \
+                from error
 
     async def stream(self, config: dict, key: str | None, system: str, messages: list[dict]) -> AsyncIterator[Chunk]:
         provider = provider_of(config)
@@ -163,7 +176,7 @@ class ChatProvider:
             async for chunk in self.codex.stream(config, key, system, messages):
                 yield chunk
             return
-        config = {**config, 'provider': provider}
+        config = {**await self.builtin_address(config), 'provider': provider}
         validate_key(provider, key)
         path, body = REQUESTS[provider](config, system, messages)
         try:
@@ -237,6 +250,7 @@ class ChatProvider:
         """List the service's models without generating anything."""
         if config['provider'] == 'codex':
             return await self.codex.check(config, key)
+        config = await self.builtin_address(config)
         validate_key(config['provider'], key)
         async with httpx.AsyncClient(transport=self.transport, timeout=15, trust_env=False,
                                      follow_redirects=False) as client:

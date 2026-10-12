@@ -58,8 +58,11 @@ from companion.phone import access as phone_access
 from companion.phone import lan as phone_lan
 from companion.phone import push as phone_push
 from companion.phone import routes as phone_routes
+from companion.providers.builtin_chat import BuiltinChat
 from companion.providers.builtin_recall import BuiltinRecall
 from companion.providers.vault import SystemVault
+from companion.ready import Ready, uses_builtin
+from companion.ready_routes import router as ready_router
 from companion.recall_routes import router as recall_router
 from companion.routes import router
 from companion.text_model_routes import router as model_router
@@ -150,8 +153,12 @@ async def lifespan(app):
              asyncio.create_task(app.state.push.run_forever()),
              asyncio.create_task(auto_backup.run_forever(app.state))] if app.state.life_tasks else []
     if app.state.life_tasks:
-        # Built-in recall loads its model now, so the first reply does not wait for it.
+        # Built-in recall loads its model now, so the first reply does not wait for it; so does the built-in chat
+        # model while it does the chat job, and a confirmed download carries on.
         app.state.builtin_recall.kick()
+        app.state.ready.recover()
+        if uses_builtin(app.state.database):
+            app.state.builtin_chat.kick()
         tasks.append(asyncio.create_task(prepare_voice(app.state.voice)))
         # Local programs the user asked to start with the Companion (off until turned on).
         tasks.append(asyncio.create_task(app.state.launcher.launch_all()))
@@ -160,6 +167,7 @@ async def lifespan(app):
     yield
     await app.state.lan.stop()
     app.state.builtin_recall.shutdown()
+    app.state.builtin_chat.shutdown()
     app.state.training.shutdown()
     for task in tasks:
         task.cancel()
@@ -185,6 +193,10 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.launcher = launcher or Launcher(app.state.database)
     app.state.conversation.embedder.builtin = app.state.builtin_recall
     app.state.hardware = hardware or Hardware()
+    app.state.builtin_chat = BuiltinChat(app.state.database, builtin_spawn, builtin_transport)
+    app.state.conversation.provider.inner.builtin_chat = app.state.builtin_chat
+    app.state.ready = Ready(app.state.database, app.state.builtin_chat,
+                            lambda: app.state.hardware.report(app.state.database), builtin_transport)
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
                                     app.state.conversation.embedder, enabled=life_tasks,
                                     provider=app.state.conversation.provider)
@@ -239,6 +251,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(recall_router)
     app.include_router(voice_router)
     app.include_router(hardware_router)
+    app.include_router(ready_router)
     app.include_router(life_routes.router)
     app.include_router(home_routes.router)
     app.include_router(wardrobe_routes.router)
