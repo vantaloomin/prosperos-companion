@@ -125,3 +125,12 @@ def test_your_own_lyrics_join_retro_im_from_a_file_in_the_data_folder(client, cl
         seen.add(read(client)['text'])
     assert '♫ a lyric only on this computer ♫' in seen, seen
     assert not any('skipped' in line for line in seen)
+
+
+def test_retro_work_lines_fit_their_job_and_their_era():
+    def lines(career, city='baltimore'):
+        return status.retro_away({'name': 'Ezra', 'home_city': city, 'money': {'career': career}}, 'work')
+    boatbuilder = lines('boatbuilder', 'haddon-harbor')
+    assert boatbuilder and not [line for line in boatbuilder if 'email' in line or 'office' in line or 'mall' in line]
+    assert any('email' in line for line in lines('accountant'))
+    assert lines('boatbuilder', 'pellmouth') == list(status.AWAY['work'])
