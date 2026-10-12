@@ -222,10 +222,12 @@ def recommended(connection, timeline_id, slot_key) -> bool:
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
     """Slots a committed plan names come first, so a plan happens when its time comes; then sessions of
     something the user recommended or plans the companion made in chat, so the companion's account follows
-    them, and slots photographed in chat, so the moment the user saw becomes an event."""
-    planned = [slot for slot in slots if plan_for(connection, timeline_id, slot.key)
-               or recommended(connection, timeline_id, slot.key)
-               or feed.photographed(connection, event_key(timeline_id, slot.key))][:count]
+    them. Slots photographed in chat are always kept, even past the cap, so the moment the user saw becomes
+    an event however long the catch-up was."""
+    photographed = [slot for slot in slots if feed.photographed(connection, event_key(timeline_id, slot.key))]
+    planned = photographed + [slot for slot in slots if slot not in photographed and (
+        plan_for(connection, timeline_id, slot.key) or recommended(connection, timeline_id, slot.key))
+    ][:max(0, count - len(photographed))]
     rest = spread([slot for slot in slots if slot not in planned], count - len(planned), seed)
     return sorted(planned + rest, key=lambda slot: slot.starts_at)
 

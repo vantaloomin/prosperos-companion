@@ -583,3 +583,19 @@ def test_a_long_catch_up_is_written_a_subject_at_a_time_first(client, life, cloc
     monkeypatch.setattr(agenda, 'extend_subject', lambda *args: calls.append(args))
     agenda.catch_up_in_steps(database, None, engine.world, clock.now())
     assert calls == []
+
+
+def test_a_photographed_slot_is_kept_however_many_plans_came_first(monkeypatch):
+    """A long catch-up with more planned slots than the cap still writes the event a chat photo waits on."""
+    from types import SimpleNamespace
+
+    from companion.life import simulation
+    start = datetime(2026, 3, 2, 9, tzinfo=UTC)
+    slots = [SimpleNamespace(key=f's{index}', starts_at=start + timedelta(hours=index)) for index in range(6)]
+    monkeypatch.setattr(simulation, 'plan_for', lambda connection, timeline, key: key != 's5')
+    monkeypatch.setattr(simulation, 'recommended', lambda connection, timeline, key: False)
+    monkeypatch.setattr(simulation.feed, 'photographed', lambda connection, key: key.endswith(':s5'))
+    chosen = [slot.key for slot in simulation.choose(None, 't', slots, 2, 'seed')]
+    assert chosen == ['s0', 's5']
+    alone = [slot.key for slot in simulation.choose(None, 't', slots, 0, 'seed')]
+    assert alone == ['s5']
