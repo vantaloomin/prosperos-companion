@@ -20,7 +20,7 @@ from companion.models import CharacterDefinition, EmotionalTrait, RoutineBlock
 from companion.providers.scheduling import Work
 from companion.text_models import config_for, key_for
 from companion.traits import ABSENCE_WORDS
-from companion.world import catalog, custom, generators, naming, perception
+from companion.world import catalog, custom, generators, intimacy, naming, perception
 
 PROMPT_VERSION = 'character-draft-4'
 PROMPTS = Path(__file__).parent / 'prompts'
@@ -83,10 +83,26 @@ def city_text(data: dict | None) -> str:
             f"{data['summary']} The app supplies its neighbourhoods and places.")
 
 
-def careers(data: dict | None) -> dict[str, dict]:
+def careers(data: dict | None, adult: bool = False) -> dict[str, dict]:
+    """The occupations to choose from; adult work only while Settings > Realism > Adult side of life is on."""
     if data:
-        return catalog.careers_for(data)
-    return {key: career for key, career in catalog.careers().items() if 'modern' in career['eras']}
+        offered = catalog.careers_for(data)
+    else:
+        offered = {key: career for key, career in catalog.careers().items() if 'modern' in career['eras']}
+    return offered if adult else catalog.everyday(offered)
+
+
+def adult_side(database) -> bool:
+    with database.connect() as connection:
+        return intimacy.turned_on(connection)
+
+
+def adult_career_allowed(career: dict | None, definition: dict, age: str = '') -> bool:
+    """Adult work only for someone who reads as an adult: the same check as their adult side."""
+    if not career or not career.get('adult'):
+        return True
+    picked = age_value(age)
+    return not intimacy.reads_as_minor(definition) and (picked is None or picked >= intimacy.ADULT_AT)
 
 
 def careers_text(offered: dict[str, dict]) -> str:
@@ -418,6 +434,8 @@ class Draft:
         if missing:
             raise Unusable(f"it left out {', '.join(missing)}.")
         career_id = raw.get('career') if raw.get('career') in self.offered else ''
+        if not adult_career_allowed(self.offered.get(career_id), definition, self.body.age):
+            career_id = ''
         career = self.offered.get(career_id)
         definition |= life(raw, career, self.seed, final) | self.placed()
         definition['routine'] = agreeing_routine(definition['routine'], definition['schedule'])[:TEXT_LIMITS['routine']]
@@ -451,7 +469,7 @@ async def draft(state, body) -> dict:
     """The quick start: a whole character drafted from a short idea and the user's picks."""
     config = connection_config(state.database)
     data, seed = home(state.database, body.home_city), identifier()
-    offered = careers(data)
+    offered = careers(data, adult_side(state.database))
     system = fill(template('character-draft.md', state.database), rules=template('character-rules.md', state.database),
                   picks=picks_text(body),
                   city=city_text(data), careers=careers_text(offered), names=names_text(data, seed, body.age),

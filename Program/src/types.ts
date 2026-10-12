@@ -188,7 +188,7 @@ export interface MoneySetup {
   goal_since: string
 }
 
-export interface CareerSummary { id: string; name: string; pay: string; eras: string[] }
+export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
 interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' }
 

@@ -73,7 +73,7 @@ def origin(data: dict, sheet: dict, seed: str, modern: bool) -> str:
 def work(data: dict, sheet: dict, seed: str) -> list[str]:
     """How long at the current job (staff), or retirement, and the jobs before it, newest first."""
     span = max(sheet['age'] - WORK_FROM, 0)
-    careers = sorted(career['name'].lower() for career in catalog.careers_for(data).values())
+    careers = sorted(career['name'].lower() for career in catalog.everyday(catalog.careers_for(data)).values())
     current = (sheet.get('occupation') or '').lower()
     past = [career for career in careers if career != current]
     lines, used = [], 0

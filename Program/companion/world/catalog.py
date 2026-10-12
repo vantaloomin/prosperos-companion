@@ -41,6 +41,11 @@ def careers_for(data: dict, *, needs_met: bool = True) -> dict[str, dict]:
     return shared | {career['id']: career for career in data['careers']}
 
 
+def everyday(offered: dict[str, dict]) -> dict[str, dict]:
+    """The careers without the adult ones, for anything the app rolls by itself (a townsperson's job, a job change)."""
+    return {key: career for key, career in offered.items() if not career.get('adult')}
+
+
 @cache
 def names() -> dict:
     """The shared name banks and each era's default bank and group weights."""

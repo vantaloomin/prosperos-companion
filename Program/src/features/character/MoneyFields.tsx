@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { CareerSummary, CitySummary, MoneySetup, SpendingStyle } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
+import { useWorkspaceSettings } from '../../companion'
 import { careersFor, todayIso } from './money'
 
 const STYLES: { value: SpendingStyle; label: string }[] = [
@@ -17,6 +18,7 @@ export function MoneyFields({ money, homeCity, onChange }: Props) {
   const careers = useQuery({ queryKey: ['careers'], queryFn: () => api<CareerSummary[]>('/world/careers'), staleTime: Infinity })
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
   const era = cities.data?.find((city) => city.id === homeCity)?.era
+  const adult = useWorkspaceSettings().data?.adult_side === true
   const set = (change: Partial<MoneySetup>) => onChange({ ...money, ...change })
   // A new goal starts counting savings from today.
   const setGoal = (change: Partial<MoneySetup>) => set({ ...change, goal_since: todayIso() })
@@ -28,7 +30,7 @@ export function MoneyFields({ money, homeCity, onChange }: Props) {
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.career} onChange={(event) => set({ career: event.target.value })}>
             <option value="">Guess from who they are</option>
-            {careersFor(careers.data ?? [], era, money.career).map((career) => <option key={career.id} value={career.id}>{career.name} ({career.pay})</option>)}
+            {careersFor(careers.data ?? [], era, money.career, adult).map((career) => <option key={career.id} value={career.id}>{career.name} ({career.pay})</option>)}
           </select>
         )}
       </Field>

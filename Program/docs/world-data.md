@@ -45,7 +45,7 @@ are optional, so a setting without money (Oz) or without weather data still work
 | Path | Holds |
 | --- | --- |
 | `companion/world/data/cities/<id>.json` | One city. Validated against `companion/world/schema.py` on load and in the tests. |
-| `companion/world/data/careers.json` | Careers with sector, schedule pattern, pay band and themes. |
+| `companion/world/data/careers.json` | Careers with sector, schedule pattern, pay band and themes. `adult: true` marks adult work: only chosen for adult companions (drafting, the character form with the adult side on), never rolled for townsfolk, circles or job changes (`catalog.everyday`). |
 | `companion/world/data/names.json` | Name banks for residents, written by `scripts/world/names.py`. |
 | `companion/world/data/given_names.json` | Popular given names by birth year, family names by culture and names that read as invented, written by `scripts/world/given_names.py` from `scripts/world/name_sources/`. |
 | `companion/world/data/holidays.json` | Holiday calendars, written by `scripts/world/holidays.py`. |

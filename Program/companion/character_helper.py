@@ -42,6 +42,7 @@ class SplitBody:
     emotional_edges: bool
     name: str = ''
     vibe: str = ''
+    age: str = ''
 
 
 def mentioned_city(text: str, cities: dict[str, dict]) -> dict | None:
@@ -72,7 +73,7 @@ async def split(state, body) -> dict:
     config = drafting.connection_config(state.database)
     data = mentioned_city(body.text, catalog.cities() | custom.read(state.database))
     seed = identifier()
-    offered = drafting.careers(data)
+    offered = drafting.careers(data, drafting.adult_side(state.database))
     request = SplitBody(idea=body.text, relationship=body.relationship, timezone=body.timezone,
                         emotional_edges=body.emotional_edges)
     system = drafting.fill(

@@ -278,3 +278,30 @@ def test_invented_names_are_swapped_consistently_whatever_the_seed():
         given = re.search(r'calls (.+) every Sunday', swapped['background'])[1]
         assert swapped['name'].startswith(f'{given} ')
         assert not drafting.naming.invented_in(json.dumps(swapped))
+
+
+ADULT = GOOD | {'name': 'Ashley Ruiz', 'career': 'subscription-creator',
+                'identity': 'Ashley is 20 and runs a paid fan page from the apartment she shares with a roommate.'}
+
+
+def test_adult_work_is_offered_only_with_the_adult_side_on(client, provider):
+    connect(client)
+    provider.respond = replying(json.dumps(ADULT))
+    off = client.post('/api/companion/draft', json={'idea': 'a 20 year old OnlyFans creator', 'age': '20',
+                                                    'home_city': 'los-angeles'}).json()
+    assert 'subscription-creator' not in provider.requests[-1]['system'] and off['career'] is None
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    provider.respond = replying(json.dumps(ADULT))
+    on = client.post('/api/companion/draft', json={'idea': 'a 20 year old OnlyFans creator', 'age': '20',
+                                                   'home_city': 'los-angeles'}).json()
+    assert 'subscription-creator: Subscription content creator' in provider.requests[-1]['system']
+    assert on['career']['id'] == 'subscription-creator'
+    assert on['definition']['money']['career'] == 'subscription-creator'
+
+
+def test_adult_work_is_only_ever_an_adults():
+    creator = drafting.catalog.careers()['subscription-creator']
+    assert drafting.adult_career_allowed(creator, {'identity': 'Ashley is 20 and runs a fan page.'}, '20')
+    assert not drafting.adult_career_allowed(creator, {'identity': 'Ashley is 20 and runs a fan page.'}, '17')
+    assert not drafting.adult_career_allowed(creator, {'identity': 'A 17-year-old who runs a fan page.'})
+    assert drafting.adult_career_allowed(drafting.catalog.careers()['teacher'], {'identity': 'A 17-year-old.'}, '17')
