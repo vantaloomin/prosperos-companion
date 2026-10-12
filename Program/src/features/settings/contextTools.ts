@@ -125,5 +125,5 @@ export function sentArguments(item: Observation): string {
 }
 
 function clock(value: string): string {
-  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }

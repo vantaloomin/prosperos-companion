@@ -33,6 +33,9 @@
 @font-face { font-family: 'OpenDyslexic'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/opendyslexic/OpenDyslexic-Bold.woff2') format('woff2'); }
 @font-face { font-family: 'OpenDyslexic'; font-style: italic; font-weight: 700; font-display: swap; src: url('/fonts/opendyslexic/OpenDyslexic-BoldItalic.woff2') format('woff2'); }
 :root { --ui-font: 'IBM Plex Sans', system-ui, sans-serif; --read-font: 'Literata', Georgia, serif; }
+/* Insets for bordered boxes (companion-design/subsection-spacing.md): panels and disclosures, cards in a list. Never below 12px. */
+:root { --panel-pad: 16px; --card-pad: 12px 14px; --card-gap: 12px; }
+@media (max-width: 720px) { :root { --card-pad: 12px; } }
 :root[data-font='atkinson'] { --chosen-font: 'Atkinson Hyperlegible', system-ui, sans-serif; }
 :root[data-font='opendyslexic'] { --chosen-font: 'OpenDyslexic', system-ui, sans-serif; }
 /* A reading font is for reading text in every chat style, Retro included (accessibility beats the costume); menus,
@@ -170,8 +173,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .story-user { margin: 0 0 20px auto; max-width: 85%; padding: 10px 14px; border-radius: 12px; background: var(--accent-tint); white-space: pre-wrap; overflow-wrap: anywhere; width: fit-content; }
 .story-move { margin-bottom: 20px; text-align: center; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
 .story-people summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }
-.story-people ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; max-height: 40dvh; overflow-y: auto; }
-.story-people li { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
+.story-people ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: var(--card-gap); max-height: 40dvh; overflow-y: auto; }
+.story-people li { display: flex; flex-direction: column; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
 .story-people .form-actions { gap: 14px; }
 .story-note { font-family: var(--read-font); font-size: 0.875rem; color: var(--muted); font-style: italic; }
 .story-empty { text-align: center; margin-top: 24px; }
@@ -423,7 +426,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .why-it-went { margin: 0 0 6px; }
 .why-it-went summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .why-it-went ul { margin-top: 6px; }
-.deck-card { display: grid; gap: 2px; max-width: 32rem; margin: 6px 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.deck-card { display: grid; gap: 6px; max-width: 32rem; margin: 6px 0; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 8px; }
 .event-list, .plain-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 10px; }
 .plain-list li { line-height: 1.6; }
 .event { padding: 14px 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
@@ -491,7 +494,7 @@ textarea { resize: vertical; line-height: 1.6; }
 /* What the next reply uses */
 .context-receipt { margin-bottom: 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .context-receipt > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
-.receipt-body { padding: 0 16px 16px; display: grid; gap: 12px; }
+.receipt-body { padding: 0 var(--panel-pad) var(--panel-pad); display: grid; gap: 12px; }
 .receipt-meter { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; }
 .receipt-meter span { display: block; height: 100%; background: var(--accent); }
 .receipt-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -631,10 +634,16 @@ textarea { resize: vertical; line-height: 1.6; }
 /* Real-world lookups (PRD X1–X3) */
 .context-mapping { display: grid; gap: 6px; padding: 10px 12px; border-left: 3px solid var(--border); }
 .disclosure { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 0.875rem; }
-.lookup-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.lookup-list > li { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.lookup-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--card-gap); }
+.lookup-list > li { display: grid; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 8px; }
 .lookup-content { margin: 0; white-space: pre-wrap; font-size: 0.875rem; max-height: 9em; overflow: auto; }
 .lookup-stale, .lookup-failed { opacity: 0.8; }
+.lookup-sent > summary { cursor: pointer; color: var(--muted); font-size: 0.8125rem; justify-self: start; }
+.lookup-sent[open] > summary { margin-bottom: 6px; }
+.lookup-sent dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 0.875rem; }
+.lookup-sent dd { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+.lookup-tool { display: block; margin-top: 4px; color: var(--muted); font-size: 0.8125rem; }
+.lookup-actions { justify-content: flex-end; }
 
 /* Character LoRA maker (docs/lora.md) */
 .stepper { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
@@ -645,12 +654,12 @@ textarea { resize: vertical; line-height: 1.6; }
 .lora-panel h3 { font-size: 1.05rem; }
 .plain-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.875rem; }
 .reference-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.reference-card { display: grid; gap: 8px; align-content: start; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+.reference-card { display: grid; gap: 8px; align-content: start; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
 .reference-card > img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--accent-tint); }
 .reference-name { font-size: 0.875rem; font-weight: 500; overflow-wrap: anywhere; }
 .crop-editor { display: grid; gap: 8px; }
 .shot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.shot-row { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+.shot-row { display: grid; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
 .shot-prompt { overflow-wrap: anywhere; }
 .reference-card > .badge { justify-self: start; }
 .crop-preview { position: relative; }
@@ -738,7 +747,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .perception-field select { width: 100%; min-width: 0; text-overflow: ellipsis; }
 .check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 6px 12px; }
 .adult-side-label { font-size: 0.8125rem; text-transform: none; opacity: 0.85; }
-.adult-side { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+.adult-side { border: 1px solid var(--border); border-radius: 8px; padding: 12px var(--panel-pad); }
 .adult-side > summary { cursor: pointer; font-weight: 600; }
 .adult-side[open] > summary { margin-bottom: 12px; }
 .interest-group > summary { cursor: pointer; font-size: 0.875rem; font-weight: 600; padding: 4px 0; }
@@ -808,7 +817,7 @@ textarea { resize: vertical; line-height: 1.6; }
 }
 .text-edit-comparison { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 6px; }
 .text-edit-comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
-.text-edit-comparison section { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.text-edit-comparison section { border: 1px solid var(--border); border-radius: 8px; padding: var(--card-pad); min-width: 0; }
 .text-edit-comparison h4 { color: var(--muted); font-size: .75rem; margin: 0 0 8px; }
 .text-edit-comparison pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: .8125rem; line-height: 1.6; max-height: 240px; overflow-y: auto; }
 .prompt-editor { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; }
@@ -1345,7 +1354,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .group-people { display: flex; flex-direction: column; gap: 12px; padding: 14px 32px; border-bottom: 1px solid var(--border); background: var(--surface); max-height: 50dvh; overflow-y: auto; }
 .group-people ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .group-people li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; }
-.group-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; }
+.group-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 9px; }
 .group-add legend { padding: 0 4px; font-weight: 500; }
 .group-cap { display: flex; align-items: center; gap: 10px; }
 .group-backstories { display: flex; flex-direction: column; gap: 10px; flex-basis: 100%; min-width: 0; margin: 0 0 14px; padding: 0; border: 0; }
