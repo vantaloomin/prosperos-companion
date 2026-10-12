@@ -186,20 +186,21 @@ def restyle(inputs: dict, own: str | None) -> dict:
     return {**inputs, 'prompt': prompt, 'style': style, 'general_style': general}
 
 
-def compose(name, appearance, events, style, setting='', dressed=False, framing='moment', who=None, sheet='') -> str:
+def compose(name, appearance, events, style, setting='', dressed=False, framing='moment', who=None, sheet='',
+            look=None) -> str:
     """A digest is illustrated by its first event; one picture of several outings would invent a
     moment that never happened. `dressed` means `setting` says what they wear, so the appearance's
     usual clothes are left out. The event may carry the local `hour` and `weather` for the light;
     its caption is never drawn (the feed shows it under the picture). A chat photo's `framing` opens
     the paragraph in place of the plain moment; `who` overrides the pronoun read from the appearance.
-    `sheet` is their looks in words (`sheet_for`), ahead of the free-text appearance."""
+    `sheet` is their looks in words (`sheet_for`), ahead of the free-text appearance; `look` is the In photos
+    line (`in_photos`), which stands in for the appearance when given."""
     event = events[0]
     who = who or pronoun(appearance)
     subject, possessive = PRONOUNS[who]
     where = f" at {event['place']}" if event['place'] and event['place'] not in event['summary'] else ''
-    if dressed:
-        appearance = without_clothes(appearance)
-    look = visible(appearance, name, who)
+    if look is None:
+        look = visible(without_clothes(appearance) if dressed else appearance, name, who)
     style = (style or DEFAULT_STYLE).strip().rstrip('.')
     setting = re.sub(r'(^|\.\s+)Wearing\b', lambda m: f"{m.group(1)}{subject} {'are' if who == 'they' else 'is'} wearing",
                      setting)
@@ -264,13 +265,31 @@ def doing(event, subject, possessive, who) -> str:
     return f"{subject} {verb} {line.format(possessive=possessive)}{place}{company}."
 
 
-def sheet_for(companion, definition) -> tuple[str, str]:
-    """Their looks sheet (companion/world/looks.py) in words, and the pronoun to draw them with: the
-    appearance's own, else the one the rest of their description uses."""
+def drawn_as(definition) -> str:
+    """The pronoun to draw them with: the appearance's own, else the one the rest of their description uses."""
     who = pronoun(definition.get('appearance', ''))
     if who == 'they':
         who = {'she/her': 'she', 'he/him': 'he'}.get(looks.pronouns_of(definition), 'they')
+    return who
+
+
+def sheet_for(companion, definition) -> tuple[str, str]:
+    """Their looks sheet (companion/world/looks.py) in words, and the pronoun to draw them with."""
+    who = drawn_as(definition)
     return looks.picture(looks.for_companion(companion['id'], definition), who), who
+
+
+def in_photos(definition, who=None, dressed=False) -> str:
+    """The "In photos" line: what pictures say about them besides the looks sheet. The user's own line on the
+    character form is used as written, with only their name said as a pronoun (a signature detail like cat hair on
+    a dark sweater is theirs to keep). Left empty, it is the appearance with impressions and backstory filtered out
+    (`visible`), and its usual clothes give way to a moment's outfit."""
+    who = who or drawn_as(definition)
+    own = (definition.get('in_photos') or '').strip()
+    if own:
+        return unnamed(own, definition['name'], who).rstrip('.')
+    appearance = definition.get('appearance', '')
+    return visible(without_clothes(appearance) if dressed else appearance, definition['name'], who)
 
 
 def local_hour(stamp_text, timezone) -> int | None:
@@ -296,8 +315,8 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
              'with': events[0]['moment'].get('with')}
     sheet, who = sheet_for(companion, definition)
     return {'prompt_version': PROMPT_VERSION,
-            'prompt': compose(definition['name'], definition.get('appearance', ''), [first], image_settings['style'],
-                              *setting(connection, post['timeline_id'], events[0]), who=who, sheet=sheet),
+            'prompt': feed_prompt(definition, first, image_settings, setting(connection, post['timeline_id'], events[0]),
+                                  who, sheet),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
@@ -305,6 +324,12 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
             'marked_nsfw': bool(marked_nsfw), **current_for_images(connection)}
+
+
+def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, sheet) -> str:
+    look = in_photos(definition, who, worn[1])
+    return compose(definition['name'], definition.get('appearance', ''), [first], image_settings['style'], *worn, who=who,
+                   sheet=sheet, look=look)
 
 
 def setting(connection, timeline_id, event) -> tuple[str, bool]:
@@ -348,8 +373,9 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
     sheet, who = sheet_for(companion, definition)
+    look = '' if framing == 'view' else in_photos(definition, who, bool(wearing))
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),
-                     framing, who, '' if framing == 'view' else sheet)
+                     framing, who, '' if framing == 'view' else sheet, look)
     likeness = current_for_images(connection)
     if framing == 'view':
         likeness = {**likeness, 'lora': None}
@@ -367,9 +393,8 @@ def build_meme(connection, meme, image_settings) -> dict:
         prompt = f"Reaction-meme style photo, simple and centered: {meme['subject']}. A fictional scene."
         likeness = {**current_for_images(connection), 'lora': None}
     else:
-        appearance = definition.get('appearance', '')
         sheet, who = sheet_for(companion, definition)
-        look = visible(appearance, definition['name'], who)
+        look = in_photos(definition, who)
         prompt = (f"Reaction-meme style photo, simple and centered, of a fictional person with a {meme['expression']} "
                   f"expression{meme['where']}, room above and below the face. {sheet} {look}.").rstrip(' .') + '.'
         likeness = current_for_images(connection)

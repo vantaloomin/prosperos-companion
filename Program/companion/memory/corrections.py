@@ -257,8 +257,11 @@ def record(connection, companion, message, fields, source, rule, timestamp) -> i
 
 
 def current(connection, fields, now) -> dict | None:
+    """The memory a correction names, while it is current and was said before the correction: an old chat brought in
+    (companion/imports/chats.py) never corrects what the user said since."""
     row = optional(connection, "SELECT * FROM memories WHERE id=? AND status='active'", (fields['corrects'],))
-    return None if row is None or records.ended(row, now) else row
+    stale = row is None or records.ended(row, now) or row['stated_at'] > (fields.get('stated_at') or row['stated_at'])
+    return None if stale else row
 
 
 def apply(connection, fields, message_id, timestamp) -> tuple[dict | None, str]:

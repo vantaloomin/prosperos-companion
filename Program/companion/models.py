@@ -98,6 +98,9 @@ class CharacterDefinition(Input):
     interests: list[str] = Field(default_factory=list, max_length=50)
     background: str = Field(default='', max_length=12000)
     appearance: str = Field(default='', max_length=4000)
+    # The "In photos" line pictures use in place of the appearance (companion/images/prompts.py `in_photos`); empty
+    # follows the appearance, filtered to what a camera can see.
+    in_photos: str = Field(default='', max_length=2000)
     # Face shape, height, build and the rest, so every picture shows the same person; empty fields are drawn.
     looks: Looks = Field(default_factory=Looks)
     routine: str = Field(default='', max_length=8000)
@@ -168,6 +171,13 @@ class CharacterCardFile(Input):
     """A character card file (JSON or PNG) read into plain text for the paste box; nothing is saved."""
     filename: str = Field(min_length=1, max_length=260)
     data: str = Field(min_length=1, max_length=14_000_000)
+
+
+class ChatFile(Input):
+    """An old chat file (companion/imports/chats.py), base64 encoded, for a companion or the one in focus."""
+    filename: str = Field(min_length=1, max_length=260)
+    data: str = Field(min_length=1, max_length=14_000_000)
+    companion_id: str | None = Field(default=None, max_length=100)
 
 
 class LoreSwitch(Input):
@@ -272,6 +282,8 @@ class SettingsUpdate(Input):
     chat_retro_dark: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
+    # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
+    theme: Literal['system', 'scheme', 'paper'] | None = None
     ask_about_people: bool | None = None
     story_mode: bool | None = None
     show_secret_slips: bool | None = None

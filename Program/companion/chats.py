@@ -25,8 +25,9 @@ def mark_read(connection, thread_id: str, seq: int | None, timestamp: str) -> No
 
 
 def shown(where: str = '') -> str:
+    # A message from an old chat brought in (companion/imports/chats.py) is history, never unread.
     return (f"{where}role='companion' AND active=1 AND status='complete' AND redacted_at IS NULL "
-            'AND superseded_at IS NULL AND (held_until IS NULL OR held_until<=?)')
+            'AND superseded_at IS NULL AND import_id IS NULL AND (held_until IS NULL OR held_until<=?)')
 
 
 def unread(connection, timeline_id: str, now) -> int:

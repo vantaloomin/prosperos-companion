@@ -94,7 +94,7 @@ def seen(connection, companion: dict, key: str, now):
 def talked(connection, timeline_id: str, period: dict, timezone) -> set[str]:
     """The local days the user wrote in a stretch of time."""
     rows = many(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND role='user' AND active=1 AND "
-                'created_at>=? AND created_at<?', (timeline_id, instant(period['start'], timezone),
+                'import_id IS NULL AND created_at>=? AND created_at<?', (timeline_id, instant(period['start'], timezone),
                                                     instant(period['end'] + timedelta(days=1), timezone)))
     return {parse(row['created_at']).astimezone(timezone).date().isoformat() for row in rows}
 

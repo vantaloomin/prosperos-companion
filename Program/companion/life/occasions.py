@@ -120,8 +120,10 @@ def milestone(first: date, day: date) -> str | None:
 
 
 def first_talk(connection, timeline_id, tz) -> date | None:
-    row = optional(connection, "SELECT MIN(created_at) AS first FROM messages WHERE timeline_id=? AND status='complete'",
-                   (timeline_id,))
+    """The day they first talked here. An old chat brought in (companion/imports/chats.py) is history before that,
+    so its dates never make an anniversary, a scrapbook year or a forgotten-occasion sting."""
+    row = optional(connection, "SELECT MIN(created_at) AS first FROM messages WHERE timeline_id=? AND status='complete' "
+                   'AND import_id IS NULL', (timeline_id,))
     return parse(row['first']).astimezone(tz).date() if row and row['first'] else None
 
 

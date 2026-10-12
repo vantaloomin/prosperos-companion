@@ -39,7 +39,7 @@ def news_key(group_id: str, event_id: str) -> str:
 
 def last_user_at(connection) -> str | None:
     row = one(connection, "SELECT MAX(at) AS at FROM (SELECT MAX(created_at) AS at FROM messages WHERE role='user' "
-              "UNION ALL SELECT MAX(created_at) FROM group_messages WHERE author='user')")
+              "AND import_id IS NULL UNION ALL SELECT MAX(created_at) FROM group_messages WHERE author='user')")
     return row['at']
 
 

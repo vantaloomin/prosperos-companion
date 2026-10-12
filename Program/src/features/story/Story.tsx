@@ -12,6 +12,7 @@ import { AiFooter, CrisisNote } from '../../components/Safety'
 import { aroundText, placeGroups, sceneTime, spotsText, whereText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 import { CityOptions } from '../world/CityOptions'
+import { ExportLinks } from '../chats/ExportLinks'
 
 const STORY_KEY = ['story']
 const OUT_OF_STORY = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)).'
@@ -139,12 +140,15 @@ function NewStory({ empty, onClear }: { empty: boolean; onClear: () => Promise<v
   if (empty) return null
   return (
     <div className="story-footer">
+      <ExportLinks target={{ kind: 'story' }} />
       <button type="button" className="text-button" onClick={() => setAsking(true)}>Start a new story…</button>
       {asking && <ConfirmDialog title="Start a new story?" onClose={() => setAsking(false)} actions={<>
         <button type="button" className="button" onClick={() => setAsking(false)}>Cancel</button>
         <button type="button" className="button primary" onClick={() => void onClear().then(() => setAsking(false))}>Start a new story</button>
       </>}>
         <p>The story so far and the people you&apos;ve met in it are cleared for good. You stay where you are.</p>
+        <p className="subtle">To keep a copy, export it first:</p>
+        <p className="form-actions"><ExportLinks target={{ kind: 'story' }} /></p>
       </ConfirmDialog>}
     </div>
   )

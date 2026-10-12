@@ -1,3 +1,4 @@
+import { reducedMotion } from '../../motion'
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
 const NEAR_BOTTOM_PX = 80
@@ -34,7 +35,7 @@ export function useScrollAway(transcriptRef: RefObject<HTMLDivElement | null>, p
   }, [transcriptRef, pinnedRef])
   const toLatest = useCallback(() => {
     const element = transcriptRef.current
-    element?.scrollTo({ top: element.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+    element?.scrollTo({ top: element.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
     jumpingRef.current = true
     window.setTimeout(() => { jumpingRef.current = false }, JUMP_MS)
     pinnedRef.current = true

@@ -60,10 +60,12 @@ def directory(database):
 
 
 def base_of(companion) -> str:
-    """Their name, their looks sheet in words (companion/world/looks.py) and their appearance description."""
+    """Their name, their looks sheet in words (companion/world/looks.py) and their appearance description, or the
+    In photos line when the user wrote one."""
     definition = companion['version']['definition']
     sheet = sheet_for(companion, definition)[0].rstrip('.')
-    appearance = ' '.join(definition.get('appearance', '').split()).rstrip('.')
+    described = (definition.get('in_photos') or '').strip() or definition.get('appearance', '')
+    appearance = ' '.join(described.split()).rstrip('.')
     return ', '.join(part for part in (definition['name'], sheet[:1].lower() + sheet[1:], appearance) if part)
 
 

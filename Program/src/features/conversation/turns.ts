@@ -11,7 +11,20 @@ export interface Turn {
 
 /** The id of the newest turn's user message, when the newest turn has one. */
 export function latestUser(turns: Turn[]): string | undefined {
-  return turns.at(-1)?.user?.id
+  // A message from an old chat brought in is history, never answered again.
+  const user = turns.at(-1)?.user
+  return user && !user.import_id ? user.id : undefined
+}
+
+/** A turn brought in from an old chat file (companion/imports/chats.py). */
+export function isImported(turn: Turn): boolean {
+  return !!(turn.user ?? turn.leads[0]).import_id
+}
+
+/** Where older history from an old chat ends: after an imported turn that the next turn is not part of. */
+export function endsOlderHistory(turns: Turn[], index: number): boolean {
+  const next = turns[index + 1]
+  return isImported(turns[index]) && (!next || !isImported(next))
 }
 
 /** The id of the newest loaded message the user sent (messages are in sequence order). */

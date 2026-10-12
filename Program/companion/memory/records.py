@@ -56,8 +56,9 @@ def find_duplicate(connection, companion_id, timeline_id, fields, now) -> dict |
 def succeed(connection, memory, now, timestamp) -> bool:
     """A new current value of a single-valued subject ends the earlier one, which stays as history (M8).
 
-    "I lived in Boston ten years ago" is not current, so it never ends anything. Returns whether
-    an earlier value ended.
+    "I lived in Boston ten years ago" is not current, so it never ends anything. Nor does a value stated
+    before the current one (an old chat brought in, companion/imports/chats.py): it ends where the value
+    said later begins. Returns whether an earlier value ended.
     """
     if memory['layer'] != 'user_fact' or not single_valued(memory['subject_key']) or ended(memory, now):
         return False
@@ -65,13 +66,27 @@ def succeed(connection, memory, now, timestamp) -> bool:
     rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer='user_fact' "
                 'AND subject_key=? AND id<>? AND (applies_until IS NULL OR applies_until>?)',
                 (memory['companion_id'], memory['subject_key'], memory['id'], start))
-    changed = False
+    later = sorted((row for row in rows if row['stated_at'] > memory['stated_at']),
+                   key=lambda row: row['applies_from'] or row['stated_at'])
+    if later:
+        connection.execute('UPDATE memories SET applies_until=?, ended_by_id=?, updated_at=? WHERE id=?',
+                           (max(later[0]['applies_from'] or later[0]['stated_at'], start), later[0]['id'], timestamp,
+                            memory['id']))
+    changed = bool(later)
     for row in rows:
-        if (row['applies_from'] or '') <= start:
+        if row['stated_at'] <= memory['stated_at'] and (row['applies_from'] or '') <= start:
             connection.execute('UPDATE memories SET applies_until=?, ended_by_id=?, updated_at=? WHERE id=?',
                                (start, memory['id'], timestamp, row['id']))
             changed = True
     return changed
+
+
+def from_old_chats(connection, timeline_id) -> set[str]:
+    """Memories whose every source is a message from an old chat brought in (companion/imports/chats.py): history,
+    so never a plan to follow up, a missed plan or a shared moment that grows closeness."""
+    return {row['memory_id'] for row in many(
+        connection, 'SELECT s.memory_id FROM memory_sources s JOIN messages m ON m.id=s.message_id '
+        'WHERE m.timeline_id=? GROUP BY s.memory_id HAVING COUNT(m.import_id)=COUNT(*)', (timeline_id,))}
 
 
 def insert(connection, companion, fields: dict, *, now: str, origin='user', authority='stated',

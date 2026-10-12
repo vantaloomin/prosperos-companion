@@ -1,3 +1,4 @@
+import { reducedMotion } from '../../motion'
 import { useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Download, FilePlus2, FolderSync, Pencil, Search, Trash2, Upload } from 'lucide-react'
@@ -7,6 +8,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { TextInput } from '../../components/Fields'
 import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { isWorldMap, readWorldMap } from './worldMap'
 import { cityFacts, definitionOf, exportName, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
@@ -64,9 +66,22 @@ export function Cities() {
   }
   const importFile = async (chosen: File | undefined) => {
     if (!chosen) return
+    if (isWorldMap(chosen.name, await chosen.slice(0, 4096).text())) { await importWorldMap(chosen); return }
     setEditing({ mode: 'create', text: await chosen.text() })
     setFeedback({ tone: 'info', text: `Opened ${chosen.name}. Check it, change the id if you need to, then save it as one of your cities.` })
     if (file.current) file.current.value = ''
+  }
+  // A Marinara world map becomes a city and world lore straight away, with no editor step (companion/world/marinara.py).
+  const importWorldMap = async (chosen: File) => {
+    setEditing(null)
+    setFeedback({ tone: 'info', text: `Reading the world map ${chosen.name}…` })
+    if (file.current) file.current.value = ''
+    try {
+      const made = await api<CityListing & { book: { name: string; entries: number } | null }>('/world/import/marinara', await readWorldMap(chosen))
+      const lore = made.book ? ` Its places' notes are world lore in "${made.book.name}".` : ''
+      setFeedback({ tone: 'info', text: `${made.name} is here, under Custom.${lore}`, notes: made.import_notes })
+      void client.invalidateQueries({ queryKey: ['lore'] })
+    } catch (error) { fail(error) } finally { void refresh() }
   }
   const exportCity = async (city: CityListing) => {
     try { saveFile(city.id, definitionOf(await api<Record<string, unknown>>(`/world/cities/${city.id}`))) } catch (error) { fail(error) }
@@ -83,7 +98,7 @@ export function Cities() {
     <section className="settings-section form-stack" aria-labelledby="cities-heading">
       <div>
         <h2 id="cities-heading">Cities</h2>
-        <p className="subtle">A companion's days are built from their home city: its neighbourhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared.</p>
+        <p className="subtle">A companion's days are built from their home city: its neighbourhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared. A Marinara world map opens as a city straight away, with its places' notes as world lore.</p>
       </div>
       <div className="form-actions">
         <button type="button" className="button" onClick={() => void startNew()}><FilePlus2 aria-hidden="true" />New city</button>
@@ -178,7 +193,7 @@ function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
   const jump = (id: string) => {
     const card = document.getElementById(`city-${id}`)
     if (!card) return
-    const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const instant = reducedMotion()
     card.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'start' })
     card.focus({ preventScroll: true })
     card.classList.add('jumped')

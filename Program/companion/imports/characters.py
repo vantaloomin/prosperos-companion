@@ -25,7 +25,7 @@ from companion.models import CharacterDefinition
 from companion.world import generators, townsfolk
 
 BACKGROUND = 12000
-LIMITS = {'personality': 8000, 'voice': 4000}
+LIMITS = {'personality': 8000, 'voice': 4000, 'appearance': 4000, 'in_photos': 2000}
 MACROS = (('{{char}}', None), ('<BOT>', None), ('{{user}}', 'the user'), ('<USER>', 'the user'))
 
 
@@ -73,9 +73,14 @@ def definition(connection, database, character: dict, focus: dict | None) -> tup
     """Their definition, and any description past the background's limit (kept as lore instead)."""
     name = character['name'].strip()[:120]
     description = spelled(character['description'], name)
+    backstory = spelled(character.get('backstory', ''), name)
+    if backstory:  # Marinara Engine keeps a backstory apart from the description.
+        description = f'{description}\n\nBackstory:\n{backstory}'.strip()
     examples = spelled(character['mes_example'], name)
     values = life(connection, database, character, focus) | {
         'name': name, 'background': description[:BACKGROUND],
+        'appearance': spelled(character.get('appearance', ''), name)[:LIMITS['appearance']],
+        'in_photos': spelled(character.get('in_photos', ''), name)[:LIMITS['in_photos']],
         'personality': spelled(character['personality'], name)[:LIMITS['personality']],
         'voice': f'How they write, from their examples:\n{examples}'[:LIMITS['voice']] if examples else ''}
     made = characters.named(connection, CharacterDefinition.model_validate(values))
@@ -179,5 +184,9 @@ def bring_character(database, filename: str, found: dict, stored, shape) -> dict
         added = add_book(connection, timestamp, book, companion_id, filename) if book else None
         if stored:
             add_picture(connection, timestamp, companion_id, stored, found['picture'], shape, filename)
+            if found.get('portrait'):  # An app's own avatar is already their profile picture there.
+                connection.execute('UPDATE companions SET portrait_reference_id=? WHERE id=?',
+                                   (stored[0], companion_id))
         return {'format': found['format'], 'companion': characters.current(connection), 'book': added,
-                'picture': bool(stored), 'stepped_back': focus['version']['name'] if focus else None}
+                'picture': bool(stored), 'portrait': bool(stored and found.get('portrait')),
+                'stepped_back': focus['version']['name'] if focus else None}
