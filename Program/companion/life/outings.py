@@ -132,6 +132,13 @@ WANTS = {'aquarium': r'aquarium', 'movie': r'cinema|film|movie|picture house|the
          'cinema': r'cinema|film|movie', 'concert': r'music|concert|hall|jazz|orchestra|symphony|band', 'gig': r'music|club|band',
          'play': r'theat|play|stage|playhouse', 'theat': r'theat|play|stage', 'comedy': r'comedy|club', 'gallery': r'gallery|art',
          'hike': r'trail|hike|hill|mountain', 'picnic': r'park|lawn|garden', 'brunch': r'brunch|breakfast|cafe|diner'}
+# "By the harbor", "on the water": somewhere on the waterfront, going by the place's tags and its neighborhood
+# (never a name that happens to say "Harbor", like Golden Harbor Chinese up in the plaza).
+WATERSIDE = re.compile(r"\b(?:by|on|along|near|at|beside|overlooking) the (?:harbou?r|water(?:front)?|beach|sea|seaside|"
+                       r"ocean|shore|bay|river|lake|wharf|pier|docks?|marina|coast|cove)\b", re.IGNORECASE)
+WATER_WORDS = re.compile(r'water|harbou?r|beach|ocean|seaside|shore|river|lake|wharf|pier|^docks?$|marina|coast|cove|'
+                         r'pond|marsh|island|lighthouse|^sea$|boats?$', re.IGNORECASE)
+WATER_KINDS = {'beach', 'docks'}
 NOT_OUTINGS = re.compile(r'\b(?:station|hospital|clinic|church|cathedral|chapel|campus|university|transit|airport|'
                          r'terminal|ship|cemetery)\b', re.IGNORECASE)
 
@@ -163,7 +170,7 @@ def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bo
             return None
         at, _said = own_plans.clock(sentence)
         return {'activity': activity, 'day': day, 'at': at, 'place': place, 'word': word_for(sentence, activity),
-                'sentence': sentence[:300]}
+                'waterside': bool(WATERSIDE.search(sentence)), 'sentence': sentence[:300]}
     return None
 
 
@@ -237,11 +244,20 @@ def likes_of(definition: dict) -> set[str]:
     return {word for word in re.findall(r'[a-z]+', words) if len(word) > 3}
 
 
+def waterside(item: dict, data: dict) -> bool:
+    """On the water, by its kind, its tags or its neighborhood's feel."""
+    hood = next((hood for hood in data['neighborhoods'] if hood['id'] == item.get('neighborhood')), {})
+    words = [*item.get('tags', ()), *hood.get('vibe', ())]
+    return item['kind'] in WATER_KINDS or any(WATER_WORDS.search(token) for word in words for token in word.split('-'))
+
+
 def pick_place(data: dict, activity: str, day: date, at: str, definition: dict, seed: str,
-               cheap: bool, word: str = '') -> dict | None:
+               cheap: bool, word: str = '', by_water: bool = False) -> dict | None:
     """The companion's pick: a place for this outing open at that time and in season, within budget, that fits the
-    word asked ("the aquarium") when one does."""
+    word asked ("the aquarium") and is on the water when asked ("by the harbor"), when one does."""
     options = [item for item in data['places'] if item['kind'] in kinds(activity) and fits(item, day, at)]
+    if by_water:
+        options = [item for item in options if waterside(item, data)] or options
     if activity in ('museum', 'walk', 'show'):
         options = [item for item in options if not NOT_OUTINGS.search(item['name'])] or options
     wants = next((pattern for stem, pattern in WANTS.items() if stem in word), None)
@@ -305,7 +321,7 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
     cost, affordable = bill(definition, wanted['activity'], day,
                             money.spendable(connection, companion['active_timeline_id'], definition, day))
     item = wanted['place'] or pick_place(data, wanted['activity'], day, at, definition, f"outing:{message['id']}",
-                                         not affordable, wanted.get('word', ''))
+                                         not affordable, wanted.get('word', ''), wanted.get('waterside', False))
     if item is None:
         return None
     if item.get('cost') == 'free':
