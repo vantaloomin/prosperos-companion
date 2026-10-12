@@ -82,7 +82,7 @@ def test_homes_rooms_and_archived_places_are_never_public_places(made):
     names = {place['name'] for place in made['city']['places']}
     assert not names & {"Mara's Apartment", "Mara's Bedroom", "Wren's Cabin", 'Loft Room', 'Old Pier', 'Lost Stall'}
     assert any("Mara's Apartment (Alder Quarter)" in note for note in made['notes'])
-    assert '1 archived places left out.' in made['notes']
+    assert '1 archived place left out.' in made['notes']
     assert '2 pictures not imported.' in made['notes']
 
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { categoryOf, cityFacts, definitionOf, exportName, matchesCity, parseDefinition, shelveCities, slugify, type CityListing } from '../../src/features/world/cityText.ts'
+import { categoryOf, cityFacts, definitionOf, exportName, groupNotes, matchesCity, parseDefinition, shelveCities, slugify, type CityListing } from '../../src/features/world/cityText.ts'
 
 const city = (extra: Partial<CityListing> = {}): CityListing => ({
   id: 'baltimore', name: 'Baltimore', region: 'Maryland', country: 'US', setting: 'real', era: 'modern', summary: '', basis: '',
@@ -54,3 +54,10 @@ test('facts read naturally', () => {
   assert.equal(cityFacts(city({ setting: 'original', counts: { ...city().counts, neighborhoods: 1, places: 1 } })), 'Original setting · modern · 1 neighbourhood, 1 place')
 })
 
+
+test('notes that say the same about several places become one line', () => {
+  const many = Array.from({ length: 8 }, (_, index) => `Mill ${index + 1}: filled in cost as '$'.`)
+  assert.deepEqual(groupNotes(['Timezone set to UTC.', 'Bluebird Diner: filled in cost as \'$\'.', 'Oak Hall: ignored the field "x", which the app does not use.', 'Pier: filled in cost as \'$\'.']),
+    ['Timezone set to UTC.', "Bluebird Diner and Pier: filled in cost as '$'.", 'Oak Hall: ignored the field "x", which the app does not use.'])
+  assert.deepEqual(groupNotes(many), ["Mill 1, Mill 2, Mill 3, Mill 4, Mill 5 and 3 more: filled in cost as '$'."])
+})

@@ -9,7 +9,7 @@ import { TextInput } from '../../components/Fields'
 import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { isWorldMap, readWorldMap } from './worldMap'
-import { cityFacts, definitionOf, exportName, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
+import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
 const BROKEN_KEY = ['broken-cities']
@@ -45,7 +45,7 @@ function CityNotes({ notes }: { notes: string[] }) {
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [check, notes])
-  return <ul ref={box} className={`city-notes${more ? ' more-below' : ''}`} onScroll={check}>{notes.map((note) => <li key={note}>{note}</li>)}</ul>
+  return <ul ref={box} className={`city-notes${more ? ' more-below' : ''}`} onScroll={check}>{groupNotes(notes).map((note) => <li key={note}>{note}</li>)}</ul>
 }
 
 function saveFile(id: string, definition: unknown) {

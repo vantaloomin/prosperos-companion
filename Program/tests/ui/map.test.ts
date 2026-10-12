@@ -57,10 +57,16 @@ test('the drawn map is the same every time, and draws the water the city names',
   assert.match(pathOf(first.water[1].path, false, true), /^M-?[\d.]+ -?[\d.]+C/)
 })
 
-test('names on the drawn map do not run into each other', () => {
+test('names on the drawn map do not run into each other or into neighbourhood names', () => {
   const crowded = city([{ kind: 'river', name: 'The Long Winding River', side: null, width_km: 0.05, points: [[40, -70.002], [40.005, -69.995], [40.01, -69.99]] }])
   crowded.places = Array.from({ length: 30 }, (_, index) => ({ ...place(`p${index}`, index % 2 ? 'a' : 'b', [index % 3 ? 'usual' : 'recent']), name: `A rather long place name ${index}` }))
-  const laid = labels(drawn(crowded))
+  const map = drawn(crowded)
+  const laid = labels(map)
+  const badges = map.districts.flatMap((district) => district.places)
+  for (const name of laid.filter((label) => label.kind === 'district')) {
+    const half = (name.text.length * 8) / 2
+    assert.ok(badges.every((pin) => name.y + 1 <= pin.y - 13 || name.y - 9 >= pin.y + 13 || Math.abs(name.x - pin.x) >= half + 13), `no pin sits on ${name.text}`)
+  }
   const box = (label: (typeof laid)[number]) => {
     const width = label.text.length * 6.8, left = label.anchor === 'start' ? label.x : label.anchor === 'end' ? label.x - width : label.x - width / 2
     return { left, right: left + width, top: label.y - 11, bottom: label.y + 2 }
@@ -74,4 +80,17 @@ test('names on the drawn map do not run into each other', () => {
   assert.ok(laid.some((label) => label.kind === 'place' && label.shown && label.anchor !== 'start'), 'a name in the way moves to the other side of its pin')
   assert.ok(laid.some((label) => !label.shown), 'a name with no room is left off')
   assert.deepEqual(labels(drawn(crowded)), laid)
+})
+
+test('a pin on a neighbourhood name moves the name straight up or down, never off the map', () => {
+  const map = drawn(city())
+  const alder = map.districts[0]
+  Object.assign(alder.places[0], { x: alder.label.x, y: alder.label.y })
+  alder.places[0].place.pins = ['usual']
+  const name = labels(map).find((label) => label.key === `${alder.id}-label`)!
+  assert.equal(name.shown, true)
+  assert.equal(name.x, alder.label.x)
+  assert.ok(Math.abs(name.y - (alder.label.y + 4)) >= 14, 'the name moved off the pin')
+  const pin = alder.places[0], half = (name.text.length * 7.4) / 2
+  assert.ok(name.y + 1 <= pin.y - 11 || name.y - 9 >= pin.y + 11 || Math.abs(name.x - pin.x) >= half + 11, 'the pin no longer covers the name')
 })
