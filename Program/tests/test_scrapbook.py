@@ -58,3 +58,12 @@ def test_the_pages_come_from_what_happened(client, connected, clock):
     assert year['title'] == 'Our first year' and year['pages'][1]['said'].startswith('Hi!')
     later = client.get('/api/life/year/so-far').json()
     assert later['pages'][1]['title'] == 'How the year started' and later['pages'][1]['said'] == 'A year!'
+
+
+def test_a_moment_is_dated_when_it_happened_not_when_it_was_saved():
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo('America/New_York')
+    saved_late = {'stated_at': '2026-03-01T23:30:00+00:00', 'applies_from': None, 'created_at': '2026-03-20T10:00:00+00:00'}
+    assert scrapbook.happened(saved_late, tz) == '2026-03-01'
+    told_later = {**saved_late, 'applies_from': '2026-02-14T19:00:00+00:00'}
+    assert scrapbook.happened(told_later, tz) == '2026-02-14'

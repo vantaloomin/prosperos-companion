@@ -525,7 +525,7 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
         fields = {'layer': 'shared_experience', 'subject': f"{ACTIVITIES[outing['activity']][5].capitalize()} "
                   f"together at {place['name']}",
                   'value': f"Went out together for {what(outing)} on {day:%A, %B} {day.day}.",
-                  'stated_at': stamp(now), 'applies_from': None, 'applies_until': None}
+                  'stated_at': stamp(min(now, window(outing, timezone)[1])), 'applies_from': None, 'applies_until': None}
         memory, _created = records.insert(connection, companion, fields, now=stamp(now), origin='automatic',
                                           sources=(outing['message_id'],))
         connection.execute("UPDATE outings SET status='done', memory_id=? WHERE id=?", (memory['id'], outing['id']))

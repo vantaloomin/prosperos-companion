@@ -194,15 +194,18 @@ def together(connection, companion, now, period, timezone) -> list[dict]:
     told = {(joke['subject'], joke['value']) for joke in state['jokes']}
     moments = [memory for memory in closeness.shared_moments(connection, companion, companion['active_timeline_id'],
                                                              now, None)
-               if (memory['subject'], memory['value']) not in told
-               and low <= parse(memory['created_at']).astimezone(timezone).date().isoformat() <= high]
-    moments.sort(key=lambda memory: (-memory['pinned'], memory['created_at']))
+               if (memory['subject'], memory['value']) not in told and low <= happened(memory, timezone) <= high]
+    moments.sort(key=lambda memory: (-memory['pinned'], happened(memory, timezone)))
     if moments:
         pages.append({'kind': 'moments', 'title': 'Moments to remember',
-                      'items': [{'date': parse(memory['created_at']).astimezone(timezone).date().isoformat(),
-                                 'text': f"{memory['subject']}: {memory['value']}"}
+                      'items': [{'date': happened(memory, timezone), 'text': f"{memory['subject']}: {memory['value']}"}
                                 for memory in moments[:MOMENT_LIMIT]]})
     return pages
+
+
+def happened(memory: dict, timezone) -> str:
+    """The local day a moment happened (when it applies from, else when it was said), not when it was saved."""
+    return parse(memory['applies_from'] or memory['stated_at']).astimezone(timezone).date().isoformat()
 
 
 def their_year(connection, companion, period, name) -> dict | None:
