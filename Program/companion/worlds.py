@@ -23,7 +23,7 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
-from companion import backup, cast, characters, dating, restore, story
+from companion import backup, cast, characters, dating, lore, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
@@ -223,6 +223,8 @@ def carry_settings(target: Path, source: Path, timestamp: str):
     restore.copy_settings(target, source, SHARED, timestamp)
     connection = sqlite3.connect(target, isolation_level=None)
     try:
+        # Lore of a city deleted in another world goes with it (companion/lore.py).
+        lore.drop_orphaned(connection)
         assignments = ', '.join(f'{column}=MAX({column}, ?) + 1' for column in REVISIONS)
         connection.execute(f'UPDATE workspace_settings SET {assignments} WHERE id=1', tuple(before or (0, 0)))
         # Memories still waiting from the world's last visit were queued under its own settings; they stay due, and
@@ -319,6 +321,7 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
         data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
         today = made.clock.now().astimezone(zone(data['timezone'])).date()
         starter(connection, data, seed, made.now(), today, persona)
+    lore.carry_city_lore(path, database.path, data)
 
 
 def unique_name(data: dict, wanted: str) -> str:

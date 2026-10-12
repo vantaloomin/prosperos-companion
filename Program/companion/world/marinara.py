@@ -19,6 +19,7 @@ import re
 from typing import NamedTuple
 from zoneinfo import available_timezones
 
+from companion import lore
 from companion.errors import DomainError, require
 from companion.imports import lorebooks
 from companion.imports.characters import add_book
@@ -27,7 +28,7 @@ from companion.world.mend import slug
 from companion.world.schema import PLACE_KINDS, TRANSIT_KINDS
 
 FORMAT = 'marinara-hierarchical-map'
-BOOK_FORMAT = 'Marinara world map'
+BOOK_FORMAT = lore.MAP_FORMAT
 SOURCE = 'marinara'
 REGIONS = ('region', 'settlement')
 ROOMS = ('room', 'floor')
@@ -408,7 +409,7 @@ class _Map:
                 'setting': 'original', 'era': 'modern', 'region': zone.split('/')[0] if zone else 'Unknown',
                 'country': 'Unknown', 'timezone': zone or 'UTC', 'aliases': [], 'summary': self.summary(roots[0]),
                 'lat': 0.0, 'lon': 0.0,
-                'sources': {SOURCE: {'kind': 'user', 'title': text(f'Marinara world map: {self.map_name()}', TEXT),
+                'sources': {SOURCE: {'kind': 'user', 'title': text(f'{lore.MAP_TITLE}{self.map_name()}', TEXT),
                                      'license': 'User content', 'retrieved': self.today}},
                 'neighborhoods': self.hoods, 'places': self.places, 'employers': self.employers,
                 'transit': list(self.lines.values())}
@@ -518,6 +519,8 @@ def bring(database, value: dict) -> dict:
     def with_book(connection, timestamp: str) -> None:
         if made['book']:
             added['book'] = add_book(connection, timestamp, made['book'], None, f"{made['book']['name']}.world-map.json")
+            # The notes follow the city into new worlds there and go when it is deleted (companion/lore.py).
+            connection.execute('UPDATE lore_books SET city_id=? WHERE id=?', (city['id'], added['book']['id']))
 
     saved = custom.create(database, city, also=with_book)
     return catalog.summary(saved) | {'import_notes': made['notes'] + saved.get('import_notes', []),
