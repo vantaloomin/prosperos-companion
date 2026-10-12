@@ -149,6 +149,17 @@ def test_a_named_place_is_kept_and_the_bill_comes_out_of_their_budget(client, mi
     assert 'Earlier you and the user had dinner at Ouzo Bay' in client.get('/api/context/preview').json()['prompt']
 
 
+def test_an_outing_still_finishes_after_a_long_absence(client, mira, provider, clock):
+    send(client, 'Want to go to Ouzo Bay Wednesday?', 'client-out-long')
+    clock.advance(timedelta(days=20))  # Back three weeks later: the outing was long over.
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [done] = connection.execute('SELECT status, memory_id FROM outings').fetchall()
+        memory = connection.execute('SELECT stated_at FROM memories WHERE id=?', (done['memory_id'],)).fetchone()
+    assert done['status'] == 'done' and done['memory_id']
+    assert memory['stated_at'].startswith('2026-10-07')  # Dated the evening it happened, for the scrapbook.
+
+
 def test_the_user_can_call_it_off_send_them_elsewhere_or_head_home(client, mira, provider, clock):
     send(client, 'Drinks Friday?', 'client-out-07')
     [outing] = listing(client)['outings']

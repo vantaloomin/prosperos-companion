@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { bodyText, changesEmpty, moodText, pauseToFill, recommendationText } from '../../src/features/today/todayText.ts'
+import { shortDate } from '../../src/features/today/moneyText.ts'
 
 test('the mood names its cause and the traits behind it', () => {
   const text = moodText({ id: 'm', kind: 'absence', intensity: 'moderate', away_hours: 72, traits: ['guilt over absence'], expires_at: '' }, 'Mira')
@@ -30,7 +31,8 @@ test('a recommendation says where the companion is with it', () => {
 
 test('story dates read as the local day they name', async () => {
   const { storyDate, DRAMA_LEVELS } = await import('../../src/features/today/storyText.ts')
-  assert.equal(storyDate('2026-10-05'), 'Mon 5 Oct')
+  assert.equal(storyDate('2026-10-05'), shortDate('2026-10-05'))
+  assert.equal(storyDate('2026-10-05'), 'Mon, Oct 5')
   assert.deepEqual(DRAMA_LEVELS.map((level) => level.label), ['Quiet', 'Realistic', 'Dramatic', 'Soap opera'])
 })
 

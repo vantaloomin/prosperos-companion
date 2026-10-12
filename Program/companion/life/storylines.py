@@ -26,7 +26,7 @@ from datetime import date, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle
+from companion.life import circle, pronouns
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
 # Per drama level: chance a storyline starts on a given day, and how many can run at once.
@@ -399,6 +399,12 @@ SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} has 
                  ('their best friend', 'your best friend'), ('they never knew', 'you never knew'), ('{name}', 'you'))
 
 
+# Phrases about the companion, said with their own pronouns when those are known (companion/life/pronouns.py).
+THIRD_PERSON = (('heard they are', 'heard {they} {are}'), ('hitting on them', 'hitting on {them}'),
+                ('to their manager', 'to {their} manager'), ('their best friend', '{their} best friend'),
+                ('they never knew', '{they} never knew'))
+
+
 def second_person(text: str) -> str:
     for old, new in SECOND_PERSON:
         text = text.replace(old, new)
@@ -416,7 +422,7 @@ def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
         values |= {'a': people[0]['name'], 'a_rel': people[0]['role']}
     if len(people) > 1:
         values['b'] = people[1]['name']
-    filled = text.format(**values)
+    filled = pronouns.said(text.format(**values), THIRD_PERSON, definition)
     return filled[0].upper() + filled[1:] if filled else filled
 
 
