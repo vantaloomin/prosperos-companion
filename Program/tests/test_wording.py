@@ -1,4 +1,5 @@
 """American wording for the shared banks in American settings (companion/world/wording.py)."""
+import json
 from datetime import date
 
 from companion.world import catalog, dating, life_details, perception, townsfolk, wording
@@ -28,3 +29,34 @@ def test_townsfolk_in_american_towns_read_american():
                                  *(goal[field] for goal in goals for field in ('text', 'bio', 'progress', 'done'))])
                 text = text.lower().replace(place['name'].lower(), '')  # A real First Parish Vestry stays.
                 assert not [word for word in BRITISH if word in text], (city_id, sheet['key'])
+
+
+def test_a_companions_own_lines_read_american_in_an_american_home_city():
+    maine, london = catalog.city('haddon-harbor'), catalog.city('london')
+    picks = {'temperament': 'nosy', 'tell': 'knows-everyones-business', 'self_story': 'good-neighbour',
+             'flaw': 'favorites', 'desire': 'neighborhood'}
+    american, british = [], []
+    for seed in range(20):
+        american.append(str(perception.compose({'name': 'Rae'}, f'rae:{seed}', picks, None, maine)))
+        british.append(str(perception.compose({'name': 'Rae'}, f'rae:{seed}', picks, None, london)))
+        # Without city data passed, the built-in home city the sheet names decides.
+        american.append(str(perception.automatic({'name': 'Rae', 'home_city': 'haddon-harbor'}, f'rae:{seed}',
+                                                 picks)))
+    assert 'neighbour' in ' '.join(british).lower()
+    assert not [word for word in BRITISH if word in ' '.join(american).lower()]
+
+
+def test_the_quick_start_and_the_forms_suggestions_read_american_in_an_american_city(client, provider):
+    from test_drafting import GOOD, connect, replying
+    connect(client)
+    picks = {'temperament': 'nosy', 'tell': 'knows-everyones-business', 'self_story': 'good-neighbour',
+             'flaw': 'favorites', 'desire': 'neighborhood'}
+    provider.respond = replying(json.dumps({**GOOD, 'perception': picks}))
+    response = client.post('/api/companion/draft', json={'idea': 'a tired nurse', 'timezone': 'UTC',
+                                                         'home_city': 'haddon-harbor'})
+    assert response.status_code == 200, response.text
+    definition = response.json()['definition']
+    assert definition['seen_as'] and 'neighbour' not in f"{definition['seen_as']} {definition['sees_self']}".lower()
+    found = client.post('/api/companion/perception', json={'definition': {
+        'name': 'Rae', 'personality': 'Nosy, a good neighbour to everyone.', 'home_city': 'haddon-harbor'}}).json()
+    assert not [word for word in BRITISH if word in json.dumps(found).lower()]
