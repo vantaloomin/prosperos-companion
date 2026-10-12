@@ -39,15 +39,15 @@ export function LookedUp({ name }: { name: string }) {
                   {item.attempts > 1 ? ` · ${item.attempts} tries` : ''}
                 </p>
                 {item.content && <p className="lookup-content">{item.content}</p>}
-                <details className="lookup-sent">
-                  <summary>What was sent</summary>
-                  <dl>
-                    <dt>Sent:</dt><dd>{sentArguments(item)}</dd>
-                    <dt>To:</dt><dd>{item.destination}</dd>
-                  </dl>
-                  <code className="lookup-tool">{item.tool}</code>
-                </details>
-                <div className="post-actions lookup-actions">
+                <div className="lookup-foot">
+                  <details className="lookup-sent">
+                    <summary>What was sent</summary>
+                    <dl>
+                      <dt>Sent:</dt><dd>{sentArguments(item)}</dd>
+                      <dt>To:</dt><dd>{item.destination}</dd>
+                    </dl>
+                    <code className="lookup-tool">{item.tool}</code>
+                  </details>
                   <button type="button" className="text-button danger-text" onClick={() => void act(() => api(`/context/observations/${item.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Delete</button>
                 </div>
               </li>
