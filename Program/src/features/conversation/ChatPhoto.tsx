@@ -19,14 +19,14 @@ export function ChatPhoto({ message, name }: { message: Message; name: string })
   const line = photoLine(photo)
   return (
     <figure className={photo.kind === 'meme' ? 'chat-photo chat-meme' : 'chat-photo'}>
-      <PhotoFrame photo={photo} name={name} />
+      <PhotoFrame photo={photo} name={name} when={message.created_at} />
       {line && <PhotoLine photo={photo} line={line} />}
     </figure>
   )
 }
 
 /** The frame in the photo's final shape: the loading picture until the real one has loaded, then the photo. */
-function PhotoFrame({ photo, name }: { photo: Photo; name: string }) {
+function PhotoFrame({ photo, name, when }: { photo: Photo; name: string; when: string }) {
   const [loaded, setLoaded] = useState<string | null>(null)
   const failed = canRetry(photo)
   const landed = !!photo.ref && loaded === photo.ref
@@ -35,18 +35,18 @@ function PhotoFrame({ photo, name }: { photo: Photo; name: string }) {
       <span className={failed ? 'chat-photo-loading failed' : 'chat-photo-loading'} aria-hidden="true">{failed && <ImageOff />}</span>
       {photo.ref && <img src={imageFile(photo.ref)} alt={photoAlt(name, photo)} onLoad={() => setLoaded(photo.ref)} onError={() => setLoaded(photo.ref)} />}
       {photo.kind === 'meme' && landed && <MemeText photo={photo} />}
-      {landed && photo.ref && <OpenFullSize photo={photo} src={imageFile(photo.ref)} name={name} />}
+      {landed && photo.ref && <OpenFullSize photo={photo} src={imageFile(photo.ref)} name={name} when={when} />}
     </div>
   )
 }
 
 /** Clicking a landed photo opens it at full size, a meme with its captions. */
-function OpenFullSize({ photo, src, name }: { photo: Photo; src: string; name: string }) {
+function OpenFullSize({ photo, src, name, when }: { photo: Photo; src: string; name: string; when: string }) {
   const [open, setOpen] = useState(false)
   const captions = photo.kind === 'meme' ? { top: photo.top_text, bottom: photo.bottom_text } : {}
   return <>
     <button type="button" className="photo-open" aria-label="View full size" onClick={() => setOpen(true)} />
-    {open && <Lightbox pictures={[{ src, alt: photoAlt(name, photo), ...captions }]} onClose={() => setOpen(false)} />}
+    {open && <Lightbox pictures={[{ src, alt: photoAlt(name, photo), from: name, when, ...captions }]} onClose={() => setOpen(false)} />}
   </>
 }
 

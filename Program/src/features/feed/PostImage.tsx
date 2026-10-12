@@ -42,18 +42,18 @@ export function PostImage({ post, image, onChange }: { post: FeedPost; image: Il
 function ImageView({ post, image, waiting, error }: { post: FeedPost; image: Illustration; waiting?: string | null; error: string | null }) {
   const line = imageLine(image, waiting)
   return <>
-    {image.ref ? <FullSize src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} /> : <Placeholder status={image.status} />}
+    {image.ref ? <FullSize src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} from={post.author.name} when={post.occurs_at} /> : <Placeholder status={image.status} />}
     {line && <p className={image.status === 'failed' ? 'image-line error-text' : 'image-line subtle'} role="status">{line}</p>}
     {error && <p className="image-line error-text" role="alert">{error}</p>}
   </>
 }
 
 /** The picture as posted, which opens at full size when clicked. */
-function FullSize({ src, alt }: { src: string; alt: string }) {
+function FullSize({ src, alt, from, when }: { src: string; alt: string; from: string; when: string }) {
   const [open, setOpen] = useState(false)
   return <>
     <button type="button" className="photo-open-inline" aria-label={`View full size: ${alt}`} onClick={() => setOpen(true)}><img src={src} alt={alt} loading="lazy" /></button>
-    {open && <Lightbox pictures={[{ src, alt }]} onClose={() => setOpen(false)} />}
+    {open && <Lightbox pictures={[{ src, alt, from, when }]} onClose={() => setOpen(false)} />}
   </>
 }
 

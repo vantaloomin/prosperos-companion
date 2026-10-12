@@ -17,7 +17,9 @@ test('a sideways swipe moves between pictures and a drag down closes', () => {
   assert.equal(swipeAction(-20, -140), null)
 })
 
-test('a saved picture is named for what it shows', () => {
-  assert.equal(saveName('Photo from Mira: Mira painted by the river.'), 'photo-from-mira-mira-painted-by-the-river')
-  assert.equal(saveName('!!!'), 'picture')
+test('a saved picture is named for who sent it and when', () => {
+  const when = new Date(2026, 9, 5, 12, 0).toISOString()
+  assert.equal(saveName({ from: 'Mira', when }), 'Mira 2026-10-05 12-00')
+  assert.equal(saveName({ from: 'You', when: 'not a date' }), 'You')
+  assert.equal(saveName({ from: 'A/B: "C"', when }), 'A B C 2026-10-05 12-00')
 })

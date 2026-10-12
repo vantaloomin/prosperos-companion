@@ -1824,30 +1824,32 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .post-image .photo-open-inline { width: 100%; border-radius: 10px; }
 .photo-open:focus-visible, .photo-open-inline:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lightbox { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; overflow: hidden; background: #000000; color: #ffffff; overscroll-behavior: contain; }
-.lightbox[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.lightbox[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); animation: lightbox-in .15s ease-out; }
 .lightbox::backdrop { background: #000000c0; }
 .lightbox-bar { display: flex; align-items: center; gap: 4px; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left)); }
-.lightbox-count { flex: 1; font-size: 0.875rem; color: #ffffffcc; font-variant-numeric: tabular-nums; }
-.lightbox-action, .lightbox-step { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; color: #ffffff; background: none; border: 0; }
-.lightbox-action:hover, .lightbox-step:hover:not(:disabled) { background: #ffffff24; }
-.lightbox-action:focus-visible, .lightbox-step:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+.lightbox-context { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: #ffffffb3; font-variant-numeric: tabular-nums; }
+.lightbox-action, .lightbox-step { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; color: #ffffff; background: none; }
+.lightbox-action:hover { background: #ffffff24; }
+.lightbox-action:focus, .lightbox-step:focus { outline: none; }
+.lightbox-action:focus-visible:not(.quiet), .lightbox-step:focus-visible:not(.quiet) { outline: 2px solid #ffffff; outline-offset: 2px; }
 .lightbox-action svg { width: 22px; height: 22px; }
-.lightbox-stage { position: relative; display: grid; place-items: center; min-height: 0; padding: 0 16px max(16px, env(safe-area-inset-bottom)); }
+/* Above and below the picture stays clear on a desktop, so the bar never touches a tall picture. */
+.lightbox-stage { position: relative; display: grid; place-items: center; min-height: 0; padding: 0 76px max(16px, env(safe-area-inset-bottom)); }
 .lightbox-picture { position: relative; margin: 0; }
-.lightbox-picture > img { display: block; max-width: calc(100vw - 32px); max-height: calc(100dvh - 92px); width: auto; height: auto; object-fit: contain; }
+.lightbox-picture > img { display: block; max-width: calc(100vw - 152px); max-height: calc(100dvh - 172px); width: auto; height: auto; object-fit: contain; }
 .lightbox .meme-text { font-size: clamp(1.4rem, 5vmin, 3rem); left: 12px; right: 12px; }
 .lightbox .meme-top { top: 14px; }
 .lightbox .meme-bottom { bottom: 14px; }
-.lightbox-step { position: absolute; top: 50%; transform: translateY(-50%); background: #00000080; }
+.lightbox-step { position: absolute; top: 50%; transform: translateY(-50%); background: #ffffff1f; }
+.lightbox-step:hover { background: #ffffff33; }
+.lightbox-step[hidden] { display: none; }
 .lightbox-step svg { width: 26px; height: 26px; }
-.lightbox-step:disabled { opacity: 0; pointer-events: none; }
-.lightbox-previous { left: max(12px, env(safe-area-inset-left)); }
-.lightbox-next { right: max(12px, env(safe-area-inset-right)); }
+.lightbox-previous { left: max(16px, env(safe-area-inset-left)); }
+.lightbox-next { right: max(16px, env(safe-area-inset-right)); }
 /* On a phone the picture runs edge to edge and a swipe moves between pictures, so the arrows step aside. */
 @media (max-width: 720px) {
   .lightbox-stage { padding: 0 0 env(safe-area-inset-bottom); }
   .lightbox-picture > img { max-width: 100vw; max-height: calc(100dvh - 72px); }
   .lightbox-step { display: none; }
 }
-@media (prefers-reduced-motion: no-preference) { .lightbox[open] { animation: lightbox-in .18s ease-out; } }
-@keyframes lightbox-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lightbox-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }

@@ -1,5 +1,5 @@
-/** One picture the lightbox can show: its full-size file, what it shows, and any captions drawn over it. */
-export type Shown = { src: string; alt: string; top?: string; bottom?: string }
+/** One picture the lightbox can show: its full-size file, what it shows, who sent it and when, and any captions drawn over it. */
+export type Shown = { src: string; alt: string; from: string; when: string; top?: string; bottom?: string }
 
 /** The picture after stepping by `by` from `index`, staying put at either end rather than wrapping round. */
 export const stepTo = (index: number, by: number, count: number) => Math.min(Math.max(index + by, 0), Math.max(count - 1, 0))
@@ -13,7 +13,12 @@ export function swipeAction(dx: number, dy: number): 'next' | 'previous' | 'clos
   return null
 }
 
-/** The file name a saved picture gets, from what it shows. The browser adds the extension its file type calls for. */
-export function saveName(alt: string) {
-  return alt.replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ').slice(0, 8).join('-').toLowerCase() || 'picture'
+const pad = (value: number) => String(value).padStart(2, '0')
+
+/** The file name a saved picture gets, "Mira 2026-10-05 12-00", in local time. The browser adds the extension its file type calls for. */
+export function saveName(shown: Pick<Shown, 'from' | 'when'>) {
+  const from = shown.from.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Picture'
+  const then = new Date(shown.when)
+  if (Number.isNaN(then.getTime())) return from
+  return `${from} ${then.getFullYear()}-${pad(then.getMonth() + 1)}-${pad(then.getDate())} ${pad(then.getHours())}-${pad(then.getMinutes())}`
 }

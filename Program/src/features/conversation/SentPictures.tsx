@@ -20,7 +20,7 @@ export function SentPictures({ message, name }: { message: Message; name: string
           {note && <figcaption className="link-note failed">{note}</figcaption>}
         </figure>
       })}
-      {open !== null && <Lightbox pictures={pictures.map((picture, index) => ({ src: `/api/pictures/${picture.id}`, alt: alt(index) }))} start={open} onClose={() => setOpen(null)} />}
+      {open !== null && <Lightbox pictures={pictures.map((picture, index) => ({ src: `/api/pictures/${picture.id}`, alt: alt(index), from: 'You', when: message.created_at }))} start={open} onClose={() => setOpen(null)} />}
     </div>
   )
 }
