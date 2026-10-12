@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
-import { SETTINGS_KEY, useWorkspaceSettings } from '../../companion'
+import { COMPANION_KEY, SETTINGS_KEY, useWorkspaceSettings } from '../../companion'
 import type { WorkspaceSettings } from '../../types'
 import { chatStyleOf, retroDarkOn, soundsOn } from './chatStyles'
 
@@ -13,6 +13,11 @@ export function useChatStyle() {
     if (before) client.setQueryData(SETTINGS_KEY, { ...before, ...change })
     try {
       client.setQueryData(SETTINGS_KEY, await api<WorkspaceSettings>('/settings', change, 'PUT'))
+      // Retro IM has its own 2000s status lines (companion/life/status.py), so statuses are fetched again.
+      if (change.chat_style) {
+        void client.invalidateQueries({ queryKey: COMPANION_KEY })
+        void client.invalidateQueries({ queryKey: ['chats'] })
+      }
       return null
     } catch (error) {
       if (before) client.setQueryData(SETTINGS_KEY, before)

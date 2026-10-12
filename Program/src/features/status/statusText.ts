@@ -9,10 +9,16 @@ export function shown(status: CompanionStatus | null | undefined): { text: strin
   return status.away ? { text: status.away.text, away: status.away.glyph } : status.text ? { text: status.text, away: null } : null
 }
 
+/** A line as it is read aloud: Retro IM decorations (♫, ~*~, xXx) dropped, and hearts said in words. */
+export function spoken(text: string): string {
+  return text.replace(/<\/3/g, ' broken heart ').replace(/<3/g, ' love ').replace(/[♫♪]|xXx|[~*]{2,}|~ /g, ' ')
+    .replace(/\s+/g, ' ').trim()
+}
+
 /** For screen readers: "Maya's status: at work till 6". */
 export function statusLabel(name: string, status: CompanionStatus | null | undefined): string {
   const line = shown(status)
-  return line ? `${name}'s status: ${line.text}` : ''
+  return line ? `${name}'s status: ${spoken(line.text)}` : ''
 }
 
 /** The hint under the field while the user edits it. */
