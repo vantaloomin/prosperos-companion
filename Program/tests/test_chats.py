@@ -128,3 +128,14 @@ def test_a_group_chat_is_listed_with_its_unread(client, companion, clock):
     assert book['name'] == 'Book club' and book['thread_id'] == group['id'] and book['unread'] == 2
     assert book['last'] == {'role': 'companion', 'text': 'Mira: Halfway.', 'at': book['last']['at']}
     assert ok(client.post('/api/chats/read', json={'thread_id': group['id']}))['unread'] == 0
+
+
+def test_every_companion_keeps_and_shows_their_own_picture_across_a_switch(client, companion):
+    sally, _timeline = another(client)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE companions SET portrait_reference_id=? WHERE id=?', ('mira-picture', companion['id']))
+        connection.execute('UPDATE companions SET portrait_reference_id=? WHERE id=?', ('sally-picture', sally))
+    for focused in (sally, companion['id'], sally):
+        focus(client, focused)
+        pictures = {chat['id']: chat['portrait_reference_id'] for chat in chats(client)['chats']}
+        assert pictures == {companion['id']: 'mira-picture', sally: 'sally-picture'}
