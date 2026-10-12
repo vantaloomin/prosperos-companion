@@ -167,7 +167,7 @@ function MixSlider({ data, name, value, label, change, hint, shown, steps }: Mix
   const builtIn = data.defaults[name]
   const note = Number(value) !== Number(builtIn) ? `Built-in: ${words(builtIn)}.` : ''
   const ticks = steps ? Object.keys(steps).map(Number).sort((a, b) => a - b) : []
-  return <Field label={`${label}: ${words(value)}`} hint={[note, hint].filter(Boolean).join(' ') || undefined}>{(id, describedBy) => (
+  return <Field label={`${label}: ${words(value)}`} hint={[note, note && steps && hint ? `Now: ${hint}` : hint].filter(Boolean).join(' ') || undefined}>{(id, describedBy) => (
     <div className="mix-slider">
       <input id={id} type="range" min={min} max={max} step={step} value={value} list={steps ? `${id}-ticks` : undefined}
         aria-valuetext={valueText(name, value, steps)} aria-describedby={describedBy} onChange={(event) => change(name, Number(event.target.value))} />
