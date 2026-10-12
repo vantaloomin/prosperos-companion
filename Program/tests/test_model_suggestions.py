@@ -1,6 +1,7 @@
 """Model-found memories are saved automatically; contradictions and held sensitive facts wait (PRD M1, M7)."""
 import asyncio
 import json
+from datetime import timedelta
 
 from conftest import send
 
@@ -145,3 +146,43 @@ def test_a_sentence_that_names_more_than_the_rules_kept_still_reaches_the_model(
     [sent] = json.loads(asked['messages'][0]['content'])
     assert sent['text'] == f'{text}.' and sent['already_saved'] == ['Brother: Marcus']
     assert 'without "I", "I\'m" or "my" in front' in asked['system']
+
+
+def test_a_model_guess_never_replaces_a_core_fact_on_its_own(client, app, connected, provider):
+    """"Moved from Denver last month" is not where the user lives now: Home city: Baltimore stays until they accept."""
+    enable(client)
+    client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Home city', 'value': 'Baltimore'})
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Home city',
+                                     'value': 'moved from Denver last month'}])
+    send(client, 'It still feels strange that I moved from Denver last month, everything here is new', 'model-0001')
+    run(client, app)
+    assert [(item['subject'], item['value']) for item in client.get('/api/memories').json()] == [
+        ('Home city', 'Baltimore')]
+    [suggestion] = client.get('/api/memory/suggestions').json()
+    assert (suggestion['reason'], suggestion['replaces']) == ('conflict', ['Baltimore'])
+
+
+def test_a_model_correction_of_a_core_fact_waits_and_is_dated_by_its_message(client, app, clock, connected,
+                                                                            provider):
+    enable(client)
+    client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Home city', 'value': 'Baltimore'})
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Home city',
+                                     'value': 'Towson these days', 'corrects': 'Home city'}])
+    message = send(client, 'Small update about Baltimore, everything is in Towson for me these days since spring',
+                   'model-0001')['message']
+    clock.advance(timedelta(days=4))
+    run(client, app)
+    assert [item['value'] for item in client.get('/api/memories').json()] == ['Baltimore']
+    [suggestion] = client.get('/api/memory/suggestions').json()
+    assert (suggestion['reason'], suggestion['replaces']) == ('conflict', ['Baltimore'])
+    kept = client.post(f"/api/memory/suggestions/{suggestion['id']}/accept").json()['memory']
+    assert (kept['value'], kept['stated_at']) == ('Towson these days', message['created_at'])
+
+
+def test_a_model_guess_the_rules_already_kept_is_not_saved_twice(client, app, connected, provider):
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'user_fact', 'subject': 'Dog', 'value': 'Pepper'}])
+    send(client, 'My dog Pepper and I walked all the way to Druid Hill Park this morning', 'model-0001')
+    run(client, app)
+    dogs = [item for item in client.get('/api/memories').json() if item['subject'] == 'Dog']
+    assert [item['value'] for item in dogs] == ['Pepper']
