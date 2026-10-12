@@ -19,6 +19,7 @@ import re
 from datetime import date, datetime
 
 from companion.world import catalog, generators
+from companion.world.wording import regional
 
 MODERN = {'modern', 'future', 'other'}
 EPOCH = date(2026, 1, 5)  # A Monday: goals start moving from here.
@@ -364,12 +365,16 @@ def town(data: dict) -> dict:
 def quirk_for(data: dict, seed: str) -> str:
     """A quirk from the shared bank or, more often than any one shared quirk, the city's own."""
     own = [item['text'] for item in town(data)['quirks']]
-    return generators.pick(seed, 'quirk', [*QUIRKS, *own], [1.0] * len(QUIRKS) + [TOWN_WEIGHT] * len(own))
+    return regional(data, generators.pick(seed, 'quirk', [*QUIRKS, *own],
+                                                  [1.0] * len(QUIRKS) + [TOWN_WEIGHT] * len(own)))
 
 
 def quirk_bio(data: dict, text: str) -> str:
     """The first-person dating-profile line for a quirk, shared or the city's own."""
-    return QUIRK_BIOS.get(text) or next((item['bio'] for item in town(data)['quirks'] if item['text'] == text), '')
+    found = QUIRK_BIOS.get(text) or next((bio for quirk, bio in QUIRK_BIOS.items() if regional(data, quirk) == text),
+                                         None)
+    return regional(data, found) if found else \
+        next((item['bio'] for item in town(data)['quirks'] if item['text'] == text), '')
 
 
 QUIRK_BIOS = {item['text']: item['bio'] for item in QUIRK_BANK}
@@ -409,8 +414,10 @@ def goal(sheet: dict, data_or_modern, number: int) -> dict:
     found = goal_bank(data_or_modern if isinstance(data_or_modern, dict) else {})[sheet['goals'][number % len(sheet['goals'])]]
     goal_id, wording, steps, practice, progress, done, interest, bio = found
     text = wording[0] if is_modern else ERA_GOALS.get(era, {}).get(goal_id, wording[1])
-    return {'id': goal_id, 'text': text, 'steps': steps, 'practice': practice, 'interest': interest, 'bio': bio,
-            'progress': progress.format(name=sheet['name']), 'done': done.format(name=sheet['name'])}
+    data = data_or_modern if isinstance(data_or_modern, dict) else None
+    return {'id': goal_id, 'text': regional(data, text), 'steps': steps, 'practice': practice, 'interest': interest,
+            'bio': regional(data, bio), 'progress': regional(data, progress.format(name=sheet['name'])),
+            'done': regional(data, done.format(name=sheet['name']))}
 
 
 # How their goal goes, week by week -------------------------------------------------------------------
