@@ -1,3 +1,4 @@
+import { calendarDay } from '../../when.ts'
 import type { Closeness, ClosenessMilestone } from '../../types'
 
 export const CLOSENESS_KEY = ['closeness']
@@ -6,8 +7,7 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 
 /** A calendar day (YYYY-MM-DD) as words, without shifting it through a timezone. */
 export function dayText(day: string): string {
-  const [year, month, date] = day.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  return calendarDay(day, { month: 'long', year: true })
 }
 
 /** What the current stage is built from, in words. */

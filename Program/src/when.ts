@@ -70,3 +70,16 @@ export function exactTime(value: string): string {
   const then = Date.parse(value)
   return Number.isNaN(then) ? '' : EXACT.format(then)
 }
+
+/**
+ * A calendar day ("2026-11-26") in the user's own locale, like message times, without shifting it through a
+ * timezone. Every date shown in the app goes through this, so they all read the same way: in en-US "Thu, Nov 26"
+ * with the weekday, "Nov 26, 2026" with the year, "November 26" with the long month.
+ */
+export function calendarDay(day: string, options: { weekday?: boolean; year?: boolean; month?: 'short' | 'long' } = {}): string {
+  const [year, month, date] = day.slice(0, 10).split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString(undefined, {
+    weekday: options.weekday ? 'short' : undefined, month: options.month ?? 'short', day: 'numeric',
+    year: options.year ? 'numeric' : undefined, timeZone: 'UTC',
+  })
+}

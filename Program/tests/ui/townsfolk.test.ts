@@ -11,8 +11,8 @@ test('a townsperson reads as their role and place', () => {
 })
 
 test('meetings are counted', () => {
-  assert.match(townMet({ times: 1, last_met: '2026-10-05' }), /^Met once, on (5 October|October 5)\.$/)
-  assert.match(townMet({ times: 3, last_met: '2026-10-12' }), /^Crossed paths 3 times, last on (12 October|October 12)\.$/)
+  assert.match(townMet({ times: 1, last_met: '2026-10-05' }), /^Met once, on October 5\.$/)
+  assert.match(townMet({ times: 3, last_met: '2026-10-12' }), /^Crossed paths 3 times, last on October 12\.$/)
 })
 
 test('where they are now does not repeat the place', () => {

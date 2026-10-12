@@ -1,3 +1,4 @@
+import { calendarDay } from '../../when.ts'
 import type { Townsperson, TownspersonNow } from '../../types'
 
 /** "Bartender at The Claddagh Pub, Canton", "A regular at Patterson Park" or "Electrician, lives in Canton". */
@@ -8,9 +9,9 @@ export function townRole(person: Pick<Townsperson, 'role' | 'staff' | 'place' | 
   return `${role.charAt(0).toUpperCase()}${role.slice(1)} at ${where}`
 }
 
-/** "Met once, on 5 October" or "Crossed paths 3 times, last on 12 October". */
+/** "Met once, on October 5" or "Crossed paths 3 times, last on October 12". */
 export function townMet(person: Pick<Townsperson, 'times' | 'last_met'>): string {
-  const day = new Date(`${person.last_met}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
+  const day = calendarDay(person.last_met, { month: 'long' })
   return person.times === 1 ? `Met once, on ${day}.` : `Crossed paths ${person.times} times, last on ${day}.`
 }
 

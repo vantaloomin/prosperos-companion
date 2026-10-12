@@ -22,18 +22,18 @@ test('the scrapbook opens on the one Today points to, else the year so far', () 
 test('Today names the scrapbook only on the days it is featured', () => {
   assert.equal(featuredCard(listing, 'Mira'), null)
   assert.deepEqual(featuredCard({ ...listing, featured: 'year-1' }, 'Mira'), { key: 'year-1', title: 'Our first year with Mira', stat: '70 days talked' })
-  assert.equal(dayText('2026-09-06'), '6 Sep')
+  assert.equal(dayText('2026-09-06'), 'Sep 6')
 })
 
 test('dates and pages read plainly', () => {
-  assert.equal(spanText('2025-03-10', '2026-03-09'), '10 Mar 2025 to 9 Mar 2026')
+  assert.equal(spanText('2025-03-10', '2026-03-09'), 'Mar 10, 2025 to Mar 9, 2026')
   assert.equal(pageAt(0, 600, 5), 0)
   assert.equal(pageAt(1190, 600, 5), 2)
   assert.equal(pageAt(9000, 600, 5), 4)
 })
 
 test('traditions show their next date and what is up at home', () => {
-  assert.equal(nextText('2026-11-26'), 'Next: Thu 26 Nov')
+  assert.equal(nextText('2026-11-26'), 'Next: Thu, Nov 26')
   assert.equal(nextText(null), null)
   assert.equal(decorationsText(['a wreath on the front door']), 'Up at home right now: a wreath on the front door.')
   assert.equal(decorationsText(['a', 'b', 'c']), 'Up at home right now: a, b and c.')

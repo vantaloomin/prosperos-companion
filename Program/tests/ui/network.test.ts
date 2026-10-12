@@ -8,5 +8,5 @@ test('a friend of a friend reads as how they are connected', () => {
 })
 
 test('a meeting names the occasion and day', () => {
-  assert.match(metLine({ occasion: "Becca's Friendsgiving", met_on: '2026-11-21' }), /^Met at Becca's Friendsgiving on (21 November|November 21)\.$/)
+  assert.match(metLine({ occasion: "Becca's Friendsgiving", met_on: '2026-11-21' }), /^Met at Becca's Friendsgiving on November 21\.$/)
 })
