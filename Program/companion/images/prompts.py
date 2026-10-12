@@ -15,7 +15,7 @@ from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
 
-PROMPT_VERSION = 5
+PROMPT_VERSION = 6
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -131,9 +131,10 @@ def plural_verb(verb: str) -> str:
 
 def visible(appearance: str, name: str, who: str) -> str:
     """What a camera can show of them: impressions ("looks like someone who...") are dropped and
-    backstory is cut off a clause ("a scar on her chin from a derby fall" keeps the scar)."""
+    backstory is cut off a clause ("a scar on her chin from a derby fall" keeps the mark), and old injuries are said
+    as what they look like now (looks.seen)."""
     kept = []
-    for sentence in re.split(r'(?<=[.!?])\s+', unnamed(appearance.strip(), name, who)):
+    for sentence in re.split(r'(?<=[.!?])\s+', looks.seen(unnamed(appearance.strip(), name, who))):
         if IMPRESSION.search(sentence):
             continue
         clauses = [BACKSTORY.sub('', clause).strip() for clause in CLAUSE.split(sentence.rstrip('.!? ')) if clause]
@@ -228,7 +229,7 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
              sheet, f'{look}.' if look else '', setting, action,
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
              light(event.get('hour'), event.get('weather')), camera(style, framing)]
-    return ' '.join(part for part in parts if part)
+    return looks.seen(' '.join(part for part in parts if part))
 
 
 # What each activity of the life sim (companion/life/composer.py and the circle's gatherings) looks
@@ -413,6 +414,7 @@ def build_meme(connection, meme, image_settings) -> dict:
         prompt = (f"Reaction-meme style photo, simple and centered, of a fictional person with a {meme['expression']} "
                   f"expression{meme['where']}, room above and below the face. {sheet} {look}.").rstrip(' .') + '.'
         likeness = current_for_images(connection)
+    prompt = looks.seen(prompt)
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
             'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],
             'meme': meme, **likeness}

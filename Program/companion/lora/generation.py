@@ -24,6 +24,7 @@ from companion.images.prompts import NEGATIVE, sheet_for
 from companion.images.routing import eligible, route
 from companion.images.storage import raw_directory, sniff
 from companion.lora import files, references
+from companion.world import looks
 
 # (key, label, shot, aspect). The shot follows the base description in each prompt.
 SHOTS = (
@@ -66,7 +67,7 @@ def base_of(companion) -> str:
     sheet = sheet_for(companion, definition)[0].rstrip('.')
     described = (definition.get('in_photos') or '').strip() or definition.get('appearance', '')
     appearance = ' '.join(described.split()).rstrip('.')
-    return ', '.join(part for part in (definition['name'], sheet[:1].lower() + sheet[1:], appearance) if part)
+    return looks.seen(', '.join(part for part in (definition['name'], sheet[:1].lower() + sheet[1:], appearance) if part))
 
 
 def compose(style, base, shot) -> str:
