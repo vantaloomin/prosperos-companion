@@ -481,17 +481,18 @@ def scene(connection, companion: dict, outing: dict) -> str:
     return '- ' + ' '.join(part.strip() for part in parts if part.strip())
 
 
-def planned_line(outing: dict, fresh: bool) -> str:
+def planned_line(outing: dict) -> str:
     line = f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}, with the user."
-    if outing['named']:
-        line += ' They picked the place.'
-    else:
-        line += ' You picked the place.'
-    if fresh:
-        line += ' You just said yes; tell them where and when.'
-        if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
-            line += f" They asked for {day_text(outing['asked_date'])}, but that did not work for you, so you offered " \
-                    'this day instead.'
+    return line + (' They picked the place.' if outing['named'] else ' You picked the place.')
+
+
+def booked_line(outing: dict) -> str:
+    """The outing settled for the turn being answered, as what the reply says (first in its notes)."""
+    line = f"- You just said yes: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
+        'Confirm it in this reply: say where and when, in your own words.'
+    if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
+        line += f" They asked for {day_text(outing['asked_date'])}, but you can't make that day, so say so and " \
+                f"that it is {day_text(outing['local_date'])} instead."
     return line
 
 
@@ -506,7 +507,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         if found == 'now':
             result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing)))
         elif found == 'planned':
-            result.append((f"outing:{outing['id']}", planned_line(outing, outing['message_id'] in fresh_ids)))
+            result.append((f"outing:{outing['id']}", planned_line(outing)))
+            if outing['message_id'] in fresh_ids:
+                result.append((f"outing:{outing['id']}:booked", booked_line(outing)))
         elif now - window(outing, version['timezone'])[1] < RECENT:
             paid = money_text(companion, outing)
             result.append((f"outing:{outing['id']}:done",
