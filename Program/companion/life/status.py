@@ -22,7 +22,7 @@ Song lyrics are not in the app (it is public). A person can keep their own in re
 one per line; when it has any, quoted lyrics join the mix. The file stays on their computer and is never shared.
 """
 import json
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 from functools import cache
 from pathlib import Path
 
@@ -155,12 +155,21 @@ def away(connection, companion: dict, now, retro: bool = False) -> dict | None:
     return {'text': generators.pick(seed, 'away', lines).format(until=until), 'glyph': GLYPHS[kind]}
 
 
-def big_events(connection, companion: dict, now) -> list[tuple[str, str]]:
-    """(local date, line) for chapters and storyline beats they would share, from the last two days, newest first."""
-    found = [(row['started_on'], row['share']) for row in chapters.fresh(connection, companion, now) if row['share']]
-    found += [(beat['on'], beat['share']) for _key, beat in storylines.fresh_beats(connection, companion, now)
-              if beat.get('share')]
-    return sorted(found, reverse=True)
+def big_events(connection, companion: dict, now) -> list[tuple[str, str, object]]:
+    """(local date, line, when it came to be) for chapters and storyline beats they would share, from the last two
+    days, newest first. A beat came to be at the start of its day, or when its outcome was decided."""
+    found = [(row['started_on'], row['share'], parse(row['created_at']))
+             for row in chapters.fresh(connection, companion, now) if row['share']]
+    found += [(beat['on'], beat['share'], beat_since(connection, companion, beat))
+              for _key, beat in storylines.fresh_beats(connection, companion, now) if beat.get('share')]
+    return sorted(found, key=lambda item: (item[0], item[2]), reverse=True)
+
+
+def beat_since(connection, companion: dict, beat: dict):
+    start = datetime.combine(date.fromisoformat(beat['on']), time(), zone(companion['version']['timezone']))
+    decided = beat.get('consequence') and optional(
+        connection, 'SELECT COALESCE(changed_at, created_at) AS at FROM consequences WHERE id=?', (beat['consequence'],))
+    return max(start, parse(decided['at'])) if decided else start
 
 
 def mood_line(connection, companion: dict, now, seed: str, retro: bool = False) -> str:
@@ -218,8 +227,8 @@ def users_line(connection, companion: dict, now) -> str:
     row = optional(connection, 'SELECT status_text, status_set_at FROM companions WHERE id=?', (companion['id'],))
     if not row or not row['status_text']:
         return ''
-    since = local(companion, parse(row['status_set_at'])).date().isoformat()
-    newer = [on for on, _line in big_events(connection, companion, now) if on > since]
+    since = parse(row['status_set_at'])
+    newer = [on for on, _line, came in big_events(connection, companion, now) if came > since]
     return '' if newer else row['status_text']
 
 

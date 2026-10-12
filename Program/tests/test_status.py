@@ -71,6 +71,25 @@ def test_the_user_can_set_a_line_that_stays_until_something_big_happens(client, 
     assert client.put('/api/companion/nobody/status', json={'text': 'x'}).status_code == 404
 
 
+def test_a_big_event_later_the_same_day_replaces_the_users_line(client, clock):
+    mira = make(client, 'Warm and curious.')
+    at(clock, 8)
+    with client.app.state.database.connect(write=True) as connection:
+        timeline = require_current(connection)['active_timeline_id']
+        connection.execute("INSERT INTO life_chapters (id, timeline_id, kind, started_on, title, told, share, created_at) "
+                           "VALUES ('c0', ?, 'job', '2026-10-05', 'New job', 'You started.', 'first day!', ?)",
+                           (timeline, clock.now().isoformat()))
+    at(clock, 9)
+    client.put(f"/api/companion/{mira['id']}/status", json={'text': 'gone fishing'})
+    assert read(client)['text'] == 'gone fishing'
+    at(clock, 15)
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("INSERT INTO life_chapters (id, timeline_id, kind, started_on, title, told, share, created_at) "
+                           "VALUES ('c1', ?, 'move', '2026-10-05', 'Moved', 'You moved.', 'I did it, I moved!', ?)",
+                           (timeline, clock.now().isoformat()))
+    assert read(client) | {'away': None} == {'text': 'I did it, I moved!', 'set_by': 'app', 'away': None}
+
+
 def test_away_times_read_the_way_people_write_them():
     assert status.clock_text(datetime(2026, 10, 5, 18, 0)) == '6'
     assert status.clock_text(datetime(2026, 10, 5, 17, 30)) == '5:30'
