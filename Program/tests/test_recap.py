@@ -1,9 +1,10 @@
 """While you were away (companion/recap.py): a catch-up after a few days without a message."""
-from datetime import timedelta
+from datetime import date, timedelta
 
 from conftest import send
 from test_social_circle import make
 
+from companion import recap
 from companion.characters import require_current
 from companion.database import identifier
 
@@ -60,3 +61,14 @@ def test_a_new_chat_has_nothing_to_catch_up_on(client, clock):
     make(client, 'Warm and curious.')
     away(client, clock, 10)
     assert ok(client.get('/api/conversation/recap'))['recap'] is None
+
+
+def test_a_plan_reads_in_the_past_once_its_day_has_gone_and_today_on_the_day():
+    summary = 'Mira Lee is planning to get coffee at Bean Bar on Saturday (morning).'
+    details = {'target_slot': 'morning@2026-10-10'}
+    assert recap.plan_said(summary, details, date(2026, 10, 9)) == summary
+    assert recap.plan_said(summary, details, date(2026, 10, 10)) == \
+        'Mira Lee is planning to get coffee at Bean Bar today (morning).'
+    assert recap.plan_said(summary, details, date(2026, 10, 12)) == \
+        'Mira Lee planned to get coffee at Bean Bar on Saturday (morning).'
+    assert recap.plan_said('Something else.', details, date(2026, 10, 12)) == 'Something else.'

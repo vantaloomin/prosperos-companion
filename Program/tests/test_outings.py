@@ -149,6 +149,17 @@ def test_a_named_place_is_kept_and_the_bill_comes_out_of_their_budget(client, mi
     assert 'Earlier you and the user had dinner at Ouzo Bay' in client.get('/api/context/preview').json()['prompt']
 
 
+def test_an_outing_still_finishes_after_a_long_absence(client, mira, provider, clock):
+    send(client, 'Want to go to Ouzo Bay Wednesday?', 'client-out-long')
+    clock.advance(timedelta(days=20))  # Back three weeks later: the outing was long over.
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [done] = connection.execute('SELECT status, memory_id FROM outings').fetchall()
+        memory = connection.execute('SELECT stated_at FROM memories WHERE id=?', (done['memory_id'],)).fetchone()
+    assert done['status'] == 'done' and done['memory_id']
+    assert memory['stated_at'].startswith('2026-10-07')  # Dated the evening it happened, for the scrapbook.
+
+
 def test_the_user_can_call_it_off_send_them_elsewhere_or_head_home(client, mira, provider, clock):
     send(client, 'Drinks Friday?', 'client-out-07')
     [outing] = listing(client)['outings']
@@ -196,3 +207,13 @@ def test_replies_are_not_held_while_out_together():
     from companion.life import pacing
     assert pacing.busy_kind({'kind': 'social', 'with_user': True}) is None
     assert pacing.busy_kind({'kind': 'social'}) == 'social'
+
+
+def test_by_the_harbor_means_on_the_water_not_a_name_that_says_harbor():
+    data = catalog.city('haddon-harbor')
+    wanted = outings.proposal('Want to get dinner by the harbor on Friday?', date(2026, 10, 12), {}, data)
+    assert wanted['place'] is None and wanted['waterside']
+    picks = {outings.pick_place(data, 'dinner', date(2026, 7, 17), '19:00', {}, f's{n}', False, 'dinner', True)['name']
+             for n in range(30)}
+    assert 'Golden Harbor Chinese Restaurant' not in picks
+    assert all(outings.waterside(item, data) for item in data['places'] if item['name'] in picks)

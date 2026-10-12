@@ -159,3 +159,19 @@ def test_memories_still_queued_in_a_world_left_behind_are_formed_on_return(clien
     run_pending(database)
     with database.connect() as connection:
         assert {row['status'] for row in connection.execute('SELECT status FROM memory_jobs')} == {'done'}
+
+
+def test_the_first_world_takes_its_first_companions_city(client):
+    assert listing(client)['world']['name'] == 'Baltimore'
+    ok(client.post('/api/companion', json={'name': 'Wren', 'timezone': 'America/New_York',
+                                           'home_city': 'haddon-harbor'}))
+    world = listing(client)['world']
+    assert world['name'] == 'Haddon Harbor' and world['city_id'] == 'haddon-harbor'
+
+
+def test_a_world_the_user_named_keeps_its_name(client):
+    world = listing(client)['world']
+    ok(client.patch(f"/api/worlds/{world['id']}", json={'name': 'Home'}))
+    ok(client.post('/api/companion', json={'name': 'Wren', 'timezone': 'America/New_York',
+                                           'home_city': 'haddon-harbor'}))
+    assert listing(client)['world']['name'] == 'Home'

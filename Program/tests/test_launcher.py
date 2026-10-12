@@ -1,5 +1,6 @@
 """Launch buttons for local programs (companion/launcher.py) and starting them with the Companion."""
 import asyncio
+import os
 import time
 from pathlib import Path
 
@@ -245,12 +246,18 @@ def test_a_comfyui_folder_never_runs_on_this_apps_own_python(tmp_path, monkeypat
     (folder / 'comfy').mkdir(parents=True)
     (folder / 'main.py').write_text('')
     own = tmp_path / 'companion-env'
-    outside = tmp_path / 'system' / 'python3'
+    system = tmp_path / 'system'
+    outside = system / 'python3'
     monkeypatch.setattr(local_programs.sys, 'prefix', str(own))
-    paths = {'python3': str(own / 'bin' / 'python3'), 'python': str(outside)}
-    monkeypatch.setattr(local_programs.shutil, 'which', paths.get)
+    # This app's environment first on PATH, the system Python (also named python3) behind it.
+    monkeypatch.setenv('PATH', os.pathsep.join([str(own / 'bin'), str(system)]))
+    paths = {(str(own / 'bin'), 'python3'): str(own / 'bin' / 'python3'), (str(system), 'python3'): str(outside)}
+    monkeypatch.setattr(local_programs.shutil, 'which', lambda name, path=None: paths.get((path, name)))
     assert local_programs.comfy_command(folder, 8188)[:2] == [str(outside), str(folder / 'main.py')]
-    monkeypatch.setattr(local_programs.shutil, 'which', lambda name: None)
+    del paths[(str(system), 'python3')]
+    with pytest.raises(DomainError, match='no Python of its own'):
+        local_programs.comfy_command(folder, 8188)
+    monkeypatch.setattr(local_programs.shutil, 'which', lambda name, path=None: None)
     with pytest.raises(DomainError, match='no Python of its own'):
         local_programs.comfy_command(folder, 8188)
     venv = folder / ('venv/Scripts/python.exe' if local_programs.WINDOWS else 'venv/bin/python3')

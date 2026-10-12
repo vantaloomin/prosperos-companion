@@ -24,6 +24,6 @@ export function importedText(result: ChatImportResult): string {
   const memories = result.automatic_memory
     ? `; ${count(result.memories, 'memory', 'memories')} found.`
     : '. Remembering things automatically is off, so no memories were taken from it.'
-  const skipped = result.skipped ? ` ${count(result.skipped, 'system, narrator or empty line was', 'system, narrator or empty lines were')} left out.` : ''
+  const skipped = result.skipped ? ` ${count(result.skipped, "system, narrator, empty or other character's line was", "system, narrator, empty or other characters' lines were")} left out.` : ''
   return `${count(result.messages, 'message', 'messages')}${span} came in as older history${memories}${skipped}`
 }

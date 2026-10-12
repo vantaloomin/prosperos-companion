@@ -23,6 +23,7 @@ test('an outing reads as what, where and when, with who picked the place', () =>
   assert.equal(outingNote({ ...outing, rolls: 1 }, 'Mira'), 'You asked for somewhere else.')
   assert.equal(placeLine({ ...outing.place, kind: 'bar', cuisine: 'irish-pub', neighborhood: 'Canton' }), 'Irish pub in Canton')
   assert.equal(outingNote({ ...outing, state: 'done' }, 'Mira'), 'Mira paid about $48.')
+  assert.equal(placeLine({ ...outing.place, cuisine: 'tex-mex', neighborhood: 'Canton' }), 'Tex-Mex restaurant in Canton')
 })
 
 test('trips read as days and who they go with', () => {

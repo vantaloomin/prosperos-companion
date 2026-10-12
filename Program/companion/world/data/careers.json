@@ -1217,6 +1217,9 @@
    "schedule": "office",
    "pay": "$$$",
    "summary": "Buying and selling on the ticker for clients, many of them on margin.",
+   "needs": [
+    "stock-exchange"
+   ],
    "themes": [
     "the ticker",
     "clients",

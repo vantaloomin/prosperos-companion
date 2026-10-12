@@ -11,9 +11,21 @@ export function sceneTime(localTime: string): string {
 
 const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
 
+const IRREGULAR: Record<string, string> = { man: 'men', woman: 'women', person: 'people', child: 'children' }
+// Words that end the role and start what follows it: "a head chef| at Joe's", "a neighbor| waiting for the bus".
+const AFTER_ROLE = /^(.+?)((?: (?:from|at|of|in|on|with|near|by|for|who|that|behind|outside|inside|[a-z]+ing)\b|,).*)?$/
+
 function plural(word: string): string {
+  if (IRREGULAR[word]) return IRREGULAR[word]
   if (/(s|sh|ch|x|z)$/.test(word)) return `${word}es`
   return /[^aeiou]y$/.test(word) ? `${word.slice(0, -1)}ies` : `${word}s`
+}
+
+/** "head chef at Joe's" -> "head chefs at Joe's": the role's last word, its head noun, takes the plural. */
+function pluralRole(phrase: string): string {
+  const [, role, rest = ''] = AFTER_ROLE.exec(phrase) ?? [phrase, phrase, '']
+  const words = role.split(' ')
+  return [...words.slice(0, -1), plural(words[words.length - 1])].join(' ') + rest
 }
 
 /** Unnamed people who read the same are counted: three of "a local from Canton" are "three locals from Canton". */
@@ -21,10 +33,10 @@ export function grouped(around: string[]): string[] {
   const counts = new Map<string, number>()
   for (const who of around) counts.set(who, (counts.get(who) ?? 0) + 1)
   return [...counts.entries()].flatMap(([who, count]) => {
-    const unnamed = /^(?:an?|the) (\S+)(.*)$/.exec(who)
+    const unnamed = /^(?:an?|the) (.+)$/.exec(who)
     if (count === 1) return [who]
     if (!unnamed) return Array<string>(count).fill(who)
-    return [`${COUNTS[count] ?? count} ${plural(unnamed[1])}${unnamed[2]}`]
+    return [`${COUNTS[count] ?? count} ${pluralRole(unnamed[1])}`]
   })
 }
 

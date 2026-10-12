@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from companion.world import catalog, marinara
+from companion.world import catalog, marinara, naming
 
 TODAY = '2026-10-12'
 
@@ -82,7 +82,7 @@ def test_homes_rooms_and_archived_places_are_never_public_places(made):
     names = {place['name'] for place in made['city']['places']}
     assert not names & {"Mara's Apartment", "Mara's Bedroom", "Wren's Cabin", 'Loft Room', 'Old Pier', 'Lost Stall'}
     assert any("Mara's Apartment (Alder Quarter)" in note for note in made['notes'])
-    assert '1 archived places left out.' in made['notes']
+    assert '1 archived place left out.' in made['notes']
     assert '2 pictures not imported.' in made['notes']
 
 
@@ -191,3 +191,39 @@ def test_bring_your_characters_points_a_world_map_to_cities(client, companion):
     data = base64.b64encode(json.dumps(sample()).encode()).decode()
     response = client.post('/api/import/character', json={'filename': 'harbour.world-map.json', 'data': data})
     assert response.status_code == 422 and 'Marinara world map' in response.text
+
+
+def world_books(client) -> list[str]:
+    return [book['name'] for book in client.get('/api/lore').json()['books'] if book['world']]
+
+
+def test_the_lore_follows_the_city_into_a_new_world(client, companion):
+    assert client.post('/api/world/import/marinara', json=sample()).status_code == 200
+    made = client.post('/api/worlds', json={'city_id': 'lisbon'})
+    assert made.status_code == 200, made.text
+    elsewhere = client.post('/api/worlds', json={})
+    assert client.post(f"/api/worlds/{made.json()['id']}/switch").status_code == 200
+    assert world_books(client) == ['Harbourlight, chapter 3']
+    [book] = [book for book in client.get('/api/lore').json()['books'] if book['world']]
+    assert any(entry['title'] == 'Copper Kettle' for entry in book['entries'])
+    assert client.post(f"/api/worlds/{elsewhere.json()['id']}/switch").status_code == 200
+    assert world_books(client) == [], 'a world in another city does not get it'
+
+
+def test_deleting_the_city_deletes_its_lore_in_every_world(client, companion):
+    assert client.post('/api/world/import/marinara', json=sample()).status_code == 200
+    made = client.post('/api/worlds', json={'city_id': 'lisbon'}).json()
+    response = client.delete('/api/world/cities/lisbon')
+    assert response.status_code in (200, 204), response.text
+    assert world_books(client) == []
+    assert client.post(f"/api/worlds/{made['id']}/switch").status_code == 200
+    assert world_books(client) == [], 'the copy in the world made there goes too'
+
+
+def test_a_city_with_no_country_takes_it_from_its_time_zone_so_names_are_local():
+    value = copy.deepcopy(sample())
+    value['definition']['locations'][0]['name'] = 'Seoul'
+    made = marinara.convert(value, TODAY)
+    assert (made['city']['country'], made['city']['timezone']) == ('South Korea', 'Asia/Seoul')
+    assert any('so it is South Korea' in note for note in made['notes'])
+    assert naming.local_culture(made['city']['country']) == 'korea'

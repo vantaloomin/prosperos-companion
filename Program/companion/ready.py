@@ -71,6 +71,13 @@ def uses_builtin(database) -> bool:
     return row is not None and decode(row['config']).get('resource_group') == RESOURCE_GROUP
 
 
+def builtin_profiles(database) -> list[str]:
+    """The chat profiles that run on the built-in server."""
+    with database.connect() as connection:
+        return [row['id'] for row in many(connection, 'SELECT id, config FROM model_profiles')
+                if decode(row['config']).get('resource_group') == RESOURCE_GROUP]
+
+
 def model(key: str) -> dict:
     found = next((item for item in MODELS if item['key'] == key), None)
     require(found is not None, 'That model is not one the Companion can set up.', 422)
@@ -217,7 +224,7 @@ class Ready:
                 'There is no built-in llama.cpp for this computer yet, so the Companion cannot run a chat model '
                 'itself. Set up LM Studio or a hosted service in Settings > Models.', 409)
         partial = self.target(item).with_name(item['file'] + '.partial')
-        have = partial.stat().st_size if partial.exists() else 0
+        have = item['bytes'] if self.kept(item) else partial.stat().st_size if partial.exists() else 0
         free = self.free_bytes()
         require(free is None or free >= item['bytes'] - have + SPARE_BYTES,
                 f"There is not enough free disk space for {item['name']}: it needs about "
@@ -280,6 +287,24 @@ class Ready:
             self.save(status='idle', model_key=None, received=0, bytes=0, message='', queued=None)
         return self.view()
 
+    def kept(self, item: dict) -> bool:
+        """Whether this model's file is still here, whole and already checked, from a built-in profile since
+        deleted: setting it up again needs no download."""
+        path = self.target(item)
+        return self.state().get('kept_key') == item['key'] and path.is_file() and path.stat().st_size == item['bytes']
+
+    async def forget(self) -> dict:
+        """After a profile is deleted: with no built-in profile left, its server stops and "Set it up for me" is
+        offered again. The checked model file stays, so setting it up again is instant; the profile is the only way
+        the app knows the user wants it, and a 3 to 18 GB file is a large thing to remove without being asked."""
+        state = self.state()
+        if state.get('status') != 'ready' or builtin_profiles(self.database):
+            return self.view()
+        await self.chat.stop()
+        self.save(status='idle', kept_key=state.get('model_key'), model_key=None, profile_id=None, received=0,
+                  bytes=0, message='', announced=False, settings_seen=False, queued=None)
+        return self.view()
+
     def use(self) -> dict:
         """The card's "Ready. Use it for conversation": the built-in model takes the chat job after all."""
         profile_id = self.state().get('profile_id')
@@ -326,19 +351,11 @@ class Ready:
         try:
             if self.chat.server() is None:
                 await self.chat.install()
-            path = await self.fetch(item)
-            self.save(status='checking', received=item['bytes'])
-            digest = await asyncio.to_thread(sha256, path.with_name(path.name + '.partial'))
-            if digest != item['sha256']:
-                path.with_name(path.name + '.partial').unlink(missing_ok=True)
-                self.received = 0
-                # The file's checksum didn't match: said plainly (Iris).
-                raise DomainError('The download came through damaged, so it wasn\'t used. Try again to download it '
-                                  'fresh.', 502)
-            path.with_name(path.name + '.partial').replace(path)
+            path = self.target(item) if self.kept(item) else await self.obtain(item)
             port = self.state().get('port') or free_port()
-            self.save(status='ready', model_path=str(path), port=port, received=item['bytes'], message='')
+            self.save(model_path=str(path), port=port, received=item['bytes'], message='')
             self.make_profile(item, port)
+            self.save(status='ready')  # Ready once its profile is there, so "ready" never shows without one.
             if uses_builtin(self.database):  # Picked another chat model meanwhile: it loads only when they Use it.
                 self.chat.kick()
         except DomainError as error:
@@ -351,6 +368,20 @@ class Ready:
             self.save(status='failed', message=self.stopped(error), received=self.received)
             return
         await self.write_queued()
+
+    async def obtain(self, item: dict) -> Path:
+        """The model file, downloaded and checked against its SHA-256."""
+        path = await self.fetch(item)
+        self.save(status='checking', received=item['bytes'])
+        digest = await asyncio.to_thread(sha256, path.with_name(path.name + '.partial'))
+        if digest != item['sha256']:
+            path.with_name(path.name + '.partial').unlink(missing_ok=True)
+            self.received = 0
+            # The file's checksum didn't match: said plainly (Iris).
+            raise DomainError('The download came through damaged, so it wasn\'t used. Try again to download it '
+                              'fresh.', 502)
+        path.with_name(path.name + '.partial').replace(path)
+        return path
 
     def stopped(self, error: Exception) -> str:
         if isinstance(error, OSError) and error.errno == errno.ENOSPC:

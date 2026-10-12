@@ -1,5 +1,5 @@
 import { reducedMotion } from '../../motion'
-import { useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Download, FilePlus2, FolderSync, Pencil, Search, Trash2, Upload } from 'lucide-react'
 import { api } from '../../api'
@@ -9,7 +9,7 @@ import { TextInput } from '../../components/Fields'
 import { shownPath } from '../../paths'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { isWorldMap, readWorldMap } from './worldMap'
-import { cityFacts, definitionOf, exportName, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
+import { cityFacts, definitionOf, exportName, groupNotes, matchesCity, parseDefinition, shelveCities, slugify, type BrokenCity, type CityCategory, type CityListing, type FeaturedCities, type PackReport } from './cityText'
 
 const CITIES_KEY = ['cities']
 const BROKEN_KEY = ['broken-cities']
@@ -26,10 +26,26 @@ function FeedbackNotice({ feedback }: { feedback: NonNullable<Feedback> }) {
       {feedback.text}
       {feedback.notes && feedback.notes.length > 0 && <>
         {' '}Along the way:
-        <ul className="city-notes">{feedback.notes.map((note) => <li key={note}>{note}</li>)}</ul>
+        <CityNotes notes={feedback.notes} />
       </>}
     </Notice>
   )
+}
+
+/** A long list scrolls in its own box, so its bottom edge fades while more is below, like the city chips' right edge. */
+function CityNotes({ notes }: { notes: string[] }) {
+  const box = useRef<HTMLUListElement>(null)
+  const [more, setMore] = useState(false)
+  const check = useCallback(() => {
+    const list = box.current
+    if (list) setMore(list.scrollTop + list.clientHeight < list.scrollHeight - 2)
+  }, [])
+  useEffect(() => {
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [check, notes])
+  return <ul ref={box} className={`city-notes${more ? ' more-below' : ''}`} onScroll={check}>{groupNotes(notes).map((note) => <li key={note}>{note}</li>)}</ul>
 }
 
 function saveFile(id: string, definition: unknown) {

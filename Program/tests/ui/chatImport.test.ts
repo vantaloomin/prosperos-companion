@@ -16,7 +16,7 @@ test('an import says what came in, when it was said and how many memories were f
   assert.equal(importedText(result), '312 messages from 2024-03-01 to 2024-05-09 came in as older history; 14 memories found.')
   assert.equal(importedText({ ...result, messages: 1, memories: 1, last_at: result.first_at }), '1 message from 2024-03-01 came in as older history; 1 memory found.')
   assert.equal(importedText({ ...result, messages: 1200, dated: false, memories: 0, skipped: 2 }),
-    '1,200 messages (the file has no dates, so they sit just before the rest of the chat) came in as older history; 0 memories found. 2 system, narrator or empty lines were left out.')
+    "1,200 messages (the file has no dates, so they sit just before the rest of the chat) came in as older history; 0 memories found. 2 system, narrator, empty or other characters' lines were left out.")
   assert.match(importedText({ ...result, automatic_memory: false }), /older history\. Remembering things automatically is off/)
 })
 

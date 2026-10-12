@@ -146,3 +146,12 @@ def test_a_night_waits_until_the_day_has_been_lived(client, dreamer, clock):
     with database.connect(write=True) as connection:
         connection.execute("UPDATE life_agenda SET status='happened' WHERE id='late'")
     assert len(today(client)) == 1
+
+
+def test_a_dream_says_she_for_a_dreamer_described_as_she():
+    from companion.life import pronouns
+    she = {'name': 'Mira', 'identity': 'She is a nurse.'}
+    text = 'Mira dreamed they were on a train with Jo and you. Mira kept checking their wallet the whole time.'
+    assert pronouns.said(text, dreams.DREAMER, she) == \
+        'Mira dreamed she was on a train with Jo and you. Mira kept checking her wallet the whole time.'
+    assert pronouns.said(text, dreams.DREAMER, {'name': 'Sam', 'identity': 'A nurse.'}) == text

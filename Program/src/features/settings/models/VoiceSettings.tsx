@@ -86,7 +86,7 @@ function BuiltinVoice({ view, onChange }: { view: VoiceView; onChange: (view: Vo
   return <div className="form-stack">
     <div className="form-actions">
       <button type="button" className="button" onClick={() => void download()} disabled={builtin.downloading}><Download size={15} aria-hidden="true" />{builtin.downloading ? 'Downloading…' : `Download the built-in voice (${builtin.download_mb} MB)`}</button>
-      <small>Kokoro and sherpa-onnx from sherpa-onnx's official releases, checked against pinned checksums. Apache 2.0. With background activity on, this downloads by itself.</small>
+      <small>Kokoro and sherpa-onnx from sherpa-onnx's official releases, checked against pinned checksums. Apache 2.0.</small>
     </div>
     {(error || builtin.error) && <Notice tone="error">{error || builtin.error}</Notice>}
   </div>

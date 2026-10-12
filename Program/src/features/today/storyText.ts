@@ -11,10 +11,11 @@ export function occasionText(item: Occasion, name: string): string {
   return `It's been ${item.span} since you two started talking.`
 }
 
-/** "Mon 5 Oct" for a local date ("2026-10-05"), without shifting it through a timezone. */
+/** "Mon, Oct 5" for a local date ("2026-10-05"), without shifting it through a timezone: the same format as the
+ * other dates on Today (moneyText's shortDate), in the user's own locale like message times (when.ts). */
 export function storyDate(day: string): string {
   const [year, month, date] = day.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+  return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
 export const DRAMA_LEVELS = [

@@ -7,9 +7,11 @@ last few messages, as a whole word in any letter case, like Prospero's Study's l
 (server/lore/matching.py at bbcbde4). No pattern runs and no model picks entries.
 """
 import re
+import sqlite3
+from pathlib import Path
 
 from companion.characters import require_current
-from companion.database import decode, many, one
+from companion.database import decode, identifier, many, one
 from companion.errors import require
 
 # The messages a keyword is looked for in, counting the one being answered.
@@ -17,6 +19,9 @@ SCAN_MESSAGES = 4
 # At most this many keyword entries join one reply, first by book then by their order in it.
 MAX_TRIGGERED = 8
 MACROS = ('{{char}}', '<BOT>', '{{user}}', '<USER>')
+# A Marinara world map's lorebook (companion/world/marinara.py) and the source title its city carries.
+MAP_FORMAT = 'Marinara world map'
+MAP_TITLE = 'Marinara world map: '
 
 
 def books_for(connection, companion_id: str) -> list[dict]:
@@ -72,6 +77,57 @@ def remove_book(database, book_id: str) -> dict:
         visible_book(connection, book_id)
         connection.execute('DELETE FROM lore_books WHERE id=?', (book_id,))
     return listing(database)
+
+
+# Lore that belongs to a city ------------------------------------------------------------------------------
+# A world map's notes describe its city's places, so they follow the city: a new world in that city gets them too
+# (companion/worlds.py), and deleting the city deletes them. Books from before `city_id` are known by the map's name.
+
+def city_book_ids(connection, city: dict, schema: str = 'main') -> list[str]:
+    title = ((city.get('sources') or {}).get('marinara') or {}).get('title') or ''
+    name = title[len(MAP_TITLE):] if title.startswith(MAP_TITLE) else None
+    rows = connection.execute(f'SELECT id FROM {schema}.lore_books WHERE companion_id IS NULL AND (city_id=? OR '
+                              '(city_id IS NULL AND source_format=? AND name=?)) ORDER BY created_at',
+                              (city['id'], MAP_FORMAT, name)).fetchall()
+    return [row[0] for row in rows]
+
+
+def forget_city(connection, city: dict) -> None:
+    for book_id in city_book_ids(connection, city):
+        connection.execute('DELETE FROM lore_books WHERE id=?', (book_id,))
+
+
+def carry_city_lore(target: Path, source: Path, city: dict) -> None:
+    """A new world in `city` gets the city's lore from the world it was made from."""
+    connection = sqlite3.connect(target, isolation_level=None)
+    try:
+        connection.execute('ATTACH DATABASE ? AS kept', (str(Path(source).resolve()),))
+        connection.execute('BEGIN IMMEDIATE')
+        for book_id in [] if city_book_ids(connection, city) else city_book_ids(connection, city, 'kept'):
+            new_id = identifier()
+            connection.execute(
+                'INSERT INTO main.lore_books (id, companion_id, name, description, source_format, source_file, '
+                'enabled, created_at, city_id) SELECT ?, NULL, name, description, source_format, source_file, enabled, '
+                'created_at, ? FROM kept.lore_books WHERE id=?', (new_id, city['id'], book_id))
+            connection.execute(
+                'INSERT INTO main.lore_entries (id, book_id, position, title, text, keywords, always, pattern, enabled) '
+                'SELECT lower(hex(randomblob(16))), ?, position, title, text, keywords, always, pattern, enabled '
+                'FROM kept.lore_entries WHERE book_id=?', (new_id, book_id))
+        connection.execute('COMMIT')
+    except BaseException:
+        if connection.in_transaction:
+            connection.execute('ROLLBACK')
+        raise
+    finally:
+        connection.close()
+
+
+def drop_orphaned(connection) -> None:
+    """City lore whose city is gone (deleted in another world, `world_cities` follows the user)."""
+    connection.execute('DELETE FROM lore_entries WHERE book_id IN (SELECT id FROM lore_books WHERE city_id IS NOT NULL '
+                       'AND city_id NOT IN (SELECT id FROM world_cities))')
+    connection.execute('DELETE FROM lore_books WHERE city_id IS NOT NULL AND city_id NOT IN (SELECT id FROM '
+                       'world_cities)')
 
 
 # In the prompt ------------------------------------------------------------------------------------------

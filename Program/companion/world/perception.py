@@ -27,7 +27,7 @@ import re
 from functools import cache, lru_cache
 
 from companion.database import decode
-from companion.world import catalog, generators, townsfolk
+from companion.world import catalog, generators, townsfolk, wording
 
 FACETS = ('self_story', 'temperament', 'tell', 'flaw', 'desire')
 # The gap each facet can carry instead of being aligned.
@@ -139,7 +139,7 @@ def for_sheet(data: dict, sheet: dict) -> dict:
     """A townsperson's lines (or a stepped-back companion's, from the town sheet they live by)."""
     seed, modern = townsfolk.drawn(sheet), townsfolk.modern(data)
     if sheet.get('perception'):
-        return sheet['perception']
+        return wording.regional_all(data, sheet['perception'])
     options = ids()
     group = group_of(data, sheet)
     if group:
@@ -150,7 +150,7 @@ def for_sheet(data: dict, sheet: dict) -> dict:
         story = generators.pick(seed, 'perception-self', options['self_story'])
     picks = {'temperament': sheet['temperament'], 'flaw': sheet['flaw'], 'desire': sheet['desire'], 'tell': tell,
              'self_story': story, 'sore_spot': generators.pick(seed, 'perception-sore', options['sore_spot'])}
-    return build(seed, picks, gaps(seed), modern)
+    return wording.regional_all(data, build(seed, picks, gaps(seed), modern))
 
 
 def revealed(data: dict, sheet: dict, times: int) -> dict:

@@ -22,7 +22,8 @@ Song lyrics are not in the app (it is public). A person can keep their own in re
 one per line; when it has any, quoted lyrics join the mix. The file stays on their computer and is never shared.
 """
 import json
-from datetime import timedelta
+import re
+from datetime import date, datetime, time, timedelta
 from functools import cache
 from pathlib import Path
 
@@ -55,6 +56,15 @@ PLAN_DAYS = 3
 LOW = ('annoyed', 'hurt', 'angry', 'anxious', 'sad')
 # How often each kind of Retro IM line comes up for an everyday status.
 RETRO_KINDS = (('fake_deep', 3.0), ('songs', 3.0), ('random', 3.0), ('emo', 1.0))
+# Retro IM work lines that only fit a desk job or a shop counter; anyone else (a boatbuilder, a nurse) gets the
+# lines that fit any work.
+DESK_LINES = re.compile(r'email|office|cubicle|desk|copier|copies|fax|printer|spreadsheet|computer|keyboard|memo|'
+                        r'meeting|reply-all|tech support|solitaire|clicking|elevator|water cooler|lanyard|wore a tie|'
+                        r'supply closet|chair|vending|microwave|break room|fluorescent|filing|stapling|phone|'
+                        r'mail|air conditioning|synergy|please hold', re.IGNORECASE)
+SHOP_LINES = re.compile(r'register|shelves|mall|sweaters|store|drive-thru|polo shirt|name tag|slinging coffee',
+                        re.IGNORECASE)
+SHOP_SECTORS = {'retail', 'hospitality', 'food'}
 LYRICS_WEIGHT = 3.0
 LYRICS_FILE = 'retro-lyrics.txt'
 LYRICS_TEMPLATE = """# Your own song lyrics for Retro IM status messages (Prospero's Companion).
@@ -132,10 +142,13 @@ def window(companion: dict, now) -> str:
     return f"{moment.date().isoformat()}:{'am' if moment.hour < 12 else 'pm'}"
 
 
-def clock_text(moment) -> str:
-    """'6', '6:30': an away message's time, the way people write it."""
-    hour = moment.hour % 12 or 12
-    return f'{hour}' if moment.minute == 0 else f'{hour}:{moment.minute:02d}'
+def clock_text(moment, retro: bool = False) -> str:
+    """'6:00 PM', '5:30 PM': an away message's time in the app's clock format (as messages show times). Retro IM
+    writes it the 2000s way, '6pm' or '5:30pm'."""
+    if retro:
+        hour = moment.hour % 12 or 12
+        return f"{hour}{'' if moment.minute == 0 else f':{moment.minute:02d}'}{'am' if moment.hour < 12 else 'pm'}"
+    return f"{moment.hour % 12 or 12}:{moment.minute:02d} {'AM' if moment.hour < 12 else 'PM'}"
 
 
 def away(connection, companion: dict, now, retro: bool = False) -> dict | None:
@@ -149,18 +162,41 @@ def away(connection, companion: dict, now, retro: bool = False) -> dict | None:
         return trips.away_status(connection, block, f"{companion['id']}:{window(companion, now)}")
     if kind not in AWAY or block.get('sick_day') or block.get('holiday') or block.get('with_user'):
         return None
-    until = clock_text(local(companion, parse(ends_at)))
+    until = clock_text(local(companion, parse(ends_at)), retro)
     seed = f"{companion['id']}:{window(companion, now)}:{kind}"
-    lines = retro_bank()['away'][kind] if retro else list(AWAY[kind])
+    lines = retro_away(companion['version']['definition'], kind) if retro else list(AWAY[kind])
     return {'text': generators.pick(seed, 'away', lines).format(until=until), 'glyph': GLYPHS[kind]}
 
 
-def big_events(connection, companion: dict, now) -> list[tuple[str, str]]:
-    """(local date, line) for chapters and storyline beats they would share, from the last two days, newest first."""
-    found = [(row['started_on'], row['share']) for row in chapters.fresh(connection, companion, now) if row['share']]
-    found += [(beat['on'], beat['share']) for _key, beat in storylines.fresh_beats(connection, companion, now)
-              if beat.get('share')]
-    return sorted(found, reverse=True)
+def retro_away(definition: dict, kind: str) -> list[str]:
+    """Retro IM away lines that fit them: the plain ones before the age of away messages (no emails in 1925), and
+    at work only the lines that fit their job."""
+    found = money.profile(definition)
+    if found and found.era not in ('modern', 'future'):
+        return list(AWAY[kind])
+    lines = retro_bank()['away'][kind]
+    career = found and found.career
+    if kind != 'work' or not career:
+        return lines
+    desk, shop = career['schedule'] == 'office', career['sector'] in SHOP_SECTORS
+    return [line for line in lines if (desk or not DESK_LINES.search(line)) and (shop or not SHOP_LINES.search(line))]
+
+
+def big_events(connection, companion: dict, now) -> list[tuple[str, str, object]]:
+    """(local date, line, when it came to be) for chapters and storyline beats they would share, from the last two
+    days, newest first. A beat came to be at the start of its day, or when its outcome was decided."""
+    found = [(row['started_on'], row['share'], parse(row['created_at']))
+             for row in chapters.fresh(connection, companion, now) if row['share']]
+    found += [(beat['on'], beat['share'], beat_since(connection, companion, beat))
+              for _key, beat in storylines.fresh_beats(connection, companion, now) if beat.get('share')]
+    return sorted(found, key=lambda item: (item[0], item[2]), reverse=True)
+
+
+def beat_since(connection, companion: dict, beat: dict):
+    start = datetime.combine(date.fromisoformat(beat['on']), time(), zone(companion['version']['timezone']))
+    decided = beat.get('consequence') and optional(
+        connection, 'SELECT COALESCE(changed_at, created_at) AS at FROM consequences WHERE id=?', (beat['consequence'],))
+    return max(start, parse(decided['at'])) if decided else start
 
 
 def mood_line(connection, companion: dict, now, seed: str, retro: bool = False) -> str:
@@ -218,8 +254,8 @@ def users_line(connection, companion: dict, now) -> str:
     row = optional(connection, 'SELECT status_text, status_set_at FROM companions WHERE id=?', (companion['id'],))
     if not row or not row['status_text']:
         return ''
-    since = local(companion, parse(row['status_set_at'])).date().isoformat()
-    newer = [on for on, _line in big_events(connection, companion, now) if on > since]
+    since = parse(row['status_set_at'])
+    newer = [on for on, _line, came in big_events(connection, companion, now) if came > since]
     return '' if newer else row['status_text']
 
 

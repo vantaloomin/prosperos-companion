@@ -13,6 +13,7 @@ from companion.errors import DomainError, require
 from companion.providers.chat import check_status, provider_of
 from companion.providers.config import EMBEDDING_PROVIDERS
 from companion.providers.requests import headers_for, validate_key
+from companion.providers.urls import network
 
 # Embedding the message being answered must not hold up the reply for long.
 QUERY_TIMEOUT = 2
@@ -76,7 +77,7 @@ class EmbeddingProvider:
                 if config.get('builtin'):
                     base_url = await self.builtin.address()
                 async with httpx.AsyncClient(transport=self.transport, timeout=limit, follow_redirects=False,
-                                             trust_env=False) as client:
+                                             **network(base_url)) as client:
                     response = await client.post(base_url + '/embeddings', headers=headers, json=body)
                     check_status(response)
                     data = response.json().get('data')

@@ -7,7 +7,9 @@ memory, shown as saved automatically in Memories where the user can correct or d
 while sensitive memory is off. Each message goes with the user's current facts its words touch (`known`); an
 answer that says one of them is wrong (`corrects`, which must name one that was sent), or that negates the one
 current memory with its layer and subject, corrects that memory (`corrections.py`), and a new value for a
-single-valued subject replaces the current one, which ends as history.
+single-valued subject replaces the current one, which ends as history. The user's own core facts (home city, work,
+name, birthday) are the exception: a model answer that would replace or correct one waits as a suggestion with what it
+replaces, since the rules already catch a plainly stated change ("I moved to Denver").
 """
 import json
 import re
@@ -16,7 +18,7 @@ from companion import prompt_library
 from companion.characters import for_timeline
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.memory import corrections, formation
-from companion.memory.extraction import Candidate, sentences, subject_key
+from companion.memory.extraction import SINGLE_VALUED, Candidate, sentences, subject_key
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
@@ -193,6 +195,53 @@ def correction(connection, companion, found, corrected, timestamp) -> dict | Non
     return corrections.same_subject(connection, companion['id'], found.layer, found.subject_key, timestamp)
 
 
+def core(row) -> bool:
+    """One of the user's own single values (home city, work, name, birthday): a model guess alone never replaces it."""
+    return row['layer'] == 'user_fact' and row['subject_key'] in SINGLE_VALUED
+
+
+def replaces_core(connection, companion, found, timestamp) -> bool:
+    """Whether a model guess would end a current core fact with another value ("Home city: Baltimore" by "moved from
+    Denver last month")."""
+    if not core({'layer': found.layer, 'subject_key': found.subject_key}):
+        return False
+    current = formation.replaces(connection, companion, {'subject_key': found.subject_key}, timestamp)
+    return bool(current) and found.value.casefold() not in {value.casefold() for value in current}
+
+
+def hold(connection, companion, current, fields, mark, reason, timestamp) -> int:
+    """Keep a model guess as a suggestion for Memories instead of applying it; one declined before stays dropped."""
+    if optional(connection, "SELECT 1 FROM memory_candidates WHERE fingerprint=? AND status='declined' "
+                'AND companion_id=?', (mark, companion['id'])):
+        return 0
+    cursor = connection.execute(
+        'INSERT OR IGNORE INTO memory_candidates (id, companion_id, timeline_id, message_id, source, rule, proposal, '
+        "fingerprint, status, reason, created_at) VALUES (?, ?, ?, ?, 'model', ?, ?, ?, 'pending', ?, ?)",
+        (identifier(), companion['id'], current['timeline_id'], current['id'], PROMPT_VERSION, encode(fields), mark,
+         reason, timestamp))
+    formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail=reason)
+    return cursor.rowcount
+
+
+def store_correction(connection, companion, current, found, target, timestamp) -> int:
+    """A model correction is applied, except of a core fact, which waits as a suggestion: the model's word alone is
+    not enough to change where the user lives or what they are called."""
+    fields = corrections.fields_for(target, found.value, current, found.excerpt,
+                                    ending=corrections.ends(target, found.value, current['text']),
+                                    retracting=corrections.retracts(target, found.value, current['text']))
+    if core(target):
+        return hold(connection, companion, current, fields, corrections.fingerprint(fields), 'conflict', timestamp)
+    return corrections.record(connection, companion, current, fields, 'model', PROMPT_VERSION, timestamp)
+
+
+def duplicate(connection, companion, found) -> bool:
+    """The same fact already current, under the same subject key or the same subject words: the rules keep "Dog:
+    Pepper" under the dog's own key, the model under "dog"."""
+    return optional(connection, "SELECT 1 FROM memories WHERE companion_id=? AND status='active' AND "
+                    '(subject_key=? OR lower(subject)=lower(?)) AND lower(value)=lower(?)',
+                    (companion['id'], found.subject_key, found.subject, found.value)) is not None
+
+
 def store(connection, message, found, corrected, timestamp) -> int:
     current = optional(connection, 'SELECT * FROM messages WHERE id=?', (message['id'],))
     if current is None or formation.blocked(connection, current):
@@ -202,35 +251,32 @@ def store(connection, message, found, corrected, timestamp) -> int:
     if companion is None or current['timeline_id'] != companion['active_timeline_id']:
         return 0
     if target := correction(connection, companion, found, corrected, timestamp):
-        fields = corrections.fields_for(target, found.value, current, found.excerpt,
-                                        ending=corrections.ends(target, found.value, current['text']),
-                                        retracting=corrections.retracts(target, found.value, current['text']))
-        return corrections.record(connection, companion, current, fields, 'model', PROMPT_VERSION, timestamp)
+        return store_correction(connection, companion, current, found, target, timestamp)
     mark_value = formation.fingerprint(found)
     declined = optional(connection, "SELECT 1 FROM memory_candidates WHERE fingerprint=? AND status='declined'",
                         (mark_value,))
-    duplicate = optional(connection, "SELECT 1 FROM memories WHERE companion_id=? AND status='active' AND "
-                         'subject_key=? AND lower(value)=lower(?)', (companion['id'], found.subject_key, found.value))
-    if declined or duplicate:
+    if declined or duplicate(connection, companion, found):
         return 0
     fields = formation.proposal(found, current)
-    # A new value for a single-valued subject commits like a rule-found one: the newest statement wins.
+    if replaces_core(connection, companion, found, timestamp):
+        return hold(connection, companion, current, fields, mark_value, 'conflict', timestamp)
+    # Any other new value for a single-valued subject commits like a rule-found one: the newest statement wins.
     reason = 'sensitive' if fields['sensitive'] and not settings(connection)['sensitive_memory'] else 'model_guess'
+    if reason == 'sensitive':
+        return hold(connection, companion, current, fields, mark_value, reason, timestamp)
     candidate_id = identifier()
     cursor = connection.execute(
         'INSERT OR IGNORE INTO memory_candidates (id, companion_id, timeline_id, message_id, source, rule, proposal, '
         "fingerprint, status, reason, created_at) VALUES (?, ?, ?, ?, 'model', ?, ?, ?, 'pending', ?, ?)",
         (candidate_id, companion['id'], current['timeline_id'], current['id'], PROMPT_VERSION, encode(fields),
          mark_value, reason, timestamp))
-    if cursor.rowcount and reason == 'model_guess':
+    if cursor.rowcount:
         # Saved like a rule-found fact (users rarely review suggestions); it shows as saved automatically in
-        # Memories, where it can be corrected or deleted. Only a sensitive fact held while sensitive memory is off waits.
+        # Memories, where it can be corrected or deleted.
         memory, outcome = formation.commit(connection, companion, fields, [current['id']], timestamp, 'automatic')
         formation.resolve(connection, candidate_id, 'committed' if memory else 'dismissed', memory, outcome, timestamp)
         formation.log(connection, timestamp, outcome, memory_id=memory and memory['id'], candidate_id=candidate_id,
                       message_id=current['id'])
-        return cursor.rowcount
-    formation.log(connection, timestamp, 'suggested', message_id=current['id'], detail=reason)
     return cursor.rowcount
 
 
