@@ -77,6 +77,10 @@ IMPRESSION = re.compile(r"\b(?:looks like (?:someone|somebody|a person|the kind|
                         r"(?:person|woman|man|girl|guy)|seems|gives off|people (?:say|tell|think)|tends to|likes to|"
                         r"loves|hates|prefers|never|always says)\b", re.IGNORECASE)
 VERBS = {'is': 'are', 'has': 'have', 'was': 'were'}
+# "They", an optional adverb, then a verb: "Mira always wears" said as "They always wears" needs "wear".
+ADVERBS = ('always', 'usually', 'often', 'never', 'mostly', 'still', 'also', 'sometimes', 'rarely', 'typically',
+           'normally')
+THEY_VERB = re.compile(rf"\b(They|they) ((?:{'|'.join(ADVERBS)}) )?([a-z]+s)\b")
 PRONOUNS = {'she': ('She', 'her'), 'he': ('He', 'his'), 'they': ('They', 'their')}
 EXPRESSIONS = {
     'focused': 'a focused, concentrating expression', 'steady': 'a calm, steady expression',
@@ -110,8 +114,19 @@ def unnamed(text: str, name: str, who: str) -> str:
         text = re.sub(rf"(^|[.!?]\s+){pattern}\b", lambda m: m.group(1) + subject, text)
         text = re.sub(rf"\b{pattern}\b", subject.lower(), text)
     if who == 'they':
-        text = re.sub(r'\b(They|they) (is|has|was)\b', lambda m: f"{m.group(1)} {VERBS[m.group(2)]}", text)
+        text = THEY_VERB.sub(lambda m: f"{m.group(1)} {m.group(2) or ''}{plural_verb(m.group(3))}", text)
     return text
+
+
+def plural_verb(verb: str) -> str:
+    """The verb as "they" says it: "is" -> "are", "wears" -> "wear", "carries" -> "carry", "dresses" -> "dress"."""
+    if verb in VERBS or verb in ADVERBS:
+        return VERBS.get(verb, verb)
+    if verb.endswith('ies') and len(verb) > 4:
+        return verb[:-3] + 'y'
+    if verb.endswith(('sses', 'shes', 'ches', 'xes', 'zes', 'oes')):
+        return verb[:-2]
+    return verb[:-1] if verb.endswith('s') and not verb.endswith(('ss', 'us')) else verb
 
 
 def visible(appearance: str, name: str, who: str) -> str:
