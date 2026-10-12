@@ -24,7 +24,7 @@ def test_an_away_line_shows_while_they_sleep_work_or_go_out_and_never_says_onlin
     at(clock, 10)
     working = read(client)
     assert working['away']['glyph'] == 'briefcase' and working['away']['text'] in {
-        'at work till 5', 'working, back at 5', 'on the clock till 5'}
+        'at work till 5:00 PM', 'working, back at 5:00 PM', 'on the clock till 5:00 PM'}
     assert working['text'] and working['set_by'] == 'app'
     at(clock, 23, 30)
     assert read(client)['away']['glyph'] == 'moon'
@@ -91,9 +91,9 @@ def test_a_big_event_later_the_same_day_replaces_the_users_line(client, clock):
 
 
 def test_away_times_read_the_way_people_write_them():
-    assert status.clock_text(datetime(2026, 10, 5, 18, 0)) == '6'
-    assert status.clock_text(datetime(2026, 10, 5, 17, 30)) == '5:30'
-    assert status.clock_text(datetime(2026, 10, 5, 0, 15)) == '12:15'
+    assert status.clock_text(datetime(2026, 10, 5, 18, 0)) == '6:00 PM'
+    assert status.clock_text(datetime(2026, 10, 5, 17, 30)) == '5:30 PM'
+    assert status.clock_text(datetime(2026, 10, 5, 0, 15)) == '12:15 AM'
 
 
 def test_retro_im_draws_era_away_messages_from_the_bank(client, clock):
@@ -111,7 +111,7 @@ def test_retro_im_draws_era_away_messages_from_the_bank(client, clock):
     assert any(line in everyday or any(song in line for song in bank['songs']) for line in seen), seen
     assert client.put('/api/settings', json={'chat_style': 'feed'}).status_code == 200
     at(clock, 10)
-    assert read(client)['away']['text'] in {'at work till 5', 'working, back at 5', 'on the clock till 5'}
+    assert read(client)['away']['text'] in {'at work till 5:00 PM', 'working, back at 5:00 PM', 'on the clock till 5:00 PM'}
 
 
 def test_the_retro_bank_is_big_and_never_says_online():

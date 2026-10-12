@@ -133,9 +133,8 @@ def window(companion: dict, now) -> str:
 
 
 def clock_text(moment) -> str:
-    """'6', '6:30': an away message's time, the way people write it."""
-    hour = moment.hour % 12 or 12
-    return f'{hour}' if moment.minute == 0 else f'{hour}:{moment.minute:02d}'
+    """'6:00 PM', '5:30 PM': an away message's time in the app's clock format (as messages show times)."""
+    return f"{moment.hour % 12 or 12}:{moment.minute:02d} {'AM' if moment.hour < 12 else 'PM'}"
 
 
 def away(connection, companion: dict, now, retro: bool = False) -> dict | None:
