@@ -32,6 +32,7 @@ import { StartOver } from './StartOver'
 import { Cast } from './Cast'
 import { TownSeed } from './TownSeed'
 import { BringCharacter } from './BringCharacter'
+import { BringChat } from './BringChat'
 import { Lore } from './Lore'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
@@ -179,6 +180,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
     <Versions current={companion.active_version_id} />
     <Cast go={go} />
     <BringCharacter />
+    <BringChat companion={companion} />
     <StartOver name={name} go={go} />
   </>)
 }

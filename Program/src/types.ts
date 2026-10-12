@@ -36,6 +36,8 @@ export interface Message {
   voice?: VoiceNote | null
   /** Your message sounds like self-harm: the app's note with places to get help shows under it (companion/safety.py). */
   crisis_help?: boolean
+  /** Set on a message brought in from an old chat file (companion/imports/chats.py): older history. */
+  import_id?: string | null
 }
 
 export interface VoiceNote { url: string; duration_ms: number | null; engine: string }
