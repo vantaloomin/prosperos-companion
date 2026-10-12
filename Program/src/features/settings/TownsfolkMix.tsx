@@ -80,7 +80,7 @@ function Confirm({ city, changes, busy, make, close }: { city: string; changes: 
     <button type="button" className="button" disabled={busy} onClick={close}>Cancel</button>
   </>}>
     <p>{changes ? <>Changes from the built-in mix: {changes}.</> : <>This is the built-in mix.</>}</p>
-    <p>A new world in {city} for the persona you are now, with new townsfolk drawn from this mix and a first companion from among them. You'll go there now.</p>
+    <p>A new world in {city} for the persona you are now, with new townsfolk drawn from this mix. You'll go there now.</p>
     <p>This world, your companions here and your chats stay as they are. Come back any time from Worlds.</p>
   </ConfirmDialog>
 }
