@@ -1,3 +1,4 @@
+import { reducedMotion } from '../../motion'
 import { useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Download, FilePlus2, FolderSync, Pencil, Search, Trash2, Upload } from 'lucide-react'
@@ -178,7 +179,7 @@ function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
   const jump = (id: string) => {
     const card = document.getElementById(`city-${id}`)
     if (!card) return
-    const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const instant = reducedMotion()
     card.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'start' })
     card.focus({ preventScroll: true })
     card.classList.add('jumped')

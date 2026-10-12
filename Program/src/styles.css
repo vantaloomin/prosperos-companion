@@ -162,7 +162,8 @@ textarea { resize: vertical; line-height: 1.6; }
 @media (max-width: 720px) { .desktop-only { display: none !important; } }
 /* A phone keyboard has no Ctrl key. */
 @media (pointer: coarse) { .keyboard-hint { display: none; } }
-@media (prefers-reduced-motion: reduce) { .dating-progress span { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .dating-progress span { animation: none; } }
+:root[data-motion='reduce'] .dating-progress span { animation: none; }
 .dating-bar { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
 .dating-bar label { display: flex; align-items: center; gap: 8px; }
 .dating-bar svg { width: 16px; height: 16px; color: var(--accent); }
@@ -201,7 +202,8 @@ textarea { resize: vertical; line-height: 1.6; }
   .conversation-notice { padding: 0 12px 8px; }
   .story-header, .story-log, .story-notice, .story-footer { padding-left: 16px; padding-right: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) *, :root:not([data-motion='full']) *::before, :root:not([data-motion='full']) *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+:root[data-motion='reduce'] *, :root[data-motion='reduce'] *::before, :root[data-motion='reduce'] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 
 .form-stack { display: flex; flex-direction: column; gap: 20px; max-width: 760px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
@@ -293,7 +295,8 @@ textarea { resize: vertical; line-height: 1.6; }
   .message { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: transform .18s ease; }
   .message.pressing { transform: scale(.97); }
 }
-@media (hover: none) and (prefers-reduced-motion: reduce) { .message { transition: none; } .message.pressing { transform: none; } }
+@media (hover: none) and (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .message { transition: none; } :root:not([data-motion='full']) .message.pressing { transform: none; } }
+@media (hover: none) { :root[data-motion='reduce'] .message { transition: none; } :root[data-motion='reduce'] .message.pressing { transform: none; } }
 /* A narrow window with a mouse: in the flow the hidden buttons would wrap into empty rows between a message and its
    time, so they float as one row of icons on the message's top edge while it is hovered or focused, as Slack and
    Discord do, and never move the list or cover the text. The labels stay as tooltips and for screen readers. A wide
@@ -330,7 +333,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .sheet-action:active { background: var(--raised); }
 .sheet-cancel { justify-content: center; border-radius: 14px; font-weight: 600; }
 @keyframes sheet-up { from { transform: translateY(100%); } }
-@media (prefers-reduced-motion: reduce) { .message-sheet { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .message-sheet { animation: none; } }
+:root[data-motion='reduce'] .message-sheet { animation: none; }
 
 .settings > .notice { max-width: 760px; margin-bottom: 16px; }
 .settings-search { max-width: 960px; margin-bottom: 20px; }
@@ -1556,7 +1560,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .leaflet-marker-icon.map-pin.pin-scene { animation: map-pulse 1.8s ease-in-out infinite; }
 .leaflet-marker-icon.map-pin.selected { outline: 3px solid var(--accent-hover); }
 @keyframes map-pulse { 50% { box-shadow: 0 0 0 7px #c5a46d44; } }
-@media (prefers-reduced-motion: reduce) { .leaflet-marker-icon.map-pin.pin-scene { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .leaflet-marker-icon.map-pin.pin-scene { animation: none; } }
+:root[data-motion='reduce'] .leaflet-marker-icon.map-pin.pin-scene { animation: none; }
 .leaflet-container { font-family: inherit; }
 .map-key { position: relative; }
 /* A narrow phone keeps the city's name on one line: the Key and List buttons show their icons only. */
@@ -1596,7 +1601,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .sketch-pin.selected .sketch-badge, .sketch-pin.selected .sketch-dot { stroke: var(--accent-hover); stroke-width: 3; }
 .sketch-pin.pin-scene .sketch-badge { animation: sketch-pulse 1.8s ease-in-out infinite; }
 @keyframes sketch-pulse { 50% { stroke: var(--accent); stroke-width: 6; } }
-@media (prefers-reduced-motion: reduce) { .sketch-pin.pin-scene .sketch-badge { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .sketch-pin.pin-scene .sketch-badge { animation: none; } }
+:root[data-motion='reduce'] .sketch-pin.pin-scene .sketch-badge { animation: none; }
 @media (max-width: 720px) {
   .map-bar { padding: 10px 16px; }
   .map-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 60%; border-radius: 14px 14px 0 0; }

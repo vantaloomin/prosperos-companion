@@ -235,6 +235,13 @@ ADDED_COLUMNS = (
     # A status line the user set for a companion, and when (companion/life/status.py); empty lets the app write it.
     ('companions', 'status_text', "TEXT NOT NULL DEFAULT ''"),
     ('companions', 'status_set_at', 'TEXT'),
+    # Look and accessibility (Settings > General > Appearance): light or dark following the computer unless the user
+    # picks one (color_scheme stays the dark profile), the text size, a reading font, and less motion.
+    ('workspace_settings', 'theme', "TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('system', 'dark', 'light'))"),
+    ('workspace_settings', 'text_scale', 'INTEGER NOT NULL DEFAULT 100 CHECK (text_scale BETWEEN 85 AND 200)'),
+    ('workspace_settings', 'reading_font', "TEXT NOT NULL DEFAULT 'default' CHECK (reading_font IN "
+     "('default', 'atkinson', 'opendyslexic'))"),
+    ('workspace_settings', 'motion', "TEXT NOT NULL DEFAULT 'system' CHECK (motion IN ('system', 'reduce', 'full'))"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
