@@ -357,7 +357,7 @@ def local_today(companion, now) -> date:
 def advance(connection, companion, now) -> int:
     """Decide the storylines that started on each day since the last check (cheap, no model)."""
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
-    end_removed(connection, timeline_id)
+    end_removed(connection, timeline_id, today)
     level = drama(connection)
     cursor = optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (timeline_id,))
     first = today - timedelta(days=CATCH_UP_DAYS)
@@ -380,13 +380,15 @@ def advance(connection, companion, now) -> int:
     return started
 
 
-def end_removed(connection, timeline_id):
-    """Someone removed from the circle takes their unfinished storylines with them."""
+def end_removed(connection, timeline_id, today: date):
+    """Someone removed from the circle takes their unfinished storylines with them; settled ones stay told."""
     removed = {row['id'] for row in many(connection, "SELECT id FROM circle_people WHERE timeline_id=? "
                                          "AND status='removed'", (timeline_id,))}
-    for row in many(connection, "SELECT id, cast_ids FROM storylines WHERE timeline_id=? AND status='running'",
+    for row in many(connection, "SELECT id, cast_ids, stages FROM storylines WHERE timeline_id=? AND status='running'",
                     (timeline_id,)):
-        if set(decode(row['cast_ids'])) & removed:
+        last = decode(row['stages'])[-1]
+        settled = last['on'] <= today.isoformat() and not last.get('pending')
+        if set(decode(row['cast_ids'])) & removed and not settled:
             connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (row['id'],))
 
 

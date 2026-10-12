@@ -52,10 +52,18 @@ jobs:
           if grep -Eq "$shared|$mcp" <<< "$changed"; then echo mcp=true; else echo mcp=false; fi >> "$GITHUB_OUTPUT"
 
   backend:
+    # Windows runs the suite several times slower than Linux, so its tests are split over three jobs to stay well
+    # inside the time limit (COMPANION_TEST_SHARD, tests/conftest.py).
+    name: backend (${{ matrix.os }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - {os: windows-latest, shard: 1/3}
+          - {os: windows-latest, shard: 2/3}
+          - {os: windows-latest, shard: 3/3}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -76,6 +84,7 @@ jobs:
           TEMP: ${{ runner.temp }}
           TMP: ${{ runner.temp }}
           TMPDIR: ${{ runner.temp }}
+          COMPANION_TEST_SHARD: ${{ matrix.shard }}
         run: python -m pytest -q -n auto --durations=15
       - name: Check city data
         run: python -m companion.world.check

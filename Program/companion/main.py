@@ -40,7 +40,7 @@ from companion.imports import file_routes
 from companion.imports import routes as import_routes
 from companion.launcher import Launcher
 from companion.launcher_routes import router as launcher_router
-from companion.life import home_routes, outings, scrapbook_routes, traditions_routes, trips, wardrobe_routes
+from companion.life import home_routes, outings, scrapbook_routes, status, traditions_routes, trips, wardrobe_routes
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
@@ -138,6 +138,7 @@ async def prepare_voice(voice):
 @asynccontextmanager
 async def lifespan(app):
     recover(app.state.database)
+    status.lyrics_template(app.state.database.root)
     groups.recover(app.state.database)
     image_jobs.recover(app.state.database)
     lora_training.recover(app.state.database)
