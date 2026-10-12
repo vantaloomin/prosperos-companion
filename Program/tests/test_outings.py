@@ -53,6 +53,19 @@ def test_a_date_with_its_weekday_is_the_date_and_the_place_fits_the_word():
     assert picks == {'National Aquarium'}
 
 
+def test_a_holiday_mentioned_in_passing_does_not_set_the_day():
+    holidays = {'thanksgiving': date(2026, 11, 26)}
+    data = catalog.city('baltimore')
+    found = outings.proposal("Let's go for a walk Sunday also my sister just texted me a seating chart for thanksgiving",
+                             TODAY, holidays, data)
+    assert (found['activity'], found['day']) == ('walk', date(2026, 10, 11))
+    found = outings.proposal('Dinner Friday? btw what are you doing for thanksgiving', TODAY, holidays, data)
+    assert found['day'] == date(2026, 10, 9)
+    # Asked for the holiday itself, the holiday is the day.
+    assert outings.proposal('Want to get dinner on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
+    assert outings.proposal('Dinner, on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
+
+
 def test_the_companion_only_makes_firm_plans_themselves():
     assert asked("We should get drinks Saturday!", firm=True) == ('drinks', '2026-10-10', None, None)
     assert asked('Should we get drinks Saturday?', firm=True) is None
@@ -103,10 +116,11 @@ def test_asked_out_they_pick_a_place_and_the_reply_is_told_before_it_is_written(
     assert place['city'] == 'Baltimore' and place['kind'] in {'restaurant', 'tavern', 'inn'} and place['spots']
     notes = provider.requests[-1]['prompt']
     assert 'Going out with the user' in notes and f"dinner at {place['name']}" in notes
-    assert 'You just said yes; tell them where and when.' in notes
+    assert 'Just agreed with the user (confirm it in your reply)' in notes and 'You agreed to go' in notes
+    assert notes.index('Just agreed') < notes.index('Going out with the user')
     # The next reply still knows the plan, but no longer announces it.
     send(client, 'See you then!', 'client-out-02')
-    assert 'You just said yes' not in provider.requests[-1]['prompt']
+    assert 'Just agreed' not in provider.requests[-1]['prompt']
     assert f"Thursday October 8 at 19:00: dinner at {place['name']}" in provider.requests[-1]['prompt']
     reconcile(client)
     block, entry = agenda_entry(client, 'evening@2026-10-08')
@@ -147,6 +161,17 @@ def test_a_named_place_is_kept_and_the_bill_comes_out_of_their_budget(client, mi
     if money['available'] and done['cost']:
         assert any(item['for'] == 'outing' and 'Ouzo Bay' in item['label'] for item in money['bought'])
     assert 'Earlier you and the user had dinner at Ouzo Bay' in client.get('/api/context/preview').json()['prompt']
+
+
+def test_an_outing_still_finishes_after_a_long_absence(client, mira, provider, clock):
+    send(client, 'Want to go to Ouzo Bay Wednesday?', 'client-out-long')
+    clock.advance(timedelta(days=20))  # Back three weeks later: the outing was long over.
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [done] = connection.execute('SELECT status, memory_id FROM outings').fetchall()
+        memory = connection.execute('SELECT stated_at FROM memories WHERE id=?', (done['memory_id'],)).fetchone()
+    assert done['status'] == 'done' and done['memory_id']
+    assert memory['stated_at'].startswith('2026-10-07')  # Dated the evening it happened, for the scrapbook.
 
 
 def test_the_user_can_call_it_off_send_them_elsewhere_or_head_home(client, mira, provider, clock):
@@ -196,3 +221,13 @@ def test_replies_are_not_held_while_out_together():
     from companion.life import pacing
     assert pacing.busy_kind({'kind': 'social', 'with_user': True}) is None
     assert pacing.busy_kind({'kind': 'social'}) == 'social'
+
+
+def test_by_the_harbor_means_on_the_water_not_a_name_that_says_harbor():
+    data = catalog.city('haddon-harbor')
+    wanted = outings.proposal('Want to get dinner by the harbor on Friday?', date(2026, 10, 12), {}, data)
+    assert wanted['place'] is None and wanted['waterside']
+    picks = {outings.pick_place(data, 'dinner', date(2026, 7, 17), '19:00', {}, f's{n}', False, 'dinner', True)['name']
+             for n in range(30)}
+    assert 'Golden Harbor Chinese Restaurant' not in picks
+    assert all(outings.waterside(item, data) for item in data['places'] if item['name'] in picks)

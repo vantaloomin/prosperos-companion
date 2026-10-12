@@ -7,12 +7,13 @@ the companion's life, storylines that moved on, the biggest things they did, how
 the town paper issues that came out. Nothing from the secrets ledger, and nothing the companion would not share:
 the same life the Today view shows. Templates pick the few biggest items; it is a summary, not a replay.
 """
+import re
 from datetime import date, datetime, timedelta
 
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
-from companion.database import many, one, optional
-from companion.life import network, storylines
+from companion.database import decode, many, one, optional
+from companion.life import composer, network, storylines
 from companion.world import paper
 
 MOST = 6
@@ -20,8 +21,9 @@ MOST_EVENTS = 3
 
 
 def last_from_user(connection, timeline_id: str) -> str | None:
+    # An old chat brought in (companion/imports/chats.py) is history, not the user's last visit.
     row = optional(connection, "SELECT MAX(created_at) AS at FROM messages WHERE timeline_id=? AND role='user' "
-                   'AND active=1', (timeline_id,))
+                   'AND active=1 AND import_id IS NULL', (timeline_id,))
     return row and row['at']
 
 
@@ -41,12 +43,27 @@ def stories(connection, companion: dict, now: datetime, since_day: str) -> list[
     return lines
 
 
-def events(connection, timeline_id: str, since: str, now: str) -> list[str]:
+def events(connection, timeline_id: str, since: str, now: str, today: date, definition: dict) -> list[str]:
     """The biggest things they did: plans and threads before ordinary days, newest first."""
-    rows = many(connection, "SELECT summary FROM life_events WHERE timeline_id=? AND status='committed' "
+    rows = many(connection, "SELECT kind, summary, details FROM life_events WHERE timeline_id=? AND status='committed' "
                 "AND kind!='routine' AND starts_at>? AND starts_at<=? ORDER BY kind='ordinary', starts_at DESC LIMIT ?",
                 (timeline_id, since, now, MOST_EVENTS))
-    return [sentence(row['summary']) for row in rows]
+    return [sentence(plan_said(row['summary'], decode(row['details']), today) if row['kind'] == 'plan'
+                     else composer.said(row['summary'], definition)) for row in rows]
+
+
+PLANNING = re.compile(r'^(?P<who>.+?) is planning to (?P<what>.+) on (?P<day>[A-Z][a-z]+day)(?P<rest>.*)$')
+
+
+def plan_said(summary: str, details: dict, today: date) -> str:
+    """A plan read after the fact: "planned to … on Saturday" once that day has passed, "… today" on the day."""
+    found, slot = PLANNING.match(summary), str(details.get('target_slot') or '')
+    on = slot.rpartition('@')[2]
+    if not found or len(on) != 10 or on > today.isoformat():
+        return summary
+    if on == today.isoformat():
+        return f"{found['who']} is planning to {found['what']} today{found['rest']}"
+    return f"{found['who']} planned to {found['what']} on {found['day']}{found['rest']}"
 
 
 def townsfolk(connection, timeline_id: str, since: str, name: str) -> list[str]:
@@ -90,7 +107,7 @@ def build(connection, companion: dict, now: datetime) -> dict | None:
     since_day, today = parse(since).astimezone(local).date(), now.astimezone(local).date()
     name = version['name'].split()[0] if version['name'].strip() else 'They'
     items = [*chapters(connection, timeline_id, since), *stories(connection, companion, now, since_day.isoformat()),
-             *events(connection, timeline_id, since, stamp(now)), *townsfolk(connection, timeline_id, since, name),
+             *events(connection, timeline_id, since, stamp(now), today, version['definition']), *townsfolk(connection, timeline_id, since, name),
              *issues(connection, companion, since_day, today)]
     if not items:
         return None

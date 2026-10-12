@@ -44,7 +44,7 @@ WORKSPACE = (
 )
 # Children before parents, so the order also reads as what depends on what.
 CHARACTER = (
-    'lora_eval_images', 'lora_evaluations', 'lora_gen_images', 'lora_generations', 'appearance_current',
+    'character_sheets', 'lora_eval_images', 'lora_evaluations', 'lora_gen_images', 'lora_generations', 'appearance_current',
     'appearance_versions', 'lora_adapters', 'lora_references', 'lora_runs', 'study_imports', 'companion_voices', 'character_versions',
     'companions',
 )
@@ -58,7 +58,7 @@ HISTORY = (
     'closeness_jokes', 'closeness_settings', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
     'storyline_days', 'family_traditions', 'scrapbook_seen', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
-    'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'timelines',
+    'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'chat_imports', 'timelines',
 )
 # LoRA folders the backup does not carry: training runs and the test and prepared pictures.
 UNBACKED_LORA = ('runs', 'evaluations', 'generated')
@@ -194,6 +194,8 @@ def lora_files(connection, companion_id: str) -> tuple[list[str], list[str]]:
         connection, 'SELECT file FROM lora_adapters WHERE companion_id=?', values)]
     for row in many(connection, 'SELECT file, crop_file FROM lora_references WHERE companion_id=?', values):
         names += [f'lora/references/{name}' for name in (row['file'], row['crop_file']) if name]
+    names += [f"images/sheets/{row['file']}" for row in many(
+        connection, 'SELECT file FROM character_sheets WHERE companion_id=?', values)]
     names += [f"lora/generated/{row['output_file']}" for row in many(
         connection, 'SELECT i.output_file FROM lora_gen_images i JOIN lora_generations g ON g.id=i.generation_id '
         'WHERE g.companion_id=? AND i.output_file IS NOT NULL', values)]

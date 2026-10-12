@@ -16,7 +16,7 @@ import random
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one
 from companion.errors import DomainError, require
-from companion.images import backends
+from companion.images import backends, sheet
 from companion.images.adapters.base import AdapterError, ImageRequest, size_for
 from companion.images.content import classify, stricter
 from companion.images.jobs import image_settings
@@ -60,10 +60,12 @@ def directory(database):
 
 
 def base_of(companion) -> str:
-    """Their name, their looks sheet in words (companion/world/looks.py) and their appearance description."""
+    """Their name, their looks sheet in words (companion/world/looks.py) and their appearance description, or the
+    In photos line when the user wrote one."""
     definition = companion['version']['definition']
     sheet = sheet_for(companion, definition)[0].rstrip('.')
-    appearance = ' '.join(definition.get('appearance', '').split()).rstrip('.')
+    described = (definition.get('in_photos') or '').strip() or definition.get('appearance', '')
+    appearance = ' '.join(described.split()).rstrip('.')
     return ', '.join(part for part in (definition['name'], sheet[:1].lower() + sheet[1:], appearance) if part)
 
 
@@ -353,6 +355,8 @@ class GenerationRunner:
         request = ImageRequest(image['id'], image['prompt'], image['negative'], image['seed'], width, height,
                                backend, config, key, raw_directory(self.database), reference=reference)
         try:
+            if reference is None:
+                await self.follow_sheet(image, request)
             result = await self.images.adapters[backend['kind']].generate(request)
             kind, out_width, out_height = sniff(result.data)
             name = f"{image['id']}.{kind}"
@@ -374,6 +378,21 @@ class GenerationRunner:
         self.mark(image['id'], status='completed', output_file=name, width=out_width, height=out_height,
                   used_seed=result.seed, model=result.model or config.get('model'), workflow=result.workflow,
                   finished_at=self.database.now())
+
+    async def follow_sheet(self, image, request):
+        """On Codex, a picture that follows no other one follows the companion's character sheet, made
+        first when they have none (images/sheet.py); the profile picture is made from it."""
+        if request.backend['kind'] != 'codex':
+            return
+        with self.database.connect() as connection:
+            companion_id = one(connection, 'SELECT companion_id FROM lora_generations WHERE id=?',
+                               (image['generation_id'],))['companion_id']
+            style = image_settings(connection)['style']
+        data = await sheet.ensure(self.database, self.images.adapters['codex'], request.backend, request.config,
+                                  request.key, request.raw_dir, companion_id, style)
+        if data is not None:
+            request.reference = data
+            request.prompt = f'{request.prompt} {sheet.FOLLOW}'
 
     def close(self, generation_id, status):
         with self.database.connect(write=True) as connection:

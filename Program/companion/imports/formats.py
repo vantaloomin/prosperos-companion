@@ -2,7 +2,7 @@
 
 The range is Prospero's Study's (prosperos-study at bbcbde4, server/library_formats/): Character Cards V1, V2 and
 V3 as JSON or PNG (SillyTavern, Chub, Agnai, RisuAI and most card sites), CHARX containers, Backyard Archive
-(BYAF) files, Pygmalion and Backyard / Faraday legacy JSON, and lorebooks from SillyTavern, NovelAI, Agnai and
+(BYAF) files, Marinara Engine's own .marinara.json exports (a V2 card or a lorebook in an envelope), Pygmalion and Backyard / Faraday legacy JSON, and lorebooks from SillyTavern, NovelAI, Agnai and
 RisuAI (companion/imports/lorebooks.py). The ZIP checks are the Study's containers.py, unchanged in substance.
 Nothing is downloaded, no script or macro runs and no model is asked; files that only point at pictures on the
 web are read without them.
@@ -10,6 +10,7 @@ web are read without them.
 import base64
 import binascii
 import json
+import re
 import stat
 import zlib
 from io import BytesIO
@@ -80,6 +81,8 @@ def from_json(source: bytes, stem: str) -> dict:
     value = parsed(source)
     if not isinstance(value, dict):
         raise problem('This file is not a character card or a lorebook.')
+    if str(value.get('type', '')).startswith('marinara_'):
+        return marinara(value, stem)
     if value.get('spec') == 'lorebook_v3' and isinstance(value.get('data'), dict):
         return {'format': 'Character Card V3 lorebook', 'character': None, 'picture': None,
                 'book': lorebooks.book(value['data'], 'portable', 'Character Card V3 lorebook', stem[:120])}
@@ -90,6 +93,9 @@ def from_json(source: bytes, stem: str) -> dict:
             return {'format': label, 'character': {key: next((text(value, name) for name in names if name in value), '')
                                                    for key, names in fields.items()}, 'book': None, 'picture': None}
     kind = lorebooks.kind_of(value)
+    if kind is None and value.get('format') == 'marinara-hierarchical-map':
+        raise problem('This is a Marinara world map. Open it in Settings, Life & cities, with "Open a city file", and it '
+                      'becomes a city with its own lore.')
     if kind is None:
         raise problem('This file is not a character card or a lorebook the Companion can read.')
     return {'format': kind[1], 'character': None, 'book': lorebooks.book(value, kind[0], kind[1], stem[:120]),
@@ -104,6 +110,49 @@ def card(value: dict) -> dict:
         raise problem('This character card has no name or description.')
     return {'format': f'Character Card {version}', 'character': character, 'book': card_book(data, character),
             'picture': None}
+
+
+def marinara(value: dict, stem: str) -> dict:
+    """Marinara Engine's native export (checked against its source at c565014, packages/shared/src/types/export.ts):
+    {type, version: 1, data}. A character's data is a V2 card plus `avatar` (a data URL), sprites and a gallery; its
+    backstory and appearance sit in the card's extensions, which only Marinara's "compatible" export folds into the
+    description. A lorebook's data is {lorebook, entries}. Sprites, gallery pictures and presets are not used."""
+    kind, data = value.get('type'), value.get('data')
+    if value.get('version') != 1 or not isinstance(data, dict):
+        raise problem('Only version 1 Marinara Engine exports can be read.')
+    if kind == 'marinara_lorebook':
+        about = data.get('lorebook') if isinstance(data.get('lorebook'), dict) else {}
+        found = data.get('entries')
+        entries = [entry for entry in found if isinstance(entry, dict)] if isinstance(found, list) else []
+        if not entries:
+            raise problem('This Marinara Engine lorebook has no entries to bring over.')
+        name = re.sub(r'\.marinara$', '', stem, flags=re.IGNORECASE)
+        made = lorebooks.book({**about, 'entries': entries}, 'portable', 'Marinara Engine lorebook', name[:120])
+        return {'format': 'Marinara Engine lorebook', 'character': None, 'picture': None, 'book': made}
+    if kind == 'marinara_persona':
+        raise problem('Only Marinara Engine characters and lorebooks can be brought over. Your persona stays yours to '
+                      'set in Settings.')
+    if kind != 'marinara_character':
+        raise problem('Only Marinara Engine characters and lorebooks can be brought over.')
+    made = card(data)
+    extensions = card_data(data).get('extensions')
+    extensions = extensions if isinstance(extensions, dict) else {}
+    character = {**made['character'], 'backstory': text(extensions, 'backstory'),
+                 'appearance': text(extensions, 'appearance')}
+    if extensions.get('imageAppearanceEnabled') in (True, 'true'):
+        character['in_photos'] = text(extensions, 'imageAppearance')
+    return {**made, 'format': 'Marinara Engine character', 'character': character,
+            'picture': data_url(data.get('avatar')), 'portrait': True}
+
+
+def data_url(value) -> bytes | None:
+    """The picture in a `data:image/...;base64,` URL, or None when there is none or it is unreadable."""
+    if not isinstance(value, str) or not value.startswith('data:image/') or ';base64,' not in value:
+        return None
+    try:
+        return base64.b64decode(value.split(',', 1)[1], validate=True)
+    except (ValueError, binascii.Error):
+        return None
 
 
 def card_book(data: dict, character: dict) -> dict | None:

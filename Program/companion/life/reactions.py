@@ -18,6 +18,7 @@ from companion.database import many, settings
 from companion.errors import require
 from companion.life import occasions, storylines
 from companion.memory import pairs
+from companion.memory.records import from_old_chats
 from companion.traits import LEVELS
 
 # Words in an emotional trait's name that make it about each choice.
@@ -107,8 +108,9 @@ def daily(connection, companion: dict, now) -> int:
 
 
 def user_messages(connection, timeline_id: str, day: date, timezone) -> list[str]:
+    # An old chat brought in (companion/imports/chats.py) is history, never something said that day.
     rows = many(connection, "SELECT text, created_at FROM messages WHERE timeline_id=? AND role='user' "
-                "AND status='complete' AND created_at>=? AND created_at<?",
+                "AND status='complete' AND import_id IS NULL AND created_at>=? AND created_at<?",
                 (timeline_id, stamp(local_start(day - timedelta(days=1), timezone)),
                  stamp(local_start(day + timedelta(days=2), timezone))))
     return [row['text'] for row in rows if parse(row['created_at']).astimezone(timezone).date() == day]
@@ -120,10 +122,12 @@ def local_start(day: date, timezone):
 
 
 def agreed_plans(connection, companion: dict, day: date) -> list[dict]:
-    """Agreed plans with the user set for that day, with a sure date."""
-    return many(connection, "SELECT id, value FROM memories WHERE timeline_id=? AND status='active' AND layer='plan' "
-                "AND plan_status='agreed' AND dates_uncertain=0 AND substr(applies_from, 1, 10)=?",
-                (companion['active_timeline_id'], day.isoformat()))
+    """Agreed plans with the user set for that day, with a sure date; not one only an old chat mentioned."""
+    history = from_old_chats(connection, companion['active_timeline_id'])
+    return [row for row in many(
+        connection, "SELECT id, value FROM memories WHERE timeline_id=? AND status='active' AND layer='plan' "
+        "AND plan_status='agreed' AND dates_uncertain=0 AND substr(applies_from, 1, 10)=?",
+        (companion['active_timeline_id'], day.isoformat())) if row['id'] not in history]
 
 
 def occasion_on(connection, companion: dict, day: date, timezone) -> str | None:
@@ -185,9 +189,11 @@ AHEAD = 7  # Days ahead an occasion or plan counts for "what if" answers.
 def what_if_note(connection, companion: dict, now) -> str:
     """The odds the app worked out for what could happen, for an out-of-character answer. Nothing here is rolled,
     so asking spoils nothing and changes nothing."""
-    lines = [f"- {item['label']} (due {item['on']}): {odds_text(item['options'])}"
+    definition = companion['version']['definition']
+    lines = [f"- {item['label']} (due {item['on']}): {odds_text(consequences.said(item['options'], definition))}"
              for item in storylines.upcoming_odds(connection, companion, now)]
-    lines += [f'- {situation}: {odds_text(found)}' for situation, found in user_what_ifs(connection, companion, now)]
+    lines += [f'- {situation}: {odds_text(consequences.said(found, definition))}'
+              for situation, found in user_what_ifs(connection, companion, now)]
     if not lines:
         return ''
     return ('If the user asks what would happen if something went a certain way, answer honestly from these odds, '

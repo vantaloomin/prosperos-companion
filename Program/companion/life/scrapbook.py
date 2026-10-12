@@ -94,7 +94,7 @@ def seen(connection, companion: dict, key: str, now):
 def talked(connection, timeline_id: str, period: dict, timezone) -> set[str]:
     """The local days the user wrote in a stretch of time."""
     rows = many(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND role='user' AND active=1 AND "
-                'created_at>=? AND created_at<?', (timeline_id, instant(period['start'], timezone),
+                'import_id IS NULL AND created_at>=? AND created_at<?', (timeline_id, instant(period['start'], timezone),
                                                     instant(period['end'] + timedelta(days=1), timezone)))
     return {parse(row['created_at']).astimezone(timezone).date().isoformat() for row in rows}
 
@@ -147,7 +147,7 @@ def build(connection, companion: dict, key: str, now) -> dict:
 
 
 def cover(period, name, days, messages, sent) -> dict:
-    stats = [(len(days), 'Day talked', 'Days talked'), (len(messages), 'Message', 'Messages'),
+    stats = [(len(days), 'Day of talking', 'Days of talking'), (len(messages), 'Message', 'Messages'),
              (len(sent), f'Picture from {name}', f'Pictures from {name}')]
     return {'kind': 'cover', 'title': period['title'], 'subtitle': f'You and {name}',
             'stats': [{'value': f'{count:,}', 'label': one if count == 1 else many_}
@@ -194,15 +194,18 @@ def together(connection, companion, now, period, timezone) -> list[dict]:
     told = {(joke['subject'], joke['value']) for joke in state['jokes']}
     moments = [memory for memory in closeness.shared_moments(connection, companion, companion['active_timeline_id'],
                                                              now, None)
-               if (memory['subject'], memory['value']) not in told
-               and low <= parse(memory['created_at']).astimezone(timezone).date().isoformat() <= high]
-    moments.sort(key=lambda memory: (-memory['pinned'], memory['created_at']))
+               if (memory['subject'], memory['value']) not in told and low <= happened(memory, timezone) <= high]
+    moments.sort(key=lambda memory: (-memory['pinned'], happened(memory, timezone)))
     if moments:
         pages.append({'kind': 'moments', 'title': 'Moments to remember',
-                      'items': [{'date': parse(memory['created_at']).astimezone(timezone).date().isoformat(),
-                                 'text': f"{memory['subject']}: {memory['value']}"}
+                      'items': [{'date': happened(memory, timezone), 'text': f"{memory['subject']}: {memory['value']}"}
                                 for memory in moments[:MOMENT_LIMIT]]})
     return pages
+
+
+def happened(memory: dict, timezone) -> str:
+    """The local day a moment happened (when it applies from, else when it was said), not when it was saved."""
+    return parse(memory['applies_from'] or memory['stated_at']).astimezone(timezone).date().isoformat()
 
 
 def their_year(connection, companion, period, name) -> dict | None:

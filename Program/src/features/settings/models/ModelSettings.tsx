@@ -6,7 +6,12 @@ import { Notice } from '../../../components/Feedback'
 import { useReturnFocus } from '../../../components/returnFocus'
 import { HARDWARE_KEY } from './hardware'
 import { LaunchFor } from './LocalPrograms'
+import { ModelUsage } from './ModelUsage'
+import { useModelUsage } from './usage'
 import { ProfileEditor } from './ProfileEditor'
+import { ReadyCard, UseBuiltin } from '../../ready/ReadyCard'
+import { isActive } from '../../ready/readyText'
+import { useReady } from '../../ready/useReady'
 import { jobChoice } from './routing'
 import { isRecall, type ModelJob, type ModelProfile, type ModelsOverview } from './types'
 
@@ -38,12 +43,16 @@ function TextProfiles({ overview, editing, setEditing, refresh, result, setResul
   const addButton = useReturnFocus<HTMLButtonElement>(editing === 'new')
   const profiles = overview.profiles.filter(profile => !isRecall(profile.config))
   const done = finish(setEditing, setResult, refresh)
+  // While "Set it up for me" downloads, its card stands in for the "No model yet" line.
+  const ready = useReady().data
+  const builtinComing = isActive(ready) || ready?.status === 'ready'
   return <section className="settings-section form-stack" aria-labelledby="models-heading">
     <div>
       <h2 id="models-heading">Models</h2>
       <p className="subtle">A profile is one provider, model and key: hosted services, your Codex login, or a model running on this computer. The conversation profile does every job until you give a job its own. Saving never contacts the service.</p>
     </div>
-    {profiles.length === 0 && editing !== 'new' && <p className="subtle">No model yet. Until you add one, your messages are saved and replies wait.</p>}
+    <ReadyCard hasProfiles={profiles.length > 0} />
+    {profiles.length === 0 && editing !== 'new' && !builtinComing && <p className="subtle">No model yet. Until you add one, your messages are saved and replies wait.</p>}
     <ProfileList profiles={profiles} overview={overview} editing={editing} setEditing={setEditing} done={done} refresh={refresh} setResult={setResult} />
     {editing === 'new' ? <ProfileEditor onDone={done} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => { setResult(null); setEditing('new') }}>Add a model profile</button></div>}
@@ -107,8 +116,9 @@ function modelLine(profile: ModelProfile) {
 function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile: ModelProfile; jobs: ModelJob[]; onEdit: () => void; onChanged: (data?: ModelsOverview) => void; setResult: (result: Result) => void }) {
   const [busy, setBusy] = useState(false)
   const [check, setCheck] = useState<{ count: number; note?: string } | null>(null)
+  const { usage, refresh } = useModelUsage(profile)
   const run = async (work: () => Promise<void>) => { setBusy(true); try { await work() } catch (error) { setResult({ tone: 'error', text: failure(error, 'That did not work.') }) } finally { setBusy(false) } }
-  const verify = () => run(async () => { setCheck(null); const found = await api<{ models: string[]; note?: string }>(`/models/profiles/${profile.id}/check`, {}); setCheck({ count: found.models.length, note: found.note }) })
+  const verify = () => run(async () => { setCheck(null); const found = await api<{ models: string[]; note?: string }>(`/models/profiles/${profile.id}/check`, {}); setCheck({ count: found.models.length, note: found.note }); void refresh() })
   const copy = () => run(async () => { const made = await api<ModelProfile>(`/models/profiles/${profile.id}/duplicate`, {}); onChanged(); setResult({ tone: 'info', text: `${made.name} added. Edit it to change what differs.` }) })
   const remove = () => {
     if (!window.confirm(`Delete ${profile.name}? Its saved key is removed from your keychain${jobs.length ? ', and its jobs go back to the conversation profile' : ''}.`)) return
@@ -116,8 +126,10 @@ function ProfileCard({ profile, jobs, onEdit, onChanged, setResult }: { profile:
   }
   const where = profile.config.provider === 'codex' ? 'Codex CLI login' : profile.config.base_url
   return <li className="model-profile">
-    <div><span className="eyebrow">{profile.provider_name}</span><h3>{profile.name}</h3>
+    <div><span className="eyebrow">{profile.config.resource_group === 'builtin-chat' ? 'Local / Built-in' : profile.provider_name}</span><h3>{profile.name}</h3>
       <p className="subtle">{modelLine(profile)} · {where}{profile.has_saved_key ? ' · key saved' : ''}</p>
+      <ModelUsage usage={usage} />
+      <UseBuiltin profileId={profile.id} />
       {jobs.length > 0 && <p className="model-jobs"><Check size={14} aria-hidden="true" />{jobs.map(job => job.name).join(', ')}</p>}
       {check && <p className="subtle" role="status">Connected. {check.count ? `${check.count} models available. ` : ''}No text was generated.{check.note ? ` ${check.note}` : ''}</p>}
     </div>

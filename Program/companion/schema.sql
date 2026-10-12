@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   -- The app's colors, Prospero's Study's palettes; Retro IM keeps its own. custom_palette is JSON hex colors.
   color_scheme TEXT NOT NULL DEFAULT 'ink' CHECK (color_scheme IN ('ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom')),
   custom_palette TEXT NOT NULL DEFAULT '',
+  -- Light or dark: 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
+  theme TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('system', 'scheme', 'paper')),
   -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).
@@ -1805,4 +1807,39 @@ CREATE TABLE IF NOT EXISTS trips (
   status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'cancelled')),
   created_at TEXT NOT NULL,
   UNIQUE (timeline_id, start_date)
+);
+
+-- Character reference sheets (companion/images/sheet.py): a three-panel sheet Codex makes before any other picture
+-- of a companion, which later Codex pictures of them follow. `fingerprint` is their looks in words when it was made,
+-- so an edited appearance gets a new sheet. The file is in images/sheets/.
+CREATE TABLE IF NOT EXISTS character_sheets (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  fingerprint TEXT NOT NULL,
+  file TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  backend_id TEXT,
+  from_picture INTEGER NOT NULL DEFAULT 0 CHECK (from_picture IN (0, 1)),
+  width INTEGER,
+  height INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS character_sheets_companion ON character_sheets(companion_id, fingerprint, created_at);
+-- Old chats brought in as older history (companion/imports/chats.py). Their messages carry `import_id`,
+-- so they read as history without counting as new conversation: no replies, notifications, moods,
+-- closeness or consequences come from them. `sha256` keeps the same file from coming in twice on one timeline.
+CREATE TABLE IF NOT EXISTS chat_imports (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  filename TEXT NOT NULL,
+  format TEXT NOT NULL CHECK (format IN ('sillytavern', 'messages')),
+  sha256 TEXT NOT NULL,
+  messages INTEGER NOT NULL,
+  skipped INTEGER NOT NULL,
+  memories INTEGER NOT NULL,
+  dated INTEGER NOT NULL CHECK (dated IN (0, 1)),
+  first_at TEXT NOT NULL,
+  last_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );

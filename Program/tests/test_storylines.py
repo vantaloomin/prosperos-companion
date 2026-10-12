@@ -133,6 +133,18 @@ def test_removing_someone_ends_their_storylines(client, social, monkeypatch):
     assert all(row['status'] == 'ended' for row in stored(client) if row['id'] == item['id'])
 
 
+def test_someone_leaving_after_a_storyline_settled_keeps_it(client, social, clock, monkeypatch):
+    monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('friend_new_job'),))
+    reconcile(client)
+    item = client.get('/api/life/storylines').json()[0]
+    clock.advance(timedelta(days=30))
+    reconcile(client)
+    client.post(f"/api/life/circle/{item['cast'][0]['id']}/remove")
+    reconcile(client)
+    assert [row['status'] for row in stored(client) if row['id'] == item['id']] == ['running']
+
+
 def test_a_new_beat_can_open_a_conversation(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
     monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('work_creep'),))
@@ -197,3 +209,20 @@ def test_a_settled_storyline_stays_by_its_outcome_then_goes_to_recall(client, so
     send(client, f'Did {friend} ever take that job?', 'client-story-recall')
     system = provider.requests[-1]['prompt']
     assert 'Something that happened in your life, settled on' in system and friend in system
+
+
+def test_template_lines_use_the_companions_own_pronouns_when_known():
+    row = {'cast_ids': '[]'}
+    she = {'name': 'Mira', 'identity': 'She is a nurse; her friends call her Mir.'}
+    unknown = {'name': 'Sam', 'identity': 'A nurse.'}
+    text = "{name} heard they are being considered for a promotion."
+    assert storylines.fill(text, row, {}, she) == 'Mira heard she is being considered for a promotion.'
+    assert storylines.fill(text, row, {}, unknown) == 'Sam heard they are being considered for a promotion.'
+    kiss = '{name} got drunk and kissed {a}, their best friend.'
+    assert storylines.fill(kiss, {'cast_ids': '["p"]'}, {'p': {'name': 'Jo', 'role': 'friend'}}, she) == \
+        'Mira got drunk and kissed Jo, her best friend.'
+    # A "they" about someone else stays.
+    assert storylines.fill('{a} told {name} they are quitting.', {'cast_ids': '["p"]'},
+                           {'p': {'name': 'Jo', 'role': 'friend'}}, she) == 'Jo told Mira they are quitting.'
+    assert storylines.fill(kiss, {'cast_ids': '["p"]'}, {'p': {'name': 'Jo', 'role': 'friend'}}, she, you=True) == \
+        'You got drunk and kissed Jo, your best friend.'

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
@@ -14,6 +14,20 @@ import { CityOptions } from '../world/CityOptions'
 import type { FeaturedCities } from '../world/cityText'
 import { AGES, VIBES, emptyRequest, toggleVibe, vibeList, type DraftRequest, type DraftResult } from './drafting'
 import { CitiesUnavailable } from '../world/CitiesUnavailable'
+import { COMPANION_KEY } from '../../companion'
+import type { Companion } from '../../types'
+import { isActive } from '../ready/readyText'
+import { queueWriteUp, useReady } from '../ready/useReady'
+
+const submitLabel = (busy: boolean, downloading: boolean) => busy ? (downloading ? 'Saving…' : 'Writing…') : downloading ? 'Create them now' : 'Create my companion'
+
+/** Saves the picks as the companion now and queues the write-up for when the model is ready (companion/ready_writeup.py). */
+async function saveForLater(client: QueryClient, body: Omit<DraftRequest, 'starting_closeness'>, starting_closeness: number): Promise<View> {
+  const saved = await api<Companion>('/companion', { name: body.name, relationship: body.relationship, home_city: body.home_city, timezone: body.timezone, starting_closeness })
+  client.setQueryData(COMPANION_KEY, saved)
+  await queueWriteUp(client, { ...body, name: saved.version.name })
+  return 'conversation'
+}
 
 interface Props { onDraft: (definition: CharacterDefinition) => void; onSplit: (result: SplitResult) => void; onManual: () => void; go: (view: View) => void }
 
@@ -30,6 +44,10 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
   const [error, setError] = useState('')
   const set = (change: Partial<DraftRequest>) => setRequest((current) => ({ ...current, ...change }))
   const connected = !!connection.data
+  // While "Set it up for me" downloads, they can save them now and the model writes the rest when it is ready.
+  const ready = useReady().data
+  const downloading = !connected && isActive(ready)
+  const client = useQueryClient()
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -37,6 +55,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
     setError('')
     try {
       const { starting_closeness, ...body } = request
+      if (downloading) { go(await saveForLater(client, { ...body, home_city: homeCity }, starting_closeness)); return }
       onDraft({ ...(await api<DraftResult>('/companion/draft', { ...body, home_city: homeCity })).definition, starting_closeness })
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'The draft could not be written.')
@@ -47,9 +66,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
     <section className="quick-start" aria-labelledby="quick-start-title">
       <h2 id="quick-start-title"><Sparkles aria-hidden="true" />Three things to start</h2>
       <p className="subtle">Your text model writes the rest: their job, week, skills, flaws and how they talk. You see the whole character before anything is saved.</p>
-      {connection.isSuccess && !connected && (
-        <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button>}>Drafting uses your text model, and none is connected yet. You can still fill in the form yourself.</Notice>
-      )}
+      <ModelNotice shown={connection.isSuccess && !connected} downloading={downloading} go={go} />
       <form className="form-stack" onSubmit={submit}>
         <Picks request={request} set={set} cities={cities} homeCity={homeCity} pickCity={(home_city) => { setCityPicked(true); set({ home_city }) }} />
         <details className="advanced more-options">
@@ -79,7 +96,7 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
         {busy && <Notice>Writing your companion. A local model can take a minute or two.</Notice>}
         {error && <Notice tone="error" action={<button type="button" className="text-button" onClick={onManual}>Fill in the form myself</button>}>{error}</Notice>}
         <div className="form-actions">
-          <button type="submit" className="button primary" disabled={!connected || busy}>{busy ? 'Writing…' : 'Create my companion'}</button>
+          <button type="submit" className="button primary" disabled={!(connected || downloading) || busy}>{submitLabel(busy, downloading)}</button>
           <button type="button" className="text-button" onClick={onManual}>Fill in the form myself</button>
         </div>
       </form>
@@ -130,4 +147,10 @@ function Vibes({ vibe, onChange }: { vibe: string; onChange: (vibe: string) => v
       </div>
     </div>
   )
+}
+
+function ModelNotice({ shown, downloading, go }: { shown: boolean; downloading: boolean; go: (view: View) => void }) {
+  if (downloading) return <Notice>Your model isn't ready yet. Create them now and it writes the rest when it's ready.</Notice>
+  if (!shown) return null
+  return <Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Settings</button>}>Drafting uses your text model, and none is connected yet. You can still fill in the form yourself.</Notice>
 }

@@ -8,6 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { imageFile } from '../feed/imageState'
 import { SCRAPBOOKS_KEY, dayText, firstKey, pageAt, spanText, sparse } from './yearText'
+import { reducedMotion } from '../../motion'
 
 /**
  * Our year so far: a scrapbook of your time with them, one page at a time. Swipe on a phone; arrows, the dots or
@@ -67,7 +68,7 @@ function Pages({ book }: { book: Scrapbook }) {
     const node = strip.current
     if (!node) return
     const next = Math.min(count - 1, Math.max(0, index))
-    node.scrollTo({ left: next * node.clientWidth, behavior: 'smooth' })
+    node.scrollTo({ left: next * node.clientWidth, behavior: reducedMotion() ? 'auto' : 'smooth' })
     setCurrent(next)
   }
   const keys = (event: KeyboardEvent) => {

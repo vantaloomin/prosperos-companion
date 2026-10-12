@@ -1285,3 +1285,10 @@ def test_a_picture_that_finishes_after_a_switch_is_stored_in_its_own_world(clien
         assert connection.execute('SELECT status FROM image_jobs WHERE id=?', (job['id'],)).fetchone() == ('completed',)
     with sqlite3.connect(state.database.path) as connection:
         assert connection.execute('SELECT COUNT(*) FROM image_jobs').fetchone() == (0,)
+
+
+def test_they_takes_the_plural_verb_after_a_name_is_said_as_a_pronoun():
+    from companion.images import prompts
+    found = prompts.unnamed('Mira always wears a red scarf. Mira carries a tote and Mira dresses well.', 'Mira', 'they')
+    assert found == 'They always wear a red scarf. They carry a tote and they dress well.'
+    assert prompts.unnamed('Mira always wears a red scarf.', 'Mira', 'she') == 'She always wears a red scarf.'

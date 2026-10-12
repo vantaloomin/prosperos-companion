@@ -1,11 +1,28 @@
 import { useId, useState, type CSSProperties } from 'react'
-import { COLOR_SCHEMES, PALETTE_KEYS, defaultPalette, paletteReadability, paletteStyles, validHex, validPalette, type ColorScheme, type Palette } from './palette'
+import type { WorkspaceSettings } from '../../types'
+import { COLOR_SCHEMES, PALETTE_KEYS, defaultPalette, paletteReadability, paletteStyles, paperPalette, validHex, validPalette, type ColorScheme, type Palette } from './palette'
 
-type Save = (change: { color_scheme?: ColorScheme; custom_palette?: Palette }) => Promise<void>
+type Theme = NonNullable<WorkspaceSettings['theme']>
+type Save = (change: { color_scheme?: ColorScheme; custom_palette?: Palette; theme?: Theme }) => Promise<void>
+interface Props { theme: Theme; scheme: ColorScheme; palette: Palette | null; save: Save }
 
-/** General > Appearance: Prospero's Study's color schemes and custom palette. Retro IM keeps its own colors. */
-export function ColorSchemeSettings({ scheme, palette, save }: { scheme: ColorScheme; palette: Palette | null; save: Save }) {
+/** The swatch row: Match my computer (Paper or Ink, following the computer), the dark schemes, Paper and Custom. */
+function choices(palette: Palette | null) {
+  return [
+    { id: 'system', label: 'Match my computer', className: 'swatch swatch-split', style: {}, change: { theme: 'system' as const } },
+    ...COLOR_SCHEMES.map(option => ({ id: option.id, label: option.label, className: 'swatch', style: { background: option.swatch },
+      change: { theme: 'scheme' as const, color_scheme: option.id } })),
+    { id: 'paper', label: 'Paper', className: 'swatch swatch-light', style: { background: paperPalette.background }, change: { theme: 'paper' as const } },
+    ...(palette ? [{ id: 'custom', label: 'Custom', className: 'swatch swatch-light', style: { background: palette.background },
+      change: { theme: 'scheme' as const, color_scheme: 'custom' as const } }] : []),
+  ]
+}
+
+/** General > Appearance: Prospero's Study's color schemes, Paper, Match my computer and a custom palette. Retro IM
+ * keeps its own colors. Shared by every device on this workspace. */
+export function ColorSchemeSettings({ theme, scheme, palette, save }: Props) {
   const name = useId()
+  const chosen = theme === 'scheme' ? scheme : theme
   return (
     <div className="form-stack">
       <div>
@@ -14,18 +31,14 @@ export function ColorSchemeSettings({ scheme, palette, save }: { scheme: ColorSc
       </div>
       <fieldset className="palette-options">
         <legend className="visually-hidden">Color scheme</legend>
-        {COLOR_SCHEMES.map((option) => (
+        {choices(palette).map((option) => (
           <label key={option.id} className="palette-option">
-            <input type="radio" className="visually-hidden" name={name} value={option.id} checked={scheme === option.id} onChange={() => void save({ color_scheme: option.id })} />
-            <span className="swatch" style={{ background: option.swatch }} aria-hidden="true" />{option.label}
+            <input type="radio" className="visually-hidden" name={name} value={option.id} checked={chosen === option.id} onChange={() => void save(option.change)} />
+            <span className={option.className} style={option.style} aria-hidden="true" />{option.label}
           </label>
         ))}
-        {palette && <label className="palette-option">
-          <input type="radio" className="visually-hidden" name={name} value="custom" checked={scheme === 'custom'} onChange={() => void save({ color_scheme: 'custom' })} />
-          <span className="swatch" style={{ background: palette.background }} aria-hidden="true" />Custom
-        </label>}
       </fieldset>
-      <CustomPalette saved={palette} apply={(custom) => save({ color_scheme: 'custom', custom_palette: custom })} />
+      <CustomPalette saved={palette} apply={(custom) => save({ theme: 'scheme', color_scheme: 'custom', custom_palette: custom })} />
     </div>
   )
 }
@@ -50,6 +63,7 @@ function CustomPalette({ saved, apply }: { saved: Palette | null; apply: (palett
         <div className="form-actions">
           <button type="button" className="button primary" disabled={!readability.valid} onClick={() => void apply({ ...draft })}>Apply custom palette</button>
           <button type="button" className="text-button" onClick={() => setDraft(defaultPalette)}>Start from Ink</button>
+          <button type="button" className="text-button" onClick={() => setDraft(paperPalette)}>Start from Paper</button>
         </div>
       </div>
     </details>

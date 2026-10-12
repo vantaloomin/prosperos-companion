@@ -64,6 +64,8 @@ VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one 
 FIRM = re.compile(r"\b(?:let'?s|we should|we're going|we are going|i'll take you|i'm taking you)\b", re.IGNORECASE)
 STARTS = re.compile(rf"^(?:{'|'.join(value[0] for value in ACTIVITIES.values())})\b", re.IGNORECASE)
 SHORT = 6
+# Run-on messages join an ask to other news with "also", "btw" or "anyway".
+ASIDE = re.compile(r"\s+(?:also|btw|anyway|plus|oh and|and also)\s+", re.IGNORECASE)
 WEEKEND = re.compile(r'\b(?:this|the) weekend\b', re.IGNORECASE)
 NOT_BUSY = {'work', 'study', 'sleep'}
 LOOK_DAYS = 7
@@ -132,6 +134,13 @@ WANTS = {'aquarium': r'aquarium', 'movie': r'cinema|film|movie|picture house|the
          'cinema': r'cinema|film|movie', 'concert': r'music|concert|hall|jazz|orchestra|symphony|band', 'gig': r'music|club|band',
          'play': r'theat|play|stage|playhouse', 'theat': r'theat|play|stage', 'comedy': r'comedy|club', 'gallery': r'gallery|art',
          'hike': r'trail|hike|hill|mountain', 'picnic': r'park|lawn|garden', 'brunch': r'brunch|breakfast|cafe|diner'}
+# "By the harbor", "on the water": somewhere on the waterfront, going by the place's tags and its neighborhood
+# (never a name that happens to say "Harbor", like Golden Harbor Chinese up in the plaza).
+WATERSIDE = re.compile(r"\b(?:by|on|along|near|at|beside|overlooking) the (?:harbou?r|water(?:front)?|beach|sea|seaside|"
+                       r"ocean|shore|bay|river|lake|wharf|pier|docks?|marina|coast|cove)\b", re.IGNORECASE)
+WATER_WORDS = re.compile(r'water|harbou?r|beach|ocean|seaside|shore|river|lake|wharf|pier|^docks?$|marina|coast|cove|'
+                         r'pond|marsh|island|lighthouse|^sea$|boats?$', re.IGNORECASE)
+WATER_KINDS = {'beach', 'docks'}
 NOT_OUTINGS = re.compile(r'\b(?:station|hospital|clinic|church|cathedral|chapel|campus|university|transit|airport|'
                          r'terminal|ship|cemetery)\b', re.IGNORECASE)
 
@@ -140,11 +149,32 @@ def described(item: dict) -> str:
     return ' '.join([item['name'], item.get('summary', ''), *item.get('tags', ())])
 
 
-def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
-    if WEEKEND.search(sentence):
+def day_in(text: str, today: date, holidays: dict) -> date | None:
+    if WEEKEND.search(text):
         return today if today.weekday() >= 5 else today + timedelta(days=5 - today.weekday())
-    found = own_plans.when(sentence, today, holidays)
+    found = own_plans.when(text, today, holidays)
     return found[0] if found and found[0] >= today else None
+
+
+def asking_clause(sentence: str) -> str | None:
+    """The clause that asks to go out, when the sentence has others ("a walk Sunday also my sister ...")."""
+    parts = [part for clause in own_plans.CLAUSES.split(sentence) for part in ASIDE.split(clause or '') if part]
+    if len(parts) < 2:
+        return None
+    return next((part for part in parts if ASKING.search(part) or OUT.search(part) or any(
+        re.search(rf'\b(?:{value[0]})\b', part, re.IGNORECASE) for value in ACTIVITIES.values())), None)
+
+
+def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
+    """The day the ask names. A holiday named only outside the clause that asks ("a walk Sunday also my sister
+    texted a seating chart for thanksgiving") sets the day only when nothing else does."""
+    clause = asking_clause(sentence)
+    if clause:
+        near = {name: day for name, day in holidays.items()
+                if re.search(rf"\b{re.escape(name)}\b", clause.replace("'", ''), re.IGNORECASE)}
+        if found := day_in(sentence, today, near):
+            return found
+    return day_in(sentence, today, holidays)
 
 
 def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bool = False) -> dict | None:
@@ -163,7 +193,7 @@ def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bo
             return None
         at, _said = own_plans.clock(sentence)
         return {'activity': activity, 'day': day, 'at': at, 'place': place, 'word': word_for(sentence, activity),
-                'sentence': sentence[:300]}
+                'waterside': bool(WATERSIDE.search(sentence)), 'sentence': sentence[:300]}
     return None
 
 
@@ -237,11 +267,20 @@ def likes_of(definition: dict) -> set[str]:
     return {word for word in re.findall(r'[a-z]+', words) if len(word) > 3}
 
 
+def waterside(item: dict, data: dict) -> bool:
+    """On the water, by its kind, its tags or its neighborhood's feel."""
+    hood = next((hood for hood in data['neighborhoods'] if hood['id'] == item.get('neighborhood')), {})
+    words = [*item.get('tags', ()), *hood.get('vibe', ())]
+    return item['kind'] in WATER_KINDS or any(WATER_WORDS.search(token) for word in words for token in word.split('-'))
+
+
 def pick_place(data: dict, activity: str, day: date, at: str, definition: dict, seed: str,
-               cheap: bool, word: str = '') -> dict | None:
+               cheap: bool, word: str = '', by_water: bool = False) -> dict | None:
     """The companion's pick: a place for this outing open at that time and in season, within budget, that fits the
-    word asked ("the aquarium") when one does."""
+    word asked ("the aquarium") and is on the water when asked ("by the harbor"), when one does."""
     options = [item for item in data['places'] if item['kind'] in kinds(activity) and fits(item, day, at)]
+    if by_water:
+        options = [item for item in options if waterside(item, data)] or options
     if activity in ('museum', 'walk', 'show'):
         options = [item for item in options if not NOT_OUTINGS.search(item['name'])] or options
     wants = next((pattern for stem, pattern in WANTS.items() if stem in word), None)
@@ -305,7 +344,7 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
     cost, affordable = bill(definition, wanted['activity'], day,
                             money.spendable(connection, companion['active_timeline_id'], definition, day))
     item = wanted['place'] or pick_place(data, wanted['activity'], day, at, definition, f"outing:{message['id']}",
-                                         not affordable, wanted.get('word', ''))
+                                         not affordable, wanted.get('word', ''), wanted.get('waterside', False))
     if item is None:
         return None
     if item.get('cost') == 'free':
@@ -465,17 +504,18 @@ def scene(connection, companion: dict, outing: dict) -> str:
     return '- ' + ' '.join(part.strip() for part in parts if part.strip())
 
 
-def planned_line(outing: dict, fresh: bool) -> str:
+def planned_line(outing: dict) -> str:
     line = f"- {day_text(outing['local_date'])} at {outing['at_time']}: {what(outing)}, with the user."
-    if outing['named']:
-        line += ' They picked the place.'
-    else:
-        line += ' You picked the place.'
-    if fresh:
-        line += ' You just said yes; tell them where and when.'
-        if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
-            line += f" They asked for {day_text(outing['asked_date'])}, but that did not work for you, so you offered " \
-                    'this day instead.'
+    return line + (' They picked the place.' if outing['named'] else ' You picked the place.')
+
+
+def booked_line(outing: dict) -> str:
+    """The outing settled for the turn being answered, as what the reply says (first in its notes)."""
+    line = f"- You agreed to go: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
+        'Confirm where and when in this reply, in your own words.'
+    if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
+        line += f" They asked for {day_text(outing['asked_date'])}, but you can't make that day, so say so and " \
+                f"that it is {day_text(outing['local_date'])} instead."
     return line
 
 
@@ -490,7 +530,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         if found == 'now':
             result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing)))
         elif found == 'planned':
-            result.append((f"outing:{outing['id']}", planned_line(outing, outing['message_id'] in fresh_ids)))
+            result.append((f"outing:{outing['id']}", planned_line(outing)))
+            if outing['message_id'] in fresh_ids:
+                result.append((f"outing:{outing['id']}:booked", booked_line(outing)))
         elif now - window(outing, version['timezone'])[1] < RECENT:
             paid = money_text(companion, outing)
             result.append((f"outing:{outing['id']}:done",
@@ -511,9 +553,13 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
     outing by money.household). Cheap: no model."""
     from companion.memory import records
     timezone = companion['version']['timezone']
-    today = now.astimezone(zone(timezone)).date()
+    # From the oldest one still planned, however long ago: after a long absence it still finishes.
+    oldest = optional(connection, "SELECT MIN(local_date) AS since FROM outings WHERE companion_id=? AND status='planned'",
+                      (companion['id'],))
+    if not oldest or not oldest['since']:
+        return 0
     done = 0
-    for outing in in_force(connection, companion['active_timeline_id'], (today - timedelta(days=7)).isoformat()):
+    for outing in in_force(connection, companion['active_timeline_id'], oldest['since']):
         if outing['status'] != 'planned' or state(outing, timezone, now) != 'done' or undoable_home(outing, now):
             continue
         day = date.fromisoformat(outing['local_date'])
@@ -521,7 +567,7 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
         fields = {'layer': 'shared_experience', 'subject': f"{ACTIVITIES[outing['activity']][5].capitalize()} "
                   f"together at {place['name']}",
                   'value': f"Went out together for {what(outing)} on {day:%A, %B} {day.day}.",
-                  'stated_at': stamp(now), 'applies_from': None, 'applies_until': None}
+                  'stated_at': stamp(min(now, window(outing, timezone)[1])), 'applies_from': None, 'applies_until': None}
         memory, _created = records.insert(connection, companion, fields, now=stamp(now), origin='automatic',
                                           sources=(outing['message_id'],))
         connection.execute("UPDATE outings SET status='done', memory_id=? WHERE id=?", (memory['id'], outing['id']))

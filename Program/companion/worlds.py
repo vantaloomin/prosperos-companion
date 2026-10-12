@@ -18,17 +18,18 @@ user changes whatever they like afterwards.
 """
 import json
 import os
+import re
 import shutil
 import sqlite3
 from datetime import date
 from pathlib import Path
 
-from companion import backup, cast, characters, dating, restore, story
+from companion import backup, cast, characters, dating, lore, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
 from companion.models import CharacterDefinition
-from companion.world import generators, townsfolk
+from companion.world import changes, custom, generators, townsfolk
 
 REGISTRY = 'worlds.json'
 FOLDER = 'worlds'
@@ -121,6 +122,26 @@ def first_registry(database: Database) -> dict:
     world = {'id': identifier(), 'name': city['name'], 'persona_id': persona['id'], 'folder': '',
              'city_id': city['id'], 'created_at': timestamp, 'used_at': timestamp}
     return {'version': 1, 'active': world['id'], 'personas': [persona], 'worlds': [world]}
+
+
+def follow_first_companion(database: Database):
+    """A world named for the default city before anyone lived in it takes the city of its first companion (a world
+    started in Baltimore whose first companion lives in Haddon Harbor becomes "Haddon Harbor"). A name the user gave
+    it stays."""
+    data = load(database.root)
+    world = data and find(data['worlds'], data.get('active'))
+    if not world:
+        return
+    with database.connect() as connection:
+        count = connection.execute('SELECT COUNT(*) FROM companions').fetchone()[0]
+        city = city_of(connection)
+        known = changes.resolve(world.get('city_id') or '', custom.all_cities(connection))
+    named = known and re.fullmatch(rf"{re.escape(known['name'])}(?: \d+)?", world['name'])
+    if count != 1 or not named or city['id'] == world.get('city_id'):
+        return
+    others = {**data, 'worlds': [item for item in data['worlds'] if item['id'] != world['id']]}
+    world |= {'name': unique_name(others, city['name']), 'city_id': city['id']}
+    save(database.root, data)
 
 
 def start(database: Database):
@@ -223,6 +244,8 @@ def carry_settings(target: Path, source: Path, timestamp: str):
     restore.copy_settings(target, source, SHARED, timestamp)
     connection = sqlite3.connect(target, isolation_level=None)
     try:
+        # Lore of a city deleted in another world goes with it (companion/lore.py).
+        lore.drop_orphaned(connection)
         assignments = ', '.join(f'{column}=MAX({column}, ?) + 1' for column in REVISIONS)
         connection.execute(f'UPDATE workspace_settings SET {assignments} WHERE id=1', tuple(before or (0, 0)))
         # Memories still waiting from the world's last visit were queued under its own settings; they stay due, and
@@ -319,6 +342,7 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
         data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
         today = made.clock.now().astimezone(zone(data['timezone'])).date()
         starter(connection, data, seed, made.now(), today, persona)
+    lore.carry_city_lore(path, database.path, data)
 
 
 def unique_name(data: dict, wanted: str) -> str:

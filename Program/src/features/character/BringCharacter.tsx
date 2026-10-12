@@ -6,7 +6,8 @@ import { COMPANION_KEY } from '../../companion'
 import type { Companion } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { fileData } from './helper'
-import { IMPORT_TYPES, broughtText, type Brought } from './loreText'
+import { IMPORT_TYPES, MAX_BYTES, broughtText, slimmed, type Brought } from './loreText'
+import { isWorldMap, readWorldMap } from '../world/worldMap'
 
 type Result = { tone: 'info' | 'error'; text: string }
 /** The last import's outcome, kept outside the section: the new companion remounts the whole Character page, which
@@ -30,7 +31,20 @@ export function BringCharacter() {
     setBusy(true)
     setResult(null)
     try {
-      const made = await api<Brought & { companion: Companion | null }>('/import/character', { filename: file.name, data: await fileData(file) })
+      // A world map goes where it belongs, a city with its lore, without the user being sent anywhere first.
+      if (isWorldMap(file.name, await file.slice(0, 4096).text())) {
+        const city = await api<{ name: string; book: { name: string } | null }>('/world/import/marinara', await readWorldMap(file))
+        const lore = city.book ? ` Its places' notes are world lore in "${city.book.name}".` : ''
+        setResult({ tone: 'info', text: `That was a world map, so ${city.name} is now one of your cities, in Settings > Life & cities.${lore}` })
+        await Promise.all(['cities', 'lore'].map((key) => client.invalidateQueries({ queryKey: [key] })))
+        return
+      }
+      const sent = await slimmed(file)
+      if (sent.size > MAX_BYTES) {
+        setResult({ tone: 'error', text: 'Character files are limited to 10 MB.' })
+        return
+      }
+      const made = await api<Brought & { companion: Companion | null }>('/import/character', { filename: file.name, data: await fileData(sent) })
       setResult({ tone: 'info', text: broughtText(made) })  // Before the page remounts for the new companion.
       if (made.companion) client.setQueryData(COMPANION_KEY, made.companion)
       await Promise.all(['cast', 'lore', 'versions'].map((key) => client.invalidateQueries({ queryKey: [key] })))
@@ -45,7 +59,7 @@ export function BringCharacter() {
     <section className="settings-section form-stack" aria-labelledby="bring-heading">
       <div>
         <h2 id="bring-heading">Bring your characters</h2>
-        <p className="subtle">A character from SillyTavern, Chub, Agnai, RisuAI, NovelAI or Backyard moves into town with a job, a home and a routine of their own, and their lorebook comes along. A lorebook on its own becomes part of this world.</p>
+        <p className="subtle">A character from SillyTavern, Chub, Agnai, RisuAI, NovelAI, Backyard or Marinara Engine moves into town with a job, a home and a routine of their own, and their lorebook comes along. A lorebook on its own becomes part of this world.</p>
       </div>
       <input ref={input} type="file" accept={IMPORT_TYPES} hidden onChange={(event) => void bring(event.target.files?.[0])} />
       <div className="form-actions">

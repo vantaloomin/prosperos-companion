@@ -197,7 +197,7 @@ class ChatPhotos:
         if job_id is None:
             return None
         trigger = Trigger(feed.PHOTO_KEY + moment['event_key'], 'photo',
-                          f"You texted the user a photo you took: {moment['summary']}", moment['caption'],
+                          f"You texted the user a photo you took: {yours(moment)}", moment['caption'],
                           (moment['event_key'],))
         sent = self.openers.save(companion, trigger, moment['caption'], 'template', now)
         if sent['message'] is None:
@@ -266,7 +266,7 @@ class ChatPhotos:
             return None
         words = wording(connection, composed, prepared)
         until = parse(shown['ends_at']).astimezone(zone(version['timezone'])).strftime('%H:%M')
-        return {'event_key': key, 'summary': words['summary'], 'caption': words['post'],
+        return {'event_key': key, 'summary': words['summary'], 'caption': words['post'], 'name': version['definition']['name'],
                 'mood': composed.get('mood', ''), 'place': place_text(composed.get('place')),
                 'label': shown['block']['label'], 'kind': shown['block']['kind'], 'until': until,
                 'rain': bool((composed.get('weather') or {}).get('rain')), 'timeline_id': timeline_id,
@@ -313,9 +313,22 @@ LEADS = {'moment': 'A photo of what you are doing right now', 'selfie': 'A selfi
          'view': 'A photo of what you can see right now'}
 
 
+YOU = {'They': 'You', 'they': 'you', 'Their': 'Your', 'their': 'your', 'Themselves': 'Yourself',
+       'themselves': 'yourself'}
+
+
+def yours(moment: dict) -> str:
+    """The moment told to them in the second person ("You had a busy shift"), not as a summary about them
+    ("Megan had a busy shift"), which the model would echo back."""
+    summary = moment['summary']
+    if moment.get('name'):
+        summary = prompts.unnamed(summary, moment['name'], 'they')
+    return re.sub(r'\b(' + '|'.join(YOU) + r')\b', lambda m: YOU[m.group(1)], summary)
+
+
 def moment_text(moment, kind='moment', unasked=False) -> str:
     chose = ' You decided to send it; the user did not ask for it.' if unasked else ''
-    return (f"- {LEADS[kind]} (from your day; still happening): {moment['summary']} "
+    return (f"- {LEADS[kind]} (from your day; still happening): {yours(moment)} "
             f"({moment['label'].lower()}, until {moment['until']} your time).{chose}")
 
 

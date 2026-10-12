@@ -11,7 +11,7 @@ import asyncio
 import contextlib
 
 from companion.database import decode, encode, one, optional
-from companion.images import backends, jobs, prompts, storage
+from companion.images import backends, jobs, prompts, sheet, storage
 from companion.images.adapters.base import AdapterError, ImageRequest, size_for
 from companion.images.content import classify, stricter
 from companion.images.routing import eligible
@@ -193,7 +193,9 @@ class ImageRunner:
                                backend, decode(backend['config']), key, storage.raw_directory(self.database),
                                inputs.get('lora') if backend['kind'] == 'comfyui' else None)
         result = None
+        followed = None
         try:
+            followed = await self.follow_sheet(request, inputs)
             result = await self.adapters[backend['kind']].generate(request)
             stored = storage.store(self.database, job_id, result.data)
         except asyncio.CancelledError:
@@ -214,7 +216,24 @@ class ImageRunner:
             'output_file': stored['file'], 'width': stored['width'], 'height': stored['height'],
             'seed': result.seed, 'model': result.model or decode(backend['config']).get('model'),
             'workflow': result.workflow, 'remote_id': result.remote_id,
-            'usage': None if result.usage is None else encode(result.usage)})
+            'usage': None if result.usage is None else encode(result.usage),
+            **({'identity_method': followed} if followed else {})})
+
+    async def follow_sheet(self, request, inputs) -> str | None:
+        """On Codex, a picture of the companion follows their character sheet, made first when they have
+        none (images/sheet.py). Returns how the picture drew them when it does."""
+        if request.backend['kind'] != 'codex' or not sheet.depicts_companion(inputs):
+            return None
+        with self.database.connect() as connection:
+            companion_id = sheet.companion_of_version(connection, inputs.get('character_version_id'))
+        data = await sheet.ensure(self.database, self.adapters['codex'], request.backend, request.config,
+                                  request.key, request.raw_dir, companion_id, inputs.get('general_style',
+                                                                                         inputs.get('style')))
+        if data is None:
+            return None
+        request.reference = data
+        request.prompt = f'{request.prompt} {sheet.FOLLOW}'
+        return 'text description and their character sheet'
 
     def failed(self, job, backend, inputs, error: AdapterError, raw=None):
         fields = {key: value for key, value in (('remote_id', error.remote_id), ('raw_file', raw)) if value}

@@ -68,3 +68,8 @@ def test_in_character_messages_get_no_out_of_character_note(client, connected, p
     provider.replies = [[Chunk('Real enough.'), Chunk('', 'stop')]]
     send(client, 'Are you even real?', 'client-0001')
     assert 'is out of character' not in provider.requests[0]['prompt']
+
+
+def test_a_caption_tag_echoed_from_the_photo_note_is_removed():
+    reply = '[image: Megan Lawson had a busy shift, with one rush after another.]\nJust got off work! You?'
+    assert clean(reply) == 'Just got off work! You?'

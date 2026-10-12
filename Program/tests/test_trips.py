@@ -47,15 +47,19 @@ def agenda(client, local_date):
     return [(row['slot_key'], decode(row['block']), decode(row['entry']) if row['entry'] else None) for row in rows]
 
 
-def test_destinations_are_same_era_real_cities_within_reach():
+def test_destinations_are_same_era_cities_of_our_world_within_reach():
     baltimore = catalog.city('baltimore')
     near = trips.destinations(baltimore, trips.REACH_KM[2])
-    assert near and all(catalog.category(city) == 'real' and city.get('era', 'modern') == 'modern' and
+    assert near and all(trips.ours(city) and city.get('era', 'modern') == 'modern' and
                         catalog.distance_km(baltimore, city) <= 1200 for city in near)
     assert 'new-york' in {city['id'] for city in near} and 'london' not in {city['id'] for city in near}
     # A Victorian London companion only goes somewhere of their own era.
     old = catalog.city('london-1895')
     assert all(city.get('era') == old.get('era') for city in trips.destinations(old, trips.REACH_KM[3]))
+    # Towns invented in our world travel too: Haddon Harbor to New York, Pellmouth to New York in 1925.
+    assert 'new-york' in {city['id'] for city in trips.destinations(catalog.city('haddon-harbor'), 2500)}
+    assert {city['id'] for city in trips.destinations(catalog.city('pellmouth'), 2500)} == {'new-york-1925'}
+    assert not trips.destinations(catalog.city('camelot'), 5000)
 
 
 def test_a_long_weekend_takes_the_holiday_too():
@@ -108,3 +112,21 @@ def test_a_sunny_weekend_can_leave_them_sunburnt():
     found = [body.after(f'seed-{index}', date(2026, 7, 6), [entry]) for index in range(40)]
     assert any(item and item['state'] == 'sunburnt' and item['because'] == 'after a sunny weekend in Miami'
                for item in found)
+
+
+def test_a_place_named_for_an_outing_reads_as_one():
+    class Place:
+        name, kind = 'Staten Island Ferry ride', 'attraction'
+
+        def view(self):
+            return {'name': self.name}
+
+    class World:
+        def places(self, *_args, **_kwargs):
+            return [Place()]
+
+    trip = {'id': 1, 'city_name': 'New York', 'city_id': 'new-york', 'kind': 'getaway', 'company': None}
+    slot = {'local_date': '2026-10-17', 'block': {'start': '10:00'}}
+    for seed in (f's{n}' for n in range(12)):
+        summary = trips.entry(trip, slot, {'name': 'Mira'}, World(), seed, None)['summary']
+        assert 'the Staten Island Ferry ride' in summary and 'saw' not in summary and ' at ' not in summary

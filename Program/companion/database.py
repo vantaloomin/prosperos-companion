@@ -235,6 +235,15 @@ ADDED_COLUMNS = (
     # A status line the user set for a companion, and when (companion/life/status.py); empty lets the app write it.
     ('companions', 'status_text', "TEXT NOT NULL DEFAULT ''"),
     ('companions', 'status_set_at', 'TEXT'),
+    # Light or dark (Settings > General > Appearance): 'system' matches the computer (Paper or Ink), 'paper' is the light
+    # profile and 'scheme' uses color_scheme. Workspaces from before keep the scheme they saved, so the column comes in
+    # as 'scheme' here while new workspaces start on 'system' (schema.sql).
+    ('workspace_settings', 'theme', "TEXT NOT NULL DEFAULT 'scheme' CHECK (theme IN ('system', 'scheme', 'paper'))"),
+    # A message brought in from an old chat file (companion/imports/chats.py): older history, never new talk.
+    ('messages', 'import_id', 'TEXT'),
+    # A world lorebook that belongs to one of the user's cities (a Marinara world map's notes, companion/lore.py):
+    # it comes along into new worlds in that city and goes when the city is deleted.
+    ('lore_books', 'city_id', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

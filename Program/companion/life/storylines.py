@@ -26,7 +26,7 @@ from datetime import date, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle
+from companion.life import circle, pronouns
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
 # Per drama level: chance a storyline starts on a given day, and how many can run at once.
@@ -357,7 +357,7 @@ def local_today(companion, now) -> date:
 def advance(connection, companion, now) -> int:
     """Decide the storylines that started on each day since the last check (cheap, no model)."""
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
-    end_removed(connection, timeline_id)
+    end_removed(connection, timeline_id, today)
     level = drama(connection)
     cursor = optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (timeline_id,))
     first = today - timedelta(days=CATCH_UP_DAYS)
@@ -380,13 +380,15 @@ def advance(connection, companion, now) -> int:
     return started
 
 
-def end_removed(connection, timeline_id):
-    """Someone removed from the circle takes their unfinished storylines with them."""
+def end_removed(connection, timeline_id, today: date):
+    """Someone removed from the circle takes their unfinished storylines with them; settled ones stay told."""
     removed = {row['id'] for row in many(connection, "SELECT id FROM circle_people WHERE timeline_id=? "
                                          "AND status='removed'", (timeline_id,))}
-    for row in many(connection, "SELECT id, cast_ids FROM storylines WHERE timeline_id=? AND status='running'",
+    for row in many(connection, "SELECT id, cast_ids, stages FROM storylines WHERE timeline_id=? AND status='running'",
                     (timeline_id,)):
-        if set(decode(row['cast_ids'])) & removed:
+        last = decode(row['stages'])[-1]
+        settled = last['on'] <= today.isoformat() and not last.get('pending')
+        if set(decode(row['cast_ids'])) & removed and not settled:
             connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (row['id'],))
 
 
@@ -395,6 +397,12 @@ SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} has 
                  ('but has not', 'but have not'), ('{name} heard they are', 'you heard you are'),
                  ('hitting on them', 'hitting on you'), ('to their manager', 'to your manager'),
                  ('their best friend', 'your best friend'), ('they never knew', 'you never knew'), ('{name}', 'you'))
+
+
+# Phrases about the companion, said with their own pronouns when those are known (companion/life/pronouns.py).
+THIRD_PERSON = (('heard they are', 'heard {they} {are}'), ('hitting on them', 'hitting on {them}'),
+                ('to their manager', 'to {their} manager'), ('their best friend', '{their} best friend'),
+                ('they never knew', '{they} never knew'))
 
 
 def second_person(text: str) -> str:
@@ -414,7 +422,7 @@ def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
         values |= {'a': people[0]['name'], 'a_rel': people[0]['role']}
     if len(people) > 1:
         values['b'] = people[1]['name']
-    filled = text.format(**values)
+    filled = pronouns.said(text.format(**values), THIRD_PERSON, definition)
     return filled[0].upper() + filled[1:] if filled else filled
 
 

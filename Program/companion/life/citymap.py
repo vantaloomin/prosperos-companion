@@ -80,10 +80,10 @@ def marks(events: list[dict], now) -> dict[str, set[str]]:
 
 
 def regulars(connection, companion: dict, now) -> dict[str, list[str]]:
-    """Names of townsfolk the companion knows, by the place they work at or frequent."""
+    """Names of townsfolk the companion knows, by the place they frequent (not the staff who work there)."""
     found = {}
     for person in encounters.known(connection, companion, now):
-        if person['kind'] != 'resident' and not person['key'].startswith('cast:'):
+        if person['kind'] != 'resident' and not person['staff'] and not person['key'].startswith('cast:'):
             found.setdefault(person['place']['id'], []).append(person['name'])
     return found
 

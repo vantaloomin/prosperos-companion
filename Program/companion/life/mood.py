@@ -20,9 +20,10 @@ LASTS = timedelta(days=2)
 
 def last_presence(connection, timeline_id) -> str | None:
     """The user's latest message, resume or switch to this timeline, whichever is later: a pause is
-    not an absence, and neither is the time a timeline spent frozen or a fork's copied history."""
-    message = optional(connection, "SELECT MAX(created_at) AS at FROM messages WHERE timeline_id=? AND role='user'",
-                       (timeline_id,))
+    not an absence, and neither is the time a timeline spent frozen or a fork's copied history. An old chat
+    brought in (companion/imports/chats.py) is history, not the user being here."""
+    message = optional(connection, "SELECT MAX(created_at) AS at FROM messages WHERE timeline_id=? AND role='user' "
+                       'AND import_id IS NULL', (timeline_id,))
     resumed = optional(connection, 'SELECT MAX(ended_at) AS at FROM pauses')
     switched = optional(connection, 'SELECT activated_at AS at FROM timelines WHERE id=?', (timeline_id,))
     times = [value['at'] for value in (message, resumed, switched) if value and value['at']]

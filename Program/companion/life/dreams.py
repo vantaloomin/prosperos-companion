@@ -21,7 +21,7 @@ from functools import cache
 from companion import secrets
 from companion.clock import stamp, zone
 from companion.database import decode, many, optional
-from companion.life import circle, deck, money, storylines
+from companion.life import circle, deck, money, pronouns, storylines
 from companion.memory import closeness, pairs
 from companion.world import catalog
 
@@ -100,7 +100,7 @@ def with_user(connection, companion, day: date, now) -> bool:
         return False
     start = datetime.combine(day, time(0), zone(companion['version']['timezone']))
     return optional(connection, "SELECT id FROM messages WHERE timeline_id=? AND role='user' AND created_at>=? AND "
-                    'created_at<? LIMIT 1', (companion['active_timeline_id'], stamp(start),
+                    'created_at<? AND import_id IS NULL LIMIT 1', (companion['active_timeline_id'], stamp(start),
                                              stamp(start + timedelta(days=1)))) is not None
 
 
@@ -232,13 +232,22 @@ def talker(connection, row, companion) -> str | None:
                        object=random.Random(row['night']).choice(data()['object']))
 
 
+# Phrases about the dreamer, said with their own pronouns when those are known (companion/life/pronouns.py).
+DREAMER = (('dreamed they were', 'dreamed {they} {were}'), ('dreamed they ', 'dreamed {they} '),
+           ('as long as they held', 'as long as {they} held'), ('handed them a map', 'handed {them} a map'),
+           ('teaching them a recipe', 'teaching {them} a recipe'), ('checking their wallet', 'checking {their} wallet'),
+           ('in their sleep', 'in {their} sleep'))
+
+
 def week(connection, companion, now) -> list[dict]:
     """The last week's dreams, newest first: {day (the morning after), text, sleep_talk}."""
     since = (storylines.local_today(companion, now) - timedelta(days=WEEK)).isoformat()
     rows = many(connection, 'SELECT * FROM dreams WHERE timeline_id=? AND night>=? AND text IS NOT NULL '
                 'ORDER BY night DESC', (companion['active_timeline_id'], since))
-    return [{'day': (date.fromisoformat(row['night']) + timedelta(days=1)).isoformat(), 'text': row['text'],
-             'sleep_talk': talker(connection, row, companion)} for row in rows]
+    definition = companion['version']['definition']
+    return [{'day': (date.fromisoformat(row['night']) + timedelta(days=1)).isoformat(),
+             'text': pronouns.said(row['text'], DREAMER, definition),
+             'sleep_talk': pronouns.said(talker(connection, row, companion), DREAMER, definition)} for row in rows]
 
 
 def last_night(connection, companion, now):

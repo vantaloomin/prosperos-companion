@@ -1,3 +1,4 @@
+import { calendarDay } from '../../when.ts'
 import type { MoneyView } from '../../types'
 
 type Budget = Extract<MoneyView, { available: true }>
@@ -12,7 +13,7 @@ export function boughtFor(kind?: 'home' | 'clothes' | 'outing' | 'trip'): string
 }
 
 export function shortDate(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+  return calendarDay(iso, { weekday: true })
 }
 
 /** "Payday is tomorrow", "Paid today", or the next payday with a count of days. */

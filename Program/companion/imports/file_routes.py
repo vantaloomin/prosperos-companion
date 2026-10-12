@@ -1,9 +1,10 @@
-"""Bring your characters (companion/imports/characters.py) and the lore it brings (companion/lore.py)."""
+"""Bring your characters (companion/imports/characters.py), the lore it brings (companion/lore.py) and old chats
+(companion/imports/chats.py)."""
 from fastapi import APIRouter, Request
 
 from companion import lore
-from companion.imports import characters
-from companion.models import CharacterCardFile, LoreSwitch
+from companion.imports import characters, chats
+from companion.models import CharacterCardFile, ChatFile, LoreSwitch
 
 router = APIRouter(prefix='/api')
 
@@ -16,6 +17,12 @@ def db(request: Request):
 def import_character(request: Request, body: CharacterCardFile):
     """A character card, CHARX, BYAF or lorebook file, imported straight away."""
     return characters.bring(db(request), body.filename, body.data)
+
+
+@router.post('/import/chat')
+def import_chat(request: Request, body: ChatFile):
+    """A SillyTavern chat or a role/content transcript, brought in as older history straight away."""
+    return chats.bring(db(request), body.filename, body.data, body.companion_id)
 
 
 @router.get('/lore')

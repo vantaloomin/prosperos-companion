@@ -81,8 +81,8 @@ def listed_model(item: dict) -> dict | None:
     return {**detail, 'supported_efforts': [effort for effort in EFFORTS if effort in efforts]} if efforts else detail
 
 
-async def app_server_models(command: list[str], seconds: float = 20) -> list[dict]:
-    """Ask `codex app-server` (JSON-RPC lines on stdio) for the models the current login can use."""
+async def app_server(command: list[str], work, seconds: float = 20):
+    """Run `work(result)` against `codex app-server` (JSON-RPC lines on stdio) after its handshake."""
     with tempfile.TemporaryDirectory(prefix='companion-codex-') as directory:
         process = await asyncio.create_subprocess_exec(
             *command, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
@@ -99,26 +99,40 @@ async def app_server_models(command: list[str], seconds: float = 20) -> list[dic
                 if 'method' in message and 'id' in message:
                     send({'id': message['id'], 'error': {'code': -32601, 'message': 'Not supported.'}})
                 elif message.get('id') == request_id:
-                    require('error' not in message, 'Codex could not list its models.', 502)
+                    require('error' not in message, 'Codex could not answer.', 502)
                     return message['result']
-            raise DomainError('Codex closed before listing its models.', 502)
+            raise DomainError('Codex closed before answering.', 502)
 
         try:
             async with asyncio.timeout(seconds):
                 await result(1, 'initialize', {'clientInfo': {'name': 'prosperos_companion',
                                                               'title': "Prospero's Companion", 'version': '0'}})
                 send({'method': 'initialized'})
-                models, cursor = [], None
-                for page in range(1, 21):
-                    data = await result(page + 1, 'model/list', {'cursor': cursor} if cursor else {})
-                    models.extend(model for item in data['data'] if (model := listed_model(item)))
-                    if not (cursor := data.get('nextCursor')):
-                        return models
-                return models
+                return await work(result)
         finally:
             if process.returncode is None:
                 process.kill()
                 await process.wait()
+
+
+async def app_server_models(command: list[str], seconds: float = 20) -> list[dict]:
+    """The models the current login can use, from `model/list` page by page."""
+    async def listing(result):
+        models, cursor = [], None
+        for page in range(1, 21):
+            data = await result(page + 1, 'model/list', {'cursor': cursor} if cursor else {})
+            models.extend(model for item in data['data'] if (model := listed_model(item)))
+            if not (cursor := data.get('nextCursor')):
+                break
+        return models
+    return await app_server(command, listing, seconds)
+
+
+async def app_server_limits(command: list[str], seconds: float = 20) -> dict:
+    """The ChatGPT plan's usage limits from `account/rateLimits/read`: a usage read, no model is called."""
+    async def limits(result):
+        return (await result(2, 'account/rateLimits/read', {}))['rateLimits']
+    return await app_server(command, limits, seconds)
 
 
 async def codex_models(executable: str) -> tuple[list[dict], bool]:
@@ -156,6 +170,9 @@ class CodexProvider:
                 if process.returncode is None:
                     process.kill()
                     await process.wait()
+
+    async def usage(self) -> dict:
+        return await app_server_limits([executable_path(), '-c', 'mcp_servers={}', 'app-server'])
 
     async def check(self, _config: dict, _key: str | None) -> dict:
         executable = executable_path()

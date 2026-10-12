@@ -36,6 +36,8 @@ export interface Message {
   voice?: VoiceNote | null
   /** Your message sounds like self-harm: the app's note with places to get help shows under it (companion/safety.py). */
   crisis_help?: boolean
+  /** Set on a message brought in from an old chat file (companion/imports/chats.py): older history. */
+  import_id?: string | null
 }
 
 export interface VoiceNote { url: string; duration_ms: number | null; engine: string }
@@ -133,6 +135,8 @@ export interface CharacterDefinition {
   interests: string[]
   background: string
   appearance: string
+  /** The In photos line pictures use (companion/images/prompts.py `in_photos`); empty follows the appearance. */
+  in_photos?: string
   /** Face shape, height, build and the rest (companion/world/looks.py); an empty field is drawn for them. */
   looks?: Looks
   routine: string
@@ -253,6 +257,8 @@ export interface WorkspaceSettings {
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */
   custom_palette?: Palette | null
+  /** 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme. */
+  theme?: 'system' | 'scheme' | 'paper'
   /** They can ask to remember more: one hidden extra look through memory when a reply needs it. On unless turned off. */
   recall_more?: boolean
   /** Out-of-character asides go to the helper instead of the companion (src/features/conversation/ooc.ts). */
@@ -299,6 +305,8 @@ export interface Connection {
   context_tokens: number
   timeout_seconds: number
   embedding_model?: string | null
+  /** The model "Set it up for me" downloaded (companion/ready.py), named as the welcome step names it. */
+  builtin?: boolean
 }
 
 export type Layer = 'user_fact' | 'shared_experience' | 'plan' | 'temporary' | 'relationship' | 'companion_life'

@@ -17,9 +17,11 @@ import re
 from datetime import date, timedelta
 from functools import cache
 
+from companion.characters import definition_for_timeline
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
+from companion.life import pronouns
 from companion.world import catalog
 
 # Words in the companion's own description that the tables' `sheet` rules look for.
@@ -126,12 +128,27 @@ def decide(connection, *, timeline_id: str, choice: str, subject: str, facts: di
     return recorded(connection, subject, choice)
 
 
+# Phrases about the companion in the tables' reasons, said with their own pronouns when those are known
+# (companion/life/pronouns.py). A "them" about someone in the story stays ("can talk them round").
+OWN = (('would bother them', 'would bother {them}'), ("says they're ", 'says {they} {are} '),
+       ('fits their budget', 'fits {their} budget'), ('of their own', 'of {their} own'),
+       ('in their circle', 'in {their} circle'))
+
+
+def said(options: list[dict], definition: dict) -> list[dict]:
+    """The options with their reasons said with the companion's own pronouns."""
+    return [{**item, 'reasons': [pronouns.said(reason, OWN, definition) for reason in item['reasons']]}
+            for item in options]
+
+
 def view(row, connection=None) -> dict:
+    """An outcome as recorded; with a connection, its marks too and the reasons said with the companion's pronouns."""
     found = {'id': row['id'], 'timeline_id': row['timeline_id'], 'choice': row['choice'], 'subject': row['subject'],
              'label': row['label'], 'decided_on': row['decided_on'], 'options': decode(row['options']),
              'picked': row['picked'], 'picked_by': row['picked_by']}
     if connection is not None:
         found['marks'] = marks_of(connection, row['id'])
+        found['options'] = said(found['options'], definition_for_timeline(connection, row['timeline_id']))
     return found
 
 

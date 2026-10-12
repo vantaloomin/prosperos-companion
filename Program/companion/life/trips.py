@@ -43,11 +43,20 @@ BY_PART = {'morning': ('attraction', 'museum', 'park', 'market'),
 SUMMARIES = ('{name} spent the {part} at {place} in {city}{company}.',
              '{name} saw {place} in {city}{company} during the {part}.',
              'The {part} in {city} went to {place}{company}.')
+# For a place named for what you do there ("Staten Island Ferry ride", "Brooklyn Bridge walk"): one line for
+# each of SUMMARIES, so the seeded pick lands on the same slot.
+OUTING_SUMMARIES = ('{name} took the {place} in {city}{company} during the {part}.',
+                    '{name} went on the {place} in {city}{company} during the {part}.',
+                    'The {part} in {city} went on the {place}{company}.')
+OUTING_NAME = re.compile(r'\b(?:ride|walk|cruise|tour|crossing|hike)$', re.IGNORECASE)
 CAPTIONS = ('Wish you were here.', 'Postcard weather.', 'Not ready to go home.', 'Walked about a hundred miles today.',
             'Tourist and proud.', 'Taking it all in.')
 POSTCARDS = ('Greetings from {city}! {sight} today. Wish you were here.',
              'Hello from {city}! Saw {sight} and thought of you.',
              'A postcard from {city}, just for you. {sight} was even better in person.')
+OUTING_POSTCARDS = ('Greetings from {city}! The {sight} today. Wish you were here.',
+                    'Hello from {city}! Took the {sight} and thought of you.',
+                    'A postcard from {city}, just for you. The {sight} was even better in person.')
 SUNNY_TAGS = {'beach', 'waterfront', 'boardwalk'}
 WARM_F = 75
 POSTCARD_HOUR = 15
@@ -85,13 +94,23 @@ def free(definition: dict, days: list[date], holidays: set[str]) -> bool:
 
 
 def fits(home: dict, other: dict) -> bool:
-    """Same era, and a real city from a real one; invented and past places mix only with each other."""
+    """Same era and the same world: real cities and towns invented in our world (Haddon Harbor in Maine, Pellmouth)
+    mix, as do the cities of a made-up world (Camelot, Oz, Grandport); a user's own city visits real ones."""
     if other['id'] == home['id'] or other.get('era', 'modern') != home.get('era', 'modern'):
         return False
     if 'lat' not in other or 'lat' not in home or other.get('distribution', 'public') != 'public':
         return False
     mine, theirs = catalog.category(home), catalog.category(other)
-    return theirs != 'custom' and (mine == theirs or mine == 'custom' and theirs == 'real')
+    if theirs == 'custom':
+        return False
+    if mine == 'custom':
+        return theirs == 'real'
+    return ours(home) == ours(other)
+
+
+def ours(city: dict) -> bool:
+    """A real city, or one invented in our world ('original'), rather than a city of a made-up world."""
+    return city.get('setting') in ('real', 'original')
 
 
 def destinations(home: dict, reach: float) -> list[dict]:
@@ -297,6 +316,11 @@ def block(view: dict, trip: dict) -> dict:
             'holiday': None, 'sick_day': False}
 
 
+def outing_name(name: str) -> str:
+    """'Staten Island Ferry ride' for 'took the …': no leading article of its own."""
+    return re.sub(r'^the\s+', '', name, flags=re.IGNORECASE)
+
+
 def entry(trip: dict, slot_view: dict, definition: dict, world, seed: str, ends: str | None) -> dict:
     """What a waking slot of a trip day holds: setting off, heading home ('first' or 'last'), or a place there."""
     name, city, company = definition['name'], trip['city_name'], with_text(trip)
@@ -316,9 +340,10 @@ def entry(trip: dict, slot_view: dict, definition: dict, world, seed: str, ends:
     sights = [place for place in places if place.kind in {'attraction', 'museum'}]
     place = generators.pick(seed, 'trip-place', sights or places) if part in ('morning', 'afternoon') else \
         generators.pick(seed, 'trip-place', places)
+    outing = bool(place) and bool(OUTING_NAME.search(place.name))
     words = {'name': name, 'part': part if part != 'late' else 'night', 'city': city, 'company': company,
-             'place': place.name if place else 'the sights'}
-    summary = generators.pick(seed, 'trip-summary', list(SUMMARIES)).format(**words)
+             'place': outing_name(place.name) if outing else place.name if place else 'the sights'}
+    summary = generators.pick(seed, 'trip-summary', list(OUTING_SUMMARIES if outing else SUMMARIES)).format(**words)
     return {**common, 'summary': summary[0].upper() + summary[1:],
             'post': generators.pick(seed, 'trip-post', list(CAPTIONS)), 'activity': 'trip',
             'place': place.view() if place else None}
@@ -357,7 +382,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         span = f"{day_text(trip['start_date'])} to {day_text(trip['end_date'])}"
         if start <= today <= end:
             line = f"- Right now you are away in {trip['city_name']}{company_text(trip)}, until {end:%A}; you head " \
-                   'home on the last day. Your replies can be a little slower.'
+                   'home on the last day.'
         elif today < start <= today + timedelta(days=14):
             line = f"- {span}: a trip to {trip['city_name']}{company_text(trip)}. It is booked."
         elif end < today:
@@ -401,8 +426,9 @@ def postcard_due(connection, companion: dict, now: datetime) -> list:
         if not trip['start_date'] <= today <= trip['end_date'] or not trip['landmark']:
             continue
         sight_name, city = trip['landmark']['name'], trip['city_name']
-        template = generators.pick(f"postcard:{trip['id']}", 'postcard', list(POSTCARDS)).format(city=city,
-                                                                                                 sight=sight_name)
+        outing = bool(OUTING_NAME.search(sight_name))
+        template = generators.pick(f"postcard:{trip['id']}", 'postcard', list(OUTING_POSTCARDS if outing else POSTCARDS)
+                                   ).format(city=city, sight=outing_name(sight_name) if outing else sight_name)
         result.append(Trigger(
             f"postcard:{trip['id']}", 'postcard',
             f"You are away in {city}{company_text(trip)} and you are sending the user a picture postcard of "

@@ -10,6 +10,7 @@ import { StatusText } from '../status/StatusLine'
 import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/chatText'
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
+import { ExportLinks } from '../chats/ExportLinks'
 
 type Props = { companion: Companion; listing: boolean; chatsButton: RefObject<HTMLButtonElement | null>; onChats: () => void; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
 
@@ -36,7 +37,7 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
       <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
       <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
       <SidecarButton />
-      <ChatStyleMenu />
+      <ChatMenu threadId={companion.active_timeline_id} />
     </header>
   )
 }
@@ -65,7 +66,7 @@ function SidecarButton() {
 }
 
 /** The quick switch; Settings has the same choice with a description of each style and the sounds option. On a phone
- * it moves behind the header's "More" button (ChatStyleMenu), so the header holds no form controls. */
+ * it moves behind the header's "More" button (ChatMenu), so the header holds no form controls. */
 export function ChatStyleSwitch({ phone = false }: { phone?: boolean }) {
   const chat = useChatStyle()
   return (
@@ -75,13 +76,16 @@ export function ChatStyleSwitch({ phone = false }: { phone?: boolean }) {
   )
 }
 
-/** The phone's overflow ("More") at the end of the header's icon row, holding the chat style. */
-export function ChatStyleMenu() {
+/** The overflow ("More") at the end of the header's icon row: exporting the chat on screen, and on a phone the chat style. */
+export function ChatMenu({ threadId }: { threadId: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <span className="header-menu phone-only" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
+    <span className="header-menu" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
       <button type="button" className="icon-button" aria-label="More" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /></button>
-      {open && <label className="header-menu-panel">Chat style<ChatStyleSwitch phone /></label>}
+      {open && <div className="header-menu-panel">
+        <label className="phone-only">Chat style<ChatStyleSwitch phone /></label>
+        <ExportLinks target={{ kind: 'chat', threadId }} onPick={() => setOpen(false)} />
+      </div>}
     </span>
   )
 }

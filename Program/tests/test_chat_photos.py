@@ -1,5 +1,6 @@
 """Photos in chat: a photo of the companion's current moment, shared with the feed (realism ideas)."""
 import asyncio
+import re
 from datetime import timedelta
 
 import pytest
@@ -7,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from companion.identity import CLIENT_HEADER
 from companion.images import memes
-from companion.images.photos import asked_kind, asks_for_photo
+from companion.images.photos import asked_kind, asks_for_photo, moment_text
 from companion.main import create_app
 from companion.providers.vault import MemoryVault
 from tests.conftest import reconcile, send, set_life
@@ -84,8 +85,8 @@ def test_a_photo_of_the_current_moment_becomes_the_feed_image(client, life, cloc
     reply = ask(client)
     photo = reply['photo']
     assert photo['status'] == 'queued' and photo['in_feed'] is False
-    # The reply knew what it was sending.
-    assert photo['summary'] in photo_section(provider)
+    # The reply knew what it was sending, told as "you" (the feed keeps the summary about them).
+    assert re.sub(r'^Mira\b', 'You', photo['summary']) in photo_section(provider)
     drain(client)
     shown = client.get(f"/api/images/photos/{reply['id']}").json()
     assert shown['status'] == 'completed' and shown['ref']
@@ -368,3 +369,12 @@ def test_a_photo_that_failed_can_be_tried_again_from_the_chat(client, life, adap
     history = client.get('/api/conversation').json()['messages']
     assert next(message for message in history if message['id'] == reply['id'])['photo']['ref'] == shown['ref']
     assert client.post(f"/api/images/photos/{reply['id']}/retry").status_code == 409
+
+
+def test_the_photo_note_tells_them_their_moment_as_you():
+    """Told about them ("Megan Lawson had a busy shift"), the model echoed it as a caption; told as "you", it doesn't."""
+    moment = {'summary': "Megan Lawson is walking Pepper by the harbor, the way they always do. Megan's coat is new.",
+              'name': 'Megan Lawson', 'label': 'Free time', 'until': '18:00'}
+    text = moment_text(moment)
+    assert 'You are walking Pepper by the harbor, the way you always do. Your coat is new.' in text
+    assert 'Megan' not in text

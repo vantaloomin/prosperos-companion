@@ -27,7 +27,7 @@ import re
 from functools import cache, lru_cache
 
 from companion.database import decode
-from companion.world import catalog, generators, townsfolk
+from companion.world import catalog, generators, townsfolk, wording
 
 FACETS = ('self_story', 'temperament', 'tell', 'flaw', 'desire')
 # The gap each facet can carry instead of being aligned.
@@ -139,7 +139,7 @@ def for_sheet(data: dict, sheet: dict) -> dict:
     """A townsperson's lines (or a stepped-back companion's, from the town sheet they live by)."""
     seed, modern = townsfolk.drawn(sheet), townsfolk.modern(data)
     if sheet.get('perception'):
-        return sheet['perception']
+        return wording.regional_all(data, sheet['perception'])
     options = ids()
     group = group_of(data, sheet)
     if group:
@@ -150,7 +150,7 @@ def for_sheet(data: dict, sheet: dict) -> dict:
         story = generators.pick(seed, 'perception-self', options['self_story'])
     picks = {'temperament': sheet['temperament'], 'flaw': sheet['flaw'], 'desire': sheet['desire'], 'tell': tell,
              'self_story': story, 'sore_spot': generators.pick(seed, 'perception-sore', options['sore_spot'])}
-    return build(seed, picks, gaps(seed), modern)
+    return wording.regional_all(data, build(seed, picks, gaps(seed), modern))
 
 
 def revealed(data: dict, sheet: dict, times: int) -> dict:
@@ -242,21 +242,30 @@ def valid_gaps(raw) -> dict[str, str] | None:
     return {facet: GAPS[facet] if facet in chosen else 'aligned' for facet in FACETS}
 
 
-def era_modern(definition: dict) -> bool:
-    city = catalog.cities().get(definition.get('home_city') or '')
+def home_data(definition: dict) -> dict | None:
+    """The built-in city the sheet names as home, or None."""
+    return catalog.cities().get(definition.get('home_city') or '')
+
+
+def era_modern(definition: dict, city: dict | None = None) -> bool:
+    city = city or home_data(definition)
     return city is None or townsfolk.modern(city)
 
 
-def automatic(definition: dict, seed: str, chosen: dict | None = None, chosen_gaps: dict | None = None) -> dict:
+def automatic(definition: dict, seed: str, chosen: dict | None = None, chosen_gaps: dict | None = None,
+              city: dict | None = None) -> dict:
     """The lines the app gives a companion who has none written: the helper's picks (`chosen`), then the
-    sheet's own words, then the seed."""
+    sheet's own words, then the seed. In the home city's own English (`city`, else the built-in city the sheet
+    names): American spelling in the United States, like everyone else's lines there."""
+    city = city or home_data(definition)
     picks = complete({**rule_picks(definition, seed), **(chosen or {})}, seed)
-    return build(seed, picks, chosen_gaps or gaps(seed), era_modern(definition))
+    return wording.regional_all(city, build(seed, picks, chosen_gaps or gaps(seed), era_modern(definition, city)))
 
 
-def compose(definition: dict, seed: str, raw_picks=None, raw_gaps=None) -> dict[str, str]:
-    """The form fields for helper picks by id (unknown ids are ignored): what the drafted sheet opens with."""
-    found = automatic(definition, seed, valid_picks(raw_picks), valid_gaps(raw_gaps))
+def compose(definition: dict, seed: str, raw_picks=None, raw_gaps=None, city: dict | None = None) -> dict[str, str]:
+    """The form fields for helper picks by id (unknown ids are ignored): what the drafted sheet opens with, in the
+    home city's own English (`city`: the drafted companion's home city data)."""
+    found = automatic(definition, seed, valid_picks(raw_picks), valid_gaps(raw_gaps), city)
     return {'seen_as': found['public'], 'sees_self': '\n'.join(found['private'])}
 
 
@@ -278,16 +287,16 @@ def lines_for(companion_id: str, sheet: str) -> dict:
             'written': {'seen_as': bool(written_public), 'sees_self': bool(written_private)}}
 
 
-def suggestions(definition: dict, seed: str, count: int = 6) -> dict:
+def suggestions(definition: dict, seed: str, count: int = 6, city: dict | None = None) -> dict:
     """Options for the form's two fields: what a blank field would use, then other bank picks that still fit
-    the sheet's words."""
-    base = automatic(definition, seed)
+    the sheet's words, in the home city's own English (`city`)."""
+    base = automatic(definition, seed, city=city)
     seen, selves = [base['public']], ['\n'.join(base['private'])]
     for n in range(1, count * 3):
         if len(seen) >= count and len(selves) >= count:
             break
         other = f'{seed}:{n}'
-        found = automatic(definition, other)
+        found = automatic(definition, other, city=city)
         if found['public'] not in seen and len(seen) < count:
             seen.append(found['public'])
         text = '\n'.join(found['private'])

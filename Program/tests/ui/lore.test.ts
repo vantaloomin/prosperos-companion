@@ -17,6 +17,12 @@ test('a lorebook on its own joins the world', () => {
     book: { id: 'b', name: 'Harbor', world: true, entries: 1, off: 0 } }), 'Harbor is now part of this world: 1 lore entry.')
 })
 
+test('a picture that was left out says why', () => {
+  const text = broughtText({ format: 'Marinara Engine character', picture: false, picture_note: 'Their picture is a WebP image.',
+    companion: { version: { name: 'Dana', definition: { identity: '' } } }, book: null })
+  assert.equal(text, 'Dana is here (from a Marinara Engine character). Their picture is a WebP image.')
+})
+
 test('entries say when they come up', () => {
   assert.equal(entryWhen(entry), 'When someone mentions Mike, brother')
   assert.equal(entryWhen({ ...entry, always: true }), 'Always')

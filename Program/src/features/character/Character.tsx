@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { queueWriteUp } from '../ready/useReady'
 import { api, ApiError } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
@@ -22,6 +23,7 @@ import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
 import { AdultSideFields } from './AdultSideFields'
 import { LooksFields } from './LooksFields'
+import { InPhotosField } from './InPhotosField'
 import { QuickStart } from './QuickStart'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
@@ -30,6 +32,7 @@ import { StartOver } from './StartOver'
 import { Cast } from './Cast'
 import { TownSeed } from './TownSeed'
 import { BringCharacter } from './BringCharacter'
+import { BringChat } from './BringChat'
 import { Lore } from './Lore'
 
 export interface Start { definition: CharacterDefinition; drafted: boolean; attempt: number; split?: { filledIn: DraftField[]; homeCity: string } }
@@ -94,6 +97,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       client.setQueryData(COMPANION_KEY, saved)
       onSaved(saved.version.number)
       void client.invalidateQueries({ queryKey: ['versions'] })
+      if (!companion && !create) await queueWriteUp(client, { name: saved.version.name, relationship: body.relationship, home_city: body.home_city, timezone: body.timezone })
       if (!companion) go(await afterCreating())
     } catch (error) {
       setResult({ tone: 'error', text: error instanceof Error ? error.message : 'The character could not be saved.', conflict: error instanceof ApiError && error.status === 409 })
@@ -134,6 +138,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('background', 'their background')}
         <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
+        <InPhotosField definition={cleaned} value={definition.in_photos} set={set} />
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
           <LooksFields definition={cleaned} looks={definition.looks} set={set} />
@@ -175,6 +180,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
     <Versions current={companion.active_version_id} />
     <Cast go={go} />
     <BringCharacter />
+    <BringChat companion={companion} />
     <StartOver name={name} go={go} />
   </>)
 }

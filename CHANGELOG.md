@@ -49,6 +49,22 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.9.0 (2026-10-12)
+
+- **Ready on first launch:** Set it up for me picks, downloads (pause, resume, checked) and runs a chat model that fits
+  your graphics card, with nothing downloaded until you confirm; a companion made meanwhile is finished afterwards.
+- **Look and accessibility:** Paper light profile, Match my computer for new installs, and per-device text size
+  (85-200%), reading fonts (Atkinson Hyperlegible, OpenDyslexic) and motion.
+- **Photos that fit them:** an editable In photos line on the character form.
+- **Bring your old chats:** SillyTavern JSONL and role/content JSON become earlier shared history.
+- **Export a chat or story** as a web page or Markdown.
+- **Bring your Marinara world:** Marinara Engine characters, lorebooks and world maps.
+- **Also:** Retro IM away messages, credits and usage on model profiles, editable ComfyUI workflows, and a Codex
+  character reference sheet for steadier pictures.
+- **Fixes:** home cities and key facts kept, she/he where set, month-first dates, US spelling in US towns, plans
+  mentioned in replies, trips from invented towns, steadier life events, map labels, the voice download waits for its
+  button, ComfyUI on its own Python, backups keep profile pictures, proxy settings honored, and copy fixes.
+
 ## v0.8.1 (2026-10-11)
 
 - **Going out together:** staying in, a call or a story no longer counts as an outing; a vague "sometime" stays a

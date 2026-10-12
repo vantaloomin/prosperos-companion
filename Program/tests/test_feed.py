@@ -161,6 +161,26 @@ def test_today_shows_routine_review_changes_and_availability(client, life, clock
     assert client.post('/api/today/seen').json()['last_seen_at'] == seen
 
 
+def test_today_reads_the_precomputed_day_so_a_holiday_is_not_work(client, life, clock):
+    import json
+
+    from companion.characters import require_current
+    clock.instant = datetime(2026, 10, 6, 10, 0, tzinfo=UTC)
+    reconcile(client)
+    block = {'key': 'work', 'label': 'Thanksgiving (day off)', 'kind': 'leisure', 'holiday': 'Thanksgiving'}
+    with client.app.state.database.connect(write=True) as connection:
+        timeline = require_current(connection)['active_timeline_id']
+        connection.execute("DELETE FROM life_agenda WHERE timeline_id=?", (timeline,))
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, "
+                           "block, basis, created_at) VALUES ('a1', ?, 'companion', 'work@2026-10-06', "
+                           "'2026-10-06T08:00:00Z', '2026-10-06T16:00:00Z', '2026-10-06', ?, 'routine', "
+                           "'2026-10-06T00:00:00Z')", (timeline, json.dumps(block)))
+    view = client.get('/api/today').json()
+    assert view['availability'] == {'state': 'free', 'label': 'Thanksgiving (day off)',
+                                    'until': '2026-10-06T16:00:00Z'}
+    assert view['routine']['current']['block']['label'] == 'Thanksgiving (day off)'
+
+
 def test_discussing_a_post_can_return_before_the_reply_finishes(client, life, clock, provider):
     set_life(client, automatic_events=True)
     clock.advance(timedelta(days=1))

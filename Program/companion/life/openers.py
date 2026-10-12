@@ -17,6 +17,8 @@ is paused, during quiet hours, while the companion is asleep, soon after the las
 the daily cap, twice in a row without an answer, or once all companions together have used the shared
 allowance for messages while the user is away (companion/away.py). Each trigger fires once per timeline. The message is saved as
 an ordinary companion message with no `reply_to`, so the next reply sees it in the transcript.
+Messages from an old chat brought in (companion/imports/chats.py) are history: never the last message, a promise
+to follow up or a reason to wait, and a plan only an old chat mentioned is never followed up.
 """
 import random
 import re
@@ -31,6 +33,7 @@ from companion.database import decode, encode, identifier, many, one, optional, 
 from companion.errors import DomainError
 from companion.life import (
     chapters,
+    composer,
     deck,
     dreams,
     encounters,
@@ -45,7 +48,7 @@ from companion.life import (
 )
 from companion.life.mood import ABSENCE_HOURS, last_presence
 from companion.memory import context, pairs
-from companion.memory.records import OPEN_PLANS, eligible
+from companion.memory.records import OPEN_PLANS, eligible, from_old_chats
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import BackgroundInterrupted, Work
@@ -133,9 +136,9 @@ class Trigger:
 
 def plan_follow_ups(connection, companion, now) -> list[Trigger]:
     """A plan the user mentioned whose time has passed, without a known outcome."""
-    result = []
+    result, history = [], from_old_chats(connection, companion['active_timeline_id'])
     for memory in eligible(connection, companion, companion['active_timeline_id'], stamp(now)):
-        if memory['layer'] != 'plan' or memory['plan_status'] not in OPEN_PLANS:
+        if memory['layer'] != 'plan' or memory['plan_status'] not in OPEN_PLANS or memory['id'] in history:
             continue
         end = memory['applies_until'] or memory['applies_from']
         if not end or not now - FOLLOW_UP_WITHIN <= parse(end) <= now - FOLLOW_UP_AFTER:
@@ -158,7 +161,9 @@ def news(connection, companion, now) -> list[Trigger]:
     """An open question in the companion's life that just settled."""
     rows = recent_events(connection, companion['active_timeline_id'], now,
                          "kind='thread' AND json_extract(details, '$.state')='settled'")
-    return [Trigger(f"news:{row['id']}", 'news', f'Something in your own life just turned out: {row["summary"]} '
+    definition = companion['version']['definition']
+    return [Trigger(f"news:{row['id']}", 'news', 'Something in your own life just turned out: '
+                    f'{composer.said(row["summary"], definition)} '
                     'Tell the user, the way you would text a friend.', None, (row['id'],)) for row in rows]
 
 
@@ -326,7 +331,7 @@ def promises(connection, companion, now) -> list[Trigger]:
     if not CHECK_INS or not (moment := free_moment(connection, companion, now)):
         return []
     rows = many(connection, "SELECT id, role, text, created_at FROM messages WHERE timeline_id=? AND status='complete' "
-                'AND active=1 ORDER BY seq DESC LIMIT 4', (companion['active_timeline_id'],))
+                'AND active=1 AND import_id IS NULL ORDER BY seq DESC LIMIT 4', (companion['active_timeline_id'],))
     for row in rows:
         if row['role'] != 'companion' or now - parse(row['created_at']) > PROMISE_WITHIN:
             continue
@@ -355,7 +360,7 @@ def check_in(connection, companion, now) -> list[Trigger]:
     if rng.random() >= CHANCE[moment] or now < began + timedelta(minutes=rng.randint(5, 50)):
         return []
     last = optional(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND status='complete' "
-                    'ORDER BY seq DESC LIMIT 1', (companion['active_timeline_id'],))
+                    'AND import_id IS NULL ORDER BY seq DESC LIMIT 1', (companion['active_timeline_id'],))
     since = (f"You last talked {round((now - parse(last['created_at'])).total_seconds() / 3600)} hours ago."
              if last else 'You have not talked yet.')
     return [Trigger(key, 'check_in',
@@ -432,7 +437,7 @@ def held(connection, companion, life, now, occasion: bool = False) -> str | None
     if slot and slot.block.kind in routine.RESTING:
         return 'asleep'
     last = optional(connection, "SELECT role, created_at, id FROM messages WHERE timeline_id=? AND status='complete' "
-                    'ORDER BY seq DESC LIMIT 1', (timeline_id,))
+                    'AND import_id IS NULL ORDER BY seq DESC LIMIT 1', (timeline_id,))
     if last and now - parse(last['created_at']) < timedelta(hours=life['texts_gap_hours']):
         return 'recent_conversation'
     if not occasion and last and last['role'] == 'companion' and optional(

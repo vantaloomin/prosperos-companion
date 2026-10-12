@@ -44,10 +44,11 @@ def ended(memory, now) -> bool:
 
 
 def find_duplicate(connection, companion_id, timeline_id, fields, now) -> dict | None:
-    """The same value for the same subject, both current or both past, is one memory."""
+    """The same value for the same subject, both current or both past, is one memory; the same subject words count as
+    the same subject ("Dog: Pepper" kept under the dog's own key and under "dog")."""
     rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer=? "
-                'AND subject_key=? AND timeline_id=?',
-                (companion_id, fields['layer'], fields['subject_key'], timeline_id))
+                'AND (subject_key=? OR lower(subject)=lower(?)) AND timeline_id=?',
+                (companion_id, fields['layer'], fields['subject_key'], fields['subject'], timeline_id))
     value = fields['value'].casefold()
     past = ended(fields, now)
     return next((row for row in rows if row['value'].casefold() == value and ended(row, now) == past), None)
@@ -56,8 +57,9 @@ def find_duplicate(connection, companion_id, timeline_id, fields, now) -> dict |
 def succeed(connection, memory, now, timestamp) -> bool:
     """A new current value of a single-valued subject ends the earlier one, which stays as history (M8).
 
-    "I lived in Boston ten years ago" is not current, so it never ends anything. Returns whether
-    an earlier value ended.
+    "I lived in Boston ten years ago" is not current, so it never ends anything. Nor does a value stated
+    before the current one (an old chat brought in, companion/imports/chats.py): it ends where the value
+    said later begins. Returns whether an earlier value ended.
     """
     if memory['layer'] != 'user_fact' or not single_valued(memory['subject_key']) or ended(memory, now):
         return False
@@ -65,13 +67,27 @@ def succeed(connection, memory, now, timestamp) -> bool:
     rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer='user_fact' "
                 'AND subject_key=? AND id<>? AND (applies_until IS NULL OR applies_until>?)',
                 (memory['companion_id'], memory['subject_key'], memory['id'], start))
-    changed = False
+    later = sorted((row for row in rows if row['stated_at'] > memory['stated_at']),
+                   key=lambda row: row['applies_from'] or row['stated_at'])
+    if later:
+        connection.execute('UPDATE memories SET applies_until=?, ended_by_id=?, updated_at=? WHERE id=?',
+                           (max(later[0]['applies_from'] or later[0]['stated_at'], start), later[0]['id'], timestamp,
+                            memory['id']))
+    changed = bool(later)
     for row in rows:
-        if (row['applies_from'] or '') <= start:
+        if row['stated_at'] <= memory['stated_at'] and (row['applies_from'] or '') <= start:
             connection.execute('UPDATE memories SET applies_until=?, ended_by_id=?, updated_at=? WHERE id=?',
                                (start, memory['id'], timestamp, row['id']))
             changed = True
     return changed
+
+
+def from_old_chats(connection, timeline_id) -> set[str]:
+    """Memories whose every source is a message from an old chat brought in (companion/imports/chats.py): history,
+    so never a plan to follow up, a missed plan or a shared moment that grows closeness."""
+    return {row['memory_id'] for row in many(
+        connection, 'SELECT s.memory_id FROM memory_sources s JOIN messages m ON m.id=s.message_id '
+        'WHERE m.timeline_id=? GROUP BY s.memory_id HAVING COUNT(m.import_id)=COUNT(*)', (timeline_id,))}
 
 
 def insert(connection, companion, fields: dict, *, now: str, origin='user', authority='stated',
@@ -149,8 +165,9 @@ def confirm(database, memory_id) -> dict:
 
 
 def revise(connection, memory, timestamp, *, value, plan_status=None, applies_from=None, applies_until=None,
-           dates_uncertain=None) -> dict:
-    """A new revision supersedes the old value atomically; the old value stays as history (M9)."""
+           dates_uncertain=None, stated_at=None) -> dict:
+    """A new revision supersedes the old value atomically; the old value stays as history (M9). A correction found
+    in a message is stated when the message was sent, not when the background work got to it."""
     new_id = identifier()
     connection.execute("UPDATE memories SET status='superseded', updated_at=? WHERE id=?", (timestamp, memory['id']))
     connection.execute(
@@ -160,7 +177,7 @@ def revise(connection, memory, timestamp, *, value, plan_status=None, applies_fr
         "SELECT ?, companion_id, timeline_id, layer, subject, subject_key, ?, reality, 'stated', 'active', boundary, "
         'pinned, sensitive, ?, event_id, ?, ?, ?, ?, origin, revision+1, id, ended_by_id, person_id, ?, ? '
         'FROM memories WHERE id=?',
-        (new_id, value, plan_status or memory['plan_status'], timestamp,
+        (new_id, value, plan_status or memory['plan_status'], stated_at or timestamp,
          normalized_time(applies_from) or memory['applies_from'],
          normalized_time(applies_until) if applies_until else memory['applies_until'],
          int(memory['dates_uncertain'] if dates_uncertain is None else dates_uncertain),

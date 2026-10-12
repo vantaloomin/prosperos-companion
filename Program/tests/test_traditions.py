@@ -6,7 +6,7 @@ import pytest
 from conftest import reconcile
 
 from companion.database import decode
-from companion.life import composer, traditions
+from companion.life import body, composer, traditions
 from companion.world import catalog
 from companion.world.source import CatalogWorld
 
@@ -21,6 +21,8 @@ def baltimore(client, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
     monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
+    # A cold on the holiday (about 1 run in 100) keeps them home in bed instead of at the tradition.
+    monkeypatch.setattr(body, 'sick', lambda *_args: False)
     response = client.post('/api/companion', json={**MIRA, 'timezone': 'America/New_York', 'schedule': DAYS})
     assert response.status_code == 200, response.text
     return response.json()
@@ -135,3 +137,63 @@ def test_a_tradition_the_user_rewords_still_reads_in_the_companions_own_voice():
     text = traditions.stored("Thanksgiving is at their dad Richard's.  ")
     assert text == "Thanksgiving is at {their} dad Richard's."
     assert traditions.voiced(text, 'your') == "Thanksgiving is at your dad Richard's."
+
+
+def test_adding_a_tradition_starts_from_the_next_holiday(client, baltimore, clock):
+    panel = client.get('/api/life/traditions').json()
+    city = catalog.city('baltimore')
+    today = clock.now().astimezone(timezone(timedelta(hours=-4))).date()
+    free = {item['id'] for item in panel['holidays']}
+    coming = [item['id'] for item in traditions.dated(city, today, today + timedelta(days=366)) if item['id'] in free]
+    assert panel['holidays'][0]['id'] == coming[0]
+    assert [item['id'] for item in panel['holidays']][:3] == list(dict.fromkeys(coming))[:3]
+
+
+def test_tradition_lines_use_the_companions_own_pronouns_when_known():
+    she, unknown = {'name': 'Mira', 'identity': 'She is a line cook.'}, {'name': 'Sam', 'identity': 'A line cook.'}
+    host = "Mira spent Thanksgiving at their mom Valerie's, the way they always do."
+    assert composer.said(host, she) == "Mira spent Thanksgiving at her mom Valerie's, the way she always does."
+    assert composer.said(host, unknown) == host
+    assert composer.said("Mira went home to their dad Rui's for Thanksgiving.", {'identity': 'He is a cook.'}) == \
+        "Mira went home to his dad Rui's for Thanksgiving."
+    assert composer.said('Mira hosted Diwali at their place, the way they always do.', she) == \
+        'Mira hosted Diwali at her place, the way she always does.'
+    # "at their" outside a tradition line may be someone else's.
+    assert composer.said('Mira met Jo at their office.', she) == 'Mira met Jo at their office.'
+    # Her own birthday is hers; a friend's stays theirs.
+    assert composer.said('Mira treated themselves at Bar Vasco for their birthday.', she) == \
+        'Mira treated herself at Bar Vasco for her birthday.'
+    assert composer.said('Mira went out at Bar Vasco with Jo for their birthday.', she) == \
+        'Mira went out at Bar Vasco with Jo for her birthday.'
+    assert composer.said('Mira celebrated their birthday with Jo.', she) == 'Mira celebrated her birthday with Jo.'
+    assert composer.said('Mira took Jo out at Bar Vasco for their birthday.', she) == \
+        'Mira took Jo out at Bar Vasco for their birthday.'
+    assert composer.said('Mira lost a favorite scarf somewhere around town and is retracing their steps.', she) == \
+        'Mira lost a favorite scarf somewhere around town and is retracing her steps.'
+
+
+def test_a_she_companions_tradition_reads_her_on_today_and_in_the_feed(client, monkeypatch, clock):
+    monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
+    monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
+    monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
+    monkeypatch.setattr(body, 'sick', lambda *_args: False)
+    response = client.post('/api/companion', json={**MIRA, 'identity': 'She is a line cook; her friends call her Mir.',
+                                                     'timezone': 'America/New_York', 'schedule': DAYS})
+    assert response.status_code == 200, response.text
+    clock.advance(datetime(2026, 11, 22, 15, tzinfo=timezone.utc) - clock.now())
+    reconcile(client)
+    found = [item for item in client.get('/api/today').json()['occasions'] if item['kind'] == 'tradition']
+    assert found and all(' their ' not in f" {item['teaser']} {item['tradition']} " for item in found)
+    clock.advance(timedelta(days=5))
+    reconcile(client)
+    with connect(client, False) as connection:
+        stored = [row[0] for row in connection.execute(
+            "SELECT summary FROM life_events WHERE status='committed' AND summary LIKE '%Thanksgiving%'")]
+    assert stored and all('their' in text or 'they' in text for text in stored)  # Stored as written.
+    shown = [event['summary'] for post in client.get('/api/feed').json()['posts'] for event in post['events']
+             if 'Thanksgiving' in event['summary']]
+    today = [event['summary'] for event in client.get('/api/today').json()['changes']
+             if 'Thanksgiving' in event['summary']]
+    assert shown and today
+    for text in shown + today:
+        assert 'their' not in text and 'they' not in text and ('her ' in text or 'she always does' in text), text

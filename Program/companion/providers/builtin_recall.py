@@ -154,11 +154,17 @@ def log_tail(path: Path, lines=6) -> str:
 
 
 class BuiltinRecall:
-    """Starts, watches and stops the built-in llama.cpp server."""
+    """Starts, watches and stops the built-in llama.cpp server. Built-in chat (builtin_chat.py) is the same server
+    with another build, model and command."""
+    build = ''
+    label = 'recall server'
+    model_label = 'recall model'
+    folder_name = 'embeddings'
+    start_seconds = START_SECONDS
 
     def __init__(self, database, spawn=None, transport: httpx.AsyncBaseTransport | None = None):
         self.database = database
-        self.folder = database.root / 'embeddings'  # Shared by every world.
+        self.folder = database.root / self.folder_name  # Shared by every world.
         self.spawn = spawn or subprocess.Popen
         self.transport = transport
         self.process = None
@@ -173,7 +179,7 @@ class BuiltinRecall:
     # --- the runtime ---------------------------------------------------------------------------
 
     def runtime_folder(self) -> Path:
-        return self.folder / 'llama.cpp' / RUNTIME_TAG
+        return self.folder / 'llama.cpp' / (RUNTIME_TAG + self.build)
 
     def installed_server(self) -> Path | None:
         root = self.runtime_folder()
@@ -188,14 +194,14 @@ class BuiltinRecall:
 
     def runtime(self) -> dict:
         key = platform_key()
-        asset = RUNTIMES.get(key)
+        asset = self.assets().get(key)
         return {'version': RUNTIME_TAG, 'installed': self.server() is not None, 'path': self.server(),
                 'available': asset is not None, 'download_mb': round(asset[1] / 1e6) if asset else None,
                 'downloading': self.downloading}
 
     async def install(self) -> dict:
         """Download the pinned llama.cpp build for this PC, check it and unpack it."""
-        asset = RUNTIMES.get(platform_key())
+        asset = self.assets().get(platform_key())
         require(asset is not None, 'There is no built-in llama.cpp download for this computer. Set '
                 f'{SERVER_ENV} to a llama-server you installed.', 409)
         require(not self.downloading, 'llama.cpp is already downloading.', 409)
@@ -289,29 +295,29 @@ class BuiltinRecall:
         self.state, self.message = 'starting', ''
         try:
             if not Path(model).is_file():
-                raise DomainError('The recall model file was moved or deleted.', 503)
-            self.port = port = free_port()
+                raise DomainError(f'The {self.model_label} file was moved or deleted.', 503)
+            self.port = port = self.choose_port()
             log = self.folder / 'llama-server.log'
             log.parent.mkdir(parents=True, exist_ok=True)
             with log.open('wb') as output:
                 self.process = process = self.spawn(
-                    [sys.executable, '-I', str(GUARD), *command(server, model, port)], stdin=subprocess.PIPE,
+                    [sys.executable, '-I', str(GUARD), *self.command(server, model, port)], stdin=subprocess.PIPE,
                     stdout=output, stderr=subprocess.STDOUT, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             await self.until_ready(process, port, log)
         except DomainError as error:
             self.fail(error.message)
             raise
         except (OSError, httpx.HTTPError) as error:
-            self.fail(f'The recall server could not start: {error}')
+            self.fail(f'The {self.label} could not start: {error}')
             raise DomainError(self.message, 503) from error
         self.state = 'ready'
 
     async def until_ready(self, process, port: int, log: Path):
-        deadline = time.monotonic() + START_SECONDS
+        deadline = time.monotonic() + self.start_seconds
         async with httpx.AsyncClient(transport=self.transport, timeout=2, trust_env=False) as client:
             while time.monotonic() < deadline:
                 if process.poll() is not None:
-                    raise DomainError('The recall server stopped while loading. ' + log_tail(log), 503)
+                    raise DomainError(f'The {self.label} stopped while loading. ' + log_tail(log), 503)
                 try:
                     response = await client.get(f'http://127.0.0.1:{port}/health')
                     if response.status_code == 200:
@@ -319,7 +325,16 @@ class BuiltinRecall:
                 except httpx.RequestError:
                     pass
                 await asyncio.sleep(POLL_SECONDS)
-        raise DomainError('The recall server took too long to load its model.', 503)
+        raise DomainError(f'The {self.label} took too long to load its model.', 503)
+
+    def assets(self) -> dict:
+        return RUNTIMES
+
+    def choose_port(self) -> int:
+        return free_port()
+
+    def command(self, server: str, model: str, port: int) -> list[str]:
+        return command(server, model, port)
 
     async def stop(self):
         """Stop the server from the event loop: a start still loading is cancelled first."""

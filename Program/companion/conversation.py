@@ -230,6 +230,8 @@ class Conversation:
             user = one(connection, "SELECT * FROM messages WHERE id=? AND role='user'", (user_message_id,))
             latest = latest_user_message(connection, user['timeline_id'])
             require(latest['id'] == user['id'], 'Alternatives are available for the latest message only.', 409)
+            # An old chat brought in (companion/imports/chats.py) is history; it is never answered again.
+            require(user['import_id'] is None, 'This message came in from an old chat.', 409)
         return await self.respond(user, wait)
 
     def stop(self, attempt_id) -> bool:

@@ -186,3 +186,13 @@ def test_finding_someone_goes_to_where_they_are(client, clock, provider):
             break
     else:
         raise AssertionError('They never went home.')
+
+
+def test_a_person_line_does_not_say_their_job_twice():
+    from companion.world import catalog, townsfolk
+    data = catalog.city('baltimore')
+    place = next(item for item in data['places'] if item['kind'] == 'restaurant')
+    sheet = next(item for item in townsfolk.at_place(data, place['id']) if item['staff'])
+    line = story.person_line({'sheet': sheet, 'doing': f"working as the {sheet['role']}", 'mood': 'fine'},
+                             {'id': place['id']}, data)
+    assert f"working as the {sheet['role']}. " in line and f", {sheet['role']}." not in line

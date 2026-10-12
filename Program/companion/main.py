@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from companion import (
     auto_backup,
     dating_routes,
+    export_routes,
     group_routes,
     groups,
     local_zone,
@@ -40,7 +41,7 @@ from companion.imports import file_routes
 from companion.imports import routes as import_routes
 from companion.launcher import Launcher
 from companion.launcher_routes import router as launcher_router
-from companion.life import home_routes, outings, scrapbook_routes, traditions_routes, trips, wardrobe_routes
+from companion.life import home_routes, outings, scrapbook_routes, status, traditions_routes, trips, wardrobe_routes
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
@@ -58,12 +59,14 @@ from companion.phone import access as phone_access
 from companion.phone import lan as phone_lan
 from companion.phone import push as phone_push
 from companion.phone import routes as phone_routes
+from companion.providers.builtin_chat import BuiltinChat
 from companion.providers.builtin_recall import BuiltinRecall
 from companion.providers.vault import SystemVault
+from companion.ready import Ready, uses_builtin
+from companion.ready_routes import router as ready_router
 from companion.recall_routes import router as recall_router
 from companion.routes import router
 from companion.text_model_routes import router as model_router
-from companion.voice import notes as voice_notes
 from companion.voice.notes import VoiceNotes
 from companion.voice_routes import router as voice_router
 from companion.world import changes as city_changes
@@ -123,21 +126,10 @@ async def start_lan(app):
             logging.getLogger('companion').warning('%s', error.message)
 
 
-async def prepare_voice(voice):
-    """Voice notes are on by default, so the built-in voice downloads by itself the first time it is needed."""
-    with voice.database.connect() as connection:
-        current = voice_notes.read(connection)
-    if not current['voice_notes'] or current['engine'] != 'builtin' or voice.kokoro.ready():
-        return
-    try:
-        await voice.kokoro.install()
-    except DomainError as error:
-        logging.getLogger('companion').warning('The built-in voice did not download: %s', error.message)
-
-
 @asynccontextmanager
 async def lifespan(app):
     recover(app.state.database)
+    status.lyrics_template(app.state.database.root)
     groups.recover(app.state.database)
     image_jobs.recover(app.state.database)
     lora_training.recover(app.state.database)
@@ -149,9 +141,13 @@ async def lifespan(app):
              asyncio.create_task(app.state.push.run_forever()),
              asyncio.create_task(auto_backup.run_forever(app.state))] if app.state.life_tasks else []
     if app.state.life_tasks:
-        # Built-in recall loads its model now, so the first reply does not wait for it.
+        # Built-in recall loads its model now, so the first reply does not wait for it; so does the built-in chat
+        # model while it does the chat job, and a confirmed download carries on.
         app.state.builtin_recall.kick()
-        tasks.append(asyncio.create_task(prepare_voice(app.state.voice)))
+        app.state.ready.recover()
+        if uses_builtin(app.state.database):
+            app.state.builtin_chat.kick()
+        # The built-in voice is a big download, so it waits for the press in Settings > Models (docs/voice-notes.md).
         # Local programs the user asked to start with the Companion (off until turned on).
         tasks.append(asyncio.create_task(app.state.launcher.launch_all()))
     app.state.memory.kick()
@@ -159,6 +155,7 @@ async def lifespan(app):
     yield
     await app.state.lan.stop()
     app.state.builtin_recall.shutdown()
+    app.state.builtin_chat.shutdown()
     app.state.training.shutdown()
     for task in tasks:
         task.cancel()
@@ -184,6 +181,11 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.state.launcher = launcher or Launcher(app.state.database)
     app.state.conversation.embedder.builtin = app.state.builtin_recall
     app.state.hardware = hardware or Hardware()
+    app.state.builtin_chat = BuiltinChat(app.state.database, builtin_spawn, builtin_transport)
+    app.state.conversation.provider.inner.builtin_chat = app.state.builtin_chat
+    app.state.ready = Ready(app.state.database, app.state.builtin_chat,
+                            lambda: app.state.hardware.report(app.state.database), builtin_transport)
+    app.state.ready.state_of_app = app.state
     app.state.memory = MemoryWorker(app.state.database, app.state.conversation.scheduler, app.state.vault,
                                     app.state.conversation.embedder, enabled=life_tasks,
                                     provider=app.state.conversation.provider)
@@ -238,6 +240,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(recall_router)
     app.include_router(voice_router)
     app.include_router(hardware_router)
+    app.include_router(ready_router)
     app.include_router(life_routes.router)
     app.include_router(home_routes.router)
     app.include_router(wardrobe_routes.router)
@@ -252,6 +255,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(group_routes.router)
     app.include_router(group_routes.secrets_router)
     app.include_router(dating_routes.router)
+    app.include_router(export_routes.router)
     app.include_router(lora_routes.router)
     if app.state.lora_maker:
         app.include_router(lora_routes.maker_router)

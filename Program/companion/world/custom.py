@@ -7,6 +7,7 @@ import logging
 
 from pydantic import ValidationError
 
+from companion import lore
 from companion.characters import current
 from companion.database import decode, encode, optional
 from companion.errors import DomainError, require
@@ -98,7 +99,9 @@ def _notes(data: dict) -> dict:
     return {'import_notes': data['import_notes']} if data.get('import_notes') else {}
 
 
-def create(database, definition: dict) -> dict:
+def create(database, definition: dict, also=None) -> dict:
+    """Save a new city. `also(connection, timestamp)` writes what comes with it (a world map's lore) in the same
+    transaction, so the two arrive together or not at all."""
     data = check(definition)
     require(data['id'] not in catalog.cities(), f'{data["id"]!r} is a built-in or pack city. Choose another id.',
             409)
@@ -108,6 +111,8 @@ def create(database, definition: dict) -> dict:
         now = database.now()
         connection.execute('INSERT INTO world_cities (id, definition, created_at, updated_at) VALUES (?, ?, ?, ?)',
                             (data['id'], encode(_definition(data)), now, now))
+        if also:
+            also(connection, now)
         return all_cities(connection)[data['id']] | _notes(data)
 
 
@@ -142,6 +147,8 @@ def delete(database, city_id: str) -> None:
         companion = current(connection)
         home = companion['version']['definition'].get('home_city') if companion else None
         require(home != city_id, 'Your companion lives in this city. Move them to another city first.', 409)
+        row = optional(connection, 'SELECT definition FROM world_cities WHERE id=?', (city_id,))
+        lore.forget_city(connection, {**_decoded(row['definition']), 'id': city_id})
         connection.execute('DELETE FROM world_cities WHERE id=?', (city_id,))
 
 
@@ -168,6 +175,14 @@ def template(today: str) -> dict:
                     'good_for': ['solo', 'friends'], 'day_parts': ['morning', 'afternoon'],
                     'source': TEMPLATE_SOURCE}],
     }
+
+
+def _decoded(text: str) -> dict:
+    try:
+        found = decode(text)
+    except ValueError:
+        return {}
+    return found if isinstance(found, dict) else {}
 
 
 def _missing(city_id: str) -> str:

@@ -1,3 +1,4 @@
+import { calendarDay } from '../../when.ts'
 import type { Occasion } from '../../types'
 
 /** One line for Today: "Your birthday is in 3 days", "Tomorrow: Thanksgiving is always at their mom Ruth's…",
@@ -11,10 +12,9 @@ export function occasionText(item: Occasion, name: string): string {
   return `It's been ${item.span} since you two started talking.`
 }
 
-/** "Mon 5 Oct" for a local date ("2026-10-05"), without shifting it through a timezone. */
+/** "Mon, Oct 5" for a local date ("2026-10-05"), like every other date in the app (when.ts's calendarDay). */
 export function storyDate(day: string): string {
-  const [year, month, date] = day.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+  return calendarDay(day, { weekday: true })
 }
 
 export const DRAMA_LEVELS = [

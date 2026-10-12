@@ -99,3 +99,11 @@ def test_only_real_cities_of_today_get_a_street_map():
     assert citymap.real(catalog.city('baltimore'))
     assert not citymap.real(catalog.city('new-york-1925'))
     assert not citymap.real(catalog.city('grandport'))
+
+
+def test_regulars_leave_out_the_staff(monkeypatch):
+    from companion.life import encounters
+    people = [{'key': 'town:x:cafe:0', 'name': 'Ana', 'kind': 'staff', 'staff': True, 'place': {'id': 'cafe'}},
+              {'key': 'town:x:cafe:2', 'name': 'Ben', 'kind': 'regular', 'staff': False, 'place': {'id': 'cafe'}}]
+    monkeypatch.setattr(encounters, 'known', lambda *_args: people)
+    assert citymap.regulars(None, {}, None) == {'cafe': ['Ben']}

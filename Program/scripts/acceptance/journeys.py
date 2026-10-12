@@ -26,7 +26,7 @@ RESULTS = []
 class Run:
     def __init__(self, log):
         self.log = log
-        self.http = httpx.Client(base_url=APP, headers={'x-companion-client': 'workspace'}, timeout=60)
+        self.http = httpx.Client(base_url=APP, headers={'x-companion-client': 'workspace'}, timeout=300)
         self.sent = 0
 
     def call(self, method, path, **kwargs):
@@ -80,11 +80,14 @@ def coherence(run):
     """One event through post, image, conversation and correction (chat and feed coherence)."""
     run.clock(20)
     run.call('POST', '/api/life/reconcile', json={'mode': 'return'})
-    proposed = [event for event in run.call('GET', '/api/events', params={'history': 'true'})
-                if event['status'] == 'proposed' and (event['details'].get('place') or {}).get('name')]
-    event = run.call('POST', f"/api/events/{proposed[0]['id']}/commit")
+    # Events commit on their own now (automatic events are on by default): take a committed one at a named place,
+    # and the feed post that shows it.
+    placed = {event['id']: event for event in run.call('GET', '/api/events')
+              if event['status'] == 'committed' and (event['details'].get('place') or {}).get('name')}
+    post = next(item for item in run.call('GET', '/api/feed')['posts']
+                if item['events'] and item['events'][0]['id'] in placed)
+    event = placed[post['events'][0]['id']]
     place = event['details']['place']['name']
-    post = run.call('GET', '/api/feed')['posts'][0]
     run.call('POST', '/api/images/backends', json={'kind': 'comfyui', 'base_url': COMFY, 'enabled': True})
     job = run.call('POST', '/api/images/jobs', json={'post_id': post['id']})
     for _ in range(30):
@@ -124,16 +127,23 @@ def correction_in_flight(run):
     run.delay(0.01)
     check('the in-flight reply is withheld', status == 'withheld', status)
     run.send('And now?')
-    system = json.loads(run.last_chat())['messages'][0]['content']
-    check('the next reply uses the new revision', 'Work: paramedic' in system and 'Work: nurse' not in system, 'system prompt')
+    # What the app knows about the user now rides in the notes before the user's message, not the system prompt.
+    sent = run.last_chat()
+    check('the next reply uses the new revision', 'Work: paramedic' in sent and 'Work: nurse' not in sent, 'model request')
 
 
 def forgetting(run):
     """Excluded and deleted facts never reach the model, including through the companion's replies."""
     fish = run.send('I love zebrafish aquariums.')['message']
     colour = run.send('My favourite color is ultramarine.')['message']
-    time.sleep(2)
-    memories = run.call('GET', '/api/memories')
+    # Memories form in the background: wait for both before excluding and deleting them.
+    for _ in range(120):
+        run.call('POST', '/api/memory/run')
+        memories = run.call('GET', '/api/memories')
+        sources = {source for memory in memories for source in memory['source_message_ids']}
+        if {fish['id'], colour['id']} <= sources:
+            break
+        time.sleep(0.5)
     for memory in memories:
         if fish['id'] in memory['source_message_ids']:
             run.call('POST', f"/api/memories/{memory['id']}/exclude")
