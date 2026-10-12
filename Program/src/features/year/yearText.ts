@@ -1,18 +1,16 @@
+import { calendarDay } from '../../when.ts'
 import type { ScrapbookListing, ScrapbookPage } from '../../types'
 
 export const SCRAPBOOKS_KEY = ['scrapbooks']
 
-/** "10 Mar 2025 to 9 Mar 2026" for a scrapbook's dates, without shifting them through a timezone. */
+/** "Mar 10, 2025 to Mar 9, 2026" for a scrapbook's dates, without shifting them through a timezone. */
 export function spanText(start: string, end: string): string {
   return `${dayText(start, true)} to ${dayText(end, true)}`
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-/** "10 Mar" or "10 Mar 2025" for a local date ("2025-03-10"); always three-letter months ("6 Sep", not "6 Sept"). */
+/** "Mar 10" or "Mar 10, 2025" for a local date ("2025-03-10"), in the user's own locale (when.ts's calendarDay). */
 export function dayText(day: string, withYear = false): string {
-  const [year, month, date] = day.split('-').map(Number)
-  return `${date} ${MONTHS[month - 1]}${withYear ? ` ${year}` : ''}`
+  return calendarDay(day, { year: withYear })
 }
 
 /** The scrapbook to open first: the one Today points to, else the year so far, unless that is under a week old and

@@ -329,7 +329,7 @@ def city_posts(connection, companion, since, now) -> list[dict]:
 def change_text(change: dict, where: str, today: date) -> str:
     name, summary, starts = change['name'], change['summary'], date.fromisoformat(change['starts'])
     soon = starts > today
-    when = f'{starts:%A} {starts.day} {starts:%B}'
+    when = f'{starts:%A}, {starts:%B} {starts.day}'
     place = f' in {where}' if where else ''
     if change['kind'] == 'opening':
         return f"{name} is opening{place} on {when}. Who's coming with me?" if soon \

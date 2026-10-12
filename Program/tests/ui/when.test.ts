@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { clockTime, exactTime, relativeTime } from '../../src/when.ts'
+import { calendarDay, clockTime, exactTime, relativeTime } from '../../src/when.ts'
 
 const at = (day: number, hour: number, minute = 0) => new Date(2026, 9, day, hour, minute).getTime()
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -35,4 +35,22 @@ test('Retro IM shows the clock today and the date before it on older messages', 
   assert.ok(clockTime(iso(at(5, 9, 14)), now).startsWith(clockTime(iso(at(5, 9, 14)), now).split(',')[0]))
   assert.ok(clockTime(iso(at(5, 9, 14)), now).includes(', '))
   assert.ok(clockTime(iso(new Date(2025, 2, 3, 9).getTime()), now).includes('2025'))
+})
+
+test('calendar days read month first in en-US, without shifting through a timezone', () => {
+  assert.equal(calendarDay('2026-11-26'), 'Nov 26')
+  assert.equal(calendarDay('2026-11-26', { weekday: true }), 'Thu, Nov 26')
+  assert.equal(calendarDay('2025-03-10', { year: true }), 'Mar 10, 2025')
+  assert.equal(calendarDay('2026-01-01', { month: 'long', year: true }), 'January 1, 2026')
+  assert.equal(calendarDay('2026-09-06T23:30:00'), 'Sep 6')
+})
+
+test('dates follow the user\'s locale: no screen hard-codes a day-month (en-GB) format', async () => {
+  const { readdir, readFile } = await import('node:fs/promises')
+  const files = (await readdir(new URL('../../src', import.meta.url), { recursive: true })).filter((file) => /\.tsx?$/.test(file))
+  for (const file of files) {
+    const text = await readFile(new URL(`../../src/${file}`, import.meta.url), 'utf8')
+    assert.doesNotMatch(text, /['"]en-GB['"]/, file)
+    assert.doesNotMatch(text, /\[\s*'Jan',\s*'Feb'/, `${file} spells months itself; use calendarDay`)
+  }
 })

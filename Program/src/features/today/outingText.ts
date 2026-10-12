@@ -1,4 +1,5 @@
 /** Going out with the user and trips away (companion/life/outings.py, trips.py): types and wording for Today and chat. */
+import { calendarDay } from '../../when.ts'
 
 export const TOGETHER_KEY = ['outings']
 
@@ -23,7 +24,7 @@ const WHAT: Record<string, string> = {
 
 /** "Thu, Oct 8" from a local date. */
 export function dayText(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+  return calendarDay(iso, { weekday: true })
 }
 
 /** "7:00 PM" from "19:00", in the user's own clock style. */
