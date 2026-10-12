@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from companion import local_programs
+from companion.errors import DomainError
 from companion.phone.access import pc_only
 
 
@@ -237,3 +238,22 @@ def test_comfyui_launch_script_runs_as_it_is(client, programs, app, tmp_path):
         assert command[-1] == str(script) and '--port' not in command
         assert (command[1] == '/c') == (script.suffix in {'.bat', '.cmd'})
         assert programs.folders[-1] == str(tmp_path)
+
+
+def test_a_comfyui_folder_never_runs_on_this_apps_own_python(tmp_path, monkeypatch):
+    folder = tmp_path / 'ComfyUI'
+    (folder / 'comfy').mkdir(parents=True)
+    (folder / 'main.py').write_text('')
+    own = tmp_path / 'companion-env'
+    outside = tmp_path / 'system' / 'python3'
+    monkeypatch.setattr(local_programs.sys, 'prefix', str(own))
+    paths = {'python3': str(own / 'bin' / 'python3'), 'python': str(outside)}
+    monkeypatch.setattr(local_programs.shutil, 'which', paths.get)
+    assert local_programs.comfy_command(folder, 8188)[:2] == [str(outside), str(folder / 'main.py')]
+    monkeypatch.setattr(local_programs.shutil, 'which', lambda name: None)
+    with pytest.raises(DomainError, match='no Python of its own'):
+        local_programs.comfy_command(folder, 8188)
+    venv = folder / ('venv/Scripts/python.exe' if local_programs.WINDOWS else 'venv/bin/python3')
+    venv.parent.mkdir(parents=True)
+    venv.write_bytes(b'')
+    assert local_programs.comfy_command(folder, 8188)[0] == str(venv)

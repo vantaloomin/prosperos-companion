@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from companion.database import decode, many
+from companion.errors import DomainError
 from companion.providers.urls import is_loopback
 
 PROGRAMS = {
@@ -159,6 +160,18 @@ def comfy_python(folder: Path) -> Path | None:
     return first_file(*(folder / venv / name for venv in ('venv', '.venv') for name in names))
 
 
+def outside_python() -> str | None:
+    """The Python on PATH, for a ComfyUI folder without an environment of its own. Never this app's own
+    Python: it has none of ComfyUI's packages, and whatever ComfyUI or its nodes installed would land in
+    this app's environment."""
+    own = Path(sys.prefix).absolute()
+    for name in ('python3', 'python'):
+        found = shutil.which(name)
+        if found and not Path(found).absolute().is_relative_to(own) and 'WindowsApps' not in Path(found).parts:
+            return found
+    return None
+
+
 WINDOWS_SCRIPTS = {'.bat', '.cmd'}
 SHELL_SCRIPTS = {'.sh', '.command'}
 
@@ -185,7 +198,11 @@ def comfy_command(install: Path, port: int) -> list[str]:
     if (install / 'python_embeded').is_dir():
         return [str(install / 'python_embeded' / 'python.exe'), '-s', str(install / 'ComfyUI' / 'main.py'),
                 '--windows-standalone-build', *serve]
-    return [str(comfy_python(install) or sys.executable), str(install / 'main.py'), *serve]
+    python = comfy_python(install) or outside_python()
+    if not python:
+        raise DomainError('This ComfyUI folder has no Python of its own (venv or .venv) and none was found on PATH. '
+                          'Choose the script you start ComfyUI with instead.', 409)
+    return [str(python), str(install / 'main.py'), *serve]
 
 
 def kobold_command(install: Path, model_path: str, use: dict) -> list[str]:
