@@ -4,7 +4,7 @@ import type { Chat } from '../../types'
 import { Stamp } from '../../components/Stamp'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { usePortrait } from '../conversation/portrait'
+import { portraitUrl } from '../conversation/portrait'
 import { badge, chatLabel, isOpen, preview, type OpenChat } from './chatText'
 import { useChats, useOpenChat } from './useChats'
 import { useChatListCollapsed } from './layout'
@@ -58,9 +58,9 @@ export function ChatList({ go, current = null, onOpened }: { go: (view: View) =>
 }
 
 export function ChatAvatar({ chat }: { chat: Chat }) {
-  const portrait = usePortrait()
   if (chat.kind === 'group') return <span className="portrait" aria-hidden="true"><UsersRound /></span>
-  // Only the companion in focus has their picture loaded; the others show their initial.
-  if (chat.focus && portrait) return <img className="portrait" src={portrait} alt="" aria-hidden="true" />
+  // Every companion shows their own picture; their initial stands in while they have none.
+  const portrait = portraitUrl(chat.portrait_reference_id)
+  if (portrait) return <img className="portrait" src={portrait} alt="" aria-hidden="true" />
   return <span className="portrait" aria-hidden="true">{chat.name.slice(0, 1).toUpperCase()}</span>
 }

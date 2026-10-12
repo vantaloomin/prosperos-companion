@@ -31,6 +31,7 @@ from companion.images.routing import eligible
 from companion.images.storage import directory as images_directory
 from companion.images.storage import sniff
 from companion.lora import files
+from companion.world import looks
 
 # Off in most tests (tests/conftest.py), since the extra Codex call would change unrelated counts.
 ENABLED = True
@@ -152,7 +153,7 @@ def fingerprint(text: str) -> str:
 def compose(text: str, style: str | None, has_picture: bool, backend_kind='codex') -> str:
     width, height = size_for(backend_kind, ASPECT)
     style = (style or prompts.DEFAULT_STYLE).strip().rstrip('.')
-    return TEMPLATE.format(source=FROM_PICTURE if has_picture else FROM_WORDS, description=text, style=style,
+    return TEMPLATE.format(source=FROM_PICTURE if has_picture else FROM_WORDS, description=looks.seen(text), style=style,
                            width=width, height=height)
 
 

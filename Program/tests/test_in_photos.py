@@ -9,10 +9,10 @@ EVENT = {'summary': 'Studied at the library', 'place': '', 'caption': '', 'mood'
 
 def test_left_empty_the_line_is_the_appearance_a_camera_can_see():
     line = prompts.in_photos({'name': 'Kimberly Smith', 'appearance': APPEARANCE})
-    assert line == 'She is a woman with long auburn hair and freckles. She has a faint scar on her chin. ' \
+    assert line == 'She is a woman with long auburn hair and freckles. She has a faint pale mark on her chin. ' \
                    'Usually wears black flats'
     dressed = prompts.in_photos({'name': 'Kimberly Smith', 'appearance': APPEARANCE}, dressed=True)
-    assert 'flats' not in dressed and 'scar' in dressed
+    assert 'flats' not in dressed and 'pale mark on her chin' in dressed
 
 
 def test_the_users_own_line_is_used_as_written():

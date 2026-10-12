@@ -242,7 +242,13 @@ def match(connection, key: str) -> dict | None:
         return None
     sheet, data = person(connection, key, row['town'])
     return {'sheet': sheet, 'data': data, 'town': row['town'], 'details': dating.details(sheet, data),
-            'noun': SURFACES[surface(data)]['noun']}
+            'noun': SURFACES[surface(data)]['noun'], 'met': met_on(data)}
+
+
+def met_on(data: dict) -> str:
+    """How a match's profile says they met: "Matched on Matchlight", or through the paper's personal column."""
+    found = SURFACES[surface(data)]
+    return f"Matched on {found['title']}" if surface(data) == 'app' else f"Matched through {found['noun']}"
 
 
 # Dates in Story mode -------------------------------------------------------------------------------------------------

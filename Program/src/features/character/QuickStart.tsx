@@ -18,6 +18,8 @@ import { COMPANION_KEY } from '../../companion'
 import type { Companion } from '../../types'
 import { isActive } from '../ready/readyText'
 import { queueWriteUp, useReady } from '../ready/useReady'
+import { useWorlds } from '../worlds/useWorlds'
+import type { World } from '../../types'
 
 const submitLabel = (busy: boolean, downloading: boolean) => busy ? (downloading ? 'Saving…' : 'Writing…') : downloading ? 'Create them now' : 'Create my companion'
 
@@ -29,6 +31,11 @@ async function saveForLater(client: QueryClient, body: Omit<DraftRequest, 'start
   return 'conversation'
 }
 
+/** Where they live unless the user picks: a new world's own city (Worlds), else a city near the user. */
+function startingCity(world: World | undefined, cities: CitySummary[], timezone: string): string {
+  return world && !world.first ? world.city_id : defaultCity(cities, timezone)
+}
+
 interface Props { onDraft: (definition: CharacterDefinition) => void; onSplit: (result: SplitResult) => void; onManual: () => void; go: (view: View) => void }
 
 /** Three picks (name, age, where and when); the configured model drafts the rest for the form to review.
@@ -37,9 +44,10 @@ export function QuickStart({ onDraft, onSplit, onManual, go }: Props) {
   const connection = useQuery({ queryKey: ['connection'], queryFn: () => api<{ connection: Connection | null }>('/connection').then((data) => data.connection) })
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
   const [request, setRequest] = useState<DraftRequest>(() => emptyRequest(guessTimezone()))
-  // The app picks where they live until the user picks somewhere else (or "Anywhere").
+  // The app picks where they live until the user picks somewhere else (or "Anywhere"): in a new world, its city.
   const [cityPicked, setCityPicked] = useState(false)
-  const homeCity = cityPicked ? request.home_city : defaultCity(cities.data ?? [], request.timezone)
+  const world = useWorlds().data?.world
+  const homeCity = cityPicked ? request.home_city : startingCity(world, cities.data ?? [], request.timezone)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const set = (change: Partial<DraftRequest>) => setRequest((current) => ({ ...current, ...change }))

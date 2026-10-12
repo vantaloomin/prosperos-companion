@@ -54,7 +54,8 @@ def latest(connection, timeline_id: str, now) -> dict | None:
 
 def companion_chats(connection, now) -> list[dict]:
     focus = current(connection)
-    rows = many(connection, 'SELECT c.id, c.active_timeline_id, c.created_at, v.name FROM companions c '
+    rows = many(connection, 'SELECT c.id, c.active_timeline_id, c.created_at, c.portrait_reference_id, v.name '
+                'FROM companions c '
                 'JOIN character_versions v ON v.id=c.active_version_id')
     chats = []
     statuses = status.for_all(connection, now)
@@ -62,7 +63,7 @@ def companion_chats(connection, now) -> list[dict]:
         last = latest(connection, row['active_timeline_id'], now)
         chats.append({'kind': 'companion', 'id': row['id'], 'thread_id': row['active_timeline_id'],
                       'name': row['name'], 'focus': bool(focus and focus['id'] == row['id']),
-                      'status': statuses.get(row['id']),
+                      'status': statuses.get(row['id']), 'portrait_reference_id': row['portrait_reference_id'],
                       'unread': unread(connection, row['active_timeline_id'], now), 'last': last,
                       'active_at': last['at'] if last else row['created_at']})
     return chats

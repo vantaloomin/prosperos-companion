@@ -1,4 +1,5 @@
 """What someone looks like: one sheet, the same every time, that keeps their pictures one person."""
+import re
 from collections import Counter
 
 from test_social_circle import make
@@ -97,3 +98,30 @@ def test_someone_whose_identity_says_they_are_under_18_is_never_given_an_adult_a
 def test_a_height_written_in_words_counts_as_said():
     for text in ("She's five-foot-six with a runner's legs.", 'A 6 foot 2 frame.', 'A six-footer.'):
         assert 'height_cm' in looks.covered(text)
+
+
+def test_old_injuries_are_pictured_as_they_look_now():
+    """A picture model draws "broken" and "healed" as the injury itself, so pictures say what the camera sees."""
+    assert looks.seen('a broken nose that healed a little crooked') == 'a nose that bends slightly to one side'
+    assert looks.seen('her once-broken nose') == 'her nose that bends slightly to one side'
+    assert looks.seen('a scar through one eyebrow') == 'a thin bare notch through one eyebrow'
+    assert looks.seen('a healed scar across his cheek') == 'a faint pale mark across his cheek'
+    assert looks.seen('burn scars on his forearms') == 'patches of smoother, paler skin on his forearms'
+    for detail in dating.DETAILS:
+        assert not re.search(r'broken|healed|scar|crooked|gap-tooth', looks.seen(detail))
+    drawn = looks.picture({'nose': 'a straight nose', 'feature': 'a broken nose that healed a little crooked'}, 'he')
+    assert drawn == 'A man with a nose that bends slightly to one side.'
+
+
+def test_damage_words_in_any_look_are_pictured_as_shapes():
+    """Krea draws "cleft", "chipped" and "crooked" literally, as cuts and damage, so every bank word is reworded."""
+    assert looks.seen('a cleft chin') == 'a chin with a faint vertical dimple'
+    assert looks.seen('his crooked smile') == 'his lopsided smile'
+    assert looks.seen('a gap-toothed smile') == 'a smile with a small gap between the front teeth'
+    assert looks.seen('ripped jeans and chipped nail polish') == 'faded jeans with open knees and nail polish'
+    words = r'\b(?:broken|healed|scars?|cleft|chipped|crooked|ripped|scuffed)\b'
+    banks = [*looks.bank()['jaw'], *looks.bank()['nose'], *dating.DETAILS, *dating.MODERN_DETAILS, *dating.BEARDS]
+    assert not [word for word in banks if re.search(words, looks.seen(word))]
+    event = {'summary': 'Read a book', 'place': '', 'caption': '', 'mood': ''}
+    prompt = prompts.compose('Sam', 'Sam has a cleft chin and wears ripped jeans.', [event], '')
+    assert 'cleft' not in prompt and 'ripped' not in prompt

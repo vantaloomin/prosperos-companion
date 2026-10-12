@@ -25,30 +25,37 @@ import httpx
 from companion import hardware
 from companion.database import decode, encode, identifier, many
 from companion.errors import DomainError, require
-from companion.providers.builtin_chat import CONTEXT, RESOURCE_GROUP, read_state, write_state
+from companion.providers.builtin_chat import CONTEXT, RESOURCE_GROUP, ROOMY_CONTEXT, SAMPLING, read_state, write_state
 from companion.providers.builtin_recall import free_port
 from companion.providers.config import SavedProfileConfig
 from companion.text_models import CHAT, assign, assigned, routes
 
 log = logging.getLogger('companion')
 HUB = 'https://huggingface.co'
-# Biggest first; `needs_gb` is the file plus the context's memory, so the whole model stays on the card.
-# Sizes and SHA-256 from the Hugging Face API on 2026-10-12, at the commit in `revision`.
+# Biggest first; `needs_gb` is the file plus a 16K context's memory, so the whole model stays on the card.
+# Sizes and SHA-256 from the Hugging Face API on 2026-10-12, at the commit in `revision`. `kv_bytes` is the
+# context's memory per token at 16 bits, from each model's config.json: 2 (keys and values) x full-attention layers
+# (one in four: 8 of 32, or 16 of 64 for the 27B) x 4 key-value heads x 256 per head x 2 bytes. The other layers
+# keep a state of fixed size.
 MODELS = [
     {'key': 'qwen3.8-27b', 'name': 'Qwen3.8 27B', 'quant': 'Q4_K_XL', 'bits': '4-bit', 'needs_gb': 21.0,
-     'repo': 'unsloth/Qwen3.8-27B-GGUF', 'revision': '4ca720788d1e01f1bff70c033e0d0028fd02e502',
+     'kv_bytes': 65536, 'repo': 'unsloth/Qwen3.8-27B-GGUF',
+     'revision': '4ca720788d1e01f1bff70c033e0d0028fd02e502',
      'file': 'Qwen3.8-27B-UD-Q4_K_XL.gguf', 'bytes': 17559178144,
      'sha256': '3f227079003add2511437e5b1e94812e363385225bf6a9b47b0054a72bc8b01e'},
     {'key': 'qwen3.5-9b-q8', 'name': 'Qwen3.5 9B', 'quant': 'Q8_0', 'bits': '8-bit', 'needs_gb': 12.0,
-     'repo': 'unsloth/Qwen3.5-9B-GGUF', 'revision': '3885219b6810b007914f3a7950a8d1b469d598a5',
+     'kv_bytes': 32768, 'repo': 'unsloth/Qwen3.5-9B-GGUF',
+     'revision': '3885219b6810b007914f3a7950a8d1b469d598a5',
      'file': 'Qwen3.5-9B-Q8_0.gguf', 'bytes': 9527502048,
      'sha256': '809626574d0cb43d4becfa56169980da2bb448f2299270f7be443cb89d0a6ae4'},
     {'key': 'qwen3.5-9b', 'name': 'Qwen3.5 9B', 'quant': 'Q4_K_M', 'bits': '4-bit', 'needs_gb': 7.0,
-     'repo': 'unsloth/Qwen3.5-9B-GGUF', 'revision': '3885219b6810b007914f3a7950a8d1b469d598a5',
+     'kv_bytes': 32768, 'repo': 'unsloth/Qwen3.5-9B-GGUF',
+     'revision': '3885219b6810b007914f3a7950a8d1b469d598a5',
      'file': 'Qwen3.5-9B-Q4_K_M.gguf', 'bytes': 5680522464,
      'sha256': '03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8'},
     {'key': 'qwen3.5-4b', 'name': 'Qwen3.5 4B', 'quant': 'Q4_K_M', 'bits': '4-bit', 'needs_gb': 4.0,
-     'repo': 'unsloth/Qwen3.5-4B-GGUF', 'revision': 'e87f176479d0855a907a41277aca2f8ee7a09523',
+     'kv_bytes': 32768, 'repo': 'unsloth/Qwen3.5-4B-GGUF',
+     'revision': 'e87f176479d0855a907a41277aca2f8ee7a09523',
      'file': 'Qwen3.5-4B-Q4_K_M.gguf', 'bytes': 2740937888,
      'sha256': '00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4'},
 ]
@@ -108,6 +115,13 @@ def pick(report: dict) -> tuple[dict, str]:
         reason = 'Your graphics card is small for a chat model, so part of it runs on the processor and replies ' \
                  'come slowly.'
     return MODELS[-1], reason
+
+
+def context_for(item: dict, space: float) -> int:
+    """The context the model runs with: twice the usual when the card holds the extra memory too (0.5 GB, or 1 GB for
+    the 27B), so more of the chat and its memories fit; the usual 16K otherwise."""
+    extra = (ROOMY_CONTEXT - CONTEXT) * item['kv_bytes'] / 1e9
+    return ROOMY_CONTEXT if space >= item['needs_gb'] + extra else CONTEXT
 
 
 def card(report: dict) -> dict | None:
@@ -353,8 +367,9 @@ class Ready:
                 await self.chat.install()
             path = self.target(item) if self.kept(item) else await self.obtain(item)
             port = self.state().get('port') or free_port()
-            self.save(model_path=str(path), port=port, received=item['bytes'], message='')
-            self.make_profile(item, port)
+            context = context_for(item, room(self.report())[0])
+            self.save(model_path=str(path), port=port, context=context, received=item['bytes'], message='')
+            self.make_profile(item, port, context)
             self.save(status='ready')  # Ready once its profile is there, so "ready" never shows without one.
             if uses_builtin(self.database):  # Picked another chat model meanwhile: it loads only when they Use it.
                 self.chat.kick()
@@ -438,12 +453,13 @@ class Ready:
                             self.save(received=self.received)
                             unsaved = 0
 
-    def make_profile(self, item: dict, port: int):
+    def make_profile(self, item: dict, port: int, context: int):
         """A "Built-in" chat profile for the model, given the chat job: the user asked for this model to reply. If they
-        picked another chat profile during the download, theirs stays and Settings offers this one instead."""
+        picked another chat profile during the download, theirs stays and Settings offers this one instead. It carries
+        the server's context and the models' recommended sampling, so Settings > Models shows what replies use."""
         config = SavedProfileConfig(provider='local', model=Path(item['file']).stem,
-                                    base_url=f'http://127.0.0.1:{port}/v1', context_tokens=CONTEXT,
-                                    timeout_seconds=300, resource_group=RESOURCE_GROUP).model_dump()
+                                    base_url=f'http://127.0.0.1:{port}/v1', context_tokens=context,
+                                    timeout_seconds=300, resource_group=RESOURCE_GROUP, **SAMPLING).model_dump()
         name = f"Built-in · {item['name']}"
         with self.database.connect(write=True) as connection:
             timestamp = self.database.now()

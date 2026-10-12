@@ -17,6 +17,7 @@ from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.providers.builtin_recall import recall_config
 from companion.providers.config import (
+    CLI_PROVIDERS,
     DEFAULT_URLS,
     PROVIDER_NAMES,
     ProfileConfig,
@@ -131,7 +132,7 @@ def default_name(config: dict) -> str:
 def store_key(vault, body, reference: str | None) -> str | None:
     if not body.api_key:
         return reference
-    require(body.config.provider != 'codex', 'Codex uses its own CLI login; do not enter a key here.', 422)
+    require(body.config.provider not in CLI_PROVIDERS, 'This provider uses its own CLI login; do not enter a key here.', 422)
     reference = reference or identifier()
     vault.put(reference, body.api_key)
     return reference
