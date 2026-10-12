@@ -165,10 +165,14 @@ def outside_python() -> str | None:
     Python: it has none of ComfyUI's packages, and whatever ComfyUI or its nodes installed would land in
     this app's environment."""
     own = Path(sys.prefix).absolute()
+    # Every folder on PATH in turn, not just the first match: this app's environment is often first on PATH, with
+    # the system Python behind it.
+    folders = [folder for folder in os.environ.get('PATH', '').split(os.pathsep) if folder]
     for name in ('python3', 'python'):
-        found = shutil.which(name)
-        if found and not Path(found).absolute().is_relative_to(own) and 'WindowsApps' not in Path(found).parts:
-            return found
+        for folder in folders:
+            found = shutil.which(name, path=folder)
+            if found and not Path(found).absolute().is_relative_to(own) and 'WindowsApps' not in Path(found).parts:
+                return found
     return None
 
 
