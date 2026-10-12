@@ -1216,7 +1216,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-bubbles .profile-name h1 { font-family: var(--ui-font); font-weight: 500; }
 .profile-bubbles .profile-bio { margin: 10px auto 0; padding: 0 24px; text-align: center; }
 .profile-bubbles :is(.profile-facts, .profile-interests) { justify-content: center; margin-inline: 24px; }
-.profile-bubbles .profile-tabs { justify-content: center; padding: 8px 16px; border: 0; }
+.profile-bubbles .profile-tabs { justify-content: safe center; padding: 8px 16px; border: 0; }
 .profile-bubbles .profile-tabs button { padding: 7px 16px; border: 0; border-radius: 999px; }
 .profile-bubbles .profile-tabs button[aria-current='page'] { background: var(--accent); color: var(--on-accent); }
 .profile-bubbles .post { border: 0; border-radius: 22px; background: var(--raised); }

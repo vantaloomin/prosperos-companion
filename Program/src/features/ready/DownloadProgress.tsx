@@ -45,7 +45,7 @@ function Controls({ view, phone, act }: { view: ReadyView; phone: boolean; act: 
   const key = modelOf(view).key
   return <div className="form-actions">
     {view.status === 'paused' || view.status === 'failed'
-      ? <button type="button" className="text-button" onClick={act(() => actions.start(key))}>Resume</button>
+      ? <button type="button" className="text-button" onClick={act(() => actions.start(key))}>{view.status === 'failed' ? 'Try again' : 'Resume'}</button>
       : <button type="button" className="text-button" onClick={act(actions.pause)}>Pause</button>}
     {!phone && <button type="button" className="text-button" onClick={act(actions.cancel)}>Cancel</button>}
   </div>
