@@ -206,6 +206,8 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'show_adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_adult_side IN (0, 1))'),
     # Record model calls (companion/model_calls.py): off unless the user turns it on in Settings > Debug.
     ('workspace_settings', 'record_model_calls', 'INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1))'),
+    # 100% Matchlight matches (Settings > Debug): every like is liked back. Off unless the user turns it on.
+    ('workspace_settings', 'debug_all_matches', 'INTEGER NOT NULL DEFAULT 0 CHECK (debug_all_matches IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
     # from before that is switched on once (see initialize), and turning it off afterwards sticks.
     ('life_settings', 'events_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),

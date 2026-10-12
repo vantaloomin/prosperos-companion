@@ -92,3 +92,16 @@ def test_a_new_world_takes_the_mix_and_the_old_one_keeps_its_own(client, compani
     ok(client.post(f"/api/worlds/{first['id']}/switch"))
     assert mix.current() == mix.DEFAULTS
     assert ok(client.get('/api/companion'))['companion']['version']['name'] == 'Mira'
+
+
+def test_with_100_percent_matches_every_like_is_a_match(client):
+    assert ok(client.get('/api/debug-matches')) == {'on': False}
+    ok(client.put('/api/debug-matches', json={'on': True}))
+    state = ok(client.put('/api/dating/profile', json={'name': 'Sam', 'age': 30, 'gender': 'man',
+                                                        'interested_in': ['woman'], 'looking_for': 'serious',
+                                                        'age_min': 22, 'age_max': 40, 'bio': ''}))
+    for _ in range(5):
+        state = ok(client.post('/api/dating/swipes', json={'key': state['deck'][0]['key'], 'like': True}))
+        assert state['matched']
+    # A pass is still a pass.
+    assert not ok(client.post('/api/dating/swipes', json={'key': state['deck'][0]['key'], 'like': False}))['matched']

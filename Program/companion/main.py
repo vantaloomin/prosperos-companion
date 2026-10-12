@@ -26,7 +26,7 @@ from companion import (
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.dating_photos import DatingPhotos
-from companion.debug_routes import calls_router, mix_router
+from companion.debug_routes import calls_router, matches_router, mix_router
 from companion.debug_routes import router as debug_router
 from companion.debug_time import DebugTime
 from companion.errors import DomainError
@@ -268,6 +268,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(worlds_routes.router)
     app.include_router(calls_router)
     app.include_router(mix_router)
+    app.include_router(matches_router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

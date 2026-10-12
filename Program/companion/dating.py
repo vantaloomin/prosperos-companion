@@ -176,8 +176,9 @@ def person(connection, key: str, town: str) -> tuple[dict, dict]:
 # Swipes and matches --------------------------------------------------------------------------------------
 
 def swipe(database, key: str, like: bool) -> dict:
-    """Pass or like someone in the deck. A like is a match only if their rules like the user back; a like that
-    is not returned simply never comes back, as on a real app."""
+    """Pass or like someone in the deck. A like is a match only if their rules like the user back (or always, with
+    Settings > Debug > 100% Matchlight matches); a like that is not returned simply never comes back, as on a real
+    app."""
     with database.connect(write=True) as connection:
         mine = profile(connection)
         require(mine is not None, 'Set up your profile first.', 409)
@@ -187,7 +188,7 @@ def swipe(database, key: str, like: bool) -> dict:
         sheet, data = person(connection, key, town)
         found = dating.details(sheet, data)
         require(dating.suits(sheet, found, mine), 'This person is not in your deck.', 409)
-        matched = like and dating.says_yes(sheet, found, mine)
+        matched = like and (bool(settings(connection).get('debug_all_matches')) or dating.says_yes(sheet, found, mine))
         connection.execute(
             'INSERT INTO dating_swipes (person_key, city_id, town, liked, matched, created_at) VALUES (?, ?, ?, ?, ?, ?)',
             (key, data['id'], town, int(like), int(matched), database.now()))

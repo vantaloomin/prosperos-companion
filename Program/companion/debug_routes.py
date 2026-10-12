@@ -7,11 +7,13 @@ from fastapi.responses import Response
 from pydantic import Field
 
 from companion import debug_time, model_calls, townsfolk_mix
+from companion.database import settings
 from companion.models import Input
 
 router = APIRouter(prefix='/api/debug-time')
 calls_router = APIRouter(prefix='/api/model-calls')
 mix_router = APIRouter(prefix='/api/townsfolk-mix')
+matches_router = APIRouter(prefix='/api/debug-matches')
 
 
 class SpeedChange(Input):
@@ -104,3 +106,23 @@ def town_mix(request: Request):
 async def new_world(request: Request, body: MixChange):
     """A new world made with this mix, switched to. Runs on the event loop, like a switch."""
     return townsfolk_mix.new_world(request.app.state, body.mix)
+
+
+class AllMatches(Input):
+    on: bool
+
+
+@matches_router.get('')
+def all_matches(request: Request):
+    """Whether every Matchlight like is a match (Settings > Debug)."""
+    with request.app.state.database.connect() as connection:
+        return {'on': bool(settings(connection)['debug_all_matches'])}
+
+
+@matches_router.put('')
+def set_all_matches(request: Request, body: AllMatches):
+    database = request.app.state.database
+    with database.connect(write=True) as connection:
+        connection.execute('UPDATE workspace_settings SET debug_all_matches=?, updated_at=? WHERE id=1',
+                           (int(body.on), database.now()))
+    return {'on': body.on}
