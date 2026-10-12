@@ -511,9 +511,13 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
     outing by money.household). Cheap: no model."""
     from companion.memory import records
     timezone = companion['version']['timezone']
-    today = now.astimezone(zone(timezone)).date()
+    # From the oldest one still planned, however long ago: after a long absence it still finishes.
+    oldest = optional(connection, "SELECT MIN(local_date) AS since FROM outings WHERE companion_id=? AND status='planned'",
+                      (companion['id'],))
+    if not oldest or not oldest['since']:
+        return 0
     done = 0
-    for outing in in_force(connection, companion['active_timeline_id'], (today - timedelta(days=7)).isoformat()):
+    for outing in in_force(connection, companion['active_timeline_id'], oldest['since']):
         if outing['status'] != 'planned' or state(outing, timezone, now) != 'done' or undoable_home(outing, now):
             continue
         day = date.fromisoformat(outing['local_date'])
