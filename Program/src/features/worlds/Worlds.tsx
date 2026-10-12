@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Globe, Plus, Trash2, UserRound, UserRoundPlus } from 'lucide-react'
 import { api } from '../../api'
@@ -67,6 +67,9 @@ interface PersonaWorldsProps { persona: Persona; cityId: string; run: Run; store
 function PersonaWorlds({ persona, cityId, run, store, onSwitch, onSwitchPersona }: PersonaWorldsProps) {
   const [deleting, setDeleting] = useState(false)
   const [adding, setAdding] = useState(false)
+  const addLink = useRef<HTMLButtonElement>(null)
+  // Closing the new-world form puts focus back on the link that opened it.
+  const closeAdding = () => { setAdding(false); requestAnimationFrame(() => addLink.current?.focus()) }
   const removable = !persona.active && persona.worlds.every((world) => !world.first)
   return (
     <section className="persona-worlds" aria-label={personaTitle(persona)}>
@@ -75,8 +78,8 @@ function PersonaWorlds({ persona, cityId, run, store, onSwitch, onSwitchPersona 
         {persona.worlds.map((world) => <WorldRow key={world.id} world={world} run={run} store={store} onSwitch={() => onSwitch(world)} />)}
       </ul>
       {adding
-        ? <NewWorld persona={persona} cityId={cityId} run={run} onDone={() => setAdding(false)} />
-        : <button type="button" className="text-button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />New world for {personaRef(persona)}</button>}
+        ? <NewWorld persona={persona} cityId={cityId} run={run} onDone={closeAdding} />
+        : <button ref={addLink} type="button" className="text-button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />New world for {personaRef(persona)}</button>}
       {deleting && <ConfirmDialog title={`Delete ${personaRef(persona)}?`} onClose={() => setDeleting(false)} actions={<>
         <button type="button" className="button" onClick={() => setDeleting(false)}>Keep</button>
         <button type="button" className="button danger" onClick={() => void run(async () => { store(await api<WorldsData>(`/worlds/personas/${persona.id}`, undefined, 'DELETE')); setDeleting(false) })}>Delete</button>
@@ -98,11 +101,12 @@ function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: 
     onDone()
   }).finally(() => setMaking(false)) }
   return (
-    <form className="new-world form-stack" aria-label={`New world for ${personaRef(persona)}`} onSubmit={(event) => { event.preventDefault(); void make() }}>
-      <CityPick value={city} currentId={cityId} onChange={setCity} />
+    <form className="new-world form-stack" aria-label={`New world for ${personaRef(persona)}`} onSubmit={(event) => { event.preventDefault(); void make() }}
+      onKeyDown={(event) => { if (event.key === 'Escape' && !making) onDone() }}>
+      <CityPick value={city} currentId={cityId} disabled={making} autoFocus onChange={setCity} />
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={making}>{making ? 'Making the world…' : 'Make this world'}</button>
-        <button type="button" className="text-button" onClick={onDone}>Cancel</button>
+        <button type="button" className="text-button" disabled={making} onClick={onDone}>Cancel</button>
       </div>
     </form>
   )

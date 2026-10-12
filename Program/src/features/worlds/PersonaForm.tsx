@@ -70,7 +70,7 @@ export function PersonaForm({ persona, cityId, onSaved, onCancel }: PersonaFormP
         hint="Month and day, like 04-23. Companions remember it and wish you a happy birthday." />
       <TextArea label="About you" value={draft.about} rows={3} maxLength={2000} onChange={(about) => set({ about })}
         placeholder="Works nights as a paramedic, has a one-eyed cat called Biscuit." />
-      {!persona && <CityPick value={city} currentId={cityId} onChange={setCity} />}
+      {!persona && <CityPick value={city} currentId={cityId} disabled={saving} onChange={setCity} />}
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={!valid || saving}>{saving ? text.busy : text.button}</button>
         {onCancel && <button type="button" className="text-button" onClick={onCancel}>Cancel</button>}

@@ -1570,7 +1570,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .world-row-actions { display: flex; align-items: center; gap: 10px; }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }
-.new-world { padding: 4px 10px 8px; max-width: 460px; }
+/* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
+.new-world { padding: 4px 10px 8px 68px; max-width: 528px; }
 @media (max-width: 720px) {
   .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
 }
