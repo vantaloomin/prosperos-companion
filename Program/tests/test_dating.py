@@ -7,7 +7,9 @@ from conftest import Chunk, send
 from test_drafting import connect
 from test_social_circle import make
 
+from companion import backup
 from companion import dating as app
+from companion.images import storage
 from companion.world import changes, dating, townsfolk
 
 PROFILE = {'name': 'Sam', 'age': 30, 'gender': 'man', 'interested_in': ['woman'], 'looking_for': 'serious',
@@ -220,3 +222,16 @@ def test_show_photo_makes_one_saved_portrait_from_their_looks(tmp_path, clock, p
         assert ok(client.post('/api/dating/photos', json={'key': key}))['status'] == 'completed'
         asyncio.run(client.app.state.dating_photos.drain())
         assert len(adapters['comfyui'].requests) == 1
+        # Backups carry the photo, so a restored workspace still has it.
+        database = client.app.state.database
+        saved = next(storage.directory(database).glob('dating-*'))
+        assert f'images/{saved.name}' in dict(backup.named_files(database.path, database.path.parent, False))
+        # A photo whose file is gone (a backup from before photos were carried) is no error: it reads as no photo,
+        # and asking makes it again.
+        saved.unlink()
+        assert client.get(made['url']).status_code == 404
+        assert ok(client.get(f'/api/dating/photos/{key}')) == {'status': 'none'}
+        assert ok(client.post('/api/dating/photos', json={'key': key}))['status'] == 'queued'
+        asyncio.run(client.app.state.dating_photos.drain())
+        assert client.get(ok(client.get(f'/api/dating/photos/{key}'))['url']).content == png()
+        assert len(adapters['comfyui'].requests) == 2

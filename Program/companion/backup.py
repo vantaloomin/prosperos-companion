@@ -35,6 +35,8 @@ FOLDERS = {
     'lora/references': 'SELECT file FROM lora_references UNION SELECT crop_file FROM lora_references '
                        'WHERE crop_file IS NOT NULL',
 }
+# Files named by tables a workspace from an older schema may not have yet (pre-upgrade backups keep their schema).
+NEWER = (('images', "SELECT file FROM dating_photos WHERE status='completed' AND file IS NOT NULL"),)
 DATASET_FOLDERS = ('lora/references',)
 # Profile pictures are reference pictures too, but always kept: without them a restored companion has no face.
 PROFILE_PICTURES = ('SELECT r.file FROM lora_references r JOIN companions c ON c.portrait_reference_id=r.id '
@@ -66,10 +68,16 @@ def named_files(copy: Path, workspace: Path, include_datasets: bool) -> list[tup
     connection = sqlite3.connect(copy)
     try:
         found = {}
-        for folder, query in FOLDERS.items():
+        for folder, query in (*FOLDERS.items(), *NEWER):
             if folder in DATASET_FOLDERS and not include_datasets:
                 query = PROFILE_PICTURES
-            for (name,) in connection.execute(query):
+            try:
+                names = connection.execute(query).fetchall()
+            except sqlite3.OperationalError:
+                if (folder, query) not in NEWER:
+                    raise
+                continue
+            for (name,) in names:
                 source = workspace / folder / name
                 if name and Path(name).name == name and source.is_file():
                     found[f'{folder}/{name}'] = source
