@@ -12,6 +12,8 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from companion.providers.urls import network
+
 log = logging.getLogger(__name__)
 SECONDS = 10
 # A lookup is kept this long, so opening Settings again does not ask the service again.
@@ -151,8 +153,8 @@ async def lookup(config: dict, key: str | None, transport=None, codex=None) -> d
             else:
                 if not key:
                     return None
-                async with httpx.AsyncClient(transport=transport, timeout=SECONDS, trust_env=False,
-                                             follow_redirects=False) as client:
+                async with httpx.AsyncClient(transport=transport, timeout=SECONDS, follow_redirects=False,
+                                             **network(config.get('base_url') or '')) as client:
                     items, plan = await LOOKUPS[service](client, config, key), None
     except Exception as error:  # noqa: BLE001 - a lookup that fails shows nothing, never an error
         log.info('No balance from %s: %s', service, type(error).__name__)

@@ -282,7 +282,7 @@ def apply(connection, fields, message_id, timestamp) -> tuple[dict | None, str]:
         bump_memory_revision(connection, timestamp)
     else:
         memory_id = records.revise(connection, records.get(connection, row['id']), timestamp,
-                                   value=fields['value'])['id']
+                                   value=fields['value'], stated_at=fields.get('stated_at'))['id']
         outcome = 'corrected'
     connection.execute('INSERT OR IGNORE INTO memory_sources (memory_id, message_id) VALUES (?, ?)',
                        (memory_id, message_id))

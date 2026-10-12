@@ -38,8 +38,11 @@ def duplicate_profile(profile_id: str, request: Request):
 
 
 @router.delete('/profiles/{profile_id}')
-def delete_profile(profile_id: str, request: Request):
-    return text_models.delete(db(request), request.app.state.vault, profile_id)
+async def delete_profile(profile_id: str, request: Request):
+    result = text_models.delete(db(request), request.app.state.vault, profile_id)
+    # The Built-in profile gone: its server stops and "Set it up for me" is offered again (companion/ready.py).
+    await request.app.state.ready.forget()
+    return result
 
 
 @router.post('/discover')

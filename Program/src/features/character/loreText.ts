@@ -7,6 +7,8 @@ export interface Brought {
   book: BroughtBook | null
   picture: boolean
   portrait?: boolean
+  /** Why the file's picture was left out, when it had one. */
+  picture_note?: string | null
   stepped_back?: string | null
 }
 export interface LoreEntry { id: string; title: string; text: string; keywords: string[]; always: boolean; pattern: boolean; enabled: boolean }
@@ -51,6 +53,7 @@ export function broughtText(result: Brought): string {
   const parts = [`${name} is here (from a ${result.format}).${life ? ` ${life}` : ''}`]
   if (result.book) parts.push(`Their lorebook came too: ${bookLine(result.book)}.`)
   if (result.picture) parts.push(result.portrait ? 'Their picture is their profile picture.' : 'Their picture is with their reference pictures.')
+  else if (result.picture_note) parts.push(result.picture_note)
   if (result.stepped_back) parts.push(`${result.stepped_back} stepped back and keeps everything.`)
   return parts.join(' ')
 }

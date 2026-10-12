@@ -21,6 +21,7 @@ from companion.providers.discovery_errors import check_with_deadline
 from companion.providers.events import Chunk, anthropic_event, chat_event, google_event, openai_event
 from companion.providers.prompt_cache import PromptCache
 from companion.providers.requests import REQUESTS, headers_for, validate_key
+from companion.providers.urls import network
 
 __all__ = ['INCOMPLETE', 'Chunk', 'ChatProvider']
 
@@ -182,7 +183,7 @@ class ChatProvider:
         try:
             async with asyncio.timeout(config['timeout_seconds']):
                 async with httpx.AsyncClient(transport=self.transport, timeout=config['timeout_seconds'],
-                                             follow_redirects=False, trust_env=False) as client:
+                                             follow_redirects=False, **network(config['base_url'])) as client:
                     body = {**body, **await self.prompts.prepare(client, config, system)}
                     async for chunk in self.request(client, config, key, path, body):
                         yield chunk
@@ -252,8 +253,8 @@ class ChatProvider:
             return await self.codex.check(config, key)
         config = await self.builtin_address(config)
         validate_key(config['provider'], key)
-        async with httpx.AsyncClient(transport=self.transport, timeout=15, trust_env=False,
-                                     follow_redirects=False) as client:
+        async with httpx.AsyncClient(transport=self.transport, timeout=15, follow_redirects=False,
+                                     **network(config['base_url'])) as client:
             return await check_with_deadline(discover_models, client, config, key)
 
     async def usage(self, profile_key: tuple, config: dict, key: str | None, fresh: bool = False) -> dict | None:

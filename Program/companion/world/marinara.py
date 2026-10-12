@@ -19,15 +19,16 @@ import re
 from typing import NamedTuple
 from zoneinfo import available_timezones
 
+from companion import lore
 from companion.errors import DomainError, require
 from companion.imports import lorebooks
 from companion.imports.characters import add_book
-from companion.world import catalog, custom, mend
+from companion.world import catalog, custom, mend, naming
 from companion.world.mend import slug
 from companion.world.schema import PLACE_KINDS, TRANSIT_KINDS
 
 FORMAT = 'marinara-hierarchical-map'
-BOOK_FORMAT = 'Marinara world map'
+BOOK_FORMAT = lore.MAP_FORMAT
 SOURCE = 'marinara'
 REGIONS = ('region', 'settlement')
 ROOMS = ('room', 'floor')
@@ -399,6 +400,7 @@ class _Map:
     def city(self) -> dict:
         roots = self.kids(None)
         zone = timezone_for([text(root.get('name')) for root in roots])
+        country = naming.country_for_zone(zone)
         if not self.places:
             self.places.append({'id': self.uid(self.city_name, 'place'), 'name': self.city_name, 'kind': 'landmark',
                                 'neighborhood': self.hoods[0]['id'], 'summary': self.summary(roots[0]), 'cost': 'free',
@@ -406,9 +408,9 @@ class _Map:
                                 'day_parts': ['afternoon', 'evening'], 'source': SOURCE})
         return {'schema_version': 1, 'id': slug(self.city_name) or 'my-world', 'name': self.city_name,
                 'setting': 'original', 'era': 'modern', 'region': zone.split('/')[0] if zone else 'Unknown',
-                'country': 'Unknown', 'timezone': zone or 'UTC', 'aliases': [], 'summary': self.summary(roots[0]),
+                'country': country or 'Unknown', 'timezone': zone or 'UTC', 'aliases': [], 'summary': self.summary(roots[0]),
                 'lat': 0.0, 'lon': 0.0,
-                'sources': {SOURCE: {'kind': 'user', 'title': text(f'Marinara world map: {self.map_name()}', TEXT),
+                'sources': {SOURCE: {'kind': 'user', 'title': text(f'{lore.MAP_TITLE}{self.map_name()}', TEXT),
                                      'license': 'User content', 'retrieved': self.today}},
                 'neighborhoods': self.hoods, 'places': self.places, 'employers': self.employers,
                 'transit': list(self.lines.values())}
@@ -431,7 +433,7 @@ class _Map:
         self.entries += made
         return len(made)
 
-    def notes(self, zone: str, carried: int) -> list[str]:
+    def notes(self, zone: str, carried: int, country: str | None = None) -> list[str]:
         roots, counts = self.kids(None), self.counts
         pictures = self.value.get('artwork')
         read = len(set(self.roles) | {root['id'] for root in roots})
@@ -454,6 +456,8 @@ class _Map:
             "No time zone matched the city's name, so it uses UTC; change it in the editor.",
             "Neighbourhood positions are fictional, worked out from the map's layout."
             + (f" Placed at the centre, with no spot on the map: {counts['unplaced']}." if counts['unplaced'] else ''),
+            f"The map does not say which country it is in, so it is {country}, from the city's time zone; change it "
+            'in the editor.' if country else
             'The map does not say which country it is in; set it in the editor for local holidays.',
         ]
         if carried:
@@ -480,7 +484,7 @@ def convert(value: dict, today: str) -> dict:
     entries = found.entries[:lorebooks.MAX_ENTRIES]
     book = {'name': found.map_name(), 'description': f'Places in {city["name"]}, from a Marinara world map.',
             'format': BOOK_FORMAT, 'entries': entries} if entries else None
-    notes = found.notes(city['timezone'], carried)
+    notes = found.notes(city['timezone'], carried, None if city['country'] == 'Unknown' else city['country'])
     if book:
         notes.append(f'{len(entries)} lore entries went into the world lorebook "{book["name"]}".')
     return {'city': city, 'book': book, 'notes': notes}
@@ -518,6 +522,8 @@ def bring(database, value: dict) -> dict:
     def with_book(connection, timestamp: str) -> None:
         if made['book']:
             added['book'] = add_book(connection, timestamp, made['book'], None, f"{made['book']['name']}.world-map.json")
+            # The notes follow the city into new worlds there and go when it is deleted (companion/lore.py).
+            connection.execute('UPDATE lore_books SET city_id=? WHERE id=?', (city['id'], added['book']['id']))
 
     saved = custom.create(database, city, also=with_book)
     return catalog.summary(saved) | {'import_notes': made['notes'] + saved.get('import_notes', []),

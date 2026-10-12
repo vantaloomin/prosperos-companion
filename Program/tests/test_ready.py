@@ -279,3 +279,22 @@ def test_a_companion_saved_during_the_download_is_written_up_when_it_is_ready(cl
     definition = client.get('/api/companion').json()['companion']['version']['definition']
     assert definition['name'] == 'Mira' and definition['personality'] == 'Warm and curious'
     assert definition['voice'] == 'Short, dry texts.' and definition['interests'] == ['bouldering']
+
+
+def test_deleting_the_built_in_profile_stops_its_server_and_offers_set_up_again(client, hub, companion):
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    view = settled(client)
+    send(client, 'hi', 'ready-message-1')
+    process = hub.processes[-1]
+    assert process.poll() is None
+    assert client.delete(f"/api/models/profiles/{view['profile_id']}").status_code == 200
+    assert process.poll() is not None, 'the server stopped'
+    after = client.get('/api/ready').json()
+    assert (after['status'], after['profile_id'], after['server']['state']) == ('idle', None, 'off')
+    # Setting it up again uses the checked file still on disk: nothing is downloaded again.
+    asked = len(hub.ranges)
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    again = settled(client)
+    assert again['status'] == 'ready' and len(hub.ranges) == asked
+    with client.app.state.database.connect() as connection:
+        assert config_for(connection, 'chat')['resource_group'] == 'builtin-chat'

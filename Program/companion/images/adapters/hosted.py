@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
+from companion.providers.urls import network
 
 REFUSAL_SIGNS = ('content_policy', 'content policy', 'safety', 'moderation', 'prohibited', 'blocked', 'nsfw')
 TIMEOUT_SECONDS = 180
@@ -117,9 +118,9 @@ class HostedAdapter:
         self.transport = transport
         self.timeout_seconds = timeout_seconds
 
-    def client(self):
-        return httpx.AsyncClient(transport=self.transport, timeout=self.timeout_seconds, trust_env=False,
-                                 follow_redirects=False)
+    def client(self, base_url: str):
+        return httpx.AsyncClient(transport=self.transport, timeout=self.timeout_seconds, follow_redirects=False,
+                                 **network(base_url))
 
     async def generate(self, request) -> ImageResult:
         if not request.key:
@@ -129,7 +130,7 @@ class HostedAdapter:
         headers = {'Authorization': f'Bearer {request.key}'}
         if request.reference is not None and not takes_reference(config, provider):
             raise AdapterError('incompatible', 'This image API cannot make a picture from a reference picture.')
-        async with self.client() as client:
+        async with self.client(config['base_url']) as client:
             if config.get('api_style') == 'chat':
                 body = {'model': config['model'], 'modalities': ['image', 'text'],
                         'messages': [{'role': 'user', 'content': chat_content(prompt, request.reference)}]}
@@ -213,7 +214,7 @@ class HostedAdapter:
         config = {**config, 'base_url': api_base(config['base_url'])}
         url = models_url(config, provider)
         try:
-            async with self.client() as client:
+            async with self.client(config['base_url']) as client:
                 response = await client.get(url, headers={'Authorization': f'Bearer {key}'} if key else {})
         except httpx.RequestError as error:
             raise AdapterError('unavailable', 'Cannot reach the provider at this address.') from error
@@ -235,7 +236,7 @@ class HostedAdapter:
             return Check(False, 'Add an API key for this provider.')
         config = {**config, 'base_url': api_base(config['base_url'])}
         try:
-            async with self.client() as client:
+            async with self.client(config['base_url']) as client:
                 url = models_url(config, backend.get('provider'))
                 response = await client.get(url, headers={'Authorization': f'Bearer {key}'})
         except httpx.RequestError:

@@ -44,10 +44,11 @@ def ended(memory, now) -> bool:
 
 
 def find_duplicate(connection, companion_id, timeline_id, fields, now) -> dict | None:
-    """The same value for the same subject, both current or both past, is one memory."""
+    """The same value for the same subject, both current or both past, is one memory; the same subject words count as
+    the same subject ("Dog: Pepper" kept under the dog's own key and under "dog")."""
     rows = many(connection, "SELECT * FROM memories WHERE companion_id=? AND status='active' AND layer=? "
-                'AND subject_key=? AND timeline_id=?',
-                (companion_id, fields['layer'], fields['subject_key'], timeline_id))
+                'AND (subject_key=? OR lower(subject)=lower(?)) AND timeline_id=?',
+                (companion_id, fields['layer'], fields['subject_key'], fields['subject'], timeline_id))
     value = fields['value'].casefold()
     past = ended(fields, now)
     return next((row for row in rows if row['value'].casefold() == value and ended(row, now) == past), None)
@@ -164,8 +165,9 @@ def confirm(database, memory_id) -> dict:
 
 
 def revise(connection, memory, timestamp, *, value, plan_status=None, applies_from=None, applies_until=None,
-           dates_uncertain=None) -> dict:
-    """A new revision supersedes the old value atomically; the old value stays as history (M9)."""
+           dates_uncertain=None, stated_at=None) -> dict:
+    """A new revision supersedes the old value atomically; the old value stays as history (M9). A correction found
+    in a message is stated when the message was sent, not when the background work got to it."""
     new_id = identifier()
     connection.execute("UPDATE memories SET status='superseded', updated_at=? WHERE id=?", (timestamp, memory['id']))
     connection.execute(
@@ -175,7 +177,7 @@ def revise(connection, memory, timestamp, *, value, plan_status=None, applies_fr
         "SELECT ?, companion_id, timeline_id, layer, subject, subject_key, ?, reality, 'stated', 'active', boundary, "
         'pinned, sensitive, ?, event_id, ?, ?, ?, ?, origin, revision+1, id, ended_by_id, person_id, ?, ? '
         'FROM memories WHERE id=?',
-        (new_id, value, plan_status or memory['plan_status'], timestamp,
+        (new_id, value, plan_status or memory['plan_status'], stated_at or timestamp,
          normalized_time(applies_from) or memory['applies_from'],
          normalized_time(applies_until) if applies_until else memory['applies_until'],
          int(memory['dates_uncertain'] if dates_uncertain is None else dates_uncertain),
