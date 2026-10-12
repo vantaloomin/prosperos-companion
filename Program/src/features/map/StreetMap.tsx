@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import { mainPin, type CityMapData } from './mapText'
 import { pinMarkup } from './pins'
 import { narrow } from './mapText'
+import { reducedMotion } from '../../motion'
 
 interface Props { data: CityMapData; selected: string | null; onSelect: (id: string) => void; onFail: () => void }
 
@@ -22,7 +23,7 @@ export function StreetMap({ data, selected, onSelect, onFail }: Props) {
   useEffect(() => { callbacks.current = { onSelect, onFail } }, [onSelect, onFail])
   useEffect(() => {
     if (!box.current) return
-    const created = L.map(box.current, { zoomControl: true, attributionControl: true }).setView([data.city.lat, data.city.lon], 13)
+    const created = L.map(box.current, { zoomControl: true, attributionControl: true, zoomAnimation: !reducedMotion(), fadeAnimation: !reducedMotion(), markerZoomAnimation: !reducedMotion() }).setView([data.city.lat, data.city.lon], 13)
     let failures = 0
     const waiting = window.setTimeout(() => callbacks.current.onFail(), FIRST_TILE_MS)
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -47,7 +48,7 @@ export function StreetMap({ data, selected, onSelect, onFail }: Props) {
   useEffect(() => {
     for (const [id, marker] of markers.current) marker.getElement()?.classList.toggle('selected', id === selected)
     const marker = selected ? markers.current.get(selected) : null
-    if (marker && map.current) map.current.panTo(clearOfCard(map.current, marker.getLatLng()))
+    if (marker && map.current) map.current.panTo(clearOfCard(map.current, marker.getLatLng()), { animate: !reducedMotion() })
   }, [selected])
   return <div ref={box} className="street-map" />
 }

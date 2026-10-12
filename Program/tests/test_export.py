@@ -105,6 +105,21 @@ def test_markdown_is_plain_text_that_stays_text(client, chat):
     assert '<b>' not in text
 
 
+def test_markdown_keeps_numbers_entities_and_links_as_text(client, chat):
+    add(client, chat, 'user', '1. one\nsee &lt;b&gt; and ![me](https://example.com/a.png) [x](javascript:alert(1))', 0)
+    text = exported(client, f"chat/{chat['timeline']}", 'md').text
+    assert '1\\. one  \nsee &amp;lt;b&amp;gt; and !\\[me\\](https://example.com/a.png) \\[x\\](javascript:alert(1))' in text
+
+
+def test_an_old_chat_brought_in_exports_both_sides(client, chat):
+    import json
+    rows = [{'role': 'user', 'content': 'Hi! My name is Sam'}, {'role': 'assistant', 'content': 'Hello Sam!'}]
+    data = base64.b64encode(json.dumps(rows).encode()).decode()
+    ok(client.post('/api/import/chat', json={'filename': 'old.json', 'data': data}))
+    text = exported(client, f"chat/{chat['timeline']}", 'md').text
+    assert 'Hi! My name is Sam' in text and 'Hello Sam!' in text
+
+
 def test_pictures_are_embedded_in_html_and_described_in_markdown(client, chat):
     database = client.app.state.database
     sent, made = png(4, 3), png(6, 5)
@@ -224,5 +239,5 @@ def test_filenames_keep_any_name_safely(clock):
     name = export.filename(transcript, 'html')
     assert name == 'Zoë Z - chat - 2026-10-05.html'
     assert export.disposition(name) == (
-        'attachment; filename="Zo Z - chat - 2026-10-05.html"; '
+        'attachment; filename="Zoe Z - chat - 2026-10-05.html"; '
         "filename*=UTF-8''Zo%C3%AB%20Z%20-%20chat%20-%202026-10-05.html")

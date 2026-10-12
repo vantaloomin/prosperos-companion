@@ -197,8 +197,7 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
         'name': sheet['full'],
         'identity': f"{sheet['age']}. {work_text(data, sheet)} Lives in {home}.",
         'personality': f"{name} is {temperament} and {sheet['quirk']}. People meeting {name} for the first time "
-                       f"say they {townsfolk.first_impression(sheet)}. Underneath, {name} wants "
-                       f"{townsfolk.DESIRES[sheet['desire']]}.",
+                       f"say they {townsfolk.first_impression(sheet)}. Underneath, {name} {wants(townsfolk.DESIRES[sheet['desire']])}.",
         'voice': VOICES.get(temperament) or perception.entry('temperament', temperament).get('town', {}).get('voice', ''),
         'flaws': [flaw[:1].upper() + flaw[1:] + '.'],
         'skills': [f"Knows the regulars and the rhythms of {sheet['place']['name']}."],
@@ -333,3 +332,8 @@ def reseed_town(database, fresh: bool) -> dict:
         connection.execute('DELETE FROM townsfolk_encounters WHERE timeline_id IN '
                            '(SELECT id FROM timelines WHERE companion_id=?)', (companion['id'],))
         return current(connection)
+
+
+def wants(desire: str) -> str:
+    """'wants to be known', but 'longs for someone to look after them' (a desire written as "for …")."""
+    return f"{'longs' if desire.startswith('for ') else 'wants'} {desire}"

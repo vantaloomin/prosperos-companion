@@ -111,7 +111,9 @@ def create(database, body, training_active=False) -> dict:
         held_out = [item['id'] for item in references.rows(connection) if item['role'] == 'evaluation']
         variants = ['lora', 'text'] if body.include_baseline else ['lora']
         planned = [item for variant in variants
-                   for item in build(definition['name'], adapter['trigger'], definition.get('appearance', ''), variant)]
+                   for item in build(definition['name'], adapter['trigger'],
+                                    (definition.get('in_photos') or '').strip() or definition.get('appearance', ''),
+                                    variant)]
         evaluation_id = identifier()
         timestamp = database.now()
         connection.execute(

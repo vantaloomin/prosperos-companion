@@ -126,7 +126,8 @@ def chosen_swipe(row: dict):
 
 def tavern_line(row, timezone) -> Line | None:
     """One SillyTavern message; system and narrator lines (and hidden ones, which are system) are left out."""
-    if not isinstance(row, dict) or row.get('is_system') or (row.get('extra') or {}).get('type') == 'narrator':
+    extra = row.get('extra') if isinstance(row, dict) else None
+    if not isinstance(row, dict) or row.get('is_system') or (isinstance(extra, dict) and extra.get('type') == 'narrator'):
         return None
     text = clipped(chosen_swipe(row))
     return Line('user' if row.get('is_user') else 'companion', text, when(row.get('send_date'), timezone)) \
@@ -195,17 +196,20 @@ def when(value, timezone: str) -> datetime | None:
     return found.astimezone(UTC) if found is not None and found >= EARLIEST else None
 
 
-def placed(lines: list[Line], first_existing: datetime, now: datetime) -> list[datetime]:
-    """When each line was said: the file's dates, gaps filled a STEP after the last, never going back
-    and never later than now; with no dates at all, sittings ending just before the chat's first message."""
+def placed(lines: list[Line], first_existing: datetime, now: datetime, first_said: datetime | None = None) \
+        -> list[datetime]:
+    """When each line was said: the file's dates, gaps filled a STEP after the last, never going back and never
+    later than an hour before the chat's own first message (`first_said`; older history stays older); with no
+    dates at all, sittings ending an hour before the first message there, older history included."""
     known = [index for index, line in enumerate(lines) if line.at]
     if not known:
         end, count = first_existing - BEFORE_FIRST, len(lines)
         return [end - (back // SITTING) * BETWEEN - (back % SITTING) * STEP
                 for back in (count - 1 - index for index in range(count))]
+    latest = min(first_said or now, now) - BEFORE_FIRST
     result, previous = [], lines[known[0]].at - STEP * (known[0] + 1)
     for line in lines:
-        previous = min(max(line.at, previous) if line.at else previous + STEP, now)
+        previous = min(max(line.at, previous) if line.at else previous + STEP, latest)
         result.append(previous)
     return result
 
@@ -221,13 +225,15 @@ def companion_for(connection, companion_id: str | None) -> dict:
     return found
 
 
-def first_seq_and_time(connection, timeline_id, now: datetime) -> tuple[int, datetime]:
-    """The lowest seq to write below (0 is never used, as a client reads it as "no page"), and when the
-    chat's first message was said."""
-    row = one(connection, 'SELECT MIN(seq) AS seq, MIN(created_at) AS at FROM messages WHERE timeline_id=?',
+def first_seq_and_time(connection, timeline_id, now: datetime) -> tuple[int, datetime, datetime]:
+    """The lowest seq to write below (0 is never used, as a client reads it as "no page"), when the first
+    message there was said, and when the chat's own first message was (older history brought in doesn't count)."""
+    row = one(connection, 'SELECT MIN(seq) AS seq, MIN(created_at) AS at, '
+              'MIN(CASE WHEN import_id IS NULL THEN created_at END) AS own FROM messages WHERE timeline_id=?',
               (timeline_id,))
     top = min(row['seq'] if row['seq'] is not None else 1, 1) - 1
-    return (top if top < 0 else -1), (parse(row['at']) if row['at'] else now)
+    return (top if top < 0 else -1), (parse(row['at']) if row['at'] else now), \
+        (parse(row['own']) if row['own'] else now)
 
 
 def write_messages(connection, companion, import_id, lines, times, last_seq) -> list[str]:
@@ -247,6 +253,16 @@ def write_messages(connection, companion, import_id, lines, times, last_seq) -> 
         'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, character_version_id, '
         "created_at, completed_at, import_id) VALUES (?, ?, ?, ?, ?, ?, 'complete', 1, ?, ?, ?, ?)", rows)
     return users
+
+
+def in_date_order(connection, timeline_id) -> None:
+    """Older history (every seq below 1) renumbered by date, so a second old chat that is older or newer than
+    the first lands where it belongs instead of always before it."""
+    ids = [row['id'] for row in connection.execute(
+        'SELECT id FROM messages WHERE timeline_id=? AND seq<1 ORDER BY created_at, seq', (timeline_id,))]
+    connection.execute('UPDATE messages SET seq=seq-? WHERE timeline_id=? AND seq<1', (len(ids) + 1, timeline_id))
+    connection.executemany('UPDATE messages SET seq=? WHERE id=?',
+                           [(index - len(ids), message_id) for index, message_id in enumerate(ids)])
 
 
 def remember(database, companion_id, message_ids, dated: bool) -> int:
@@ -309,14 +325,15 @@ def bring(database, filename: str, data: str, companion_id: str | None = None) -
         require(not optional(connection, 'SELECT 1 FROM chat_imports WHERE sha256=? AND id IN '
                              '(SELECT import_id FROM messages WHERE timeline_id=?)', (digest, timeline_id)),
                 'This chat already came in.', 409)
-        last_seq, first_at = first_seq_and_time(connection, timeline_id, now)
-        times, import_id = placed(lines, first_at, now), identifier()
+        last_seq, first_at, first_said = first_seq_and_time(connection, timeline_id, now)
+        times, import_id = placed(lines, first_at, now, first_said), identifier()
         connection.execute(
             'INSERT INTO chat_imports (id, companion_id, timeline_id, filename, format, sha256, messages, skipped, '
             'memories, dated, first_at, last_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
             (import_id, companion['id'], timeline_id, PureWindowsPath(filename).name[:200], kind, digest, len(lines),
              skipped, int(any(line.at for line in lines)), stamp(times[0]), stamp(times[-1]), database.now()))
         users = write_messages(connection, companion, import_id, lines, times, last_seq)
+        in_date_order(connection, timeline_id)
     memories = remember(database, companion['id'], users, any(line.at for line in lines))
     with database.connect(write=True) as connection:
         connection.execute('UPDATE chat_imports SET memories=? WHERE id=?', (memories, import_id))

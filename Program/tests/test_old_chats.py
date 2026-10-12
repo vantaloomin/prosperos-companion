@@ -237,6 +237,23 @@ def test_the_same_file_does_not_come_in_twice_and_a_second_file_goes_further_bac
     assert [item['text'] for item in history(client)] == ['First chat', 'Second chat']
 
 
+def test_old_chats_brought_in_out_of_order_sit_in_date_order(client, companion):
+    bring(client, tavern(line('March first', date='2025-3-1 @10h 00m 00s')), filename='a.jsonl')
+    bring(client, tavern(line('April first', date='2025-4-1 @10h 00m 00s')), filename='c.jsonl')
+    bring(client, tavern(line('March second', date='2025-3-2 @10h 00m 00s')), filename='b.jsonl')
+    messages = history(client)
+    assert [item['text'] for item in messages] == ['March first', 'March second', 'April first']
+    assert [item['seq'] for item in messages] == [-3, -2, -1]
+
+
+def test_an_old_chat_dated_after_the_chat_began_stays_before_it(client, connected):
+    first = send(client, 'Morning!', 'client-0001')['message']
+    bring(client, tavern(line('From the future', date='2030-1-1 @10h 00m 00s')))
+    messages = history(client)
+    assert messages[0]['text'] == 'From the future'
+    assert parse(messages[0]['created_at']) == parse(first['created_at']) - chats.BEFORE_FIRST
+
+
 @pytest.mark.parametrize(('raw', 'status'), [
     (b'\xff\xfe\x00binary', 422),
     (b'just some words', 422),

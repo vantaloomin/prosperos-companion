@@ -27,7 +27,7 @@ export function ConfirmDownload({ view, onClose }: { view: ReadyView; onClose: (
         {view.free_bytes !== null && <div className={fits ? undefined : 'short'}><dt>Space on {view.drive}</dt><dd>{size(view.free_bytes)} free</dd></div>}
         <div><dt>Licence</dt><dd><a href={model.page} target="_blank" rel="noreferrer">{model.licence}</a></dd></div>
       </dl>
-      {!fits && view.free_bytes !== null && <p className="download-short" role="alert">Needs {size(total)} on {view.drive}, only {size(view.free_bytes)} free. Free up some space, then try again.</p>}
+      {!fits && view.free_bytes !== null && <p className="download-short" role="alert">Needs about {size(total + 2e9)} free on {view.drive}: the download plus room to set it up. It has {size(view.free_bytes)}. Free up some space, then try again.</p>}
       <p className="subtle">You can create your companion while it downloads. If you close the app, it picks up where it left off.</p>
       {error && <p className="download-short" role="alert">{error}</p>}
     </ConfirmDialog>

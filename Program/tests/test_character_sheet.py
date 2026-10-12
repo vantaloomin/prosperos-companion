@@ -81,6 +81,19 @@ def test_new_looks_make_a_new_sheet(client, companion, clock, adapters):
     assert len(prompts) == 4 and 'CHARACTER REFERENCE SHEET' in prompts[2] and 'silver hair' in prompts[2]
 
 
+def test_a_new_in_photos_line_makes_a_new_sheet_that_follows_it(client, companion, clock, adapters):
+    add_backend(client, kind='codex')
+    generate(client, make_post(client, clock))
+    drain(client)
+    definition = {**companion['version']['definition'], 'in_photos': 'Always wears round tortoiseshell glasses.'}
+    ok(client.post('/api/companion/versions', json={'definition': definition, 'note': 'Glasses',
+                                                    'expected_version_id': companion['active_version_id']}))
+    generate(client, make_post(client, clock, key='event-0002'))
+    drain(client)
+    prompts = [request.prompt for request in adapters['codex'].requests]
+    assert len(prompts) == 4 and 'CHARACTER REFERENCE SHEET' in prompts[2] and 'tortoiseshell glasses' in prompts[2]
+
+
 def test_the_profile_picture_is_made_from_the_sheet_and_later_sheets_follow_it(client, companion, adapters):
     add_backend(client, kind='codex')
     profile = png(1024, 1536)

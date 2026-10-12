@@ -85,13 +85,23 @@ def free(definition: dict, days: list[date], holidays: set[str]) -> bool:
 
 
 def fits(home: dict, other: dict) -> bool:
-    """Same era, and a real city from a real one; invented and past places mix only with each other."""
+    """Same era and the same world: real cities and towns invented in our world (Haddon Harbor in Maine, Pellmouth)
+    mix, as do the cities of a made-up world (Camelot, Oz, Grandport); a user's own city visits real ones."""
     if other['id'] == home['id'] or other.get('era', 'modern') != home.get('era', 'modern'):
         return False
     if 'lat' not in other or 'lat' not in home or other.get('distribution', 'public') != 'public':
         return False
     mine, theirs = catalog.category(home), catalog.category(other)
-    return theirs != 'custom' and (mine == theirs or mine == 'custom' and theirs == 'real')
+    if theirs == 'custom':
+        return False
+    if mine == 'custom':
+        return theirs == 'real'
+    return ours(home) == ours(other)
+
+
+def ours(city: dict) -> bool:
+    """A real city, or one invented in our world ('original'), rather than a city of a made-up world."""
+    return city.get('setting') in ('real', 'original')
 
 
 def destinations(home: dict, reach: float) -> list[dict]:

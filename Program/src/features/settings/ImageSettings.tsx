@@ -82,7 +82,7 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
       <Toggle label="Make images for new posts automatically" checked={data.automatic_images} onChange={(value) => void save({ automatic_images: value })}
         hint="Needs background activity on. Only covers posts written from now on, never catch-up summaries, and stops at the daily limit." />
       <Toggle label="Send photos, selfies and memes in chat" checked={data.chat_photos} onChange={(value) => void save({ chat_photos: value })}
-        hint="Ask what they're up to, or for a selfie or a meme, and they can answer with a picture. A photo of the moment is also that moment's feed picture. Made by the backends below under the same content rules." />
+        hint="Ask what they're up to, or for a selfie or a meme, and they can answer with a picture. A photo of the moment is also that moment's feed picture. Made by the backends above under the same content rules." />
       <Toggle label="Let them send pictures without being asked" checked={data.unprompted_photos} disabled={!data.chat_photos} onChange={(value) => void save({ unprompted_photos: value })}
         hint="Now and then a reply comes with a photo or a meme, a few a day at most. If they may message you first (Life & cities), they sometimes text a photo of what they're out doing, once a day at most." />
       <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
@@ -96,7 +96,7 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
           </select>
         )}</Field>
       </div>
-      <TextInput label="Style" value={style ?? data.style} maxLength={500} placeholder="Candid, natural-light photograph" hint="Starts every image prompt, unless a backend below has its own style." onChange={setStyle} />
+      <TextInput label="Style" value={style ?? data.style} maxLength={500} placeholder="Candid, natural-light photograph" hint="Starts every image prompt, unless a backend above has its own style." onChange={setStyle} />
       {style !== null && (
         <div className="form-actions">
           <button type="button" className="button primary" onClick={() => void saveDrafts()}>Save</button>
@@ -110,14 +110,14 @@ function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Li
 const phoneEdits = (backend: ImageBackend) => backend.kind === 'hosted' && !editsAddress(backend)
 
 /** Where a backend connects and how it draws. A phone sees only what it may change. */
-function BackendSetup({ backend, phone, put }: { backend: ImageBackend; phone: boolean; put: (body: object) => Promise<boolean> }) {
+function BackendSetup({ backend, phone, put, putWorkflow }: { backend: ImageBackend; phone: boolean; put: (body: object) => Promise<boolean>; putWorkflow: (body: object) => Promise<string> }) {
   return <>
     {(!phone || phoneEdits(backend)) && <BackendConnection backend={backend} save={put} />}
     <BackendStyle backend={backend} save={(style) => put({ style })} />
     <ComfyFiles backend={backend} put={put} />
     {backend.kind === 'comfyui' && !phone && <>
-      <WorkflowEditor backend={backend} field="workflow" save={(value) => put({ workflow: value })} />
-      <WorkflowEditor backend={backend} field="reference_workflow" save={(value) => put({ reference_workflow: value })} />
+      <WorkflowEditor backend={backend} field="workflow" save={(value) => putWorkflow({ workflow: value })} />
+      <WorkflowEditor backend={backend} field="reference_workflow" save={(value) => putWorkflow({ reference_workflow: value })} />
     </>}
   </>
 }
@@ -147,7 +147,11 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
       {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
         hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
-      <BackendSetup backend={backend} phone={phone} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />
+      <BackendSetup backend={backend} phone={phone} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))}
+        putWorkflow={async (body) => {
+          // A refused workflow says why beside its own box, not at the foot of the section.
+          try { await api(`/images/backends/${backend.id}`, body, 'PUT'); await refresh(); return '' } catch (error) { return failure(error, 'That workflow could not be saved.') }
+        }} />
       {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
       <div className="post-actions backend-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
@@ -426,7 +430,7 @@ function jsonProblem(text: string): string {
 }
 
 /** The saved text, the box and what was just cleared, read when the section first opens. */
-function useWorkflow(backend: ImageBackend, field: WorkflowField, save: (value: string) => Promise<boolean>) {
+function useWorkflow(backend: ImageBackend, field: WorkflowField, save: (value: string) => Promise<string>) {
   const [saved, setSaved] = useState<string | null>(null)
   const [builtIn, setBuiltIn] = useState('')
   const [text, setText] = useState('')
@@ -439,9 +443,9 @@ function useWorkflow(backend: ImageBackend, field: WorkflowField, save: (value: 
     } catch (failed) { setError(failure(failed, 'The saved workflow could not be read.')) }
   }
   const store = async (value: string) => {
-    const problem = value ? jsonProblem(value) : ''
+    const problem = (value ? jsonProblem(value) : '') || await save(value)
     setError(problem)
-    if (problem || !(await save(value))) return
+    if (problem) return
     setRemoved(value ? '' : saved ?? ''); setSaved(readable(value)); setText(readable(value))
   }
   const edit = (value: string) => { setText(value); setError(''); setRemoved('') }
@@ -449,7 +453,7 @@ function useWorkflow(backend: ImageBackend, field: WorkflowField, save: (value: 
 }
 
 /** A ComfyUI backend's own workflow, or the one for pictures that follow another (the profile pictures). */
-function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field: WorkflowField; save: (value: string) => Promise<boolean> }) {
+function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field: WorkflowField; save: (value: string) => Promise<string> }) {
   const copy = WORKFLOWS[field]
   const set = field === 'workflow' ? backend.custom_workflow : backend.reference_workflow
   const flow = useWorkflow(backend, field, save)
@@ -459,8 +463,12 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
       <summary className="subtle">{copy.title} {set ? copy.set : copy.unset}</summary>
       <div className="form-stack workflow-editor">
         <Field label={copy.label} hint={copy.hint}>{(id, describedBy) =>
-          <textarea id={id} rows={12} value={flow.text} placeholder={copy.placeholder} spellCheck={false} aria-describedby={describedBy}
-            aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />}</Field>
+          <>
+            <textarea id={id} rows={12} value={flow.text} placeholder={copy.placeholder} spellCheck={false} aria-describedby={describedBy}
+              aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />
+            {/* Right under the box it is about, above the hint (Iris). */}
+            {flow.error && <Notice tone="error">{flow.error}</Notice>}
+          </>}</Field>
         <WorkflowActions flow={flow} copy={copy} set={set} startFrom={startFrom} />
       </div>
     </details>
@@ -473,7 +481,6 @@ type Workflow = ReturnType<typeof useWorkflow>
 function WorkflowActions({ flow, copy, set, startFrom }: { flow: Workflow; copy: (typeof WORKFLOWS)[WorkflowField]; set: boolean; startFrom: string }) {
   const edited = flow.saved !== null && flow.text !== flow.saved
   return <>
-    {flow.error && <Notice tone="error">{flow.error}</Notice>}
     {flow.removed && <Notice action={<button type="button" className="text-button" onClick={() => void flow.store(flow.removed)}>Undo</button>}>{copy.cleared}</Notice>}
     <div className="form-actions">
       <button type="button" className="button primary" disabled={!flow.text.trim() || flow.text === flow.saved} onClick={() => void flow.store(flow.text.trim())}>Save workflow</button>

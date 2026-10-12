@@ -41,7 +41,7 @@ def test_the_pages_come_from_what_happened(client, connected, clock):
     kinds = [page['kind'] for page in book['pages']]
     assert kinds[0] == 'cover' and kinds[1] == 'first' and kinds[-1] == 'closing'
     cover = book['pages'][0]
-    assert {'value': '2', 'label': 'Days talked'} in cover['stats']
+    assert {'value': '2', 'label': 'Days of talking'} in cover['stats']
     first = book['pages'][1]
     assert first['title'] == 'The first thing you said' and first['said'].startswith('Hi! I just moved here')
     assert first['reply']

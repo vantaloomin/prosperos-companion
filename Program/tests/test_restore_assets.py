@@ -54,6 +54,17 @@ def test_datasets_are_left_out_by_default_and_reported_as_excluded(client, works
     assert report['excluded'] == [{'kind': 'reference', 'id': workspace['reference']['id']}]
 
 
+def test_the_profile_picture_is_kept_even_without_datasets(client, app, workspace, tmp_path):  # noqa: F811
+    reference = workspace['reference']['id']
+    with app.state.database.connect(write=True) as connection:
+        connection.execute('UPDATE companions SET portrait_reference_id=?', (reference,))
+    created = ok(client.post('/api/backups'))
+    with zipfile.ZipFile(created['path']) as handle:
+        assert len([name for name in handle.namelist() if name.startswith('lora/references/')]) >= 1
+    restored = backup.restore(Path(created['path']), tmp_path / 'restored' / 'companion.sqlite3')
+    assert restored.restored_assets['excluded'] == [] and restored.restored_assets['missing'] == []
+
+
 def test_a_damaged_asset_refuses_the_whole_restore(client, workspace, tmp_path):  # noqa: F811
     created = ok(client.post('/api/backups'))
     damaged = tmp_path / 'damaged.zip'

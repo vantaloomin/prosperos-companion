@@ -305,6 +305,8 @@ export interface Connection {
   context_tokens: number
   timeout_seconds: number
   embedding_model?: string | null
+  /** The model "Set it up for me" downloaded (companion/ready.py), named as the welcome step names it. */
+  builtin?: boolean
 }
 
 export type Layer = 'user_fact' | 'shared_experience' | 'plan' | 'temporary' | 'relationship' | 'companion_life'

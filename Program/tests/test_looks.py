@@ -92,3 +92,8 @@ def test_someone_whose_identity_says_they_are_under_18_is_never_given_an_adult_a
     assert sheet['age'] is None
     assert 'years old' not in looks.text(sheet) and 'twenties' not in looks.picture(sheet, 'she')
     assert looks.for_companion('c1', {'identity': 'June Park, 26. She runs a bakery.'})['age'] == 26
+
+
+def test_a_height_written_in_words_counts_as_said():
+    for text in ("She's five-foot-six with a runner's legs.", 'A 6 foot 2 frame.', 'A six-footer.'):
+        assert 'height_cm' in looks.covered(text)

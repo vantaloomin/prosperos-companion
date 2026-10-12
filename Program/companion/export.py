@@ -15,6 +15,7 @@ makes a file most editors and viewers struggle with; the note at the top points 
 import base64
 import html
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -87,7 +88,7 @@ def chat(database, thread_id: str) -> Transcript:
 def companion_entries(database, connection, timeline_id: str, name: str, now) -> list[Entry]:
     """The user's messages and the replies the chat shows (the chosen, finished ones whose time has come)."""
     rows = many(connection, 'SELECT * FROM messages WHERE timeline_id=? AND redacted_at IS NULL AND superseded_at IS NULL '
-                f"AND (role='user' OR ({chats.shown()})) ORDER BY seq", (timeline_id, stamp(now)))
+                f"AND (role='user' OR import_id IS NOT NULL OR ({chats.shown()})) ORDER BY seq", (timeline_id, stamp(now)))
     ids = [row['id'] for row in rows]
     sent = pictures.for_messages(connection, ids)
     made = photos.for_messages(connection, ids)
@@ -264,12 +265,16 @@ def to_html(transcript: Transcript) -> str:
 
 # Markdown -----------------------------------------------------------------------------------------
 
-BLOCK_START = re.compile(r'^(\s*)([#>+\-=|`~]|\d+[.)])')
+BLOCK_START = re.compile(r'^(\s*)([#>+\-=|`~])')
+NUMBERED = re.compile(r'^(\s*\d+)([.)])')
 
 
 def md_line(line: str) -> str:
-    """A line of text that reads as itself: no HTML gets through, and nothing turns into a heading or a list."""
-    return BLOCK_START.sub(r'\1\\\2', line.replace('<', '&lt;'))
+    """A line of text that reads as itself: no HTML or entity gets through, nothing turns into a heading or a
+    list, and no link or remote picture is made ("1\\." keeps the number and stops the list)."""
+    line = line.replace('&', '&amp;').replace('<', '&lt;')
+    line = re.sub(r'([\[\]])', r'\\\1', line)
+    return NUMBERED.sub(r'\1\\\2', BLOCK_START.sub(r'\1\\\2', line))
 
 
 def md_text(text: str) -> str:
@@ -278,7 +283,7 @@ def md_text(text: str) -> str:
 
 
 def md_name(name: str) -> str:
-    return re.sub(r'([\\*_`\[\]])', r'\\\1', name.replace('<', '&lt;'))
+    return re.sub(r'([\\*_`\[\]])', r'\\\1', name.replace('&', '&amp;').replace('<', '&lt;'))
 
 
 def entry_md(transcript: Transcript, entry: Entry) -> str:
@@ -319,7 +324,8 @@ def filename(transcript: Transcript, kind: str) -> str:
 
 def disposition(name: str) -> str:
     """The name for every browser: a plain ASCII one, and the exact one for browsers that read filename*."""
-    plain = name.encode('ascii', 'ignore').decode('ascii').strip() or f'export{Path(name).suffix}'
+    plain = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('ascii')
+    plain = ' '.join(plain.split()) or f'export{Path(name).suffix}'
     return f'attachment; filename="{plain}"; filename*=UTF-8\'\'{quote(name, safe="")}'
 
 

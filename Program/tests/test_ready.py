@@ -181,7 +181,7 @@ def test_a_bad_download_is_thrown_away(client, hub, monkeypatch):
     monkeypatch.setattr(ready, 'MODELS', [*ready.MODELS[:-1], broken])
     client.post('/api/ready', json={'model': 'qwen3.5-4b'})
     view = settled(client)
-    assert view['status'] == 'failed' and 'checksum' in view['message']
+    assert view['status'] == 'failed' and 'damaged' in view['message'] and view['received'] == 0
     assert not list((client.app.state.builtin_chat.folder / 'models').glob('*.partial'))
 
 
@@ -226,7 +226,29 @@ def test_a_chat_profile_picked_during_the_download_stays(client, hub, monkeypatc
     client.post('/api/ready', json={'model': 'qwen3.5-4b'})
     view = settled(client)
     assert view['status'] == 'ready' and view['in_use'] is False and view['profile_id']
+    assert not hub.processes  # Not loaded onto the card beside their own model until they choose it.
     assert client.post('/api/ready/use').json()['in_use'] is True
+
+
+def test_a_check_cut_short_by_a_restart_runs_again(client, hub):
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    assert settled(client)['status'] == 'ready'
+    ready_app = client.app.state.ready
+    path = ready_app.target(ready.model('qwen3.5-4b'))
+    path.replace(path.with_name(path.name + '.partial'))
+    ready_app.save(status='checking')
+
+    async def restart():
+        ready_app.recover()
+
+    client.portal.call(restart)
+    assert settled(client)['status'] == 'ready'
+
+
+def test_a_write_up_waiting_on_a_discarded_download_goes_with_it(client):
+    ready_app = client.app.state.ready
+    ready_app.save(status='cancelled', model_key='qwen3.5-4b', queued={'name': 'Mira', 'status': 'waiting'})
+    assert client.delete('/api/ready').json()['queued'] is None
 
 
 def test_the_view_names_the_card_the_drive_and_the_runtime_download(client):

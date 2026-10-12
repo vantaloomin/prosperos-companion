@@ -97,7 +97,7 @@ def pick(report: dict) -> tuple[dict, str]:
     fitting = next((item for item in MODELS if item['needs_gb'] <= space), None)
     if fitting:
         return fitting, reason
-    if space:
+    if space or reason.startswith('It fits'):  # Local pictures can leave no room at all: nothing fits then.
         reason = 'Your graphics card is small for a chat model, so part of it runs on the processor and replies ' \
                  'come slowly.'
     return MODELS[-1], reason
@@ -220,7 +220,8 @@ class Ready:
         have = partial.stat().st_size if partial.exists() else 0
         free = self.free_bytes()
         require(free is None or free >= item['bytes'] - have + SPARE_BYTES,
-                f"There is not enough free disk space for {item['name']} ({item['bytes'] / 1e9:.1f} GB).", 409)
+                f"There is not enough free disk space for {item['name']}: it needs about "
+                f"{(item['bytes'] - have + SPARE_BYTES) / 1e9:.1f} GB free.", 409)
         if self.state().get('status') not in UNDER_WAY:
             # The chat profile in use as it starts: if the user picks another meanwhile, theirs stays (Iris).
             with self.database.connect() as connection:
@@ -242,7 +243,8 @@ class Ready:
         """After a restart, a download the user confirmed carries on where it stopped, and one they cancelled is
         cleared away (the Undo it offered is over)."""
         state = self.state()
-        if state.get('status') == 'downloading' and state.get('model_key'):
+        if state.get('status') in ('downloading', 'checking') and state.get('model_key'):
+            # A check cut short by a restart runs again: the whole part file is still there, so only the hash reruns.
             self.launch(model(state['model_key']))
         elif state.get('status') == 'cancelled':
             self.discard()
@@ -257,14 +259,14 @@ class Ready:
 
     async def pause(self) -> dict:
         await self.stop()
-        if self.state().get('status') == 'downloading':
+        if self.state().get('status') in ('downloading', 'checking'):
             self.save(status='paused', received=self.received)
         return self.view()
 
     async def cancel(self) -> dict:
         """Stops at once; the part already downloaded stays for the Undo the page offers, until `discard`."""
         await self.stop()
-        if self.state().get('status') in ('downloading', 'paused', 'failed'):
+        if self.state().get('status') in ('downloading', 'checking', 'paused', 'failed'):
             self.save(status='cancelled', received=self.received or self.state().get('received', 0))
         return self.view()
 
@@ -274,7 +276,8 @@ class Ready:
         if state.get('status') == 'cancelled' and state.get('model_key'):
             item = model(state['model_key'])
             self.target(item).with_name(item['file'] + '.partial').unlink(missing_ok=True)
-            self.save(status='idle', model_key=None, received=0, bytes=0, message='')
+            # A companion queued for a write-up goes too: it would otherwise wait for a model that never comes.
+            self.save(status='idle', model_key=None, received=0, bytes=0, message='', queued=None)
         return self.view()
 
     def use(self) -> dict:
@@ -328,13 +331,16 @@ class Ready:
             digest = await asyncio.to_thread(sha256, path.with_name(path.name + '.partial'))
             if digest != item['sha256']:
                 path.with_name(path.name + '.partial').unlink(missing_ok=True)
-                raise DomainError(f"The {item['name']} download did not match its checksum, so it was not used. "
-                                  'Try again.', 502)
+                self.received = 0
+                # The file's checksum didn't match: said plainly (Iris).
+                raise DomainError('The download came through damaged, so it wasn\'t used. Try again to download it '
+                                  'fresh.', 502)
             path.with_name(path.name + '.partial').replace(path)
             port = self.state().get('port') or free_port()
             self.save(status='ready', model_path=str(path), port=port, received=item['bytes'], message='')
             self.make_profile(item, port)
-            self.chat.kick()
+            if uses_builtin(self.database):  # Picked another chat model meanwhile: it loads only when they Use it.
+                self.chat.kick()
         except DomainError as error:
             self.save(status='failed', message=error.message, received=self.received)
             return

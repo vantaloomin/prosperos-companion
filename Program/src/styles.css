@@ -225,6 +225,11 @@ textarea { resize: vertical; line-height: 1.6; }
   /* Tab labels grow with the text size up to 14px, as phone tab bars do, so they never cut a word or push the icons off. */
   .app-nav button { font-size: min(0.6875rem, 14px); }
   .app-nav button > span:last-child { white-space: nowrap; }
+  /* OpenDyslexic's wide letters would run five labels into each other, so the bar keeps the app's own font. */
+  :root[data-font='opendyslexic'][data-font-everywhere='true'] .app-nav button > span:last-child { font-family: var(--ui-font) !important; }
+  /* At large text sizes the profile's tabs scroll sideways rather than leaving the last one off screen. */
+  .profile-tabs { overflow-x: auto; scrollbar-width: none; }
+  .profile-tabs button { flex: none; white-space: nowrap; }
   /* Text buttons in the download row and the export menu get a finger-sized target; they still look like links. */
   .download-progress .text-button, .export-link { min-height: 44px; padding-inline: 8px; }
   /* At large text sizes the chat header's lines stay one line each and end in an ellipsis, so the back chevron and
@@ -609,6 +614,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .backend-actions { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .workflow-editor .label-row { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .workflow-editor textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.8125rem; line-height: 1.5; white-space: pre; overflow-x: auto; overflow-wrap: normal; tab-size: 2; resize: vertical; }
+.workflow-editor textarea[aria-invalid='true'] { border-color: var(--danger); }
+.in-photos-follow { align-self: flex-start; }
 .workflow-editor code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.92em; }
 .workflow-editor .form-actions { flex-wrap: wrap; }
 .workflow-editor .workflow-reset { margin-left: auto; }
@@ -1211,7 +1218,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-bubbles .profile-name h1 { font-family: var(--ui-font); font-weight: 500; }
 .profile-bubbles .profile-bio { margin: 10px auto 0; padding: 0 24px; text-align: center; }
 .profile-bubbles :is(.profile-facts, .profile-interests) { justify-content: center; margin-inline: 24px; }
-.profile-bubbles .profile-tabs { justify-content: center; padding: 8px 16px; border: 0; }
+.profile-bubbles .profile-tabs { justify-content: safe center; padding: 8px 16px; border: 0; }
 .profile-bubbles .profile-tabs button { padding: 7px 16px; border: 0; border-radius: 999px; }
 .profile-bubbles .profile-tabs button[aria-current='page'] { background: var(--accent); color: var(--on-accent); }
 .profile-bubbles .post { border: 0; border-radius: 22px; background: var(--raised); }
@@ -1617,7 +1624,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .web-node .web-hover-name { display: none; } .web-node:hover .web-hover-name { display: inline; }
 .web-empty { padding: 40px 24px; }
 .today-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-@media (max-width: 720px) { .today-actions { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; width: 100%; padding-bottom: 2px; } .today-actions .button { flex: none; } }
+/* On a phone the buttons sit on their own row under the title and wrap at large text, never running off the edge. */
+@media (max-width: 720px) { .today-actions { flex-wrap: wrap; justify-content: flex-start; width: 100%; } .today-actions .button { flex: none; max-width: 100%; } }
 @media (max-width: 720px) {
   .web-bar { padding: 12px 16px; display: grid; grid-template-columns: auto 1fr auto; }
   .web-title { grid-column: 2; grid-row: 1; } .web-bar > .button { grid-column: 3; grid-row: 1; }
