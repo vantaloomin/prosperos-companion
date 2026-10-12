@@ -119,6 +119,9 @@ def test_a_phone_can_add_an_image_api_but_not_an_address_or_program(client, phon
                                                              'base_url': 'https://example.com/v1'}),
                     phone.put(f'/api/images/backends/{backend_id}', json={'base_url': 'https://example.com/v1'})):
         assert refused.status_code == 403 and 'Settings > Images' in refused.json()['detail']
+    comfy = client.post('/api/images/backends', json={'kind': 'comfyui', 'base_url': 'http://127.0.0.1:8188'}).json()
+    read = phone.get(f"/api/images/backends/{comfy['id']}/workflows")
+    assert read.status_code == 403 and 'Settings > Images' in read.json()['detail']
 
 
 def test_a_paired_phone_can_still_read_those_settings(client, phone, connected, enabled):
