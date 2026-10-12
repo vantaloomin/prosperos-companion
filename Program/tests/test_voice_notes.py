@@ -253,3 +253,30 @@ def test_the_built_in_voice_installs_only_what_matches_its_checksum(tmp_path, mo
     monkeypatch.setattr(kokoro, 'MODEL', ('models/kokoro.tar.bz2', len(model), hashlib.sha256(model).hexdigest()))
     assert asyncio.run(voice.install())['ready'] is True
     assert not any((tmp_path / 'downloads').iterdir())
+
+
+def test_the_built_in_voice_waits_for_a_press_to_download(app, monkeypatch):
+    """Big downloads happen only after a press: starting with background activity on downloads nothing."""
+    from fastapi.testclient import TestClient
+
+    from companion import auto_backup
+    from companion.identity import CLIENT_HEADER
+
+    async def idle(*_args, **_kwargs):
+        return None
+
+    for worker in (app.state.life, app.state.images, app.state.push):
+        monkeypatch.setattr(worker, 'run_forever', idle)
+    monkeypatch.setattr(auto_backup, 'run_forever', idle)
+    monkeypatch.setattr(app.state.launcher, 'launch_all', idle)
+    monkeypatch.setattr(app.state.builtin_recall, 'kick', lambda: None)
+    monkeypatch.setattr(app.state.ready, 'recover', lambda: None)
+    pressed = []
+    monkeypatch.setattr(app.state.voice.kokoro, 'install', lambda: pressed.append(True) or idle())
+    app.state.life_tasks = True
+    with TestClient(app, headers={CLIENT_HEADER: 'workspace'}) as client:
+        view = client.get('/api/voice').json()
+        assert view['voice_notes'] and view['engine'] == 'builtin' and not view['builtin']['downloading']
+        assert pressed == []
+        client.post('/api/voice/builtin/download', json={})
+    assert pressed == [True]

@@ -67,7 +67,6 @@ from companion.ready_routes import router as ready_router
 from companion.recall_routes import router as recall_router
 from companion.routes import router
 from companion.text_model_routes import router as model_router
-from companion.voice import notes as voice_notes
 from companion.voice.notes import VoiceNotes
 from companion.voice_routes import router as voice_router
 from companion.world import changes as city_changes
@@ -127,18 +126,6 @@ async def start_lan(app):
             logging.getLogger('companion').warning('%s', error.message)
 
 
-async def prepare_voice(voice):
-    """Voice notes are on by default, so the built-in voice downloads by itself the first time it is needed."""
-    with voice.database.connect() as connection:
-        current = voice_notes.read(connection)
-    if not current['voice_notes'] or current['engine'] != 'builtin' or voice.kokoro.ready():
-        return
-    try:
-        await voice.kokoro.install()
-    except DomainError as error:
-        logging.getLogger('companion').warning('The built-in voice did not download: %s', error.message)
-
-
 @asynccontextmanager
 async def lifespan(app):
     recover(app.state.database)
@@ -160,7 +147,7 @@ async def lifespan(app):
         app.state.ready.recover()
         if uses_builtin(app.state.database):
             app.state.builtin_chat.kick()
-        tasks.append(asyncio.create_task(prepare_voice(app.state.voice)))
+        # The built-in voice is a big download, so it waits for the press in Settings > Models (docs/voice-notes.md).
         # Local programs the user asked to start with the Companion (off until turned on).
         tasks.append(asyncio.create_task(app.state.launcher.launch_all()))
     app.state.memory.kick()
