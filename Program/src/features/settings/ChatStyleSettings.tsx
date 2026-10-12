@@ -4,8 +4,10 @@ import { Toggle } from '../../components/Fields'
 import { CHAT_STYLES } from '../conversation/chatStyles'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { ColorSchemeSettings } from './ColorSchemeSettings'
+import { DeviceLookSettings } from './DeviceLookSettings'
 
-/** General > Appearance: how the chat looks, Retro IM's optional sounds and dark mode, and the app's colors. */
+/** General > Appearance: how the chat looks, Retro IM's optional sounds and dark mode, the app's colors, and this
+ * device's text size, reading font and motion. */
 export function ChatStyleSettings() {
   const chat = useChatStyle()
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +40,8 @@ export function ChatStyleSettings() {
         </div>
         <p className="chat-style-extras-panel subtle" hidden={retro}>No extra options for this style.</p>
       </div>
-      <ColorSchemeSettings scheme={chat.scheme} palette={chat.palette} save={save} />
+      <ColorSchemeSettings theme={chat.theme} scheme={chat.scheme} palette={chat.palette} save={save} />
+      <DeviceLookSettings />
     </section>
   )
 }

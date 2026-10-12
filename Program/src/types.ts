@@ -255,13 +255,8 @@ export interface WorkspaceSettings {
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */
   custom_palette?: Palette | null
-  /** Light or dark: 'system' follows the computer, using color_scheme as the dark profile. */
-  theme?: 'system' | 'dark' | 'light'
-  /** Text size in percent, 85 to 200. */
-  text_scale?: number
-  reading_font?: 'default' | 'atkinson' | 'opendyslexic'
-  /** 'system' follows the computer's reduce-motion setting. */
-  motion?: 'system' | 'reduce' | 'full'
+  /** 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme. */
+  theme?: 'system' | 'scheme' | 'paper'
   /** They can ask to remember more: one hidden extra look through memory when a reply needs it. On unless turned off. */
   recall_more?: boolean
   /** Out-of-character asides go to the helper instead of the companion (src/features/conversation/ooc.ts). */

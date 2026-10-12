@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   -- The app's colors, Prospero's Study's palettes; Retro IM keeps its own. custom_palette is JSON hex colors.
   color_scheme TEXT NOT NULL DEFAULT 'ink' CHECK (color_scheme IN ('ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom')),
   custom_palette TEXT NOT NULL DEFAULT '',
+  -- Light or dark: 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
+  theme TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('system', 'scheme', 'paper')),
   -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).

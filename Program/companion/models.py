@@ -275,11 +275,8 @@ class SettingsUpdate(Input):
     chat_retro_dark: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
-    # Look and accessibility: 'system' follows the computer's light or dark; color_scheme is the dark profile.
-    theme: Literal['system', 'dark', 'light'] | None = None
-    text_scale: int | None = Field(default=None, ge=85, le=200)
-    reading_font: Literal['default', 'atkinson', 'opendyslexic'] | None = None
-    motion: Literal['system', 'reduce', 'full'] | None = None
+    # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
+    theme: Literal['system', 'scheme', 'paper'] | None = None
     ask_about_people: bool | None = None
     story_mode: bool | None = None
     show_secret_slips: bool | None = None
