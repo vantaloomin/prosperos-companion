@@ -332,8 +332,9 @@ class Ready:
             if digest != item['sha256']:
                 path.with_name(path.name + '.partial').unlink(missing_ok=True)
                 self.received = 0
-                raise DomainError(f"The {item['name']} download did not match its checksum, so it was not used. "
-                                  'Try again.', 502)
+                # The file's checksum didn't match: said plainly (Iris).
+                raise DomainError('The download came through damaged, so it wasn\'t used. Try again to download it '
+                                  'fresh.', 502)
             path.with_name(path.name + '.partial').replace(path)
             port = self.state().get('port') or free_port()
             self.save(status='ready', model_path=str(path), port=port, received=item['bytes'], message='')

@@ -25,10 +25,11 @@ export function DownloadProgress({ view, phone = false, titled = true }: { view:
     <div className="download-progress">
       {titled && <p className="download-title">{heading(view)}</p>}
       <p className={lineClass(view)}>{titled ? progressLine(view) : cardLine(view)}</p>
-      <div className="download-bar" role="progressbar" aria-label={heading(view)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}
+      {/* A failed download with nothing kept shows no bar: an empty track reads as about to start (Iris). */}
+      {showsBar(view) && <div className="download-bar" role="progressbar" aria-label={heading(view)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}
         aria-valuetext={`${(view.received / 1e9).toFixed(1)} of ${(view.total / 1e9).toFixed(1)} gigabytes`}>
         <span style={{ width: `${value}%` }} />
-      </div>
+      </div>}
       <p className="visually-hidden" aria-live="polite">{announced ? `${model.name} ${announced}% downloaded.` : ''}</p>
       {view.status !== 'checking' && <Controls view={view} phone={phone} act={act} />}
       {error && <p className="download-short" role="alert">{error}</p>}
@@ -58,3 +59,5 @@ function useAnnounced(value: number) {
   const reached = milestone(value)
   return reached > start ? reached : 0
 }
+
+const showsBar = (view: ReadyView) => !(view.status === 'failed' && !view.received)

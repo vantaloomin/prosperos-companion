@@ -463,8 +463,12 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
       <summary className="subtle">{copy.title} {set ? copy.set : copy.unset}</summary>
       <div className="form-stack workflow-editor">
         <Field label={copy.label} hint={copy.hint}>{(id, describedBy) =>
-          <textarea id={id} rows={12} value={flow.text} placeholder={copy.placeholder} spellCheck={false} aria-describedby={describedBy}
-            aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />}</Field>
+          <>
+            <textarea id={id} rows={12} value={flow.text} placeholder={copy.placeholder} spellCheck={false} aria-describedby={describedBy}
+              aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />
+            {/* Right under the box it is about, above the hint (Iris). */}
+            {flow.error && <Notice tone="error">{flow.error}</Notice>}
+          </>}</Field>
         <WorkflowActions flow={flow} copy={copy} set={set} startFrom={startFrom} />
       </div>
     </details>
@@ -477,7 +481,6 @@ type Workflow = ReturnType<typeof useWorkflow>
 function WorkflowActions({ flow, copy, set, startFrom }: { flow: Workflow; copy: (typeof WORKFLOWS)[WorkflowField]; set: boolean; startFrom: string }) {
   const edited = flow.saved !== null && flow.text !== flow.saved
   return <>
-    {flow.error && <Notice tone="error">{flow.error}</Notice>}
     {flow.removed && <Notice action={<button type="button" className="text-button" onClick={() => void flow.store(flow.removed)}>Undo</button>}>{copy.cleared}</Notice>}
     <div className="form-actions">
       <button type="button" className="button primary" disabled={!flow.text.trim() || flow.text === flow.saved} onClick={() => void flow.store(flow.text.trim())}>Save workflow</button>

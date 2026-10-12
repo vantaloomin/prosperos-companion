@@ -181,7 +181,7 @@ def test_a_bad_download_is_thrown_away(client, hub, monkeypatch):
     monkeypatch.setattr(ready, 'MODELS', [*ready.MODELS[:-1], broken])
     client.post('/api/ready', json={'model': 'qwen3.5-4b'})
     view = settled(client)
-    assert view['status'] == 'failed' and 'checksum' in view['message'] and view['received'] == 0
+    assert view['status'] == 'failed' and 'damaged' in view['message'] and view['received'] == 0
     assert not list((client.app.state.builtin_chat.folder / 'models').glob('*.partial'))
 
 

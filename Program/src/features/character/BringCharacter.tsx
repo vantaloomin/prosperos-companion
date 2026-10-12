@@ -35,7 +35,7 @@ export function BringCharacter() {
       if (isWorldMap(file.name, await file.slice(0, 4096).text())) {
         const city = await api<{ name: string; book: { name: string } | null }>('/world/import/marinara', await readWorldMap(file))
         const lore = city.book ? ` Its places' notes are world lore in "${city.book.name}".` : ''
-        setResult({ tone: 'info', text: `That was a world map, so ${city.name} is now one of your cities, in Settings, Life & cities.${lore}` })
+        setResult({ tone: 'info', text: `That was a world map, so ${city.name} is now one of your cities, in Settings > Life & cities.${lore}` })
         await Promise.all(['cities', 'lore'].map((key) => client.invalidateQueries({ queryKey: [key] })))
         return
       }
