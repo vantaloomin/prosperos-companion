@@ -324,7 +324,7 @@ def starter(connection, data: dict, seed: str, timestamp: str, today: date, pers
     definition = cast.profile(data, sheet, met, today) | {'starting_closeness': 2}
     if you:
         definition |= {'starting_closeness': 3,
-                       'background': f"{definition['background']} {known_from(data, sheet, you, persona['name'])}"}
+                       'history_together': known_from(data, sheet, you, persona['name']) or definition['history_together']}
     made = characters.create_in(connection, timestamp, CharacterDefinition.model_validate(definition),
                                 'The first companion of a new world.')
     connection.execute('UPDATE companions SET townsfolk_key=?, town_seed=? WHERE id=?',
@@ -418,8 +418,7 @@ def known_from(data: dict, sheet: dict, you: str, name: str) -> str:
 
 def sheet_text(definition: dict) -> str:
     """The persona's starting text from the person's drafted profile, without how a companion met them."""
-    background = definition['background'].split(cast.SHARED[1])[0].strip()
-    parts = (definition['identity'], definition['personality'], background, f"Usually: {definition['routine']}",
+    parts = (definition['identity'], definition['personality'], definition['background'], f"Usually: {definition['routine']}",
              definition.get('seen_as') and f"Comes across as: {definition['seen_as']}")
     return '\n'.join(part for part in parts if part)
 

@@ -52,7 +52,7 @@ def test_a_townsperson_gets_a_full_profile_from_their_sheet(client, clock, chatt
     assert definition.name == person['full'] and definition.home_city == 'baltimore'
     assert definition.relationship == 'friendship' and drafted['stepping_back'] == 'Mira'
     assert definition.identity.startswith(str(person['age'])) and definition.personality and definition.voice
-    assert definition.flaws and 'Mira' in definition.background and definition.routine
+    assert definition.flaws and 'Mira' in definition.history_together and definition.routine
     assert {day for block in definition.schedule if block.kind == 'sleep' for day in block.days} == set(range(7))
     # They keep the face and build they had in town, so their pictures show the same person.
     assert definition.looks.age == person['age'] and definition.looks.height_cm and definition.looks.face
@@ -135,8 +135,8 @@ def test_the_text_model_can_write_the_profile_out(client, clock, chatty, provide
     assert definition['name'] == person['full'] and definition['relationship'] == 'friendship'
     assert definition['identity'] == GOOD['identity'] and definition['home_city'] == 'baltimore'
     assert definition['location'].endswith('Baltimore, Maryland')
-    assert definition['background'].startswith(GOOD['background']) and 'Has crossed paths with Mira' in \
-        definition['background']
+    assert definition['background'] == GOOD['background'] and \
+        definition['history_together'].startswith('Has crossed paths with Mira')
 
 
 def test_new_townsfolk_can_be_seeded_for_one_companion(client, clock, chatty):

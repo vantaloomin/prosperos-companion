@@ -129,7 +129,7 @@ def test_a_match_becomes_a_companion_even_as_the_first_one(client, clock, provid
     draft = ok(client.get('/api/companion/cast/draft', params={'key': match['key']}))
     assert draft['matched'] is True and draft['stepping_back'] is None
     definition = draft['definition']
-    assert definition['relationship'] == 'romance' and 'Matched with the user through a dating app' in definition['background']
+    assert definition['relationship'] == 'romance' and definition['history_together'] == 'Matched on Matchlight.'
     assert definition['home_city'] == 'baltimore'
     companion = ok(client.post('/api/companion/cast/switch', json={'key': match['key'], 'definition': definition}))
     assert companion['version']['name'] == definition['name'] and companion['townsfolk_key'] == match['key']
