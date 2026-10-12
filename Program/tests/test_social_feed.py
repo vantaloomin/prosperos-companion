@@ -73,9 +73,19 @@ def test_comments_arrive_after_the_post(client, city, clock):
                    for comment in post['audience']['comments'])
 
 
-def test_renamed_and_removed_friends(client, city, clock):
+def first_friend_post(client, clock) -> dict:
+    """A friend's post, living on a few more days when the circle's seeded week brought none yet."""
     live_days(client, clock)
-    post = next(post for post in feed(client)['posts'] if post['kind'] == 'friend')
+    for _ in range(8):
+        post = next((post for post in feed(client)['posts'] if post['kind'] == 'friend'), None)
+        if post:
+            return post
+        live_days(client, clock, 1)
+    raise AssertionError('No friend posted in twelve days.')
+
+
+def test_renamed_and_removed_friends(client, city, clock):
+    post = first_friend_post(client, clock)
     person = post['author']['id']
     client.patch(f'/api/life/circle/{person}', json={'name': 'Renamed'})
     shown = next(item for item in feed(client)['posts'] if item['id'] == post['id'])

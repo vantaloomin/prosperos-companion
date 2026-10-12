@@ -130,6 +130,12 @@ def test_meeting_another_companion_is_news_for_the_user(client, clock, fellows, 
     sam = neighbor(client, 'Sam Ortiz')
     live(client, clock, [mira['id'], sam], 4)
     database = client.app.state.database
+    # Their seeded weeks decide when they first cross paths; live on a little when it is later than usual.
+    for _week in range(4):
+        with database.connect() as connection:
+            if any(meeting['companion_id'] == mira['id'] for meeting in cast_meetings(connection)):
+                break
+        live(client, clock, [mira['id'], sam], 1)
     with database.connect(write=True) as connection:
         first = next(meeting for meeting in cast_meetings(connection) if meeting['companion_id'] == mira['id'])
         connection.execute("UPDATE life_agenda SET status='happened' WHERE timeline_id=? AND slot_key=?",
