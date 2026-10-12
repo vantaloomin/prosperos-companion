@@ -439,17 +439,18 @@ class _Map:
             f'Read {read} place{"" if read == 1 else "s"} from the Marinara world map "{self.map_name()}".',
             *([f"{', '.join(text(root.get('name')) for root in roots[1:])} folded in as more neighbourhoods, so the "
                'world stays one town.'] if len(roots) > 1 else []),
-            *([f"{counts['streets']} streets and smaller areas folded into their neighbourhood; their notes are lore."]
+            *([f"{counted(counts['streets'], 'street or smaller area', 'streets and smaller areas')} folded into their "
+               'neighbourhood; their notes are lore.']
               if counts['streets'] else []),
-            *([f"{counts['homes']} homes kept as lore, not public places: {'; '.join(self.homes[:8])}."]
+            *([f"{counted(counts['homes'], 'home', 'homes')} kept as lore, not public places: {'; '.join(self.homes[:8])}."]
               if counts['homes'] else []),
-            *([f"{counts['home_rooms'] + counts['rooms']} rooms and floors kept as lore and as the spots inside their "
+            *([f"{counted(counts['home_rooms'] + counts['rooms'], 'room or floor', 'rooms and floors')} kept as lore and as the spots inside their "
                'building.'] if counts['home_rooms'] + counts['rooms'] else []),
-            *([f'{self.archived} archived places left out.'] if self.archived else []),
-            *([f'{len(pictures)} pictures not imported.'] if isinstance(pictures, list) and pictures else []),
-            *([f"{counts['links']} links without a label, hidden, blocked or between rooms left out; travel is worked "
+            *([f"{counted(self.archived, 'archived place', 'archived places')} left out."] if self.archived else []),
+            *([f"{counted(len(pictures), 'picture', 'pictures')} not imported."] if isinstance(pictures, list) and pictures else []),
+            *([f"{counted(counts['links'], 'link', 'links')} without a label, hidden, blocked or between rooms left out; travel is worked "
                'out from distance.'] if counts['links'] else []),
-            *([f"{counts['over']} places past the city's limits left out."] if counts['over'] else []),
+            *([f"{counted(counts['over'], 'place', 'places')} past the city's limits left out."] if counts['over'] else []),
             f'Timezone set to {zone}.' if zone != 'UTC' else
             "No time zone matched the city's name, so it uses UTC; change it in the editor.",
             "Neighbourhood positions are fictional, worked out from the map's layout."
@@ -457,8 +458,13 @@ class _Map:
             'The map does not say which country it is in; set it in the editor for local holidays.',
         ]
         if carried:
-            said.append(f'{carried} lorebook entries came along with the map.')
+            said.append(f"{counted(carried, 'lorebook entry', 'lorebook entries')} came along with the map.")
         return said
+
+
+def counted(number: int, one: str, many: str) -> str:
+    """"1 picture", "2 pictures"."""
+    return f'{number} {one if number == 1 else many}'
 
 
 def convert(value: dict, today: str) -> dict:
@@ -482,7 +488,7 @@ def convert(value: dict, today: str) -> dict:
             'format': BOOK_FORMAT, 'entries': entries} if entries else None
     notes = found.notes(city['timezone'], carried)
     if book:
-        notes.append(f'{len(entries)} lore entries went into the world lorebook "{book["name"]}".')
+        notes.append(f"{counted(len(entries), 'lore entry', 'lore entries')} went into the world lorebook \"{book['name']}\".")
     return {'city': city, 'book': book, 'notes': notes}
 
 

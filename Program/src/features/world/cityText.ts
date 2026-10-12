@@ -96,3 +96,21 @@ export function cityFacts(city: CityListing): string {
 export function exportName(id: string): string {
   return `${slugify(id) || 'city'}.json`
 }
+
+/** Notes that say the same about several records ("Bluebird Diner: filled in cost as '$'.") as one line naming
+ * them all, where the first of them was; every other note as it is. */
+export function groupNotes(notes: string[]): string[] {
+  const split = notes.map((note) => /^([^:]{1,80}): (.+)$/.exec(note))
+  const named = new Map<string, string[]>()
+  split.forEach((found) => { if (found) named.set(found[2], [...(named.get(found[2]) ?? []), found[1]]) })
+  const done = new Set<string>()
+  return notes.flatMap((note, index) => {
+    const found = split[index]
+    const names = found ? named.get(found[2])! : []
+    if (!found || names.length < 2) return [note]
+    if (done.has(found[2])) return []
+    done.add(found[2])
+    const shown = names.length > 6 ? `${names.slice(0, 5).join(', ')} and ${names.length - 5} more` : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    return [`${shown}: ${found[2]}`]
+  })
+}
