@@ -50,7 +50,7 @@ def discard(request: Request):
 
 
 @router.post('/use')
-def use(request: Request):
+async def use(request: Request):
     return request.app.state.ready.use()
 
 

@@ -21,8 +21,8 @@ export function BringChat({ companion }: { companion: Companion }) {
   const bring = async (file: File | undefined) => {
     if (!file) return
     setResult(null)
-    if (file.size > CHAT_FILE_LIMIT) {
-      setResult({ tone: 'error', text: 'Chat files are limited to 10 MB.' })
+    if (file.size === 0 || file.size > CHAT_FILE_LIMIT) {
+      setResult({ tone: 'error', text: file.size ? 'Chat files are limited to 10 MB.' : 'That file is empty.' })
       if (input.current) input.current.value = ''
       return
     }

@@ -66,7 +66,8 @@ export function heading(view: ReadyView): string {
   const name = modelOf(view).name
   if (view.status === 'cancelled') return 'Download cancelled.'
   if (view.status === 'checking') return `Checking ${name}`
-  if (view.status === 'paused' || view.status === 'failed') return `${name} is paused`
+  if (view.status === 'failed') return `${name} stopped downloading`
+  if (view.status === 'paused') return `${name} is paused`
   return `Downloading ${name}`
 }
 

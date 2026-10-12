@@ -10,6 +10,7 @@ web are read without them.
 import base64
 import binascii
 import json
+import re
 import stat
 import zlib
 from io import BytesIO
@@ -121,12 +122,18 @@ def marinara(value: dict, stem: str) -> dict:
         raise problem('Only version 1 Marinara Engine exports can be read.')
     if kind == 'marinara_lorebook':
         about = data.get('lorebook') if isinstance(data.get('lorebook'), dict) else {}
-        entries = [entry for entry in data.get('entries') or [] if isinstance(entry, dict)]
-        made = lorebooks.book({**about, 'entries': entries}, 'portable', 'Marinara Engine lorebook', stem[:120])
+        found = data.get('entries')
+        entries = [entry for entry in found if isinstance(entry, dict)] if isinstance(found, list) else []
+        if not entries:
+            raise problem('This Marinara Engine lorebook has no entries to bring over.')
+        name = re.sub(r'\.marinara$', '', stem, flags=re.IGNORECASE)
+        made = lorebooks.book({**about, 'entries': entries}, 'portable', 'Marinara Engine lorebook', name[:120])
         return {'format': 'Marinara Engine lorebook', 'character': None, 'picture': None, 'book': made}
-    if kind != 'marinara_character':
+    if kind == 'marinara_persona':
         raise problem('Only Marinara Engine characters and lorebooks can be brought over. Your persona stays yours to '
                       'set in Settings.')
+    if kind != 'marinara_character':
+        raise problem('Only Marinara Engine characters and lorebooks can be brought over.')
     made = card(data)
     extensions = card_data(data).get('extensions')
     extensions = extensions if isinstance(extensions, dict) else {}

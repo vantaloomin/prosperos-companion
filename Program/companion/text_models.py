@@ -350,7 +350,8 @@ def connection_summary(connection) -> dict | None:
             'model': config['model'], 'has_key': bool(row['credential_ref']), 'ready': profile_ready(config),
             'max_output_tokens': config['max_output_tokens'], 'context_tokens': config['context_tokens'],
             'timeout_seconds': config['timeout_seconds'],
-            'embedding_model': (config_for(connection, 'recall') or {}).get('embedding_model') or None}
+            'embedding_model': (config_for(connection, 'recall') or {}).get('embedding_model') or None,
+            'builtin': config.get('resource_group') == 'builtin-chat'}
 
 
 def quick_save(database, vault, body) -> dict:

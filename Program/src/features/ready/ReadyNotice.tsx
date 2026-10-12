@@ -16,7 +16,7 @@ export function ReadyNotice({ openModels }: { openModels: () => void }) {
 function Done({ view, dismiss, openModels }: { view: ReadyView; dismiss: ReactNode; openModels: () => void }) {
   const name = modelOf(view).name
   if (view.queued?.status === 'failed') {
-    return <Notice tone="error" action={dismiss}>{name} is ready, but the rest of {view.queued.name} could not be written: {view.queued.message}</Notice>
+    return <Notice tone="error" action={dismiss}>{name} is ready, but the rest of {view.queued.name} could not be written: {view.queued.message.replace(/\s*Try again\.?$/, '')} You can fill it in on their Character page.</Notice>
   }
   if (!view.in_use) {
     return <Notice action={<><button type="button" className="text-button" onClick={openModels}>Open Models</button>{dismiss}</>}>

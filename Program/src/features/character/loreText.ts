@@ -17,7 +17,7 @@ export interface LoreBook {
 
 export const IMPORT_TYPES = '.png,.json,.charx,.byaf,.lorebook'
 /** Above this the server turns a file down (companion/imports/cards.py MAX_SOURCE_BYTES). */
-const MAX_BYTES = 10 * 1024 * 1024
+export const MAX_BYTES = 10 * 1024 * 1024
 
 /** A Marinara Engine export carries its sprites and whole gallery as pictures inside the JSON, often past the size
  * limit; only the card and its avatar are used, so the rest is left out before sending. Other files go as they are. */

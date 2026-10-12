@@ -28,7 +28,7 @@ function characterStep(connection: Connection | null | undefined, downloading: b
   const ready = !!connection || downloading
   return {
     id: 'character', label: '2. Create your companion', done: false, view: 'character', primary: ready,
-    detail: downloading ? "Your model is still downloading. Fill in what you like; whatever's left gets written when it's ready."
+    detail: downloading ? "Your model isn't ready yet. Fill in what you like; whatever's left gets written when it's ready."
       : 'Pick a name, an age and where and when they live, and your text model writes the rest. Or import a character you already have.',
     action: ready ? 'Create your companion' : connection === null ? 'Create without a model for now' : '',
   }

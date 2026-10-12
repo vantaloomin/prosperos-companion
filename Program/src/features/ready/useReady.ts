@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { isRunning, type ReadyView } from './readyText'
@@ -8,12 +8,23 @@ export const READY_KEY = ['ready']
 const UNDO_MS = 10_000
 let discardTimer: number | undefined
 
-const polling = (view?: ReadyView) => isRunning(view) || view?.queued?.status === 'waiting' || view?.queued?.status === 'writing'
+// A write-up waits only while there is a download to wait for (a discarded one clears it on the server too).
+const polling = (view?: ReadyView) => isRunning(view) ||
+  ((view?.status === 'ready' || isRunning(view)) && (view?.queued?.status === 'waiting' || view?.queued?.status === 'writing'))
 
 /** "Set it up for me" as it stands; checked every second while it downloads or writes a companion up. */
 export function useReady(enabled = true) {
-  return useQuery({ queryKey: READY_KEY, queryFn: () => api<ReadyView>('/ready'), enabled,
+  const client = useQueryClient()
+  const query = useQuery({ queryKey: READY_KEY, queryFn: () => api<ReadyView>('/ready'), enabled,
     refetchInterval: (query) => polling(query.state.data) ? 1000 : false })
+  const ready = query.data?.status === 'ready'
+  // When the download finishes in the background, everything that asks "is a model connected?" asks again.
+  useEffect(() => {
+    if (!ready) return
+    void client.invalidateQueries({ queryKey: ['connection'] })
+    void client.invalidateQueries({ queryKey: ['models'] })
+  }, [ready, client])
+  return query
 }
 
 function refresh(client: QueryClient, view: ReadyView) {

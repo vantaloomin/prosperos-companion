@@ -19,7 +19,7 @@ import re
 from typing import NamedTuple
 from zoneinfo import available_timezones
 
-from companion.errors import DomainError
+from companion.errors import DomainError, require
 from companion.imports import lorebooks
 from companion.imports.characters import add_book
 from companion.world import catalog, custom, mend
@@ -155,6 +155,8 @@ class _Map:
         found = self.definition.get('locations')
         rows = [item for item in found if isinstance(item, dict) and isinstance(item.get('id'), str)] \
             if isinstance(found, list) else []
+        seen: set[str] = set()
+        rows = [item for item in rows if not (item['id'] in seen or seen.add(item['id']))]  # a repeated id: first wins
         rows.sort(key=lambda item: item.get('sortOrder') if isinstance(item.get('sortOrder'), (int, float)) else 0)
         known = {item['id'] for item in rows}
         children: dict = {}
@@ -434,7 +436,7 @@ class _Map:
         pictures = self.value.get('artwork')
         read = len(set(self.roles) | {root['id'] for root in roots})
         said = [
-            f'Read {read} places from the Marinara world map "{self.map_name()}".',
+            f'Read {read} place{"" if read == 1 else "s"} from the Marinara world map "{self.map_name()}".',
             *([f"{', '.join(text(root.get('name')) for root in roots[1:])} folded in as more neighbourhoods, so the "
                'world stays one town.'] if len(roots) > 1 else []),
             *([f"{counts['streets']} streets and smaller areas folded into their neighbourhood; their notes are lore."]
@@ -464,12 +466,17 @@ def convert(value: dict, today: str) -> dict:
     None when no location has notes), and what was folded, defaulted or skipped."""
     if not detect(value):
         raise DomainError('This is not a Marinara world map.', 422, 'invalid_city')
-    found = _Map(value, today)
-    found.neighbourhoods()
-    found.transit()
-    found.finish_employers()
-    city = found.city()
-    carried = found.portable_lore()
+    try:
+        found = _Map(value, today)
+        found.neighbourhoods()
+        found.transit()
+        found.finish_employers()
+        city = found.city()
+        carried = found.portable_lore()
+    except (TypeError, AttributeError, KeyError, RecursionError) as error:
+        # A field of an unexpected type (a number where a name goes) or a chain of places nested past any real map.
+        raise DomainError("Part of this world map couldn't be read, so nothing was imported.", 422,
+                          'invalid_city') from error
     entries = found.entries[:lorebooks.MAX_ENTRIES]
     book = {'name': found.map_name(), 'description': f'Places in {city["name"]}, from a Marinara world map.',
             'format': BOOK_FORMAT, 'entries': entries} if entries else None
@@ -489,9 +496,22 @@ def free_id(database, wanted: str) -> str:
     return found
 
 
+def already_in(database, city: dict) -> str | None:
+    """The name of a city the user already brought in from this same map (its title and places match)."""
+    title, places = city['sources'][SOURCE]['title'], sorted(place['name'] for place in city['places'])
+    for saved in custom.read(database).values():
+        source = (saved.get('sources') or {}).get(SOURCE) or {}
+        if source.get('title') == title and sorted(place['name'] for place in saved.get('places') or []) == places:
+            return saved['name']
+    return None
+
+
 def bring(database, value: dict) -> dict:
     """Import a world map straight away: the city joins the user's cities and its lore the world's books."""
     made = convert(value, database.now()[:10])
+    same = already_in(database, made['city'])
+    require(same is None, f'This world map already came in as {same}. Delete that city first to bring it in again.',
+            409)
     city = made['city'] | {'id': free_id(database, made['city']['id'])}
     added = {}
 

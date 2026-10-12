@@ -178,7 +178,8 @@ def suggest_captions(database, replace_suggested=True) -> dict:
     wrote are never overwritten."""
     with database.connect(write=True) as connection:
         companion = require_current(connection)
-        text = suggestion(companion['version']['definition'].get('appearance', ''))
+        definition = companion['version']['definition']
+        text = suggestion((definition.get('in_photos') or '').strip() or definition.get('appearance', ''))
         origins = ('empty', 'suggested') if replace_suggested else ('empty',)
         connection.execute(
             f"UPDATE lora_references SET caption=?, caption_origin='suggested', updated_at=? WHERE companion_id=? "

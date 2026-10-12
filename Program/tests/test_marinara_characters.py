@@ -66,3 +66,15 @@ def test_personas_and_other_versions_say_why(client):
     assert 'persona' in bring(client, 'me.marinara.json', as_json(persona), 422)['detail']
     later = {**character(), 'version': 2}
     assert 'version 1' in bring(client, 'x.marinara.json', as_json(later), 422)['detail']
+
+
+def test_a_preset_or_an_empty_lorebook_is_refused_plainly(client):
+    preset = envelope('marinara_preset', {'name': 'Fast'})
+    assert 'persona' not in bring(client, 'fast.marinara.json', as_json(preset), 422)['detail']
+    empty = envelope('marinara_lorebook', {'lorebook': {'name': 'Nothing'}, 'entries': 'y'})
+    assert 'no entries' in bring(client, 'nothing.marinara.json', as_json(empty), 422)['detail']
+
+
+def test_a_nameless_lorebook_is_named_after_the_file_without_marinara(client, companion):
+    book = envelope('marinara_lorebook', {'lorebook': {}, 'entries': [{'keys': ['x'], 'content': 'X.'}]})
+    assert bring(client, 'harbour.marinara.json', as_json(book))['book']['name'] == 'harbour'

@@ -151,8 +151,32 @@ def test_importing_adds_the_city_and_its_lore_at_once(client, companion):
     assert 'lisbon' in {city['id'] for city in client.get('/api/world/cities').json()}
     books = client.get('/api/lore').json()['books']
     assert [book['name'] for book in books if book['world']] == ['Harbourlight, chapter 3']
-    # The same map again is a second city, not a refusal.
-    assert client.post('/api/world/import/marinara', json=sample()).json()['id'] == 'lisbon-2'
+    # The same map again is refused, so its lore is never offered twice; a changed map is a second city.
+    again = client.post('/api/world/import/marinara', json=sample())
+    assert again.status_code == 409 and 'already came in as Lisbon' in again.text
+    changed = copy.deepcopy(sample())
+    changed['definition']['locations'].append(place('extra', changed['definition']['locations'][0]['id'],
+                                                    'Tram Museum', 'building'))
+    assert client.post('/api/world/import/marinara', json=changed).json()['id'] == 'lisbon-2'
+
+
+@pytest.mark.parametrize('broken', [{'name': 123}, {'icon': 7}, {'links': 5}])
+def test_odd_field_types_are_a_plain_refusal(client, companion, broken):
+    value = copy.deepcopy(sample())
+    value['definition']['locations'][1].update(broken)
+    response = client.post('/api/world/import/marinara', json=value)
+    assert response.status_code in (200, 422), response.text
+
+
+def test_a_chain_of_places_nested_past_any_real_map_is_refused(client, companion):
+    value = copy.deepcopy(sample())
+    locations = value['definition']['locations']
+    parent = locations[0]['id']
+    for number in range(1500):
+        locations.append(place(f'deep{number}', parent, f'Room {number}', 'room'))
+        parent = f'deep{number}'
+    response = client.post('/api/world/import/marinara', json=value)
+    assert response.status_code in (200, 422), response.text
 
 
 def test_a_map_that_cannot_become_a_city_adds_no_lore(client, companion):

@@ -18,6 +18,7 @@ from companion.providers.scheduling import MAINTENANCE
 from companion.text_models import config_for, key_for
 
 YIELD_SECONDS = 0.5
+RULES_EVERY = 5
 CONSOLIDATE_SECONDS = 3600
 
 
@@ -52,13 +53,27 @@ class MemoryWorker:
             try:
                 formed = (await asyncio.to_thread(run_pending, self.database))['processed']
                 indexed = await self.index()
-                suggested = await self.suggest()
-                read = await self.read_self_facts()
+                suggested = await self.meanwhile(self.suggest())
+                read = await self.meanwhile(self.read_self_facts())
                 if not formed and not indexed and not suggested and not read:
                     await self.consolidate()
                     return
             except Exception:  # noqa: BLE001 - memory work is optional; the next kick retries.
                 return
+
+    async def meanwhile(self, work) -> int:
+        """Model work can wait out a busy model for a while (providers/scheduling.py HOLD_AFTER_REPLY); the rules keep
+        forming memories from new messages in the meantime, so "Dog: Pepper" is there for the next reply."""
+        task = asyncio.ensure_future(work)
+        try:
+            while not task.done():
+                await asyncio.wait({task}, timeout=RULES_EVERY)
+                if not task.done() and not self.scheduler.foreground:
+                    await asyncio.to_thread(run_pending, self.database)
+        finally:
+            if not task.done():
+                task.cancel()
+        return task.result()
 
     async def suggest(self) -> int:
         if self.provider is None:

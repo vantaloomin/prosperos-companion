@@ -36,6 +36,10 @@ FOLDERS = {
                        'WHERE crop_file IS NOT NULL',
 }
 DATASET_FOLDERS = ('lora/references',)
+# Profile pictures are reference pictures too, but always kept: without them a restored companion has no face.
+PROFILE_PICTURES = ('SELECT r.file FROM lora_references r JOIN companions c ON c.portrait_reference_id=r.id '
+                    'UNION SELECT r.crop_file FROM lora_references r JOIN companions c ON c.portrait_reference_id=r.id '
+                    'WHERE r.crop_file IS NOT NULL')
 DAMAGED = 'This backup is damaged: {} does not match its recorded digest.'
 
 
@@ -64,7 +68,7 @@ def named_files(copy: Path, workspace: Path, include_datasets: bool) -> list[tup
         found = {}
         for folder, query in FOLDERS.items():
             if folder in DATASET_FOLDERS and not include_datasets:
-                continue
+                query = PROFILE_PICTURES
             for (name,) in connection.execute(query):
                 source = workspace / folder / name
                 if name and Path(name).name == name and source.is_file():

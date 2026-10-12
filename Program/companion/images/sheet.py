@@ -135,9 +135,10 @@ def description(companion: dict) -> str:
     """Their looks in words, what the appearance says a camera can see, and an everyday outfit unless the
     appearance already says what they wear."""
     definition = companion['version']['definition']
-    appearance = definition.get('appearance', '')
+    # The user's own In photos line, when they wrote one, is what every picture of them follows, this sheet included.
+    appearance = (definition.get('in_photos') or '').strip() or definition.get('appearance', '')
     looks, who = prompts.sheet_for(companion, definition)
-    look = prompts.visible(appearance, definition['name'], who)
+    look = prompts.in_photos(definition, who)
     subject = prompts.PRONOUNS[who][0]
     dressed = any(prompts.clothing(clause) for clause in re.split(r'[.!?,;]', appearance) if clause.strip())
     wearing = '' if dressed else f"{subject} {'are' if who == 'they' else 'is'} wearing {outfit_of(companion['id'])}."
