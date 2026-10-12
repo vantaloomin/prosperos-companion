@@ -1119,7 +1119,7 @@ def test_the_prompt_is_one_krea_style_paragraph_of_what_a_camera_can_see():
                              'whole head and face in the frame.')
     assert 'Kimberly' not in prompt and 'locked in' not in prompt and 'Mood:' not in prompt
     assert 'in college' not in prompt and 'derby' not in prompt and 'looks like someone' not in prompt
-    assert 'faint scar on her chin' in prompt and 'Her smile is lopsided' in prompt
+    assert 'a faint pale mark on her chin' in prompt and 'Her smile is lopsided' in prompt
     assert 'She is wearing a grey hoodie.' in prompt and 'She studied at the library at Enoch Pratt Library.' in prompt
     assert 'focused, concentrating expression' in prompt and 'late-afternoon light' in prompt and 'rainy' in prompt
     assert prompt.endswith('shallow depth of field.') and '..' not in prompt
