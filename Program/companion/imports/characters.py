@@ -25,7 +25,7 @@ from companion.models import CharacterDefinition
 from companion.world import generators, townsfolk
 
 BACKGROUND = 12000
-LIMITS = {'personality': 8000, 'voice': 4000, 'appearance': 4000}
+LIMITS = {'personality': 8000, 'voice': 4000, 'appearance': 4000, 'in_photos': 2000}
 MACROS = (('{{char}}', None), ('<BOT>', None), ('{{user}}', 'the user'), ('<USER>', 'the user'))
 
 
@@ -80,6 +80,7 @@ def definition(connection, database, character: dict, focus: dict | None) -> tup
     values = life(connection, database, character, focus) | {
         'name': name, 'background': description[:BACKGROUND],
         'appearance': spelled(character.get('appearance', ''), name)[:LIMITS['appearance']],
+        'in_photos': spelled(character.get('in_photos', ''), name)[:LIMITS['in_photos']],
         'personality': spelled(character['personality'], name)[:LIMITS['personality']],
         'voice': f'How they write, from their examples:\n{examples}'[:LIMITS['voice']] if examples else ''}
     made = characters.named(connection, CharacterDefinition.model_validate(values))

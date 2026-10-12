@@ -30,6 +30,7 @@ from companion import (
     workspace,
 )
 from companion.identity import APP_ID, VERSION
+from companion.images.prompts import in_photos
 from companion.imports import cards
 from companion.life import status
 from companion.memory import consolidation, formation, pairs, records
@@ -187,11 +188,14 @@ def adult_side(request: Request, body: PerceptionRequest):
 def looks_suggestions(request: Request, body: PerceptionRequest):
     """What each empty looks field uses for a saved companion (drawn from their id, leaving out what the appearance
     already says, with a drawn build or weight following what the form sets), and suggestions for the word fields.
-    No model is involved."""
+    `in_photos` is the In photos line the appearance gives when the user has not written their own. No model is
+    involved."""
     with request.app.state.database.connect() as connection:
         companion = characters.current(connection)
     automatic = looks.for_companion(companion['id'], body.definition) if companion else None
-    return {'automatic': automatic, 'covered': sorted(looks.covered(body.definition.get('appearance', ''))), 'options': looks.options()}
+    line = in_photos({'name': '', **body.definition, 'in_photos': ''})
+    return {'automatic': automatic, 'covered': sorted(looks.covered(body.definition.get('appearance', ''))),
+            'options': looks.options(), 'in_photos': line}
 
 
 @router.post('/companion/draft/card')

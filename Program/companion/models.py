@@ -98,6 +98,9 @@ class CharacterDefinition(Input):
     interests: list[str] = Field(default_factory=list, max_length=50)
     background: str = Field(default='', max_length=12000)
     appearance: str = Field(default='', max_length=4000)
+    # The "In photos" line pictures use in place of the appearance (companion/images/prompts.py `in_photos`); empty
+    # follows the appearance, filtered to what a camera can see.
+    in_photos: str = Field(default='', max_length=2000)
     # Face shape, height, build and the rest, so every picture shows the same person; empty fields are drawn.
     looks: Looks = Field(default_factory=Looks)
     routine: str = Field(default='', max_length=8000)

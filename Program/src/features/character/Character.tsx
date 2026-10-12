@@ -22,6 +22,7 @@ import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
 import { AdultSideFields } from './AdultSideFields'
 import { LooksFields } from './LooksFields'
+import { InPhotosField } from './InPhotosField'
 import { QuickStart } from './QuickStart'
 import { scheduleProblems } from './schedule'
 import { StudyImport } from './StudyImport'
@@ -134,6 +135,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('background', 'their background')}
         <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
         {help('appearance', 'their appearance')}
+        <InPhotosField definition={cleaned} value={definition.in_photos} set={set} />
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
           <LooksFields definition={cleaned} looks={definition.looks} set={set} />
