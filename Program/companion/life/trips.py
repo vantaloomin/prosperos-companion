@@ -382,7 +382,7 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         span = f"{day_text(trip['start_date'])} to {day_text(trip['end_date'])}"
         if start <= today <= end:
             line = f"- Right now you are away in {trip['city_name']}{company_text(trip)}, until {end:%A}; you head " \
-                   'home on the last day. Your replies can be a little slower.'
+                   'home on the last day.'
         elif today < start <= today + timedelta(days=14):
             line = f"- {span}: a trip to {trip['city_name']}{company_text(trip)}. It is booked."
         elif end < today:
