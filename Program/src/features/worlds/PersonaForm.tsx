@@ -22,7 +22,7 @@ function validDraft(draft: Draft, age: number | null, isNew: boolean): boolean {
 
 const TEXT = {
   existing: { id: 'persona-heading', heading: 'Who you are here', button: 'Save', busy: 'Saving…', intro: 'Your companions in this persona\'s worlds know you by this.' },
-  new: { id: 'new-persona-heading', heading: 'A new persona', button: 'Make this persona', busy: 'Making their world…', intro: 'Who will you be? They get a world of their own, with new people in it and a first companion to meet.' },
+  new: { id: 'new-persona-heading', heading: 'A new persona', button: 'Make this persona', busy: 'Making their world…', intro: 'Who will you be? They get a world of their own with new people in it, and you make the first companion there.' },
 }
 
 /** A new persona, with their world in `city`, or the changes to one; a new one's form closes once it is made. */

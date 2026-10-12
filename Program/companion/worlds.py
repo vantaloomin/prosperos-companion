@@ -2,8 +2,7 @@
 
 A persona is the user as someone in particular: a name, a gender, an age, a birthday and a few lines about them.
 A world is everything that happened to one persona there: its companions, their lives and town, the chats,
-memories, feed and pictures. Each persona has one or more worlds, and two worlds may share a city: each world
-seeds its own townsfolk, so the same streets hold different people.
+memories, feed and pictures. Each persona has one or more worlds, and two worlds may share a city.
 
 Each world is a workspace of its own, one database in its own folder (the first world keeps the data folder's
 own database, `Database.root`), so nothing in one world can reach another. Which worlds and personas there are
@@ -13,8 +12,10 @@ settings, their own cities, paired phones) is carried over from the world they l
 
 "The world exists outside of User" (Vanta, 2026-10-08): nobody sets anything up. An existing workspace silently
 becomes the first world, with a persona made from what the app already knows about the user; a new persona or
-world arrives ready, in the city the user picked (the form starts on a featured one the app picks) with fresh townsfolk and a starter companion drawn from them, and the
-user changes whatever they like afterwards.
+world arrives ready in the city the user picked (the form starts on a featured one the app picks), and the user
+makes its first companion there, as on a first run (Vanta, 2026-10-12: a new world starts with a blank companion to
+create, not a townsperson). Becoming a townsperson is the exception: that world starts with someone from their
+circle.
 """
 import json
 import os
@@ -334,16 +335,17 @@ def starter(connection, data: dict, seed: str, timestamp: str, today: date, pers
 
 
 def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None):
-    """A new world's database: the user's settings, the persona, its townsfolk (its own, or `town`'s when the user
-    became one of a town's people) and a starter companion."""
+    """A new world's database: the user's settings and the persona; when the user became one of a town's people
+    (`town`), also a starter companion from that person's circle."""
     restore.settle(database.path)
     made = Database(path, AppClock(database.clock.base))
     carry_settings(path, database.path, made.now())
     with made.connect(write=True) as connection:
         write_persona(connection, persona, made.now())
         data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
-        today = made.clock.now().astimezone(zone(data['timezone'])).date()
-        starter(connection, data, seed, made.now(), today, persona)
+        if town is not None:
+            today = made.clock.now().astimezone(zone(data['timezone'])).date()
+            starter(connection, data, seed, made.now(), today, persona)
     lore.carry_city_lore(path, database.path, data)
 
 

@@ -44,13 +44,14 @@ def test_the_companion_knows_who_the_user_is(client, connected, provider):
     assert '## Who the user is' in prompt and '- Name: Sam' in prompt and 'paramedic' in prompt
 
 
-def test_a_new_world_is_ready_with_its_own_townsfolk_and_a_starter_companion(client, companion, app):
+def test_a_new_world_is_ready_for_the_user_to_make_its_first_companion(client, companion, app):
+    # A blank companion to create, not a townsperson (Vanta, 2026-10-12).
     made = ok(client.post('/api/worlds', json={}))
-    assert not made['active'] and not made['first'] and len(made['companions']) == 1
+    assert not made['active'] and not made['first'] and made['companions'] == []
     assert made['name'] == 'Baltimore 2' or made['name'] != listing(client)['world']['name']
     path = app.state.database.root / made['folder'] / worlds.DATABASE
     assert path.is_file()
-    # The same world draws the same starter; the user is still where they were.
+    # The user is still where they were.
     assert listing(client)['world']['companions'] == ['Mira']
 
 
@@ -60,9 +61,7 @@ def test_switching_worlds_changes_everything_and_settings_follow(client, connect
     made = ok(client.post('/api/worlds', json={'name': 'Somewhere else'}))
     switched = ok(client.post(f"/api/worlds/{made['id']}/switch"))
     assert switched['world']['id'] == made['id'] and switched['world']['name'] == 'Somewhere else'
-    starter = ok(client.get('/api/companion'))['companion']
-    assert starter['version']['name'] == made['companions'][0]
-    assert ok(client.get('/api/conversation'))['messages'] == []
+    assert ok(client.get('/api/companion'))['companion'] is None
     settings = ok(client.get('/api/settings'))
     assert settings['chat_style'] == 'retro' and settings['show_moods']
     assert ok(client.get('/api/connection'))['connection']['model'] == 'local-model'
@@ -178,11 +177,11 @@ def test_a_world_the_user_named_keeps_its_name(client):
 
 
 def test_a_new_persona_lives_in_the_city_the_user_picked(client, companion):
-    # The user says where; everyone in it, the first companion too, is decided for them.
+    # The user says where, and makes the first companion there themselves.
     made = ok(client.post('/api/worlds/personas', json={'name': 'Casey', 'city_id': 'haddon-harbor'}))
     world = made['worlds'][0]
     assert world['city_id'] == 'haddon-harbor' and world['name'].startswith('Haddon Harbor')
-    assert len(world['companions']) == 1
+    assert world['companions'] == []
     # Without a pick it is the city the user is in now; a city that does not exist makes nothing.
     assert ok(client.post('/api/worlds/personas', json={'name': 'Drew'}))['worlds'][0]['city_id'] == 'baltimore'
     before = len(listing(client)['personas'])
@@ -194,6 +193,5 @@ def test_somewhere_new_is_a_featured_city_other_than_this_one(client, companion)
     made = ok(client.post('/api/worlds/personas', json={'name': 'Frankie', 'city_id': 'somewhere-new'}))
     world = made['worlds'][0]
     assert world['city_id'] != 'baltimore' and world['city_id'] in {'grandport', 'pellmouth', 'osaka'}
-    assert len(world['companions']) == 1
     other = ok(client.post('/api/worlds', json={'city_id': 'somewhere-new'}))
     assert other['city_id'] in {'grandport', 'pellmouth', 'osaka'}

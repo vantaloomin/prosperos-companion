@@ -19,7 +19,7 @@ def listing(request: Request):
 
 @router.post('')
 def create_world(request: Request, body: NewWorld):
-    """A new world, ready at once: fresh townsfolk and a starter companion. It does not switch to it."""
+    """A new world, ready at once, where the user makes its first companion. It does not switch to it."""
     return worlds.create_world(db(request), body.persona_id, body.name, body.city_id)
 
 
