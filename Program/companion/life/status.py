@@ -132,8 +132,12 @@ def window(companion: dict, now) -> str:
     return f"{moment.date().isoformat()}:{'am' if moment.hour < 12 else 'pm'}"
 
 
-def clock_text(moment) -> str:
-    """'6:00 PM', '5:30 PM': an away message's time in the app's clock format (as messages show times)."""
+def clock_text(moment, retro: bool = False) -> str:
+    """'6:00 PM', '5:30 PM': an away message's time in the app's clock format (as messages show times). Retro IM
+    writes it the 2000s way, '6pm' or '5:30pm'."""
+    if retro:
+        hour = moment.hour % 12 or 12
+        return f"{hour}{'' if moment.minute == 0 else f':{moment.minute:02d}'}{'am' if moment.hour < 12 else 'pm'}"
     return f"{moment.hour % 12 or 12}:{moment.minute:02d} {'AM' if moment.hour < 12 else 'PM'}"
 
 
@@ -148,7 +152,7 @@ def away(connection, companion: dict, now, retro: bool = False) -> dict | None:
         return trips.away_status(connection, block, f"{companion['id']}:{window(companion, now)}")
     if kind not in AWAY or block.get('sick_day') or block.get('holiday') or block.get('with_user'):
         return None
-    until = clock_text(local(companion, parse(ends_at)))
+    until = clock_text(local(companion, parse(ends_at)), retro)
     seed = f"{companion['id']}:{window(companion, now)}:{kind}"
     lines = retro_bank()['away'][kind] if retro else list(AWAY[kind])
     return {'text': generators.pick(seed, 'away', lines).format(until=until), 'glyph': GLYPHS[kind]}

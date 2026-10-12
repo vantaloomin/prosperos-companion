@@ -94,6 +94,8 @@ def test_away_times_read_the_way_people_write_them():
     assert status.clock_text(datetime(2026, 10, 5, 18, 0)) == '6:00 PM'
     assert status.clock_text(datetime(2026, 10, 5, 17, 30)) == '5:30 PM'
     assert status.clock_text(datetime(2026, 10, 5, 0, 15)) == '12:15 AM'
+    assert status.clock_text(datetime(2026, 10, 5, 17, 30), retro=True) == '5:30pm'
+    assert status.clock_text(datetime(2026, 10, 5, 18, 0), retro=True) == '6pm'
 
 
 def test_retro_im_draws_era_away_messages_from_the_bank(client, clock):
@@ -102,7 +104,7 @@ def test_retro_im_draws_era_away_messages_from_the_bank(client, clock):
     bank = status.retro_bank()
     assert client.put('/api/settings', json={'chat_style': 'retro'}).status_code == 200
     at(clock, 10)
-    assert read(client)['away']['text'] in {line.format(until='5') for line in bank['away']['work']}
+    assert read(client)['away']['text'] in {line.format(until='5pm') for line in bank['away']['work']}
     everyday = set(bank['fake_deep'] + bank['emo'] + bank['random'])
     seen = set()
     for day in range(5, 25):
