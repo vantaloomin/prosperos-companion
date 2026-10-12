@@ -27,6 +27,8 @@ test('Today names the scrapbook only on the days it is featured', () => {
 
 test('dates and pages read plainly', () => {
   assert.equal(spanText('2025-03-10', '2026-03-09'), 'Mar 10, 2025 to Mar 9, 2026')
+  assert.equal(spanText('2026-03-10', '2026-09-06'), 'Mar 10 to Sep 6, 2026')
+  assert.equal(spanText('2026-10-12', '2026-10-12'), 'Oct 12, 2026')
   assert.equal(pageAt(0, 600, 5), 0)
   assert.equal(pageAt(1190, 600, 5), 2)
   assert.equal(pageAt(9000, 600, 5), 4)

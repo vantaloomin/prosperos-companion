@@ -3,9 +3,12 @@ import type { ScrapbookListing, ScrapbookPage } from '../../types'
 
 export const SCRAPBOOKS_KEY = ['scrapbooks']
 
-/** "Mar 10, 2025 to Mar 9, 2026" for a scrapbook's dates, without shifting them through a timezone. */
+/** "Mar 10, 2025 to Mar 9, 2026" for a scrapbook's dates, without shifting them through a timezone: the year once
+ * when both ends share it ("Mar 10 to Sep 6, 2026"), and one date when they are the same day (Iris). */
 export function spanText(start: string, end: string): string {
-  return `${dayText(start, true)} to ${dayText(end, true)}`
+  if (start.slice(0, 10) === end.slice(0, 10)) return dayText(end, true)
+  const sameYear = start.slice(0, 4) === end.slice(0, 4)
+  return `${dayText(start, !sameYear)} to ${dayText(end, true)}`
 }
 
 /** "Mar 10" or "Mar 10, 2025" for a local date ("2025-03-10"), in the user's own locale (when.ts's calendarDay). */
