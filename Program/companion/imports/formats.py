@@ -92,6 +92,9 @@ def from_json(source: bytes, stem: str) -> dict:
             return {'format': label, 'character': {key: next((text(value, name) for name in names if name in value), '')
                                                    for key, names in fields.items()}, 'book': None, 'picture': None}
     kind = lorebooks.kind_of(value)
+    if kind is None and value.get('format') == 'marinara-hierarchical-map':
+        raise problem('This is a Marinara world map. Open it in Settings, Life & cities, with "Open a city file", and it '
+                      'becomes a city with its own lore.')
     if kind is None:
         raise problem('This file is not a character card or a lorebook the Companion can read.')
     return {'format': kind[1], 'character': None, 'book': lorebooks.book(value, kind[0], kind[1], stem[:120]),

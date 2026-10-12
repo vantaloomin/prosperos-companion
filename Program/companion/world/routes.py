@@ -10,7 +10,7 @@ from companion.clock import zone
 from companion.errors import require
 from companion.life import network
 from companion.models import Input
-from companion.world import catalog, changes, custom, generators, townsfolk
+from companion.world import catalog, changes, custom, generators, marinara, townsfolk
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
 
@@ -102,6 +102,12 @@ def validate(definition: dict):
 @router.post('/cities')
 def create_city(request: Request, definition: dict):
     return custom.create(request.app.state.database, definition)
+
+
+@router.post('/import/marinara')
+def import_marinara(request: Request, value: dict):
+    """A Marinara world map, its pictures already left out by the page, becomes a city and world lore at once."""
+    return marinara.bring(request.app.state.database, value)
 
 
 @router.get('/cities/{city_id}')

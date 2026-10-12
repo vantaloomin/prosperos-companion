@@ -98,7 +98,9 @@ def _notes(data: dict) -> dict:
     return {'import_notes': data['import_notes']} if data.get('import_notes') else {}
 
 
-def create(database, definition: dict) -> dict:
+def create(database, definition: dict, also=None) -> dict:
+    """Save a new city. `also(connection, timestamp)` writes what comes with it (a world map's lore) in the same
+    transaction, so the two arrive together or not at all."""
     data = check(definition)
     require(data['id'] not in catalog.cities(), f'{data["id"]!r} is a built-in or pack city. Choose another id.',
             409)
@@ -108,6 +110,8 @@ def create(database, definition: dict) -> dict:
         now = database.now()
         connection.execute('INSERT INTO world_cities (id, definition, created_at, updated_at) VALUES (?, ?, ?, ?)',
                             (data['id'], encode(_definition(data)), now, now))
+        if also:
+            also(connection, now)
         return all_cities(connection)[data['id']] | _notes(data)
 
 
