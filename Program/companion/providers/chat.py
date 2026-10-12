@@ -15,6 +15,7 @@ import httpx
 from companion.errors import DomainError, require
 from companion.providers import balance
 from companion.providers.builtin_chat import RESOURCE_GROUP as BUILTIN_CHAT
+from companion.providers.claude_code import ClaudeCodeProvider
 from companion.providers.codex import CodexProvider
 from companion.providers.discovery import discover_models
 from companion.providers.discovery_errors import check_with_deadline
@@ -153,9 +154,11 @@ class Completion:
 
 
 class ChatProvider:
-    def __init__(self, transport: httpx.AsyncBaseTransport | None = None, codex: CodexProvider | None = None):
+    def __init__(self, transport: httpx.AsyncBaseTransport | None = None, codex: CodexProvider | None = None,
+                 claude_code: ClaudeCodeProvider | None = None):
         self.transport = transport
         self.codex = codex or CodexProvider()
+        self.claude_code = claude_code or ClaudeCodeProvider()
         # Instant replies on local models: each companion's prompt start kept and put back (prompt_cache.py).
         self.prompts = PromptCache()
         # The built-in chat model's server (builtin_chat.py), set by the app.
@@ -173,8 +176,9 @@ class ChatProvider:
 
     async def stream(self, config: dict, key: str | None, system: str, messages: list[dict]) -> AsyncIterator[Chunk]:
         provider = provider_of(config)
-        if provider == 'codex':
-            async for chunk in self.codex.stream(config, key, system, messages):
+        if provider in {'codex', 'claude_code'}:
+            cli = self.codex if provider == 'codex' else self.claude_code
+            async for chunk in cli.stream(config, key, system, messages):
                 yield chunk
             return
         config = {**await self.builtin_address(config), 'provider': provider}
@@ -251,6 +255,8 @@ class ChatProvider:
         """List the service's models without generating anything."""
         if config['provider'] == 'codex':
             return await self.codex.check(config, key)
+        if config['provider'] == 'claude_code':
+            return await self.claude_code.check(config, key)
         config = await self.builtin_address(config)
         validate_key(config['provider'], key)
         async with httpx.AsyncClient(transport=self.transport, timeout=15, follow_redirects=False,

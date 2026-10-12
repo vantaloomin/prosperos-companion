@@ -8,7 +8,7 @@ from typing import Protocol
 
 from companion.errors import DomainError
 from companion.identity import CREDENTIAL_SERVICE
-from companion.providers.config import ENV_KEYS
+from companion.providers.config import CLI_PROVIDERS, ENV_KEYS
 
 ENV_KEY = 'COMPANION_API_KEY'
 
@@ -69,4 +69,4 @@ def credential_for(vault: CredentialVault, reference: str | None, provider: str 
     """The saved key, else the provider's environment variable (COMPANION_API_KEY for other services)."""
     if reference:
         return vault.get(reference)
-    return os.environ.get(ENV_KEYS.get(provider or 'compatible', ENV_KEY)) if provider != 'codex' else None
+    return os.environ.get(ENV_KEYS.get(provider or 'compatible', ENV_KEY)) if provider not in CLI_PROVIDERS else None

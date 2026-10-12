@@ -122,6 +122,9 @@ def test_official_addresses_and_adapter_limits_are_enforced(client):
     add(client, {**LOCAL, 'base_url': 'http://192.168.1.20:1234/v1'}, status=422)
     add(client, {'provider': 'openai', 'model': 'gpt', 'top_k': 5}, status=422)
     add(client, {'provider': 'codex', 'model': 'gpt-5'}, api_key='nope', status=422)
+    add(client, {'provider': 'claude_code', 'model': 'sonnet'}, api_key='nope', status=422)
+    plan = add(client, {'provider': 'claude_code', 'model': 'sonnet'})
+    assert plan['ready'] and plan['provider_name'] == 'Claude Code / Claude plan' and not plan['has_saved_key']
     official = add(client, {'provider': 'openai', 'model': 'gpt'})
     assert official['config']['base_url'] == 'https://api.openai.com/v1'
 
