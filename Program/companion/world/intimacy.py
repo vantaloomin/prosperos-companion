@@ -29,7 +29,10 @@ DRIVES = {'low': 1, 'average': 2, 'high': 1}
 # A companion whose own words say they're under 18 never gets an adult side (fail closed). Background is left
 # out: "as a teen" there is a memory, not their age now.
 YOUNG = r'(?:1[0-7]|[1-9]|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)'
-MINOR = re.compile(rf"\b(?:{YOUNG}[- ](?:years?[- ]old|y/?o)\b|{YOUNG} y\.o\.|aged? {YOUNG}\b|teen(?:age[dr]?|s)?\b|"
+# Their age said outright: "17-year-old", "aged 17", "Mia is 17 and", "she's 17,", "I'm 17".
+STATED_YOUNG = (rf"\b(?:{YOUNG}[- ](?:years?[- ]old|y/?o)\b|{YOUNG} y\.o\.|aged? {YOUNG}\b)|"
+                rf"(?:\b(?:is|am)\s+|['’](?:s|m)\s+){YOUNG}\b(?=\s*(?:and\b|but\b|[,.;!()–—]|$|years|y/?o))")
+MINOR = re.compile(rf"(?:{STATED_YOUNG})|\b(?:teen(?:age[dr]?|s)?\b|"
                    r"minor\b|under-?age|high[- ]school(?:er|\s+student)|middle[- ]school|school ?(?:girl|boy)\b|"
                    r"\bin (?:the )?(?:(?:[1-9]|1[0-2])(?:st|nd|rd|th)|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) grade|"
                    r"(?:[1-9]|1[0-2])(?:st|nd|rd|th) grader|(?:sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) grader|"
@@ -83,6 +86,26 @@ def for_sheet(sheet: dict) -> dict | None:
 def reads_as_minor(definition: dict) -> bool:
     text = ' '.join(str(definition.get(key) or '') for key in ('name', 'identity', 'appearance', 'personality'))
     return bool(MINOR.search(text)) or any(age < ADULT_AT for age in stated_ages(definition))
+
+
+NUMBER_WORDS = {word: value for value, word in enumerate(
+    ('zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen '
+     'seventeen eighteen nineteen twenty').split())}
+# "Mia is 24 and", "she's 17,", "I'm 30." (an age said as what someone is, not "is 5 minutes away").
+IS_AGE = re.compile(r"(?:\b(?:is|am)\s+|['’](?:s|m)\s+)(\d{1,2}|[a-z]+)\b(?=\s*(?:and\b|but\b|[,.;!()–—]|$|years|y/?o))",
+                    re.IGNORECASE)
+
+
+def own_age(definition: dict) -> int | None:
+    """The first age who they are gives, which is their own ("Dana is 41 and raising a 15-year-old" is 41)."""
+    text = str(definition.get('identity') or '')
+    found = [(match.start(), next(group for group in match.groups() if group)) for match in AGE.finditer(text)]
+    found += [(match.start(), match[1]) for match in IS_AGE.finditer(text)
+              if match[1].isdigit() or match[1].lower() in NUMBER_WORDS]
+    if not found:
+        return None
+    value = min(found)[1]
+    return int(value) if value.isdigit() else NUMBER_WORDS[value.lower()]
 
 
 def stated_ages(definition: dict) -> list[int]:

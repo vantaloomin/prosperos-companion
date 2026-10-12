@@ -97,6 +97,17 @@ def adult_side(database) -> bool:
         return intimacy.turned_on(connection)
 
 
+ADULTS_ONLY = 'Companions are always adults. Give them an age of 18 or older, or leave their age to the app.'
+
+
+def adults_only(definition: dict, age: str = '') -> None:
+    """Every companion is 18 or older: an age pick or a draft that gives a younger age is turned down."""
+    picked = age_value(age)
+    age_now = intimacy.own_age(definition)
+    if (age_now is not None and age_now < intimacy.ADULT_AT) or (picked is not None and picked < intimacy.ADULT_AT):
+        raise DomainError(ADULTS_ONLY, 422, 'under_18')
+
+
 def adult_career_allowed(career: dict | None, definition: dict, age: str = '') -> bool:
     """Adult work only for someone who reads as an adult: the same check as their adult side."""
     if not career or not career.get('adult'):
@@ -433,6 +444,7 @@ class Draft:
         missing = [key for key in REQUIRED if not definition[key]]
         if missing:
             raise Unusable(f"it left out {', '.join(missing)}.")
+        adults_only(definition, self.body.age)
         career_id = raw.get('career') if raw.get('career') in self.offered else ''
         if not adult_career_allowed(self.offered.get(career_id), definition, self.body.age):
             career_id = ''
@@ -467,6 +479,7 @@ class Draft:
 
 async def draft(state, body) -> dict:
     """The quick start: a whole character drafted from a short idea and the user's picks."""
+    adults_only({}, body.age)
     config = connection_config(state.database)
     data, seed = home(state.database, body.home_city), identifier()
     offered = careers(data, adult_side(state.database))

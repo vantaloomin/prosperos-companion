@@ -133,3 +133,12 @@ def test_companions_learn_who_townsfolk_are_drawn_to_once_they_know_their_heart(
     known = encounters.adult_side(sheet, encounters.KNOWS_HEART, True)
     assert known['orientation'] == intimacy.for_sheet(sheet)['orientation'] and known['adult_side']['level_label']
     assert encounters.adult_side({**sheet, 'cast': 'c1'}, 9, True) == {}
+
+
+def test_an_age_is_read_however_it_is_written():
+    for text in ('Madison is 17 and posts videos.', "I'm 16, bored at home.", "She's seventeen."):
+        assert intimacy.reads_as_minor({'identity': text}), text
+        assert intimacy.own_age({'identity': text}) < 18
+    for text in ('Ashley is 20 and runs a page.', 'Her shift is 9-5.', "She's 5'4\" with dark hair."):
+        assert not intimacy.reads_as_minor({'identity': text}), text
+    assert intimacy.own_age({'identity': 'Dana is 41 and raising a 15-year-old.'}) == 41

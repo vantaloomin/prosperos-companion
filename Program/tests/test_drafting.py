@@ -305,3 +305,16 @@ def test_adult_work_is_only_ever_an_adults():
     assert not drafting.adult_career_allowed(creator, {'identity': 'Ashley is 20 and runs a fan page.'}, '17')
     assert not drafting.adult_career_allowed(creator, {'identity': 'A 17-year-old who runs a fan page.'})
     assert drafting.adult_career_allowed(drafting.catalog.careers()['teacher'], {'identity': 'A 17-year-old.'}, '17')
+
+
+def test_a_draft_is_always_an_adult(client, provider):
+    connect(client)
+    young = GOOD | {'identity': 'Madison is 17 and posts videos from her bedroom.'}
+    provider.respond = replying(json.dumps(young))
+    response = client.post('/api/companion/draft', json={'idea': 'a video creator'})
+    assert response.status_code == 422 and response.json()['code'] == 'under_18'
+    picked = client.post('/api/companion/draft', json={'idea': 'a video creator', 'age': '17'})
+    assert picked.status_code == 422 and picked.json()['code'] == 'under_18'
+    parent = GOOD | {'identity': 'Dana is 41 and raising a 15-year-old on her own.'}
+    provider.respond = replying(json.dumps(parent))
+    assert client.post('/api/companion/draft', json={'idea': 'a single parent'}).status_code == 200
