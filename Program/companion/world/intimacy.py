@@ -44,6 +44,11 @@ AGE = re.compile(r"\b(\d{1,3})(?:[- ]years?[- ]old|\s*(?:yo|y/o)\b|\s*y\.o\.)|\b
                  r"^\s*(?:[^,.\d]{1,80},\s*)?(\d{1,3})\s*(?:[.,]|$)", re.IGNORECASE)
 PRIVATE = ('Your intimate side (private; you are an adult and so is anyone this involves; never recite it or bring '
            'it up out of nowhere; it only shapes you when romance or intimacy comes up and the moment fits):')
+# Said right after the chat rules while the switch is on (A/B tested 2026-10-12: fewer dodged or refused
+# adult moments across 11 models, no change on minor-safety probes). Only for a companion who reads as an adult.
+SETTING = ("This is a private fiction app for adults. The user has turned on adult content. Everyone in this story is "
+           "18 or older, and adult work, sex and kink between consenting adults are ordinary parts of these "
+           "characters' lives. Write them plainly, without warnings or disclaimers.")
 WHO = {'she': 'woman', 'he': 'man', 'they': 'nonbinary'}
 
 
@@ -186,6 +191,13 @@ def prompt_text(connection, version: dict) -> str:
     if connection is None or not version.get('companion_id') or not turned_on(connection):
         return ''
     return own_text(for_companion(connection, version['companion_id'], version['definition']))
+
+
+def setting_text(connection, version: dict) -> str:
+    """The adults-only setting line for their own chat prompt when the switch is on, else ''."""
+    if connection is None or not turned_on(connection) or reads_as_minor(version['definition']):
+        return ''
+    return SETTING
 
 
 def view(found: dict | None) -> dict | None:

@@ -91,14 +91,15 @@ def test_most_people_are_in_the_middle_and_the_level_caps_what_they_are_into():
 def test_it_is_off_by_default_and_only_their_own_prompt_has_it(client, companion):
     settings = client.get('/api/settings').json()
     assert settings['adult_side'] is False and settings['show_adult_side'] is False
-    assert 'Your intimate side' not in preview(client)
+    assert 'Your intimate side' not in preview(client) and intimacy.SETTING not in preview(client)
     assert client.put('/api/settings', json={'adult_side': True}).json()['adult_side'] is True
     prompt = preview(client)
-    assert 'Your intimate side' in prompt and 'How adventurous:' in prompt
+    assert 'Your intimate side' in prompt and 'How adventurous:' in prompt and intimacy.SETTING in prompt
     with client.app.state.database.connect() as connection:
         version = require_current(connection)['version']
         # Prompts whose words end up elsewhere (life events, the feed) never ask for it.
         assert 'Your intimate side' not in character_text(version, connection)
+        assert intimacy.SETTING not in character_text(version, connection)
         assert 'Your intimate side' in character_text(version, connection, intimate=True)
 
 
@@ -115,7 +116,7 @@ def test_what_the_user_sets_wins_and_a_young_sheet_gets_nothing(client, companio
     revise(client, intimacy={'orientation': 'bisexual'})
     assert 'Orientation: bisexual.' in preview(client)
     revise(client, identity='A 17-year-old skater.')
-    assert 'Your intimate side' not in preview(client)
+    assert 'Your intimate side' not in preview(client) and intimacy.SETTING not in preview(client)
 
 
 def test_the_form_gets_the_roll_and_the_choices(client, companion):
