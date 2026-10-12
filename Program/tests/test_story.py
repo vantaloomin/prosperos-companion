@@ -156,7 +156,7 @@ def test_people_named_in_the_story_are_met_and_remembered(client, clock, provide
 
     # They can become the main character, with the story's meeting in their profile.
     drafted = ok(client.get('/api/companion/cast/draft', params={'key': them['key']}))
-    assert 'Has met the user in person once.' in drafted['definition']['background']
+    assert 'Has met the user in person once.' in drafted['definition']['history_together']
     switched = ok(client.post('/api/companion/cast/switch', json={'key': them['key'],
                                                                   'definition': drafted['definition']}))
     assert switched['version']['name'] == them['full']

@@ -139,5 +139,7 @@ def test_a_new_main_characters_profile_reads_as_sentences_with_real_interests():
     for place in data['places']:
         for sheet in townsfolk.at_place(data, place['id']):
             definition = cast.profile(data, sheet, found, date(2026, 3, 2))
-            assert definition['identity'].startswith(f"{sheet['age']} years old. ")
+            assert definition['identity'].startswith(f"{sheet['age']}")
+            # Their work, the middling line, and the place for a regular; how they talk in a few sentences.
+            assert len(definition['skills']) >= 3 and definition['voice'].count('.') >= 3
             assert not set(definition['interests']) & kinds

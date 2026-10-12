@@ -21,7 +21,7 @@ from companion.errors import DomainError, require
 from companion.life import encounters, network
 from companion.memory import pairs
 from companion.models import CharacterDefinition, CharacterDraftRequest
-from companion.world import catalog, generators, life_details, looks, perception, townsfolk
+from companion.world import catalog, generators, life_details, looks, perception, profile_bank, townsfolk
 
 # A shift's part of the day sets when they sleep, as (bed, wake).
 SLEEP = {'morning': ('21:30', '05:00'), 'afternoon': ('23:30', '08:00'), 'evening': ('01:30', '09:30'),
@@ -48,8 +48,12 @@ PLACE_INTERESTS = {
     'shopping': 'browsing the shops', 'workshop': 'making things', 'docks': 'boats',
 }
 # How a profile's line about who they know begins (shared_text).
-SHARED = ('Has crossed paths with', 'Has met the user', 'Matched with the user through')
-MATCHED = SHARED[2]
+SHARED = ('Has crossed paths with', 'Has met the user')
+# Their profile speaks of them with the pronouns on their sheet, so pictures and storylines use them too
+# (companion/world/looks.pronouns_of reads them back): (subject, noun).
+SPOKEN = {'she/her': ('She', 'woman'), 'he/him': ('He', 'man')}
+# Careers someone "is" rather than "works as".
+STUDYING = ('student',)
 
 
 # Who is in the cast ---------------------------------------------------------------------------------
@@ -136,14 +140,20 @@ def schedule(data: dict, sheet: dict, career: dict | None) -> list[dict]:
              'start': clock(visits['window'][0]), 'end': clock(visits['window'][1]), 'themes': [sheet['place']['name']]}]
 
 
-def work_text(data: dict, sheet: dict) -> str:
+def work_text(data: dict, sheet: dict, career: dict | None = None) -> str:
+    """Their job, with what the career is like day to day when the city says, and the place they are known at."""
     place = sheet['place']
     hood = townsfolk.neighborhood_name(data, place.get('neighborhood') or '')
     at = f"{place['name']} in {hood}" if hood else place['name']
     if sheet['kind'] == 'staff':
         return f"Works as the {sheet['role']} at {at}."
     job = sheet.get('occupation') or ''
-    work = 'Retired.' if job == 'retired' else f'Works as {article(job)} {job}.' if job else ''
+    verb = 'Is' if job.endswith(STUDYING) else 'Works as'
+    summary = (career or {}).get('summary', '').rstrip('.')
+    if summary[1:2].islower():
+        summary = summary[:1].lower() + summary[1:]
+    work = 'Retired.' if job == 'retired' else f"{verb} {article(job)} {job}{f': {summary}' if summary else ''}." \
+        if job else ''
     return f"{work} A regular at {at}.".strip()
 
 
@@ -173,7 +183,7 @@ def met_text(found: dict) -> str:
         return f'{SHARED[1]} around town; the two of them are friends.'  # A new world's first companion.
     if found['match']:
         met = shared_text('', [], found['in_story'])
-        return f"{MATCHED} {found['match']['noun']}; the two of them have only just started talking. {met}".strip()
+        return f"{found['match']['met']}. {met}".strip()
     return shared_text(found['focus']['version']['name'], found['meetings'], found['in_story'])
 
 
@@ -201,18 +211,26 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     lately = f" Lately: {state['line']}." if state['line'] else ''
     reached = f" Already managed to {'; '.join(state['reached'])}." if state['reached'] else ''
     goal_interest = state['goal']['interest']
+    who, noun = SPOKEN.get(sheet.get('pronouns', ''), ('They', ''))
+    age = f"{sheet['age']}-year-old {noun}." if noun else f"{sheet['age']} years old."
+    laughs, snaps = profile_bank.laughs_and_snaps(sheet)
+    verb = 's' if noun else ''
+    voice = VOICES.get(temperament) or perception.entry('temperament', temperament).get('town', {}).get('voice', '')
     definition = {
         'name': sheet['full'],
-        'identity': f"{sheet['age']} years old. {work_text(data, sheet)} Lives in {home}.",
+        'identity': f"{age} {work_text(data, sheet, career)} Lives in {home}.",
         'personality': f"{name} is {temperament} and {sheet['quirk']}. People meeting {name} for the first time "
-                       f"say they {townsfolk.first_impression(sheet)}. Underneath, {name} {wants(townsfolk.DESIRES[sheet['desire']])}.",
-        'voice': VOICES.get(temperament) or perception.entry('temperament', temperament).get('town', {}).get('voice', ''),
+                       f"say {who.lower()} {townsfolk.first_impression(sheet)}. Underneath, {name} {wants(townsfolk.DESIRES[sheet['desire']])}. "
+                       f"{who} laugh{verb} at {laughs}, and snap{verb} when {snaps}.",
+        'voice': ' '.join([voice, *profile_bank.speech(sheet)]).strip(),
         'flaws': [flaw[:1].upper() + flaw[1:] + '.'],
-        'skills': [f"Knows the regulars and the rhythms of {sheet['place']['name']}."],
+        'skills': [*profile_bank.job_skills(data, sheet), *([] if sheet['kind'] == 'staff' else [
+            f"Knows the regulars and the rhythms of {sheet['place']['name']}."]), profile_bank.middling(sheet)],
         'interests': list(dict.fromkeys(item for item in (goal_interest, PLACE_INTERESTS.get(sheet['place']['kind']))
                                         if item)),
         'background': f"{life_details.background(data, sheet) or f'Has lived in {home} for years.'} Right now "
-                      f"{name} is trying to {state['goal']['text']}.{lately}{reached} {met_text(found)}".rstrip(),
+                      f"{name} is trying to {state['goal']['text']}.{lately}{reached}",
+        'history_together': met_text(found),
         'routine': townsfolk.routine_text(sheet)[:1].upper() + townsfolk.routine_text(sheet)[1:] + '.',
         'location': f"{home}, {data['name']}, {data['region']}",
         'home_city': data['id'],
@@ -258,8 +276,8 @@ def person_view(data: dict, sheet: dict) -> dict:
 def idea(definition: dict) -> str:
     """The quick start's idea for the text model: everything the sheet says about them."""
     parts = [definition['identity'], definition['personality'], f"Flaw: {definition['flaws'][0]}",
-             definition['background'], f"Routine: {definition['routine']}"]
-    return ' '.join(parts)[:2000]
+             definition['background'], definition['history_together'], f"Routine: {definition['routine']}"]
+    return ' '.join(part for part in parts if part)[:2000]
 
 
 async def fleshed(state, key: str) -> dict:
@@ -270,11 +288,8 @@ async def fleshed(state, key: str) -> dict:
                                  age=str(found['person']['age']), home_city=base['home_city'],
                                  timezone=base['timezone'])
     written = (await drafting.draft(state, body))['definition']
-    found_at = [at for at in (base['background'].rfind(start) for start in SHARED) if at >= 0]
-    shared = base['background'][min(found_at):] if found_at else ''
     written |= {field: base[field] for field in ('name', 'location', 'home_city', 'timezone', 'relationship', 'looks',
-                                                 'starting_closeness')}
-    written['background'] = f"{written['background'].rstrip()} {shared}".strip()[:12000]
+                                                 'starting_closeness', 'history_together')}
     return {**found, 'definition': written}
 
 
