@@ -706,6 +706,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .city-packs summary { cursor: pointer; color: var(--muted); }
 .city-packs code { overflow-wrap: anywhere; }
 .city-notes { margin: 6px 0 0; padding-left: 18px; max-height: 12rem; overflow-y: auto; }
+.city-notes.more-below { mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent); }
 
 .study-import { max-width: 760px; margin: 20px 0 28px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .study-import > summary { cursor: pointer; font-size: 0.9375rem; }
