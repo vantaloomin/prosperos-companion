@@ -32,6 +32,7 @@ test('model search matches every word in the name or ID', () => {
 test('readiness and saved keys follow provider and address', () => {
   assert.equal(profileReady(configFor('codex')), false)
   assert.equal(profileReady({ ...configFor('codex'), model: 'gpt-5' }), true)
+  assert.equal(profileReady({ ...configFor('claude_code'), model: 'sonnet' }), true)
   const saved = { ...configFor('compatible'), base_url: 'https://one.example/v1' }
   assert.equal(savedKeyApplies(saved, true, { ...saved, model: 'x' }), true)
   assert.equal(savedKeyApplies(saved, true, { ...saved, base_url: 'https://two.example/v1' }), false)

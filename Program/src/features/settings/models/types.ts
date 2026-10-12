@@ -1,5 +1,5 @@
 // Provider presets and profile shapes adapted from prosperos-study src/features/models/types.ts at bbcbde4.
-export type Provider = 'openai' | 'anthropic' | 'openrouter' | 'google' | 'nanogpt' | 'compatible' | 'local' | 'kobold' | 'codex'
+export type Provider = 'openai' | 'anthropic' | 'openrouter' | 'google' | 'nanogpt' | 'compatible' | 'local' | 'kobold' | 'codex' | 'claude_code'
 export interface ReportedCapabilities { model_id: string; context_tokens?: number | null; max_output_tokens?: number | null; supported_parameters?: string[] | null; supported_efforts?: string[] | null }
 export interface ProfileConfig {
   provider: Provider
@@ -28,6 +28,8 @@ export interface ProfileConfig {
   /** Text profiles write; recall profiles only make embeddings for semantic recall. */
   purpose?: 'text' | 'recall'
   embedding_model?: string
+  /** Where the Claude Code CLI is installed, when it is not on PATH. */
+  cli_path?: string
 }
 export interface ModelProfile { id: string; name: string; revision: number; config: ProfileConfig; provider_name: string; has_saved_key: boolean; ready: boolean; recall_ready?: boolean }
 export interface ModelJob { key: string; name: string; detail: string }
@@ -43,10 +45,13 @@ export const providers: Record<Provider, { name: string; url: string; descriptio
   local: { name: 'Local / LM Studio', url: 'http://127.0.0.1:1234/v1', description: 'LM Studio, Ollama or another server on this computer.' },
   kobold: { name: 'Kobold', url: 'http://127.0.0.1:5001/api/v1', description: 'The native KoboldCpp generation API on this computer.' },
   codex: { name: 'Codex / ChatGPT', url: '', description: 'Your installed Codex CLI and its existing login. Sign in with codex login in a terminal.' },
+  claude_code: { name: 'Claude Code / Claude plan', url: '', description: 'Your installed Claude Code and the Claude plan it is signed in to. Sign in by running claude once in a terminal.' },
 }
 export const providerOrder = Object.keys(providers) as Provider[]
 export const initialConfig: ProfileConfig = { provider: 'local', model: '', base_url: providers.local.url, max_output_tokens: 800, context_tokens: 16000, timeout_seconds: 180 }
 export const configFor = (provider: Provider): ProfileConfig => ({ ...initialConfig, provider, base_url: providers[provider].url })
 export const recallConfigFor = (provider: Provider): ProfileConfig => ({ ...configFor(provider), purpose: 'recall', embedding_model: '' })
 export const isRecall = (config: ProfileConfig) => config.purpose === 'recall'
+/** Providers that run a program on this computer under its own login: no address and no key. */
+export const cliProviders: Provider[] = ['codex', 'claude_code']
 export const embeddingProviders: Provider[] = ['openai', 'nanogpt', 'compatible', 'local']

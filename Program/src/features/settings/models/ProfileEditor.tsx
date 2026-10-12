@@ -105,6 +105,11 @@ function ProviderPicker({ selected, choices, onChange }: { selected: Provider; c
 function ConnectionFields({ config, patch, savedKey, apiKey, onKey }: { config: ProfileConfig; patch: Patch; savedKey: boolean; apiKey: string; onKey: (value: string) => void }) {
   const local = config.provider === 'local' || config.provider === 'kobold'
   if (config.provider === 'codex') return <p className="subtle">Uses the Codex CLI’s own login; no key is entered here. Codex runs in an empty temporary folder with its shell, plugins, web search and tools turned off.</p>
+  if (config.provider === 'claude_code') return <>
+    <p className="subtle">Uses your Claude plan through Claude Code’s own login; no key is entered here, and the app never sees your password or token. Claude Code runs in an empty temporary folder with every tool turned off.</p>
+    <Notice>Claude follows Anthropic’s usage policy, so it won’t write the adult side of life. Use it for everyday chat and the other non-explicit jobs, and give adult scenes a different profile.</Notice>
+    <TextInput label="Claude Code location (optional)" value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} hint="Found on PATH when empty." />
+  </>
   return <>
     {(local || config.provider === 'compatible') && <TextInput label="Server address" value={config.base_url} onChange={value => patch({ base_url: value })} maxLength={500} hint={local ? 'An address on this computer. LM Studio and Ollama usually end in /v1.' : 'The API base URL, without /models or /chat/completions.'} />}
     <TokenEntry key={config.provider} saved={savedKey} value={apiKey} onChange={onKey} />

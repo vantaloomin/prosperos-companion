@@ -26,7 +26,7 @@ const samplerTips: Record<Sampler, string> = {
 
 function samplingFields(config: ProfileConfig) {
   const { provider } = config
-  if (provider === 'codex') return []
+  if (provider === 'codex' || provider === 'claude_code') return []
   if (provider === 'openai') return samplerFields.slice(0, 2)
   if (provider === 'anthropic' || provider === 'google') return samplerFields.slice(0, 3)
   if (provider === 'kobold') return samplerFields.filter(item => ['temperature', 'top_p', 'top_k', 'repetition_penalty'].includes(item[0]))
@@ -46,7 +46,7 @@ export function GenerationSettings(props: Props) {
 }
 
 function BudgetControls({ config, patch, model }: Props) {
-  const cli = config.provider === 'codex'
+  const cli = config.provider === 'codex' || config.provider === 'claude_code'
   const input = config.context_tokens - config.max_output_tokens
   return <div className="form-grid">
     <NumberInput label="Context size (tokens)" value={config.context_tokens} min={1024} max={2000000} onChange={value => patch({ context_tokens: Number(value) })} hint={model?.context_tokens ? `The service reports ${model.context_tokens.toLocaleString()} tokens. This can be lower.` : 'What the model can read at once. Not reported, so set it to the model’s context size.'} />
@@ -69,7 +69,7 @@ function ThinkingControls(props: Props) {
 }
 
 function EffortControl({ config, patch, model }: Props) {
-  const efforts = config.provider === 'google' ? ['minimal', 'low', 'medium', 'high'] : config.provider === 'anthropic' ? ['low', 'medium', 'high', 'xhigh', 'max'] : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
+  const efforts = config.provider === 'google' ? ['minimal', 'low', 'medium', 'high'] : config.provider === 'anthropic' || config.provider === 'claude_code' ? ['low', 'medium', 'high', 'xhigh', 'max'] : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
   const reported = model?.supported_efforts ?? config.reported_capabilities?.supported_efforts
   const available = reported ? efforts.filter(value => reported.includes(value)) : efforts
   return <Choice label="Reasoning effort" value={config.reasoning_effort} options={available} onChange={value => patch({ reasoning_effort: value, ...(config.provider === 'google' ? { thinking_mode: null, thinking_budget_tokens: null } : {}) })} hint={reported ? 'Options the selected model reports.' : 'The model does not report its options. Choose only one it supports.'} />

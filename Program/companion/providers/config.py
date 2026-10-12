@@ -5,6 +5,7 @@ protocol and its reasoning control are not offered (local servers use the OpenAI
 environment fallbacks use Companion names for local and compatible services, and Codex text
 generation runs through the same CLI login the image backend uses.
 """
+import os
 from typing import ClassVar, Literal
 from urllib.parse import urlsplit
 
@@ -15,10 +16,12 @@ from companion.models import Input
 from companion.providers.capabilities import validate_options
 from companion.providers.urls import is_loopback, validate_compatible_url
 
-Provider = Literal['openai', 'anthropic', 'openrouter', 'google', 'nanogpt', 'compatible', 'local', 'kobold', 'codex']
+Provider = Literal['openai', 'anthropic', 'openrouter', 'google', 'nanogpt', 'compatible', 'local', 'kobold', 'codex',
+                   'claude_code']
 PROVIDER_NAMES = {'openai': 'OpenAI', 'anthropic': 'Anthropic', 'openrouter': 'OpenRouter',
                   'google': 'Google / Gemini', 'nanogpt': 'NanoGPT', 'compatible': 'OpenAI-compatible API', 'local': 'Local / LM Studio',
-                  'kobold': 'Kobold', 'codex': 'Codex / ChatGPT'}
+                  'kobold': 'Kobold', 'codex': 'Codex / ChatGPT',
+                  'claude_code': 'Claude Code / Claude plan'}
 DEFAULT_URLS = {
     'openai': 'https://api.openai.com/v1',
     'anthropic': 'https://api.anthropic.com/v1',
@@ -29,7 +32,10 @@ DEFAULT_URLS = {
     'local': 'http://127.0.0.1:1234/v1',
     'kobold': 'http://127.0.0.1:5001/api/v1',
     'codex': '',
+    'claude_code': '',
 }
+# Providers that run a program on this computer under its own login: no address and no key.
+CLI_PROVIDERS = {'codex', 'claude_code'}
 # Standard variable names for hosted services; the Companion's own name for anything else.
 ENV_KEYS = {'openai': 'OPENAI_API_KEY', 'anthropic': 'ANTHROPIC_API_KEY', 'openrouter': 'OPENROUTER_API_KEY',
             'google': 'GEMINI_API_KEY', 'nanogpt': 'NANOGPT_API_KEY', 'compatible': 'COMPANION_API_KEY', 'local': 'COMPANION_API_KEY'}
@@ -66,7 +72,7 @@ def is_recall(config) -> bool:
 def profile_ready(config) -> bool:
     """A text profile with a model can do every job but recall."""
     return not is_recall(config) and bool(config.get('model', '').strip()) and \
-        (config['provider'] == 'codex' or bool(config.get('base_url')))
+        (config['provider'] in CLI_PROVIDERS or bool(config.get('base_url')))
 
 
 def recall_ready(config) -> bool:
@@ -116,6 +122,8 @@ class ProfileConfig(Input):
     # the service's /embeddings with embedding_model, so recall can use a different service from replies.
     purpose: Literal['text', 'recall'] = 'text'
     embedding_model: str = Field(default='', max_length=200)
+    # Where the Claude Code CLI is installed, when it is not on PATH. Models are set up on the PC only.
+    cli_path: str = Field(default='', max_length=500)
 
     @model_validator(mode='after')
     def validate_capabilities(self, info: ValidationInfo):
@@ -123,6 +131,11 @@ class ProfileConfig(Input):
         validate_profile_url(self.provider, self.base_url, self.allow_incomplete)
         if self.provider == 'codex' and self.temperature is not None:
             raise ValueError('Codex CLI does not support a temperature setting here.')
+        self.cli_path = self.cli_path.strip()
+        if self.cli_path and (self.provider != 'claude_code' or not os.path.isabs(self.cli_path)):
+            raise ValueError('The Claude Code location must be a full path to the program on this computer.')
+        if self.provider == 'claude_code' and self.reasoning_effort not in {None, 'low', 'medium', 'high', 'xhigh', 'max'}:
+            raise ValueError('Claude Code takes an effort of low, medium, high, xhigh or max.')
         if self.provider == 'anthropic' and self.temperature is not None and self.temperature > 1:
             raise ValueError('Anthropic temperature must be between 0 and 1.')
         if self.purpose == 'recall':
