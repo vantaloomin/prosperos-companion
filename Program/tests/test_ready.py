@@ -189,3 +189,71 @@ def test_not_enough_disk_space_says_so(client, monkeypatch):
     monkeypatch.setattr(ready.Ready, 'free_bytes', lambda self: 10)
     response = client.post('/api/ready', json={'model': 'qwen3.5-4b'})
     assert response.status_code == 409 and 'disk space' in response.json()['detail']
+
+
+def test_cancel_keeps_the_part_for_undo_then_clears_it(client, monkeypatch):
+    async def stalls(self, item, partial, have):
+        partial.write_bytes(MODEL[:1000])
+        self.received = 1000
+        await ready.asyncio.Event().wait()
+
+    monkeypatch.setattr(ready.Ready, 'receive', stalls)
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    deadline = time.monotonic() + 5
+    while client.get('/api/ready').json()['received'] < 1000 and time.monotonic() < deadline:
+        time.sleep(0.02)
+    view = client.post('/api/ready/cancel').json()
+    assert view['status'] == 'cancelled' and view['received'] == 1000
+    assert client.post('/api/ready', json={'model': 'qwen3.5-4b'}).json()['status'] == 'downloading'  # Undo
+    client.post('/api/ready/cancel')
+    view = client.delete('/api/ready').json()
+    assert view['status'] == 'idle' and view['received'] == 0
+    assert not list((client.app.state.builtin_chat.folder / 'models').glob('*.partial'))
+
+
+def test_a_chat_profile_picked_during_the_download_stays(client, hub, monkeypatch):
+    real = ready.Ready.make_profile
+
+    def picked_meanwhile(self, item, port):
+        with client.app.state.database.connect(write=True) as connection:
+            connection.execute("INSERT INTO model_profiles (id, name, config, revision, created_at, updated_at) "
+                               "VALUES ('theirs', 'Theirs', '{}', 1, 'now', 'now')")
+            connection.execute("INSERT OR REPLACE INTO model_routes (job, profile_id, updated_at) "
+                               "VALUES ('chat', 'theirs', 'now')")
+        real(self, item, port)
+
+    monkeypatch.setattr(ready.Ready, 'make_profile', picked_meanwhile)
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    view = settled(client)
+    assert view['status'] == 'ready' and view['in_use'] is False and view['profile_id']
+    assert client.post('/api/ready/use').json()['in_use'] is True
+
+
+def test_the_view_names_the_card_the_drive_and_the_runtime_download(client):
+    view = client.get('/api/ready').json()
+    assert view['card'] == {'name': 'GTX 1650', 'memory_gb': 4.0}
+    assert view['runtime_bytes'] > 0 and view['drive'] and view['seconds_left'] is None
+    assert client.post('/api/ready/seen', json={'what': 'notice'}).json()['announced'] is True
+
+
+def test_a_companion_saved_during_the_download_is_written_up_when_it_is_ready(client, hub, companion, monkeypatch):
+    from companion import drafting
+    drafted = {**companion['version']['definition'], 'name': 'Someone else', 'personality': 'Should not replace',
+               'voice': 'Short, dry texts.', 'interests': ['bouldering']}
+
+    async def draft(_state, request):
+        assert request.name == 'Mira' and request.idea == 'a night-shift nurse'
+        return {'definition': drafted}
+
+    monkeypatch.setattr(drafting, 'draft', draft)
+    client.post('/api/ready', json={'model': 'qwen3.5-4b'})
+    assert client.post('/api/ready/queue', json={'request': {'idea': 'a night-shift nurse'}}).status_code == 200
+    view = settled(client)
+    deadline = time.monotonic() + 5
+    while view['queued']['status'] in ('waiting', 'writing') and time.monotonic() < deadline:
+        time.sleep(0.02)
+        view = client.get('/api/ready').json()
+    assert view['queued'] == {'name': 'Mira', 'status': 'done', 'message': ''}
+    definition = client.get('/api/companion').json()['companion']['version']['definition']
+    assert definition['name'] == 'Mira' and definition['personality'] == 'Warm and curious'
+    assert definition['voice'] == 'Short, dry texts.' and definition['interests'] == ['bouldering']

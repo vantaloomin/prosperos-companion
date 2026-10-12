@@ -13,9 +13,11 @@ Only models whose licence asks for no click-through are offered (Apache 2.0, fro
 commit), so the download needs no account. Gemma and Llama models stay links in Settings > Models.
 """
 import asyncio
+import errno
 import hashlib
 import logging
 import shutil
+import time
 from pathlib import Path
 
 import httpx
@@ -26,7 +28,7 @@ from companion.errors import DomainError, require
 from companion.providers.builtin_chat import CONTEXT, RESOURCE_GROUP, read_state, write_state
 from companion.providers.builtin_recall import free_port
 from companion.providers.config import SavedProfileConfig
-from companion.text_models import CHAT, assign, assigned
+from companion.text_models import CHAT, assign, assigned, routes
 
 log = logging.getLogger('companion')
 HUB = 'https://huggingface.co'
@@ -56,6 +58,10 @@ CHUNK = 1 << 20
 SAVE_EVERY = 64 * CHUNK
 SPARE_BYTES = 2 * 10**9
 TIMEOUT = httpx.Timeout(60, connect=20)
+# Time left is shown once this much of the download has been timed, so it never flickers (Iris).
+RATE_AFTER_SECONDS = 10
+# Steps where the download is under way or waiting on the user, so a new press resumes rather than starts over.
+UNDER_WAY = ('downloading', 'checking', 'paused', 'cancelled', 'failed')
 
 
 def uses_builtin(database) -> bool:
@@ -97,6 +103,22 @@ def pick(report: dict) -> tuple[dict, str]:
     return MODELS[-1], reason
 
 
+def card(report: dict) -> dict | None:
+    """The card the chat model runs on: the biggest one."""
+    gpus = sorted(report['computer']['gpus'], key=lambda gpu: gpu['usable_gb'], reverse=True)
+    return {'name': gpus[0]['name'], 'memory_gb': gpus[0]['memory_gb']} if gpus else None
+
+
+def drive(path: Path) -> str:
+    """The drive the model goes on, as people know it: "Z:" on Windows, else "this drive"."""
+    anchor = path.resolve().drive
+    return anchor or 'this drive'
+
+
+def chat_profile(connection) -> str | None:
+    return routes(connection).get(CHAT)
+
+
 def page(item: dict) -> str:
     return f"{HUB}/{item['repo']}"
 
@@ -129,6 +151,9 @@ class Ready:
         self.transport = transport
         self.task: asyncio.Task | None = None
         self.received = 0
+        self.waiting = False
+        self.timed: tuple[float, int] | None = None  # When this stretch of the download began, and from which byte.
+        self.state_of_app = None  # The app's state, for the write-up of a companion made during the download.
 
     @property
     def folder(self) -> Path:
@@ -149,10 +174,31 @@ class Ready:
         state = self.state()
         runtime = self.chat.runtime()
         received = self.received if self.running() else state.get('received', 0)
+        queued = state.get('queued') or {}
         return {'pick': listed(chosen, space), 'reason': reason, 'models': [listed(item, space) for item in MODELS],
-                'runtime': runtime, 'status': state.get('status', 'idle'), 'model': state.get('model_key'),
+                'runtime': runtime, 'runtime_bytes': self.runtime_bytes(runtime), 'card': card(report),
+                'status': state.get('status', 'idle'), 'model': state.get('model_key'),
                 'received': received, 'total': state.get('bytes', 0), 'message': state.get('message', ''),
-                'server': self.chat.status(), 'free_bytes': self.free_bytes()}
+                'waiting': self.waiting and self.running(), 'seconds_left': self.seconds_left(received, state),
+                'server': self.chat.status(), 'free_bytes': self.free_bytes(), 'drive': drive(self.chat.folder),
+                'in_use': state.get('status') == 'ready' and uses_builtin(self.database),
+                'profile_id': state.get('profile_id'), 'announced': bool(state.get('announced')),
+                'settings_seen': bool(state.get('settings_seen')),
+                'queued': {key: queued.get(key) for key in ('name', 'status', 'message')} if queued else None}
+
+    def runtime_bytes(self, runtime: dict) -> int:
+        """The llama.cpp download that comes first, when this computer doesn't have it yet."""
+        asset = None if runtime.get('installed') else self.chat.assets().get(self.platform())
+        return asset[1] if asset else 0
+
+    def seconds_left(self, received: int, state: dict) -> int | None:
+        if not self.running() or self.waiting or self.timed is None:
+            return None
+        began, start = self.timed
+        elapsed = time.monotonic() - began
+        if elapsed < RATE_AFTER_SECONDS or received <= start:
+            return None
+        return round((state.get('bytes', 0) - received) / ((received - start) / elapsed))
 
     def free_bytes(self) -> int | None:
         try:
@@ -175,6 +221,10 @@ class Ready:
         free = self.free_bytes()
         require(free is None or free >= item['bytes'] - have + SPARE_BYTES,
                 f"There is not enough free disk space for {item['name']} ({item['bytes'] / 1e9:.1f} GB).", 409)
+        if self.state().get('status') not in UNDER_WAY:
+            # The chat profile in use as it starts: if the user picks another meanwhile, theirs stays (Iris).
+            with self.database.connect() as connection:
+                self.save(chat_before=chat_profile(connection), announced=False, settings_seen=False)
         self.save(status='downloading', model_key=key, bytes=item['bytes'], received=have, message='')
         self.launch(item)
         return self.view()
@@ -189,21 +239,82 @@ class Ready:
         self.task.add_done_callback(lambda task: task.cancelled() or task.exception())
 
     def recover(self):
-        """After a restart, a download the user confirmed carries on where it stopped."""
+        """After a restart, a download the user confirmed carries on where it stopped, and one they cancelled is
+        cleared away (the Undo it offered is over)."""
         state = self.state()
         if state.get('status') == 'downloading' and state.get('model_key'):
             self.launch(model(state['model_key']))
+        elif state.get('status') == 'cancelled':
+            self.discard()
 
-    async def pause(self) -> dict:
+    async def stop(self):
         if self.running():
             self.task.cancel()
             try:
                 await self.task
             except (asyncio.CancelledError, DomainError):
                 pass
+
+    async def pause(self) -> dict:
+        await self.stop()
         if self.state().get('status') == 'downloading':
             self.save(status='paused', received=self.received)
         return self.view()
+
+    async def cancel(self) -> dict:
+        """Stops at once; the part already downloaded stays for the Undo the page offers, until `discard`."""
+        await self.stop()
+        if self.state().get('status') in ('downloading', 'paused', 'failed'):
+            self.save(status='cancelled', received=self.received or self.state().get('received', 0))
+        return self.view()
+
+    def discard(self) -> dict:
+        """Deletes a cancelled download's part file."""
+        state = self.state()
+        if state.get('status') == 'cancelled' and state.get('model_key'):
+            item = model(state['model_key'])
+            self.target(item).with_name(item['file'] + '.partial').unlink(missing_ok=True)
+            self.save(status='idle', model_key=None, received=0, bytes=0, message='')
+        return self.view()
+
+    def use(self) -> dict:
+        """The card's "Ready. Use it for conversation": the built-in model takes the chat job after all."""
+        profile_id = self.state().get('profile_id')
+        require(self.state().get('status') == 'ready' and profile_id, 'The built-in model is not ready yet.', 409)
+        with self.database.connect(write=True) as connection:
+            assign(connection, CHAT, profile_id, self.database.now())
+        self.chat.kick()
+        return self.view()
+
+    def seen(self, what: str) -> dict:
+        self.save(**{'announced' if what == 'notice' else 'settings_seen': True})
+        return self.view()
+
+    def queue(self, companion_id: str, name: str, request: dict) -> dict:
+        """A companion saved during the download, to be written up once the model is ready."""
+        status = self.state().get('status')
+        require(status in UNDER_WAY or status == 'ready', 'Start the download first.', 409)
+        self.save(queued={'companion_id': companion_id, 'name': name, 'request': {**request, 'name': name},
+                          'status': 'waiting', 'message': ''})
+        if status == 'ready':
+            self.launch_write_up()
+        return self.view()
+
+    def launch_write_up(self):
+        task = asyncio.get_running_loop().create_task(self.write_queued())
+        task.add_done_callback(lambda done: done.cancelled() or done.exception())
+
+    async def write_queued(self):
+        from companion.ready_writeup import write_up
+        queued = self.state().get('queued') or {}
+        if queued.get('status') != 'waiting' or self.state_of_app is None:
+            return
+        self.save(queued={**queued, 'status': 'writing'})
+        try:
+            name = await write_up(self.state_of_app, queued)
+            self.save(queued={**queued, 'name': name, 'status': 'done', 'message': ''})
+        except DomainError as error:
+            self.save(queued={**queued, 'status': 'failed', 'message': error.message})
 
     def target(self, item: dict) -> Path:
         return self.folder / item['file']
@@ -226,11 +337,20 @@ class Ready:
             self.chat.kick()
         except DomainError as error:
             self.save(status='failed', message=error.message, received=self.received)
+            return
         except asyncio.CancelledError:
             raise
         except (OSError, httpx.HTTPError) as error:
             log.warning('Set it up for me failed: %s', error)
-            self.save(status='failed', message=f'The download stopped: {error}', received=self.received)
+            self.save(status='failed', message=self.stopped(error), received=self.received)
+            return
+        await self.write_queued()
+
+    def stopped(self, error: Exception) -> str:
+        if isinstance(error, OSError) and error.errno == errno.ENOSPC:
+            return (f'Stopped: {drive(self.chat.folder)} is full at {self.received / 1e9:.1f} GB. Free some space, '
+                    'then Resume.')
+        return f'The download stopped: {error}'
 
     async def fetch(self, item: dict) -> Path:
         """The model file, downloaded into `<file>.partial` and resumed with a range request after each drop."""
@@ -246,10 +366,12 @@ class Ready:
             if have == item['bytes']:
                 return path
             try:
+                self.timed = (time.monotonic(), have)
                 await self.receive(item, partial, have)
                 failure = None
             except httpx.HTTPError as error:
                 failure = error
+                self.waiting = True  # "Waiting for the connection…" until bytes arrive again.
                 await asyncio.sleep(min(2 ** attempt, 30))
         if failure is not None or partial.stat().st_size != item['bytes']:
             raise DomainError('The download kept stopping. Check your internet connection, then press Resume.', 502)
@@ -270,6 +392,7 @@ class Ready:
                     file.truncate()
                     self.received = have
                     async for chunk in response.aiter_bytes():  # As it arrives, so a drop loses nothing.
+                        self.waiting = False
                         file.write(chunk)
                         self.received += len(chunk)
                         unsaved += len(chunk)
@@ -279,7 +402,8 @@ class Ready:
                             unsaved = 0
 
     def make_profile(self, item: dict, port: int):
-        """A "Built-in" chat profile for the model, given the chat job: the user asked for this model to reply."""
+        """A "Built-in" chat profile for the model, given the chat job: the user asked for this model to reply. If they
+        picked another chat profile during the download, theirs stays and Settings offers this one instead."""
         config = SavedProfileConfig(provider='local', model=Path(item['file']).stem,
                                     base_url=f'http://127.0.0.1:{port}/v1', context_tokens=CONTEXT,
                                     timeout_seconds=300, resource_group=RESOURCE_GROUP).model_dump()
@@ -297,5 +421,6 @@ class Ready:
                 connection.execute('INSERT INTO model_profiles (id, name, config, credential_ref, revision, '
                                    'created_at, updated_at) VALUES (?, ?, ?, NULL, 1, ?, ?)',
                                    (profile_id, name, encode(config), timestamp, timestamp))
-            assign(connection, CHAT, profile_id, timestamp)
+            if chat_profile(connection) == self.state().get('chat_before'):
+                assign(connection, CHAT, profile_id, timestamp)
         self.save(profile_id=profile_id)
