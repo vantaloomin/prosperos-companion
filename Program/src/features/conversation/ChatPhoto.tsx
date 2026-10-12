@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ImageOff, RotateCcw } from 'lucide-react'
+import { Lightbox } from '../../components/Lightbox'
 import { api } from '../../api'
 import type { ChatPhoto as Photo, Message } from '../../types'
 import { imageFile } from '../feed/imageState'
@@ -34,8 +35,19 @@ function PhotoFrame({ photo, name }: { photo: Photo; name: string }) {
       <span className={failed ? 'chat-photo-loading failed' : 'chat-photo-loading'} aria-hidden="true">{failed && <ImageOff />}</span>
       {photo.ref && <img src={imageFile(photo.ref)} alt={photoAlt(name, photo)} onLoad={() => setLoaded(photo.ref)} onError={() => setLoaded(photo.ref)} />}
       {photo.kind === 'meme' && landed && <MemeText photo={photo} />}
+      {landed && photo.ref && <OpenFullSize photo={photo} src={imageFile(photo.ref)} name={name} />}
     </div>
   )
+}
+
+/** Clicking a landed photo opens it at full size, a meme with its captions. */
+function OpenFullSize({ photo, src, name }: { photo: Photo; src: string; name: string }) {
+  const [open, setOpen] = useState(false)
+  const captions = photo.kind === 'meme' ? { top: photo.top_text, bottom: photo.bottom_text } : {}
+  return <>
+    <button type="button" className="photo-open" aria-label="View full size" onClick={() => setOpen(true)} />
+    {open && <Lightbox pictures={[{ src, alt: photoAlt(name, photo), ...captions }]} onClose={() => setOpen(false)} />}
+  </>
 }
 
 /** A plain line under a photo still coming, or one that could not be made with Try again. */
