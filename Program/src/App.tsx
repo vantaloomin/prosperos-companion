@@ -11,6 +11,7 @@ import { useTexts } from './features/conversation/useTexts'
 import { Loading, Notice } from './components/Feedback'
 import { ErrorNotice } from './components/ErrorNotice'
 import { DebugBanner } from './features/settings/DebugBanner'
+import { ReadyNotice } from './features/ready/ReadyNotice'
 import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
 import { Welcome } from './features/character/Welcome'
@@ -86,6 +87,7 @@ export default function App() {
       <AppNav view={view} go={go} storyOn={storyOn} datingInstalled={datingInstalled} unread={unread} sidecarOpen={sidecarOpen} sidecarWaiting={sidecarWaiting} />
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/debug')} />
+        <ReadyNotice openModels={() => go('settings/models')} />
         {companion.isPending ? <Loading label="Opening your companion" />
           : companion.isError ? <ErrorNotice error={companion.error} />
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={view} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}

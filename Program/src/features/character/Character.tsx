@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { queueWriteUp } from '../ready/useReady'
 import { api, ApiError } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
@@ -95,6 +96,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       client.setQueryData(COMPANION_KEY, saved)
       onSaved(saved.version.number)
       void client.invalidateQueries({ queryKey: ['versions'] })
+      if (!companion && !create) await queueWriteUp(client, { name: saved.version.name, relationship: body.relationship, home_city: body.home_city, timezone: body.timezone })
       if (!companion) go(await afterCreating())
     } catch (error) {
       setResult({ tone: 'error', text: error instanceof Error ? error.message : 'The character could not be saved.', conflict: error instanceof ApiError && error.status === 409 })

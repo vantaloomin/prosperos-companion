@@ -9,6 +9,7 @@ import { LaunchFor } from './LocalPrograms'
 import { ModelUsage } from './ModelUsage'
 import { useModelUsage } from './usage'
 import { ProfileEditor } from './ProfileEditor'
+import { ReadyCard } from '../../ready/ReadyCard'
 import { jobChoice } from './routing'
 import { isRecall, type ModelJob, type ModelProfile, type ModelsOverview } from './types'
 
@@ -45,6 +46,7 @@ function TextProfiles({ overview, editing, setEditing, refresh, result, setResul
       <h2 id="models-heading">Models</h2>
       <p className="subtle">A profile is one provider, model and key: hosted services, your Codex login, or a model running on this computer. The conversation profile does every job until you give a job its own. Saving never contacts the service.</p>
     </div>
+    <ReadyCard hasProfiles={profiles.length > 0} />
     {profiles.length === 0 && editing !== 'new' && <p className="subtle">No model yet. Until you add one, your messages are saved and replies wait.</p>}
     <ProfileList profiles={profiles} overview={overview} editing={editing} setEditing={setEditing} done={done} refresh={refresh} setResult={setResult} />
     {editing === 'new' ? <ProfileEditor onDone={done} />

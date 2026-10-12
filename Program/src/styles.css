@@ -808,7 +808,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .usage-meter { display: block; width: 100%; max-width: 160px; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
 .usage-meter span { display: block; height: 100%; background: var(--accent); }
 @keyframes usage-in { from { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .model-usage { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .model-usage { animation: none; } }
+:root[data-motion='reduce'] .model-usage { animation: none; }
 .model-profile-editor { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .provider-picker { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
 .provider-picker legend { margin-bottom: 8px; font-weight: 500; }
@@ -886,6 +887,24 @@ textarea { resize: vertical; line-height: 1.6; }
 @media (min-width: 721px) {
   :root[data-text-large='true'] .app-nav button > span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+.download-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 20px; margin: 0; font-size: 0.875rem; }
+.download-facts dt { color: var(--muted); font-size: 0.8125rem; }
+.download-facts dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.download-facts .short dd, .download-short { color: var(--danger); }
+.download-progress { display: grid; gap: 6px; }
+.download-progress p { margin: 0; }
+.download-title { font-weight: 600; }
+.download-line { font-variant-numeric: tabular-nums; }
+.download-bar { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.download-bar span { display: block; height: 100%; background: var(--accent); }
+.download-progress .form-actions { margin-top: 2px; }
+.ready-card { border-color: var(--accent); }
+.ready-card h3 { margin-bottom: 6px; }
+.app-nav .nav-ring { position: absolute; top: 4px; right: 14px; width: 1.1rem; height: 1.1rem; transform: rotate(-90deg); }
+.nav-ring circle { fill: none; stroke-width: 2.5; }
+.nav-ring-track { stroke: var(--border); }
+.nav-ring-fill { stroke: var(--accent); stroke-linecap: round; }
+@media (max-width: 720px) { .dialog:has(.download-facts) { margin: auto 0 0; max-width: 100vw; width: 100vw; border-radius: 14px 14px 0 0; } }
 .custom-palette > summary { cursor: pointer; padding-block: 6px; }
 .color-control { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: end; }
 .color-control input[type='color'] { width: 64px; height: 42px; padding: 3px; }
