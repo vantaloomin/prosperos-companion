@@ -4,7 +4,7 @@ import type { Persona, PersonaGender, Worlds } from '../../types'
 import { Field, TextArea, TextInput } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { GENDERS } from './worldsText'
-import { CityPick } from './CityPick'
+import { CityPick, SOMEWHERE_NEW } from './CityPick'
 
 const BIRTHDAY = /^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$/
 
@@ -31,14 +31,14 @@ async function savePersona(persona: Persona | undefined, body: Omit<Draft, 'age'
   return api<Worlds>(`/worlds/personas/${persona.id}`, body, 'PATCH')
 }
 
-/** `cityId` is the city the user is in now, where a new persona's world is unless they pick another. */
+/** `cityId` is the city the user is in now, listed in a new persona's city picker even before the cities load. */
 interface PersonaFormProps { persona?: Persona; cityId: string; onSaved: (data?: Worlds) => void; onCancel?: () => void }
 
 /** Who the user is: the one in use, or (without `persona`) a new one. Only the user says this; companions know
  * only what is written here, and nothing left blank is made up. */
 export function PersonaForm({ persona, cityId, onSaved, onCancel }: PersonaFormProps) {
   const [draft, setDraft] = useState(() => draftOf(persona))
-  const [city, setCity] = useState(cityId)
+  const [city, setCity] = useState(SOMEWHERE_NEW)
   const [saving, setSaving] = useState(false)
   const text = persona ? TEXT.existing : TEXT.new
   const headingId = text.id

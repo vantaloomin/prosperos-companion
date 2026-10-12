@@ -8,7 +8,11 @@ import { CitiesUnavailable } from '../world/CitiesUnavailable'
 
 interface CityPickProps { value: string; onChange: (cityId: string) => void; currentId: string; disabled?: boolean; autoFocus?: boolean }
 
-/** Where a new world is: the city the user is in now unless they pick another (Featured first, then every shelf). */
+/** The picker's first option: the app picks a featured city other than this one (companion/worlds.py SOMEWHERE_NEW). */
+export const SOMEWHERE_NEW = 'somewhere-new'
+
+/** Where a new world is: somewhere new the app picks unless the user picks a city (Featured first, then every shelf,
+ * the current city among them). */
 export function CityPick({ value, onChange, currentId, disabled, autoFocus }: CityPickProps) {
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
   const featured = useQuery({ queryKey: ['featured-cities'], queryFn: () => api<FeaturedCities<CitySummary>>('/world/featured'), staleTime: Infinity })
@@ -18,6 +22,7 @@ export function CityPick({ value, onChange, currentId, disabled, autoFocus }: Ci
     <Field label="Where they live" hint="A new town with new people in it. Days there follow its places and its era.">
       {(id, hint) => (
         <select id={id} aria-describedby={hint} value={value} disabled={disabled} autoFocus={autoFocus} onChange={(event) => onChange(event.target.value)}>
+          <option value={SOMEWHERE_NEW}>Somewhere new (picked for you)</option>
           <CityOptions cities={listed} featured={featured.data?.cities} withRegion />
         </select>
       )}

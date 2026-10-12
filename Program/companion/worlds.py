@@ -13,7 +13,7 @@ settings, their own cities, paired phones) is carried over from the world they l
 
 "The world exists outside of User" (Vanta, 2026-10-08): nobody sets anything up. An existing workspace silently
 becomes the first world, with a persona made from what the app already knows about the user; a new persona or
-world arrives ready, in the city the user picked (the current one unless they pick another) with fresh townsfolk and a starter companion drawn from them, and the
+world arrives ready, in the city the user picked (the form starts on a featured one the app picks) with fresh townsfolk and a starter companion drawn from them, and the
 user changes whatever they like afterwards.
 """
 import json
@@ -29,7 +29,7 @@ from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
 from companion.models import CharacterDefinition
-from companion.world import changes, custom, generators, townsfolk
+from companion.world import catalog, changes, custom, generators, townsfolk
 
 REGISTRY = 'worlds.json'
 FOLDER = 'worlds'
@@ -42,6 +42,8 @@ SHARED = tuple(table for table in restore.KEPT_SETTINGS if table != 'debug_time'
 REVISIONS = ('permission_revision', 'memory_revision')
 # A starter companion is a grown-up townsperson who has a life of their own to bring.
 STARTER_AGES = (21, 45)
+# The city picker's "Somewhere new (picked for you)": a featured city other than the one the user is in.
+SOMEWHERE_NEW = 'somewhere-new'
 
 
 # The registry -------------------------------------------------------------------------------------------
@@ -345,6 +347,12 @@ def build(database: Database, path: Path, persona: dict, city_id: str, seed: str
     lore.carry_city_lore(path, database.path, data)
 
 
+def somewhere_new(connection, here: str, seed: str) -> str:
+    """A featured city other than `here`, the same one for the same world; `here` when nothing else is featured."""
+    others = [city['id'] for city in catalog.featured(custom.all_cities(connection))['cities'] if city['id'] != here]
+    return min(others, key=lambda city_id: generators.unit(city_id, 'somewhere-new', seed), default=here)
+
+
 def unique_name(data: dict, wanted: str) -> str:
     taken = {world['name'] for world in data['worlds']}
     if wanted not in taken:
@@ -355,13 +363,15 @@ def unique_name(data: dict, wanted: str) -> str:
 def create_world(database: Database, persona_id: str | None = None, name: str | None = None,
                  city_id: str | None = None, town: str | None = None) -> dict:
     """A new world for a persona (the active one by default), in the current city unless another is named. `town`
-    reuses a town's people instead of seeding new ones (Become a townsperson)."""
+    reuses a town's people instead of seeding new ones (Become a townsperson). `SOMEWHERE_NEW` lets the app pick."""
     data = registry(database)
     active = found(data['worlds'], data['active'], 'world')
     persona = found(data['personas'], persona_id or active['persona_id'], 'persona')
-    with database.connect() as connection:
-        city = story.city_data(connection, city_id) if city_id else city_of(connection)
     world_id = identifier()
+    with database.connect() as connection:
+        if city_id == SOMEWHERE_NEW:
+            city_id = somewhere_new(connection, city_of(connection)['id'], world_id)
+        city = story.city_data(connection, city_id) if city_id else city_of(connection)
     folder = f'{FOLDER}/{world_id}'
     path = database.root / folder / DATABASE
     try:
@@ -462,7 +472,7 @@ def become(state, key: str) -> dict:
 def create_persona(database: Database, body) -> dict:
     """A new persona with a world of their own. Who the user is stays theirs to say (Vanta, 2026-10-09): the name
     they typed, and nothing the app makes up; what they leave blank stays blank. Where they live is theirs to pick
-    too, the current city unless they pick another; everyone in it is decided for them."""
+    too (the form starts on somewhere new, picked for them); everyone in it is decided for them."""
     name = (body.name or '').strip()
     require(bool(name), 'Give the new persona a name.', 422)
     data = registry(database)

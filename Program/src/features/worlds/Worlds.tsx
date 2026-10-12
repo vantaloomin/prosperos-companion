@@ -7,7 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { PersonaForm } from './PersonaForm'
-import { CityPick } from './CityPick'
+import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { enter, useWorlds, WORLDS_KEY } from './useWorlds'
 import { companionsLine, initial, personaName, personaRef, personaTitle } from './worldsText'
 
@@ -90,13 +90,13 @@ function PersonaWorlds({ persona, cityId, run, store, onSwitch, onSwitchPersona 
   )
 }
 
-/** Where the persona's new world is: the city the user is in now unless they pick another. */
+/** Where the persona's new world is: somewhere new the app picks unless the user picks a city. */
 function NewWorld({ persona, cityId, run, onDone }: { persona: Persona; cityId: string; run: Run; onDone: () => void }) {
   const client = useQueryClient()
-  const [city, setCity] = useState(cityId)
+  const [city, setCity] = useState(SOMEWHERE_NEW)
   const [making, setMaking] = useState(false)
   const make = () => { setMaking(true); return run(async () => {
-    await api('/worlds', { persona_id: persona.id, city_id: city || undefined })
+    await api('/worlds', { persona_id: persona.id, city_id: city })
     await client.invalidateQueries({ queryKey: WORLDS_KEY })
     onDone()
   }).finally(() => setMaking(false)) }
