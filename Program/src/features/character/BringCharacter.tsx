@@ -6,7 +6,7 @@ import { COMPANION_KEY } from '../../companion'
 import type { Companion } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { fileData } from './helper'
-import { IMPORT_TYPES, broughtText, type Brought } from './loreText'
+import { IMPORT_TYPES, broughtText, slimmed, type Brought } from './loreText'
 
 type Result = { tone: 'info' | 'error'; text: string }
 /** The last import's outcome, kept outside the section: the new companion remounts the whole Character page, which
@@ -30,7 +30,7 @@ export function BringCharacter() {
     setBusy(true)
     setResult(null)
     try {
-      const made = await api<Brought & { companion: Companion | null }>('/import/character', { filename: file.name, data: await fileData(file) })
+      const made = await api<Brought & { companion: Companion | null }>('/import/character', { filename: file.name, data: await fileData(await slimmed(file)) })
       setResult({ tone: 'info', text: broughtText(made) })  // Before the page remounts for the new companion.
       if (made.companion) client.setQueryData(COMPANION_KEY, made.companion)
       await Promise.all(['cast', 'lore', 'versions'].map((key) => client.invalidateQueries({ queryKey: [key] })))
@@ -45,7 +45,7 @@ export function BringCharacter() {
     <section className="settings-section form-stack" aria-labelledby="bring-heading">
       <div>
         <h2 id="bring-heading">Bring your characters</h2>
-        <p className="subtle">A character from SillyTavern, Chub, Agnai, RisuAI, NovelAI or Backyard moves into town with a job, a home and a routine of their own, and their lorebook comes along. A lorebook on its own becomes part of this world.</p>
+        <p className="subtle">A character from SillyTavern, Chub, Agnai, RisuAI, NovelAI, Backyard or Marinara Engine moves into town with a job, a home and a routine of their own, and their lorebook comes along. A lorebook on its own becomes part of this world.</p>
       </div>
       <input ref={input} type="file" accept={IMPORT_TYPES} hidden onChange={(event) => void bring(event.target.files?.[0])} />
       <div className="form-actions">

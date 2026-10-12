@@ -6,6 +6,7 @@ export interface Brought {
   companion: { version: { name: string; definition: { identity: string } } } | null
   book: BroughtBook | null
   picture: boolean
+  portrait?: boolean
   stepped_back?: string | null
 }
 export interface LoreEntry { id: string; title: string; text: string; keywords: string[]; always: boolean; pattern: boolean; enabled: boolean }
@@ -15,6 +16,23 @@ export interface LoreBook {
 }
 
 export const IMPORT_TYPES = '.png,.json,.charx,.byaf,.lorebook'
+/** Above this the server turns a file down (companion/imports/cards.py MAX_SOURCE_BYTES). */
+const MAX_BYTES = 10 * 1024 * 1024
+
+/** A Marinara Engine export carries its sprites and whole gallery as pictures inside the JSON, often past the size
+ * limit; only the card and its avatar are used, so the rest is left out before sending. Other files go as they are. */
+export async function slimmed(file: File): Promise<Blob> {
+  if (file.size <= MAX_BYTES || !/\.json$/i.test(file.name)) return file
+  try {
+    const value = JSON.parse(await file.text())
+    if (typeof value?.type !== 'string' || !value.type.startsWith('marinara_') || !value.data) return file
+    delete value.data.sprites
+    delete value.data.gallery
+    return new Blob([JSON.stringify(value)], { type: 'application/json' })
+  } catch {
+    return file
+  }
+}
 
 const entries = (count: number, word = 'entry') => `${count} ${count === 1 ? word : word.replace(/y$/, 'ies')}`
 
@@ -32,7 +50,7 @@ export function broughtText(result: Brought): string {
   const life = result.companion.version.definition.identity.trim()
   const parts = [`${name} is here (from a ${result.format}).${life ? ` ${life}` : ''}`]
   if (result.book) parts.push(`Their lorebook came too: ${bookLine(result.book)}.`)
-  if (result.picture) parts.push('Their picture is with their reference pictures.')
+  if (result.picture) parts.push(result.portrait ? 'Their picture is their profile picture.' : 'Their picture is with their reference pictures.')
   if (result.stepped_back) parts.push(`${result.stepped_back} stepped back and keeps everything.`)
   return parts.join(' ')
 }
