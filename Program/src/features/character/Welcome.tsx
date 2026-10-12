@@ -12,6 +12,8 @@ import { ConfirmDownload } from '../ready/ConfirmDownload'
 import { DownloadProgress } from '../ready/DownloadProgress'
 import { isActive, modelOf, offered, type ReadyView } from '../ready/readyText'
 import { useReady } from '../ready/useReady'
+import { BackTo, FeelsLike } from './WorldArrival'
+import { arrivalLede, useArrival, type Arrival } from './arrivalText'
 
 /** The first screen with no companion: connect the model they think with, then create them. */
 export function Welcome({ go }: { go: (view: View) => void }) {
@@ -25,23 +27,37 @@ export function Welcome({ go }: { go: (view: View) => void }) {
   const getWording = ready?.status === 'ready'
   const steps = welcomeSteps(connection.isSuccess ? connection.data : undefined, setUp, builtin, getWording)
   const hardware = useHardware()
+  const arrival = useArrival()
   return (
     <section className="welcome">
-      <p className="eyebrow">Prospero Companion</p>
-      <h1>Meet someone new</h1>
-      <p className="lede">{welcomeLede(getWording ? 'active' : setUp)}</p>
+      <WelcomeHeader arrival={arrival} lede={welcomeLede(getWording ? 'active' : setUp)} />
       <ol className="welcome-steps">
         {steps.map((step) => <Step key={step.id} step={step} setUp={step.id === 'model' ? setUp : null} ready={ready} go={go} />)}
       </ol>
-      {/* Wolfenstein-style presets (Vanta, 2026-10-10): one is already picked, so this never holds anything up. */}
-      <RealismPresets heading="welcome-presets-heading" title="How should it feel?"
-        intro="One is picked for you. Tap another if you like; you can change it any time in Settings > Realism." />
+      <Feel arrival={arrival} go={go} />
       {!remote && hardware.data && <div className="welcome-hardware subtle">
         <p>On this computer: {hardware.data.can_run.join(' ')}</p>
         {hardware.data.warnings.length > 0 && <p>Settings &gt; Models has {hardware.data.warnings.length === 1 ? 'a warning' : 'warnings'} about the models you set up.</p>}
       </div>}
     </section>
   )
+}
+
+/** Where they are when they just arrived in a new world; the app's name on a first run. */
+function WelcomeHeader({ arrival, lede }: { arrival: Arrival | null; lede: string }) {
+  return (<>
+    <p className="eyebrow">{arrival ? `New world · ${arrival.city}` : 'Prospero Companion'}</p>
+    <h1>Meet someone new</h1>
+    <p className="lede">{arrival ? arrivalLede(arrival) : lede}</p>
+  </>)
+}
+
+/** How it should feel: asked on the first run; in a world after that, the user's preset said once with a way out. */
+function Feel({ arrival, go }: { arrival: Arrival | null; go: (view: View) => void }) {
+  if (arrival) return <>{arrival.previous && <BackTo world={arrival.previous} />}<FeelsLike go={go} /></>
+  // Wolfenstein-style presets (Vanta, 2026-10-10): one is already picked, so this never holds anything up.
+  return <RealismPresets heading="welcome-presets-heading" title="How should it feel?"
+    intro="One is picked for you. Tap another if you like; you can change it any time in Settings > Realism." />
 }
 
 /** Step 1's choice when this computer can run a model: set it up here, or use a service. */

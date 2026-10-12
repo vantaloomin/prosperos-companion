@@ -115,6 +115,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .welcome-steps .button, .welcome-steps .text-button { margin-top: 8px; }
 .welcome-steps .text-button { padding-left: 0; }
 .welcome-hardware { text-align: left; width: 100%; }
+.welcome-back, .welcome-feels { margin: 0; }
 .welcome-hardware p { margin: 0 0 6px; }
 .settings > .notice:first-of-type { margin-bottom: 16px; }
 .lede { color: var(--muted); line-height: 1.8; }
