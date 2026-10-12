@@ -534,7 +534,7 @@ export interface FeedPost {
   reaction: Reaction | null
   occurs_at: string
   created_at: string
-  events: { id: string; summary: string; caption: string; mood: string | null; label: string | null; kind: string; starts_at: string; ends_at: string; revision: number }[]
+  events: { id: string; summary: string; caption: string; mine?: { caption: string; summary: string }; mood: string | null; label: string | null; kind: string; starts_at: string; ends_at: string; revision: number }[]
   text?: string
   context?: string
   place?: string

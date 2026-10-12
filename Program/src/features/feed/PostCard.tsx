@@ -75,13 +75,15 @@ function PostBody({ post, actions }: { post: FeedPost; actions: PostActions }) {
 
 /** What happened. A post of several moments is illustrated by its first, so the picture sits under that one. */
 function PostEvents({ post, imageFirst, refresh }: { post: FeedPost; imageFirst: boolean; refresh: () => void }) {
-  return post.events.map((event, index) => (
-    <div key={event.id} className="post-event">
-      <p className="post-caption">{event.caption}</p>
-      {event.caption !== event.summary && <p className="subtle">{event.summary}</p>}
+  return post.events.map((event, index) => {
+    // The post is the companion's own, so its lines say "I".
+    const { caption, summary } = event.mine ?? event
+    return <div key={event.id} className="post-event">
+      <p className="post-caption">{caption}</p>
+      {caption !== summary && <p className="subtle">{summary}</p>}
       {index === 0 && imageFirst && post.image && <PostImage post={post} image={post.image} onChange={refresh} />}
     </div>
-  ))
+  })
 }
 
 /** A friend's post says who they are to the companion ("Kimberly's mom"), never to the user. */
