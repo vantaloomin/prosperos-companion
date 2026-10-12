@@ -53,6 +53,19 @@ def test_a_date_with_its_weekday_is_the_date_and_the_place_fits_the_word():
     assert picks == {'National Aquarium'}
 
 
+def test_a_holiday_mentioned_in_passing_does_not_set_the_day():
+    holidays = {'thanksgiving': date(2026, 11, 26)}
+    data = catalog.city('baltimore')
+    found = outings.proposal("Let's go for a walk Sunday also my sister just texted me a seating chart for thanksgiving",
+                             TODAY, holidays, data)
+    assert (found['activity'], found['day']) == ('walk', date(2026, 10, 11))
+    found = outings.proposal('Dinner Friday? btw what are you doing for thanksgiving', TODAY, holidays, data)
+    assert found['day'] == date(2026, 10, 9)
+    # Asked for the holiday itself, the holiday is the day.
+    assert outings.proposal('Want to get dinner on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
+    assert outings.proposal('Dinner, on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
+
+
 def test_the_companion_only_makes_firm_plans_themselves():
     assert asked("We should get drinks Saturday!", firm=True) == ('drinks', '2026-10-10', None, None)
     assert asked('Should we get drinks Saturday?', firm=True) is None

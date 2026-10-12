@@ -64,6 +64,8 @@ VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one 
 FIRM = re.compile(r"\b(?:let'?s|we should|we're going|we are going|i'll take you|i'm taking you)\b", re.IGNORECASE)
 STARTS = re.compile(rf"^(?:{'|'.join(value[0] for value in ACTIVITIES.values())})\b", re.IGNORECASE)
 SHORT = 6
+# Run-on messages join an ask to other news with "also", "btw" or "anyway".
+ASIDE = re.compile(r"\s+(?:also|btw|anyway|plus|oh and|and also)\s+", re.IGNORECASE)
 WEEKEND = re.compile(r'\b(?:this|the) weekend\b', re.IGNORECASE)
 NOT_BUSY = {'work', 'study', 'sleep'}
 LOOK_DAYS = 7
@@ -147,11 +149,32 @@ def described(item: dict) -> str:
     return ' '.join([item['name'], item.get('summary', ''), *item.get('tags', ())])
 
 
-def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
-    if WEEKEND.search(sentence):
+def day_in(text: str, today: date, holidays: dict) -> date | None:
+    if WEEKEND.search(text):
         return today if today.weekday() >= 5 else today + timedelta(days=5 - today.weekday())
-    found = own_plans.when(sentence, today, holidays)
+    found = own_plans.when(text, today, holidays)
     return found[0] if found and found[0] >= today else None
+
+
+def asking_clause(sentence: str) -> str | None:
+    """The clause that asks to go out, when the sentence has others ("a walk Sunday also my sister ...")."""
+    parts = [part for clause in own_plans.CLAUSES.split(sentence) for part in ASIDE.split(clause or '') if part]
+    if len(parts) < 2:
+        return None
+    return next((part for part in parts if ASKING.search(part) or OUT.search(part) or any(
+        re.search(rf'\b(?:{value[0]})\b', part, re.IGNORECASE) for value in ACTIVITIES.values())), None)
+
+
+def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
+    """The day the ask names. A holiday named only outside the clause that asks ("a walk Sunday also my sister
+    texted a seating chart for thanksgiving") sets the day only when nothing else does."""
+    clause = asking_clause(sentence)
+    if clause:
+        near = {name: day for name, day in holidays.items()
+                if re.search(rf"\b{re.escape(name)}\b", clause.replace("'", ''), re.IGNORECASE)}
+        if found := day_in(sentence, today, near):
+            return found
+    return day_in(sentence, today, holidays)
 
 
 def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bool = False) -> dict | None:
