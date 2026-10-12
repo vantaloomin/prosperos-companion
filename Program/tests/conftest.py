@@ -1,5 +1,7 @@
 import asyncio
 import json
+import os
+import zlib
 from datetime import UTC, datetime
 
 import pytest
@@ -104,6 +106,20 @@ def no_character_sheets(monkeypatch):
     """A Codex picture is made after a character sheet; test_character_sheet turns it on, since the extra
     call would change the request counts of unrelated tests."""
     monkeypatch.setattr('companion.images.sheet.ENABLED', False)
+
+
+def pytest_collection_modifyitems(config, items):
+    """COMPANION_TEST_SHARD=2/3 runs the second third of the tests, picked by test name, so a slow CI runner can
+    spread one suite over several jobs (.github/workflows/ci.yml)."""
+    shard = os.environ.get('COMPANION_TEST_SHARD')
+    if not shard:
+        return
+    index, count = (int(part) for part in shard.split('/'))
+    kept, dropped = [], []
+    for item in items:
+        (kept if zlib.crc32(item.nodeid.encode()) % count == index - 1 else dropped).append(item)
+    config.hook.pytest_deselected(items=dropped)
+    items[:] = kept
 
 
 @pytest.fixture
