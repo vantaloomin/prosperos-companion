@@ -6,7 +6,7 @@ import pytest
 from conftest import reconcile
 
 from companion.database import decode
-from companion.life import composer, traditions
+from companion.life import body, composer, traditions
 from companion.world import catalog
 from companion.world.source import CatalogWorld
 
@@ -21,6 +21,8 @@ def baltimore(client, monkeypatch):
     monkeypatch.setattr(composer, 'QUIET_SHARE', 0)
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
     monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
+    # A cold on the holiday (about 1 run in 100) keeps them home in bed instead of at the tradition.
+    monkeypatch.setattr(body, 'sick', lambda *_args: False)
     response = client.post('/api/companion', json={**MIRA, 'timezone': 'America/New_York', 'schedule': DAYS})
     assert response.status_code == 200, response.text
     return response.json()
