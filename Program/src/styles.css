@@ -115,6 +115,10 @@ textarea { resize: vertical; line-height: 1.6; }
 .welcome-steps .button, .welcome-steps .text-button { margin-top: 8px; }
 .welcome-steps .text-button { padding-left: 0; }
 .welcome-hardware { text-align: left; width: 100%; }
+.welcome-back, .welcome-feels { margin: 0; }
+/* Tappable on a new world's welcome: accent, underlined on hover, 44px tall without moving the line. */
+.text-button.welcome-link { color: var(--accent); min-height: 44px; padding-top: 0; padding-bottom: 0; }
+.text-button.welcome-link:hover { text-decoration: underline; }
 .welcome-hardware p { margin: 0 0 6px; }
 .settings > .notice:first-of-type { margin-bottom: 16px; }
 .lede { color: var(--muted); line-height: 1.8; }
@@ -1570,6 +1574,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .world-row-actions { display: flex; align-items: center; gap: 10px; }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }
+/* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
+.new-world { padding: 4px 10px 8px 68px; max-width: 528px; }
 @media (max-width: 720px) {
   .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
 }
