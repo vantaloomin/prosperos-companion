@@ -25,7 +25,8 @@ conversation.
 
 The wording in front of the note is an editable prompt (Settings > Advanced > Prompts, "Author's note"):
 
-    [Author's note from the user, for this reply. Follow it, but never mention or quote it:]
+    [Out of character, from the user. Steer this reply by it, stay fully in character, and never mention or quote it:]
+    ((OOC: the note))
 
 It was A/B tested before shipping (see the v0.10 Author's note thread).
 

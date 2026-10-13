@@ -22,6 +22,16 @@ def put(client, chat, text, enabled=True):
     return ok(client.put(f'/api/authors-notes/{chat}', json={'text': text, 'enabled': enabled}))
 
 
+def test_a_reworded_header_still_carries_the_note(client, companion):
+    chat = f"companion:{companion['id']}"
+    put(client, chat, NOTE)
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        connection.execute("INSERT INTO prompt_overrides (name, text, default_text, updated_at) "
+                           "VALUES ('authors-note', '[Steer:]', '', '2026-10-13')")
+        assert authors_note.prompt_text(connection, chat) == f'[Steer:]\n{NOTE}'
+
+
 def test_a_chat_starts_with_an_empty_note_that_is_on(client, companion):
     chat = f"companion:{companion['id']}"
     assert ok(client.get(f'/api/authors-notes/{chat}')) == {'chat': chat, 'text': '', 'enabled': True,
@@ -46,9 +56,8 @@ def test_the_note_is_the_last_thing_before_the_users_words(client, connected, pr
     put(client, f'companion:{current(client)}', NOTE)
     send(client, 'Want takeout later?', 'note-client-01')
     latest = provider.requests[-1]['messages'][-1]['content']
-    header = authors_note.HEADER
-    assert latest.index('[Notes from the app') < latest.index(header) < latest.index(NOTE)
-    assert latest.endswith(f"{NOTE}\n[End of notes. The user's message:]\nWant takeout later?")
+    assert latest.index('[Notes from the app') < latest.index('[Out of character, from the user.') < latest.index(NOTE)
+    assert latest.endswith(f"((OOC: {NOTE}))\n[End of notes. The user's message:]\nWant takeout later?")
     # Not in the system prompt, so the cached part of the prompt is untouched.
     assert NOTE not in provider.requests[-1]['system']
     # Never a message: the transcript holds only what was said.
