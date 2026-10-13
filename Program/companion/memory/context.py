@@ -30,6 +30,7 @@ from companion.life import (
     hobbies,
     home,
     kitchen,
+    media,
     money,
     network,
     occasions,
@@ -151,6 +152,10 @@ HEADINGS = {
             # Kitchen and food (companion/life/kitchen.py): drawn once a day.
             'kitchen': 'Your kitchen and meals (fictional, yours; when food comes up, keep to how you cook and eat '
                        'and what is listed for your dinners)',
+            # Reading, watching and listening (companion/life/media.py): changes about once a day.
+            'media': 'What you are reading, watching and listening to (fictional, yours; bring it up when it fits, the '
+                     'way anyone mentions what they are into. Keep to these titles, never quote passages or lyrics, '
+                     'and do not make up plot or people you are not sure of)',
             # Hobbies that progress (companion/life/hobbies.py): changes when a milestone or a dry spell comes.
             'hobbies': 'Your pastimes (fictional, yours; when one comes up, keep to how far along you are and how '
                        'often you go, and never invent a big achievement that is not listed)',
@@ -694,7 +699,7 @@ def offer_life(packet, connection, companion, now):
     offer_home(packet, connection, companion, today)
     for identity, text in wardrobe.context_lines(connection, timeline_id, date.fromisoformat(today), now):
         packet.offer('wearing' if ':now:' in identity else 'wardrobe', identity, text)
-    offer_kitchen_and_pastimes(packet, connection, timeline_id, version, now)
+    offer_kitchen_and_media(packet, connection, timeline_id, version, now)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
@@ -715,15 +720,6 @@ def offer_money(packet, connection, companion, now, today: str):
         packet.offer('money', identity, text)
     for identity, text in work.context_lines(connection, companion, now):
         packet.offer('work', identity, text)
-def offer_kitchen_and_pastimes(packet, connection, timeline_id, version, now):
-    """Their kitchen and meals (companion/life/kitchen.py) and their pastimes (companion/life/hobbies.py)."""
-    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
-                                                version['timezone']):
-        packet.offer('kitchen', identity, text)
-    for identity, text in hobbies.context_lines(connection, timeline_id, now, version['timezone']):
-        packet.offer('hobbies', identity, text)
-
-
 def offer_together(packet, connection, companion, now, recent, group=None):
     """Outings with the user and trips away, in a 1:1 chat. The messages since the companion last wrote are the turn
     being answered, so an outing they settled is one the reply announces."""
@@ -767,6 +763,19 @@ def offer_daily(packet, connection, version, now):
     if digest := lookups.fresh_culture(connection, now, version['definition']):
         packet.offer('culture_now', digest['id'], f"- From {digest['service_name']}, retrieved "
                                                   f"{digest['retrieved_at'][:10]}: «{lookups.culture_text(digest)}»")
+
+
+def offer_kitchen_and_media(packet, connection, timeline_id, version, now):
+    """Drawn about once a day: their kitchen (companion/life/kitchen.py) and what they are reading, watching and
+    listening to (companion/life/media.py), and their pastimes (companion/life/hobbies.py)."""
+    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
+                                                version['timezone']):
+        packet.offer('kitchen', identity, text)
+    for identity, text in media.context_lines(connection, timeline_id, version['definition'], None, now,
+                                              version['timezone']):
+        packet.offer('media', identity, text)
+    for identity, text in hobbies.context_lines(connection, timeline_id, now, version['timezone']):
+        packet.offer('hobbies', identity, text)
 
 
 def offer_home(packet, connection, companion, today: str):

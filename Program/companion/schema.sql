@@ -2040,6 +2040,37 @@ CREATE TABLE IF NOT EXISTS history_corrections (
   PRIMARY KEY (timeline_id, period_key)
 );
 
+-- Reading, watching and listening (companion/life/media.py): the companion's seeded taste profile (their bank, how keen
+-- a reader and viewer they are, whether they borrow books) and the chain of books, shows and songs they are on. Each
+-- item's days, how it ends and the verdict are decided when it starts; `held` counts days it waited while they were on
+-- something the user recommended. `source` is 'bank' for the app's pick and 'user' for one set on the Character page.
+CREATE TABLE IF NOT EXISTS media_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  profile TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS media_items (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  kind TEXT NOT NULL CHECK (kind IN ('book', 'show', 'music')),
+  seq INTEGER NOT NULL DEFAULT 0,
+  title TEXT NOT NULL,
+  creator TEXT NOT NULL DEFAULT '',
+  format TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL CHECK (source IN ('bank', 'user')),
+  started_on TEXT NOT NULL,
+  ends_on TEXT NOT NULL,
+  outcome TEXT NOT NULL DEFAULT 'finish' CHECK (outcome IN ('finish', 'drop')),
+  verdict TEXT NOT NULL DEFAULT '',
+  held INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'current' CHECK (status IN ('current', 'done', 'replaced')),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS media_items_chain ON media_items(timeline_id, kind, started_on);
+
 -- Hobbies that progress (companion/life/hobbies.py): the companion's tracked pastimes, each with a skill that grows
 -- with practice, and how far their life has been walked. `hobby_log` keeps what happened (sessions, milestones,
 -- stalls, new starts, gear and fees) and a weekly `mark` of every pastime, so the days ahead can be walked again after

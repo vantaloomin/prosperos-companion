@@ -10,6 +10,7 @@ import { DRAMA_LEVELS } from '../today/storyText'
 import { LOOKS_LEVELS } from '../character/looksLatelyText'
 import { KITCHEN_LEVELS } from '../character/kitchenText'
 import { WORK_LEVELS } from '../character/workText'
+import { MEDIA_LEVELS } from '../character/mediaText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
@@ -52,6 +53,7 @@ export function PaceSettings() {
   const looks = LOOKS_LEVELS[data.looks_realism] ?? LOOKS_LEVELS[2]
   const work = WORK_LEVELS[data.work_realism] ?? WORK_LEVELS[2]
   const guests = GUEST_LEVELS[data.guests_realism] ?? GUEST_LEVELS[2]
+  const media = MEDIA_LEVELS[data.media_realism] ?? MEDIA_LEVELS[2]
   const pastimes = HOBBY_LEVELS[data.hobbies_realism] ?? HOBBY_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
@@ -75,6 +77,10 @@ export function PaceSettings() {
       <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}
           onChange={(guests_realism) => void save({ guests_realism })} />}
+      </Field>
+      <Field label={`Reading, watching, listening: ${media.label}`} hint={media.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.media_realism} label={media.label}
+          onChange={(media_realism) => void save({ media_realism })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />

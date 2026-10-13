@@ -87,6 +87,9 @@ def no_storylines(monkeypatch):
     # And dinners and grocery runs woven into the day, and dinner invitations (companion/life/kitchen.py).
     monkeypatch.setattr('companion.life.kitchen.WEAVE', False)
     monkeypatch.setattr('companion.life.kitchen.INVITES', False)
+    # And books, shows and songs woven into the day, and recommendations to the user (companion/life/media.py).
+    monkeypatch.setattr('companion.life.media.WEAVE', False)
+    monkeypatch.setattr('companion.life.media.RECOMMENDS', False)
     # And pastimes' practice sessions, milestone news and invitations (companion/life/hobbies.py).
     monkeypatch.setattr('companion.life.hobbies.WEAVE', False)
     monkeypatch.setattr('companion.life.hobbies.NEWS', False)

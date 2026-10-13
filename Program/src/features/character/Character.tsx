@@ -21,6 +21,7 @@ import { Traditions } from './Traditions'
 import { Wardrobe } from './Wardrobe'
 import { LooksLately } from './LooksLately'
 import { Kitchen } from './Kitchen'
+import { Media } from './Media'
 import { Hobbies } from './Hobbies'
 import { LifeAdmin } from './LifeAdmin'
 import { WorkLife } from './WorkLife'
@@ -192,6 +193,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <LooksLately name={name} />
       <Kitchen name={name} />
       <WorkLife name={name} />
+      <Media name={name} />
       <Hobbies name={name} />
       <LifeAdmin name={name} />
       <SelfFacts name={name} />

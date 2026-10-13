@@ -438,7 +438,7 @@ PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
     """The home's rent, pets and vehicles, and what home changes, new clothes, looks, takeout, pastimes, outings with the
     user and trips cost this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, grooming.py's,
-    kitchen.py's, outings.py's, trips.py's and admin.py's
+    kitchen.py's, media.py's, hobbies.py's, outings.py's, trips.py's and admin.py's
     `purchases`. None before the home exists or where money does not apply."""
     from companion.life import (  # all build from this budget, so import late
         admin,
@@ -446,6 +446,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
         hobbies,
         home,
         kitchen,
+        media,
         outings,
         trips,
         wardrobe,
@@ -461,6 +462,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *grooming.purchases(connection, timeline_id, start, day),
               *outings.purchases(connection, timeline_id, start, day), *trips.purchases(connection, timeline_id, start, day),
               *kitchen.purchases(connection, timeline_id, start, day, definition, None, None),
+              *media.purchases(connection, timeline_id, start, day, definition),
               *admin.purchases(connection, timeline_id, start, day),
               *hobbies.purchases(connection, timeline_id, start, day)]
     # Raises, promotions and time between jobs (companion/life/work.py).

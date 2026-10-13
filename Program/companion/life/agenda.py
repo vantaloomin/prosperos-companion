@@ -30,6 +30,7 @@ from companion.life import (
     hobbies,
     home,
     kitchen,
+    media,
     network,
     occasions,
     outings,
@@ -272,6 +273,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                               scope['world'], scope['now'], scope.get('timezone') or 'UTC')
         entry = kitchen.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
                               scope['world'], scope['now'])
+        entry = media.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
+                            scope['world'])
         entry = home.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition, scope['world'],
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
