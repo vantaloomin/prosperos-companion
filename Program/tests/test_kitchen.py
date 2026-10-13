@@ -118,6 +118,20 @@ def test_meals_are_drawn_the_same_way_every_time_and_follow_the_rhythm(client, k
                 assert meal['cost'] > 0 and meal['takeout']['dish']
 
 
+def test_no_dish_comes_round_twice_within_six_nights_and_leftovers_follow_a_cooking_night(client, kim):
+    reconcile(client)
+    with day_for(client) as found:
+        start = kitchen.run_start(TODAY)
+        days = [start + timedelta(days=n) for n in range(kitchen.RUN_DAYS)]
+        meals = [found.meal(day) for day in days]
+        for index, meal in enumerate(meals):
+            if meal['kind'] == 'leftovers':
+                assert meals[index - 1]['kind'] == 'cook' and meals[index - 1]['dish'] == meal['dish']
+                continue
+            earlier = set().union(*(kitchen.eaten(item) for item in meals[max(0, index - 6):index]))
+            assert not kitchen.eaten(meal) & earlier, (meal, index)
+
+
 def test_staples_run_out_between_grocery_runs_except_on_the_easy_setting(client, kim):
     reconcile(client)
     set_life(client, kitchen_realism=3)
