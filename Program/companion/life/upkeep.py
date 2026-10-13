@@ -337,7 +337,10 @@ def touch(connection, timeline_id: str, subject: str, entry: dict | None, local_
     ensure(connection, timeline_id, definition, world, now)
     state = state_of(connection, timeline_id)
     today = now.astimezone(zone(definition.get('timezone') or 'UTC')).date()
-    day = on(connection, timeline_id, definition, date.fromisoformat(local_date), keep_before=today)
+    # Keep only days before the one being drawn: its dinners (companion/life/kitchen.py) follow its agenda, which is
+    # still being written, so it is walked again once drawn.
+    drawing = date.fromisoformat(local_date)
+    day = on(connection, timeline_id, definition, drawing, keep_before=min(today, drawing))
     if not day or day['away']:
         return entry
     found = pick_moment(connection, timeline_id, state, day, activity, seed)

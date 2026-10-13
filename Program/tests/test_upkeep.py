@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import pytest
 from conftest import reconcile
 
-from companion.life import composer, upkeep, upkeep_bank
+from companion.life import composer, home, upkeep, upkeep_bank
 
 TODAY = date(2026, 10, 5)  # the test clock's
 WORK = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'days': [0, 1, 2, 3, 4], 'start': '09:00', 'end': '17:00'},
@@ -208,3 +208,29 @@ def test_turning_housework_off_forgets_upcoming_housework_moments(client, mira):
     assert client.put('/api/life/settings', json={'upkeep_realism': 0}).status_code == 200
     with connect(client, False) as connection:
         assert not connection.execute("SELECT id FROM life_agenda WHERE id='a1'").fetchall()
+
+
+def test_a_day_being_drawn_is_not_kept_before_its_dinners_are_known(client, mira):
+    tid, database = timeline(client), client.app.state.database
+    later = database.clock.now() + timedelta(days=10)  # catching up: their today is well past the day drawn
+    drawing = TODAY + timedelta(days=3)
+    with connect(client) as connection:
+        upkeep.touch(connection, tid, 'companion', {'activity': 'chores', 'summary': 'Mira did chores.'},
+                     drawing.isoformat(), 's1', MIRA, None, later)
+        kept = {row[0] for row in connection.execute('SELECT local_date FROM upkeep_days WHERE timeline_id=?', (tid,))}
+    assert (drawing - timedelta(days=1)).isoformat() in kept and drawing.isoformat() not in kept
+
+
+def test_a_chores_slot_is_left_to_housework(client, mira):
+
+    tid, database = timeline(client), client.app.state.database
+    entry = {'activity': 'chores', 'summary': 'Mira did chores.'}
+    with connect(client) as connection:
+        for n in range(12):
+            woven = home.touch(connection, tid, 'companion', entry, (TODAY + timedelta(days=1)).isoformat(), f's{n}',
+                               MIRA, None, database.clock.now())
+            assert 'home' not in woven or woven['home'].get('pet_event') or woven['home'].get('change')
+        connection.execute('UPDATE life_settings SET upkeep_realism=0')
+        woven = [home.touch(connection, tid, 'companion', entry, (TODAY + timedelta(days=1)).isoformat(), f's{n}',
+                            MIRA, None, database.clock.now()) for n in range(30)]
+    assert any('home' in found for found in woven)  # with housework off, their things can come up again
