@@ -85,11 +85,11 @@ export function matchesCity(city: Pick<CityListing, 'name' | 'region' | 'country
 
 const SETTINGS: Record<CityListing['setting'], string> = { real: 'Real city', fictional: 'Fictional setting', original: 'Original setting' }
 
-/** "Real city · modern · 21 neighbourhoods, 124 places" */
+/** "Real city · modern · 21 neighborhoods, 124 places" */
 export function cityFacts(city: CityListing): string {
   const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
   return [SETTINGS[city.setting], city.era,
-    `${plural(city.counts.neighborhoods, 'neighbourhood', 'neighbourhoods')}, ${plural(city.counts.places, 'place', 'places')}`].join(' · ')
+    `${plural(city.counts.neighborhoods, 'neighborhood', 'neighborhoods')}, ${plural(city.counts.places, 'place', 'places')}`].join(' · ')
 }
 
 /** A file name for an exported city. */
