@@ -45,6 +45,34 @@ export function PaceSettings() {
   )
 }
 
+/** Home life: one slider for each home feature (Vanta, 2026-10-13), each its own life setting. */
+export function HomeLifeSettings() {
+  const { settings, data, save, result } = useLifeSettings()
+  if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Home life" />
+  const upkeep = UPKEEP_LEVELS[data.upkeep] ?? UPKEEP_LEVELS[2]
+  return (
+    <section className="settings-section form-stack" aria-labelledby="home-life-heading">
+      <div>
+        <h2 id="home-life-heading">Home life</h2>
+        <p className="subtle">What keeping a home is like for companions. Each one's page shows how it is going in words.</p>
+      </div>
+      <Field label={`Housework: ${upkeep.label}`} hint={upkeep.hint}>
+        {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={data.upkeep} aria-valuetext={upkeep.label} aria-describedby={describedBy}
+          onChange={(event) => void save({ upkeep: Number(event.target.value) })} />}
+      </Field>
+      {result && <Notice tone={result.tone}>{result.text}</Notice>}
+    </section>
+  )
+}
+
+/** The Housework slider's steps (companion/life/upkeep.py SCALE). */
+const UPKEEP_LEVELS = [
+  { label: 'Off', hint: 'Laundry, dishes and clutter never come up. Their place stays as it is.' },
+  { label: 'Light', hint: 'Mess builds slowly and they deal with it early. A tidy, easy home.' },
+  { label: 'True to life', hint: 'Laundry, dishes and clutter build up with their week, and they catch up the way their habit says, with a big clean on a day off.' },
+  { label: 'Messy', hint: 'More mess, piling up longer, and big cleans that wait until the place is a real state.' },
+]
+
 /**
  * Closeness for any companion, picked from a list that starts on the open one (picking never changes the open chat):
  * Set it to, Never closer than, steps, Keep it at and gentle cooling. Nickname, running jokes and Start over stay

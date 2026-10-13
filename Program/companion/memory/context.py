@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from companion import consequences, lore, news, pictures, prompt_library, secrets, self_facts, texting
 from companion import moods as feelings
 from companion.almanac import context as almanac
+from companion.characters import definition_for_timeline
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
@@ -37,6 +38,7 @@ from companion.life import (
     storylines,
     traditions,
     trips,
+    upkeep,
     wardrobe,
 )
 from companion.life import mood as moods
@@ -715,8 +717,13 @@ def offer_daily(packet, connection, version, now):
 
 
 def offer_home(packet, connection, companion, today: str):
-    """Their home and belongings, and what is up at home for the season (companion/life/traditions.py)."""
+    """Their home and belongings, the housework (companion/life/upkeep.py) and what is up at home for the season
+    (companion/life/traditions.py)."""
     for identity, text in home.context_lines(connection, companion['active_timeline_id'], date.fromisoformat(today)):
+        packet.offer('home', identity, text)
+    timeline_id = companion['active_timeline_id']
+    for identity, text in upkeep.context_lines(connection, timeline_id, definition_for_timeline(connection, timeline_id),
+                                               date.fromisoformat(today)):
         packet.offer('home', identity, text)
     if line := traditions.decoration_line(connection, companion, date.fromisoformat(today)):
         packet.offer('home', f'decorations:{today}', line)

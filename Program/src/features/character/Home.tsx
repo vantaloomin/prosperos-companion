@@ -7,6 +7,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { KIND_LABELS, homeTitle, itemDetail, rentText, sentence, sinceText } from './homeText'
+import { Upkeep } from './Upkeep'
 
 const HOME_KEY = ['home']
 const ADDABLE: HomeKind[] = ['pet', 'plant', 'vehicle', 'favorite']
@@ -36,6 +37,7 @@ export function Home({ name }: { name: string }) {
     <section className="home-panel" aria-labelledby="home-heading">
       <h2 id="home-heading">{name}'s home and belongings</h2>
       <p className="subtle">Drawn from their city's housing data and changing slowly over time. Their moments, pictures and replies mention these. Edits apply to upcoming days; what already happened stays.</p>
+      <Upkeep name={name} />
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {home.isPending && <Loading label="Loading their home" />}
       {home.isError && <ErrorNotice error={home.error} />}

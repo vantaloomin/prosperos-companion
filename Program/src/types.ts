@@ -279,6 +279,8 @@ export interface WorkspaceSettings {
   adult_side?: boolean
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
+  /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
+  show_home_numbers?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
@@ -431,6 +433,8 @@ export interface LifeSettings {
   on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
+  /** Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy. */
+  upkeep: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -1172,6 +1176,28 @@ export interface HomeView {
   changes: HomeChange[]
   costs: { rent: number | null; rent_period: string } | null
   varieties: { pet: string[]; vehicle: string[] }
+}
+
+export type UpkeepArea = 'laundry' | 'dishes' | 'clutter'
+export type UpkeepHabit = 'neat' | 'average' | 'messy'
+
+/** How tidy the companion's place is today (companion/life/upkeep.py), in words, with the numbers behind it. */
+export interface UpkeepView {
+  on: boolean
+  level: number
+  today: string
+  away: boolean
+  habit: UpkeepHabit
+  habit_set: boolean
+  habit_text: string
+  /** 0 spotless to 4 a disaster. */
+  tidiness: number
+  tidiness_label: string
+  levels: string[]
+  set_on: string | null
+  areas: { area: UpkeepArea; text: string; value: number }[]
+  last_big_clean: string | null
+  recent: { date: string; kind: string; text: string }[]
 }
 
 export type WardrobeCategory = 'top' | 'bottom' | 'dress' | 'suit' | 'layer' | 'outerwear' | 'shoes' | 'accessory' | 'active' | 'lounge' | 'sleep' | 'work'
