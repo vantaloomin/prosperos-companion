@@ -150,8 +150,11 @@ def test_takeout_counts_as_spending_and_the_chat_knows_dinner(client, kim, provi
     assert '## Your kitchen and meals' in prompt and 'In the kitchen you are' in prompt and 'Dinner tonight:' in prompt
 
 
-def test_cooking_nights_name_the_dish_in_their_day(client, kim):
-    reconcile(client)
+def test_cooking_nights_name_the_dish_in_their_day(client, kim, clock):
+    # Their week is seeded from the timeline's random id, so look over a few days rather than one.
+    for _day in range(5):
+        reconcile(client)
+        clock.advance(timedelta(days=1))
     with client.app.state.database.connect() as connection:
         rows = connection.execute("SELECT entry FROM life_agenda WHERE subject='companion' AND entry IS NOT NULL").fetchall()
     entries = [decode(row['entry']) for row in rows]

@@ -716,18 +716,25 @@ def touch(connection, timeline_id: str, subject: str, entry: dict | None, block:
             return woven(entry, f"{name} restocked {listing(back)}.", {'groceries': back})
         return {**entry, 'kitchen': {'groceries': []}}
     if activity == 'home-cooking':
-        dish = found.dish(day, exclude=found.recent_dishes(day)) or found.dish(day)
-        if dish:
-            first, _, rest = entry['summary'].partition('. ')
-            summary = f"{name} cooked {dish['name']} at home." + (f' {rest}' if rest else '')
-            return {**entry, 'summary': summary, 'kitchen': {'dish': dish['name']}}
-        return entry
+        return cooked_entry(found, entry, day, name)
     if activity not in EVENING or told(connection, timeline_id, day):
         return entry
     meal = found.meal(day)
-    if meal['kind'] in ('away', 'out', 'hosting', 'cook') or not holds_dinner(entry, block):
+    if meal['kind'] in ('away', 'out', 'hosting') or not holds_dinner(entry, block):
         return entry
     return woven(entry, f"{name} {meal_text(meal, era_modern)}.", {'meal': meal['kind']})
+
+
+def cooked_entry(found: Day, entry: dict, day: date, name: str) -> dict:
+    """A cooking slot names the dish: that night's dinner when they cook it, else another from their bank."""
+    meal = found.meal(day)
+    dish = meal['dish'] if meal['kind'] == 'cook' and meal.get('dish') else \
+        (found.dish(day, exclude=found.recent_dishes(day)) or found.dish(day) or {}).get('name')
+    if not dish:
+        return entry
+    _first, _, rest = entry['summary'].partition('. ')
+    summary = f"{name} cooked {dish} at home." + (f' {rest}' if rest else '')
+    return {**entry, 'summary': summary, 'kitchen': {'dish': dish}}
 
 
 def holds_dinner(entry: dict, block: dict) -> bool:
@@ -742,7 +749,8 @@ def woven(entry: dict, sentence: str, details: dict) -> dict:
 
 def told(connection, timeline_id: str, day: date) -> bool:
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND local_date=? "
-                         "AND json_extract(entry, '$.kitchen.meal') IS NOT NULL",
+                         "AND (json_extract(entry, '$.kitchen.meal') IS NOT NULL "
+                         "OR json_extract(entry, '$.kitchen.dish') IS NOT NULL)",
                          (timeline_id, COMPANION, day.isoformat())))
 
 
