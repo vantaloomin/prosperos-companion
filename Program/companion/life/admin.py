@@ -571,10 +571,29 @@ def plan_ahead(connection, companion: dict, world, now) -> dict:
         for week in range(0, AHEAD // 7 + 1):
             added += plan_week(connection, companion, city, seed, monday + timedelta(weeks=week), today,
                                WEEKLY[chosen], now)
-    moved = reflow(connection, companion, today, now)
+    moved = reflow(connection, companion, today, now) + drop_above(connection, companion, chosen, now)
     if ACTIVE and chosen >= 2:
         moved += put_off(connection, companion, today, PUT_OFF[habit(companion['version']['definition'])], now)
     return {'finished': finished, 'added': added, 'moved': moved}
+
+
+WEEKLY_KINDS = ('errand', 'paperwork', 'surprise')
+
+
+def drop_above(connection, companion: dict, chosen: int, now) -> int:
+    """What a lower level would not have planned comes off the calendar when the level is lowered: on Light the week's
+    errands, paperwork and surprises, on Off everything life admin planned itself. Never what has already happened or
+    an entry the user moved themselves."""
+    if chosen >= 2:
+        return 0
+    local = local_now(companion, now)
+    day, at = local.date().isoformat(), local.strftime('%H:%M')
+    kinds = ' AND kind IN (%s)' % ','.join('?' * len(WEEKLY_KINDS)) if chosen else ''
+    return connection.execute(
+        "UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND source='admin' AND "
+        "status='planned' AND COALESCE(moved_reason, '')!='user' AND (local_date>? OR (local_date=? AND at_time>?))"
+        + kinds, (stamp(now), companion['active_timeline_id'], day, day, at, *(WEEKLY_KINDS if chosen else ()))
+    ).rowcount
 
 
 # --- The agenda ---

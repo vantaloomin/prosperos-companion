@@ -284,3 +284,19 @@ def test_small_errands_cost_an_everyday_price_in_the_citys_money():
     smith = {'name': 'Wat', 'home_city': 'camelot', 'identity': 'A smith by the castle gate.'}
     fines = [admin.priced(smith, '$', f'fine:{index}') for index in range(40)]
     assert all(0 < fine <= 3 for fine in fines), fines
+
+
+def test_a_lower_level_takes_off_what_it_would_not_have_planned(client, mira):
+    add(client, key='test:books', day=TUESDAY)
+    add(client, key='test:dentist', kind='dentist', title='Dentist check-up', fixed=True, out=True,
+        done='went to the dentist for a check-up and cleaning', day=THURSDAY)
+    kept = add(client, key='test:keys', title='Cut spare keys', done='had spare keys cut', day=TUESDAY)
+    client.post(f"/api/life/admin/{kept['id']}/move")  # The user's own move stays whatever the level.
+    def keys():
+        return {item['key'] for item in client.get('/api/life/admin').json()['upcoming']}
+    client.put('/api/life/settings', json={'admin_realism': 1})
+    reconcile(client)
+    assert {'test:dentist', 'test:keys'} <= keys() and 'test:books' not in keys()
+    client.put('/api/life/settings', json={'admin_realism': 0})
+    reconcile(client)
+    assert 'test:keys' in keys() and 'test:dentist' not in keys()
