@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, RotateCcw } from 'lucide-react'
+import { Pencil, Plus, RotateCcw } from 'lucide-react'
 import { api } from '../../api'
 import type { History, HistoryLine } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
@@ -45,7 +45,7 @@ function Line({ line }: { line: HistoryLine }) {
   const left = line.corrected === ''
   return (
     <li className={`history-line${left ? ' history-left-out' : ''}`}>
-      <p className="history-when"><span>{when}</span><span className="subtle">{daysText(line.days)}</span></p>
+      <p className="history-when"><span>{when}</span><span className="subtle">{daysText(line.days)}</span>{left && !line.text && <span className="subtle">Left out</span>}</p>
       {draft === null
         ? <Shown line={line} when={when} left={left} busy={save.isPending} onEdit={() => setDraft(line.corrected || line.text)} onRestore={() => save.mutate(null)} />
         : <Editing line={line} when={when} draft={draft} setDraft={setDraft} save={save} />}
@@ -57,14 +57,16 @@ function Shown({ line, when, left, busy, onEdit, onRestore }: { line: HistoryLin
   const text = left ? line.text : line.corrected ?? line.text
   return (
     <div className="history-body">
-      {(text || line.corrected !== null) && (
+      {text && (
         <p>
           {left ? <s>{text}</s> : text}
-          {line.corrected !== null && <span className="history-tag">{left ? 'Left out' : 'In your words'}</span>}
+          <Tag corrected={line.corrected} />
         </p>
       )}
       <div className="history-actions">
-        <button type="button" className="history-action" aria-label={`Correct ${when}`} onClick={onEdit}><Pencil aria-hidden="true" />Correct</button>
+        {text
+          ? <button type="button" className="history-action" aria-label={`Correct ${when}`} onClick={onEdit}><Pencil aria-hidden="true" />Correct</button>
+          : <button type="button" className="history-action" aria-label={`Add a line for ${when}`} onClick={onEdit}><Plus aria-hidden="true" />Add a line</button>}
         {line.corrected !== null && <button type="button" className="history-action" aria-label={`Put back the app's line for ${when}`} disabled={busy} onClick={onRestore}><RotateCcw aria-hidden="true" />Put back</button>}
       </div>
     </div>
@@ -88,4 +90,10 @@ function Editing({ line, when, draft, setDraft, save }: { line: HistoryLine; whe
       </div>
     </form>
   )
+}
+
+/** "In your words" or "Left out", right after the line, on its baseline (Iris). */
+function Tag({ corrected }: { corrected: string | null }) {
+  if (corrected === null) return null
+  return <> <span className="history-tag">{corrected === '' ? 'Left out' : 'In your words'}</span></>
 }

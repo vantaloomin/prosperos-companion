@@ -60,7 +60,9 @@ export function stretchText(line: { kind: 'week' | 'month' | 'year'; start: stri
     const month = (day: string, withYear: boolean) => new Date(`${day.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString(undefined, { month: 'long', year: withYear ? 'numeric' : undefined, timeZone: 'UTC' })
     return merged ? `${month(line.start, line.start.slice(0, 4) !== line.end.slice(0, 4))} to ${month(line.end, true)}` : month(line.start, true)
   }
-  return merged ? spanText(line.start, line.end) : `Week of ${dayText(line.key.slice(1))}`
+  if (!merged) return `Week of ${dayText(line.key.slice(1))}`
+  // The year heading above says the year, unless the run crosses into the next one (Iris).
+  return line.start.slice(0, 4) === line.end.slice(0, 4) ? `${dayText(line.start)} to ${dayText(line.end)}` : spanText(line.start, line.end)
 }
 
 /** History lines newest first, grouped by the year they start in, for the "All of it" view. */

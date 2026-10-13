@@ -2042,7 +2042,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .history-body { display: grid; gap: 4px; min-width: 0; }
 .history-body p { margin: 0; line-height: 1.55; overflow-wrap: anywhere; }
 .history-left-out s { color: var(--muted); }
-.history-tag:not(:first-child) { margin-left: 8px; }
+.history-tag { margin-inline-start: 6px; }
 .history-tag { color: var(--muted); font-size: 0.8125rem; white-space: nowrap; }
 .history-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .history-action { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.8125rem; cursor: pointer; }
