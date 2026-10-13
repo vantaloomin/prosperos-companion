@@ -15,10 +15,9 @@ from companion.database import optional
 from companion.errors import DomainError
 
 LIMIT = 1000
-# Every reply while it is on (no "every N replies" or depth). Written as if it were OOC (Vanta, 2026-10-13); A/B
-# tested against plainer headers on 9 models: followed as often, and characters still stay in character.
-HEADER = ('[Out of character, from the user. Steer this reply by it, stay fully in character, and never mention or '
-          'quote it:]\n((OOC: {note}))')
+# Every reply while it is on (no "every N replies" or depth); the note follows this line. Iris's wording, A/B tested
+# on 9 models (2026-10-13): it never took a character out of character, so it ships over an OOC-style wording.
+HEADER = "[Author's note from the user, for this reply. Follow it, but never mention or quote it:]"
 CHAT = re.compile(r'^(companion|group):[A-Za-z0-9_-]{1,80}$|^story$')
 
 
@@ -63,6 +62,4 @@ def prompt_text(connection, chat: str) -> str:
     note = active(connection, chat)
     if not note:
         return ''
-    wording = prompt_library.text(connection, 'authors-note')
-    # A reworded prompt without the {{note}} placeholder still gets the note, after it.
-    return wording.replace('{{note}}', note) if '{{note}}' in wording else f'{wording}\n{note}'
+    return f"{prompt_library.text(connection, 'authors-note')}\n{note}"

@@ -85,9 +85,9 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'there, which the app decides. OOC answers are also enforced by the app.',
            constant('companion.story', 'NARRATOR')),
     Prompt('authors-note', CHAT, "Author's note",
-           "Wraps your author's note, the last thing the model reads before your message in a chat that has a note "
-           'switched on. It is written as an out-of-character aside.',
-           constant('companion.authors_note', 'HEADER'), {'note': "your author's note"}),
+           "Goes right before your author's note, the last thing the model reads before your message in a chat "
+           'that has a note switched on. Your note follows this line.',
+           constant('companion.authors_note', 'HEADER')),
     Prompt('group-rules', CHAT, 'Group chats',
            'Opens every reply in a group chat, before who is in the group and the chat so far. Each person still '
            "answers only from what they know, which the app decides; staying in character is enforced as in 1:1 chats.",
