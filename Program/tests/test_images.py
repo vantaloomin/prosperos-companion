@@ -667,7 +667,7 @@ def test_comfyui_fills_the_krea2_template_and_fetches_the_output():
     adapter = ComfyAdapter(httpx.MockTransport(server), poll_seconds=0)
     result = asyncio.run(adapter.generate(request_for('comfyui', {'base_url': 'http://127.0.0.1:8188'})))
     graph = server.prompts[0]
-    assert graph['4']['inputs']['text'] == 'A café' and graph['5']['inputs']['text'] == 'text'
+    assert graph['4']['inputs']['text'] == 'A café' and graph['5']['class_type'] == 'ConditioningZeroOut'
     assert graph['7']['inputs']['seed'] == 7 and graph['6']['inputs']['width'] == 1024
     assert result.data.startswith(b'\x89PNG') and result.model == 'krea2_turbo_fp8_scaled.safetensors'
     assert result.workflow == 'krea2-turbo' and result.remote_id == 'p1'
@@ -720,6 +720,7 @@ def test_comfyui_lists_the_servers_files_for_each_loader():
     files = asyncio.run(adapter.files({'base_url': 'http://127.0.0.1:8188'}))
     assert files == {'unet_name': [MODEL, 'krea2_turbo_fp8_scaled.safetensors'], 'clip_name': [ENCODER],
                      'clip_type': ['stable_diffusion', 'krea2'], 'vae_name': [VAE, 'pixel_space'],
+                     'ref_unet_name': [MODEL, 'krea2_turbo_fp8_scaled.safetensors'],
                      'lora': [PHONE, 'sdxl\\detail.safetensors', 'prospero-x.safetensors'],
                      'sampler_name': ['euler', 'res_multistep'], 'scheduler': ['simple', 'beta']}
     assert server.info_calls == [f'http://127.0.0.1:8188/object_info/{name}'
@@ -745,7 +746,7 @@ def test_comfyui_check_reports_the_chosen_files():
     def server(request):
         if request.url.path == '/object_info':
             return httpx.Response(200, json={**USER_FILES, **{name: {'input': {'required': {}}} for name in (
-                'CLIPTextEncode', 'EmptyLatentImage', 'KSampler', 'VAEDecode', 'SaveImage')}})
+                'CLIPTextEncode', 'ConditioningZeroOut', 'EmptyLatentImage', 'KSampler', 'VAEDecode', 'SaveImage')}})
         return httpx.Response(404)
     adapter = ComfyAdapter(httpx.MockTransport(server))
     defaults = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188'}))
@@ -782,19 +783,19 @@ def comfy_client(tmp_path, clock, provider):
 
 def test_backend_model_files_are_saved_listed_and_cleared(comfy_client):
     backend = local_comfy(comfy_client)
-    assert backend['model_files'] == {'unet_name': '', 'clip_name': '', 'clip_type': '', 'vae_name': ''}
+    assert backend['model_files'] == {'unet_name': '', 'clip_name': '', 'clip_type': '', 'vae_name': '', 'ref_unet_name': ''}
     listed = ok(comfy_client.get(f"/api/images/backends/{backend['id']}/files"))
     assert listed['ok'] and listed['options']['clip_name'] == [ENCODER]
     assert listed['defaults'] == {'unet_name': 'krea2_turbo_fp8_scaled.safetensors',
                                   'clip_name': 'qwen3vl_4b_fp8_scaled.safetensors', 'clip_type': 'krea2',
-                                  'vae_name': 'qwen_image_vae.safetensors'}
+                                  'vae_name': 'qwen_image_vae.safetensors', 'ref_unet_name': ''}
     saved = ok(comfy_client.put(f"/api/images/backends/{backend['id']}", json={**CHOSEN, 'clip_type': 'krea2'}))
-    assert saved['model_files'] == {**CHOSEN, 'clip_type': 'krea2'}
+    assert saved['model_files'] == {**CHOSEN, 'clip_type': 'krea2', 'ref_unet_name': ''}
     details = ok(comfy_client.post(f"/api/images/backends/{backend['id']}/check"))['details']
     assert f"Missing file or option for UNETLoader.unet_name: {CHOSEN['unet_name']}." in details
     assert not any('krea2_turbo_fp8_scaled' in line for line in details)
     cleared = ok(comfy_client.put(f"/api/images/backends/{backend['id']}", json={'unet_name': '', 'label': 'GPU'}))
-    assert cleared['model_files'] == {**CHOSEN, 'unet_name': '', 'clip_type': 'krea2'}
+    assert cleared['model_files'] == {**CHOSEN, 'unet_name': '', 'clip_type': 'krea2', 'ref_unet_name': ''}
     bad = comfy_client.put(f"/api/images/backends/{backend['id']}", json={'vae_name': 'a\nb.safetensors'})
     assert bad.status_code == 422
 
@@ -840,13 +841,13 @@ def test_sampling_starts_on_krea_2_turbo_and_follows_the_users_choice(comfy_clie
     backend = local_comfy(comfy_client)
     assert backend['sampler'] == {'steps': None, 'cfg': None, 'sampler_name': None, 'scheduler': None}
     listed = ok(comfy_client.get(f"/api/images/backends/{backend['id']}/files"))
-    assert listed['sampler_defaults'] == {'steps': 8, 'cfg': 1.0, 'sampler_name': 'euler', 'scheduler': 'simple'}
+    assert listed['sampler_defaults'] == {'steps': 8, 'cfg': 1.0, 'sampler_name': 'euler_ancestral', 'scheduler': 'simple'}
     assert listed['options']['sampler_name'] == ['euler', 'res_multistep'] and listed['options']['scheduler'] == ['simple', 'beta']
     tuned = ok(comfy_client.put(f"/api/images/backends/{backend['id']}",
                                 json={'steps': 10, 'cfg': 1.0, 'sampler_name': 'res_multistep', 'scheduler': 'beta'}))
     assert tuned['sampler'] == {'steps': 10, 'cfg': None, 'sampler_name': 'res_multistep', 'scheduler': 'beta'}
     reset = ok(comfy_client.put(f"/api/images/backends/{backend['id']}",
-                                json={'steps': 8, 'cfg': 1.0, 'sampler_name': 'euler', 'scheduler': 'simple'}))
+                                json={'steps': 8, 'cfg': 1.0, 'sampler_name': 'euler_ancestral', 'scheduler': 'simple'}))
     assert reset['sampler'] == {'steps': None, 'cfg': None, 'sampler_name': None, 'scheduler': None}
     assert comfy_client.put(f"/api/images/backends/{backend['id']}", json={'steps': 0}).status_code == 422
     server = ComfyStandIn()
@@ -854,8 +855,8 @@ def test_sampling_starts_on_krea_2_turbo_and_follows_the_users_choice(comfy_clie
     config = {'base_url': 'http://127.0.0.1:8188', 'steps': 10, 'scheduler': 'beta'}
     result = asyncio.run(adapter.generate(request_for('comfyui', config)))
     sampler = server.prompts[0]['7']['inputs']
-    assert (sampler['steps'], sampler['cfg'], sampler['sampler_name'], sampler['scheduler']) == (10, 1.0, 'euler', 'beta')
-    assert result.workflow == 'krea2-turbo (10 steps, CFG 1, euler/beta)'
+    assert (sampler['steps'], sampler['cfg'], sampler['sampler_name'], sampler['scheduler']) == (10, 1.0, 'euler_ancestral', 'beta')
+    assert result.workflow == 'krea2-turbo (10 steps, CFG 1, euler_ancestral/beta)'
 
 
 def test_a_style_lora_never_makes_a_server_less_strict(comfy_client):

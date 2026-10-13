@@ -11,7 +11,7 @@ import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
-import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
@@ -295,6 +295,8 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
         {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
       </select>
     )}</Field>
+    {/* Its own muted line, so the sentence above reads the same for every family (Iris). */}
+    {family.reference && !backend.reference_workflow && <p className="subtle family-reference">{family.reference}</p>}
     {shown && <div className="family-undo"><Notice action={<button type="button" className="text-button" onClick={() => void save(shown.body).then(() => setUndo(null))}>Undo</button>}>Switched to {shown.to} defaults.</Notice></div>}
   </div>
 }
@@ -303,7 +305,6 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
 function familyHint(family: ReturnType<typeof familyOf>, custom: boolean): string {
   if (custom) return 'Your own workflow is used for pictures; the family still sets the reference workflow.'
   const lines = [`Sets the built-in workflow, model files and sampling to ${family.sampling}'s. You can change any of them below.`]
-  if (!family.reference) lines.push(`${family.short === 'Booru' ? 'Booru models' : family.short} can't follow a reference picture, so profile pictures 2 and 3 come from another backend that can.`)
   if (family.note) lines.push(family.note)
   return lines.join(' ')
 }
@@ -420,11 +421,11 @@ function useBackendFiles(backend: ImageBackend, open: boolean) {
 
 /** A dropdown of the server's files (only `matching` when given), or a text box when it listed none. */
 function FileField({ slot, options, matching, value, fallback, onChange }: { slot: FileSlot; options: string[]; matching: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
-  const { label, hint, tip } = slot
-  if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback} hint={hint} tip={tip} onChange={onChange} />
+  const { label, hint, tip, same } = slot
+  if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback || same} hint={hint} tip={tip} onChange={onChange} />
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <>
     <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
-      {fileChoices(options, value, matching, matching.length > 0).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      {fileChoices(options, value, matching, matching.length > 0, same).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
     {/* On its own line, so the file name in the box is never cut short by it (Iris). */}
     {missingFrom(options, value) && <p className="subtle field-missing">{MISSING}</p>}
@@ -475,9 +476,10 @@ function StyleLoraRows({ rows, options, matching, short, looks, setRows }: { row
 /** Official pages for the built-in workflow's files. Pages only, never a direct download. */
 function ModelLinks({ links, family }: { links: ModelLink[]; family: ImageFamily | null }) {
   const groups = linksByRole(links, family ?? 'krea2')
+  const { pack } = familyOf(family)
   if (groups.length === 0) return null
   return <div>
-    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list.{family === 'krea2' && <> Pictures made from a reference also need the Krea 2 Identity Edit <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder; Check offers to install it.</>} Check the license on each page before downloading.</p>
+    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list.{pack && <> Pictures made from a reference also need the {pack.label} <a className="text-button" href={pack.url} target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder{pack.install ? '; Check offers to install it' : ''}.</>}{family === 'anima' && <> They also need the Anima Edit LoRA, <code>AnimeEditV2.safetensors</code>, in models/loras.</>} Check the license on each page before downloading.</p>
     <ul className="plain-list">
       {groups.flatMap(({ slot, links: items }) => items.map(link => <li key={link.name}>
         {slot.label}: <a className="text-button" href={link.url} target="_blank" rel="noreferrer">{link.name}</a>{link.file && <> · {link.file}</>}
@@ -505,16 +507,16 @@ const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 
     shown: (family) => `Shown is the built-in ${family} reference workflow; paste or edit one and save it to use your own.`,
   },
 }
-/** For a family with no built-in reference workflow, in place of `shown`. */
-const NO_REFERENCE = (family: string) => `${family === 'Booru' ? 'Booru models have' : `${family} has`} no built-in reference workflow. Paste one to make profile pictures from this server; until then they come from a backend that can follow a picture.`
 const USE_BUILT_IN = 'Use the built-in one'
 const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
 /** The files a built-in workflow loads, for its hint, on a line of their own (Iris). */
 function needs(workflow: string): ReactNode {
-  let nodes: { inputs?: Record<string, unknown> }[]
-  try { nodes = Object.values(JSON.parse(workflow) as Record<string, { inputs?: Record<string, unknown> }>) } catch { return null }
-  const files = nodes.flatMap(({ inputs = {} }) => ['unet_name', 'ckpt_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key]))
+  type Node = { class_type?: string; inputs?: Record<string, unknown> }
+  let nodes: Node[]
+  try { nodes = Object.values(JSON.parse(workflow) as Record<string, Node>) } catch { return null }
+  const files = [...nodes.flatMap(({ inputs = {} }) => ['unet_name', 'ckpt_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key])),
+    ...nodes.flatMap(({ class_type: type = '' }) => PRESET_FILES[type] ?? [])]
     .filter((name): name is string => typeof name === 'string' && name.endsWith('.safetensors'))
   if (!files.length) return null
   return <span className="workflow-needs">It needs, in ComfyUI's models folders: {files.map((file, index) => <span key={file}>{index ? ', ' : ''}<code>{file}</code></span>)}</span>
@@ -570,8 +572,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   // untouched box follows.
   const picks = JSON.stringify([backend.family, backend.model_files, backend.sampler])
   const family = familyOf(backend.family)
-  const none = field === 'reference_workflow' && !family.reference
-  const shownNote = none ? NO_REFERENCE(family.short) : copy.shown(family.sampling)
+  const shownNote = copy.shown(family.sampling)
   const shownPicks = useRef(picks)
   const { saved, text, builtIn, load } = flow
   useEffect(() => {
@@ -581,7 +582,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   }, [picks, saved, text, builtIn, load])
   return (
     <details open={startOpen} onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
-      <summary className="subtle">{copy.title} {set ? '(yours)' : none ? <span className="summary-none">(none)</span> : '(built-in)'}</summary>
+      <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
       <div className="form-stack workflow-editor">
         <Field label={copy.label} hint={<>{copy.hint}{!set && <> {shownNote}{needs(flow.builtIn)}</>}</>}>{(id, describedBy) =>
           <>

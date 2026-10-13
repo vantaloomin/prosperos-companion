@@ -4,8 +4,8 @@ import { test } from 'node:test'
 import { FAMILIES, FAMILY_KEYS, familyOf, missingFrom, fileChoices, filesBody, TURBO, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody } from '../../src/features/settings/modelFiles.ts'
 import type { ModelFiles, ModelLink } from '../../src/types.ts'
 
-const DEFAULTS: ModelFiles = { unet_name: 'krea2_turbo_fp8_scaled.safetensors', clip_name: 'qwen3vl_4b_fp8_scaled.safetensors', clip_type: 'krea2', vae_name: 'qwen_image_vae.safetensors' }
-const NONE: ModelFiles = { unet_name: '', clip_name: '', clip_type: '', vae_name: '' }
+const DEFAULTS: ModelFiles = { unet_name: 'krea2_turbo_fp8_scaled.safetensors', clip_name: 'qwen3vl_4b_fp8_scaled.safetensors', clip_type: 'krea2', vae_name: 'qwen_image_vae.safetensors', ref_unet_name: '' }
+const NONE: ModelFiles = { unet_name: '', clip_name: '', clip_type: '', vae_name: '', ref_unet_name: '' }
 const SLOTS = FAMILIES.krea2.slots
 // As a Windows ComfyUI lists them: subfolder, backslash and spaces kept.
 const MUSE = 'Krea 2\\Muse by Stable Yogi Krea2 V3.5 Civ NVFP4 C84.safetensors'
@@ -32,7 +32,7 @@ test('download pages are grouped under the dropdown they fill', () => {
   const groups = linksByRole([link('vae', 'v'), link('model', 'm1'), link('model', 'm2'), link('model', 'a', 'anima')])
   assert.deepEqual(groups.map(group => [group.slot.label, group.links.map(item => item.name)]), [['Model', ['m1', 'm2']], ['VAE', ['v']]])
   assert.deepEqual(linksByRole([link('model', 'm1'), link('model', 'a', 'anima')], 'anima').map(group => group.links.map(item => item.name)), [['a']])
-  assert.deepEqual(SLOTS.map(slot => slot.label), ['Model', 'Text encoder', 'Text encoder type', 'VAE'])
+  assert.deepEqual(SLOTS.map(slot => slot.label), ['Model', 'Text encoder', 'Text encoder type', 'VAE', 'Model for pictures from a reference'])
 })
 
 test('the shipped download list links to pages, never to a file download', () => {
@@ -45,8 +45,8 @@ test('the shipped download list links to pages, never to a file download', () =>
 })
 
 test('a server that cannot be asked leaves typed names, and one that answers fills the lists', () => {
-  const options = { unet_name: [MUSE], clip_name: [], clip_type: ['krea2'], vae_name: [], lora: [], sampler_name: [], scheduler: [] }
-  const matching = { unet_name: [MUSE], clip_name: [], clip_type: [], vae_name: [], lora: [], sampler_name: [], scheduler: [] }
+  const options = { unet_name: [MUSE], clip_name: [], clip_type: ['krea2'], vae_name: [], ref_unet_name: [], lora: [], sampler_name: [], scheduler: [] }
+  const matching = { unet_name: [MUSE], clip_name: [], clip_type: [], vae_name: [], ref_unet_name: [], lora: [], sampler_name: [], scheduler: [] }
   const empty = { ...options, unet_name: [], clip_type: [], ckpt_name: [] }
   assert.deepEqual(serverFiles(undefined, null, NONE), { answered: false, defaults: NONE, options: empty, matching: empty, error: null })
   const down = serverFiles({ ok: false, error: 'Cannot reach the ComfyUI server.', family: 'krea2', defaults: DEFAULTS, sampler_defaults: TURBO, options, matching, character_lora: null }, null, NONE)
@@ -76,8 +76,8 @@ test('style LoRAs are saved without empty rows, trimmed, at most three', () => {
 
 test('sampling starts on Krea 2 Turbo settings and shows a draft over a saved value', () => {
   const none = { steps: null, cfg: null, sampler_name: null, scheduler: null }
-  assert.deepEqual(shownSampler({}, none, TURBO), { steps: 8, cfg: 1, sampler_name: 'euler', scheduler: 'simple' })
-  assert.deepEqual(shownSampler({ steps: 12 }, { ...none, scheduler: 'beta' }, TURBO), { steps: 12, cfg: 1, sampler_name: 'euler', scheduler: 'beta' })
+  assert.deepEqual(shownSampler({}, none, TURBO), { steps: 8, cfg: 1, sampler_name: 'euler_ancestral', scheduler: 'simple' })
+  assert.deepEqual(shownSampler({ steps: 12 }, { ...none, scheduler: 'beta' }, TURBO), { steps: 12, cfg: 1, sampler_name: 'euler_ancestral', scheduler: 'beta' })
   assert.ok(isTuned({ ...none, cfg: 2 }) && !isTuned(none))
 })
 
@@ -86,7 +86,9 @@ test('each model family lists only its own loaders, and an unknown family is Kre
   assert.deepEqual(FAMILIES.booru.slots.map(slot => slot.key), ['ckpt_name'])
   assert.deepEqual(FAMILIES.anima.slots.map(slot => slot.key), ['unet_name', 'clip_name', 'clip_type', 'vae_name'])
   assert.equal(familyOf(null), FAMILIES.krea2)
-  assert.ok(FAMILIES.krea2.reference && FAMILIES.qwen21.reference && !FAMILIES.zimage.reference && !FAMILIES.anima.reference && !FAMILIES.booru.reference)
+  // Only Krea 2 has a model of its own for pictures from a reference, which starts as the same one.
+  assert.deepEqual(FAMILIES.krea2.slots.filter(slot => slot.same).map(slot => slot.key), ['ref_unet_name'])
+  assert.deepEqual(fileChoices(['a_edit.safetensors'], '', [], false, 'Same as the Model'), [{ value: '', label: 'Same as the Model' }, { value: 'a_edit.safetensors', label: 'a_edit.safetensors' }])
 })
 
 test('the settings page and the server agree on the families', () => {

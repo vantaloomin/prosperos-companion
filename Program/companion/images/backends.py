@@ -36,7 +36,7 @@ NSFW_PROVIDERS = {'openrouter', 'nanogpt', 'other'}
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
 CONFIG_KEYS = ('base_url', 'model', 'workflow', 'reference_workflow', 'cli_path', 'api_style')
 # ComfyUI only: the files chosen for the built-in workflow's loaders (see adapters/comfyui.py).
-FILE_KEYS = ('unet_name', 'clip_name', 'clip_type', 'vae_name', 'ckpt_name')
+FILE_KEYS = ('unet_name', 'clip_name', 'clip_type', 'vae_name', 'ckpt_name', 'ref_unet_name')
 
 
 def credential_ref(backend_id: str) -> str:

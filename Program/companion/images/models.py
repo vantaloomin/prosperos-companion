@@ -35,6 +35,7 @@ class BackendFields(Input):
     vae_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
     # A Booru (SDXL) model's single checkpoint file.
     ckpt_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
+    ref_unet_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
     # ComfyUI: which model family's built-in workflow to run (companion/images/adapters/comfyui.py FAMILIES).
     family: Family | None = None
     # The built-in workflow's sampler; a value equal to the workflow's own is stored as unset.
