@@ -28,7 +28,9 @@ export function historyLine(item: { summary: string; at: string }, timeZone?: st
 }
 
 /** What the user might send to suggest going together; it goes into the composer, never sent on its own. */
-export function suggestion(place: Pick<MapPlace, 'name' | 'kind'>): string {
+export function suggestion(place: Pick<MapPlace, 'name' | 'kind'> & { id?: string }): string {
+  // Their own home: dinner at their place, cooked by them (companion/life/kitchen.py).
+  if (place.id === '~home') return 'Can I come over for dinner at your place this week?'
   const when = ['bar', 'nightlife', 'venue', 'restaurant', 'tavern'].includes(place.kind) ? 'one night this week' : 'this weekend'
   return `Want to go to ${place.name} ${when}?`
 }

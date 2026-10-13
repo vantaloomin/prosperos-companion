@@ -49,7 +49,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       <p className="subtle">{outingWhen(outing, name)} · {placeLine(outing.place)} <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></p>
       {note && <p className="subtle">{note}</p>}
       {outing.state === 'planned' && <div className="together-actions">
-        <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>
+        {outing.activity !== 'dinner-in' && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>}
         <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
       </div>}
       {outing.state === 'now' && <div className="together-actions">

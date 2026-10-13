@@ -258,6 +258,9 @@ ADDED_COLUMNS = (
     ('life_settings', 'pets_can_die', 'INTEGER NOT NULL DEFAULT 1 CHECK (pets_can_die IN (0, 1))'),
     # The pets on the user's persona (companion/worlds.py), as JSON: the user's own, given lives by pets.py.
     ('persona', 'pets', "TEXT NOT NULL DEFAULT '[]'"),
+    # Kitchen and food (companion/life/kitchen.py, Settings > Realism > Around the home): 0 off, 1 light, 2 true to life,
+    # 3 dramatic.
+    ('life_settings', 'kitchen_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (kitchen_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

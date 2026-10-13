@@ -192,7 +192,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -442,6 +442,8 @@ export interface LifeSettings {
   /** Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   pets_realism: number
   pets_can_die: boolean
+  /** Kitchen ups and downs on the same scale: staples running out, dinners going sideways (companion/life/kitchen.py). */
+  kitchen_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -1182,6 +1184,31 @@ export interface HomeItem {
 }
 
 export interface HomeChange { local_date: string; kind: string; text: string }
+
+export type MealKind = 'cook' | 'leftovers' | 'takeout' | 'simple' | 'out' | 'hosting' | 'away'
+export type StapleState = 'stocked' | 'low' | 'out'
+
+/** The Character page's Kitchen panel (GET /api/life/kitchen): all in words; `numbers` only with hidden values shown. */
+export interface KitchenView {
+  today: string
+  diet: string
+  avoids: string[]
+  skill: number
+  skill_text: string
+  bakes: boolean
+  favorites: string[]
+  summary: string
+  cuisine: string
+  week: { date: string; kind: MealKind; text: string; groceries: boolean; today: boolean }[]
+  pantry: { name: string; state: StapleState }[]
+  pantry_text: string
+  changed: string[]
+  diets: string[]
+  avoid_choices: string[]
+  skills: string[]
+  realism: number
+  numbers?: { rhythm: Record<string, number>; days_left: Record<string, number | null> }
+}
 
 export interface HomeView {
   today: string

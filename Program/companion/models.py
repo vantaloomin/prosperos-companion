@@ -398,6 +398,8 @@ class LifeSettingsUpdate(Input):
     circle_size: int | None = Field(default=None, ge=0, le=12)
     # Storylines from quiet (0) through realistic and dramatic to soap opera (3).
     drama: int | None = Field(default=None, ge=0, le=3)
+    # Kitchen ups and downs (companion/life/kitchen.py), on the same scale.
+    kitchen_realism: int | None = Field(default=None, ge=0, le=3)
     # "MM-DD", or empty to forget it (companion/life/occasions.py).
     # Replies wait while the companion is at work or asleep (companion/life/pacing.py).
     paced_replies: bool | None = None

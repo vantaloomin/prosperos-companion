@@ -84,6 +84,9 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.wardrobe.WEAVE', False)
     # And haircuts, nails and bold looks changes woven into the companion's day (companion/life/grooming.py).
     monkeypatch.setattr('companion.life.grooming.WEAVE', False)
+    # And dinners and grocery runs woven into the day, and dinner invitations (companion/life/kitchen.py).
+    monkeypatch.setattr('companion.life.kitchen.WEAVE', False)
+    monkeypatch.setattr('companion.life.kitchen.INVITES', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.

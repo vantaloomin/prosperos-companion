@@ -1935,3 +1935,13 @@ CREATE TABLE IF NOT EXISTS pet_state (
   pet_key TEXT PRIMARY KEY,
   through TEXT NOT NULL
 );
+-- Kitchen and food (companion/life/kitchen.py): the companion's seeded way of eating (diet, things avoided, cooking
+-- skill, baking, favourite dishes) and the user's changes to it. Meals and the pantry are drawn per day, not stored.
+CREATE TABLE IF NOT EXISTS kitchen_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  profile TEXT NOT NULL,
+  overrides TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

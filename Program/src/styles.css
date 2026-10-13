@@ -541,6 +541,22 @@ textarea { resize: vertical; line-height: 1.6; }
 .home-panel { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; display: grid; gap: 12px; }
 .home-panel h2 { margin: 0; }
 .home-panel > .button { justify-self: start; }
+/* Kitchen (src/features/character/Kitchen.tsx): the day sits in a fixed column so the dinners line up. */
+.kitchen-who p, .kitchen-pantry p { margin: 0; }
+.kitchen-who, .kitchen-pantry { display: grid; gap: 4px; }
+.kitchen-week h3, .kitchen-pantry h3 { margin: 0 0 4px; font-size: 1rem; }
+.kitchen-week .diary-list li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 8px; align-items: baseline; }
+.kitchen-day { color: var(--muted); }
+.kitchen-today .kitchen-day { color: var(--text); font-weight: 600; }
+.kitchen-run { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; vertical-align: 1px; }
+.kitchen-run svg { width: 12px; height: 12px; }
+.kitchen-avoids { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+.kitchen-avoids legend { font-weight: 600; margin-bottom: 4px; padding: 0; }
+.kitchen-form { max-width: 28rem; margin-bottom: 4px; }
+.kitchen-earlier summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+@media (max-width: 520px) {
+  .kitchen-week .diary-list li { grid-template-columns: 1fr; gap: 0; }
+}
 .home-add select, .rename-form select { max-width: 280px; }
 .pet-card header h3 { margin: 0; }
 .pet-status { margin: 0; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--accent-tint); border-radius: 4px; }

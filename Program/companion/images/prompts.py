@@ -253,6 +253,7 @@ PICTURES = {
     'market': 'browsing the stalls of a busy market',
     'workout': 'mid-workout, slightly out of breath',
     'home-cooking': 'cooking at the stove at home, stirring a pan, ingredients on the counter',
+    'dinner-in': 'at a dinner table set for two at home, a home-cooked meal on the plates, candles lit',
     'reading': 'curled up at home reading a book under a blanket',
     'nap': 'lying on a sofa at home under a blanket, just waking from a nap',
     'slow': 'lounging on the sofa at home with a mug',

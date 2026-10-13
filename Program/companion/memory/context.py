@@ -28,6 +28,7 @@ from companion.life import (
     encounters,
     grooming,
     home,
+    kitchen,
     money,
     network,
     occasions,
@@ -140,6 +141,9 @@ HEADINGS = {
              'something that happened)',
             'wardrobe': 'Your clothes (fictional, yours; when you describe what you wear, pick from these and keep '
                         'it consistent with what you have on now)',
+            # Kitchen and food (companion/life/kitchen.py): drawn once a day.
+            'kitchen': 'Your kitchen and meals (fictional, yours; when food comes up, keep to how you cook and eat '
+                       'and what is listed for your dinners)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
@@ -670,6 +674,9 @@ def offer_life(packet, connection, companion, now):
     offer_home(packet, connection, companion, today)
     for identity, text in wardrobe.context_lines(connection, timeline_id, date.fromisoformat(today), now):
         packet.offer('wearing' if ':now:' in identity else 'wardrobe', identity, text)
+    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
+                                                    version['timezone']):
+        packet.offer('kitchen', identity, text)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
