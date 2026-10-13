@@ -76,6 +76,13 @@ def test_friends_post_from_their_diary_and_people_react(client, city, clock, mon
     ('Ava got a job offer and keeps asking Bradley whether to take it.',
      'Ava got a job offer and keeps asking me whether to take it.'),
     ('The pottery class filled up, so Bradley is on the list.', 'The pottery class filled up, so I am on the list.'),
+    # Present tense: the verb after "I" drops its -s, and "my" is capitalized only to start a sentence.
+    ('Bradley goes to the market.', 'I go to the market.'),
+    ("Bradley watches the game; Bradley's team wins.", 'I watch the game; my team wins.'),
+    ('Bradley has a cold and Bradley is staying in.', 'I have a cold and I am staying in.'),
+    ('Bradley does the dishes, then Bradley tries a new recipe.', 'I do the dishes, then I try a new recipe.'),
+    ('Bradley often fixes bikes. Bradley\'s brother misses the bus.', "I often fix bikes. My brother misses the bus."),
+    ("Bradley's dog runs off, but Bradley was ready.", 'My dog runs off, but I was ready.'),
 ])
 def test_a_post_says_what_happened_as_i(summary, said):
     assert composer.mine(summary, 'Bradley Shaw') == said
