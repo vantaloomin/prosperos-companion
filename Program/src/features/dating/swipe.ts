@@ -31,9 +31,10 @@ export function tilt(dx: number, width: number): number {
   return Math.max(-TILT, Math.min(TILT, lean))
 }
 
-/** How strongly the Like (positive dx) or Pass stamp shows, 0..1, full at the threshold. */
+/** How strongly the Like (positive dx) or Pass stamp shows, 0..1: nothing for a nudge, full well before the threshold,
+ * so both stamps read at the same strength. */
 export function stamp(dx: number, width: number): { like: number; pass: number } {
-  const amount = Math.min(1, Math.abs(dx) / threshold(width))
+  const amount = Math.min(1, Math.max(0, Math.abs(dx) - NUDGE) / (threshold(width) * 0.4))
   return dx > 0 ? { like: amount, pass: 0 } : { like: 0, pass: dx < 0 ? amount : 0 }
 }
 
@@ -43,4 +44,28 @@ export function arrowWay(key: string, target: { tagName?: string; isContentEdita
   const tag = target?.tagName?.toLowerCase() ?? ''
   if (['input', 'select', 'textarea'].includes(tag) || target?.isContentEditable) return null
   return key === 'ArrowRight' ? 'like' : 'pass'
+}
+
+/** The line under the buttons: arrow keys on a computer, the buttons on a touch screen with no keyboard. */
+export function hintText(left: number, touch: boolean, swipes: boolean): string {
+  const count = left > 0 ? `${left} more after this one.` : 'The last one for now.'
+  if (!swipes) return count
+  return `${count} ${touch ? 'Swipe the card, or use the buttons.' : 'Drag the card, or use the arrow keys.'}`
+}
+
+/** What a screen reader hears after an answer: "Liked Ashanti. Next: Rachel, 40." */
+export function answeredText(name: string, way: SwipeWay, next: string | null): string {
+  return `${way === 'like' ? 'Liked' : 'Passed on'} ${name}.${next ? ` Next: ${next}.` : ''}`
+}
+
+export interface Pose { x: number; rotate: number; opacity: number; like: number; pass: number; lift: number }
+
+/** Where the top card sits: following the drag, or flying off the way it was answered. Kept still (no slide or tilt,
+ * only a fade) when the user asks for less motion. */
+export function pose(dx: number, flying: SwipeWay | null, still: boolean, width: number): Pose {
+  const sign = flying === 'like' ? 1 : -1
+  const x = flying ? (still ? 0 : sign * width * 1.5) : dx
+  const marks = flying ? { like: flying === 'like' ? 1 : 0, pass: flying === 'pass' ? 1 : 0 } : stamp(dx, width)
+  const lift = flying ? 1 : Math.min(1, Math.abs(dx) / threshold(width))
+  return { x, rotate: still ? 0 : tilt(x, width), opacity: flying ? 0 : 1, ...marks, lift }
 }

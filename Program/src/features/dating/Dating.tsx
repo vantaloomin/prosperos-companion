@@ -44,12 +44,13 @@ export function Dating({ go }: { go: (view: View) => void }) {
   const swipe = async (key: string, like: boolean) => {
     const next = await run(() => api<DatingData>('/dating/swipes', { key, like }))
     if (next) setMatched(next.matched ?? null)
+    return next !== null
   }
   return (
     <section className="page dating" aria-labelledby="dating-heading">
       <header className="page-header"><div>
         <h1 id="dating-heading">{data.words.title}</h1>
-        <p className="subtle">Meet people around town. Someone you match with can become a companion. Your companions never see who you swipe on.</p>
+        <p className="subtle">Meet people around town. Someone you match with can become a companion. {data.surface === 'app' ? 'Your companions never see who you swipe on.' : 'Your companions never see who you pass on.'}</p>
         {data.all_matches && <p className="subtle dating-debug">Debug: everyone you like matches back. Turn off in <a className="text-button inline" href="#settings/debug" onClick={(event) => { event.preventDefault(); go('settings/debug') }}>Settings &gt; Debug</a>.</p>}
       </div></header>
       {error && <Notice tone="error">{error}</Notice>}
