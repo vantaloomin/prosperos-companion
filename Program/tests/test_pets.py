@@ -298,3 +298,11 @@ def test_changing_the_pets_settings_relives_only_the_days_ahead(client, mira, cl
         assert connection.execute('SELECT through FROM pet_state WHERE pet_key=?',
                                   (found['key'],)).fetchone()[0] <= NOW.isoformat()
         assert pets.of_home(connection, tid, ahead + timedelta(days=2))
+
+
+def test_older_eras_get_no_modern_breeds_or_pet_lines():
+    modern = ('pug', 'border collie', 'dachshund', 'dog park', 'squeaky toy', 'zoomies', 'cat television')
+    seen = [pets.looks_for(f'seed{n}', 'pet', 'dog', 'medieval') for n in range(300)]
+    seen += [pets.moment({'name': 'Rex', 'kind': kind, 'era': 'medieval'}, f'seed{n}') or ''
+             for n in range(300) for kind in ('dog', 'cat')]
+    assert not [line for line in seen if any(word in line for word in modern)]

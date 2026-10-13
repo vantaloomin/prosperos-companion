@@ -736,7 +736,12 @@
    ],
    "text": "a beagle mix with floppy ears and a white-tipped tail",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
@@ -830,7 +835,12 @@
    ],
    "text": "a dachshund with a long body and a smooth red coat",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
@@ -849,7 +859,12 @@
    ],
    "text": "a fawn pug with a black wrinkled face",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
@@ -867,7 +882,12 @@
    ],
    "text": "a red-and-white border collie with one ear up",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
