@@ -143,3 +143,36 @@ export function AdultSideSettings() {
     </section>
   )
 }
+
+/** How much happens to pets (companion/life/pets.py), from nothing at all to a dramatic life. */
+const PET_LEVELS = [
+  { label: 'Off', hint: 'Pets stay well and never grow old: no off days, vet visits or losses.' },
+  { label: 'Light', hint: 'Now and then a pet has an off day or a checkup. Short spells, small bills.' },
+  { label: 'True to life', hint: 'Off days, vet visits and checkups about as often as real pets have them, more as they grow old.' },
+  { label: 'Dramatic', hint: 'More illnesses, longer spells and bigger vet bills.' },
+]
+
+/**
+ * Around the home: one slider per home-life feature (pets, upkeep, kitchen, looks, life admin), set by the presets
+ * and shown in plain words on the Character page. Each feature thread adds its own slider here.
+ */
+export function HomeLifeSettings() {
+  const { settings, data, save, result } = useLifeSettings()
+  if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Around the home" />
+  const pets = PET_LEVELS[data.pets_realism] ?? PET_LEVELS[2]
+  return (
+    <section className="settings-section form-stack" aria-labelledby="home-life-heading">
+      <div>
+        <h2 id="home-life-heading">Around the home</h2>
+        <p className="subtle">How much everyday life happens at home. Past days stay as they were; changes apply from today.</p>
+      </div>
+      <Field label={`Pets: ${pets.label}`} hint={pets.hint}>
+        {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={data.pets_realism} aria-valuetext={pets.label} aria-describedby={describedBy}
+          onChange={(event) => void save({ pets_realism: Number(event.target.value) })} />}
+      </Field>
+      <Toggle label="Pets can die" checked={data.pets_can_die} disabled={data.pets_realism === 0} onChange={(value) => void save({ pets_can_die: value })}
+        hint="Rarely, and only late in life: of old age, or a serious illness when they are very old. Off: pets still grow old but are always there. A pet that died can be brought back on the Character page." />
+      {result && <Notice tone={result.tone}>{result.text}</Notice>}
+    </section>
+  )
+}

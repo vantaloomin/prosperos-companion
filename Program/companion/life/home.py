@@ -659,6 +659,8 @@ def edit(connection, timeline_id: str, item_id: str, change: dict, day: date, no
     details = decode(row['details'])
     if change.get('description') is not None:
         details['description'] = change['description']
+    if change.get('born'):
+        details['born'] = change['born']
     variety = change.get('variety') or row['variety']
     allowed = {'pet': pets.drawable_any(), 'vehicle': VEHICLES}.get(row['kind'])
     require(variety == row['variety'] or (allowed is not None and variety in allowed), 'Pick one of the listed kinds.',
@@ -678,7 +680,8 @@ def add(connection, timeline_id: str, body: dict, day: date, now) -> str:
                 422)
     item_id = insert_item(connection, timeline_id, {
         'kind': body['kind'], 'name': body['name'], 'variety': variety or body['name'],
-        'details': {'description': body.get('description') or body['name']}}, 'user', day, now)
+        'details': {'description': body.get('description') or body['name'],
+                    **({'born': body['born']} if body.get('born') else {})}}, 'user', day, now)
     connection.execute('UPDATE home_items SET edited=1 WHERE id=?', (item_id,))
     rebuild(connection, timeline_id, day, now)
     return item_id

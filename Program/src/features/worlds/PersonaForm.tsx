@@ -5,19 +5,21 @@ import { Field, TextArea, TextInput } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { GENDERS } from './worldsText'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
+import { PersonaPets } from './PersonaPets'
+import { petDrafts, petsBody, petsValid, type PetDraft } from './personaPetsText'
 
 const BIRTHDAY = /^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$/
 
-type Draft = { name: string; gender: PersonaGender; age: string; about: string; birthday: string }
+type Draft = { name: string; gender: PersonaGender; age: string; about: string; birthday: string; pets: PetDraft[] }
 
 function draftOf(persona?: Persona): Draft {
-  if (!persona) return { name: '', gender: '', age: '', about: '', birthday: '' }
-  return { name: persona.name, gender: persona.gender, age: persona.age ? String(persona.age) : '', about: persona.about, birthday: persona.birthday }
+  if (!persona) return { name: '', gender: '', age: '', about: '', birthday: '', pets: [] }
+  return { name: persona.name, gender: persona.gender, age: persona.age ? String(persona.age) : '', about: persona.about, birthday: persona.birthday, pets: petDrafts(persona.pets) }
 }
 
 /** A new persona needs the name the user gives it; everything else may stay blank. */
 function validDraft(draft: Draft, age: number | null, isNew: boolean): boolean {
-  return (age === null || (age >= 18 && age <= 120)) && BIRTHDAY.test(draft.birthday) && (!isNew || !!draft.name.trim())
+  return (age === null || (age >= 18 && age <= 120)) && BIRTHDAY.test(draft.birthday) && petsValid(draft.pets) && (!isNew || !!draft.name.trim())
 }
 
 const TEXT = {
@@ -26,7 +28,7 @@ const TEXT = {
 }
 
 /** A new persona, with their world in `city`, or the changes to one; a new one's form closes once it is made. */
-async function savePersona(persona: Persona | undefined, body: Omit<Draft, 'age'> & { age: number | null }, city: string): Promise<Worlds | undefined> {
+async function savePersona(persona: Persona | undefined, body: Omit<Draft, 'age' | 'pets'> & { age: number | null; pets: ReturnType<typeof petsBody> }, city: string): Promise<Worlds | undefined> {
   if (!persona) { await api('/worlds/personas', { ...body, city_id: city }); return undefined }
   return api<Worlds>(`/worlds/personas/${persona.id}`, body, 'PATCH')
 }
@@ -49,7 +51,7 @@ export function PersonaForm({ persona, cityId, onSaved, onCancel }: PersonaFormP
   const save = async () => {
     setSaving(true)
     try {
-      onSaved(await savePersona(persona, { ...draft, age }, city))
+      onSaved(await savePersona(persona, { ...draft, age, pets: petsBody(draft.pets) }, city))
       setNote({ tone: 'info', text: 'Saved. Your companions know you this way from the next message.' })
     } catch (failure) { setNote({ tone: 'error', text: failure instanceof Error ? failure.message : 'That was not saved.' }) } finally { setSaving(false) }
   }
@@ -69,7 +71,8 @@ export function PersonaForm({ persona, cityId, onSaved, onCancel }: PersonaFormP
       <TextInput label="Birthday" value={draft.birthday} placeholder="MM-DD" maxLength={5} onChange={(birthday) => set({ birthday })}
         hint="Month and day, like 04-23. Companions remember it and wish you a happy birthday." />
       <TextArea label="About you" value={draft.about} rows={3} maxLength={2000} onChange={(about) => set({ about })}
-        placeholder="Works nights as a paramedic, has a one-eyed cat called Biscuit." />
+        placeholder="Works nights as a paramedic, loves old films." />
+      <PersonaPets drafts={draft.pets} onChange={(pets) => set({ pets })} persona={persona} />
       {!persona && <CityPick value={city} currentId={cityId} disabled={saving} onChange={setCity} />}
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={!valid || saving}>{saving ? text.busy : text.button}</button>

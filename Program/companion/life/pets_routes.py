@@ -1,6 +1,8 @@
 """Pets API: the companion's pets with their lives (companion/life/pets.py), the user's edits to them, and how the
 user's own pets (their persona's) are doing. The companion's pets are their home's pet items (companion/life/home.py),
 so edits go through the home and come back here."""
+from datetime import timedelta
+
 from fastapi import APIRouter, Request
 from pydantic import Field
 
@@ -15,12 +17,20 @@ class PetUpdate(Input):
     name: str | None = Field(default=None, min_length=1, max_length=80, pattern=r'\S')
     looks: str | None = Field(default=None, max_length=300)
     kind: str | None = Field(default=None, max_length=40)
+    # Years old, when the user says; else the pet keeps its birth date.
+    age: int | None = Field(default=None, ge=0, le=90)
 
 
 class PetCreate(Input):
     name: str = Field(min_length=1, max_length=80, pattern=r'\S')
     looks: str = Field(default='', max_length=300)
     kind: str = Field(default='cat', max_length=40)
+    age: int | None = Field(default=None, ge=0, le=90)
+
+
+def born(age: int | None, today) -> str | None:
+    """A birth date for an age in years the user gave, midway through that year."""
+    return None if age is None else (today - timedelta(days=age * 365 + 180)).isoformat()
 
 
 def away_care(connection, companion: dict, day) -> dict[str, str]:
@@ -75,14 +85,16 @@ def read_pets(request: Request):
 @router.post('')
 def add_pet(request: Request, body: PetCreate):
     return change(request, lambda connection, timeline_id, today, now: home.add(
-        connection, timeline_id, {'kind': 'pet', 'name': body.name, 'variety': body.kind, 'description': body.looks},
+        connection, timeline_id, {'kind': 'pet', 'name': body.name, 'variety': body.kind, 'description': body.looks,
+                                  'born': born(body.age, today)},
         today, now))
 
 
 @router.patch('/{item_id}')
 def edit_pet(request: Request, item_id: str, body: PetUpdate):
     return change(request, lambda connection, timeline_id, today, now: home.edit(
-        connection, timeline_id, item_id, {'name': body.name, 'description': body.looks, 'variety': body.kind},
+        connection, timeline_id, item_id, {'name': body.name, 'description': body.looks, 'variety': body.kind,
+                                           'born': born(body.age, today)},
         today, now))
 
 

@@ -541,6 +541,23 @@ textarea { resize: vertical; line-height: 1.6; }
 .home-panel h2 { margin: 0; }
 .home-panel > .button { justify-self: start; }
 .home-add select, .rename-form select { max-width: 280px; }
+.pet-card header h3 { margin: 0; }
+.pet-status { margin: 0; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--accent-tint); border-radius: 4px; }
+.pet-status-sick, .pet-status-vet { border-left-color: var(--danger); background: var(--danger-tint); }
+.pet-status-died { border-left-color: var(--faint); background: transparent; color: var(--muted); }
+.pet-recent { margin: 0; }
+.pet-numbers { font-variant-numeric: tabular-nums; }
+.pet-age { max-width: 8rem; }
+.pet-line-label { font-weight: 600; }
+.pets-remembered { display: grid; gap: 8px; }
+.pets-remembered h3 { margin: 8px 0 0; }
+.persona-pets { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.persona-pets legend { padding: 0 6px; font-weight: 600; }
+.persona-pets > .button { justify-self: start; }
+.persona-pet { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.persona-pet .text-button { justify-self: start; }
+.persona-pet-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 12rem) auto 6rem; gap: 6px 8px; align-items: center; }
+@media (max-width: 640px) { .persona-pet-row { grid-template-columns: 1fr; } }
 .home-changes h3 { font-size: 1rem; margin: 4px 0; }
 .wardrobe-group summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
 .wardrobe-group[open] summary { margin-bottom: 4px; }

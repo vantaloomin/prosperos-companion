@@ -107,9 +107,12 @@ def test_the_companion_pets_live_on_the_pets_panel(client, mira, clock):
     assert data['pets'][0]['health'] is None and data['numbers'] is False
     show(client, show_home_numbers=True)
     assert client.get('/api/life/pets').json()['pets'][0]['health'] > 0
-    added = client.post('/api/life/pets', json={'name': 'Pickle', 'kind': 'guinea-pig', 'looks': 'a ginger guinea pig'})
+    added = client.post('/api/life/pets', json={'name': 'Pickle', 'kind': 'guinea-pig', 'looks': 'a ginger guinea pig',
+                                                     'age': 2})
     assert added.status_code == 200, added.text
     pickle = next(pet for pet in added.json()['pets'] if pet['name'] == 'Pickle')
+    assert pickle['age'] == '2 years old'
+    assert client.patch(f"/api/life/pets/{pickle['id']}", json={'age': 4}).json()['pets'][-1]['age'] == '4 years old'
     assert client.post('/api/life/pets', json={'name': 'Smaug', 'kind': 'dragon'}).status_code == 422
     renamed = client.patch(f"/api/life/pets/{pickle['id']}", json={'name': 'Pickles'}).json()
     assert 'Pickles' in [pet['name'] for pet in renamed['pets']]
@@ -193,7 +196,9 @@ def test_someone_minds_the_pets_on_a_trip():
 
 def test_circle_members_and_townsfolk_have_their_own_pets(client, mira):
     people = client.get('/api/life/circle').json()
-    assert any(person['pets'] for person in people)
+    assert all('pets' in person for person in people)
+    owning = [pets.circle_pets({'id': f'p{n}'}, 'modern', NOW) for n in range(40)]
+    assert 8 < sum(1 for found in owning if found) < 32
     again = client.get('/api/life/circle').json()
     assert [person['pets'] for person in people] == [person['pets'] for person in again]
     data = CatalogWorld().find('baltimore')

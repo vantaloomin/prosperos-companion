@@ -11,6 +11,7 @@ import { stageText } from '../memories/pairText'
 import { displayName, personFacts, personNow, personTies, personWork } from './circleText'
 import { eventWhen } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
+import { PetLines } from '../pets/PetLines'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -122,6 +123,7 @@ function PersonDetails({ person, work }: { person: CirclePerson; work: string | 
     {work && <p className="subtle">{work}</p>}
     {personTies(person) && <p className="subtle">{personTies(person)}</p>}
     {person.haunts && person.haunts.length > 0 && <p className="subtle">Often at {person.haunts.join(', ')}</p>}
+    <PetLines pets={person.pets} />
     {person.recent.length > 0 && <ul className="diary-list">{person.recent.map((entry) => <DiaryLine key={entry.slot} entry={entry} />)}</ul>}
   </>
 }
