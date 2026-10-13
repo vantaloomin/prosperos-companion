@@ -144,6 +144,9 @@ def test_staples_run_out_between_grocery_runs_except_on_the_easy_setting(client,
     with day_for(client) as easy:
         assert {item['state'] for n in range(40) for item in easy.pantry(TODAY - timedelta(days=n))} == {'stocked'}
         assert not any(easy.meal(TODAY - timedelta(days=n))['mishap'] for n in range(60))
+    set_life(client, kitchen_realism=1)  # Light, what I want an easy life sets: the basics never run out either.
+    with day_for(client) as light:
+        assert {item['state'] for n in range(40) for item in light.pantry(TODAY - timedelta(days=n))} == {'stocked'}
 
 
 def test_takeout_counts_as_spending_and_the_chat_knows_dinner(client, kim, provider):

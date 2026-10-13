@@ -17,8 +17,9 @@ for you. A few staples (coffee, eggs, milk; tea and bread in London; ale in Came
 after each grocery run and run out until the next one.
 
 The Realism tab's kitchen slider (life_settings.kitchen_realism: 0 off, 1 light, 2 true to life, 3 dramatic) scales the
-ups and downs: off, staples never run out and nothing goes wrong; higher settings make staples run out sooner and now
-and then a dinner goes sideways (and they order in instead).
+ups and downs: off, staples never run out and nothing goes wrong; light (I want an easy life) never runs out either
+and a dinner rarely goes wrong; higher settings make staples run out sooner and now and then a dinner goes sideways
+(and they order in instead).
 
 Other modules read it through `touch` (the agenda), `context_lines` (the chat's "kitchen" section), `purchases`
 (takeout counts as spending in money.household), `cooked` (Home upkeep's dishes), `grocery_runs` (Life admin's
@@ -76,9 +77,9 @@ RHYTHM = {0: {'cook': 0.15, 'takeout': 0.45, 'simple': 0.4}, 1: {'cook': 0.45, '
 LEFTOVERS = 0.6
 BAKE_SHARE = 0.3
 # Ups and downs by the kitchen slider (off, light, true to life, dramatic): a dinner that goes sideways, and how long
-# staples last (off: never out).
+# staples last (off and light, the easy life: never out).
 MISHAP = (0.0, 0.02, 0.04, 0.1)
-STAPLE_PACE = (None, 1.4, 1.0, 0.75)
+STAPLE_PACE = (None, None, 1.0, 0.75)
 MISHAPS = ('the rice stuck to the bottom of the pot', 'the recipe took twice as long as it said',
            'they were out of a key ingredient halfway through', 'the sauce never came together',
            'they forgot the pot on the stove and it boiled dry', 'the dough refused to rise')
