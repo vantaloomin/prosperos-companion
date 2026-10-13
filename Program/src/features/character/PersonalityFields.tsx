@@ -76,7 +76,7 @@ export function PersonalityFields(props: Props) {
       </div>
       <p className="subtle">Rolled for {definition().name.trim().split(/\s+/)[0] || 'them'}. Anything their own words already say stays as it is; Roll again only changes the rest.</p>
       <PersonalitySummary traits={traits} sliders={sliders} />
-      <PersonalitySliderList traits={traits} sliders={sliders} onChange={(personality_sliders) => set({ personality_sliders })} />
+      <PersonalitySliderList traits={traits} sliders={sliders} onChange={(personality_sliders) => { setStarted(''); set({ personality_sliders }) }} />
       <div className="personality-type">
         <label htmlFor="personality-type">Start from a type</label>
         <select id="personality-type" value="" disabled={busy} onChange={(event) => { if (event.target.value) void ask({ type: event.target.value }) }}>
