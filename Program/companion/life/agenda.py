@@ -27,6 +27,7 @@ from companion.life import (
     encounters,
     grooming,
     home,
+    kitchen,
     network,
     occasions,
     outings,
@@ -246,6 +247,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
             entry = disruptions.entry_with(entry, shift, definition['name'])
+        entry = kitchen.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
+                              scope['world'], scope['now'])
         entry = home.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition, scope['world'],
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
@@ -545,6 +548,8 @@ def upcoming(connection, timeline_id, basis, now, hours=24, limit=4) -> list[dic
 def intention_text(item) -> str:
     entry = item['entry']
     text = f"- {item['local_date']}, {item['block']['label'].lower()} ({item['block']['start']}): "
+    if entry['activity'] == 'dinner-in':  # the user coming over (companion/life/outings.py)
+        return text + 'having the user over for dinner at your place'
     text += entry['activity'].replace('-', ' ')
     if entry.get('place'):
         text += f" at {entry['place']['name']}"

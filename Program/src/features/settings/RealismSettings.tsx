@@ -8,6 +8,7 @@ import { CLOSENESS_KEY } from '../memories/closenessText'
 import { StageControls } from '../memories/Closeness'
 import { DRAMA_LEVELS } from '../today/storyText'
 import { LOOKS_LEVELS } from '../character/looksLatelyText'
+import { KITCHEN_LEVELS } from '../character/kitchenText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -56,6 +57,7 @@ export function HomeLifeSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Around the home" />
   const upkeep = UPKEEP_LEVELS[data.upkeep_realism] ?? UPKEEP_LEVELS[2]
+  const kitchen = KITCHEN_LEVELS[data.kitchen_realism] ?? KITCHEN_LEVELS[2]
   const pets = PET_LEVELS[data.pets_realism] ?? PET_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="home-life-heading">
@@ -66,6 +68,10 @@ export function HomeLifeSettings() {
       <Field label={`Housework: ${upkeep.label}`} hint={upkeep.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.upkeep_realism} label={upkeep.label}
           onChange={(upkeep_realism) => void save({ upkeep_realism })} />}
+      </Field>
+      <Field label={`Kitchen: ${kitchen.label}`} hint={kitchen.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.kitchen_realism} label={kitchen.label}
+          onChange={(kitchen_realism) => void save({ kitchen_realism })} />}
       </Field>
       <Field label={`Pets: ${pets.label}`} hint={pets.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.pets_realism} label={pets.label}

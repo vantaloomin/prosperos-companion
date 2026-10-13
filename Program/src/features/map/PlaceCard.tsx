@@ -29,6 +29,7 @@ export function PlaceCard({ inline, place, city, story, companion, onClose, go }
     const line = suggestion(place)
     writeDraft(storage(), draft.text.trim() ? { ...draft, text: `${draft.text.trimEnd()} ${line}` } : newDraft(line, undefined, draft.pictures), DRAFT_KEY)
     go('conversation')
+    window.setTimeout(() => document.getElementById('composer-text')?.focus(), 0)  // once the chat has drawn
   }
   const home = place.id === '~home'
   return (
@@ -46,14 +47,16 @@ export function PlaceCard({ inline, place, city, story, companion, onClose, go }
         </li>)}</ul>
       </section>}
       {place.regulars.length > 0 && <p className="subtle">Regulars: {place.regulars.join(', ')}</p>}
-      {!home && <PlaceAction story={story} here={place.pins.includes('scene')} goThere={() => void goThere()} suggest={suggest} />}
+      <PlaceAction story={story} home={home ? name : null} here={place.pins.includes('scene')} goThere={() => void goThere()} suggest={suggest} />
       {error && <p className="field-error" role="alert">{error}</p>}
     </aside>
   )
 }
 
-/** With Story mode on, moving the scene there (not offered where the scene already is); else an invitation draft. */
-function PlaceAction({ story, here, goThere, suggest }: { story: boolean; here: boolean; goThere: () => void; suggest: () => void }) {
+/** With Story mode on, moving the scene there (not offered where the scene already is); else an invitation draft: for
+ * their own home (`home` is their name), dinner at their place (they cook). */
+function PlaceAction({ story, home, here, goThere, suggest }: { story: boolean; home: string | null; here: boolean; goThere: () => void; suggest: () => void }) {
+  if (home !== null) return story ? null : <button type="button" className="button primary" onClick={suggest}>Suggest dinner at {home}'s place</button>
   if (!story) return <button type="button" className="button primary" onClick={suggest}>Suggest going together</button>
   return here ? null : <button type="button" className="button primary" onClick={goThere}>Go there</button>
 }

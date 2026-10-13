@@ -8,8 +8,8 @@ function days(from: string, to: string): number {
 }
 
 /** Where a purchase this pay period went: "At home, they …", "Out with you, they paid for dinner at …". */
-export function boughtFor(kind?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks'): string {
-  return { clothes: 'For their wardrobe', looks: 'For their looks', outing: 'Out with you', trip: 'Away', home: 'At home' }[kind ?? 'home']
+export function boughtFor(kind?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food'): string {
+  return { clothes: 'For their wardrobe', looks: 'For their looks', outing: 'Out with you', trip: 'Away', food: 'For dinner', home: 'At home' }[kind ?? 'home']
 }
 
 export function shortDate(iso: string): string {

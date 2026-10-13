@@ -20,6 +20,7 @@ import { Pets } from './Pets'
 import { Traditions } from './Traditions'
 import { Wardrobe } from './Wardrobe'
 import { LooksLately } from './LooksLately'
+import { Kitchen } from './Kitchen'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
@@ -177,6 +178,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <Traditions name={name} />
       <Wardrobe name={name} />
       <LooksLately name={name} />
+      <Kitchen name={name} />
       <SelfFacts name={name} />
     </>}
     <Lore />

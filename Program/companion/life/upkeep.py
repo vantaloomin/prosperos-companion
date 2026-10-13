@@ -132,11 +132,13 @@ def pets_at_home(connection, timeline_id: str, day: date) -> list[dict]:
             if item['kind'] == 'pet']
 
 
-def meals_cooked(connection, timeline_id: str, definition: dict, day: date, seed: str, busy: bool) -> int:
-    """Meals they cook at home on this date (0 to 2). Kitchen and food (v0.10 #19) replaces this seeded guess with
-    their meal rhythm."""
-    roll = generators.unit(seed, 'meals', day.isoformat())
-    return (roll < 0.65) + (roll < 0.25) if busy else (roll < 0.9) + (roll < 0.5)
+def meals_cooked(context: dict, connection, timeline_id: str, day: date) -> int:
+    """Meals they cook at home on this date (0 to 2), from their dinners in Kitchen and food (companion/life/kitchen.py),
+    read once per walk."""
+    from companion.life import kitchen  # kitchen reads the agenda, which touches upkeep, so import late
+    if 'kitchen' not in context:
+        context['kitchen'] = kitchen.peek(connection, timeline_id, context['definition'])
+    return kitchen.cooked_on(context['kitchen'], day)
 
 
 # --- The walk ---
@@ -227,7 +229,7 @@ def step(connection, timeline_id: str, before: dict, day: date, context: dict) -
 
     def jitter(area):
         return scale * (0.7 + 0.6 * generators.unit(seed, 'build', key, area))
-    meals = meals_cooked(connection, timeline_id, context['definition'], day, seed, busy)
+    meals = meals_cooked(context, connection, timeline_id, day)
     pets = pet_mess(pets_at_home(connection, timeline_id, day))
     mess['laundry'] += (TRIP_LAUNDRY if before['away'] else 0) + BUILD['laundry'][not busy] * jitter('laundry')
     mess['dishes'] += PER_MEAL * meals * jitter('dishes')
