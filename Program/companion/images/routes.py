@@ -104,7 +104,8 @@ def backend_workflows(request: Request, backend_id: str):
     with db(request).connect() as connection:
         config = decode(backends.get(connection, backend_id)['config'])
     return {**{key: config.get(key) or '' for key in ('workflow', 'reference_workflow')},
-            'built_in': json.dumps(built_in(config))}
+            'built_in': json.dumps(built_in(config)),
+            'built_in_reference': json.dumps(built_in(config, reference=True))}
 
 
 @router.post('/backends/{backend_id}/move')

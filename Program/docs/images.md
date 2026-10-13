@@ -64,9 +64,16 @@ backend is off until the user sets it up, and text never waits for an image. The
   the chosen file names; nothing is installed or downloaded. A custom workflow in ComfyUI's API
   format replaces the built-in one, with `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
   `{{height}}` where the request's values belong. On the PC, **Workflow** and **Workflow for pictures
-  made from a reference** under the backend show the saved workflows, indented, to read or edit;
-  saving an empty main workflow (**Use the built-in one**) goes back to the built-in one. A paired
-  phone never sees or changes them.
+  made from a reference** under the backend show the workflows, indented, to read or edit. Each box
+  starts filled in with the built-in one (with the chosen model files and sampler settings in
+  place); saving an edited or pasted one makes it the backend's own, and **Use the built-in one**
+  goes back (saving the built-in text unchanged stores nothing). A paired phone never sees or
+  changes them.
+- **The built-in reference workflow** (`workflows/krea2-turbo-reference.json`) is the built-in
+  workflow with the reference picture read by Krea 2's Qwen3-VL text encoder through ComfyUI's own
+  `TextEncodeQwenImageEditPlus` node, from a `LoadImage` of `{{reference_image}}`. It takes the same
+  file and sampler choices. Check lists its missing nodes, but they do not fail the backend: only
+  profile pictures need it.
 - **Codex** uses Codex's own `image_generation` feature (stable and on by default in codex-cli
   0.160.1). Each image is one turn of `codex exec --json --skip-git-repo-check --ephemeral
   --ignore-user-config --ignore-rules --sandbox read-only --cd <empty scratch folder> -`, with a
@@ -262,9 +269,8 @@ step can be skipped and run again from the Character page (**Profile pictures**)
 - Pictures 2 and 3 each send picture 1 along as a reference, so the set shows one person. The whole set goes to the first enabled backend that can take a reference picture:
   **Codex** (attached with `codex exec --image`), a **chat-style API** such as OpenRouter (the
   picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
-  a second, user-supplied *reference workflow* that has `{{reference_image}}` as a LoadImage
-  node's image (the app uploads the picture through `/upload/image`). There is no built-in
-  reference workflow, and Google's OpenAI-compatible endpoint and other `images`-style APIs
+  its *reference workflow*, the built-in one or the user's own with `{{reference_image}}` as a
+  LoadImage node's image (the app uploads the picture through `/upload/image`). Google's OpenAI-compatible endpoint and other `images`-style APIs
   cannot take one.
 - When no enabled backend can, nothing is sent and the page says so. The user can choose to make
   all three from the description alone; the page then says they may not look like one person.
@@ -336,7 +342,7 @@ All writes need the `x-companion-client: workspace` header.
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
 | `POST /api/images/backends/{id}/check` | `{ok, summary, details}`; spends no generation quota |
-| `GET /api/images/backends/{id}/workflows` | ComfyUI's saved `{workflow, reference_workflow}` text (empty when unset), for editing on the PC; refused from a paired phone |
+| `GET /api/images/backends/{id}/workflows` | ComfyUI's saved `{workflow, reference_workflow}` text (empty when unset) and the built-in ones as `built_in` and `built_in_reference`, for editing on the PC; refused from a paired phone |
 | `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, sampler_defaults, options, krea, character_lora}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, Krea 2's first and listed in `krea` |
 | `GET /api/images/model-links` | `{links: [{name, role, file, url, licence}]}`: download pages for the built-in workflow's files |
 | `POST /api/images/backends/{id}/unblock` | The user signed in to Codex again |

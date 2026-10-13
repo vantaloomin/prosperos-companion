@@ -400,22 +400,25 @@ function ModelLinks({ links }: { links: ModelLink[] }) {
 }
 
 type WorkflowField = 'workflow' | 'reference_workflow'
-type SavedWorkflows = Record<WorkflowField | 'built_in', string>
+type SavedWorkflows = Record<WorkflowField | 'built_in' | 'built_in_reference', string>
 
 const tokens = (...names: string[]) => names.map((name, index) => <span key={name}>{index ? (index === names.length - 1 ? ' and ' : ', ') : ''}<code>{`{{${name}}}`}</code></span>)
 
-const WORKFLOWS: Record<WorkflowField, { title: string; label: string; set: string; unset: string; placeholder: string; clear: string; cleared: string; hint: ReactNode }> = {
+// Both boxes start with the built-in Krea 2 Turbo workflow filled in; editing and saving makes it yours.
+const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 'built_in' | 'built_in_reference'; hint: ReactNode; shown: string }> = {
   workflow: {
-    title: 'Workflow', label: 'Workflow', set: '(yours)', unset: '(built-in)', clear: 'Use the built-in one',
-    cleared: 'Back to the built-in workflow.', placeholder: 'Paste a workflow',
-    hint: <>ComfyUI's API format ("Save (API format)") with <code>{'{{prompt}}'}</code>, plus any of {tokens('negative', 'seed', 'width', 'height')}. Empty uses the built-in Krea 2 Turbo workflow.</>,
+    title: 'Workflow', label: 'Workflow', builtIn: 'built_in',
+    hint: <>ComfyUI's API format ("Save (API format)") with <code>{'{{prompt}}'}</code>, plus any of {tokens('negative', 'seed', 'width', 'height')}.</>,
+    shown: 'Shown is the built-in Krea 2 Turbo workflow; paste or edit one and save it to use your own.',
   },
   reference_workflow: {
-    title: 'Workflow for pictures made from a reference', label: 'Reference workflow', set: '(set)', unset: '(none)',
-    clear: 'Remove this workflow', cleared: 'Workflow removed.', placeholder: 'Paste a workflow',
-    hint: <>Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with <code>{'{{prompt}}'}</code> and <code>{'{{reference_image}}'}</code> as a LoadImage node's image, plus any of {tokens('negative', 'seed', 'width', 'height')}. There is no built-in one.</>,
+    title: 'Workflow for pictures made from a reference', label: 'Reference workflow', builtIn: 'built_in_reference',
+    hint: <>Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with <code>{'{{prompt}}'}</code> and <code>{'{{reference_image}}'}</code> as a LoadImage node's image, plus any of {tokens('negative', 'seed', 'width', 'height')}.</>,
+    shown: 'Shown is the built-in Krea 2 Turbo reference workflow; paste or edit one and save it to use your own.',
   },
 }
+const USE_BUILT_IN = 'Use the built-in one'
+const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
 /** Saved workflows come back indented so they can be read and edited; anything else is shown as saved. */
 const readable = (text: string) => { try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text } }
@@ -429,7 +432,8 @@ function jsonProblem(text: string): string {
   }
 }
 
-/** The saved text, the box and what was just cleared, read when the section first opens. */
+/** The saved text (empty for the built-in one), the box and what was just cleared, read when the
+ * section first opens. The box shows the built-in workflow while nothing of the user's is saved. */
 function useWorkflow(backend: ImageBackend, field: WorkflowField, save: (value: string) => Promise<string>) {
   const [saved, setSaved] = useState<string | null>(null)
   const [builtIn, setBuiltIn] = useState('')
@@ -439,17 +443,20 @@ function useWorkflow(backend: ImageBackend, field: WorkflowField, save: (value: 
   const load = async () => {
     try {
       const found = await api<SavedWorkflows>(`/images/backends/${backend.id}/workflows`)
-      setSaved(readable(found[field])); setText(readable(found[field])); setBuiltIn(readable(found.built_in)); setError('')
+      const fallback = readable(found[WORKFLOWS[field].builtIn])
+      setSaved(readable(found[field])); setText(readable(found[field]) || fallback); setBuiltIn(fallback); setError('')
     } catch (failed) { setError(failure(failed, 'The saved workflow could not be read.')) }
   }
   const store = async (value: string) => {
-    const problem = (value ? jsonProblem(value) : '') || await save(value)
+    // The built-in one saved unchanged stays the built-in one, so its model file and sampler choices keep applying.
+    const own = value && readable(value) !== builtIn ? value : ''
+    const problem = (own ? jsonProblem(own) : '') || await save(own)
     setError(problem)
     if (problem) return
-    setRemoved(value ? '' : saved ?? ''); setSaved(readable(value)); setText(readable(value))
+    setRemoved(own || !saved ? '' : saved); setSaved(readable(own)); setText(readable(own) || builtIn)
   }
   const edit = (value: string) => { setText(value); setError(''); setRemoved('') }
-  return { saved, builtIn, text, error, removed, load, store, edit }
+  return { saved, builtIn, text, error, removed, load, store, edit, shown: saved || builtIn }
 }
 
 /** A ComfyUI backend's own workflow, or the one for pictures that follow another (the profile pictures). */
@@ -457,19 +464,18 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   const copy = WORKFLOWS[field]
   const set = field === 'workflow' ? backend.custom_workflow : backend.reference_workflow
   const flow = useWorkflow(backend, field, save)
-  const startFrom = field === 'workflow' && !set && !flow.text ? flow.builtIn : ''
   return (
     <details onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
-      <summary className="subtle">{copy.title} {set ? copy.set : copy.unset}</summary>
+      <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
       <div className="form-stack workflow-editor">
-        <Field label={copy.label} hint={copy.hint}>{(id, describedBy) =>
+        <Field label={copy.label} hint={<>{copy.hint}{!set && ` ${copy.shown}`}</>}>{(id, describedBy) =>
           <>
-            <textarea id={id} rows={12} value={flow.text} placeholder={copy.placeholder} spellCheck={false} aria-describedby={describedBy}
+            <textarea id={id} rows={12} value={flow.text} placeholder="Paste a workflow" spellCheck={false} aria-describedby={describedBy}
               aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />
             {/* Right under the box it is about, above the hint (Iris). */}
             {flow.error && <Notice tone="error">{flow.error}</Notice>}
           </>}</Field>
-        <WorkflowActions flow={flow} copy={copy} set={set} startFrom={startFrom} />
+        <WorkflowActions flow={flow} set={set} />
       </div>
     </details>
   )
@@ -478,15 +484,14 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
 type Workflow = ReturnType<typeof useWorkflow>
 
 /** Save and undo first; resetting sits at the far end, muted, and can be undone right after. */
-function WorkflowActions({ flow, copy, set, startFrom }: { flow: Workflow; copy: (typeof WORKFLOWS)[WorkflowField]; set: boolean; startFrom: string }) {
-  const edited = flow.saved !== null && flow.text !== flow.saved
+function WorkflowActions({ flow, set }: { flow: Workflow; set: boolean }) {
+  const edited = flow.saved !== null && flow.text !== flow.shown
   return <>
-    {flow.removed && <Notice action={<button type="button" className="text-button" onClick={() => void flow.store(flow.removed)}>Undo</button>}>{copy.cleared}</Notice>}
+    {flow.removed && <Notice action={<button type="button" className="text-button" onClick={() => void flow.store(flow.removed)}>Undo</button>}>{BACK_TO_BUILT_IN}</Notice>}
     <div className="form-actions">
-      <button type="button" className="button primary" disabled={!flow.text.trim() || flow.text === flow.saved} onClick={() => void flow.store(flow.text.trim())}>Save workflow</button>
-      {edited && <button type="button" className="button" onClick={() => flow.edit(flow.saved ?? '')}>Undo changes</button>}
-      {startFrom && <button type="button" className="text-button" onClick={() => flow.edit(startFrom)}>Start from the built-in one</button>}
-      {set && <button type="button" className="text-button subtle workflow-reset" onClick={() => void flow.store('')}>{copy.clear}</button>}
+      <button type="button" className="button primary" disabled={!flow.text.trim() || !edited} onClick={() => void flow.store(flow.text.trim())}>Save workflow</button>
+      {edited && <button type="button" className="button" onClick={() => flow.edit(flow.shown)}>Undo changes</button>}
+      {set && <button type="button" className="text-button subtle workflow-reset" onClick={() => void flow.store('')}>{USE_BUILT_IN}</button>}
     </div>
   </>
 }
