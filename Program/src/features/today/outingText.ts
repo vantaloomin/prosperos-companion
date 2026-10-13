@@ -4,7 +4,9 @@ import { calendarDay } from '../../when.ts'
 export const TOGETHER_KEY = ['outings']
 
 export type OutingState = 'planned' | 'now' | 'done' | 'cancelled'
-export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string }
+/** A pastime together (companion/life/hobbies.py) carries the pastime itself under `hobby`. */
+export interface OutingHobby { id: string; label: string; session: string; together: string; event: string | null; picture: string }
+export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null }
 export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
@@ -19,7 +21,7 @@ export interface Together { outings: Outing[]; trips: Trip[] }
 
 const WHAT: Record<string, string> = {
   dinner: 'Dinner', 'lunch-out': 'Lunch', coffee: 'Coffee', drinks: 'Drinks', show: 'A show', museum: 'A few hours',
-  walk: 'A walk', market: 'A look around', 'dinner-in': 'Dinner',
+  walk: 'A walk', market: 'A look around', 'dinner-in': 'Dinner', hobby: 'A pastime',
 }
 
 /** "Thu, Oct 8" from a local date. */
@@ -35,6 +37,7 @@ export function timeText(hhmm: string): string {
 
 /** "Dinner at Ouzo Bay". */
 export function outingTitle(outing: Pick<Outing, 'activity' | 'place'>): string {
+  if (outing.activity === 'hobby' && outing.place.hobby) return `${outing.place.hobby.label} at ${outing.place.name}`
   return `${WHAT[outing.activity] ?? 'Out'} at ${outing.place.name}`
 }
 
@@ -49,6 +52,7 @@ const JOINED: Record<string, string> = {
 
 /** "Greek restaurant in Harbor East", "Irish pub in Canton", "Tex-Mex restaurant in Fells Point". */
 export function placeLine(place: OutingPlace): string {
+  if (place.kind === 'spot') return place.city ? `Somewhere in ${place.city}` : 'Somewhere nearby'
   if (place.kind === 'home') return place.neighborhood ? `Their place in ${place.neighborhood}` : 'Their place'
   const cuisine = JOINED[place.cuisine] ?? place.cuisine.replace(/-/g, ' ')
   const kind = !cuisine ? place.kind : PLACE_WORDS.test(cuisine) ? cuisine : `${cuisine} ${place.kind}`

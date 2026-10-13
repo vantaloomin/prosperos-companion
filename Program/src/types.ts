@@ -192,7 +192,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'hobby' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -446,6 +446,8 @@ export interface LifeSettings {
   kitchen_realism: number
   /** Life admin (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   admin_realism: number
+  /** Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  hobbies_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -1195,6 +1197,36 @@ export type MealKind = 'cook' | 'leftovers' | 'takeout' | 'simple' | 'out' | 'ho
 export type StapleState = 'stocked' | 'low' | 'out'
 
 /** The Character page's Kitchen panel (GET /api/life/kitchen): all in words; `numbers` only with hidden values shown. */
+export type HobbyStatus = 'active' | 'stalled' | 'dropped'
+export type HobbySource = 'interest' | 'app' | 'user'
+export interface Hobby {
+  id: string
+  label: string
+  /** In a sentence: "the cello", "rock climbing". */
+  name: string
+  kind: string
+  source: HobbySource
+  status: HobbyStatus
+  /** 0 just starting out to 4 really good. */
+  level: number
+  kept: boolean
+  /** "Good at the cello". */
+  level_text: string
+  /** "About two years in". */
+  since_text: string
+  /** "Twice a week.", "Stalled lately: work got busy.", "Gave it up in March." */
+  status_text: string
+  recent: { date: string; kind: 'milestone' | 'stalled' | 'resumed' | 'dropped' | 'started'; text: string }[]
+  numbers?: { skill: number; best: number; sessions: number; next_at: number; talent: number }
+}
+export interface HobbiesView {
+  today: string
+  hobbies: Hobby[]
+  level_names: string[]
+  realism: number
+  can_add: boolean
+}
+
 export interface KitchenView {
   today: string
   diet: string

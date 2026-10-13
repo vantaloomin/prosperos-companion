@@ -590,6 +590,11 @@ textarea { resize: vertical; line-height: 1.6; }
 .pet-line-label { font-weight: 600; }
 .pets-remembered { display: grid; gap: 8px; }
 .pets-remembered h3 { margin: 8px 0 0; }
+.hobby-card header h3 { margin: 0; }
+.hobby-level { margin: 0; font-weight: 600; }
+.hobby-card > p { margin: 0; }
+.hobbies-dropped { display: grid; gap: 8px; }
+.hobbies-dropped summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
 .persona-pets { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
 .persona-pets legend { padding: 0 6px; font-weight: 600; }
 .persona-pets > .button { justify-self: start; }

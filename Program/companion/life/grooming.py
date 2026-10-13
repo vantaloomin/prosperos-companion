@@ -568,7 +568,7 @@ def swappable(entry: dict | None, block: dict) -> bool:
         return False
     if entry is None:
         return True
-    planned = any(entry.get(key) for key in ('outing', 'own_plan', 'trip', 'recommendation', 'with'))
+    planned = any(entry.get(key) for key in ('outing', 'own_plan', 'trip', 'recommendation', 'with', 'hobby'))
     return not planned and entry.get('activity') not in KEPT_ACTIVITIES
 
 

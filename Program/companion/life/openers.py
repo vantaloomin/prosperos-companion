@@ -37,6 +37,7 @@ from companion.life import (
     deck,
     dreams,
     encounters,
+    hobbies,
     kitchen,
     occasions,
     own_plans,
@@ -412,7 +413,7 @@ PAST_WAITING = {'occasion', 'postcard'}
 # A dinner invite comes up about one fortnight in two and waits a day or two at most, so it goes ahead of the daily
 # dream and Life deck news, which otherwise took every day's text first and the invite never went out.
 FINDERS = [occasion, trips.postcard_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
-           kitchen.invite_due, dream_news, little_news, usual_time, check_in]
+           kitchen.invite_due, hobbies.invite_due, hobbies.news_due, dream_news, little_news, usual_time, check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
@@ -615,6 +616,8 @@ class Openers:
             own_plans.note(connection, row, latest, timestamp)
             if trigger.kind == 'dinner_invite':
                 kitchen.settle_invite(connection, latest, row, trigger, timestamp)
+            if trigger.kind == 'hobby_invite':
+                hobbies.settle_invite(connection, latest, row, trigger, timestamp)
             focus = current(connection)
             [view] = voice_notes.decorate(connection, [message_view(row)])
         return {'state': 'sent', 'kind': trigger.kind, 'message': view, 'companion_id': latest['id'],

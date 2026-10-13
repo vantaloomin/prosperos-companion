@@ -72,11 +72,14 @@ COSTS = {
     'browse': ((), 1, 0.008),
     'festival': ((), 1, 0.008),
     'birthday': (('dinner', 'inn-meal', 'chophouse', 'eating-house', 'meal'), 2, 0.02),
+    # A pastime with the user (companion/life/hobbies.py): a day pass, a class or a lane for two.
+    'hobby': ((), 1, 0.004),
 }
 OUTING_NAMES = {'dinner': 'dinner out', 'drinks': 'a night out for drinks', 'show': 'tickets to a show',
                 'museum': 'museum tickets', 'lunch-out': 'lunch out', 'coffee': 'café coffee',
                 'study-cafe': 'an afternoon at a café', 'market': 'a browse at the market',
-                'browse': 'a bit of shopping', 'festival': 'a day at a festival', 'birthday': 'a birthday dinner'}
+                'browse': 'a bit of shopping', 'festival': 'a day at a festival', 'birthday': 'a birthday dinner',
+                'hobby': 'a pastime together'}
 
 SPLURGES = {
     'modern': ('new running shoes', 'a really nice dinner out', 'concert tickets', 'an impulse-buy jacket',
@@ -433,13 +436,14 @@ PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 
 
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
-    """The home's rent, pets and vehicles, and what home changes, new clothes, looks, takeout, outings with the user and
-    trips cost this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, grooming.py's,
+    """The home's rent, pets and vehicles, and what home changes, new clothes, looks, takeout, pastimes, outings with the
+    user and trips cost this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, grooming.py's,
     kitchen.py's, outings.py's, trips.py's and admin.py's
     `purchases`. None before the home exists or where money does not apply."""
     from companion.life import (  # all build from this budget, so import late
         admin,
         grooming,
+        hobbies,
         home,
         kitchen,
         outings,
@@ -456,7 +460,8 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *grooming.purchases(connection, timeline_id, start, day),
               *outings.purchases(connection, timeline_id, start, day), *trips.purchases(connection, timeline_id, start, day),
               *kitchen.purchases(connection, timeline_id, start, day, definition, None, None),
-              *admin.purchases(connection, timeline_id, start, day)]
+              *admin.purchases(connection, timeline_id, start, day),
+              *hobbies.purchases(connection, timeline_id, start, day)]
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date'])}
 
 
@@ -563,7 +568,8 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     return [(f'money:{local_date}:{key}', line) for key, line in lines]
 
 
-SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout'}
+SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',
+            'hobby': 'on their pastimes'}
 
 
 def payday_text(view: dict, local_date: str) -> str:
