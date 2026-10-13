@@ -72,7 +72,9 @@ def test_the_panel_shows_a_book_a_show_and_a_song_and_the_user_can_set_their_own
     assert book['text'].startswith(f"Reading {book['title']}") and not book['set_by_you']
     assert 'numbers' not in view
     assert client.get('/api/life/media').json()['now'] == view['now']
+    reconcile(client)  # the agenda moves the chains on past today
     mine = client.patch('/api/life/media', json={'kind': 'book', 'title': 'Middlemarch', 'by': 'George Eliot'}).json()
+    assert [item['kind'] for item in mine['now']] == ['book', 'show', 'music']
     assert mine['now'][0]['title'] == 'Middlemarch' and mine['now'][0]['set_by_you']
     assert mine['now'][0]['text'] == 'Reading Middlemarch by George Eliot: just started.'
     back = client.patch('/api/life/media', json={'kind': 'book', 'reset': True}).json()

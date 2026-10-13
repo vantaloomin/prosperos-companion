@@ -561,10 +561,17 @@ textarea { resize: vertical; line-height: 1.6; }
 .media-mine { margin-left: 8px; vertical-align: 1px; }
 .media-lately .diary-list li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 8px; align-items: baseline; }
 .media-form { max-width: 28rem; margin-top: 6px; }
+.media-verdict { color: var(--muted); }
+.media-panel cite { font-style: italic; font-synthesis: style; }
+.media-more { margin-top: 4px; }
 .media-lately h3 { margin: 0 0 4px; font-size: 1rem; }
 .kitchen-earlier summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
 @media (max-width: 520px) {
-  .kitchen-week .diary-list li, .media-lately .diary-list li { grid-template-columns: 1fr; gap: 0; }
+  .kitchen-week .diary-list li { grid-template-columns: 1fr; gap: 0; }
+  .media-lately .diary-list { gap: 12px; }
+  .media-lately .diary-list li { grid-template-columns: 1fr; gap: 4px; }
+  .media-row .text-button { min-height: 44px; }
+  .media-form { max-width: none; }
 }
 .home-add select, .rename-form select { max-width: 280px; }
 .pet-card header h3 { margin: 0; }

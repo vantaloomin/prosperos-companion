@@ -21,10 +21,38 @@ export function kindNoun(kind: MediaNow['kind']): string {
   return { book: 'book', show: 'show', music: 'song' }[kind]
 }
 
-/** Who made it, for the change form's second field. */
-export function byLabel(kind: MediaNow['kind']): string {
-  return { book: 'Author', show: 'Where it is on (optional)', music: 'Artist' }[kind]
+/** The change form's second field: the author or artist (a show has none). */
+export function byLabel(kind: MediaNow['kind']): string | null {
+  return { book: 'Author', show: null, music: 'Artist' }[kind]
 }
+
+/** Muted examples in the change form's empty boxes. */
+export function examples(kind: MediaNow['kind']): { title: string; by: string } {
+  return { book: { title: 'e.g. Piranesi', by: 'e.g. Susanna Clarke' }, show: { title: 'e.g. Slow Horses', by: '' },
+    music: { title: 'e.g. Espresso', by: 'e.g. Sabrina Carpenter' } }[kind]
+}
+
+/** "Dana's books, shows and music", by first name like the other Character panels. */
+export function panelHeading(name: string): string {
+  const first = name.trim().split(/\s+/)[0] || name
+  return `${first}'s books, shows and music`
+}
+
+/** The text before and after the title, to set the title off; null when the title is not in it. */
+export function titled(text: string, title: string): [string, string] | null {
+  const at = title ? text.indexOf(title) : -1
+  return at < 0 ? null : [text.slice(0, at), text.slice(at + title.length)]
+}
+
+/** "Finished X by Y: loved it." as ["Finished X by Y", "loved it"]; a line with no verdict stays whole. */
+export function verdictSplit(text: string): [string, string | null] {
+  const at = text.lastIndexOf(': ')
+  if (at < 0) return [text, null]
+  return [text.slice(0, at), text.slice(at + 2).replace(/\.$/, '')]
+}
+
+/** How many Lately rows show before "Show N more". */
+export const LATELY_SHOWN = 5
 
 /** Hidden values: "About 45% through, 9 days to go, will finish." */
 export function itemNumbers(view: MediaView, id: string): string | null {

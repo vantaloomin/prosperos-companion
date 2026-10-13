@@ -89,7 +89,7 @@ SHOW_DAYS = {'series': (8, 30), 'serial': (30, 110), 'film-serial': (50, 100), '
              'play': (10, 21), 'broadway': (10, 21), 'cycle': (6, 18)}
 WATCH_PACE = (1.5, 1.2, 0.9, 0.65)
 SONG_DAYS = (5, 24)
-GAPS = {'book': (0, 5), 'show': (0, 4), 'music': (0, 0)}
+GAPS = {'book': (0, 2), 'show': (0, 2), 'music': (0, 0)}
 LIMITS = {'book': (2, 75), 'show': (2, 130), 'music': (3, 30)}
 FIRST_ALONG = (0.1, 0.65)
 # By the slider (off, light, true to life, dramatic): what they thought, how often something they are not into is put
@@ -100,7 +100,7 @@ VERDICT_ODDS = ((0, 0, 0, 0), (4, 5, 1, 0), (3, 4, 2, 1), (4, 2, 1, 3))
 DROP = (0.0, 0.0, 0.45, 0.7)
 BINGE = (0.0, 0.0, 0.08, 0.2)
 RECOMMEND = (0.0, 0.3, 0.4, 0.55)
-RECENT_DAYS = 45
+RECENT_DAYS = 90
 # A walk or a workout names the song on repeat only some days.
 SONG_SHARE = 0.4
 CONTEXT_FINISHED = 14
@@ -600,7 +600,7 @@ def view(connection, timeline_id: str, definition: dict, world, now, timezone: s
                        'set_by_you': item['source'] == 'user', 'started_on': item['started_on'],
                        'on_hold': on_hold.get(item['kind'])} for item in shown],
               'lately': [{'id': item['id'], 'kind': item['kind'], 'title': item['title'], 'ended_on': item['ends_on'],
-                          'text': ended_text(item)} for item in finished(found, today, RECENT_DAYS)[:6]]}
+                          'text': ended_text(item)} for item in finished(found, today, RECENT_DAYS)[:20]]}
     if show_numbers:
         result['numbers'] = {'reader': me['reader'], 'watcher': me['watcher'], 'library': me['library'],
                              'items': {item['id']: {'along': round(quarter(item, today) * 100),
@@ -631,8 +631,9 @@ def change(connection, timeline_id: str, body: dict, definition: dict, world, no
     chain = items(connection, timeline_id, kind)
     iso = today.isoformat()
     connection.execute("DELETE FROM media_items WHERE timeline_id=? AND kind=? AND started_on>?", (timeline_id, kind, iso))
+    # What they were on today ends here, whether or not the agenda has already moved the chain past it.
     connection.execute("UPDATE media_items SET status='replaced', ends_on=? WHERE timeline_id=? AND kind=? AND "
-                       "status='current'", (iso, timeline_id, kind))
+                       'started_on<=? AND ends_on>?', (iso, timeline_id, kind, iso, iso))
     seq = max((row['seq'] for row in chain), default=-1) + 1
     label = f'{kind}:{seq}'
     if body.get('reset'):

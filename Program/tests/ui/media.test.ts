@@ -20,3 +20,14 @@ test('hidden values read as words, and only when shown', () => {
   assert.equal(itemNumbers(shown, 'a'), '45% through, 1 day to go, will finish it.')
   assert.equal(itemNumbers(shown, 'b'), null)
 })
+
+test('the heading goes by first name and titles and verdicts split out of the line', async () => {
+  const { panelHeading, titled, verdictSplit, byLabel } = await import('../../src/features/character/mediaText.ts')
+  assert.equal(panelHeading('Dana Reyes'), "Dana's books, shows and music")
+  assert.equal(panelHeading('Jess'), "Jess's books, shows and music")
+  assert.deepEqual(titled('Reading Ripley by X: about halfway.', 'Ripley'), ['Reading ', ' by X: about halfway.'])
+  assert.equal(titled('Reading A', 'B'), null)
+  assert.deepEqual(verdictSplit('Finished Ripley: loved it.'), ['Finished Ripley', 'loved it'])
+  assert.deepEqual(verdictSplit('Gave up on Ripley partway through.'), ['Gave up on Ripley partway through.', null])
+  assert.equal(byLabel('show'), null)
+})
