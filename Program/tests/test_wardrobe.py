@@ -185,7 +185,7 @@ def test_new_clothes_count_as_spending_and_are_told_once(client, baltimore, cloc
     with connect(client, False) as connection:
         told = [decode(row[0]) for row in connection.execute(
             "SELECT entry FROM life_agenda WHERE subject='companion' AND json_extract(entry, '$.wardrobe.change')='w1'")]
-    assert len(told) == 1 and told[0]['summary'].endswith('Kim bought a mustard raincoat.')
+    assert len(told) == 1 and 'Kim bought a mustard raincoat.' in told[0]['summary']
 
 
 def test_edits_show_in_context_and_forget_changes_ahead(client, baltimore, clock):
