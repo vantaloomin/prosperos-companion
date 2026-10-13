@@ -119,11 +119,27 @@ def family(sheet: dict, seed: str) -> list[str]:
 
 
 def pet(seed: str, modern: bool) -> str | None:
+    found = pet_identity(seed)
+    if found is None:
+        return None
+    item = next(item for item in bank()['pets'] if item['id'] == found[0])
+    text = generators.pick(seed, 'details-pet-text', phrases(item, 'seen', modern))
+    return text.replace('{pet}', found[1])
+
+
+def pet_identity(seed: str) -> tuple[str, str] | None:
+    """(bank id, name) of the townsperson's pet, or None: companion/life/pets.py gives it a life."""
     if generators.unit(seed, 'details-pet') >= PET_CHANCE:
         return None
     item = generators.pick(seed, 'details-pet-kind', bank()['pets'])
-    text = generators.pick(seed, 'details-pet-text', phrases(item, 'seen', modern))
-    return text.replace('{pet}', generators.pick(seed, 'details-pet-name', bank()['pet_names']))
+    return item['id'], generators.pick(seed, 'details-pet-name', bank()['pet_names'])
+
+
+def pet_of(sheet: dict) -> tuple[str, str] | None:
+    """A townsperson's pet as pet_identity gives it; a companion living in town has none here."""
+    if sheet.get('cast') or not sheet['key'].startswith('town:'):
+        return None
+    return pet_identity(townsfolk.drawn(sheet))
 
 
 def likes(seed: str, modern: bool) -> list[str]:

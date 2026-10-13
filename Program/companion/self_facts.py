@@ -386,9 +386,26 @@ def keep(connection, row: dict, timestamp: str) -> None:
                            (timestamp, row['conflicts_with']))
 
 
-def view(row: dict, connection=None) -> dict:
+def tracked_pets(connection, timeline_id) -> set[str]:
+    """The names of the pets the app keeps for the companion (companion/life/pets.py), alive or remembered."""
+    from companion.life import pets
+    return {found['name'].casefold() for found in pets.of_home(connection, timeline_id)}
+
+
+def pet_link(row: dict, tracked: set[str] | None) -> str | None:
+    """'tracked' for a pet fact naming one of the pets the app keeps (that pet wins: its own lines say it), else
+    'untracked': the fact stays a fact and never becomes a pet unless the user adds it."""
+    if row['category'] != 'pet' or tracked is None:
+        return None
+    return 'tracked' if row['value'].casefold() in tracked else 'untracked'
+
+
+def view(row: dict, connection=None, tracked: set[str] | None = None) -> dict:
     result = {key: row[key] for key in ('id', 'message_id', 'category', 'subject', 'value', 'statement', 'status',
                                         'conflicts_with', 'created_at', 'decided_at')} | {'label': LABELS[row['category']]}
+    if link := pet_link(row, tracked):
+        from companion.life import pets
+        result |= {'pet_link': link, 'pet_kind': pets.kind_for_word(row['subject'])}
     if connection is not None and row['status'] == 'conflict' and (row['conflicts_with'] or '').startswith(CIRCLE):
         person = optional(connection, 'SELECT name, role FROM circle_people WHERE id=?',
                           (row['conflicts_with'].removeprefix(CIRCLE),))
@@ -408,7 +425,8 @@ def listing(database) -> dict:
                          "WHERE self_facts.status='conflict' AND messages.timeline_id=? AND messages.active=1",
                          (timeline_id,))
         rows = [row for row in in_force(connection, timeline_id) if row['id'] in active] + conflicts
-        return {'facts': [view(row, connection) for row in sorted(rows, key=lambda row: row['created_at'])]}
+        tracked = tracked_pets(connection, timeline_id)
+        return {'facts': [view(row, connection, tracked) for row in sorted(rows, key=lambda row: row['created_at'])]}
 
 
 def decide(database, fact_id: str, keep: bool) -> dict:
@@ -464,5 +482,8 @@ def context_line(row: dict) -> str:
 
 
 def context_lines(connection, timeline_id) -> list[tuple[str, str]]:
-    return [(row['id'], context_line(row)) for row in in_force(connection, timeline_id)]
+    """A pet fact about a pet the app keeps is left to the pet's own lines (companion/life/pets.py), which win."""
+    tracked = tracked_pets(connection, timeline_id)
+    return [(row['id'], context_line(row)) for row in in_force(connection, timeline_id)
+            if pet_link(row, tracked) != 'tracked']
 

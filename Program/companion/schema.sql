@@ -1843,3 +1843,24 @@ CREATE TABLE IF NOT EXISTS chat_imports (
   last_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+-- Pets with lives of their own (companion/life/pets.py): what happened to each pet, written once as the days pass
+-- so the past stays put when a Realism setting changes. `pet_key` names the pet: 'home:<home_items id>' for the
+-- companion's, 'circle:<circle_people id>:<n>', 'town:<townsperson key>' or 'persona:<name>'. `until` ends a sick
+-- spell; `spend` is a vet bill's tier, counted for the companion's pets only (money.household).
+CREATE TABLE IF NOT EXISTS pet_log (
+  id TEXT PRIMARY KEY,
+  pet_key TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('sick', 'vet', 'checkup', 'died')),
+  until TEXT,
+  text TEXT NOT NULL,
+  serious INTEGER NOT NULL DEFAULT 0 CHECK (serious IN (0, 1)),
+  spend TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS pet_log_pet ON pet_log(pet_key, local_date);
+-- How far each pet's life has been written (pets.evolve).
+CREATE TABLE IF NOT EXISTS pet_state (
+  pet_key TEXT PRIMARY KEY,
+  through TEXT NOT NULL
+);
