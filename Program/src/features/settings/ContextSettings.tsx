@@ -366,7 +366,7 @@ function PickRow({ schema, required, argument, label, options, onSource, onValue
   const current = fixed === undefined ? '' : String(options.findIndex((option) => option === fixed))
   const choose = (value: string) => value === '' ? onSource('') : onValue(options[Number(value)] as string | number | boolean)
   const choices = [{ value: '', label: required ? 'Choose one' : 'Default' },
-    ...options.map((option, index) => ({ value: String(index), label: option === true ? 'Yes' : option === false ? 'No' : String(option) }))]
+    ...options.map((option, index) => ({ value: String(index), label: option === true ? 'Yes' : option === false ? 'No' : propertyLabel(String(option)) }))]
   if (choices.length > 5) {
     return (
       <Field label={label} hint={serviceHint(schema.description)}>{(id, describedBy) => (
