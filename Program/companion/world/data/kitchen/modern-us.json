@@ -191,6 +191,17 @@
     ["pulled pork platter with mac and cheese", "bbq", "the barbecue joint", "pork dairy gluten"],
     ["chicken burrito bowl", "mexican", "the burrito place in the strip mall", "meat dairy"],
     ["poke bowl with salmon and avocado", "hawaiian", "the poke place", "fish gluten"],
-    ["fried chicken bucket with biscuits", "chicken", "the fried chicken place", "meat gluten dairy"]
+    ["fried chicken bucket with biscuits", "chicken", "the fried chicken place", "meat gluten dairy"],
+    ["veggie tacos with black beans and salsa", "mexican", "the taqueria down the block", "vegan"],
+    ["spaghetti marinara with garlic bread", "italian", "the Italian place nearby", "vegan gluten"],
+    ["vegetable bibimbap with tofu", "korean", "the Korean place nearby", "vegan"],
+    ["veggie burger and sweet potato fries", "burgers", "the burger joint", "vegan gluten"],
+    ["pad see ew with tofu and broccoli", "thai", "the Thai place around the corner", "vegan gluten"],
+    ["avocado cucumber rolls and edamame", "sushi", "the sushi place", "vegan gluten"],
+    ["chicken parm sub", "italian", "the Italian place nearby", "meat dairy gluten"],
+    ["baked ziti with garlic bread", "italian", "the Italian place nearby", "veg dairy gluten"],
+    ["crab cake sandwich with fries", "seafood", "the seafood carryout", "shellfish gluten egg"],
+    ["fried shrimp basket with coleslaw", "seafood", "the seafood carryout", "shellfish gluten egg"],
+    ["patty melt and fries", "burgers", "the burger joint", "meat dairy gluten"]
   ]
 }

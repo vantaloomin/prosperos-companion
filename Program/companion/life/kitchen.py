@@ -96,6 +96,10 @@ MODERN = {'modern', 'future'}
 # Nights are drawn in runs of four weeks from a fixed Monday, so no dish comes round twice within six nights.
 RUN_FROM = date(2000, 1, 3)
 RUN_DAYS = 28
+# Other words a city's places use for a takeout cuisine, so a real place is named as often in every city.
+CUISINE_WORDS = {'mexican': ('mexican', 'tex mex', 'tacos'), 'burgers': ('burger', 'diner'),
+                 'chophouse': ('chop',), 'eel-pie': ('eel',), 'fried-fish': ('fried fish', 'fish and chips'),
+                 'pie-shop': ('pie',), 'cookshop': ('cookshop', 'dining', 'dinners'), 'coffee-stall': ('coffee',)}
 INVITE_EVERY = 14
 RUNS_A_WEEK = 2
 INVITE_CHANCE = 0.45
@@ -424,10 +428,11 @@ class Day:
     def restaurant(self, cuisine: str, label: str) -> dict | None:
         if not self.data:
             return None
-        word = cuisine.replace('-', ' ')
+        words = CUISINE_WORDS.get(cuisine, (cuisine.replace('-', ' '),))
         places = [place for place in self.data.get('places', ()) if place.get('kind') in
                   ('restaurant', 'cafe', 'tavern', 'inn', 'market') and place.get('cost', '$') in ('', '$', '$$') and
-                  word in ' '.join([place.get('cuisine', ''), *place.get('tags', ())]).replace('-', ' ').casefold()]
+                  any(word in ' '.join([place.get('cuisine', ''), *place.get('tags', ())]).replace('-', ' ').casefold()
+                      for word in words)]
         return generators.pick(self.seed, f'{label}:place', places)
 
     def bake(self, day: date) -> dict | None:

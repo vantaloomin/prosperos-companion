@@ -133,7 +133,9 @@
     ["walnut rugelach", 3, "veg dairy gluten nuts bake"],
     ["icebox cookies with pecans", 2, "veg dairy egg gluten nuts bake"],
     ["strawberry shortcake with whipped cream", 2, "veg dairy gluten bake treat cold"],
-    ["johnnycakes with butter", 1, "veg dairy quick breakfast"]
+    ["johnnycakes with butter", 1, "veg dairy quick breakfast"],
+    ["lentil soup with bread", 1, "vegan gluten quick warm"],
+    ["fried potatoes with onions and peppers", 1, "vegan quick warm"]
   ],
   "takeout": [
     ["hot pastrami on rye with mustard", "deli", "the delicatessen on the avenue", "meat gluten"],
@@ -168,6 +170,8 @@
     ["loaf of rye bread and crumb cake", "bakery", "the bakery on the corner", "veg dairy egg gluten bake"],
     ["chocolate layer cake", "bakery", "the bakery on the corner", "veg dairy egg gluten bake treat"],
     ["meat pies", "bakery", "the bakery on the corner", "meat gluten bake"],
-    ["spaghetti and meatballs in a covered dish", "italian", "the Italian eating house on the block", "pork egg gluten dairy"]
+    ["spaghetti and meatballs in a covered dish", "italian", "the Italian eating house on the block", "pork egg gluten dairy"],
+    ["minestrone with bread", "italian", "the Italian eating house on the block", "vegan gluten"],
+    ["spaghetti with marinara", "italian", "the Italian eating house on the block", "vegan gluten"]
   ]
 }

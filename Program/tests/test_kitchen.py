@@ -263,3 +263,21 @@ def test_groceries_are_bought_at_most_twice_a_week(client, kim):
         assert runs == [week[1], week[3]]
         assert all(sum(found.grocery_day(monday + timedelta(weeks=n, days=d)) for d in range(7)) <= 2
                    for n in range(-8, 0))
+
+
+def test_a_vegan_has_a_weeks_worth_of_takeout_and_quick_dishes_in_every_bank():
+    for path in sorted(kitchen.BANKS.glob('*.json')):
+        found = kitchen.bank(path.stem)
+        takeout = [item for item in found['takeout'] if kitchen.allowed(item['tags'], 'vegan', ())]
+        quick = [dish for dish in found['dishes'] if dish['skill'] <= 1 and {'vegan', 'quick'} <= dish['tags']
+                 and 'bake' not in dish['tags']]
+        assert len(takeout) >= 7 and len(quick) >= 7, (path.stem, len(takeout), len(quick))
+
+
+@pytest.mark.parametrize('city', ['los-angeles', 'baltimore', 'london-1895', 'calderwick'])
+def test_takeout_names_a_real_place_in_the_city_about_as_often_everywhere(city):
+    class Night:
+        data, seed = WORLD.find(city), 'seed'
+    items = kitchen.bank(kitchen.bank_for(Night.data))['takeout']
+    named = sum(bool(kitchen.Day.restaurant(Night, item['cuisine'], 'night')) for item in items)
+    assert named / len(items) >= 0.35, (city, named, len(items))

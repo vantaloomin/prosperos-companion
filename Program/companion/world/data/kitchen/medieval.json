@@ -140,7 +140,8 @@
     ["lamprey in galantine", 3, "fish gluten treat cold"],
     ["pumpes of pork in almond milk", 3, "pork nuts treat"],
     ["tart of apples, figs and pears", 3, "veg dairy gluten bake treat"],
-    ["cormarye roast pork with caraway and wine", 3, "pork big treat"]
+    ["cormarye roast pork with caraway and wine", 3, "pork big treat"],
+    ["bread with onions and green herbs", 1, "vegan gluten quick cold"]
   ],
   "takeout": [
     ["hot pork pie", "pies", "the pie seller at the market cross", "pork gluten"],
@@ -174,6 +175,10 @@
     ["chicken crustade", "pastry", "a pastry cook at the market", "meat egg gluten"],
     ["rissoles of pork and figs", "pastry", "a pastry cook at the market", "pork gluten"],
     ["spiced wafers with honey", "wafers", "a wafer seller at the fair", "veg egg gluten"],
-    ["cheese wafers", "wafers", "a wafer seller at the fair", "veg dairy egg gluten"]
+    ["cheese wafers", "wafers", "a wafer seller at the fair", "veg dairy egg gluten"],
+    ["bean pottage with bread", "cookshop", "the cookshop by the river", "vegan gluten"],
+    ["roasted onions and leeks", "cookshop", "the cookshop by the river", "vegan"],
+    ["pottage of peas and greens", "inn", "the inn's kitchen", "vegan"],
+    ["baked pears", "pastry", "a pastry cook at the market", "vegan"]
   ]
 }
