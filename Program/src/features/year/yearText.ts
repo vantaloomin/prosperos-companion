@@ -79,3 +79,20 @@ function addDays(day: string, days: number): string {
   date.setUTCDate(date.getUTCDate() + days)
   return date.toISOString().slice(0, 10)
 }
+
+export type ScrapbookMode = 'years' | typeof ALL_OF_IT
+const MODE_KEY = 'companion.scrapbook.view'
+
+/** The scrapbook view the user last picked, remembered by this browser when it can. */
+export function rememberedMode(): ScrapbookMode {
+  try { return localStorage.getItem(MODE_KEY) === ALL_OF_IT ? ALL_OF_IT : 'years' } catch { return 'years' }
+}
+
+export function rememberMode(mode: ScrapbookMode) {
+  try { localStorage.setItem(MODE_KEY, mode) } catch { /* private window: it is only a convenience */ }
+}
+
+/** The days talked beside a history line: "3 days", "1 day", or "No talking". */
+export function daysText(days: number): string {
+  return days ? `${days} ${days === 1 ? 'day' : 'days'}` : 'No talking'
+}

@@ -55,8 +55,9 @@ def test_the_lines_come_from_what_happened_and_go_in_the_chat(client, app, conne
     found = lines(client)
     assert [line['key'] for line in found] == ['w2026-10-05', 'w2026-10-12']
     first, quiet = found
-    assert first['text'].startswith('You talked on 1 day. You said “The lighthouse keeper told us stories')
-    assert quiet['text'] == "You didn't talk." and quiet['label'] == '12 Oct to 25 Oct 2026', 'quiet weeks share one'
+    assert first['days'] == 1 and first['text'].startswith('You said “The lighthouse keeper told us stories')
+    assert quiet['text'] == '' and quiet['days'] == 0 and quiet['label'] == '12 Oct to 25 Oct 2026', \
+        'weeks with nothing but talking (or none) share one line'
     prompt = system(app)
     assert '## Your history together' in prompt and history.INTRO in prompt
     assert '- Week of 5 Oct 2026: You talked on 1 day. The user said “The lighthouse keeper' in prompt
@@ -69,7 +70,7 @@ def test_the_user_corrects_a_line_or_leaves_it_out(client, app, connected, clock
     send(client, 'Hello', 'two-0001')
     fixed = client.put('/api/life/history/w2026-10-05', json={'text': '  Our   first lighthouse trip. '}).json()
     assert fixed['lines'][0]['corrected'] == 'Our first lighthouse trip.'
-    assert "- Week of 5 Oct 2026 (in the user's words): Our first lighthouse trip." in system(app)
+    assert "- Week of 5 Oct 2026: You talked on 1 day. In the user's words: “Our first lighthouse trip.”" in system(app)
     client.put('/api/life/history/w2026-10-05', json={'text': ''})
     assert 'Week of 5 Oct 2026' not in system(app)
     restored = client.delete('/api/life/history/w2026-10-05').json()
@@ -86,7 +87,7 @@ def test_a_corrected_week_comes_along_when_it_becomes_part_of_a_month(client, ap
     send(client, 'Long time!', 'two-0001')
     [october] = [line for line in lines(client) if line['key'] == 'm2026-10']
     assert october['label'] == 'October 2026'
-    assert october['text'].startswith('You talked on 1 day. In your words: “The lighthouse week.”')
+    assert october['text'].startswith('In your words: “The lighthouse week.”')
     assert '- October 2026: You talked on 1 day. In the user’s words: “The lighthouse week.”' in system(app)
 
 
@@ -96,3 +97,15 @@ def test_a_line_never_runs_past_its_limit():
                            moments=['Bowling together at Lucky Strike'] * 3, closer=['Close friends'])
     text = history.joined(history.parts(item, True, 'Mira'), history.LINE_LIMIT['month'])
     assert len(text) <= history.LINE_LIMIT['month'] and text.startswith('You talked on 20 days.')
+
+
+def test_weeks_of_just_talking_fold_into_one_line():
+    weeks = [history.Stretch(f'w2026-07-{day:02d}', 'week', date(2026, 7, day), date(2026, 7, day + 6), days=count)
+             for day, count in ((6, 2), (13, 3), (20, 4))]
+    weeks.append(history.Stretch('w2026-07-27', 'week', date(2026, 7, 27), date(2026, 8, 2), days=1,
+                                 moments=['Fireworks together at the Inner Harbor']))
+    [folded, busy] = history.merged(weeks, {})
+    assert folded.days == 9 and folded.until == date(2026, 7, 26) and history.label(folded) == '6 Jul to 26 Jul 2026'
+    assert busy.key == 'w2026-07-27'
+    assert len(history.merged(weeks, {'w2026-07-13': 'We had a long talk about my mom.'})) == 4, \
+        'a corrected week keeps its own line'

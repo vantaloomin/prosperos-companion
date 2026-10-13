@@ -4,8 +4,8 @@ One line a week lately, one a month further back and one a year before that, old
 the end of last week. Every line is built from what really happened on the active timeline, by rules and templates,
 never by a model: the days they talked, the user's own words (the day summaries, companion/memory/consolidation.py),
 the shared moments remembered and how they got closer (companion/memory/closeness.py), then the companion's own big
-turns (life chapters and trips). A stretch with nothing in it says they did not talk, and quiet stretches in a row
-share one line.
+turns (life chapters and trips). A stretch with only talking in it (or none) says just that, and such stretches in a
+row share one line.
 
 The same lines go two places: the chat context, with the sections that rarely change so the start of the prompt
 stays cacheable (they change once a week, when a week is over), and the scrapbook's "All of it" view, where the user
@@ -62,10 +62,11 @@ class Stretch:
     moments: list[str] = field(default_factory=list)
     closer: list[str] = field(default_factory=list)
     life: list[tuple[str, str]] = field(default_factory=list)  # (in the companion's words, in the user's)
-    until: date | None = None  # the last stretch of quiet ones in a row that share this line
+    until: date | None = None  # the last stretch of bare ones in a row that share this line
 
-    def quiet(self) -> bool:
-        return not (self.days or self.said or self.moments or self.closer or self.life)
+    def bare(self) -> bool:
+        """Nothing happened but talking (or not)."""
+        return not (self.said or self.moments or self.closer or self.life)
 
 
 def instant(day: date, timezone) -> str:
@@ -175,16 +176,21 @@ def words(connection, companion, found):
         item.said = sorted(best)
 
 
-def merged(found: list[Stretch]) -> list[Stretch]:
-    """Quiet stretches of the same kind in a row share one line."""
+def merged(found: list[Stretch], fixed: dict[str, str]) -> list[Stretch]:
+    """Bare stretches of the same kind in a row, none of them corrected, share one line: "6 Jul to 2 Aug 2026,
+    9 days"."""
     result: list[Stretch] = []
     for item in found:
         last = result[-1] if result else None
-        if last and item.quiet() and last.quiet() and last.kind == item.kind:
-            last.until = item.end
+        if last and last.kind == item.kind and plain(last, fixed) and plain(item, fixed):
+            last.until, last.days = item.end, last.days + item.days
             continue
         result.append(item)
     return result
+
+
+def plain(item: Stretch, fixed: dict[str, str]) -> bool:
+    return item.bare() and item.key not in fixed and not carried(item, fixed)
 
 
 def label(item: Stretch) -> str:
@@ -264,14 +270,15 @@ def lines(connection, companion: dict, now) -> list[dict]:
     gather(connection, companion, now, found, timezone)
     fixed = corrections(connection, timeline_id)
     result = []
-    for item in merged(found):
+    for item in merged(found, fixed):
         own, theirs = parts(item, True, name), parts(item, False, name)
         extra = [f'In the user’s words: “{text}”' for text in carried(item, fixed)]
         mine = [f'In your words: “{text}”' for text in carried(item, fixed)]
+        # The user sees the days talked beside the line, so their line starts with what happened (Iris).
         result.append({'key': item.key, 'kind': item.kind, 'start': item.start.isoformat(),
-                       'end': (item.until or item.end).isoformat(), 'label': label(item),
-                       'prompt': joined([*own[:1], *extra, *own[1:]], LINE_LIMIT[item.kind]),
-                       'text': joined([*theirs[:1], *mine, *theirs[1:]], LINE_LIMIT[item.kind]),
+                       'end': (item.until or item.end).isoformat(), 'label': label(item), 'days': item.days,
+                       'count': own[0], 'prompt': joined([*own[:1], *extra, *own[1:]], LINE_LIMIT[item.kind]),
+                       'text': joined([*mine, *theirs[1:]], LINE_LIMIT[item.kind]) if len(theirs) > 1 or mine else '',
                        'corrected': fixed.get(item.key)})
     return result
 
@@ -279,7 +286,9 @@ def lines(connection, companion: dict, now) -> list[dict]:
 def prompt_line(line: dict) -> str | None:
     if line['corrected'] is None:
         return f"- {line['label']}: {line['prompt']}"
-    return f"- {line['label']} (in the user's words): {line['corrected']}" if line['corrected'].strip() else None
+    if not line['corrected'].strip():
+        return None
+    return f"- {line['label']}: {line['count']}. In the user's words: “{line['corrected']}”"
 
 
 def context_text(connection, companion: dict, now) -> str | None:
@@ -300,7 +309,7 @@ def offer(packet, connection, companion, now):
 
 def view(connection, companion: dict, now) -> dict:
     return {'name': companion['version']['name'],
-            'lines': [{key: line[key] for key in ('key', 'kind', 'start', 'end', 'label', 'text', 'corrected')}
+            'lines': [{key: line[key] for key in ('key', 'kind', 'start', 'end', 'label', 'days', 'text', 'corrected')}
                       for line in lines(connection, companion, now)]}
 
 
