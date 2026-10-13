@@ -887,9 +887,13 @@ def section_text(packet, headings) -> list[str]:
             if packet.sections.get(key)]
 
 
-def with_note(history: list[dict], note: str) -> list[dict]:
+def with_note(history: list[dict], note: str, steer: str = '') -> list[dict]:
     """The conversation with the notes for this reply in front of the message being answered, or as a message of their
-    own when the companion writes first. The user's own words stay last."""
+    own when the companion writes first. The user's author's note (`steer`, companion/authors_note.py) goes last in
+    the notes, and the user's own words stay last of all."""
+    note = '\n\n'.join(filter(None, (note, steer)))
+    if not note:
+        return history
     if history and history[-1]['role'] == 'user':
         return [*history[:-1], {'role': 'user', 'content': f"{NOTE_OPEN}\n{note}\n{NOTE_CLOSE}\n"
                                                            f"{history[-1]['content']}"}]
@@ -900,7 +904,13 @@ def add_note(packet: dict, text: str) -> dict:
     """An instruction for this reply only (busy, out of character, a reminder), added to its notes so the system
     prompt and the conversation stay cacheable."""
     note = f"{packet['note']}\n\n{text}" if packet['note'] else text
-    return {**packet, 'note': note, 'messages': with_note(packet['history'], note)}
+    return {**packet, 'note': note, 'messages': with_note(packet['history'], note, packet.get('steer', ''))}
+
+
+def steer(packet: dict, text: str) -> dict:
+    """The user's author's note for this reply (companion/authors_note.py): kept after every other note, even one
+    added later, so it is the last thing read before the user's message."""
+    return {**packet, 'steer': text, 'messages': with_note(packet['history'], packet['note'], text)} if text else packet
 
 
 def render(packet, conversation) -> dict:
@@ -920,5 +930,5 @@ def render(packet, conversation) -> dict:
     receipt = {'budget_tokens': packet.budget, 'estimated_tokens': packet.used,
                'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic,
                'widened_recall': packet.widened}
-    return {'system': system, 'note': note, 'history': chat, 'messages': with_note(chat, note) if note else chat,
+    return {'system': system, 'note': note, 'history': chat, 'messages': with_note(chat, note),
             'receipt': receipt}

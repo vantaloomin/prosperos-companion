@@ -102,7 +102,7 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
       <p className="chat-activity subtle" role="status" aria-live="polite">{groupActivity(data, sending)}{groupActivity(data, sending) && ooc.note && ' · '}<AsideText note={ooc.note} /></p>
       <GroupNotice notice={notice ?? (data.ready ? null : NO_MODEL)} go={go} />
       {group.members.length
-        ? <Composer name={group.title} draft={draft} streaming={data.busy} compact={scroll.away} onSend={() => void submit()} pictures={false}
+        ? <Composer name={group.title} chat={`group:${id}`} draft={draft} streaming={data.busy} compact={scroll.away} onSend={() => void submit()} pictures={false}
           onStop={() => void act(() => api(`/groups/${id}/stop`, {}))} />
         : <GroupNotice notice={NOBODY} go={go} />}
     </section>

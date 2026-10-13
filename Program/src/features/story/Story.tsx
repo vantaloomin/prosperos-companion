@@ -13,6 +13,7 @@ import { aroundText, placeGroups, sceneTime, spotsText, whereText } from './stor
 import { StoryPeople } from './StoryPeople'
 import { CityOptions } from '../world/CityOptions'
 import { ExportLinks } from '../chats/ExportLinks'
+import { AuthorsNote } from '../conversation/AuthorsNote'
 
 const STORY_KEY = ['story']
 const OUT_OF_STORY = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)).'
@@ -125,6 +126,7 @@ function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string)
   }
   return (<>
     <form className="composer story-composer" onSubmit={(event) => { event.preventDefault(); submit() }}>
+      <AuthorsNote chat="story" name="The narrator" story />
       <label className="visually-hidden" htmlFor="story-text">What you do or say</label>
       <textarea id="story-text" rows={2} value={text} maxLength={40000} placeholder="What do you do or say?"
         onChange={(event) => setText(event.target.value)} onKeyDown={onKeyDown} />

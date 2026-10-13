@@ -7,7 +7,8 @@ evaluate, explain and suggest, and it can propose changes the user applies one b
 - a character field (applied to the character form while it is open, otherwise saved as a new version),
 - the wording of one of the companion's replies (companion/message_edits.py),
 - a memory's value, a new memory, or setting a memory aside, all through the Memories paths
-  (companion/memory/records.py), so corrections reach every copy of a fact the usual way.
+  (companion/memory/records.py), so corrections reach every copy of a fact the usual way,
+- the chat's author's note (companion/authors_note.py), switched on when applied.
 
 The model only proposes. Every proposal is checked here against the context it was shown: it may only name
 messages and memories it was given, by the short references it was given. Nothing is applied by this module.
@@ -15,7 +16,7 @@ See docs/sidecar.md.
 """
 from datetime import datetime
 
-from companion import drafting
+from companion import authors_note, drafting
 from companion.character_helper import HELPER_FIELDS, fields_text, helper_value
 from companion.characters import require_current
 from companion.database import identifier, many, optional
@@ -66,7 +67,7 @@ class Context:
     """The character, recent messages and memories, each message and memory under a short reference."""
 
     def __init__(self, database, body):
-        self.messages, self.memories, self.focus = {}, {}, None
+        self.messages, self.memories, self.focus, self.note = {}, {}, None, None
         with database.connect() as connection:
             companion = self.current(connection)
             if body.definition is not None:
@@ -81,6 +82,7 @@ class Context:
                     self.messages[f'm{index}'] = row
                     if row['id'] == body.focus_message_id:
                         self.focus = f'm{index}'
+                self.note = authors_note.read(connection, f"companion:{companion['id']}")
         if companion:
             listed = [item for item in records.listing(database) if item['status'] == 'active' and item['in_timeline']]
             self.memories = {f'k{index}': item for index, item in enumerate(listed[:MEMORY_LIMIT], 1)}
@@ -107,6 +109,12 @@ class Context:
             text = row['text'] if len(row['text']) <= MESSAGE_CHARS else row['text'][:MESSAGE_CHARS] + '…'
             lines.append(f'[{ref}] {speaker} ({stamp(row["created_at"])}): {text}')
         return '\n'.join(lines)
+
+    def note_text(self) -> str:
+        if not self.note or not self.note['text']:
+            return 'None yet.'
+        state = 'on' if self.note['enabled'] else 'written but switched off'
+        return f"({state}) {self.note['text']}"
 
     def memories_text(self) -> str:
         if not self.memories:
@@ -165,7 +173,7 @@ class Proposals:
             raise drafting.Unusable('each change must be an object.')
         kind = item.get('kind')
         handlers = {'field': self.field, 'reply': self.reply, 'memory': self.memory, 'new_memory': self.new_memory,
-                    'forget_memory': self.forget}
+                    'forget_memory': self.forget, 'authors_note': self.authors_note}
         if kind not in handlers:
             raise drafting.Unusable(f'a change had kind {kind!r}; use one of {", ".join(handlers)}.')
         return handlers[kind](item, final)
@@ -224,6 +232,15 @@ class Proposals:
                                     '"subject" and "value".')
         return {'kind': 'new_memory', 'layer': layer, 'subject': subject, 'value': value}
 
+    def authors_note(self, item, final):
+        if self.context.note is None:
+            raise drafting.Unusable('there is no chat yet to add an author\'s note to.')
+        text = drafting.text_value(item.get('text'), authors_note.LIMIT)
+        if not text:
+            raise drafting.Unusable('an author\'s note change had no "text".')
+        return {'kind': 'authors_note', 'chat': self.context.note['chat'], 'before': self.context.note['text'],
+                'enabled': self.context.note['enabled'], 'text': self.named(text, final)}
+
     def forget(self, item, _final):
         memory = self.remembered(item)
         return {'kind': 'forget_memory', 'memory_id': memory['id'], 'layer': memory['layer'],
@@ -239,7 +256,7 @@ async def chat(state, body) -> dict:
         drafting.template('sidecar.md', state.database), rules=drafting.template('character-rules.md', state.database),
         city=drafting.city_text(data), emotional=drafting.FIELD_EDGES, fields=fields_text(), name=context.name,
         view=focus_text(context, body.view), character=context.character_text(),
-        conversation=context.conversation_text(), memories=context.memories_text())
+        conversation=context.conversation_text(), memories=context.memories_text(), note=context.note_text())
     messages = [{'role': turn.role, 'content': turn.content} for turn in body.history]
     messages.append({'role': 'user', 'content': body.message})
     while messages and messages[0]['role'] != 'user':
