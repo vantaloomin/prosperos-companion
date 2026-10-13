@@ -10,7 +10,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import feed, home, pets, traditions, wardrobe
+from companion.life import feed, home, pets, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
@@ -364,7 +364,8 @@ def setting(connection, timeline_id, event) -> tuple[str, bool]:
     """Their home where the moment is at home, and what they are wearing (companion/life/wardrobe.py),
     with whether it says what they wear."""
     wearing = wardrobe.image_hint(connection, timeline_id, event.get('moment') or {})
-    parts = [home.image_hint(connection, timeline_id, event), traditions.image_hint(connection, timeline_id, event), wearing]
+    parts = [home.image_hint(connection, timeline_id, event), upkeep.image_hint(connection, timeline_id, event),
+             traditions.image_hint(connection, timeline_id, event), wearing]
     return ' '.join(part for part in parts if part), bool(wearing)
 
 

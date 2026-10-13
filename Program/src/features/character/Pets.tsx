@@ -5,7 +5,8 @@ import { api } from '../../api'
 import type { CompanionPet, PetsView } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { PETS_KEY, petDate, petNumbers, sentenceOf } from '../pets/petText'
+import { MAX_PET_AGE, PETS_KEY, ageChoice, petDate, petNumbers, sentenceOf } from '../pets/petText'
+import { Stepper } from '../../components/NumberFields'
 
 type Act = (action: () => Promise<PetsView>, done: string) => Promise<boolean>
 
@@ -30,7 +31,7 @@ export function Pets({ name }: { name: string }) {
   }
   return (
     <section className="home-panel pets-panel" aria-labelledby="pets-heading">
-      <h2 id="pets-heading">{name}'s pets</h2>
+      <h2 id="pets-heading">{name.split(' ')[0]}'s pets</h2>
       <p className="subtle">Pets have lives of their own: off days, vet visits and growing old. How often depends on Settings &gt; Realism.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {pets.isPending && <Loading label="Loading their pets" />}
@@ -62,13 +63,13 @@ function PetCard({ pet, view, act, gone = false }: { pet: CompanionPet; view: Pe
         <p className="subtle">{capital(label)}</p>
         <h3>{pet.name}</h3>
       </header>
-      {pet.status && <p className={`pet-status pet-status-${pet.state}`}>{pet.status}</p>}
+      {pet.status && <p className={`pet-status pet-status-${pet.serious ? 'serious' : pet.state}`}>{pet.status}</p>}
       <p>{sentenceOf(`${pet.looks}, ${pet.age}`)}</p>
       {petNumbers(pet) && <p className="subtle pet-numbers">{petNumbers(pet)}</p>}
       {pet.recent.length > 0 && (
-        <ul className="diary-list pet-recent">{pet.recent.slice(0, 3).map((event) => (
-          <li key={`${event.date}-${event.kind}`}><time dateTime={event.date}>{petDate(event.date)}</time> {sentenceOf(event.text)}</li>
-        ))}</ul>
+        <dl className="pet-recent">{pet.recent.slice(0, 3).map((event) => (
+          <div key={`${event.date}-${event.kind}`}><dt><time dateTime={event.date}>{petDate(event.date)}</time></dt><dd>{sentenceOf(event.text)}</dd></div>
+        ))}</dl>
       )}
       {editing
         ? <EditForm pet={pet} view={view} act={act} onDone={() => setEditing(false)} />
@@ -102,7 +103,7 @@ function EditForm({ pet, view, act, onDone }: { pet: CompanionPet; view: PetsVie
   const [name, setName] = useState(pet.name)
   const [looks, setLooks] = useState(pet.looks)
   const [kind, setKind] = useState(pet.kind)
-  const [age, setAge] = useState('')
+  const [age, setAge] = useState(-1)
   const save = async (event: FormEvent) => {
     event.preventDefault()
     const body = { name: name.trim() || pet.name, looks: looks.trim() || undefined, kind, age: ageOf(age) }
@@ -115,7 +116,7 @@ function EditForm({ pet, view, act, onDone }: { pet: CompanionPet; view: PetsVie
       <label htmlFor={`pet-looks-${pet.id}`}>Looks</label>
       <input id={`pet-looks-${pet.id}`} value={looks} maxLength={300} onChange={(event) => setLooks(event.target.value)} />
       <KindSelect id={`pet-kind-${pet.id}`} view={view} value={kind} onChange={setKind} />
-      <AgeInput id={`pet-age-${pet.id}`} value={age} onChange={setAge} placeholder={pet.age} />
+      <AgeInput value={age} onChange={setAge} unset={`Keep (${pet.age})`} />
       <div className="rename-row">
         <button type="submit" className="button primary">Save</button>
         <button type="button" className="button quiet" onClick={onDone}>Cancel</button>
@@ -128,7 +129,7 @@ function AddForm({ view, act, onDone }: { view: PetsView; act: Act; onDone: () =
   const [name, setName] = useState('')
   const [looks, setLooks] = useState('')
   const [kind, setKind] = useState(view.kinds[0]?.id ?? 'cat')
-  const [age, setAge] = useState('')
+  const [age, setAge] = useState(-1)
   const save = async (event: FormEvent) => {
     event.preventDefault()
     if (!name.trim()) return
@@ -141,7 +142,7 @@ function AddForm({ view, act, onDone }: { view: PetsView; act: Act; onDone: () =
       <input id="pet-add-name" value={name} maxLength={80} required placeholder="Biscuit" onChange={(event) => setName(event.target.value)} />
       <label htmlFor="pet-add-looks">Looks</label>
       <input id="pet-add-looks" value={looks} maxLength={300} placeholder="a small orange tabby with a white bib" onChange={(event) => setLooks(event.target.value)} />
-      <AgeInput id="pet-add-age" value={age} onChange={setAge} placeholder="Picked for you" />
+      <AgeInput value={age} onChange={setAge} unset="Picked for you" />
       <div className="rename-row">
         <button type="submit" className="button primary">Add</button>
         <button type="button" className="button quiet" onClick={onDone}>Cancel</button>
@@ -150,17 +151,14 @@ function AddForm({ view, act, onDone }: { view: PetsView; act: Act; onDone: () =
   )
 }
 
-function AgeInput({ id, value, onChange, placeholder }: { id: string; value: string; onChange: (value: string) => void; placeholder: string }) {
-  return <>
-    <label htmlFor={id}>Age in years</label>
-    <input id={id} className="pet-age" type="number" inputMode="numeric" min={0} max={90} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
-  </>
+function AgeInput({ value, onChange, unset }: { value: number; onChange: (value: number) => void; unset: string }) {
+  return <Stepper label="Age" value={value} min={-1} max={MAX_PET_AGE} onChange={onChange} format={(years) => ageChoice(years, unset)}
+    hint={value < 0 && unset === 'Picked for you' ? 'Leave it and the app picks one that fits their looks.' : undefined} />
 }
 
-/** An age the user typed, or undefined to keep the one the pet has (or let the app pick one). */
-function ageOf(text: string): number | undefined {
-  const years = Math.round(Number(text))
-  return text.trim() === '' || !Number.isFinite(years) ? undefined : Math.min(90, Math.max(0, years))
+/** An age the user stepped to, or undefined to keep the one the pet has (or let the app pick one). */
+function ageOf(years: number): number | undefined {
+  return years < 0 ? undefined : years
 }
 
 function capital(text: string): string {

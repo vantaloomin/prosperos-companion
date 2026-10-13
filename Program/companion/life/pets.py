@@ -89,6 +89,21 @@ def lifespan_days(seed: str, kind: str) -> int:
     return int((low + (high - low) * generators.unit(seed, 'lifespan')) * 365)
 
 
+# Words in a looks line that say how old a pet is, for one the user adds without an age.
+OLD_WORDS = re.compile(r'\b(elderly|old|senior|ageing|aging|grey-muzzled|gray-muzzled|white-muzzled)\b', re.I)
+YOUNG_WORDS = re.compile(r'\b(kitten|puppy|young|baby|bunny|chick|foal|hatchling)\b', re.I)
+
+
+def age_from_looks(looks: str, kind: str, today: date) -> str | None:
+    """A birth date that fits the looks the user wrote ("an elderly grey tabby" is old), or None to let it be seeded."""
+    low, high = kinds().get(kind, kinds()['cat'])['lifespan']
+    if OLD_WORDS.search(looks or ''):
+        return (today - timedelta(days=int((low + high) / 2 * 0.8 * 365))).isoformat()
+    if YOUNG_WORDS.search(looks or ''):
+        return (today - timedelta(days=120)).isoformat()
+    return None
+
+
 def name_for(seed: str, label_: str, era: str) -> str:
     return generators.pick(seed, f'{label_}:name', bank()['names']['modern' if era == 'modern' else 'period'])
 
@@ -112,7 +127,7 @@ def draw(seed: str, label_: str, era: str, day: date, young=False) -> dict:
 
 def age_text(born: date, day: date) -> str:
     days = (day - born).days
-    count, unit_ = (max(1, days // 7), 'week') if days < 60 else (days // 30, 'month') if days < 730 else \
+    count, unit_ = (max(1, days // 7), 'week') if days < 60 else (days // 30, 'month') if days < 365 else \
         (days // 365, 'year')
     return f"{count} {unit_}{'' if count == 1 else 's'} old"
 
@@ -321,7 +336,7 @@ def status_on(connection, found: dict, day: date) -> dict:
     sick = next((row for row in rows if row['kind'] == 'sick'), None)
     if sick:
         worse = 'seriously ill' if sick['serious'] else 'under the weather'
-        return {'state': 'sick', 'text': f"{name} is {worse}: {sick['text']}."}
+        return {'state': 'sick', 'text': f"{name} is {worse}: {sick['text']}.", 'serious': bool(sick['serious'])}
     return {'state': 'well', 'text': ''}
 
 
@@ -366,7 +381,7 @@ def view(connection, found: dict, day: date, numbers: bool) -> dict:
               for row in log(connection, found['key'], day - timedelta(days=60), day)]
     result = {'key': found['key'], 'name': found['name'], 'kind': found['kind'], 'kind_label': label(found['kind']),
               'looks': found['looks'], 'born': found['born'].isoformat(), 'age': age_text(found['born'], end),
-              'state': status['state'], 'status': status['text'], 'died_on': died.isoformat() if died and
+              'state': status['state'], 'status': status['text'], 'serious': status.get('serious', False), 'died_on': died.isoformat() if died and
               died <= day else None, 'recent': list(reversed(recent)), 'health': None, 'lifespan_years': None}
     if numbers:
         result['health'] = health(connection, found, day)
@@ -375,8 +390,8 @@ def view(connection, found: dict, day: date, numbers: bool) -> dict:
 
 
 def show_numbers(connection) -> bool:
-    row = optional(connection, 'SELECT show_home_numbers FROM workspace_settings WHERE id=1')
-    return bool(row and row['show_home_numbers'])
+    row = optional(connection, 'SELECT show_home_meters FROM workspace_settings WHERE id=1')
+    return bool(row and row['show_home_meters'])
 
 
 # --- For other modules ---
@@ -610,7 +625,8 @@ def persona_entries(previous: list[dict], given: list[dict], today: date) -> lis
         if entry.get('age') is not None:
             born = today - timedelta(days=int(entry['age']) * 365 + 180)
         else:
-            born = date.fromisoformat(old['born']) if old.get('born') else today - timedelta(days=3 * 365)
+            fits_looks = age_from_looks(entry.get('looks') or '', kind, today)
+            born = date.fromisoformat(old.get('born') or fits_looks or (today - timedelta(days=3 * 365)).isoformat())
         result.append({'name': name, 'kind': kind, 'looks': (entry.get('looks') or '').strip(),
                        'born': born.isoformat(), 'added': old.get('added') or today.isoformat()})
     return result

@@ -1850,6 +1850,33 @@ CREATE TABLE IF NOT EXISTS townsfolk_mix (
   mix TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- Home upkeep (companion/life/upkeep.py): a companion's seeded tidiness habit (or the one the user picked) and the
+-- tidiness the user last set with Set it. The mess on any date is walked from these, never stored day by day.
+CREATE TABLE IF NOT EXISTS upkeep_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  habit TEXT NOT NULL CHECK (habit IN ('neat', 'average', 'messy')),
+  habit_set TEXT CHECK (habit_set IN ('neat', 'average', 'messy')),
+  started TEXT NOT NULL,
+  era TEXT NOT NULL,
+  set_on TEXT,
+  set_level INTEGER CHECK (set_level BETWEEN 0 AND 4),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+-- One walked day of upkeep before the companion's today, kept so what already happened never changes: the mess in
+-- each area (JSON, 0-100), what got done (JSON list), and the days since the last big clean.
+CREATE TABLE IF NOT EXISTS upkeep_days (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  local_date TEXT NOT NULL,
+  mess TEXT NOT NULL,
+  done TEXT NOT NULL,
+  away INTEGER NOT NULL DEFAULT 0 CHECK (away IN (0, 1)),
+  busy INTEGER NOT NULL DEFAULT 0 CHECK (busy IN (0, 1)),
+  since_big INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (timeline_id, local_date)
+);
 -- Pets with lives of their own (companion/life/pets.py): what happened to each pet, written once as the days pass
 -- so the past stays put when a Realism setting changes. `pet_key` names the pet: 'home:<home_items id>' for the
 -- companion's, 'circle:<circle_people id>:<n>', 'town:<townsperson key>' or 'persona:<name>'. `until` ends a sick

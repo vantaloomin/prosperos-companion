@@ -105,7 +105,7 @@ def test_the_companion_pets_live_on_the_pets_panel(client, mira, clock):
     data = client.get('/api/life/pets').json()
     assert [pet['name'] for pet in data['pets']] == ['Biscuit'] and data['pets'][0]['kind'] == 'cat'
     assert data['pets'][0]['health'] is None and data['numbers'] is False
-    show(client, show_home_numbers=True)
+    show(client, show_home_meters=True)
     assert client.get('/api/life/pets').json()['pets'][0]['health'] > 0
     added = client.post('/api/life/pets', json={'name': 'Pickle', 'kind': 'guinea-pig', 'looks': 'a ginger guinea pig',
                                                      'age': 2})
@@ -169,7 +169,7 @@ def test_pet_news_is_woven_into_their_day_once(client, mira, clock):
                                     'eye on them.')
         assert entry['home']['pet_event'] == 's1'
         status = pets.status_on(connection, found, date(2026, 10, 7))
-        assert status == {'state': 'sick', 'text': 'Biscuit is under the weather: an upset stomach.'}
+        assert status == {'state': 'sick', 'text': 'Biscuit is under the weather: an upset stomach.', 'serious': False}
         assert pets.at_home(connection, found, date(2026, 10, 7), 'x', 'Mira').startswith('Biscuit rested')
         assert pets.sick_today(connection, tid, date(2026, 10, 7)) == {'Biscuit'}
 
@@ -246,3 +246,12 @@ def test_realism_settings_round_trip(client):
     data = set_life(client, pets_realism=1, pets_can_die=False)
     assert data['pets_realism'] == 1 and data['pets_can_die'] is False
     assert client.put('/api/life/settings', json={'pets_realism': 4}).status_code == 422
+
+
+def test_an_added_pet_without_an_age_fits_its_looks_and_ages_read_in_years():
+    old = date.fromisoformat(pets.age_from_looks('an elderly grey tabby with a torn ear', 'cat', NOW))
+    assert (NOW - old).days > 8 * 365
+    assert (NOW - date.fromisoformat(pets.age_from_looks('a fluffy kitten', 'cat', NOW))).days < 365
+    assert pets.age_from_looks('a sleek black cat', 'cat', NOW) is None
+    assert pets.age_text(NOW - timedelta(days=400), NOW) == '1 year old'
+    assert pets.age_text(NOW - timedelta(days=200), NOW) == '6 months old'

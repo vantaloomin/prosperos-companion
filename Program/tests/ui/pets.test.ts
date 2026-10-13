@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { petLine, petNumbers, sentenceOf } from '../../src/features/pets/petText.ts'
-import { petDrafts, petsBody, petsValid } from '../../src/features/worlds/personaPetsText.ts'
+import { ageChoice, petLine, petNumbers, sentenceOf } from '../../src/features/pets/petText.ts'
+import { petDrafts, petsBody, unsetAge } from '../../src/features/worlds/personaPetsText.ts'
 import type { PetView } from '../../src/types.ts'
 
 const pet = (change: Partial<PetView> = {}): PetView => ({
@@ -21,9 +21,12 @@ test('the numbers behind a pet show only when Hidden values sends them', () => {
 })
 
 test("the user's own pets are saved as written: blank rows dropped, an age only when given", () => {
-  const drafts = [...petDrafts([{ name: 'Biscuit', kind: 'cat', looks: 'one-eyed tabby', born: '2020-05-01' }]), { name: ' ', kind: 'dog', looks: '', age: '' }]
+  const drafts = [...petDrafts([{ name: 'Biscuit', kind: 'cat', looks: 'one-eyed tabby', born: '2020-05-01' }]), { name: ' ', kind: 'dog', looks: '', age: -1 }]
   assert.deepEqual(petsBody(drafts), [{ name: 'Biscuit', kind: 'cat', looks: 'one-eyed tabby', age: null }])
-  assert.deepEqual(petsBody([{ name: 'Rex ', kind: 'dog', looks: '', age: '3' }]), [{ name: 'Rex', kind: 'dog', looks: '', age: 3 }])
-  assert.equal(petsValid([{ name: 'Rex', kind: 'dog', looks: '', age: '-1' }]), false)
-  assert.equal(petsValid([{ name: 'Rex', kind: 'dog', looks: '', age: '2.5' }]), false)
+  assert.deepEqual(petsBody([{ name: 'Rex ', kind: 'dog', looks: '', age: 3 }]), [{ name: 'Rex', kind: 'dog', looks: '', age: 3 }])
+  assert.equal(unsetAge(drafts[0], new Date('2026-10-13T12:00:00')), '6 years old')
+  assert.equal(unsetAge({ name: 'Rex', kind: 'dog', looks: '', age: -1 }), 'Picked for you')
+  assert.equal(ageChoice(-1), 'Picked for you')
+  assert.equal(ageChoice(0), 'Under a year')
+  assert.equal(ageChoice(1), '1 year old')
 })

@@ -29,3 +29,19 @@ test('since says who added a thing', () => {
   assert.equal(sinceText(item({ origin: 'change', since: '2026-10-20' })), 'New since 2026-10-20')
   assert.equal(sentence('took the car into the shop'), 'Took the car into the shop.')
 })
+
+test('housework reads in words, with the last big clean when there was one', async () => {
+  const { lastClean, numbersText, upkeepSummary } = await import('../../src/features/character/upkeepText.ts')
+  const areas = [
+    { area: 'laundry' as const, text: 'The laundry is piling up.', value: 62 },
+    { area: 'dishes' as const, text: 'The dishes are done.', value: 4 },
+    { area: 'clutter' as const, text: 'The place is tidy.', value: 30 },
+  ]
+  assert.equal(upkeepSummary({ away: false, areas }), 'The laundry is piling up. The dishes are done. The place is tidy.')
+  assert.equal(upkeepSummary({ away: true, areas }), 'They are away, so the housework waits for them.')
+  assert.equal(numbersText(areas), 'Mess: Laundry 62 · Dishes 4 · Clutter 30 of 100')
+  assert.equal(lastClean({ last_big_clean: null, today: '2026-10-22' }), null)
+  assert.equal(lastClean({ last_big_clean: '2026-10-21', today: '2026-10-22' })?.when, 'yesterday')
+  assert.match(lastClean({ last_big_clean: '2026-10-16', today: '2026-10-22' })?.when ?? '', /^\w+day$/)
+  assert.match(lastClean({ last_big_clean: '2026-10-12', today: '2026-10-22' })?.when ?? '', /^last \w+day$/)
+})

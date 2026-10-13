@@ -86,7 +86,7 @@ def read_pets(request: Request):
 def add_pet(request: Request, body: PetCreate):
     return change(request, lambda connection, timeline_id, today, now: home.add(
         connection, timeline_id, {'kind': 'pet', 'name': body.name, 'variety': body.kind, 'description': body.looks,
-                                  'born': born(body.age, today)},
+                                  'born': born(body.age, today) or pets.age_from_looks(body.looks, body.kind, today)},
         today, now))
 
 
@@ -94,7 +94,7 @@ def add_pet(request: Request, body: PetCreate):
 def edit_pet(request: Request, item_id: str, body: PetUpdate):
     return change(request, lambda connection, timeline_id, today, now: home.edit(
         connection, timeline_id, item_id, {'name': body.name, 'description': body.looks, 'variety': body.kind,
-                                           'born': born(body.age, today)},
+                                           'born': born(body.age, today) or pets.age_from_looks(body.looks, body.kind, today)},
         today, now))
 
 

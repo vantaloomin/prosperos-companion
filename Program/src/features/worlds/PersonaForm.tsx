@@ -6,7 +6,7 @@ import { Notice } from '../../components/Feedback'
 import { GENDERS } from './worldsText'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { PersonaPets } from './PersonaPets'
-import { petDrafts, petsBody, petsValid, type PetDraft } from './personaPetsText'
+import { petDrafts, petsBody, type PetDraft } from './personaPetsText'
 
 const BIRTHDAY = /^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$/
 
@@ -19,7 +19,7 @@ function draftOf(persona?: Persona): Draft {
 
 /** A new persona needs the name the user gives it; everything else may stay blank. */
 function validDraft(draft: Draft, age: number | null, isNew: boolean): boolean {
-  return (age === null || (age >= 18 && age <= 120)) && BIRTHDAY.test(draft.birthday) && petsValid(draft.pets) && (!isNew || !!draft.name.trim())
+  return (age === null || (age >= 18 && age <= 120)) && BIRTHDAY.test(draft.birthday) && (!isNew || !!draft.name.trim())
 }
 
 const TEXT = {

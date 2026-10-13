@@ -36,6 +36,7 @@ from companion.life import (
     storylines,
     traditions,
     trips,
+    upkeep,
     wardrobe,
 )
 from companion.memory import pairs
@@ -248,6 +249,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                            scope['now'])
         entry = wardrobe.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
                                scope['world'], scope['now'])
+        entry = upkeep.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition,
+                             scope['world'], scope['now'])
         entry = with_spot(connection, timeline_id, subject, entry, slot.local_date, seed, scope['era'])
         if entry:
             recent.append(entry['activity'])

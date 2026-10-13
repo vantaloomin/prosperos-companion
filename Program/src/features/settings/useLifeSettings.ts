@@ -20,7 +20,7 @@ export function useLifeSettings() {
       client.setQueryData(LIFE_KEY, saved)
       // The saved settings are the query's now, so a preset applied elsewhere on the page shows through.
       setPending({})
-      void client.invalidateQueries({ queryKey: ['today'] })
+      for (const queryKey of [['today'], ['upkeep']]) void client.invalidateQueries({ queryKey })
       setResult(done ? { tone: 'info', text: done } : null)
       return true
     } catch (error) {

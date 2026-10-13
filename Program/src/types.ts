@@ -279,8 +279,8 @@ export interface WorkspaceSettings {
   adult_side?: boolean
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
-  /** Hidden values: the numbers behind home life (pet health and age); off by default. */
-  show_home_numbers?: boolean
+  /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
+  show_home_meters?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
@@ -433,6 +433,8 @@ export interface LifeSettings {
   on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
+  /** Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy. */
+  upkeep_realism: number
   /** Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   pets_realism: number
   pets_can_die: boolean
@@ -1185,6 +1187,28 @@ export interface HomeView {
   varieties: { pet: string[]; vehicle: string[] }
 }
 
+export type UpkeepArea = 'laundry' | 'dishes' | 'clutter'
+export type UpkeepHabit = 'neat' | 'average' | 'messy'
+
+/** How tidy the companion's place is today (companion/life/upkeep.py), in words, with the numbers behind it. */
+export interface UpkeepView {
+  on: boolean
+  level: number
+  today: string
+  away: boolean
+  habit: UpkeepHabit
+  habit_set: boolean
+  habit_text: string
+  /** 0 spotless to 4 a disaster. */
+  tidiness: number
+  tidiness_label: string
+  levels: string[]
+  set_on: string | null
+  areas: { area: UpkeepArea; text: string; value: number }[]
+  last_big_clean: string | null
+  recent: { date: string; kind: string; text: string }[]
+}
+
 export type WardrobeCategory = 'top' | 'bottom' | 'dress' | 'suit' | 'layer' | 'outerwear' | 'shoes' | 'accessory' | 'active' | 'lounge' | 'sleep' | 'work'
 
 export interface WardrobeItem {
@@ -1227,9 +1251,11 @@ export interface PetView {
   state: 'well' | 'sick' | 'vet' | 'away' | 'died'
   /** Plain words: "Biscuit is under the weather: an upset stomach." Empty when all is well. */
   status: string
+  /** A serious illness, the one status shown as a warning. */
+  serious?: boolean
   died_on: string | null
   recent: { date: string; kind: 'sick' | 'vet' | 'checkup' | 'died'; text: string }[]
-  /** Hidden values (show_home_numbers): 0 to 100, and how long their kind usually lives. */
+  /** Hidden values (show_home_meters): 0 to 100, and how long their kind usually lives. */
   health: number | null
   lifespan_years: number | null
 }

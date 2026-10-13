@@ -33,3 +33,12 @@ export const PET_KINDS: { id: string; label: string }[] = [
   { id: 'ferret', label: 'Ferret' }, { id: 'lizard', label: 'Lizard' }, { id: 'snake', label: 'Snake' }, { id: 'tortoise', label: 'Tortoise' },
   { id: 'chickens', label: 'Backyard chickens' }, { id: 'horse', label: 'Horse' }, { id: 'other', label: 'Something else' },
 ]
+
+/** An age the user sets with a stepper; -1 leaves it to the app (or, when editing, keeps the pet's age). */
+export function ageChoice(years: number, unset = 'Picked for you'): string {
+  if (years < 0) return unset
+  if (years === 0) return 'Under a year'
+  return `${years} year${years === 1 ? '' : 's'} old`
+}
+
+export const MAX_PET_AGE = 30
