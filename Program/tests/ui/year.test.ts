@@ -42,3 +42,16 @@ test('traditions show their next date and what is up at home', () => {
   const item = { key: 'k', kind: 'tradition' as const, date: '2026-11-26', days: 1, span: '', text: '', template: null, holiday: 'Thanksgiving', tradition: "Always at their mom Ruth's. There's always pie.", teaser: "Thanksgiving at their mom Ruth's in Towson" }
   assert.equal(occasionText(item, 'Mira'), "Tomorrow: Thanksgiving at their mom Ruth's in Towson.")
 })
+
+test('history lines name their stretch and come newest first by year', async () => {
+  const { byYear, stretchText } = await import('../../src/features/year/yearText.ts')
+  assert.equal(stretchText({ key: 'w2026-10-05', kind: 'week', start: '2026-10-05', end: '2026-10-11' }), `Week of ${dayText('2026-10-05')}`)
+  assert.equal(stretchText({ key: 'w2026-10-05', kind: 'week', start: '2026-10-07', end: '2026-10-11' }), `Week of ${dayText('2026-10-05')}`)
+  assert.equal(stretchText({ key: 'w2026-10-12', kind: 'week', start: '2026-10-12', end: '2026-10-25' }), `${dayText('2026-10-12')} to ${dayText('2026-10-25')}`)
+  assert.equal(stretchText({ key: 'w2025-12-22', kind: 'week', start: '2025-12-22', end: '2026-01-04' }), spanText('2025-12-22', '2026-01-04'))
+  assert.equal(stretchText({ key: 'y2025', kind: 'year', start: '2025-03-02', end: '2025-12-31' }), '2025')
+  assert.equal(stretchText({ key: 'y2023', kind: 'year', start: '2023-01-01', end: '2024-12-31' }), '2023 to 2024')
+  assert.match(stretchText({ key: 'm2026-06', kind: 'month', start: '2026-06-01', end: '2026-07-31' }), / to /)
+  const groups = byYear([{ start: '2025-12-01' }, { start: '2026-01-01' }, { start: '2026-02-01' }])
+  assert.deepEqual(groups.map((group) => [group.year, group.lines.map((line) => line.start)]), [['2026', ['2026-02-01', '2026-01-01']], ['2025', ['2025-12-01']]])
+})

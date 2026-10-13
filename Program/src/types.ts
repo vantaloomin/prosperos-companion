@@ -1184,6 +1184,10 @@ export type ScrapbookPage =
   | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
+/** Our history at a glance: one line a week lately, a month, then a year further back (companion/memory/history.py).
+ * `corrected` is the user's own words, an empty string when they left the line out, or null for the app's line. */
+export interface HistoryLine { key: string; kind: 'week' | 'month' | 'year'; start: string; end: string; label: string; days: number; text: string; corrected: string | null }
+export interface History { name: string; lines: HistoryLine[] }
 export type HomeKind = 'home' | 'pet' | 'plant' | 'vehicle' | 'favorite'
 
 export interface HomeItem {

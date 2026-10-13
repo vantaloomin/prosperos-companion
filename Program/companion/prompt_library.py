@@ -60,6 +60,10 @@ PROMPTS = {prompt.name: prompt for prompt in (
            "companion's personality sliders that isn't in the middle (Character > Life details > Personality).",
            constant('companion.memory.context', 'PERSONALITY'),
            {'lines': 'what their personality sliders say, one behaviour per line'}),
+    Prompt('our-history', CHAT, 'Your history together',
+           'Opens the line-a-week (then a month, then a year) record of your whole time together in every chat reply. '
+           'The lines come from what happened and your corrections in the scrapbook\'s "All of it" view.',
+           constant('companion.memory.history', 'INTRO')),
     Prompt('first-texts', CHAT, 'Texting first',
            'Added when the companion writes to you first, such as a check-in. The app picks the reason.',
            constant('companion.life.openers', 'INSTRUCTION'),
