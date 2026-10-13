@@ -49,6 +49,27 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v0.10.0 (2026-10-13)
+
+- **Pets with lives of their own:** off days, vet visits, checkups and old age (a rare death on Real life and Drama,
+  never on Easy life, with a switch); a Pets panel; sitters and dogs on trips; pet photos; everyone can have pets, and
+  your persona can list yours.
+- **Home upkeep:** laundry, dishes and clutter build through their week, a neat, average or messy habit, big cleans on
+  days off, and a Home panel with Set it.
+- **Kitchen and food:** diets, cooking skill, favorite dishes, nightly dinners, staples and grocery runs, a kitchen
+  panel with Change how they eat, and dinner at their place both ways.
+- **Looks that change:** hair, nails and tans drift, with a bold new look every few months; looks you wrote stay put.
+- **Life admin calendar:** appointments, bills, errands and paperwork by country and era, on Today and a Life admin
+  panel, movable, never cancelling plans with you.
+- **Author's note:** a note per chat, group chat and Story that steers every reply while it's on.
+- **Around the home:** a Realism slider per home feature, set by the presets; numbers behind a Hidden values switch.
+- **Also:** full-size picture viewer, replies through Claude Code on your Claude plan, a city picker for new personas
+  and worlds, the built-in model's recommended settings, a ComfyUI model family picker with built-in workflows,
+  clearer lookup settings, and adult careers with Adult side of life on.
+- **Fixes:** character sheet people and pets kept, posts in the poster's voice, every picture in the chats list,
+  camera-friendly picture wording, Matchlight profiles and photos, "next Thursday" plans, Today times in their time
+  zone, US spelling in US cities, and roomier cards.
+
 ## v0.9.0 (2026-10-12)
 
 - **Ready on first launch:** Set it up for me picks, downloads (pause, resume, checked) and runs a chat model that fits
