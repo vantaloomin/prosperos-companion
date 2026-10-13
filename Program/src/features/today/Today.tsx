@@ -18,6 +18,7 @@ import { Storylines } from './Storylines'
 import { Townsfolk } from './Townsfolk'
 import { OnTheirMind } from './OnTheirMind'
 import { OutTogether, Trips } from './OutTogether'
+import { AdminList, FOLD } from './AdminList'
 import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
 import { occasionText } from './storyText'
@@ -110,7 +111,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
         ))}
       </Section>
       <OutTogether name={name} />
-      <Plans data={data} name={name} />
+      <Plans data={data} name={name} go={go} />
       <Trips name={name} />
       <Recommendations name={name} />
       <Chapters name={name} />
@@ -203,9 +204,10 @@ function PausedTime({ name, onDone }: { name: string; onDone: (text: string) => 
   )
 }
 
-function Plans({ data, name }: { data: TodayData; name: string }) {
+function Plans({ data, name, go }: { data: TodayData; name: string; go: (view: View) => void }) {
   const { shared, companion, threads } = data.plans
-  if (!shared.length && !companion.length && !threads.length) return null
+  const admin = data.plans.admin ?? []
+  if (!shared.length && !companion.length && !threads.length && !admin.length) return null
   return (
     <section className="today-section" aria-labelledby="plans-heading">
       <h2 id="plans-heading">Plans</h2>
@@ -214,6 +216,11 @@ function Plans({ data, name }: { data: TodayData; name: string }) {
         <ul className="plain-list">{shared.map((plan) => <li key={plan.id}><strong>{plan.subject}</strong>: {plan.value} <span className="badge">{plan.status}</span></li>)}</ul>
       </>}
       {companion.length > 0 && <><h3>{name}'s</h3><ul className="event-list">{companion.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
+      {admin.length > 0 && <>
+        <h3>Errands and appointments</h3>
+        <AdminList items={admin.slice(0, FOLD)} fold={null} />
+        <button type="button" className="text-button" onClick={() => go('character')}>All in {name}'s life admin</button>
+      </>}
       {threads.length > 0 && <><h3>Still unresolved</h3><ul className="event-list">{threads.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
     </section>
   )

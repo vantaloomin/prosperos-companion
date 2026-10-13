@@ -444,6 +444,8 @@ export interface LifeSettings {
   pets_can_die: boolean
   /** Kitchen ups and downs on the same scale: staples running out, dinners going sideways (companion/life/kitchen.py). */
   kitchen_realism: number
+  /** Life admin (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  admin_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -498,7 +500,7 @@ export interface Today {
   routine: { default_schedule: boolean; current: RoutineSlot | null; next: RoutineSlot | null }
   changes: LifeEvent[]
   review: LifeEvent[]
-  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[] }
+  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[]; admin?: AdminItem[] }
   feed_unread: number
   last_run: LifeRun | null
   paused: boolean
@@ -1660,4 +1662,43 @@ export interface TownsfolkMix {
   bands: { ages: string; gay: number; bisexual_women: number; bisexual_men: number }[]
   levels: Record<string, Record<string, number>>; drives: Record<string, Record<string, number>>
   adult_side: boolean; town: MixTown | null
+}
+
+/** One appointment, errand or chore on a companion's calendar (companion/life/admin.py). */
+export interface AdminItem {
+  id: string
+  key: string
+  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks'
+  kind: string
+  title: string
+  /** What just happened, for a surprise ("A parking ticket was tucked under the wiper"). */
+  line: string
+  local_date: string
+  at_time: string
+  until: string
+  fixed: boolean
+  status: 'planned' | 'done' | 'removed'
+  place: string
+  moved_from: string | null
+  /** "moved for a plan", "put off", "moved by you", "moved for a trip", or empty. */
+  moved_reason: string
+  moves: number
+  deadline: string | null
+  cost_text: string
+  /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
+  movable: boolean
+}
+
+export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
+
+/** The Character page's Life admin panel (/api/life/admin). */
+export interface AdminView {
+  state: string[]
+  habit: 'organised' | 'average' | 'scattered'
+  upcoming: AdminItem[]
+  later: AdminLater[]
+  done: AdminItem[]
+  level: number
+  /** 0 to 100, only with Hidden values' home-life meters on. */
+  meter: number | null
 }

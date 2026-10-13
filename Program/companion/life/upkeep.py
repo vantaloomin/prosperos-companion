@@ -311,6 +311,11 @@ def pet_line(seed: str, pets: list[dict]) -> str | None:
 # --- Their agenda ---
 
 def told(connection, timeline_id: str, local_date: str, kind: str) -> bool:
+    """Whether the day's agenda already tells this; a big clean on Life admin's calendar (companion/life/admin.py)
+    is told there, in its own slot."""
+    if kind == 'big-clean' and optional(connection, "SELECT id FROM life_admin WHERE timeline_id=? AND key=? AND "
+                                        "status!='removed'", (timeline_id, f'upkeep:big-clean:{local_date}')):
+        return True
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND local_date=? "
                          "AND json_extract(entry, '$.upkeep.kind')=? LIMIT 1",
                          (timeline_id, COMPANION, local_date, kind)))

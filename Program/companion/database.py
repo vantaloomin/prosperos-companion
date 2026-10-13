@@ -261,6 +261,9 @@ ADDED_COLUMNS = (
     # Kitchen and food (companion/life/kitchen.py, Settings > Realism > Around the home): 0 off, 1 light, 2 true to life,
     # 3 dramatic.
     ('life_settings', 'kitchen_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (kitchen_realism BETWEEN 0 AND 3)'),
+    # Life admin calendar (companion/life/admin.py), on the home features' shared scale: 0 off, 1 light, 2 true to
+    # life, 3 dramatic (Settings > Realism > Around the home).
+    ('life_settings', 'admin_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (admin_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

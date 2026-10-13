@@ -19,6 +19,7 @@ from companion.characters import current as in_focus
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, optional
 from companion.life import (
+    admin,
     body,
     chapters,
     circle,
@@ -125,6 +126,7 @@ def extend(connection, companion, world, now) -> dict:
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
     trips.plan_ahead(connection, companion, world, now)
     outings.finish_due(connection, companion, now)
+    admin.plan_ahead(connection, companion, world, now)
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
     # Removed people's upcoming entries go; what already happened stays.
@@ -167,10 +169,7 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     plans, away = {}, {}
     if subject == COMPANION:
         since = (now - BACKFILL).date().isoformat()
-        plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
-        # Outings with the user take their slots the way the companion's own plans do (companion/life/outings.py).
-        for local_date, found in outings.as_plans(connection, timeline_id, since).items():
-            plans[local_date] = plans.get(local_date, []) + found
+        plans = pinned_plans(connection, timeline_id, since)
         away = trips.by_date(connection, timeline_id, since)
         plans = {local_date: found for local_date, found in plans.items() if local_date not in away}
         stale += repin(connection, timeline_id, plans) + trips.repin(connection, timeline_id, away)
@@ -217,6 +216,17 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     return written
 
 
+def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
+    """The companion's own plans by local date, with outings with the user, which take their slots the same way
+    (companion/life/outings.py), and appointments, errands and chores (companion/life/admin.py), placed where
+    nothing else is."""
+    plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
+    for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since)):
+        for local_date, found in extra.items():
+            plans[local_date] = plans.get(local_date, []) + found
+    return plans
+
+
 def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     """Compose one slot and write it, shifted when the day does not go to plan (companion/life/disruptions.py)."""
     if facts.get('trip') and slot.block.kind not in routine.RESTING:
@@ -243,6 +253,7 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
             plan = pinned[slot.block.key]
             block = outings.marked(block, plan)
             entry = plan and (outings.entry(plan, block, definition) if 'outing' in plan else
+                              admin.entry(plan, block, definition) if 'admin' in plan else
                               own_plans.entry(plan, block, definition))
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)

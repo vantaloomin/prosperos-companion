@@ -1945,3 +1945,38 @@ CREATE TABLE IF NOT EXISTS kitchen_state (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- Life admin calendar (companion/life/admin.py): appointments, deadlines, errands, paperwork and chores on the
+-- companion's days, from Life admin itself and from Pets, Home upkeep, Kitchen and Looks (`source`). `key` is the
+-- adder's own id for it, so nothing is added twice. An entry moves rather than being cancelled: `moved_from` is the
+-- day it was first meant for and `moved_reason` why ('clash', 'put-off', 'user', 'away'); `revision` changes with each
+-- move so the agenda composes its slot again. `cost` is in the city's currency, or `spend` a price tier.
+CREATE TABLE IF NOT EXISTS life_admin (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks')),
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  done_text TEXT NOT NULL,
+  line TEXT NOT NULL DEFAULT '',
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  first_date TEXT NOT NULL,
+  deadline TEXT,
+  minutes INTEGER NOT NULL DEFAULT 60,
+  fixed INTEGER NOT NULL DEFAULT 0 CHECK (fixed IN (0, 1)),
+  out_of_home INTEGER NOT NULL DEFAULT 0 CHECK (out_of_home IN (0, 1)),
+  place TEXT,
+  cost REAL NOT NULL DEFAULT 0,
+  spend TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'done', 'removed')),
+  moved_from TEXT,
+  moved_reason TEXT,
+  moves INTEGER NOT NULL DEFAULT 0,
+  revision INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, key)
+);
+CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date);
