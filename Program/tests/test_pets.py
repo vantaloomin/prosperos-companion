@@ -312,3 +312,15 @@ def test_older_eras_get_no_modern_breeds_or_pet_lines():
     seen += [pets.moment({'name': 'Rex', 'kind': kind, 'era': 'medieval'}, f'seed{n}') or ''
              for n in range(300) for kind in ('dog', 'cat')]
     assert not [line for line in seen if any(word in line for word in modern)]
+
+
+def test_checkup_reasons_need_no_history_and_age_talk_waits_for_old_age():
+    texts = {item['text'] for item in pets.bank()['vet']}
+    assert not [text for text in texts if any(word in text for word in ('stitches', 'last month', 'last sick',
+                                                                        'broken tooth', 'recheck', 'refill'))]
+    assert 'a Lyme disease test' in texts
+    young = biscuit(NOW - timedelta(days=2 * 365))
+    old = biscuit(NOW - timedelta(days=14 * 365))
+    said = {pets.vet_entry(young, NOW + timedelta(days=n)) for n in range(400)}
+    assert not [text for text in said if 'older' in text or 'senior' in text]
+    assert any('older' in pets.vet_entry(old, NOW + timedelta(days=n)) for n in range(400))

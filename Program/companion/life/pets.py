@@ -233,7 +233,11 @@ def sick_entry(found: dict, day: date, frac: float) -> dict | None:
 
 
 def vet_entry(found: dict, day: date) -> str:
-    choices = [item['text'] for item in bank()['vet'] if fits(item, found['kind'], found['era'])]
+    """Why they take the pet in for its yearly checkup: nothing that needs a past it doesn't have, and talk of
+    growing old only once it is old."""
+    old = (day - found['born']).days / max(found['lifespan'], 1) >= OLD
+    choices = [item['text'] for item in bank()['vet'] if fits(item, found['kind'], found['era'])
+               and (old or not item.get('old'))]
     return generators.pick(found['key'], f'vet:{day.isoformat()}', choices) or 'a checkup'
 
 

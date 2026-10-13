@@ -1,5 +1,5 @@
 {
- "about": "Pets with lives of their own (Hit List #15), drawn by seed with no model (companion/life/pets.py). kinds: lifespans in years, the eras a kind is drawn in, how common it is, and what it needs (walks, a minder while the owner is away, a vet). Each list entry names the kinds it suits (or 'any') and the eras (or 'any'). Sentences use {pet} for the pet's name. 'sick' texts follow 'is poorly with'; 'vet' texts follow 'for'; 'photos' describe only what the picture shows (visible things, no injuries) and carry a first-person caption. 'townsfolk' gives each townsperson pet of life_details.json a kind and a looks line; a null kind is an animal they feed or befriend but do not keep.",
+ "about": "Pets with lives of their own (Hit List #15), drawn by seed with no model (companion/life/pets.py). kinds: lifespans in years, the eras a kind is drawn in, how common it is, and what it needs (walks, a minder while the owner is away, a vet). 'vet' entries are reasons for a yearly checkup ('old': only for an old pet). Each list entry names the kinds it suits (or 'any') and the eras (or 'any'). Sentences use {pet} for the pet's name. 'sick' texts follow 'is poorly with'; 'vet' texts follow 'for'; 'photos' describe only what the picture shows (visible things, no injuries) and carry a first-person caption. 'townsfolk' gives each townsperson pet of life_details.json a kind and a looks line; a null kind is an animal they feed or befriend but do not keep.",
  "kinds": {
   "cat": {
    "label": "cat",
@@ -3401,7 +3401,8 @@
    "text": "a senior wellness check with bloodwork",
    "eras": [
     "modern"
-   ]
+   ],
+   "old": true
   },
   {
    "kinds": [
@@ -3431,16 +3432,6 @@
    "text": "a lump check that came back fine",
    "eras": [
     "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "cat",
-    "dog"
-   ],
-   "text": "a follow-up to make sure the stitches healed",
-   "eras": [
-    "any"
    ]
   },
   {
@@ -3491,7 +3482,8 @@
    "text": "a check of the kidneys, as cats get older",
    "eras": [
     "modern"
-   ]
+   ],
+   "old": true
   },
   {
    "kinds": [
@@ -3536,24 +3528,6 @@
    "text": "a check of a scratch on the ear",
    "eras": [
     "any"
-   ]
-  },
-  {
-   "kinds": [
-    "cat"
-   ],
-   "text": "a new prescription diet",
-   "eras": [
-    "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "cat"
-   ],
-   "text": "a thyroid recheck",
-   "eras": [
-    "modern"
    ]
   },
   {
@@ -3641,16 +3615,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "a lyme disease test",
-   "eras": [
-    "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "dog"
-   ],
-   "text": "a joint supplement refill",
+   "text": "a Lyme disease test",
    "eras": [
     "modern"
    ]
@@ -3662,24 +3627,6 @@
    "text": "a lump on the side to be looked at",
    "eras": [
     "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog"
-   ],
-   "text": "a broken tooth from a bone",
-   "eras": [
-    "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog"
-   ],
-   "text": "a pre-trip health certificate",
-   "eras": [
-    "modern"
    ]
   },
   {
@@ -4167,26 +4114,6 @@
     "dog",
     "cat"
    ],
-   "text": "a refill of the daily pills",
-   "eras": [
-    "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "dog",
-    "cat"
-   ],
-   "text": "a follow-up on last month's ear infection",
-   "eras": [
-    "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog",
-    "cat"
-   ],
    "text": "an X-ray of a sore leg",
    "eras": [
     "modern"
@@ -4200,7 +4127,8 @@
    "text": "a talk about getting older and slowing down",
    "eras": [
     "any"
-   ]
+   ],
+   "old": true
   },
   {
    "kinds": [
@@ -4217,18 +4145,6 @@
     "farm"
    ],
    "text": "a hoof trim",
-   "eras": [
-    "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog",
-    "cat",
-    "rabbit",
-    "ferret"
-   ],
-   "text": "a check-in after the last sick spell",
    "eras": [
     "any"
    ]
@@ -4260,6 +4176,488 @@
    "eras": [
     "any"
    ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a listen to the heart and lungs",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a look in the ears and eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a once-over from nose to tail",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a coat and skin check",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a feel of the belly and the joints",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a temperature check and a treat after",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a weigh-in and a pat on the head",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a talk about how much to feed",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a check that the weight is right for the size",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a look at the teeth and gums",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a check of the paws and claws",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a brush-through to check for fleas",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a nail trim and an ear check",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a check of the coat after the change of season",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a listen to the heart, with a lot of wriggling",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a teeth check and a talk about chew toys",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a check of the pads after a summer of walks",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a look at the hips and a trot down the hallway",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a weigh-in on the big scale",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a check of the ears, which flop over and trap the damp",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a talk about how long the walks should be",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a check of the eyes and a clean of the ears",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a weigh-in in a basket on the scale",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a feel of the belly, which was not appreciated",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a look at the claws and a careful trim",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a check of the teeth, with a lot of complaining",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a check of the ears and the coat",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a weigh-in and a talk about hay",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a listen to the tummy",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "guinea-pig"
+   ],
+   "text": "a weigh-in and a look at the teeth",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "guinea-pig"
+   ],
+   "text": "a coat check and a nail trim",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird",
+    "parrot"
+   ],
+   "text": "a look at the feathers and the feet",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird",
+    "parrot"
+   ],
+   "text": "a weigh-in and a check of the beak",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "text": "a listen to the breathing and a look at the eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "text": "a check of the beak and a chat about toys",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "text": "a feather check and a talk about diet",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "ferret"
+   ],
+   "text": "a weigh-in and a look at those little teeth",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "ferret"
+   ],
+   "text": "a check of the coat and the ears",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "tortoise"
+   ],
+   "text": "a weigh-in and a look at the eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "tortoise"
+   ],
+   "text": "a check of the feet and claws",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a look at the teeth and a feel of the legs",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a check of the coat and the weight",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a listen to the heart and gut",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a look at the eyes and the hooves",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "farm"
+   ],
+   "text": "a once-over in the field",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret"
+   ],
+   "text": "a check of the weight and the coat",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig"
+   ],
+   "text": "a quick look at the eyes, ears and teeth",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "guinea-pig"
+   ],
+   "text": "a check of the claws and a trim",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog",
+    "cat"
+   ],
+   "text": "a talk about getting older, and what to watch for",
+   "eras": [
+    "any"
+   ],
+   "old": true
+  },
+  {
+   "kinds": [
+    "dog",
+    "cat",
+    "rabbit"
+   ],
+   "text": "a check of stiff joints, as old pets get",
+   "eras": [
+    "any"
+   ],
+   "old": true
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a look at a gray muzzle and some stiff mornings",
+   "eras": [
+    "any"
+   ],
+   "old": true
   }
  ],
  "home": [
