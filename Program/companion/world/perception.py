@@ -27,7 +27,7 @@ import re
 from functools import cache, lru_cache
 
 from companion.database import decode
-from companion.world import catalog, generators, townsfolk, wording
+from companion.world import catalog, generators, personality, townsfolk, wording
 
 FACETS = ('self_story', 'temperament', 'tell', 'flaw', 'desire')
 # The gap each facet can carry instead of being aligned.
@@ -86,11 +86,15 @@ def capital(text: str) -> str:
     return text[:1].upper() + text[1:]
 
 
-def drawn_without_replacement(group: str, index: int, options: list[str], label: str) -> str:
+def drawn_without_replacement(group: str, index: int, options: list[str], label: str,
+                              suits=lambda option: True) -> str:
     """The `index`th person in a group (a place, a street) takes the `index`th option of a shuffle seeded by
-    the group, so nobody there shares one until everyone has had one."""
+    the group, so nobody there shares one until everyone has had one. One whose turn doesn't `suit` them (their
+    personality sliders) takes the option half way round instead, which only someone in a group of more than half
+    the options could also hold."""
     order = sorted(options, key=lambda option: generators.unit(group, f'perception-{label}', option))
-    return order[index % len(order)]
+    first, other = order[index % len(order)], order[(index + len(order) // 2) % len(order)]
+    return first if suits(first) or not suits(other) else other
 
 
 def gaps(seed: str) -> dict[str, str]:
@@ -140,11 +144,16 @@ def for_sheet(data: dict, sheet: dict) -> dict:
     seed, modern = townsfolk.drawn(sheet), townsfolk.modern(data)
     if sheet.get('perception'):
         return wording.regional_all(data, sheet['perception'])
-    options = ids()
+    # Their habit and self-story suit their personality sliders (companion/world/personality.py).
+    levels = personality.levels_of(personality.for_sheet(seed, sheet))
+    options = {facet: personality.fitting(facet, found, levels) for facet, found in ids().items()}
     group = group_of(data, sheet)
     if group:
-        tell = drawn_without_replacement(group[0], group[1], options['tell'], 'tell')
-        story = drawn_without_replacement(group[0], group[1], options['self_story'], 'self')
+        everyone = ids()
+        tell = drawn_without_replacement(group[0], group[1], everyone['tell'], 'tell',
+                                         lambda option: personality.fits('tell', option, levels))
+        story = drawn_without_replacement(group[0], group[1], everyone['self_story'], 'self',
+                                          lambda option: personality.fits('self_story', option, levels))
     else:
         tell = generators.pick(seed, 'perception-tell', options['tell'])
         story = generators.pick(seed, 'perception-self', options['self_story'])
@@ -219,10 +228,11 @@ def rule_picks(definition: dict, seed: str) -> dict[str, str]:
     return picks
 
 
-def complete(picks: dict[str, str], seed: str) -> dict[str, str]:
-    """Anything still unpicked, drawn from the bank by seed."""
+def complete(picks: dict[str, str], seed: str, levels: dict[str, int] | None = None) -> dict[str, str]:
+    """Anything still unpicked, drawn by seed from the bank entries that suit the personality sliders (`levels`)."""
     options = ids()
-    return {facet: picks.get(facet) or generators.pick(seed, f'perception-{facet}', options[facet])
+    return {facet: picks.get(facet) or generators.pick(seed, f'perception-{facet}',
+                                                       personality.fitting(facet, options[facet], levels))
             for facet in (*FACETS, 'sore_spot')}
 
 
@@ -252,13 +262,20 @@ def era_modern(definition: dict, city: dict | None = None) -> bool:
     return city is None or townsfolk.modern(city)
 
 
+def sliders_of(definition: dict, seed: str) -> dict[str, int]:
+    """The personality slider levels the sheet has or rolls (companion/world/personality.py)."""
+    return personality.levels_of(personality.settle(definition, seed))
+
+
 def automatic(definition: dict, seed: str, chosen: dict | None = None, chosen_gaps: dict | None = None,
-              city: dict | None = None) -> dict:
+              city: dict | None = None, levels: dict[str, int] | None = None) -> dict:
     """The lines the app gives a companion who has none written: the helper's picks (`chosen`), then the
-    sheet's own words, then the seed. In the home city's own English (`city`, else the built-in city the sheet
-    names): American spelling in the United States, like everyone else's lines there."""
+    sheet's own words, then the seed, among entries that suit their personality sliders (`levels`, else the sheet's
+    own). In the home city's own English (`city`, else the built-in city the sheet names): American spelling in the
+    United States, like everyone else's lines there."""
     city = city or home_data(definition)
-    picks = complete({**rule_picks(definition, seed), **(chosen or {})}, seed)
+    levels = sliders_of(definition, seed) if levels is None else levels
+    picks = complete({**rule_picks(definition, seed), **(chosen or {})}, seed, levels)
     return wording.regional_all(city, build(seed, picks, chosen_gaps or gaps(seed), era_modern(definition, city)))
 
 
@@ -290,13 +307,14 @@ def lines_for(companion_id: str, sheet: str) -> dict:
 def suggestions(definition: dict, seed: str, count: int = 6, city: dict | None = None) -> dict:
     """Options for the form's two fields: what a blank field would use, then other bank picks that still fit
     the sheet's words, in the home city's own English (`city`)."""
-    base = automatic(definition, seed, city=city)
+    levels = sliders_of(definition, seed)
+    base = automatic(definition, seed, city=city, levels=levels)
     seen, selves = [base['public']], ['\n'.join(base['private'])]
     for n in range(1, count * 3):
         if len(seen) >= count and len(selves) >= count:
             break
         other = f'{seed}:{n}'
-        found = automatic(definition, other, city=city)
+        found = automatic(definition, other, city=city, levels=levels)
         if found['public'] not in seen and len(seen) < count:
             seen.append(found['public'])
         text = '\n'.join(found['private'])
@@ -320,10 +338,14 @@ def companion_lines(connection, companion_id: str) -> dict:
     return {'public': found['public'], 'private': found['private']}
 
 
-def sheet_lines(data: dict, sheet: dict) -> dict:
-    """A townsperson's public line and private lines, for a guest in a group (same contract as above)."""
+def sheet_lines(data: dict, sheet: dict, edited: dict | None = None) -> dict:
+    """A townsperson's public line and private lines, for a guest in a group (same contract as above), and
+    `behaviour`: how their personality sliders show, for their own prompt (`edited`: the user's slider changes on
+    their profile, companion/life/townsfolk_personality.py)."""
     found = for_sheet(data, sheet)
-    return {'public': found['public'], 'private': found['private']}
+    sliders = personality.for_sheet(townsfolk.drawn(sheet), sheet, edited)
+    return {'public': found['public'], 'private': found['private'],
+            'behaviour': personality.behaviour(personality.levels_of(sliders))}
 
 
 def own_text(public: str, private: list[str]) -> str:
@@ -348,6 +370,8 @@ self_story (who they think they are): {self_story}
 sore_spot (what lands badly): {sore_spot}"""
 
 
-def menu() -> str:
-    """The bank's ids for the quick start's model, which picks by id only."""
-    return MENU.format(**{facet: ', '.join(options) for facet, options in ids().items()})
+def menu(levels: dict[str, int] | None = None) -> str:
+    """The bank's ids for the quick start's model, which picks by id only: those that suit the personality sliders
+    the app rolled (`levels`)."""
+    return MENU.format(**{facet: ', '.join(personality.fitting(facet, options, levels))
+                          for facet, options in ids().items()})

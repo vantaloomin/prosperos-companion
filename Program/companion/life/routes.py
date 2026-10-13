@@ -30,11 +30,12 @@ from companion.life import (
     social,
     storylines,
     today,
+    town_personality,
     trips,
     web,
 )
 from companion.memory import pairs
-from companion.models import Input, LifeSettingsUpdate, MessageCreate
+from companion.models import Input, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
 from companion.world import newcomers, paper
 
 router = APIRouter(prefix='/api/life')
@@ -316,6 +317,24 @@ def read_townsfolk(request: Request):
         companion, now = require_current(connection), database.clock.now()
         return [{**person, 'stage': pairs.for_townsperson(connection, companion, person, now)}
                 for person in encounters.known(connection, companion, now)]
+
+
+@router.post('/townsfolk/personality')
+def save_townsfolk_personality(request: Request, body: TownsfolkPersonality):
+    """The personality sliders the user set on a townsperson's profile (companion/life/town_personality.py); the
+    sliders left out, or handed back to the roll, are rolled again. Only someone the companion has met."""
+    database = db(request)
+    with database.connect(write=True) as connection:
+        companion, now = require_current(connection), database.clock.now()
+        known = {person['key']: person for person in encounters.known(connection, companion, now)}
+        found = known.get(body.key)
+        require(found is not None and found.get('personality') is not None,
+                'The companion has not met that person.', 404)
+        town = town_personality.town_of(companion)
+        town_personality.save(connection, town, body.key, body.model_dump()['sliders'], database.now())
+        data = network.city(connection, companion)
+        sheet = encounters.resolve(data, body.key, encounters.town_cast(connection, companion, data))
+        return town_personality.view(sheet, town_personality.edited(connection, town, body.key))
 
 
 @router.get('/townsfolk/person')

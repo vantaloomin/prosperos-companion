@@ -1980,3 +1980,13 @@ CREATE TABLE IF NOT EXISTS life_admin (
   UNIQUE (timeline_id, key)
 );
 CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date);
+
+-- Personality sliders the user changed on a townsperson's profile (companion/world/personality.py), by town (a
+-- companion's own town seed, '' for the city's shared townsfolk) and townsperson key. The rest stays rolled.
+CREATE TABLE IF NOT EXISTS townsfolk_personality (
+  town TEXT NOT NULL,
+  key TEXT NOT NULL,
+  sliders TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (town, key)
+);

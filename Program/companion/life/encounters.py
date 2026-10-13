@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from companion.characters import for_timeline
 from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional, settings
-from companion.life import money, network
+from companion.life import money, network, town_personality
 from companion.world import generators, intimacy, life_details, newcomers, perception, townsfolk
 
 ACTIVE = True
@@ -220,11 +220,14 @@ def known(connection, companion: dict, now) -> list[dict]:
     data = network.city(connection, companion)
     cast = town_cast(connection, companion, data)
     found = settings(connection)
+    changed = town_personality.all_edited(connection, town_personality.town_of(companion))
     result = []
     for key, meetings in history_for(connection, companion, cast, now).items():
         sheet = resolve(data, key, cast)
         if sheet:
             person = revealed(sheet, data, meetings, now, companion)
+            # A companion living in town has their own sliders on their character sheet.
+            person['personality'] = None if sheet.get('cast') else town_personality.view(sheet, changed.get(key))
             if found['adult_side']:
                 person |= adult_side(sheet, len(meetings), bool(found['show_adult_side']))
             result.append(person)
