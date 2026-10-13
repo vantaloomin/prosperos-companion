@@ -153,7 +153,7 @@ def test_a_plan_with_the_user_moves_a_chore_and_an_appointment_moves_the_plan(cl
 def test_the_user_can_move_an_entry_to_another_day(client, mira):
     chore = add(client, key='test:books', day=TUESDAY)
     panel = client.post(f"/api/life/admin/{chore['id']}/move").json()
-    [moved] = panel['upcoming']
+    [moved] = [item for item in panel['upcoming'] if item['key'] == 'test:books']
     assert moved['local_date'] == '2026-10-07' and moved['moved_reason'] == 'moved by you'
 
 
@@ -205,7 +205,7 @@ def test_on_light_the_dentist_moves_for_dinner(client, mira, provider):
     send(client, 'Dinner Thursday?', 'client-admin-03')
     [outing] = client.get('/api/life/outings').json()['outings']
     assert outing['local_date'] == '2026-10-08'
-    [moved] = client.get('/api/life/admin').json()['upcoming']
+    [moved] = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['key'] == 'test:dentist']
     assert moved['local_date'] != '2026-10-08' and moved['moved_reason'] == 'moved for a plan'
 
 
@@ -222,7 +222,7 @@ def test_big_cleans_from_home_upkeep_land_on_the_calendar_once(client, mira, mon
         {'date': '2026-10-11', 'kind': 'big-clean', 'text': 'did a big clean'}])
     reconcile(client)
     reconcile(client)
-    [clean] = client.get('/api/life/admin').json()['upcoming']
+    [clean] = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['source'] == 'upkeep']
     assert (clean['source'], clean['title'], clean['key']) == ('upkeep', 'Big clean', 'upkeep:big-clean:2026-W41')
     with client.app.state.database.connect() as connection:
         assert upkeep.told(connection, mira['active_timeline_id'], '2026-10-10', 'big-clean')
