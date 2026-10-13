@@ -117,7 +117,9 @@ def test_an_entry_takes_a_free_slot_and_happens(client, mira, clock):
     entry = agenda_entry(client, 'evening@2026-10-06')
     assert entry['summary'] == 'Mira returned a stack of library books.' and entry['admin']['id'] == chore['id']
     today = client.get('/api/today').json()
-    assert [item['title'] for item in today['plans']['admin']] == ['Return library books', 'Vet visit for Biscuit']
+    # Only what this calendar holds: Looks' and Kitchen's own seeded items can show alongside, read-only.
+    assert [item['title'] for item in today['plans']['admin'] if item['movable']] == \
+        ['Return library books', 'Vet visit for Biscuit']
     clock.advance(timedelta(days=1, hours=12))  # Wednesday midnight: Tuesday's is done.
     reconcile(client)
     panel = client.get('/api/life/admin').json()
