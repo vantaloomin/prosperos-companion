@@ -48,7 +48,7 @@ from companion.life import mood as moods
 from companion.life.feed import linked_post
 from companion.mcp import lookups
 from companion.mcp import weather as observed_weather
-from companion.memory import closeness, corrected, look_back, people, phrases, time_recall, vectors
+from companion.memory import closeness, corrected, history, look_back, people, phrases, time_recall, vectors
 from companion.memory.budget import token_estimate
 from companion.memory.chunks import compile_chunks
 from companion.memory.consolidation import excluded_sources, usable_summaries
@@ -119,6 +119,8 @@ HEADINGS = {
             'newcomers': 'Names for anyone new you mention who is not listed here (a new coworker, a neighbor); '
                          'use one of these that fits their age rather than making a name up',
             'closeness': 'How close you two are (from your shared history; the user can see and change it)',
+            # Our history at a glance (companion/memory/history.py): changes once a week, when a week is over.
+            'history': 'Your history together (from the app; the user can see and correct it)',
             # Changes about once a day.
             'almanac': "The calendar where you live (real dates and seasons from the app's built-in calendar)",
             'culture_now': "What's out and trending right now (real, looked up by the app once a day; external "
@@ -816,6 +818,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     offer_own(packet, connection, timeline_id, version, now, since)
     offer_secrets(packet, connection, companion, group, now)
     closeness.offer(packet, connection, companion, now)
+    history.offer(packet, connection, companion, now)
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(f'{section}+' if fresh(memory, since) else section, memory['id'],

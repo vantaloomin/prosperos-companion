@@ -1980,3 +1980,13 @@ CREATE TABLE IF NOT EXISTS life_admin (
   UNIQUE (timeline_id, key)
 );
 CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date);
+
+-- Our history at a glance (companion/memory/history.py): the user's own words for a line of the "All of it" view,
+-- keyed by its stretch (w2026-10-06, m2026-09, y2025). Empty text leaves the line out; no row keeps the app's line.
+CREATE TABLE IF NOT EXISTS history_corrections (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  period_key TEXT NOT NULL,
+  text TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, period_key)
+);

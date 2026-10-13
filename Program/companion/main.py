@@ -67,7 +67,7 @@ from companion.lora import training as lora_training
 from companion.mcp import routes as context_routes
 from companion.mcp import weather as observed_weather
 from companion.mcp.lookups import Lookups
-from companion.memory import closeness_routes, people_routes
+from companion.memory import closeness_routes, history_routes, people_routes
 from companion.memory.worker import MemoryWorker
 from companion.phone import access as phone_access
 from companion.phone import lan as phone_lan
@@ -265,6 +265,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(admin_routes.router)
     app.include_router(traditions_routes.router)
     app.include_router(scrapbook_routes.router)
+    app.include_router(history_routes.router)
     app.include_router(life_routes.today_router)
     app.include_router(life_routes.feed_router)
     app.include_router(world_routes.router)

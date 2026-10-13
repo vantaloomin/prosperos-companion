@@ -46,3 +46,36 @@ export function pageAt(scrollLeft: number, width: number, count: number): number
   if (width <= 0) return 0
   return Math.min(count - 1, Math.max(0, Math.round(scrollLeft / width)))
 }
+
+/** The key of the "All of it" view in the scrapbook's picker (Our history at a glance). */
+export const ALL_OF_IT = 'all'
+export const HISTORY_KEY = ['history']
+
+/** A history line's stretch in the user's locale: "Week of Oct 5", "September 2026", "2025", or the span of quiet
+ * ones in a row ("Oct 12 to Oct 25, 2026"). */
+export function stretchText(line: { kind: 'week' | 'month' | 'year'; start: string; end: string; key: string }): string {
+  const merged = line.kind === 'week' ? line.end > addDays(line.start, 6) : line.kind === 'month' ? line.start.slice(0, 7) !== line.end.slice(0, 7) : line.start.slice(0, 4) !== line.end.slice(0, 4)
+  if (line.kind === 'year') return merged ? `${line.start.slice(0, 4)} to ${line.end.slice(0, 4)}` : line.start.slice(0, 4)
+  if (line.kind === 'month') {
+    const month = (day: string, withYear: boolean) => new Date(`${day.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString(undefined, { month: 'long', year: withYear ? 'numeric' : undefined, timeZone: 'UTC' })
+    return merged ? `${month(line.start, line.start.slice(0, 4) !== line.end.slice(0, 4))} to ${month(line.end, true)}` : month(line.start, true)
+  }
+  return merged ? spanText(line.start, line.end) : `Week of ${dayText(line.key.slice(1))}`
+}
+
+/** History lines newest first, grouped by the year they start in, for the "All of it" view. */
+export function byYear<T extends { start: string }>(lines: T[]): { year: string; lines: T[] }[] {
+  const groups: { year: string; lines: T[] }[] = []
+  for (const line of [...lines].reverse()) {
+    const year = line.start.slice(0, 4)
+    if (groups.at(-1)?.year === year) groups.at(-1)!.lines.push(line)
+    else groups.push({ year, lines: [line] })
+  }
+  return groups
+}
+
+function addDays(day: string, days: number): string {
+  const date = new Date(`${day.slice(0, 10)}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}

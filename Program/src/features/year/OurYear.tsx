@@ -7,7 +7,8 @@ import type { Companion, Scrapbook, ScrapbookItem, ScrapbookListing, ScrapbookPa
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { imageFile } from '../feed/imageState'
-import { SCRAPBOOKS_KEY, dayText, firstKey, pageAt, spanText, sparse } from './yearText'
+import { ALL_OF_IT, SCRAPBOOKS_KEY, dayText, firstKey, pageAt, spanText, sparse } from './yearText'
+import { AllOfIt } from './AllOfIt'
 import { reducedMotion } from '../../motion'
 
 /**
@@ -20,18 +21,22 @@ export function OurYear({ companion, go }: { companion: Companion; go: (view: Vi
   const [chosen, setChosen] = useState<string | null>(null)
   const key = chosen ?? firstKey(listing.data)
   useSeen(listing.data, setChosen)
-  const book = useQuery({ queryKey: ['scrapbook', key], queryFn: () => api<Scrapbook>(`/life/year/${key}`), enabled: key !== null })
+  const book = useQuery({ queryKey: ['scrapbook', key], queryFn: () => api<Scrapbook>(`/life/year/${key}`), enabled: key !== null && key !== ALL_OF_IT })
   return (
     <section className="page our-year">
       <button type="button" className="text-button" onClick={() => go('memories')}><ArrowLeft aria-hidden="true" />Memories</button>
-      <YearHeader book={book.data} name={name} periods={listing.data?.periods ?? []} chosen={key} onChoose={setChosen} />
+      <YearHeader book={book.data} all={key === ALL_OF_IT} name={name} periods={listing.data?.periods ?? []} chosen={key} onChoose={setChosen} />
       {listing.isPending && <Loading label="Loading your scrapbook" />}
       {listing.isError && <ErrorNotice error={listing.error} />}
       {listing.isSuccess && !key && <Notice>Your scrapbook starts with your first message to {name}. Come back once you have talked for a while.</Notice>}
-      {book.isError && <ErrorNotice error={book.error} />}
-      {book.data && <Pages key={book.data.key} book={book.data} />}
+      {key === ALL_OF_IT ? <AllOfIt name={name} /> : <Book book={book} />}
     </section>
   )
+}
+
+function Book({ book }: { book: { data?: Scrapbook; error: Error | null } }) {
+  if (book.error) return <ErrorNotice error={book.error} />
+  return book.data ? <Pages key={book.data.key} book={book.data} /> : null
 }
 
 /** Opening the scrapbook Today pointed to keeps Today's card away; the page stays on that scrapbook. */
@@ -45,14 +50,16 @@ function useSeen(listing: ScrapbookListing | undefined, setChosen: (key: string)
   }, [featured, setChosen, client])
 }
 
-function YearHeader({ book, name, periods, chosen, onChoose }: { book?: Scrapbook; name: string; periods: ScrapbookPeriod[]; chosen: string | null; onChoose: (key: string) => void }) {
+function YearHeader({ book, all, name, periods, chosen, onChoose }: { book?: Scrapbook; all: boolean; name: string; periods: ScrapbookPeriod[]; chosen: string | null; onChoose: (key: string) => void }) {
   return (
     <header className="year-header">
-      <h1>{book?.title ?? 'Our year so far'}</h1>
-      <p className="subtle">{book ? spanText(book.start, book.end) : `A look back at your time with ${name}, from what really happened.`}</p>
-      {periods.length > 1 && (
+      <h1>{all ? 'All of it' : book?.title ?? 'Our year so far'}</h1>
+      <p className="subtle">{all ? `Your whole time with ${name}, a line a week lately and a month or a year further back. ${name.split(' ')[0]} remembers it this way, so correct anything that is not how you remember it.`
+        : book ? spanText(book.start, book.end) : `A look back at your time with ${name}, from what really happened.`}</p>
+      {periods.length > 0 && (
         <select aria-label="Which year" value={chosen ?? ''} onChange={(event) => onChoose(event.target.value)}>
           {periods.map((period) => <option key={period.key} value={period.key}>{period.title}</option>)}
+          <option value={ALL_OF_IT}>All of it</option>
         </select>
       )}
     </header>
