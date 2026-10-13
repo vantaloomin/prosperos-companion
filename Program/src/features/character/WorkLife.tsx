@@ -27,7 +27,7 @@ function WorkDetails({ view }: { view: WorkLifeView }) {
   return <>
     <ul className="admin-state">{view.state.map((line) => <li key={line}>{line}</li>)}</ul>
     {view.meter && <p className="subtle">{meterText(view.meter)}</p>}
-    {view.late_nights.length > 0 && <><h3>Late nights</h3><AdminList items={view.late_nights} inWorkPanel /></>}
+    {view.late_nights.length > 0 && <><h3>Staying late</h3><AdminList items={view.late_nights} inWorkPanel /></>}
     {view.level > 0 && view.status === 'working' && <>
       <h3>Time off</h3>
       <p className="subtle">{timeOffText(view.vacation)}</p>

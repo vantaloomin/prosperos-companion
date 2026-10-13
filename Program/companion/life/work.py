@@ -63,7 +63,7 @@ AHEAD_DAYS = 14
 RECENT_DAYS = 30
 # Days off the agenda shows for work life (agenda.holiday_block), by the name it is given.
 LABELS = {'Vacation': 'Vacation day', 'Job hunt': 'Job hunting'}
-LATE_TITLE = 'Late night at work'
+LATE_TITLE = 'Staying late at work'
 LATE_DONE = 'stayed late at work on '
 WORKLOAD_WORDS = {'slammed': 'Slammed this week', 'normal': 'An ordinary week at work', 'slow': 'A slow week at work'}
 
