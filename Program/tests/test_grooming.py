@@ -240,3 +240,21 @@ def test_a_fork_keeps_the_looks_history_as_it_was(client, rosa):
                                     (tid,)).fetchone()[0]
         forked = connection.execute("SELECT COUNT(*) FROM grooming_log WHERE timeline_id='fork'").fetchone()[0]
     assert forked == parent and (latest is None or latest <= '2026-12-15')
+
+
+def test_a_bold_change_is_posted_however_long_the_user_was_away(client, rosa, clock):
+    reconcile(client)
+    _, tid = ids(client)
+    soon = (clock.now() + timedelta(days=2)).isoformat()
+    with connect(client) as connection:
+        slot = connection.execute(
+            "SELECT slot_key FROM life_agenda WHERE timeline_id=? AND subject='companion' AND starts_at>? "
+            "AND json_extract(block, '$.kind')='leisure' ORDER BY starts_at LIMIT 1", (tid, soon)).fetchone()[0]
+        connection.execute("UPDATE life_agenda SET entry=json_set(entry, '$.looks', json(?)) WHERE timeline_id=? "
+                           "AND slot_key=?", (json.dumps({'change': 'g9', 'bold': True, 'sentence': 'x'}), tid, slot))
+    clock.advance(timedelta(days=6))
+    reconcile(client)
+    with connect(client, False) as connection:
+        posted = connection.execute('SELECT COUNT(*) FROM life_events WHERE idempotency_key=?',
+                                    (f'life:{tid}:{slot}',)).fetchone()[0]
+    assert posted == 1

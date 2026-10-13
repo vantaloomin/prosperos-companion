@@ -154,16 +154,20 @@ def background_used(connection, timeline_id, now) -> int:
 
 def candidates(connection, companion, through, now, lookback_hours, open_slot=None) -> list[routine.Slot]:
     """Completed, simulatable slots that start after the cursor and inside the lookback, plus the slot that
-    was still going when the cursor last moved (`open_slot`), so a block is not lost for being in progress."""
+    was still going when the cursor last moved (`open_slot`), so a block is not lost for being in progress. A bold
+    change to their looks is kept from further back too (up to the agenda's backfill), so it is always posted
+    however long the user was away."""
     version = companion['version']
     schedule, _default = routine.blocks(version['definition'])
     earliest = now - timedelta(hours=lookback_hours)
-    start = max(through, earliest)
     result = []
-    for slot in routine.slots(schedule, version['timezone'], earliest, now):
-        if slot.block.kind in routine.RESTING or slot.ends_at > now or slot.starts_at < earliest:
+    for slot in routine.slots(schedule, version['timezone'], max(earliest - BOLD_BACK, min(earliest, through - DAY)),
+                              now):
+        if slot.block.kind in routine.RESTING or slot.ends_at > now:
             continue
-        if slot.starts_at < start and not (slot_mark(slot) == open_slot and slot.ends_at > through):
+        if slot.starts_at < earliest and not bold_looks(connection, companion['active_timeline_id'], slot.key):
+            continue
+        if slot.starts_at < through and not (slot_mark(slot) == open_slot and slot.ends_at > through):
             continue
         if overlapping_pause(connection, stamp(slot.starts_at), stamp(slot.ends_at)):
             continue
@@ -172,6 +176,14 @@ def candidates(connection, companion, through, now, lookback_hours, open_slot=No
             continue
         result.append(slot)
     return result
+
+
+BOLD_BACK, DAY = timedelta(days=30), timedelta(days=1)
+
+
+def bold_looks(connection, timeline_id, slot_key) -> bool:
+    return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                         "AND slot_key=? AND json_extract(entry, '$.looks.bold')=1", (timeline_id, slot_key)))
 
 
 def plan_for(connection, timeline_id, slot_key) -> dict | None:
