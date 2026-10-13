@@ -460,21 +460,25 @@ def photo_prompt(found: dict, shows: str, style: str) -> str:
             'The pet fills the frame. Nobody in focus, no people. Natural light, sharp focus on the animal.')
 
 
-def minder(found: dict, trip: dict, local: list[dict]) -> dict:
+def minder(found: dict, trip: dict, local: list[dict], ahead=False) -> dict:
     """Who looks after a pet while the companion is away: a dog often comes along; fish, reptiles and a horse at
-    its stable need nobody; else someone local from their circle, or a paid sitter or kennel."""
+    its stable need nobody; else someone local from their circle, or a paid sitter or kennel. `ahead` words it for
+    a trip still to come ("Pepper is coming along")."""
     info = kinds().get(found['kind'], {})
     seed = f"care:{trip['id']}:{found['key']}"
+    name = found['name']
     if info.get('travels') and generators.unit(seed, 'along') < TRAVELS_ALONG:
-        return {'how': 'along', 'who': None, 'text': f"{found['name']} came along"}
+        return {'how': 'along', 'who': None, 'text': f"{name} is coming along" if ahead else f"{name} came along"}
     if not info.get('minder'):
         return {'how': 'none', 'who': None, 'text': ''}
     if local:
         person = generators.pick(seed, 'who', local)
-        verb = 'is staying with' if info['minder'] == 'staying' else 'is being fed by'
-        return {'how': 'circle', 'who': person['name'], 'text': f"{found['name']} {verb} {person['name']}"}
+        staying = info['minder'] == 'staying'
+        verb = ('will stay with' if staying else 'will be fed by') if ahead else \
+            ('is staying with' if staying else 'is being fed by')
+        return {'how': 'circle', 'who': person['name'], 'text': f"{name} {verb} {person['name']}"}
     where = 'at a kennel' if found['kind'] == 'dog' else 'with a paid sitter'
-    return {'how': 'sitter', 'who': None, 'text': f"{found['name']} is {where}"}
+    return {'how': 'sitter', 'who': None, 'text': f"{name} {'will be' if ahead else 'is'} {where}"}
 
 
 # --- The companion's own pets (their home's pet items) ---

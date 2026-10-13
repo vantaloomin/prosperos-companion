@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import pytest
 from conftest import send, set_life, show
 
+from companion.characters import require_current
 from companion.life import home, pets, trips
 from companion.world import life_details
 from companion.world.source import CatalogWorld
@@ -324,3 +325,24 @@ def test_checkup_reasons_need_no_history_and_age_talk_waits_for_old_age():
     said = {pets.vet_entry(young, NOW + timedelta(days=n)) for n in range(400)}
     assert not [text for text in said if 'older' in text or 'senior' in text]
     assert any('older' in pets.vet_entry(old, NOW + timedelta(days=n)) for n in range(400))
+
+
+def test_a_sitter_costs_money_even_on_a_free_trip_and_a_trip_ahead_reads_as_a_plan(client, mira, clock,
+                                                                                    monkeypatch):
+    client.get('/api/life/pets')
+    tid = timeline(client)
+    monkeypatch.setattr(trips, 'local_people', lambda connection, timeline_id: [])
+    start = NOW + timedelta(days=3)
+    with connect(client) as connection:
+        companion_id = connection.execute('SELECT id FROM companions').fetchone()[0]
+        connection.execute("INSERT INTO trips (id, companion_id, timeline_id, start_date, end_date, city_id, city_name, "
+                           "kind, cost, created_at) VALUES ('t1', ?, ?, ?, ?, 'chicago', 'Chicago', 'family', 0, '')",
+                           (companion_id, tid, start.isoformat(), (start + timedelta(days=2)).isoformat()))
+        bought = trips.purchases(connection, tid, NOW, start)
+    assert [item['text'] for item in bought] == ['paid someone to look after Biscuit during the trip']
+    with connect(client, False) as connection:
+        lines = [text for _id, text in trips.context_lines(connection, require_current(connection), clock.now())]
+    assert '- While you are away: Biscuit will be with a paid sitter.' in lines, lines
+    dog = {**biscuit(NOW), 'kind': 'dog'}
+    along = [pets.minder({**dog, 'key': f'd{n}'}, {'id': 't1'}, [], ahead=True)['text'] for n in range(20)]
+    assert 'Biscuit is coming along' in along and 'Biscuit came along' not in along
