@@ -26,6 +26,14 @@ const ADMIN_LEVELS = [
   { label: 'Dramatic', hint: 'Errands and paperwork every week, and surprises like a parking ticket or a bank mix-up to sort out. Anything due that day holds too.' },
 ]
 
+/** Group chat guests (companion/group_guests.py PULL_CHANCE): how often someone named in a group chat is brought in. */
+const GUEST_LEVELS = [
+  { label: 'Only when you add them', hint: 'Nobody joins a group chat on their own. You can still add anyone the group knows from People in this group.' },
+  { label: 'Now and then', hint: 'Once in a while, when a friend, relative or familiar face comes up in a group chat, whoever knows them brings them in for a bit. Every few days at most.' },
+  { label: 'True to life', hint: 'When someone comes up in a group chat, whoever knows them sometimes brings them in for a while. Guests slip out once the chat goes quiet; one who keeps coming back stays.' },
+  { label: 'Often', hint: 'Friends, family and familiar faces get pulled into group chats often, a few times a day at most.' },
+]
+
 /** The top of Settings > Realism: Iris's opening line and one-tap presets for the world-wide settings below. */
 export function RealismIntro() {
   return (
@@ -43,6 +51,7 @@ export function PaceSettings() {
   const level = DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
   const looks = LOOKS_LEVELS[data.looks_realism] ?? LOOKS_LEVELS[2]
   const work = WORK_LEVELS[data.work_realism] ?? WORK_LEVELS[2]
+  const guests = GUEST_LEVELS[data.guests_realism] ?? GUEST_LEVELS[2]
   const pastimes = HOBBY_LEVELS[data.hobbies_realism] ?? HOBBY_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
@@ -62,6 +71,10 @@ export function PaceSettings() {
       <Field label={`Their pastimes: ${pastimes.label}`} hint={pastimes.hint} tip="Pastimes from their interests, and ones you add, are never given up on their own.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.hobbies_realism} label={pastimes.label}
           onChange={(hobbies_realism) => void save({ hobbies_realism })} />}
+      </Field>
+      <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}
+          onChange={(guests_realism) => void save({ guests_realism })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />

@@ -448,6 +448,8 @@ export interface LifeSettings {
   admin_realism: number
   /** Work life (companion/life/work.py): 0 off, 1 steady, 2 true to life, 3 dramatic. */
   work_realism: number
+  /** Group chat guests (companion/group_guests.py): how often someone named in a group is pulled in, 0 never to 3. */
+  guests_realism: number
   /** Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   hobbies_realism: number
 }
@@ -1527,6 +1529,8 @@ export interface Dating {
 /** Group chats (companion/groups.py, docs/group-chat.md). */
 export interface GroupMember {
   companion_id: string | null
+  /** Their person key: `companion:<id>`, or a guest's circle or townsfolk key. */
+  key: string
   /** Their full name now; `label` is how the chat names them (a first name unless two share it). */
   name: string
   label: string
@@ -1536,6 +1540,32 @@ export interface GroupMember {
   sees_from: number
   /** How they seem right now (companion/moods.py), read-only; only in a chat's own view. */
   mood?: GroupMood | null
+  /** Someone from a member's life who joined for a while (companion/group_guests.py); null for companions. */
+  guest?: GroupGuest | null
+}
+
+export interface GroupGuest {
+  /** The companion who knows them. */
+  host_id: string | null
+  /** "Mira's close friend". */
+  relation: string
+  /** The user kept them: they stay however quiet the chat gets. */
+  kept: boolean
+  /** They came back often enough to stay on their own. */
+  regular: boolean
+  visits: number
+  regular_after: number
+  replies_left: number
+  replies_each: number
+}
+
+/** Someone a companion in the group knows who could join it (GET /api/groups/{id}/guests). */
+export interface GuestOption {
+  key: string
+  name: string
+  relation: string
+  kind: 'circle' | 'town'
+  host_id: string | null
 }
 
 /** Record model calls (companion/model_calls.py), Settings > Debug. */
@@ -1554,8 +1584,8 @@ export interface GroupMood {
 export interface GroupMessage {
   id: string
   seq: number
-  /** The user, a companion, or the app's own line about who joined or left. */
-  kind: 'user' | 'companion' | 'app'
+  /** The user, a companion, a guest, or the app's own line about who joined or left. */
+  kind: 'user' | 'companion' | 'guest' | 'app'
   companion_id: string | null
   name: string
   text: string

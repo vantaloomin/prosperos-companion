@@ -326,6 +326,13 @@ def sheet_lines(data: dict, sheet: dict) -> dict:
     return {'public': found['public'], 'private': found['private']}
 
 
+def seeded_lines(seed: str, modern: bool = True) -> dict:
+    """Someone with no sheet of their own (a person in a companion's circle, as a group guest): every facet and gap
+    drawn from the bank by their person key, so the same person always comes across the same way."""
+    found = build(seed, complete({}, seed), gaps(seed), modern)
+    return {'public': found['public'], 'private': found['private']}
+
+
 def own_text(public: str, private: list[str]) -> str:
     """Both lines as they read in the person's own prompt."""
     lines = [f'How others see you (how you come across, whether or not you agree): {public}']

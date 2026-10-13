@@ -21,7 +21,7 @@ import logging
 import random
 from datetime import date, timedelta
 
-from companion import events, logs, news, notifications, troubleshoot
+from companion import events, groups, logs, news, notifications, troubleshoot
 from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
@@ -838,6 +838,8 @@ class LifeEngine:
                 news.sync(connection, self.now())
                 deck.sync(connection, self.now())
                 dreams.sync(connection, self.now())
+        if self.groups is not None:
+            groups.drift(self.database)  # Guests slip out of chats that have gone quiet (companion/group_guests.py).
 
     async def quietly_think(self):
         """Polish one thought on someone's mind (companion/life/thoughts.py) in the model's words, when model

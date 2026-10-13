@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { canRetry, groupActivity, latestLine, membersLine, namesText, shownMessages } from '../../src/features/groups/groupText.ts'
+import { canRetry, groupActivity, guestLine, guestMeters, latestLine, membersLine, namesText, shownMessages } from '../../src/features/groups/groupText.ts'
 import type { Group, GroupMessage } from '../../src/types.ts'
 
-const member = (label: string) => ({ companion_id: label, name: `${label} Hart`, label, main: false, joined_at: '', sees_from: 1 })
+const member = (label: string) => ({ companion_id: label, key: `companion:${label}`, name: `${label} Hart`, label, main: false, joined_at: '', sees_from: 1 })
 const group: Group = { id: 'g', name: '', title: 'Billy and Sally', reply_cap: 2, created_at: '', updated_at: '', members: [member('Billy'), member('Sally')] }
 const message = (id: string, kind: GroupMessage['kind'], extra: Partial<GroupMessage> = {}): GroupMessage =>
   ({ id, seq: 1, kind, companion_id: null, name: kind === 'user' ? 'User' : 'Billy', text: 'hi', status: 'complete', error: null, reply_to: null, created_at: '', ...extra })
@@ -40,4 +40,15 @@ test('a failed reply can be tried again once the round is over', () => {
   assert.equal(canRetry({ busy: false, messages: [user, failed] }), true)
   assert.equal(canRetry({ busy: true, messages: [user, failed] }), false)
   assert.equal(canRetry({ busy: false, messages: [user, { ...failed, status: 'complete' }] }), false)
+})
+
+test('a guest reads as who they are to the group, with their numbers only as hidden values', () => {
+  const guest = { relation: "Mira's close friend", host_id: 'm', kept: false, regular: false, visits: 1, regular_after: 3, replies_left: 2, replies_each: 4 }
+  const ada = { ...member('Ada'), companion_id: null, key: 'circle:t:1', guest }
+  assert.equal(guestLine(ada), "Mira's close friend · guest")
+  assert.equal(guestMeters(ada), 'visit 1 of 3 to stay · 2 of 4 replies left this conversation')
+  assert.equal(guestLine({ ...ada, guest: { ...guest, regular: true } }), "Mira's close friend · regular")
+  assert.equal(guestLine({ ...ada, guest: { ...guest, kept: true } }), "Mira's close friend · staying")
+  assert.equal(guestMeters({ ...ada, guest: { ...guest, kept: true } }), '2 of 4 replies left this conversation')
+  assert.equal(guestLine(member('Billy')), '')
 })
