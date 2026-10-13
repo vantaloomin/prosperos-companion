@@ -226,7 +226,10 @@ textarea { resize: vertical; line-height: 1.6; }
 .dating-top.dragging { cursor: grabbing; transition: none; }
 .dating-actions .button { flex: 1 1 auto; max-width: 100%; white-space: normal; text-align: center; }
 .dating-deck .dating-actions .button { flex: 0 1 auto; }
-@media (max-width: 720px) { .dating-actions { flex-wrap: wrap; } .dating-actions .button { min-height: 44px; } }
+@media (max-width: 720px) { .dating-actions { flex-wrap: wrap; } .dating-actions .button { min-height: 44px; } .dating-undo { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; }
+  .dating-card > .dating-left:last-child { margin-bottom: -12px; } }
+/* No sticky hover fill on a tapped answer. */
+@media (hover: none) { .dating-actions .button:not(.primary):hover:not(:disabled) { background: var(--surface); } }
 /* Reduced motion: no tilt or spring; the card fades out and the next fades in (opacity only, so it stays). */
 @keyframes dating-fade-in { from { opacity: 0; } to { opacity: 1; } }
 :root .dating-stack.still .dating-top { transition: opacity 200ms ease-out !important; animation: dating-fade-in 200ms ease-out !important; }
@@ -2116,3 +2119,32 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .family-undo .notice { align-items: center; }
 .family-undo .notice > svg { margin-top: 0; }
 .family-undo .text-button { padding: 0 2px; color: var(--accent); }
+
+/* Our history at a glance: the scrapbook's "All of it" view (src/features/year/AllOfIt.tsx). */
+.our-year.our-year-all { max-width: 760px; }
+.year-mode { margin: 8px 0 16px; }
+.history { display: grid; gap: 24px; }
+.history-year h2 { position: sticky; top: -32px; z-index: 1; margin: 0; padding: 8px 0; background: var(--canvas); font-size: 1.125rem; color: var(--muted); font-weight: 500; }
+.history-lines { list-style: none; margin: 0; padding: 0; display: grid; border-left: 2px solid var(--border); }
+.history-line { display: grid; grid-template-columns: 150px 1fr; gap: 14px; padding: 10px 0 12px 16px; position: relative; }
+.history-line::before { content: ''; position: absolute; left: -6px; top: 16px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.history-left-out::before { background: var(--border); }
+.history-when { margin: 0; display: grid; gap: 2px; align-content: start; color: var(--muted); font-size: 0.875rem; padding-top: 2px; }
+.history-when .subtle { font-size: 0.8125rem; }
+.history-body { display: grid; gap: 4px; min-width: 0; }
+.history-body p { margin: 0; line-height: 1.55; overflow-wrap: anywhere; }
+.history-left-out s { color: var(--muted); }
+.history-tag { margin-inline-start: 6px; }
+.history-tag { color: var(--muted); font-size: 0.8125rem; white-space: nowrap; }
+.history-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.history-action { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.8125rem; cursor: pointer; }
+.history-action svg { width: 14px; height: 14px; }
+.history-action:hover { color: var(--text); }
+.history-edit textarea { width: 100%; font: inherit; }
+.history-top { justify-self: start; }
+@media (max-width: 640px) {
+  .history-year h2 { top: -22px; }
+  .history-line { grid-template-columns: 1fr; gap: 4px; }
+  .history-when { grid-auto-flow: column; justify-content: start; gap: 8px; }
+  .history-action { min-height: 44px; }
+}

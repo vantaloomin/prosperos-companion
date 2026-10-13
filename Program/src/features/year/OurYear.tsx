@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { api } from '../../api'
@@ -7,7 +7,8 @@ import type { Companion, Scrapbook, ScrapbookItem, ScrapbookListing, ScrapbookPa
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { imageFile } from '../feed/imageState'
-import { SCRAPBOOKS_KEY, dayText, firstKey, pageAt, spanText, sparse } from './yearText'
+import { ALL_OF_IT, SCRAPBOOKS_KEY, rememberMode, rememberedMode, type ScrapbookMode, dayText, firstKey, pageAt, spanText, sparse } from './yearText'
+import { AllOfIt } from './AllOfIt'
 import { reducedMotion } from '../../motion'
 
 /**
@@ -18,20 +19,53 @@ export function OurYear({ companion, go }: { companion: Companion; go: (view: Vi
   const name = companion.version.name
   const listing = useQuery({ queryKey: SCRAPBOOKS_KEY, queryFn: () => api<ScrapbookListing>('/life/year') })
   const [chosen, setChosen] = useState<string | null>(null)
+  const [mode, setMode] = useState<ScrapbookMode>(rememberedMode)
   const key = chosen ?? firstKey(listing.data)
+  const all = showsAll(mode, listing.data)
   useSeen(listing.data, setChosen)
-  const book = useQuery({ queryKey: ['scrapbook', key], queryFn: () => api<Scrapbook>(`/life/year/${key}`), enabled: key !== null })
+  const book = useQuery({ queryKey: ['scrapbook', key], queryFn: () => api<Scrapbook>(`/life/year/${key}`), enabled: key !== null && !all })
+  const choose = (next: ScrapbookMode) => { setMode(next); rememberMode(next) }
   return (
-    <section className="page our-year">
+    <section className={`page our-year${all ? ' our-year-all' : ''}`}>
       <button type="button" className="text-button" onClick={() => go('memories')}><ArrowLeft aria-hidden="true" />Memories</button>
-      <YearHeader book={book.data} name={name} periods={listing.data?.periods ?? []} chosen={key} onChoose={setChosen} />
-      {listing.isPending && <Loading label="Loading your scrapbook" />}
-      {listing.isError && <ErrorNotice error={listing.error} />}
-      {listing.isSuccess && !key && <Notice>Your scrapbook starts with your first message to {name}. Come back once you have talked for a while.</Notice>}
-      {book.isError && <ErrorNotice error={book.error} />}
-      {book.data && <Pages key={book.data.key} book={book.data} />}
+      {key && <ModeChoice mode={all ? ALL_OF_IT : 'years'} onChoose={choose} />}
+      <YearHeader book={book.data} all={all} name={name} periods={listing.data?.periods ?? []} chosen={key} onChoose={setChosen} />
+      <Waiting listing={listing} name={name} empty={!key} />
+      {all ? <AllOfIt name={name} /> : <Book book={book} />}
     </section>
   )
+}
+
+function Waiting({ listing, name, empty }: { listing: { isPending: boolean; error: Error | null; isSuccess: boolean }; name: string; empty: boolean }) {
+  if (listing.isPending) return <Loading label="Loading your scrapbook" />
+  if (listing.error) return <ErrorNotice error={listing.error} />
+  if (listing.isSuccess && empty) return <Notice>Your scrapbook starts with your first message to {name}. Come back once you have talked for a while.</Notice>
+  return null
+}
+
+/** All of it, unless Today pointed here to open a year's scrapbook. */
+function showsAll(mode: ScrapbookMode, listing: ScrapbookListing | undefined): boolean {
+  return mode === ALL_OF_IT && !listing?.featured
+}
+
+/** Year by year (the swipeable scrapbooks) or All of it (the whole time as a timeline you can correct). */
+function ModeChoice({ mode, onChoose }: { mode: ScrapbookMode; onChoose: (mode: ScrapbookMode) => void }) {
+  const name = useId()
+  return (
+    <div className="segmented year-mode" role="radiogroup" aria-label="Show">
+      {([['years', 'Year by year'], [ALL_OF_IT, 'All of it']] as const).map(([value, label]) => (
+        <label key={value}>
+          <input type="radio" className="visually-hidden" name={name} value={value} checked={mode === value} onChange={() => onChoose(value)} />
+          <span>{label}</span>
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function Book({ book }: { book: { data?: Scrapbook; error: Error | null } }) {
+  if (book.error) return <ErrorNotice error={book.error} />
+  return book.data ? <Pages key={book.data.key} book={book.data} /> : null
 }
 
 /** Opening the scrapbook Today pointed to keeps Today's card away; the page stays on that scrapbook. */
@@ -45,12 +79,13 @@ function useSeen(listing: ScrapbookListing | undefined, setChosen: (key: string)
   }, [featured, setChosen, client])
 }
 
-function YearHeader({ book, name, periods, chosen, onChoose }: { book?: Scrapbook; name: string; periods: ScrapbookPeriod[]; chosen: string | null; onChoose: (key: string) => void }) {
+function YearHeader({ book, all, name, periods, chosen, onChoose }: { book?: Scrapbook; all: boolean; name: string; periods: ScrapbookPeriod[]; chosen: string | null; onChoose: (key: string) => void }) {
   return (
     <header className="year-header">
-      <h1>{book?.title ?? 'Our year so far'}</h1>
-      <p className="subtle">{book ? spanText(book.start, book.end) : `A look back at your time with ${name}, from what really happened.`}</p>
-      {periods.length > 1 && (
+      <h1>{all ? 'Our time together' : book?.title ?? 'Our year so far'}</h1>
+      <p className="subtle">{all ? `Your whole time with ${name}, a line a week lately and a month or a year further back. ${name.split(' ')[0]} remembers it this way, so correct anything that is not how you remember it.`
+        : book ? spanText(book.start, book.end) : `A look back at your time with ${name}, from what really happened.`}</p>
+      {!all && periods.length > 1 && (
         <select aria-label="Which year" value={chosen ?? ''} onChange={(event) => onChoose(event.target.value)}>
           {periods.map((period) => <option key={period.key} value={period.key}>{period.title}</option>)}
         </select>

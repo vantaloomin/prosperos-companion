@@ -69,3 +69,8 @@ export function pose(dx: number, flying: SwipeWay | null, still: boolean, width:
   const lift = flying ? 1 : Math.min(1, Math.abs(dx) / threshold(width))
   return { x, rotate: still ? 0 : tilt(x, width), opacity: flying ? 0 : 1, ...marks, lift }
 }
+
+/** What the Undo button says to a screen reader: "Undo liking Ashanti". */
+export function undoLabel(name: string, way: SwipeWay): string {
+  return `Undo ${way === 'like' ? 'liking' : 'passing on'} ${name}`
+}

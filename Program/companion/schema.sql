@@ -2031,6 +2031,16 @@ CREATE TABLE IF NOT EXISTS townsfolk_personality (
   PRIMARY KEY (town, key)
 );
 
+-- Our history at a glance (companion/memory/history.py): the user's own words for a line of the "All of it" view,
+-- keyed by its stretch (w2026-10-06, m2026-09, y2025). Empty text leaves the line out; no row keeps the app's line.
+CREATE TABLE IF NOT EXISTS history_corrections (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  period_key TEXT NOT NULL,
+  text TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (timeline_id, period_key)
+);
+
 -- Reading, watching and listening (companion/life/media.py): the companion's seeded taste profile (their bank, how keen
 -- a reader and viewer they are, whether they borrow books) and the chain of books, shows and songs they are on. Each
 -- item's days, how it ends and the verdict are decided when it starts; `held` counts days it waited while they were on

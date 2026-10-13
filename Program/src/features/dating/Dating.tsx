@@ -41,6 +41,11 @@ export function Dating({ go }: { go: (view: View) => void }) {
     await client.invalidateQueries({ queryKey: DATING_STATUS_KEY })
     return next
   }
+  const undo = async (key: string) => {
+    const next = await run(() => api<DatingData>(`/dating/swipes/${encodeURIComponent(key)}`, undefined, 'DELETE'))
+    if (next) setMatched(null)
+    return next !== null
+  }
   const swipe = async (key: string, like: boolean) => {
     const next = await run(() => api<DatingData>('/dating/swipes', { key, like }))
     if (next) setMatched(next.matched ?? null)
@@ -63,7 +68,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
             You are on a date with {data.date.name} in your story.</Notice>}
           {matched && <Notice action={<StartTalking name={matched.name} matchKey={matched.key} go={go} />}>
             {data.words.matched}: {matched.name} likes you too.</Notice>}
-          <Deck data={data} onSwipe={swipe} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
+          <Deck data={data} onSwipe={swipe} onUndo={undo} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
           <Matches data={data} go={go} onUnmatch={(key) => void run(() => api<DatingData>(`/dating/matches/${encodeURIComponent(key)}`, undefined, 'DELETE'))}
             onDate={async (key, placeId) => { await run(async () => { await api('/dating/dates', { key, place_id: placeId }); return api<DatingData>('/dating') }); go('story') }} />
         </>}
