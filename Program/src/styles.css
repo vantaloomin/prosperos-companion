@@ -998,7 +998,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .range-ticks { position: relative; height: 1.2em; margin: 0 8px; color: var(--muted); font-size: 0.75rem; }
 .range-ticks span { position: absolute; transform: translateX(-50%); }
 /* Every range input takes the accent colour (Iris). */
-input[type='range'] { accent-color: var(--accent); }
+input[type='range'], input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); }
 .reading-fonts, .motion-choice { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
 .reading-fonts legend, .motion-choice legend { padding: 0; margin-bottom: 8px; }
 .reading-font { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
