@@ -300,3 +300,17 @@ def test_a_lower_level_takes_off_what_it_would_not_have_planned(client, mira):
     client.put('/api/life/settings', json={'admin_realism': 0})
     reconcile(client)
     assert 'test:keys' in keys() and 'test:dentist' not in keys()
+
+
+def test_in_older_eras_errands_out_keep_daylight_hours():
+    from companion.life import routine
+    taken = object.__new__(admin.Taken)
+    taken.schedule, taken.away, taken.closed = routine.blocks({'schedule': EVENINGS})[0], set(), set()
+    taken.times, taken.entries, taken.jitter = {}, {}, 0.99
+    saturday = date(2026, 10, 10)  # No work: the evening is the only free block that ends after dark.
+    taken.daylight = False
+    assert taken.fits(saturday, None, True, False) >= '18:00'
+    taken.daylight = True
+    found = taken.fits(saturday, None, True, False)
+    assert found is None or found < '18:00'
+    assert taken.fits(saturday, None, False, False) >= '18:00'  # Paperwork at home can wait for the evening.

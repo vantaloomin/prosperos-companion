@@ -155,6 +155,8 @@ class Taken:
         data_city = outings.city_data(connection, definition)
         self.closed = {item['date'] for item in generators.holidays(data_city, start, end)
                        if item['kind'] == 'public'} if data_city else set()
+        # Before electric light, shops, markets and offices keep daylight hours: every errand out does too.
+        self.daylight = era_group(data_city) != 'modern'
         self.times: dict[str, list[str]] = {}
         for plan in own_plans.in_force(connection, timeline_id, start.isoformat()):
             self.times.setdefault(plan['local_date'], []).append(plan['at_time'] or '19:00')
@@ -182,7 +184,7 @@ class Taken:
         """The time on this day an entry can have, or None."""
         if self.blocked(day, out):
             return None
-        office = out and fixed
+        office = out and (fixed or self.daylight)
         for block in free_blocks(self.schedule, day):
             if fixed and at and not own_plans.holds(block, at):
                 continue
