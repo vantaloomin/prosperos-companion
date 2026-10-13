@@ -10,7 +10,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import feed, grooming, home, traditions, upkeep, wardrobe
+from companion.life import feed, grooming, home, pets, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
@@ -28,7 +28,7 @@ def place_name(event) -> str:
 def when(event) -> dict:
     """What the wardrobe and the picture line need: its activity, block kind, local date, weather and company."""
     details = decode(event['details'])
-    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with')}
+    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with', 'pet_photo')}
 
 
 def scene(connection, post_id) -> list[dict]:
@@ -335,16 +335,28 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
              'weather': events[0]['moment'].get('weather'), 'activity': events[0]['moment'].get('activity'),
              'with': events[0]['moment'].get('with')}
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
+    likeness = current_for_images(connection)
+    prompt = pet_prompt(connection, post['timeline_id'], first, image_settings)
+    if prompt:
+        # A photo of their pet alone (companion/life/pets.py): nobody in it, so no likeness.
+        likeness = {**likeness, 'lora': None}
     return {'prompt_version': PROMPT_VERSION,
-            'prompt': feed_prompt(definition, first, image_settings, setting(connection, post['timeline_id'], events[0]),
-                                  who, sheet),
+            'prompt': prompt or feed_prompt(definition, first, image_settings,
+                                            setting(connection, post['timeline_id'], events[0]), who, sheet),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), **current_for_images(connection)}
+            'marked_nsfw': bool(marked_nsfw), **likeness}
+
+
+def pet_prompt(connection, timeline_id, first, image_settings) -> str:
+    """A pet-only photo's fixed prompt, or '' for any other moment."""
+    shot = (first.get('moment') or {}).get('pet_photo')
+    found = shot and pets.find_home(connection, timeline_id, shot.get('item'))
+    return pets.photo_prompt(found, shot['shows'], image_settings['style']) if found else ''
 
 
 def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, sheet) -> str:

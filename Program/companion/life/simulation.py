@@ -44,7 +44,7 @@ BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
-         'on_her_mind')
+         'on_her_mind', 'pets_can_die')
 NEWS_EVERY = timedelta(minutes=10)
 UNFINISHED = ('planned', 'running', 'interrupted')
 
@@ -563,7 +563,7 @@ class LifeEngine:
                      'fulfils': composed.get('fulfils'), 'weather': composed.get('weather'),
                      'body': block.get('body'), 'recommendation': composed.get('recommendation'),
                      'own_plan': composed.get('own_plan'), 'outing': composed.get('outing'),
-                     'trip': composed.get('trip')},
+                     'trip': composed.get('trip'), 'pet_photo': composed.get('pet_photo')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {

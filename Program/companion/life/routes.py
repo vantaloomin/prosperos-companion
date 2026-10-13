@@ -22,6 +22,7 @@ from companion.life import (
     mood,
     network,
     outings,
+    pets,
     reactions,
     recommendations,
     routine,
@@ -165,8 +166,9 @@ def circle_change(request: Request, person_id: str, change) -> dict:
         agenda.forget_person(connection, timeline_id, person_id, now)
         if simulation.may_extend(settings(connection), 'return'):
             agenda.extend(connection, companion, engine.world, now)
-        return next(person for person in agenda.circle_view(connection, timeline_id, now, include_removed=True)
-                    if person['id'] == person_id)
+        found = next(person for person in agenda.circle_view(connection, timeline_id, now, include_removed=True)
+                     if person['id'] == person_id)
+        return with_pets(connection, companion, engine.world, [found], now)[0]
 
 
 @router.get('/circle')
@@ -180,7 +182,18 @@ def read_circle(request: Request, include_removed: bool = False):
         people = agenda.circle_view(connection, companion['active_timeline_id'], now, include_removed)
         stages = pairs.for_circle(connection, companion, circle.people(connection, companion['active_timeline_id'],
                                                                        include_removed), now)
+        people = with_pets(connection, companion, engine.world, people, now)
         return [{**person, 'stage': stages.get(person['id'])} for person in people]
+
+
+def with_pets(connection, companion: dict, world, people: list[dict], now) -> list[dict]:
+    """Each person in the circle with their pets (companion/life/pets.py), seeded by the person."""
+    definition = companion['version']['definition']
+    era = pets.era_of(circle.city_data(definition, world))
+    day = storylines.local_today(companion, now)
+    started = pets.timeline_start(connection, companion['active_timeline_id'], definition.get('timezone'))
+    return [{**person, 'pets': pets.lived(connection, pets.circle_pets(person, era, started), day, now)}
+            for person in people]
 
 
 @router.get('/circle/room')
@@ -309,13 +322,14 @@ def read_townsfolk(request: Request):
 def read_townsperson(request: Request, key: str):
     """One townsperson the companion has met, with where they probably are right now by their rules."""
     database = db(request)
-    with database.connect() as connection:
+    with database.connect(write=True) as connection:
         companion = require_current(connection)
         now = database.clock.now()
         found = next((person for person in encounters.known(connection, companion, now) if person['key'] == key),
                      None)
         require(found is not None, 'The companion has not met that person.', 404)
-        return {**found, 'now': encounters.whereabouts_now(connection, companion, key, now)}
+        return {**found, 'now': encounters.whereabouts_now(connection, companion, key, now),
+                'pets': encounters.pets_of(connection, companion, key, found['times'], now)}
 
 
 @router.get('/paper')

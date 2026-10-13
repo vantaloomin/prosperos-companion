@@ -29,6 +29,7 @@ from companion import backup, cast, characters, dating, lore, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
+from companion.life import pets
 from companion.models import CharacterDefinition
 from companion.world import catalog, changes, custom, generators, mix, townsfolk
 
@@ -172,9 +173,10 @@ def start(database: Database):
 def write_persona(connection, persona: dict, timestamp: str):
     """Who the user is in this world, for the prompt (companion/memory/context.py) and Matchlight."""
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
-                       'townsfolk_key, town_seed) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       'townsfolk_key, town_seed, pets) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                        (persona['id'], persona['name'], persona['gender'], persona['age'], persona['about'],
-                        timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', '')))
+                        timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', ''),
+                        json.dumps(persona.get('pets') or [])))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
 
 
@@ -489,7 +491,9 @@ def create_persona(database: Database, body) -> dict:
     data = registry(database)
     persona_id = identifier()
     persona = {'id': persona_id, 'name': name, 'gender': body.gender or '', 'age': body.age,
-               'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now()}
+               'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now(),
+               'pets': pets.persona_entries([], [pet.model_dump() for pet in body.pets or []],
+                                            database.clock.now().date())}
     data['personas'].append(persona)
     save(database.root, data)
     try:
@@ -508,6 +512,9 @@ def update_persona(database: Database, persona_id: str, body) -> dict:
     changes = body.model_dump(exclude_unset=True)
     if 'name' in changes:
         changes['name'] = (changes['name'] or '').strip()
+    if 'pets' in changes:
+        changes['pets'] = pets.persona_entries(persona.get('pets') or [], changes['pets'] or [],
+                                               database.clock.now().date())
     persona.update({key: '' if value is None and key != 'age' else value for key, value in changes.items()})
     save(database.root, data)
     active = found(data['worlds'], data['active'], 'world')

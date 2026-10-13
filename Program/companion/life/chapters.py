@@ -27,7 +27,7 @@ from companion.characters import apply_changes, require_current
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, home, money, storylines
+from companion.life import circle, home, money, pets, storylines
 from companion.memory import pairs
 from companion.world import catalog
 
@@ -178,12 +178,12 @@ def plan_pet(connection, companion, world, day, seed) -> dict | None:
     if any(item['kind'] == 'pet' for item in home.items_on(connection, companion['active_timeline_id'], day)):
         return None
     data = circle.city_data(companion['version']['definition'], world)
-    pet = home.pet_item(f'{seed}:pet', home.modern(data), 'chapter')
-    kind = pet['variety']
+    pet = home.pet_item(f'{seed}:pet', pets.era_of(data), 'chapter', day, young=True)
+    kind = pets.kind_phrase(pet['variety'])
     name = companion['version']['definition']['name'].split()[0]
-    return {'title': f"{name} adopted a {kind} named {pet['name']}", 'item': pet,
-            'told': f"You adopted a {kind}, {pet['details']['description']}, and named them {pet['name']}.",
-            'share': f"Meet {pet['name']}! I adopted a {kind}."}
+    return {'title': f"{name} adopted {kind} named {pet['name']}", 'item': pet,
+            'told': f"You adopted {kind}, {pet['details']['description']}, and named them {pet['name']}.",
+            'share': f"Meet {pet['name']}! I adopted {kind}."}
 
 
 def plan_hobby(connection, companion, world, day, seed) -> dict | None:

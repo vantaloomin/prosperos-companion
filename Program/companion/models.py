@@ -405,6 +405,9 @@ class LifeSettingsUpdate(Input):
     on_her_mind: bool | None = None
     # Looks that change (companion/life/grooming.py): never (0), now and then, like real life, often (3).
     looks_realism: int | None = Field(default=None, ge=0, le=3)
+    # Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic.
+    pets_realism: int | None = Field(default=None, ge=0, le=3)
+    pets_can_die: bool | None = None
     # While you were away (companion/recap.py): days away before a catch-up shows; 0 turns it off.
     recap_after_days: int | None = Field(default=None, ge=0, le=60)
     # Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy.
@@ -509,6 +512,15 @@ Gender = Literal['woman', 'man', 'nonbinary', '']
 Birthday = Annotated[str, Field(pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')]
 
 
+class PersonaPet(Input):
+    """One of the user's own pets (companion/life/pets.py gives it a life): their words, never invented."""
+    name: str = Field(min_length=1, max_length=40, pattern=r'\S')
+    kind: str = Field(default='cat', min_length=1, max_length=20)
+    looks: str = Field(default='', max_length=160)
+    # Years old, when the user says; otherwise the pet keeps the birth date it was given.
+    age: int | None = Field(default=None, ge=0, le=90)
+
+
 class PersonaInput(Input):
     """Who the user is in a persona's worlds (companion/worlds.py). Only the user says this; blanks stay blank."""
     name: str | None = Field(None, max_length=80)
@@ -516,6 +528,7 @@ class PersonaInput(Input):
     age: int | None = Field(None, ge=18, le=120)
     about: str | None = Field(None, max_length=2000)
     birthday: Birthday | None = None
+    pets: list[PersonaPet] | None = Field(None, max_length=8)
 
 
 class NewPersona(PersonaInput):

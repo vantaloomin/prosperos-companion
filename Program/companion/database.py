@@ -252,6 +252,12 @@ ADDED_COLUMNS = (
     ('life_settings', 'looks_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (looks_realism BETWEEN 0 AND 3)'),
     # The numbers behind home life (upkeep meters and the like), under Settings > Realism > Hidden values.
     ('workspace_settings', 'show_home_meters', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_home_meters IN (0, 1))'),
+    # Pets with lives of their own (companion/life/pets.py), on Settings > Realism > Around the home: how often pets
+    # fall ill (0 off, 1 light, 2 true to life, 3 dramatic) and whether they can die.
+    ('life_settings', 'pets_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (pets_realism BETWEEN 0 AND 3)'),
+    ('life_settings', 'pets_can_die', 'INTEGER NOT NULL DEFAULT 1 CHECK (pets_can_die IN (0, 1))'),
+    # The pets on the user's persona (companion/worlds.py), as JSON: the user's own, given lives by pets.py.
+    ('persona', 'pets', "TEXT NOT NULL DEFAULT '[]'"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

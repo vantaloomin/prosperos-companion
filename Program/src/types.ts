@@ -439,6 +439,9 @@ export interface LifeSettings {
   upkeep_realism: number
   /** Looks that change (companion/life/grooming.py): never (0), now and then, like real life (2), often (3). */
   looks_realism: number
+  /** Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  pets_realism: number
+  pets_can_die: boolean
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -596,6 +599,8 @@ export interface CirclePerson {
   stage?: PairStage | null
   now: RoutineBlock | null
   recent: DiaryEntry[]
+  /** Their pets (companion/life/pets.py), seeded by who they are. */
+  pets?: PetView[]
 }
 
 /** Someone around the circle, a few layers out (companion/life/network.py); built on request, never stored. */
@@ -1070,6 +1075,10 @@ export interface SelfFact {
   user_said?: string
   /** For a fact the character definition contradicts: the place it names. */
   definition_says?: string
+  /** A pet fact: 'tracked' when it names a pet the app keeps (that pet's own lines win), else 'untracked'. */
+  pet_link?: 'tracked' | 'untracked'
+  /** The pet kind the fact's words point to, for "Add as their pet". */
+  pet_kind?: string
   created_at: string
   decided_at: string | null
 }
@@ -1253,6 +1262,38 @@ export interface GroomingView {
 }
 
 /** A townsperson the companion has met around the city: only what the companion has learned so far. */
+/** A pet and how it is doing, in plain words (companion/life/pets.py `view`). */
+export interface PetView {
+  key: string
+  name: string
+  kind: string
+  kind_label: string
+  looks: string
+  born: string
+  age: string
+  state: 'well' | 'sick' | 'vet' | 'away' | 'died'
+  /** Plain words: "Biscuit is under the weather: an upset stomach." Empty when all is well. */
+  status: string
+  /** A serious illness, the one status shown as a warning. */
+  serious?: boolean
+  died_on: string | null
+  recent: { date: string; kind: 'sick' | 'vet' | 'checkup' | 'died'; text: string }[]
+  /** Hidden values (show_home_meters): 0 to 100, and how long their kind usually lives. */
+  health: number | null
+  lifespan_years: number | null
+}
+/** The companion's own pets (GET /api/life/pets): a pet id is its home item's. */
+export interface CompanionPet extends PetView { id: string; edited?: boolean }
+export interface PetsView {
+  today: string
+  pets: CompanionPet[]
+  remembered: CompanionPet[]
+  /** The user's own pets, from their persona. */
+  yours: PetView[]
+  kinds: { id: string; label: string }[]
+  numbers: boolean
+}
+
 export interface Townsperson {
   key: string
   name: string
@@ -1558,8 +1599,11 @@ export interface World {
   companions: string[]
 }
 export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
+/** One of the user's own pets on their persona: their words, given a life by companion/life/pets.py. */
+export interface PersonaPet { name: string; kind: string; looks: string; born?: string; added?: string; age?: number | null }
 export interface Persona {
   id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
+  pets?: PersonaPet[]
   active: boolean
   worlds: World[]
 }

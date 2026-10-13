@@ -34,6 +34,7 @@ from companion.life import (
     outings,
     own_plans,
     pacing,
+    pets,
     reactions,
     recommendations,
     storylines,
@@ -254,13 +255,16 @@ FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
 
 
-def persona_text(connection) -> str | None:
+def persona_text(connection, today: date | None = None) -> str | None:
     """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder."""
     row = connection.execute('SELECT * FROM persona WHERE id=1').fetchone()
     if not row:
         return None
     parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
              f"Gender: {row['gender']}" if row['gender'] else '', row['about'].strip()]
+    # The user's own pets, as they wrote them, and how each is today (companion/life/pets.py).
+    if found := pets.persona_lines(connection, today or date.today()):
+        parts.append('Pets: ' + '; '.join(found))
     return '\n'.join(f'- {part}' for part in parts if part) or None
 
 
@@ -787,7 +791,7 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     packet = Packet(budget)
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today))
-    if who := persona_text(connection):
+    if who := persona_text(connection, date.fromisoformat(today)):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))

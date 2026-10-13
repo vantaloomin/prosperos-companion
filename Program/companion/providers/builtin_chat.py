@@ -11,7 +11,10 @@ The server keeps one port between launches, so the chat profile's address stays 
 it like any local server.
 """
 import json
+import os
 import socket
+import threading
+import time
 from pathlib import Path
 
 from companion.providers.builtin_recall import RUNTIME_TAG, RUNTIMES, BuiltinRecall, free_port, threads
@@ -53,9 +56,28 @@ def read_state(root: Path) -> dict:
 def write_state(root: Path, state: dict):
     target = state_file(root)
     target.parent.mkdir(parents=True, exist_ok=True)
-    partial = target.with_name(target.name + '.partial')
+    # One partial per writer, so two saves at once never write into each other's file.
+    partial = target.with_name(f'{target.name}.{os.getpid()}.{threading.get_ident()}.partial')
     partial.write_text(json.dumps(state, indent=2), 'utf-8')
-    partial.replace(target)
+    replace_soon(partial, target)
+
+
+# Windows refuses to replace a file while another thread has it open to read (the page polling /api/ready during a
+# download), so a replace that is turned away waits a moment and tries again.
+REPLACE_TRIES = 20
+REPLACE_WAIT = 0.025
+
+
+def replace_soon(partial: Path, target: Path):
+    for attempt in range(REPLACE_TRIES):
+        try:
+            partial.replace(target)
+            return
+        except PermissionError:
+            if attempt == REPLACE_TRIES - 1:
+                partial.unlink(missing_ok=True)
+                raise
+            time.sleep(REPLACE_WAIT)
 
 
 def port_free(port: int) -> bool:

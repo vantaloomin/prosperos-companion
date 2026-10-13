@@ -56,16 +56,23 @@ export function HomeLifeSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Around the home" />
   const upkeep = UPKEEP_LEVELS[data.upkeep_realism] ?? UPKEEP_LEVELS[2]
+  const pets = PET_LEVELS[data.pets_realism] ?? PET_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="home-life-heading">
       <div>
         <h2 id="home-life-heading">Around the home</h2>
-        <p className="subtle">What keeping a home is like for companions. Each one's page shows how it is going in words.</p>
+        <p className="subtle">How much everyday life happens at home. Past days stay as they were; changes apply from today.</p>
       </div>
       <Field label={`Housework: ${upkeep.label}`} hint={upkeep.hint}>
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.upkeep_realism} label={upkeep.label}
           onChange={(upkeep_realism) => void save({ upkeep_realism })} />}
       </Field>
+      <Field label={`Pets: ${pets.label}`} hint={pets.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.pets_realism} label={pets.label}
+          onChange={(pets_realism) => void save({ pets_realism })} />}
+      </Field>
+      <Toggle label="Pets can die" checked={data.pets_can_die} disabled={data.pets_realism === 0} onChange={(value) => void save({ pets_can_die: value })}
+        hint="Rarely, and only late in life: of old age, or a serious illness when they are very old. Off: pets still grow old but are always there. A pet that died can be brought back on the Character page." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
@@ -186,3 +193,11 @@ export function AdultSideSettings() {
     </section>
   )
 }
+
+/** How much happens to pets (companion/life/pets.py), from nothing at all to a dramatic life. */
+const PET_LEVELS = [
+  { label: 'Off', hint: 'Pets stay well: no off days, vet visits or losses.' },
+  { label: 'Light', hint: 'Now and then a pet has an off day or a checkup. Short spells, small bills.' },
+  { label: 'True to life', hint: 'Off days, vet visits and checkups about as often as real pets have them, more as they grow old.' },
+  { label: 'Dramatic', hint: 'More illnesses, longer spells and bigger vet bills.' },
+]

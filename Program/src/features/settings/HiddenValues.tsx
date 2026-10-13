@@ -19,7 +19,7 @@ export function HiddenValues({ name }: { name: string }) {
   const [error, setError] = useState('')
   const flag = (key: Flag, shown = false) => settings.data?.[key] ?? shown
   const refresh = () => {
-    for (const queryKey of [['today'], ['news'], ['reactions'], ['townsfolk'], ['grooming'], GROUPS_KEY, ['group']]) void client.invalidateQueries({ queryKey })
+    for (const queryKey of [['today'], ['news'], ['reactions'], ['townsfolk'], ['grooming'], GROUPS_KEY, ['group'], ['pets'], ['home']]) void client.invalidateQueries({ queryKey })
   }
   const save = async (change: Partial<Record<Flag, boolean>>) => {
     setError('')
@@ -49,7 +49,7 @@ export function HiddenValues({ name }: { name: string }) {
       <Toggle label="Say when a secret slips out" checked={flag('show_secret_slips', true)} onChange={(checked) => void save({ show_secret_slips: checked })}
         hint="A note under a group message when someone lets a secret slip. Off: you only find out from what they say; everyone there still knows it, and Secrets on the Groups page still shows who knows." />
       <Toggle label="Show the numbers behind home life" checked={flag('show_home_meters')} onChange={(checked) => void save({ show_home_meters: checked })}
-        hint="On the Character page: how much laundry, dishes and clutter there is, and the numbers behind how they look lately (days since a haircut, how deep a tan is). Off: you only see it in words." />
+        hint="On the Character page: how much laundry, dishes and clutter there is, and the numbers behind how they look lately (days since a haircut, how deep a tan is), and each pet's health out of 100 and how long its kind usually lives. Off: you only see it in words." />
       {settings.data?.adult_side && (
         <Toggle label="Show townsfolk's adult side" checked={flag('show_adult_side')} onChange={(checked) => void save({ show_adult_side: checked })}
           hint="Around town on Today: who each person is drawn to, how adventurous they are and what they're into. Off: you only learn who someone is drawn to once your companion knows them well." />

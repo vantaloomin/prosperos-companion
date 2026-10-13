@@ -67,7 +67,11 @@ SPECIES = {
     'greyhound': 'dog', 'dachshund': 'dog', 'bulldog': 'dog', 'shepherd': 'dog', 'spaniel': 'dog',
     'chihuahua': 'dog', 'boxer': 'dog', 'pit bull': 'dog', 'pitbull': 'dog', 'rottweiler': 'dog', 'schnauzer': 'dog',
     'rabbit': 'rabbit', 'bunny': 'rabbit',
-    'bird': 'bird', 'parrot': 'bird', 'budgie': 'bird', 'parakeet': 'bird', 'canary': 'bird', 'cockatiel': 'bird',
+    'bird': 'bird', 'parrot': 'parrot', 'budgie': 'bird', 'parakeet': 'bird', 'canary': 'bird', 'cockatiel': 'bird',
+    'macaw': 'parrot', 'cockatoo': 'parrot', 'hamster': 'hamster', 'guinea pig': 'guinea-pig', 'ferret': 'ferret',
+    'tortoise': 'tortoise', 'turtle': 'tortoise', 'snake': 'snake', 'lizard': 'lizard',
+    'gecko': 'lizard', 'bearded dragon': 'lizard', 'goldfish': 'fish', 'betta': 'fish', 'horse': 'horse',
+    'pony': 'horse', 'mare': 'horse', 'hen': 'chickens', 'chicken': 'chickens',
 }
 SPECIES_WORD = '(' + '|'.join(re.escape(word) for word in sorted(SPECIES, key=len, reverse=True)) + ')'
 LOOK = r"((?:[\w'’-]+ ){0,3}?)"

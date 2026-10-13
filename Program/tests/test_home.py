@@ -120,12 +120,10 @@ def test_a_change_is_told_once_in_the_companions_day(client, baltimore, clock):
 def test_belongings_come_up_in_ordinary_moments():
     items = [{'id': 'p', 'kind': 'pet', 'name': 'Biscuit', 'variety': 'dog'},
              {'id': 'c', 'kind': 'vehicle', 'name': 'the car', 'variety': 'car'}]
-    homey = [home.at_home(items, f's{n}') for n in range(10)]
-    assert all(found and 'Biscuit' in found[1] for found in homey)
-    assert home.walked(items, 's')[0] == ['p']
+    # A pet's own line comes from companion/life/pets.py, which knows how the pet is that day (tests/test_pets.py).
+    assert all(home.at_home(items, f's{n}') == (['p'], None) for n in range(10))
     assert home.driven(items, {}, 's') == (['c'], 'Drove the car there.')
     assert 'still in the shop' in home.driven(items, {'c': {}}, 's')[1]
-    assert home.walked([items[1]], 's') is None
     entry = home.woven({'summary': 'Mira went for a walk.', 'activity': 'walk'}, 'biscuit came along.', ['p'], None)
     assert entry['summary'] == 'Mira went for a walk. Biscuit came along.' and entry['home']['items'] == ['p']
 
@@ -142,7 +140,7 @@ def test_edits_rebuild_upcoming_moments_and_show_in_context(client, baltimore, c
     assert client.patch(f"/api/life/home/items/{pet['id']}", json={'variety': 'dragon'}).status_code == 422
     assert client.post(f"/api/life/home/items/{view['items'][0]['id']}/remove").status_code == 422
     system = client.get('/api/context/preview').json()['system']
-    assert '## Your home and belongings' in system and 'Pickles (a three-legged corgi)' in system
+    assert '## Your home and belongings' in system and 'Pickles, your dog (a three-legged corgi' in system
     removed = client.post(f"/api/life/home/items/{pet['id']}/remove").json()
     assert pet['id'] not in [item['id'] for item in removed['items']]
     assert pet['id'] in [item['id'] for item in removed['removed']]

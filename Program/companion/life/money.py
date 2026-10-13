@@ -408,7 +408,8 @@ def happened(item, day: date) -> dict | None:
 
 # What their home costs to keep, as shares of a month's take-home (so it works in any currency), and
 # what a home change costs by its spend tier.
-UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005,
+UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005, 'parrot': 0.01, 'fish': 0.004, 'hamster': 0.004,
+          'guinea-pig': 0.006, 'lizard': 0.008, 'snake': 0.006, 'tortoise': 0.005, 'ferret': 0.012, 'chickens': 0.006,
           'car': 0.08, 'motorcar': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
 PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 

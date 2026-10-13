@@ -390,15 +390,37 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         else:
             continue
         result.append((f"trip:{trip['id']}", line))
+        if care := care_text(pet_care(connection, companion['active_timeline_id'], trip, start)):
+            result.append((f"trip:{trip['id']}:pets", f'- While you are away: {care}.'))
     return result
+
+
+def pet_care(connection, timeline_id: str, trip: dict, day: date) -> list[dict]:
+    """Who looks after each of the companion's pets on this trip (companion/life/pets.py `minder`): {pet, how,
+    who, text}. Someone travelling with them can't, so they are left out."""
+    from companion.life import pets
+    company = (trip.get('company') or {}).get('id')
+    local = [person for person in local_people(connection, timeline_id) if person['id'] != company]
+    return [{'pet': found['name'], **pets.minder(found, trip, local)} for found in pets.of_home(connection, timeline_id,
+                                                                                             day)]
+
+
+def care_text(care: list[dict]) -> str:
+    return '; '.join(item['text'] for item in care if item['text'])
 
 
 def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict]:
     """Trips that set off this pay period, as money.household purchases with their own cost."""
     rows = many(connection, "SELECT * FROM trips WHERE timeline_id=? AND status='planned' AND start_date>=? AND "
                 'start_date<=? AND cost>0', (timeline_id, start.isoformat(), day.isoformat()))
-    return [{'text': f"paid for the trip to {row['city_name']}", 'date': row['start_date'], 'spend': '',
-             'cost': row['cost'], 'for': 'trip'} for row in rows]
+    found = [{'text': f"paid for the trip to {row['city_name']}", 'date': row['start_date'], 'spend': '',
+              'cost': row['cost'], 'for': 'trip'} for row in rows]
+    for row in rows:
+        start_day = date.fromisoformat(row['start_date'])
+        found += [{'text': f"paid someone to look after {item['pet']} during the trip", 'date': row['start_date'],
+                   'spend': '$$', 'for': 'trip'} for item in pet_care(connection, timeline_id, view(row), start_day)
+                  if item['how'] == 'sitter']
+    return found
 
 
 def away_status(connection, block: dict, seed: str) -> dict | None:
