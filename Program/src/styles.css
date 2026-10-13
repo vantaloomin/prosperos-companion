@@ -645,6 +645,14 @@ textarea { resize: vertical; line-height: 1.6; }
 
 /* Real-world lookups (PRD X1–X3) */
 .context-mapping { display: grid; gap: 6px; padding: 10px 12px; border-left: 3px solid var(--border); }
+/* A tool's fields: 16px between field groups, 4px from a label to its control (subsection-spacing.md). */
+.context-mapping.form-stack { gap: 16px; }
+.context-mapping .field, .argument-choice { gap: 4px; }
+.argument-choice { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; }
+.argument-choice legend { padding: 0; margin-bottom: 4px; font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.argument-choice small { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+.service-hint-from { font-weight: 600; }
+@media (max-width: 720px) { .argument-choice .segmented { width: 100%; } }
 .disclosure { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 0.875rem; }
 .lookup-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--card-gap); }
 .lookup-list > li { display: grid; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 8px; }

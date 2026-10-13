@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { api } from '../../api'
@@ -8,6 +8,7 @@ import { BuiltinCulture } from './BuiltinCulture'
 import { BuiltinPulse } from './BuiltinPulse'
 import { BuiltinWeather } from './BuiltinWeather'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
+import { OptionalStepper } from '../../components/NumberFields'
 import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SEARCH_PRESETS, SOURCE_LABELS, argumentKind, canSave, canTry, propertyLabel, purposeLabel, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withAppFilled, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
 import { SectionPending } from '../../components/SectionPending'
 
@@ -314,7 +315,7 @@ function MappingEditor({ category, service, data, name, draft: initial, busy, on
       <strong>{CATEGORY_LABELS[category]}</strong>
       <Field label="Tool" hint="Which of this service's tools runs for this lookup. What it does is described below.">{(id, hint) => (
         <select id={id} aria-describedby={hint} value={draft.tool} onChange={(event) => setDraft(withAppFilled({ tool: event.target.value, arguments: {}, run_in: draft.run_in }, toolNamed(event.target.value)))}>
-          {service.tools.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
+          {service.tools.map((item) => <option key={item.name} value={item.name}>{`${propertyLabel(item.name)} (${item.name})`}</option>)}
         </select>
       )}</Field>
       <p className="subtle">{tool?.description || (properties.length ? '' : 'This tool takes no arguments.')}</p>
@@ -352,34 +353,62 @@ function ArgumentRow(props: ArgumentProps) {
 type RowProps = ArgumentProps & { label: string }
 const fixedValue = (argument?: ToolArgument) => argument?.source === 'literal' ? argument.value : undefined
 
+/** Help the service wrote into its own schema, marked as quoted so it does not read as the app's copy. */
+function serviceHint(description?: string, own?: string): ReactNode {
+  if (!description && !own) return undefined
+  return <>{description && <span className="service-hint"><span className="service-hint-from">From the service:</span> {description}</span>}{description && own ? ' ' : ''}{own}</>
+}
+
 /** A yes/no, or one of the tool's own listed values; left alone, the service uses its default. */
 function PickRow({ schema, required, argument, label, options, onSource, onValue }: RowProps & { options: unknown[] }) {
+  const name = useId()
   const fixed = fixedValue(argument)
   const current = fixed === undefined ? '' : String(options.findIndex((option) => option === fixed))
-  const optionLabel = (option: unknown) => option === true ? 'Yes' : option === false ? 'No' : String(option)
+  const choose = (value: string) => value === '' ? onSource('') : onValue(options[Number(value)] as string | number | boolean)
+  const choices = [{ value: '', label: required ? 'Choose one' : 'Default' },
+    ...options.map((option, index) => ({ value: String(index), label: option === true ? 'Yes' : option === false ? 'No' : String(option) }))]
+  if (choices.length > 5) {
+    return (
+      <Field label={label} hint={serviceHint(schema.description)}>{(id, describedBy) => (
+        <select id={id} aria-describedby={describedBy} value={current} onChange={(event) => choose(event.target.value)}>
+          {choices.map((choice) => <option key={choice.value} value={choice.value}>{choice.value === '' && !required ? "The service's default" : choice.label}</option>)}
+        </select>
+      )}</Field>
+    )
+  }
   return (
-    <Field label={label} hint={schema.description}>{(id, describedBy) => (
-      <select id={id} aria-describedby={describedBy} value={current}
-        onChange={(event) => event.target.value === '' ? onSource('') : onValue(options[Number(event.target.value)] as string | number | boolean)}>
-        <option value="">{required ? 'Choose one' : "The service's default"}</option>
-        {options.map((option, index) => <option key={String(option)} value={String(index)}>{optionLabel(option)}</option>)}
-      </select>
-    )}</Field>
+    <fieldset className="argument-choice" aria-describedby={schema.description ? `${name}-hint` : undefined}>
+      <legend className="field-label">{label}</legend>
+      <div className="segmented">
+        {choices.filter((choice) => !(required && choice.value === '')).map((choice) => (
+          <label key={choice.value}>
+            <input type="radio" className="visually-hidden" name={name} value={choice.value} checked={current === choice.value} onChange={() => choose(choice.value)} />
+            <span>{choice.label}</span>
+          </label>
+        ))}
+      </div>
+      {schema.description && <small id={`${name}-hint`}>{serviceHint(schema.description)}</small>}
+    </fieldset>
   )
 }
 
+/** A bounded number is a stepper that starts at "Default"; without bounds, a number box left empty for the default. */
 function NumberRow({ schema, required, argument, label, onSource, onValue }: RowProps) {
   const fixed = fixedValue(argument)
-  const hint = [schema.description, required ? '' : "Leave empty for the service's default."].filter(Boolean).join(' ')
-  return <TextInput label={label} type="number" value={fixed === undefined ? '' : String(fixed)} min={schema.minimum} max={schema.maximum} hint={hint}
-    onChange={(value) => value === '' ? onSource('') : onValue(Number(value))} />
+  const set = (value: number | undefined) => value === undefined ? onSource('') : onValue(value)
+  if (schema.minimum !== undefined && schema.maximum !== undefined) {
+    return <OptionalStepper label={label} value={typeof fixed === 'number' ? fixed : undefined} min={schema.minimum} max={schema.maximum}
+      hint={serviceHint(schema.description)} format={String} onChange={set} />
+  }
+  return <TextInput label={label} type="number" value={fixed === undefined ? '' : String(fixed)} min={schema.minimum} max={schema.maximum}
+    hint={serviceHint(schema.description, required ? undefined : "Leave empty for the service's default.")} onChange={(value) => set(value === '' ? undefined : Number(value))} />
 }
 
 /** Text that can come from what you asked (or the link, or where you are), or a fixed value. */
 function SourceRow({ category, schema, argument, label, onSource, onValue }: RowProps) {
   return (
     <div className="form-grid">
-      <Field label={label} hint={schema.description}>{(id, describedBy) => (
+      <Field label={label} hint={serviceHint(schema.description)}>{(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={argument?.source ?? ''} onChange={(event) => onSource(event.target.value as ArgumentSource | '')}>
           <option value="">Not sent</option>
           {sourcesFor(category).map((source) => <option key={source} value={source}>{SOURCE_LABELS[source]}</option>)}
