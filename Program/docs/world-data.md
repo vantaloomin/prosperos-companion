@@ -49,6 +49,7 @@ are optional, so a setting without money (Oz) or without weather data still work
 | `companion/world/data/names.json` | Name banks for residents, written by `scripts/world/names.py`. |
 | `companion/world/data/given_names.json` | Popular given names by birth year, family names by culture and names that read as invented, written by `scripts/world/given_names.py` from `scripts/world/name_sources/`. |
 | `companion/world/data/holidays.json` | Holiday calendars, written by `scripts/world/holidays.py`. |
+| `companion/world/data/hobbies/` | Pastimes: `catalogue.json` (each pastime's words, eras, place, gear and fees) and one milestone bank per kind, checked by `tests/test_hobby_banks.py`. |
 | `scripts/world/<city>.py` | The source each city's JSON is written from. Edit these, then rerun them. |
 
 Nothing needs the network at run time. Every record names a source in its city's `sources` table

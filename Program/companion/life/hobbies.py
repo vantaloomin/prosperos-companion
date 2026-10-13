@@ -740,7 +740,7 @@ def context_lines(connection, timeline_id: str, now, timezone: str, definition: 
                       'l.local_date DESC LIMIT 2', (timeline_id, since, today.isoformat())):
         day = date.fromisoformat(found['local_date'])
         when = 'today' if day == today else 'yesterday' if day == today - timedelta(days=1) else \
-            f'on {day:%A %B} {day.day}'
+            f'on {day:%A, %B} {day.day}'
         result.append((f"hobbies:milestone:{found['id']}",
                        f"- Lately: {when} you {yours(found['text'])} ({found['label']})."))
     return result
@@ -755,7 +755,7 @@ def pastime_line(row: dict, today: date, data: dict | None) -> str:
     how = f"{since_text(row, today)} in, {LEVEL_TEXT[level_of(row['skill'])]}"
     if row['status'] == 'stalled':
         return f"- {label}: {how}; it has stalled lately ({yours(row['reason'])})."
-    return f"- {label}: {how}; you go {CADENCE.get(row['per_week'], 'most weeks')}."
+    return f"- {label}: {how}; you get to it {CADENCE.get(row['per_week'], 'most weeks')}."
 
 
 YOURS = {'their': 'your', 'theirs': 'yours', 'they': 'you', 'them': 'you', 'themselves': 'yourself',
@@ -790,12 +790,12 @@ def news_due(connection, companion: dict, now: datetime) -> list:
     local = now.astimezone(zone(version['timezone']))
     if not NEWS or not 9 <= local.hour < 22:
         return []
-    found = optional(connection, "SELECT l.*, h.label FROM hobby_log l JOIN hobbies h ON h.id=l.hobby_id WHERE "
+    found = optional(connection, "SELECT l.*, h.name FROM hobby_log l JOIN hobbies h ON h.id=l.hobby_id WHERE "
                      "l.timeline_id=? AND l.kind='milestone' AND l.local_date=? ORDER BY l.created_at LIMIT 1",
                      (companion['active_timeline_id'], local.date().isoformat()))
     if not found or generators.unit(found['id'], 'news?') >= NEWS_SHARE:
         return []
-    reason = (f"Something you are proud of happened in your {found['label'].lower()} today: "
+    reason = (f"Something you are proud of happened with {found['name']} today: "
               f"you {yours(found['text'])}. "
               'Tell the user about it in your own words, the way you would tell a friend.')
     return [Trigger(f"hobby-news:{found['id']}", 'hobby_news', reason, found['post'], (found['id'],))]
