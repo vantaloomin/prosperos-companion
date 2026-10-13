@@ -1843,6 +1843,13 @@ CREATE TABLE IF NOT EXISTS chat_imports (
   last_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+-- The town's mix (companion/world/mix.py, Settings > Debug): the shares townsfolk rolls use for looks and who people
+-- are drawn to. No row is the built-in mix. Each world keeps its own; a new world starts from the one it was made from.
+CREATE TABLE IF NOT EXISTS townsfolk_mix (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  mix TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 -- Pets with lives of their own (companion/life/pets.py): what happened to each pet, written once as the days pass
 -- so the past stays put when a Realism setting changes. `pet_key` names the pet: 'home:<home_items id>' for the
 -- companion's, 'circle:<circle_people id>:<n>', 'town:<townsperson key>' or 'persona:<name>'. `until` ends a sick

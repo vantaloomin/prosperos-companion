@@ -31,7 +31,7 @@ from companion.database import Database, identifier, optional
 from companion.errors import require
 from companion.life import pets
 from companion.models import CharacterDefinition
-from companion.world import catalog, changes, custom, generators, townsfolk
+from companion.world import catalog, changes, custom, generators, mix, townsfolk
 
 REGISTRY = 'worlds.json'
 FOLDER = 'worlds'
@@ -163,6 +163,7 @@ def start(database: Database):
     save(database.root, data)
     if path != database.path:
         database.use(path)
+    mix.load(database)
     with database.connect(write=True) as connection:
         write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now())
 
@@ -288,6 +289,7 @@ def switch(state, world_id: str) -> dict:
     previous = database.path
     restore.settle(previous)
     database.use(target)
+    mix.load(database)
     carry_settings(target, previous, database.now())
     data['active'], world['used_at'] = world['id'], database.now()
     database.world = world['id']
@@ -336,13 +338,20 @@ def starter(connection, data: dict, seed: str, timestamp: str, today: date, pers
                        (sheet['key'], data.get('town', ''), made['id']))
 
 
-def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None):
+def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None,
+          town_mix: dict | None = None):
     """A new world's database: the user's settings and the persona; when the user became one of a town's people
-    (`town`), also a starter companion from that person's circle."""
+    (`town`), also a starter companion from that person's circle. Its townsfolk mix (companion/world/mix.py) is
+    `town_mix`, else the one of the world it was made from."""
     restore.settle(database.path)
+    if town_mix is None:
+        with database.connect() as connection:
+            town_mix = mix.read(connection)
     made = Database(path, AppClock(database.clock.base))
     carry_settings(path, database.path, made.now())
-    with made.connect(write=True) as connection:
+    with made.connect(write=True) as connection, mix.using(town_mix):
+        if town_mix != mix.DEFAULTS:
+            mix.write(connection, town_mix, made.now())
         write_persona(connection, persona, made.now())
         data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
         if town is not None:
@@ -365,9 +374,10 @@ def unique_name(data: dict, wanted: str) -> str:
 
 
 def create_world(database: Database, persona_id: str | None = None, name: str | None = None,
-                 city_id: str | None = None, town: str | None = None) -> dict:
+                 city_id: str | None = None, town: str | None = None, town_mix: dict | None = None) -> dict:
     """A new world for a persona (the active one by default), in the current city unless another is named. `town`
-    reuses a town's people instead of seeding new ones (Become a townsperson). `SOMEWHERE_NEW` lets the app pick."""
+    reuses a town's people instead of seeding new ones (Become a townsperson). `SOMEWHERE_NEW` lets the app pick.
+    `town_mix` is its townsfolk mix (Settings > Debug), else the current world's."""
     data = registry(database)
     active = found(data['worlds'], data['active'], 'world')
     persona = found(data['personas'], persona_id or active['persona_id'], 'persona')
@@ -379,7 +389,7 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
     folder = f'{FOLDER}/{world_id}'
     path = database.root / folder / DATABASE
     try:
-        build(database, path, persona, city['id'], world_id, town)
+        build(database, path, persona, city['id'], world_id, town, town_mix)
     except BaseException:
         shutil.rmtree(path.parent, ignore_errors=True)
         raise

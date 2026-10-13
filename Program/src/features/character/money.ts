@@ -1,9 +1,9 @@
 import { appDate } from '../../appTime.ts'
 import type { CareerSummary } from '../../types'
 
-/** Careers that fit the home city's era (all of them without a city), keeping the current pick listed. */
-export function careersFor(careers: CareerSummary[], era: string | undefined, current: string): CareerSummary[] {
-  const fitting = careers.filter((career) => !era || career.eras.includes(era) || career.id === current)
+/** The careers of their era; adult work only while the adult side of life is on. Their current one always stays. */
+export function careersFor(careers: CareerSummary[], era: string | undefined, current: string, adult = false): CareerSummary[] {
+  const fitting = careers.filter((career) => career.id === current || ((!era || career.eras.includes(era)) && (adult || !career.adult)))
   return [...fitting].sort((a, b) => a.name.localeCompare(b.name))
 }
 

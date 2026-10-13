@@ -189,3 +189,10 @@ def test_the_money_endpoint_reads_the_home(client):
     costs = client.get('/api/life/home').json()['costs']
     view = client.get('/api/today/money').json()
     assert view['rent_from'] == 'home' and view['budget']['rent'] == costs['rent']
+
+
+def test_adult_work_sets_pay_for_an_adult_and_never_for_someone_younger():
+    dancer = {'name': 'Jimena', 'home_city': 'baltimore', 'identity': 'Jimena is 27 and works as an exotic dancer.'}
+    assert money.snapshot(dancer, '2026-10-05')['career']['id'] == 'exotic-dancer'
+    young = {**dancer, 'identity': 'A 17-year-old who wants to be an exotic dancer.', 'money': {'career': 'exotic-dancer'}}
+    assert (money.snapshot(young, '2026-10-05')['career'] or {}).get('id') != 'exotic-dancer'

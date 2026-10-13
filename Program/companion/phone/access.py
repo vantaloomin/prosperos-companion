@@ -49,7 +49,7 @@ PC_ONLY = ('/api/phone', '/api/backups', '/api/import/study', '/api/companion/st
 # Image backends are not here: a phone may add an image API at its provider's own address, and
 # companion/images/routes.py refuses the rest.
 PC_ONLY_CHANGES = ('/api/connection', '/api/models', '/api/context/services', '/api/lora/settings', '/api/lora/runs',
-                   '/api/lora/adapters', '/api/debug-time')
+                   '/api/lora/adapters', '/api/debug-time', '/api/townsfolk-mix', '/api/debug-matches')
 
 # Where on the PC each refused change is made, so a phone says where to go instead of only "no".
 PC_PLACES = (

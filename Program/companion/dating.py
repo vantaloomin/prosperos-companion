@@ -15,7 +15,7 @@ from companion.database import decode, encode, identifier, many, optional, setti
 from companion.errors import DomainError, require
 from companion.images import backends
 from companion.life import encounters
-from companion.world import catalog, dating, townsfolk
+from companion.world import catalog, dating, mix, townsfolk
 
 # The app's name in modern and future cities: made up, so it is nobody's real app.
 APP_NAME = 'Matchlight'
@@ -123,7 +123,7 @@ def pool(data: dict) -> list[tuple[dict, dict]]:
     the neighbors who only turn up on the app (townsfolk.APP_MEMBERS). Several thousand people, so it is worked
     out once per city and town; only those looking are named."""
     key = (data['id'], data.get('town', ''), data.get('you', ''), tuple(data.get('kin', ())), tuple(place['id'] for place in data['places']),
-           tuple(hood['id'] for hood in data['neighborhoods']))
+           tuple(hood['id'] for hood in data['neighborhoods']), mix.fingerprint())
     if key not in _POOLS:
         found = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'])
                  if dating.on_app(sheet, data)]
@@ -176,8 +176,9 @@ def person(connection, key: str, town: str) -> tuple[dict, dict]:
 # Swipes and matches --------------------------------------------------------------------------------------
 
 def swipe(database, key: str, like: bool) -> dict:
-    """Pass or like someone in the deck. A like is a match only if their rules like the user back; a like that
-    is not returned simply never comes back, as on a real app."""
+    """Pass or like someone in the deck. A like is a match only if their rules like the user back (or always, with
+    Settings > Debug > 100% Matchlight matches); a like that is not returned simply never comes back, as on a real
+    app."""
     with database.connect(write=True) as connection:
         mine = profile(connection)
         require(mine is not None, 'Set up your profile first.', 409)
@@ -187,7 +188,7 @@ def swipe(database, key: str, like: bool) -> dict:
         sheet, data = person(connection, key, town)
         found = dating.details(sheet, data)
         require(dating.suits(sheet, found, mine), 'This person is not in your deck.', 409)
-        matched = like and dating.says_yes(sheet, found, mine)
+        matched = like and (bool(settings(connection).get('debug_all_matches')) or dating.says_yes(sheet, found, mine))
         connection.execute(
             'INSERT INTO dating_swipes (person_key, city_id, town, liked, matched, created_at) VALUES (?, ?, ?, ?, ?, ?)',
             (key, data['id'], town, int(like), int(matched), database.now()))
@@ -347,4 +348,5 @@ def state(database) -> dict:
                                                                  'age_min', 'age_max', 'bio')},
                 'persona': persona(connection), 'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
                 'deck': [dating.card(sheet, data, database.clock.now().date(), found) for sheet, found in shown],
-                'remaining': left, 'matches': matches(connection, database), 'date': date}
+                'remaining': left, 'matches': matches(connection, database), 'date': date,
+                'all_matches': bool(settings(connection).get('debug_all_matches'))}

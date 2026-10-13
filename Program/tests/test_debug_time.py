@@ -13,9 +13,14 @@ def ok(response):
     return response.json()
 
 
+# A three-day jump takes about 15 s here and over a minute on a busy Windows runner, so the wait is by the clock.
+SETTLE_SECONDS = 180
+
+
 def settle(client):
     """Wait for a jump's walk to finish on the app's event loop."""
-    for _ in range(600):
+    deadline = time.monotonic() + SETTLE_SECONDS
+    while time.monotonic() < deadline:
         status = ok(client.get('/api/debug-time'))
         if status['jumping'] is None:
             return status
