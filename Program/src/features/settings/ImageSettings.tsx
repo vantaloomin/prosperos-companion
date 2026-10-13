@@ -303,7 +303,6 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
 function familyHint(family: ReturnType<typeof familyOf>, custom: boolean): string {
   if (custom) return 'Your own workflow is used for pictures; the family still sets the reference workflow.'
   const lines = [`Sets the built-in workflow, model files and sampling to ${family.sampling}'s. You can change any of them below.`]
-  if (!family.reference) lines.push(`${family.short === 'Booru' ? 'Booru models' : family.short} can't follow a reference picture, so profile pictures 2 and 3 come from another backend that can.`)
   if (family.note) lines.push(family.note)
   return lines.join(' ')
 }
@@ -420,11 +419,11 @@ function useBackendFiles(backend: ImageBackend, open: boolean) {
 
 /** A dropdown of the server's files (only `matching` when given), or a text box when it listed none. */
 function FileField({ slot, options, matching, value, fallback, onChange }: { slot: FileSlot; options: string[]; matching: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
-  const { label, hint, tip } = slot
-  if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback} hint={hint} tip={tip} onChange={onChange} />
+  const { label, hint, tip, same } = slot
+  if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback || same} hint={hint} tip={tip} onChange={onChange} />
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <>
     <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
-      {fileChoices(options, value, matching, matching.length > 0).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      {fileChoices(options, value, matching, matching.length > 0, same).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
     {/* On its own line, so the file name in the box is never cut short by it (Iris). */}
     {missingFrom(options, value) && <p className="subtle field-missing">{MISSING}</p>}
@@ -505,8 +504,6 @@ const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 
     shown: (family) => `Shown is the built-in ${family} reference workflow; paste or edit one and save it to use your own.`,
   },
 }
-/** For a family with no built-in reference workflow, in place of `shown`. */
-const NO_REFERENCE = (family: string) => `${family === 'Booru' ? 'Booru models have' : `${family} has`} no built-in reference workflow. Paste one to make profile pictures from this server; until then they come from a backend that can follow a picture.`
 const USE_BUILT_IN = 'Use the built-in one'
 const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
@@ -570,8 +567,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   // untouched box follows.
   const picks = JSON.stringify([backend.family, backend.model_files, backend.sampler])
   const family = familyOf(backend.family)
-  const none = field === 'reference_workflow' && !family.reference
-  const shownNote = none ? NO_REFERENCE(family.short) : copy.shown(family.sampling)
+  const shownNote = copy.shown(family.sampling)
   const shownPicks = useRef(picks)
   const { saved, text, builtIn, load } = flow
   useEffect(() => {
@@ -581,7 +577,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   }, [picks, saved, text, builtIn, load])
   return (
     <details open={startOpen} onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
-      <summary className="subtle">{copy.title} {set ? '(yours)' : none ? <span className="summary-none">(none)</span> : '(built-in)'}</summary>
+      <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
       <div className="form-stack workflow-editor">
         <Field label={copy.label} hint={<>{copy.hint}{!set && <> {shownNote}{needs(flow.builtIn)}</>}</>}>{(id, describedBy) =>
           <>

@@ -680,7 +680,7 @@ export interface ImageSettings { automatic_images: boolean; chat_photos: boolean
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
 export type ImageFamily = 'krea2' | 'qwen21' | 'zimage' | 'anima' | 'booru'
-export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name' | 'ckpt_name'
+export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name' | 'ckpt_name' | 'ref_unet_name'
 /** The files of the family's own loaders only ('' means the workflow's default). */
 export type ModelFiles = Partial<Record<ModelFileKey, string>>
 export type FileListKey = ModelFileKey | 'lora' | 'sampler_name' | 'scheduler'

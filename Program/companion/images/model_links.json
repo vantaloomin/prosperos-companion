@@ -44,15 +44,15 @@
     "role": "reference",
     "file": "krea2_identity_edit_v1_2.safetensors",
     "url": "https://huggingface.co/conradlocke/krea2-identity-edit",
-    "licence": "Krea 2 Community License (a community fine-tune, not Krea's own). Goes in models/loras. Used only by the built-in reference workflow, with the Krea 2 Identity Edit nodes (Apache-2.0) in custom_nodes.",
+    "licence": "Krea 2 Community License (a community fine-tune, not Krea's own). Goes in models/loras. Used only by the built-in reference workflow (left out when its model is a Krea 2 Edit merge, which has it baked in), with the Krea 2 Identity Edit nodes (Apache-2.0) in custom_nodes.",
     "family": "krea2"
   },
   {
-    "name": "Qwen Image 2.1 Turbo, packaged for ComfyUI (int8)",
+    "name": "Qwen Image 2.1, packaged for ComfyUI (int8)",
     "role": "model",
-    "file": "qwen_image_2.1_turbo_int8_convrot.safetensors",
+    "file": "qwen_image_2.1_int8_convrot.safetensors",
     "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/tree/main/diffusion_models",
-    "licence": "Qwen Research License: personal and research use; check the license page before anything commercial. Goes in models/diffusion_models. The same folder has the full (non-Turbo) model, which wants about 25 steps.",
+    "licence": "Qwen Research License: personal and research use; check the license page before anything commercial. Goes in models/diffusion_models. The same folder has a Turbo file, which needs only 8 steps.",
     "family": "qwen21"
   },
   {
@@ -96,11 +96,11 @@
     "family": "zimage"
   },
   {
-    "name": "Anima Turbo",
+    "name": "Anima Base v1.0",
     "role": "model",
-    "file": "anima-turbo-v1.1.safetensors",
+    "file": "anima-base-v1.0.safetensors",
     "url": "https://huggingface.co/circlestone-labs/Anima/tree/main/split_files/diffusion_models",
-    "licence": "CircleStone Labs Non-Commercial License (the pictures you make are yours to use). Goes in models/diffusion_models. Not gated. Anime and illustration only; it does not do realism.",
+    "licence": "CircleStone Labs Non-Commercial License (the pictures you make are yours to use). Goes in models/diffusion_models. Not gated. Anime and illustration only; it does not do realism. The same folder has a Turbo file for fewer steps at CFG 1.",
     "family": "anima"
   },
   {
@@ -125,6 +125,22 @@
     "file": "Illustrious-XL-v2.0.safetensors",
     "url": "https://huggingface.co/OnomaAIResearch/Illustrious-XL-v2.0",
     "licence": "CreativeML Open RAIL-M. Goes in models/checkpoints. Not gated. Any SDXL, Pony or Illustrious checkpoint works in its place.",
+    "family": "booru"
+  },
+  {
+    "name": "IP-Adapter Plus for SDXL (ViT-H)",
+    "role": "reference",
+    "file": "ip-adapter-plus_sdxl_vit-h.safetensors",
+    "url": "https://huggingface.co/h94/IP-Adapter/tree/main/sdxl_models",
+    "licence": "Apache 2.0. Goes in models/ipadapter. Used only by the built-in Booru reference workflow, with the IPAdapter Plus nodes (GPL-3.0) in custom_nodes.",
+    "family": "booru"
+  },
+  {
+    "name": "CLIP ViT-H image encoder (for IP-Adapter)",
+    "role": "reference",
+    "file": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+    "url": "https://huggingface.co/h94/IP-Adapter/tree/main/models/image_encoder",
+    "licence": "Apache 2.0. Goes in models/clip_vision under this name (the file there is model.safetensors; rename it). Used only by the Booru reference workflow.",
     "family": "booru"
   }
 ]

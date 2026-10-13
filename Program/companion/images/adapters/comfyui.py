@@ -4,15 +4,13 @@ The app only talks to a ComfyUI server the user configured. It never starts, sto
 one, and cancelling removes or interrupts only the prompt this app queued.
 
 Each backend has a model family (Settings > Images; Vanta, 2026-10-13), and each family a built-in
-workflow (FAMILIES). Krea 2 targets Krea 2 Turbo with the files ComfyUI's own Krea 2 template uses
-(UNETLoader with `krea2_turbo_fp8_scaled.safetensors`, CLIPLoader of type `krea2` with
-`qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, 8 steps at CFG 1 with
-euler/simple); it ran on an RTX 5090 with ComfyUI 0.39.0, with other files chosen for the three
-loaders, and is the default. Qwen Image 2.1, Anima and the SDXL-based "Booru" models (Pony,
-Illustrious) and Z-Image Turbo follow ComfyUI's own templates for them, on their Turbo files where there is one. The
-check reports any node or model file the server does not have. A custom workflow in ComfyUI's API
-format can replace a built-in one, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
-`{{height}}` where the request's values belong.
+workflow (FAMILIES), made from Vanta's own TXT2IMG and reference workflows for it (2026-10-13). Krea 2 is
+the default, on the files ComfyUI's own Krea 2 template uses (`krea2_turbo_fp8_scaled.safetensors`, the
+`qwen3vl_4b_fp8_scaled.safetensors` encoder of type `krea2`, `qwen_image_vae.safetensors`), 8 steps at
+CFG 1 with an empty negative. The other families start on their makers' public files. The check reports
+any node or model file the server does not have. A custom workflow in ComfyUI's API format can replace a
+built-in one, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and `{{height}}` where the
+request's values belong.
 
 With a built-in workflow the user can pick other files from their server for its loaders
 (`unet_name`, `clip_name` with its `type`, and `vae_name`, or a Booru model's `ckpt_name`, in the
@@ -22,13 +20,16 @@ exactly as given.
 
 Onboarding portraits follow an earlier picture. Those use a second workflow with
 `{{reference_image}}` (a LoadImage node's image); the app uploads the picture through
-`/upload/image` and puts its name there. The built-in one (`krea2-turbo-reference.json`) follows
-the Krea 2 Identity Edit setup: its LoRA on the built-in workflow's model, and the reference read by
-the Krea2EditModelPatch and Krea2EditGroundedEncode nodes of the comfyui-krea2edit pack (Apache-2.0,
-no Python dependencies), which ComfyUI has no core equivalent for. It takes the same loader files
-and sampler settings. Qwen Image 2.1's (`qwen-image-2.1-turbo-reference.json`) hands the picture to
-ComfyUI's own TextEncodeQwenImage21. Z-Image Turbo, Anima and Booru models have no built-in one, so they make
-pictures from a reference only with the user's own. A custom reference workflow replaces a built-in one.
+`/upload/image` and puts its name there. Each family has a built-in one with the same loader files and
+sampler settings; three need a custom node pack, which the check names:
+- Krea 2: the Identity Edit LoRA and the comfyui-krea2edit nodes (Apache-2.0, no Python dependencies,
+  installable with one press, images/node_packs.py). Its model can be a separate one (`ref_unet_name`);
+  a Krea 2 Edit model reads the reference by itself, so with one the LoRA is left out and ref_boost is 2.5.
+- Qwen Image 2.1: ComfyUI's own TextEncodeQwenImage21.
+- Z-Image Turbo: plain image-to-image (denoise 0.7), core nodes; it keeps the picture's layout and colours.
+- Anima: an edit with the Anima Edit LoRA and ApplyCosmosReferenceLatent (ComfyUI-Cosmos-Reference).
+- Booru: IP-Adapter Plus (ComfyUI_IPAdapter_plus, with its SDXL ViT-H models).
+A custom reference workflow replaces a built-in one.
 """
 import asyncio
 import json
@@ -54,11 +55,21 @@ MARKERS = re.compile(r'\{\{(?:prompt|negative|seed|width|height|reference_image)
 # The built-in workflows' loader inputs the user can choose files for: config key -> (node, input).
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
                'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name'),
-               'ckpt_name': ('CheckpointLoaderSimple', 'ckpt_name')}
+               'ckpt_name': ('CheckpointLoaderSimple', 'ckpt_name'),
+               # The reference workflow's own model, where a family has one; unset means the same as unet_name.
+               'ref_unet_name': ('UNETLoader', 'unet_name')}
+REFERENCE_ONLY = ('ref_unet_name',)
+# A Krea 2 Edit model reads the reference by itself, so the Identity Edit LoRA is left out for one and
+# the reference counts for more (Vanta's Krea 2 Reference workflow, 2026-10-13).
+EDIT_MODEL = re.compile(r'edit', re.IGNORECASE)
 LORA_INPUT = ('LoraLoaderModelOnly', 'lora_name')
 # Custom nodes the built-in workflows use, with where to get them.
-NODE_PACKS = {name: ('Krea 2 Identity Edit', 'https://github.com/lbouaraba/comfyui-krea2edit')
-              for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')}
+NODE_PACKS = {
+    **{name: ('Krea 2 Identity Edit', 'https://github.com/lbouaraba/comfyui-krea2edit')
+       for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')},
+    **{name: ('IPAdapter Plus', 'https://github.com/cubiq/ComfyUI_IPAdapter_plus')
+       for name in ('IPAdapterUnifiedLoader', 'IPAdapterAdvanced')},
+    'ApplyCosmosReferenceLatent': ('Cosmos Reference', 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference')}
 # The built-in workflow's KSampler settings the user can change for their model; unset means the
 # workflow's own (Krea 2 Turbo's are 8 steps, CFG 1, euler, simple).
 SAMPLER_INPUTS = ('steps', 'cfg', 'sampler_name', 'scheduler')
@@ -88,33 +99,37 @@ class Family:
 QWEN_VAE = re.compile(r'qwen.*vae', re.IGNORECASE)
 ANIME = 'Anime illustration'
 FAMILIES = {
-    'krea2': Family('Krea 2', 'krea2-turbo', 'krea2-turbo-reference', SEPARATE, {
+    'krea2': Family('Krea 2', 'krea2-turbo', 'krea2-turbo-reference', (*SEPARATE, 'ref_unet_name'), {
         'unet_name': re.compile(r'krea|kr2|kera', re.IGNORECASE),
+        'ref_unet_name': EDIT_MODEL,
         'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?4b', re.IGNORECASE),
         'vae_name': re.compile(r'qwen.*vae|krea', re.IGNORECASE),
         'lora': re.compile(r'krea|kr2|kera', re.IGNORECASE)}, character_lora=True),
-    # Qwen Image 2.1 (Comfy-Org/Qwen-Image-2.1): its Turbo file at 8 steps, and a reference read by
+    # Qwen Image 2.1 (Comfy-Org/Qwen-Image-2.1): the full int8 model at 25 steps, and a reference read by
     # ComfyUI's own TextEncodeQwenImage21, which takes pictures to edit from.
-    'qwen21': Family('Qwen Image 2.1', 'qwen-image-2.1-turbo', 'qwen-image-2.1-turbo-reference', SEPARATE, {
+    'qwen21': Family('Qwen Image 2.1', 'qwen-image-2.1', 'qwen-image-2.1-reference', SEPARATE, {
         'unet_name': re.compile(r'qwen[-_ ]?image[-_ ]?2[._-]?1', re.IGNORECASE),
         'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?8b', re.IGNORECASE),
         'vae_name': re.compile(r'qwen[-_ ]?image[-_ ]?2[._-]?1.*vae', re.IGNORECASE),
         'lora': re.compile(r'qwen', re.IGNORECASE)}),
-    # Z-Image Turbo (Tongyi-MAI, Comfy-Org/z_image_turbo): photographic, 8 steps at CFG 1 with an empty negative,
-    # as ComfyUI's own template runs it.
-    'zimage': Family('Z-Image Turbo', 'z-image-turbo', None, SEPARATE, {
+    # Z-Image Turbo (Tongyi-MAI, Comfy-Org/z_image_turbo): photographic, 9 steps at CFG 1 with an empty negative.
+    # It has no edit model yet, so its reference workflow is plain image-to-image at denoise 0.7.
+    'zimage': Family('Z-Image Turbo', 'z-image-turbo', 'z-image-turbo-reference', SEPARATE, {
         'unet_name': re.compile(r'z[-_ ]?image', re.IGNORECASE),
         'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?4b', re.IGNORECASE),
         'vae_name': re.compile(r'(^|[\\/])ae\.safetensors|flux.*vae|z[-_ ]?image', re.IGNORECASE),
         'lora': re.compile(r'z[-_ ]?image|zit', re.IGNORECASE)}),
-    # Anima (circlestone-labs/Anima), an anime model: Turbo at CFG 1, with its README's quality tags.
-    'anima': Family('Anima', 'anima-turbo', None, SEPARATE, style=ANIME, matching={
+    # Anima (circlestone-labs/Anima), an anime model: Base v1.0 at 30 steps, CFG 4, with its quality tags. Its
+    # reference workflow is an edit: the Anima Edit LoRA and the ComfyUI-Cosmos-Reference pack's node.
+    'anima': Family('Anima', 'anima', 'anima-reference', SEPARATE, style=ANIME, matching={
         'unet_name': re.compile(r'anima', re.IGNORECASE),
         'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?0?[._]?6b', re.IGNORECASE),
         'vae_name': QWEN_VAE,
         'lora': re.compile(r'anima', re.IGNORECASE)}),
-    # SDXL and the anime models built on it (Pony, Illustrious, NoobAI): one checkpoint file, clip skip 2.
-    'booru': Family('Booru (SDXL, Pony, Illustrious)', 'booru-sdxl', None, ('ckpt_name',), style=ANIME, matching={
+    # SDXL and the anime models built on it (Pony, Illustrious, NoobAI): one checkpoint file, clip skip 2. Its
+    # reference workflow steers the picture with IP-Adapter Plus (the ComfyUI_IPAdapter_plus pack).
+    'booru': Family('Booru (SDXL, Pony, Illustrious)', 'booru-sdxl', 'booru-sdxl-reference', ('ckpt_name',), style=ANIME,
+                    matching={
         'ckpt_name': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|animagine', re.IGNORECASE),
         'lora': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|pdxl|ilxl', re.IGNORECASE)}),
 }
@@ -174,13 +189,33 @@ def built_in(config, reference=False) -> dict | None:
     if name is None:
         return None
     workflow = json.loads((WORKFLOWS / f'{name}.json').read_text(encoding='utf-8'))
-    chosen = [(*FILE_INPUTS[key], config[key]) for key in family.files if config.get(key)]
+    # The reference model comes last, so it replaces the main one in the reference workflow only.
+    keys = [key for key in family.files if key not in REFERENCE_ONLY] + \
+        ([key for key in family.files if key in REFERENCE_ONLY] if reference else [])
+    chosen = [(*FILE_INPUTS[key], config[key]) for key in keys if config.get(key)]
     chosen += [('KSampler', key, config[key]) for key in SAMPLER_INPUTS if config.get(key) not in (None, '')]
     for class_type, field, value in chosen:
         for node in workflow.values():
             if node['class_type'] == class_type:
                 node['inputs'][field] = value
+    if reference and EDIT_MODEL.search(config.get('ref_unet_name') or ''):
+        without_identity_lora(workflow)
     return workflow
+
+
+def without_identity_lora(workflow: dict):
+    """The Krea 2 reference workflow for an Edit model: its LoRA node taken out, and the reference boosted."""
+    for key, node in list(workflow.items()):
+        if node['class_type'] == 'LoraLoaderModelOnly':
+            source = node['inputs']['model']
+            del workflow[key]
+            for other in workflow.values():
+                for field, value in other['inputs'].items():
+                    if value == [key, 0]:
+                        other['inputs'][field] = source
+    for node in workflow.values():
+        if node['class_type'] == 'Krea2EditModelPatch':
+            node['inputs']['ref_boost'] = 2.5
 
 
 def default_sampler(family=DEFAULT_FAMILY) -> dict:
@@ -191,7 +226,8 @@ def default_sampler(family=DEFAULT_FAMILY) -> dict:
 def default_files(family=DEFAULT_FAMILY) -> dict:
     """The family's own file for each of its loader inputs."""
     workflow = built_in({'family': family})
-    return {key: next(node['inputs'][FILE_INPUTS[key][1]] for node in workflow.values()
+    # The reference model's default is the main one: empty, "the same".
+    return {key: '' if key in REFERENCE_ONLY else next(node['inputs'][FILE_INPUTS[key][1]] for node in workflow.values()
                       if node['class_type'] == FILE_INPUTS[key][0]) for key in FAMILIES[family].files}
 
 
@@ -312,7 +348,7 @@ class ComfyAdapter:
             raise AdapterError('incompatible', f"The built-in {FAMILIES[family_of(request.config)].label} workflow cannot "
                                'follow a reference picture. Add a reference workflow in Settings > Images.')
         if name in TEMPLATE_NAMES and any(request.config.get(key) not in (None, '') for key in SAMPLER_INPUTS):
-            used = {**default_sampler(), **{key: request.config[key] for key in SAMPLER_INPUTS
+            used = {**default_sampler(family_of(request.config)), **{key: request.config[key] for key in SAMPLER_INPUTS
                                              if request.config.get(key) not in (None, '')}}
             name = f"{name} ({used['steps']} steps, CFG {used['cfg']:g}, {used['sampler_name']}/{used['scheduler']})"
         styles = style_loras(request.config, request.lora)
@@ -434,7 +470,7 @@ class ComfyAdapter:
             spec = info.get(node['class_type'])
             if spec is None:
                 pack = NODE_PACKS.get(node['class_type'])
-                where = f'from the {pack[0]} nodes' if pack else 'install the custom node that provides it'
+                where = f'from the {pack[0]} nodes, {pack[1]}' if pack else 'install the custom node that provides it'
                 problem = f"Missing node: {node['class_type']} ({where})."
                 if problem not in missing:
                     missing.append(problem)
