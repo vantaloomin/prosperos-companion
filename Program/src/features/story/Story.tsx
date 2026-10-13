@@ -126,7 +126,7 @@ function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string)
   }
   return (<>
     <form className="composer story-composer" onSubmit={(event) => { event.preventDefault(); submit() }}>
-      <AuthorsNote chat="story" name="The narrator" />
+      <AuthorsNote chat="story" name="The narrator" story />
       <label className="visually-hidden" htmlFor="story-text">What you do or say</label>
       <textarea id="story-text" rows={2} value={text} maxLength={40000} placeholder="What do you do or say?"
         onChange={(event) => setText(event.target.value)} onKeyDown={onKeyDown} />

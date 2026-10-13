@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileText } from 'lucide-react'
 import { api } from '../../api'
@@ -9,12 +9,12 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 const COUNT_FROM = 800
 const SAVE_AFTER_MS = 600
 const PHONE = '(max-width: 720px)'
-const SPOKEN: Record<Look, string> = { off: 'empty', on: 'on', paused: 'switched off' }
-const RETRO: Record<Look, string> = { off: '[note]', on: '[note*]', paused: '[note off]' }
+const SPOKEN: Record<Look, string> = { off: 'empty', on: 'on', paused: 'off' }
+const RETRO: Record<Look, string> = { off: '[note]', on: '[note on]', paused: '[note off]' }
 
 /** The note button left of the message box, and the note itself: a tray pulled up over the bottom of the chat on a
  * computer, a sheet from the bottom of the screen on a phone. What is typed saves itself; nothing to confirm. */
-export function AuthorsNote({ chat, name }: { chat: string; name: string }) {
+export function AuthorsNote({ chat, name, story = false }: { chat: string; name: string; story?: boolean }) {
   const note = useNote(chat)
   const dialog = useRef<HTMLDialogElement>(null)
   const button = useRef<HTMLButtonElement>(null)
@@ -26,7 +26,8 @@ export function AuthorsNote({ chat, name }: { chat: string; name: string }) {
     if (!element) return
     if (window.matchMedia(PHONE).matches) element.showModal(); else element.show()
     setOpen(true)
-    area.current?.focus({ preventScroll: true })
+    const box = area.current
+    if (box) { box.focus({ preventScroll: true }); box.setSelectionRange(box.value.length, box.value.length) }
   }
   const close = () => { dialog.current?.close() }
   useEffect(() => {
@@ -36,6 +37,13 @@ export function AuthorsNote({ chat, name }: { chat: string; name: string }) {
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
   }, [open])
+  // The box grows with the note (up to its maximum height in styles.css), so a long note reads whole.
+  useLayoutEffect(() => {
+    const box = area.current
+    if (!box || !open) return
+    box.style.height = 'auto'
+    box.style.height = `${box.scrollHeight + box.offsetHeight - box.clientHeight}px`
+  }, [note.text, open])
   const first = note.text.trim().split('\n')[0]
   return <>
     <button ref={button} type="button" className="button composer-note" data-state={look} aria-expanded={open} aria-controls={`note-${chat}`}
@@ -54,12 +62,12 @@ export function AuthorsNote({ chat, name }: { chat: string; name: string }) {
         </div>
         <label className="visually-hidden" htmlFor={`note-text-${chat}`}>Author's note for this chat</label>
         <textarea ref={area} id={`note-text-${chat}`} value={note.text} maxLength={NOTE_LIMIT} rows={4} aria-describedby={`note-help-${chat}`}
-          placeholder={`Steer the scene for every reply in this chat. ${name} won't see it as a message.`}
+          placeholder={story ? 'Steer the story for every narration. It never shows in the story.' : `Steer the scene for every reply in this chat. ${name} won't see it as a message.`}
           onChange={(event) => note.change(event.target.value, note.enabled)} />
         {note.text.length > COUNT_FROM && <span className="note-count subtle" aria-live="polite">{note.text.length} / {NOTE_LIMIT}</span>}
         {note.error instanceof Error && <ErrorNotice error={note.error} />}
         <div className="note-foot">
-          <span id={`note-help-${chat}`} className="subtle">This chat only. Sent with every reply, never saved as a message or memory.</span>
+          <span id={`note-help-${chat}`} className="subtle">{story ? 'This story only. Sent with every narration, never saved as a message or memory.' : 'This chat only. Sent with every reply, never saved as a message or memory.'}</span>
           <button type="button" className="text-button desktop-only" disabled={!note.text} onClick={() => { note.change('', note.enabled, true); area.current?.focus() }}>Clear</button>
         </div>
         <button type="button" className="button primary note-done phone-only" onClick={close}>Done</button>

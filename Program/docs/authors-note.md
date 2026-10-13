@@ -32,7 +32,7 @@ It was A/B tested before shipping (see the v0.10 Author's note thread).
 ## In the app
 
 A note button sits left of the message box in every chat style (Bubbles, Community, Feed, Novel; Retro shows it as
-a text button `[note]`, `[note*]` when on and `[note off]` when written but switched off). Empty, it is quiet grey;
+a text button `[note]`, `[note on]` when on and `[note off]` when written but switched off). Empty, it is quiet grey;
 on, it is lit in the accent with a dot, and hovering shows the note's first line; written but switched off, it has
 an accent outline and no dot. On a computer the note pulls up from the message box as a tray over the bottom of
 the chat, so nothing in the chat moves; on a phone it is a bottom sheet with a Done button. What is typed saves
