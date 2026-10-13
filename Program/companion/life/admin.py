@@ -671,7 +671,18 @@ def item_view(item: dict, definition: dict) -> dict:
             'place': item['place']['name'] if item['place'] else '',
             'moved_from': item['moved_from'], 'moved_reason': REASONS.get(item['moved_reason'] or '', ''),
             'moves': item['moves'], 'deadline': item['deadline'],
-            'cost_text': money.amount(cost, found.city['currency']) if found and cost else '', 'movable': True}
+            'cost_text': money.amount(cost, found.city['currency']) if found and cost else '', 'movable': True,
+            'detail': work_detail(item)}
+
+
+def work_detail(item: dict) -> str:
+    """A late night's project ("Antibiotic stewardship review"), shown under its title (companion/life/work.py)."""
+    prefix = 'stayed late at work on '
+    if item['source'] != 'work' or not item['done_text'].startswith(prefix):
+        return ''
+    project = item['done_text'][len(prefix):]
+    project = project[4:] if project.startswith('the ') else project[2:] if project.startswith('a ') else project
+    return project[:1].upper() + project[1:]
 
 
 def shown_item(key: str, source: str, kind: str, title: str, day: str, today: date, cost_text: str = '',
@@ -681,7 +692,7 @@ def shown_item(key: str, source: str, kind: str, title: str, day: str, today: da
     return {'id': key, 'key': key, 'source': source, 'kind': kind, 'title': title, 'line': '', 'local_date': day,
             'at_time': '', 'until': '', 'fixed': fixed, 'status': 'planned' if day >= today.isoformat() else 'done',
             'place': '', 'moved_from': None, 'moved_reason': '', 'moves': 0, 'deadline': None, 'cost_text': cost_text,
-            'movable': False}
+            'movable': False, 'detail': ''}
 
 
 def home_items(connection, companion: dict, start: date, end: date, now=None) -> list[dict]:

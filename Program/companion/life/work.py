@@ -63,6 +63,8 @@ AHEAD_DAYS = 14
 RECENT_DAYS = 30
 # Days off the agenda shows for work life (agenda.holiday_block), by the name it is given.
 LABELS = {'Vacation': 'Vacation day', 'Job hunt': 'Job hunting'}
+LATE_TITLE = 'Late night at work'
+LATE_DONE = 'stayed late at work on '
 WORKLOAD_WORDS = {'slammed': 'Slammed this week', 'normal': 'An ordinary week at work', 'slow': 'A slow week at work'}
 
 # The kind of work a career is, by its sector (any word of it), for the project bank.
@@ -492,7 +494,7 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
             title = found['project']['title']
             added += bool(admin.add(
                 connection, companion, key=f'work:late:{monday.isoformat()}:{index}', source='work', kind='late-night',
-                title=f'Working late on {title}', done=f'stayed late at work on {title}', day=day,
+                title=LATE_TITLE, done=f'{LATE_DONE}{title}', day=day,
                 at=block['end'] if block['end'] > block['start'] else None, minutes=min(minutes, 180),
                 fixed=chosen >= 2, deadline=last, out=False, now=now))
     return added

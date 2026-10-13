@@ -281,7 +281,7 @@ export interface WorkspaceSettings {
   adult_side?: boolean
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
-  /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
+  /** The numbers behind their life (home and work), such as upkeep meters (Settings > Realism > Hidden values). */
   show_home_meters?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
@@ -1695,6 +1695,8 @@ export interface AdminItem {
   cost_text: string
   /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
   movable: boolean
+  /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */
+  detail?: string
 }
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }

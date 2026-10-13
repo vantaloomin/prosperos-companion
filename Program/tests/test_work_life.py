@@ -108,7 +108,7 @@ def test_a_slammed_week_puts_late_nights_on_the_calendar_that_hold_against_dinne
     late = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['source'] == 'work']
     assert 1 <= len([item for item in late if item['local_date'] <= '2026-10-11']) <= 2
     first = late[0]
-    assert first['title'].startswith('Working late on ') and first['at_time'] == '17:00' and first['fixed']
+    assert first['title'] == 'Late night at work' and first['detail'] and first['at_time'] == '17:00' and first['fixed']
     # Dinner asked for that evening goes to another day, and the reply names the late night.
     provider.replies.append([Chunk("I'm stuck at work then, how about another night?"), Chunk('', 'stop')])
     day = date.fromisoformat(first['local_date']).strftime('%A')

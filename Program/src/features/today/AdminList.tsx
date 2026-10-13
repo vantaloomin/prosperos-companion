@@ -11,7 +11,7 @@ export const FOLD = 3
 
 /** Appointments, errands and chores (companion/life/admin.py), each movable to another day. Shared by Today's Plans
  * and the Character page's Life admin panel. */
-export function AdminList({ items, done = false, fold = FOLD }: { items: AdminItem[]; done?: boolean; fold?: number | null }) {
+export function AdminList({ items, done = false, fold = FOLD, inWorkPanel = false }: { items: AdminItem[]; done?: boolean; fold?: number | null; inWorkPanel?: boolean }) {
   const client = useQueryClient()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
@@ -36,12 +36,13 @@ export function AdminList({ items, done = false, fold = FOLD }: { items: AdminIt
             <li key={item.id} className="admin-item">
               <div className="admin-head">
                 <strong>{item.title}</strong>
-                {adminTags(item).map((tag) => <span key={tag} className="badge">{tag}</span>)}
+                {adminTags(item, inWorkPanel).map((tag) => <span key={tag} className="badge">{tag}</span>)}
               </div>
               <div className="admin-when">
                 <p className="subtle">{adminWhen(item)}</p>
                 {!done && item.movable && <button type="button" className="text-button" disabled={busy === item.id} aria-label={`Move ${item.title} to another day`} onClick={() => void move(item.id)}><CalendarClock aria-hidden="true" />Move to another day</button>}
               </div>
+              {item.detail && <p className="subtle">{item.detail}</p>}
               {item.line && <p className="subtle">{item.line}.</p>}
               {moved && <p className="subtle">{moved}</p>}
             </li>
