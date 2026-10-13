@@ -43,6 +43,8 @@ BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'kitchen'
 DIETS = ('omnivore', 'pescatarian', 'vegetarian', 'vegan')
 AVOIDS = ('nuts', 'shellfish', 'dairy', 'gluten', 'pork')
 SKILLS = ("can't really cook", 'keeps it simple', 'a good home cook', 'a serious cook')
+# The same, said to them in the chat's kitchen section.
+YOUR_SKILLS = ("you can't really cook", 'you keep it simple', 'you are a good home cook', 'you are a serious cook')
 # New dinners and grocery runs are woven into the companion's agenda entries, and now and then they ask the user over;
 # tests turn these off.
 WEAVE = True
@@ -799,7 +801,7 @@ def context_lines(connection, timeline_id: str, definition: dict, world, now, ti
     today, era_modern = local.date(), modern_bank(found.found['bank'])
     me = found.found
     baking = ' and you love baking' if me.get('bakes') else ''
-    lines = [(f'kitchen:{timeline_id}:you', f"- In the kitchen you are {skill_text(me)}{baking}; you "
+    lines = [(f'kitchen:{timeline_id}:you', f"- In the kitchen {YOUR_SKILLS[me['skill']]}{baking}; you "
                                             f"{diet_text(me, 'you')}.")]
     if me.get('favorites'):
         lines.append((f'kitchen:{timeline_id}:favorites', f"- Dishes you make a lot: {listing(me['favorites'])}."))

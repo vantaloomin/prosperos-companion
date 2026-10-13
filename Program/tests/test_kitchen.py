@@ -164,7 +164,9 @@ def test_takeout_counts_as_spending_and_the_chat_knows_dinner(client, kim, provi
     provider.replies.append([Chunk('Hey!'), Chunk('', 'stop')])
     send(client, 'What are you having for dinner?', 'client-kitchen-1')
     prompt = provider.requests[-1]['prompt']
-    assert '## Your kitchen and meals' in prompt and 'In the kitchen you are' in prompt and 'Dinner tonight:' in prompt
+    assert '## Your kitchen and meals' in prompt and 'Dinner tonight:' in prompt
+    # Said to them in plain grammar, whatever their skill ("you can't really cook", never "you are can't...").
+    assert any(f'- In the kitchen {skill}' in prompt for skill in kitchen.YOUR_SKILLS)
 
 
 def test_cooking_nights_name_the_dish_in_their_day(client, kim, clock):
