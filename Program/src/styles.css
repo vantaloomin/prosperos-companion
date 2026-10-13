@@ -570,6 +570,20 @@ textarea { resize: vertical; line-height: 1.6; }
 .upkeep-numbers { margin: 0; font-variant-numeric: tabular-nums; }
 .upkeep-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .upkeep-controls .field { flex: 1 1 220px; max-width: 320px; }
+/* How they look lately (src/features/character/LooksLately.tsx): label and words side by side, stacked on a phone. */
+.looks-lines { margin: 0; display: grid; gap: 6px; }
+.looks-lines > div { display: grid; grid-template-columns: 9rem 1fr; gap: 8px; align-items: baseline; }
+.looks-lines dt { color: var(--muted); }
+.looks-lines dd { margin: 0; }
+.looks-numbers { font-size: 0.875rem; border-top: 1px solid var(--border); padding-top: 8px; }
+.looks-numbers::before { content: 'Numbers'; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.looks-changes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.looks-changes li { display: grid; grid-template-columns: 5rem 1fr; gap: 8px; align-items: baseline; }
+.looks-changes time { color: var(--muted); }
+.looks-bold { margin-left: 8px; vertical-align: 1px; }
+@media (max-width: 520px) {
+  .looks-lines > div, .looks-changes li { grid-template-columns: 1fr; gap: 0; }
+}
 .wardrobe-group summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
 .wardrobe-group[open] summary { margin-bottom: 4px; }
 .wardrobe-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }

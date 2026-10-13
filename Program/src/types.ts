@@ -121,6 +121,8 @@ export interface Looks {
   hair: string
   facial_hair: string
   feature: string
+  /** What the app filled in when a townsperson became a companion; still-equal fields may change over time. */
+  drawn?: Partial<Record<string, string | number>>
 }
 
 export interface CharacterDefinition {
@@ -190,7 +192,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -435,6 +437,8 @@ export interface LifeSettings {
   drama: number
   /** Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy. */
   upkeep_realism: number
+  /** Looks that change (companion/life/grooming.py): never (0), now and then, like real life (2), often (3). */
+  looks_realism: number
   /** Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   pets_realism: number
   pets_can_die: boolean
@@ -1237,6 +1241,24 @@ export interface WardrobeView {
   profile: { styles: string[]; size: number; count: number; tier: number; spending: string; work: string | null; career: string | null; summary: string }
   categories: WardrobeCategory[]
   labels: Record<WardrobeCategory, string>
+}
+
+/** How the companion looks lately (companion/life/grooming.py `view`). */
+export interface GroomingView {
+  today: string
+  /** The user keeps their looks as they are. */
+  kept: boolean
+  /** Settings > Realism: 0 never, 1 now and then, 2 like real life, 3 often. */
+  level: number
+  level_name: string
+  lines: { label: string; text: string }[]
+  /** Looks fields the user wrote, which never change. */
+  fixed: string[]
+  /** Pictured with a LoRA: gradual changes only. */
+  lora: boolean
+  changes: { local_date: string; kind: string; text: string; bold: boolean }[]
+  /** Hidden values on: the numbers behind the words. */
+  numbers: { label: string; value: string }[] | null
 }
 
 /** A townsperson the companion has met around the city: only what the companion has learned so far. */

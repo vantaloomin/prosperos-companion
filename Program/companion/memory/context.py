@@ -26,6 +26,7 @@ from companion.life import (
     disruptions,
     dreams,
     encounters,
+    grooming,
     home,
     money,
     network,
@@ -292,12 +293,13 @@ def list_lines(definition) -> list[str]:
     return lines
 
 
-def character_text(version, connection=None, intimate: bool = False) -> str:
+def character_text(version, connection=None, intimate: bool = False, day: str | None = None) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral.
 
     With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced. `intimate` adds
     their adult side when Settings > Realism turns it on (companion/world/intimacy.py): only their own chat prompt
-    asks for it, never prompts whose words end up somewhere else (life events, the feed).
+    asks for it, never prompts whose words end up somewhere else (life events, the feed). Their looks are as on `day`
+    (companion/life/grooming.py: a haircut, new nails, a tan, a bold change), the latest day of their life without one.
     """
     definition = version['definition']
     lines = [prompt_library.text(connection, 'chat-character', name=definition['name'],
@@ -308,7 +310,8 @@ def character_text(version, connection=None, intimate: bool = False) -> str:
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
-    if version.get('companion_id') and (sheet := looks.text(looks.for_companion(version['companion_id'], definition))):
+    if version.get('companion_id') and (sheet := looks.text(grooming.sheet(connection, version['companion_id'],
+                                                                          definition, day))):
         lines.append(f'Looks: {sheet}')
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
@@ -786,8 +789,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     if group is not None:
         recent, older = [], messages + group['older']
     packet = Packet(budget)
-    packet.require('character', version['id'], character_text(version, connection, intimate=True))
-    if who := persona_text(connection, now.astimezone(zone(version['timezone'])).date()):
+    today = now.astimezone(zone(version['timezone'])).date().isoformat()
+    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today))
+    if who := persona_text(connection, date.fromisoformat(today)):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))

@@ -43,6 +43,7 @@ from companion.imports import routes as import_routes
 from companion.launcher import Launcher
 from companion.launcher_routes import router as launcher_router
 from companion.life import (
+    grooming_routes,
     home_routes,
     outings,
     pets_routes,
@@ -257,6 +258,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(pets_routes.router)
     app.include_router(wardrobe_routes.router)
     app.include_router(upkeep_routes.router)
+    app.include_router(grooming_routes.router)
     app.include_router(traditions_routes.router)
     app.include_router(scrapbook_routes.router)
     app.include_router(life_routes.today_router)

@@ -84,6 +84,9 @@ class Looks(Input):
     hair: str = Field(default='', max_length=200)
     facial_hair: str = Field(default='', max_length=120)
     feature: str = Field(default='', max_length=200)
+    # The values the app filled in when a townsperson became a companion (companion/cast.py): a field still equal to
+    # its drawn value is the app's, so it may change over time (companion/life/grooming.py); one the user edited is not.
+    drawn: dict[str, int | str] = Field(default_factory=dict, max_length=20)
 
 
 class CharacterDefinition(Input):
@@ -400,6 +403,8 @@ class LifeSettingsUpdate(Input):
     paced_replies: bool | None = None
     day_shifts: bool | None = None
     on_her_mind: bool | None = None
+    # Looks that change (companion/life/grooming.py): never (0), now and then, like real life, often (3).
+    looks_realism: int | None = Field(default=None, ge=0, le=3)
     # Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic.
     pets_realism: int | None = Field(default=None, ge=0, le=3)
     pets_can_die: bool | None = None

@@ -1885,6 +1885,35 @@ CREATE TABLE IF NOT EXISTS authors_notes (
   enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
   updated_at TEXT NOT NULL
 );
+-- Looks that change (companion/life/grooming.py): the companion's grooming habits, drawn once per timeline, and
+-- whether the user keeps their looks as they are. `next_period` is the first two-week period not yet fully drawn.
+CREATE TABLE IF NOT EXISTS grooming_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  started TEXT NOT NULL,
+  profile TEXT NOT NULL,
+  next_period INTEGER NOT NULL DEFAULT 0,
+  kept INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+-- Each looks change on the local date it happens, one per period and track (hair, nails, sun, bold). `change` holds
+-- what it sets (a colour, cut, nail look, tan, glasses or facial hair); `spend` is a paid one's price tier.
+CREATE TABLE IF NOT EXISTS grooming_log (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  period INTEGER NOT NULL,
+  track TEXT NOT NULL CHECK (track IN ('hair', 'nails', 'sun', 'bold')),
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  change TEXT NOT NULL,
+  text TEXT NOT NULL,
+  spend TEXT NOT NULL DEFAULT '',
+  bold INTEGER NOT NULL DEFAULT 0 CHECK (bold IN (0, 1)),
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, period, track)
+);
+CREATE INDEX IF NOT EXISTS grooming_log_day ON grooming_log(timeline_id, local_date);
 -- Pets with lives of their own (companion/life/pets.py): what happened to each pet, written once as the days pass
 -- so the past stays put when a Realism setting changes. `pet_key` names the pet: 'home:<home_items id>' for the
 -- companion's, 'circle:<circle_people id>:<n>', 'town:<townsperson key>' or 'persona:<name>'. `until` ends a sick

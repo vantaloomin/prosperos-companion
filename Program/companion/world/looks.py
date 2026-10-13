@@ -250,12 +250,12 @@ def picture(sheet: dict, who: str) -> str:
     if sheet.get('age'):
         opening += f" in {possessive} {age_words(sheet['age'])}"
     eyes = ' '.join(part for part in (sheet.get('eye_shape'), sheet.get('eyes')) if part)
-    parts = [f"{sheet['skin']} skin" if sheet.get('skin') else '',
+    parts = [skin_text(sheet),
              article(f"{sheet['face']} face") if sheet.get('face') else '', sheet.get('jaw') or '', sheet.get('nose') or '',
              f'{eyes} eyes' if eyes else '', (sheet.get('hair') or '').replace(', ', ' '), sheet.get('facial_hair') or '',
-             sheet.get('feature') or '']
+             sheet.get('feature') or '', sheet.get('glasses') or '', sheet.get('nails') or '']
     parts = [seen(part) for part in parts]
-    if 'nose' in parts[-1] and parts[3]:
+    if 'nose' in parts[7] and parts[3]:
         parts[3] = ''  # the feature says how their nose looks
     parts = [part for part in parts if part]
     if not parts:
@@ -264,17 +264,25 @@ def picture(sheet: dict, who: str) -> str:
     return f'{opening[:1].upper()}{opening[1:]} with {listed}.'
 
 
+def skin_text(sheet: dict) -> str:
+    """'olive skin', with a tan when they have one (companion/life/grooming.py)."""
+    if not sheet.get('skin'):
+        return ''
+    return f"{sheet['skin']} skin with {sheet['tan']}" if sheet.get('tan') else f"{sheet['skin']} skin"
+
+
 def text(sheet: dict) -> str:
     """The sheet for their own prompt, so they can answer "how tall are you?" the way their pictures show them."""
     parts = [f"{sheet['age']} years old" if sheet.get('age') else '',
              height_text(sheet['height_cm']) if sheet.get('height_cm') else '',
              weight_text(sheet['weight_kg']) if sheet.get('weight_kg') else '',
              f"{sheet['build']} build" if sheet.get('build') else '',
-             f"{sheet['skin']} skin" if sheet.get('skin') else '',
+             skin_text(sheet),
              f"{sheet['face']} face" if sheet.get('face') else '', sheet.get('jaw') or '', sheet.get('nose') or '',
              ' '.join(part for part in (sheet.get('eye_shape'), sheet.get('eyes'), 'eyes') if part)
              if sheet.get('eyes') or sheet.get('eye_shape') else '',
-             sheet.get('hair') or '', sheet.get('facial_hair') or '', sheet.get('feature') or '']
+             sheet.get('hair') or '', sheet.get('facial_hair') or '', sheet.get('feature') or '',
+             sheet.get('glasses') or '', sheet.get('nails') or '']
     return ', '.join(part for part in parts if part)
 
 

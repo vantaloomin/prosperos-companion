@@ -132,13 +132,14 @@ def outfit_of(companion_id: str) -> str:
     return outfits_for(companion_id)[0]
 
 
-def description(companion: dict) -> str:
+def description(companion: dict, connection=None) -> str:
     """Their looks in words, what the appearance says a camera can see, and an everyday outfit unless the
-    appearance already says what they wear."""
+    appearance already says what they wear. Their looks follow bold changes (a new colour, a big cut, new glasses:
+    companion/life/grooming.py), so a bold change makes a new sheet; a trim or a manicure does not."""
     definition = companion['version']['definition']
     # The user's own In photos line, when they wrote one, is what every picture of them follows, this sheet included.
     appearance = (definition.get('in_photos') or '').strip() or definition.get('appearance', '')
-    looks, who = prompts.sheet_for(companion, definition)
+    looks, who = prompts.sheet_for(companion, definition, connection, bold_only=True)
     look = prompts.in_photos(definition, who)
     subject = prompts.PRONOUNS[who][0]
     dressed = any(prompts.clothing(clause) for clause in re.split(r'[.!?,;]', appearance) if clause.strip())
@@ -196,7 +197,7 @@ async def ensure(database, adapter, backend: dict, config: dict, key, raw_dir, c
         companion = by_id(connection, companion_id)
         if companion is None:
             return None
-        text = description(companion)
+        text = description(companion, connection)
         mark = fingerprint(text)
         existing = stored(database, connection, companion_id, mark)
         if existing is not None:

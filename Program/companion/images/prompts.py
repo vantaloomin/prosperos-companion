@@ -10,7 +10,7 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import feed, home, pets, traditions, upkeep, wardrobe
+from companion.life import feed, grooming, home, pets, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
@@ -262,6 +262,9 @@ PICTURES = {
     'own-birthday': 'celebrating {possessive} own birthday at a table, a cake with candles in front of {possessive}',
     'gathering': 'gathered around a table with family and friends',
     'tradition': 'at a holiday table with family, the dishes passed around',
+    # A visit for their looks (companion/life/grooming.py): the new look is in the sheet that opens the picture.
+    'salon': 'just out of the salon, showing off a fresh new look',
+    'nail-salon': 'holding up freshly done nails to show them off',
 }
 CALLS = ('called', 'phone')
 
@@ -289,10 +292,12 @@ def drawn_as(definition) -> str:
     return who
 
 
-def sheet_for(companion, definition) -> tuple[str, str]:
-    """Their looks sheet (companion/world/looks.py) in words, and the pronoun to draw them with."""
+def sheet_for(companion, definition, connection=None, day=None, bold_only=False) -> tuple[str, str]:
+    """Their looks sheet (companion/world/looks.py) in words, and the pronoun to draw them with. With a connection it
+    is their looks on that local day (companion/life/grooming.py: haircuts, nails, a tan, bold changes), the latest
+    day of their life without one; `bold_only` keeps to the bold changes (the Codex reference sheet)."""
     who = drawn_as(definition)
-    return looks.picture(looks.for_companion(companion['id'], definition), who), who
+    return looks.picture(grooming.sheet(connection, companion['id'], definition, day, bold_only), who), who
 
 
 def in_photos(definition, who=None, dressed=False) -> str:
@@ -329,7 +334,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     first = {**events[0], 'hour': local_hour(events[0]['starts_at'], companion['version']['timezone']),
              'weather': events[0]['moment'].get('weather'), 'activity': events[0]['moment'].get('activity'),
              'with': events[0]['moment'].get('with')}
-    sheet, who = sheet_for(companion, definition)
+    sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
     prompt = pet_prompt(connection, post['timeline_id'], first, image_settings)
     if prompt:
@@ -401,7 +406,7 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
                                                     'activity', 'with')}
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
-    sheet, who = sheet_for(companion, definition)
+    sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
     look = '' if framing == 'view' else in_photos(definition, who, bool(wearing))
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),
                      framing, who, '' if framing == 'view' else sheet, look)
@@ -422,7 +427,7 @@ def build_meme(connection, meme, image_settings) -> dict:
         prompt = f"Reaction-meme style photo, simple and centered: {meme['subject']}. A fictional scene."
         likeness = {**current_for_images(connection), 'lora': None}
     else:
-        sheet, who = sheet_for(companion, definition)
+        sheet, who = sheet_for(companion, definition, connection)
         look = in_photos(definition, who)
         prompt = (f"Reaction-meme style photo, simple and centered, of a fictional person with a {meme['expression']} "
                   f"expression{meme['where']}, room above and below the face. {sheet} {look}.").rstrip(' .') + '.'
