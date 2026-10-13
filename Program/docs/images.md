@@ -18,7 +18,25 @@ backend is off until the user sets it up, and text never waits for an image. The
   machine they control. A remote address otherwise counts as hosted (F6). The app only connects to
   the server the user entered; it never starts, stops or restarts one. Cancelling removes the
   app's own prompt from the queue, or interrupts it only when it is the prompt running.
-- **The built-in workflow** (`workflows/krea2-turbo.json`) targets Krea 2 Turbo with the files
+- **Model family.** Each ComfyUI backend has a **Model family** (Vanta, 2026-10-13: not Krea 2
+  every time), stored as `family` in its config and Krea 2 when unset. It picks the built-in
+  workflow, which files the pickers list first, the sampling the workflow starts on, and whether there
+  is a built-in reference workflow. Changing it clears file and sampling choices made for the old
+  family; style LoRAs and the user's own workflows stay. Untested on a real server except Krea 2;
+  the others follow ComfyUI's own templates (`comfyui-workflow-templates`) and the models' pages:
+
+  | Family | Built-in workflow | Files (defaults) | Sampling | Reference |
+  | --- | --- | --- | --- | --- |
+  | Krea 2 (`krea2`) | `krea2-turbo.json` | as below | 8 steps, CFG 1, euler, simple | Krea 2 Identity Edit (below) |
+  | Qwen Image 2.1 (`qwen21`) | `qwen-image-2.1-turbo.json` | `qwen_image_2.1_turbo_int8_convrot`, `qwen3vl_8b_int8_convrot` (type `qwen_image`), `qwen_image_2.1_vae_bf16`; prompt through `TextEncodeQwenImage21` | 8 steps, CFG 1, euler, simple (Turbo) | `qwen-image-2.1-turbo-reference.json`: the picture goes to `TextEncodeQwenImage21` as `image_1`, core nodes only |
+  | Anima (`anima`) | `anima-turbo.json` | `anima-turbo-v1.1`, `qwen_3_06b_base` (type `stable_diffusion`), `qwen_image_vae`; its README's quality tags around the prompt | 10 steps, CFG 1, euler, simple (Turbo) | none |
+  | Booru (`booru`: SDXL, Pony, Illustrious) | `booru-sdxl.json` | one checkpoint (`ckpt_name`, `Illustrious-XL-v2.0`), clip skip 2, `masterpiece, best quality, score_9, score_8_up, score_7_up` ahead of the prompt | 28 steps, CFG 6, euler_ancestral, normal | none |
+
+  The adopted character LoRA is trained on Krea 2, so only Krea 2 applies it. Anima and Booru
+  backends start their prompts as an "Anime illustration" unless the backend has a style of its own
+  (`backends.own_style`). A family without a built-in reference workflow takes a reference only with
+  the user's own (`takes_reference`).
+- **The built-in Krea 2 workflow** (`workflows/krea2-turbo.json`) targets Krea 2 Turbo with the files
   ComfyUI's own Krea 2 template uses: `UNETLoader` with `krea2_turbo_fp8_scaled.safetensors`,
   `CLIPLoader` of type `krea2` with `qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`,
   8 steps at CFG 1 with euler and simple. Verified on Windows with an RTX 5090 and ComfyUI 0.39.0,
@@ -34,7 +52,7 @@ backend is off until the user sets it up, and text never waits for an image. The
   means the default file. Names are kept exactly as the server lists them, subfolder and all (a
   Windows server lists `Krea 2\model.safetensors`). When the server cannot be reached the names can
   be typed. A custom workflow is used as given and ignores these choices. Krea 2's files are listed
-  first and **Only Krea 2 files** (on by default) narrows each list to them: a model or LoRA whose
+  first and **Only Krea 2 files** (on by default; named for the backend's family) narrows each list to them: a model or LoRA whose
   path matches `krea`, `kr2` or `kera` (so a `Krea 2\` folder counts), the Qwen3-VL 4B encoder and
   a Qwen VAE (`adapters/comfyui.KREA_FILES`). ComfyUI cannot say a file's model family, so this only
   sorts; the current choice always stays in the list, and the toggle shows everything.
@@ -357,8 +375,8 @@ All writes need the `x-companion-client: workspace` header.
 | `POST /api/images/backends/{id}/check` | `{ok, summary, details, install}`; spends no generation quota; `install` lists node packs (`{id, label}`) the app can put into a ComfyUI on this computer |
 | `POST /api/images/backends/{id}/install-nodes/{pack}` | Installs a listed node pack into that ComfyUI's custom_nodes (loopback only, PC only); `{installed, folder}` |
 | `GET /api/images/backends/{id}/workflows` | ComfyUI's saved `{workflow, reference_workflow}` text (empty when unset) and the built-in ones as `built_in` and `built_in_reference`, for editing on the PC; refused from a paired phone |
-| `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, sampler_defaults, options, krea, character_lora}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, Krea 2's first and listed in `krea` |
-| `GET /api/images/model-links` | `{links: [{name, role, file, url, licence}]}`: download pages for the built-in workflow's files |
+| `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, family, defaults, sampler_defaults, options, matching, character_lora}`, the files the server offers each of the family's built-in loaders (`unet_name`, `clip_name`, `clip_type`, `vae_name`, or `ckpt_name`) its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, the family's own first and listed in `matching` |
+| `GET /api/images/model-links` | `{links: [{name, role, file, url, licence, family}]}`: download pages for each family's built-in workflow files |
 | `POST /api/images/backends/{id}/unblock` | The user signed in to Codex again |
 | `POST /api/images/preview` | `{post_id, marked_nsfw?}`: the prompt, classification and route, without queuing |
 | `POST /api/images/jobs` | `{post_id, backend_id?, marked_nsfw?}`: queue a manual image |

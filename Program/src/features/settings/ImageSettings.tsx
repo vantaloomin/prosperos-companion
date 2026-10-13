@@ -4,14 +4,14 @@ import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { useRefetchOnFocus } from '../../paths'
 import { usePhoneStatus } from '../phone/phoneAccess'
-import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
+import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageFamily, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
-import { FILE_SLOTS, MAX_STYLE_LORAS, NEW_STYLE_LORA, NO_CHOICE, TURBO, fileChoices, filesBody, hasKrea, isChosen, isTuned, linksByRole, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
@@ -114,6 +114,7 @@ function BackendSetup({ backend, phone, put, putWorkflow }: { backend: ImageBack
   return <>
     {(!phone || phoneEdits(backend)) && <BackendConnection backend={backend} save={put} />}
     <BackendStyle backend={backend} save={(style) => put({ style })} />
+    {backend.kind === 'comfyui' && <FamilyPicker backend={backend} save={(family) => put({ family })} />}
     <ComfyFiles backend={backend} put={put} />
     {backend.kind === 'comfyui' && !phone && <>
       <WorkflowEditor backend={backend} field="workflow" save={(value) => putWorkflow({ workflow: value })} />
@@ -271,16 +272,31 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
   )
 }
 
+/** Which kind of model this server runs, so the built-in workflow, its files, sampling and prompt style suit it
+ * (Vanta, 2026-10-13). Krea 2 until changed; saved on change. A workflow of the user's own runs whatever it says. */
+function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (family: ImageFamily) => Promise<boolean> }) {
+  const family = familyOf(backend.family)
+  const custom = backend.custom_workflow
+  const hint = custom ? 'Your own workflow is used for pictures; the family still sets the reference workflow and the prompt style.'
+    : `Picks the built-in workflow and starts its files and sampling on ${family.sampling}'s.${family.reference ? '' : ` ${family.label} has no built-in way to follow a reference picture.`}`
+  return <Field label="Model family" hint={hint}>{(id, describedBy) => (
+    <select id={id} aria-describedby={describedBy} value={backend.family ?? 'krea2'} onChange={(event) => void save(event.target.value as ImageFamily)}>
+      {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
+    </select>
+  )}</Field>
+}
+
 /** The built-in workflow's model, text encoder and VAE, picked from the files the ComfyUI server
  * lists. The server is only asked once this is opened; a server that cannot be asked takes typed names. */
 function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; saved: ModelFiles; save: (files: ModelFiles) => Promise<boolean> }) {
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<Partial<ModelFiles>>({})
-  const [kreaOnly, setKreaOnly] = useState(true)
-  const files = useBackendFiles(backend.id, open)
+  const [draft, setDraft] = useState<ModelFiles>({})
+  const [familyOnly, setFamilyOnly] = useState(true)
+  const family = familyOf(backend.family)
+  const files = useBackendFiles(backend, open)
   const links = useQuery({ queryKey: ['image-model-links'], queryFn: () => api<{ links: ModelLink[] }>('/images/model-links'), enabled: open, staleTime: Infinity })
   const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, saved)
-  const shown = shownFiles(draft, saved, server.defaults)
+  const shown = shownFiles(family.slots, draft, saved, server.defaults)
   const store = async (body: ModelFiles) => { if (await save(body)) setDraft({}) }
   return (
     <details onToggle={(event) => setOpen(event.currentTarget.open)}>
@@ -289,17 +305,24 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
         <p className="subtle">Pick the files your ComfyUI server has. The lists come from the server at this backend's address; nothing is downloaded or installed.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
-        {hasKrea(server.krea) && <Toggle label="Only Krea 2 files" checked={kreaOnly} onChange={setKreaOnly}
-          hint="Files whose name or folder says Krea 2 (or the Qwen encoder and VAE it uses). Turn off to see every file." />}
-        {server.answered && <div className="form-grid">
-          {FILE_SLOTS.map((slot) => <FileField key={slot.key} slot={slot} options={server.options[slot.key]} krea={kreaOnly ? server.krea[slot.key] : []} value={shown[slot.key]} fallback={server.defaults[slot.key]} onChange={(value) => setDraft({ ...draft, [slot.key]: value })} />)}
-        </div>}
+        {hasMatching(server.matching) && <Toggle label={`Only ${family.short} files`} checked={familyOnly} onChange={setFamilyOnly}
+          hint={`Files whose name or folder looks like ${family.short}'s. Turn off to see every file.`} />}
+        {server.answered && <FileSlots slots={family.slots} server={server} familyOnly={familyOnly} shown={shown} onChange={(key, value) => setDraft({ ...draft, [key]: value })} />}
         <FileActions changed={Object.keys(draft).length > 0} chosen={isChosen(saved)} busy={files.isFetching}
-          save={() => void store(filesBody(shown, server.defaults))} cancel={() => setDraft({})} reset={() => void store(NO_CHOICE)} refresh={() => void files.refetch()} />
-        <ModelLinks links={links.data?.links ?? []} />
+          save={() => void store(filesBody(family.slots, shown, server.defaults))} cancel={() => setDraft({})} reset={() => void store(noChoice(family.slots))} refresh={() => void files.refetch()} />
+        <ModelLinks links={links.data?.links ?? []} family={backend.family} />
       </div>
     </details>
   )
+}
+
+type ServerFiles = ReturnType<typeof serverFiles>
+
+function FileSlots({ slots, server, familyOnly, shown, onChange }: { slots: FileSlot[]; server: ServerFiles; familyOnly: boolean; shown: ModelFiles; onChange: (key: FileSlot['key'], value: string) => void }) {
+  return <div className="form-grid">
+    {slots.map((slot) => <FileField key={slot.key} slot={slot} options={server.options[slot.key]} matching={familyOnly ? server.matching[slot.key] : []}
+      value={shown[slot.key] ?? ''} fallback={server.defaults[slot.key] ?? ''} onChange={(value) => onChange(slot.key, value)} />)}
+  </div>
 }
 
 interface FileActionProps { changed: boolean; chosen: boolean; busy: boolean; save: () => void; cancel: () => void; reset: () => void; refresh: () => void }
@@ -331,22 +354,23 @@ function ComfyFiles({ backend, put }: { backend: ImageBackend; put: (body: objec
 function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved: SamplerSettings; save: (body: object) => Promise<boolean> }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<Partial<SamplerSettings>>({})
-  const files = useBackendFiles(backend.id, open)
-  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, NO_CHOICE)
+  const files = useBackendFiles(backend, open)
+  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, {})
   const defaults = files.data?.sampler_defaults ?? TURBO
+  const family = familyOf(backend.family)
   const shown = shownSampler(draft, saved, defaults)
   const store = async (body: object) => { if (await save(body)) setDraft({}) }
   const slot = (label: string, hint: string): FileSlot => ({ key: 'unet_name', label, role: null, hint })
   return (
     <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="subtle">Sampling {isTuned(saved) ? '(your settings)' : '(Krea 2 Turbo defaults)'}</summary>
+      <summary className="subtle">Sampling {isTuned(saved) ? '(your settings)' : `(${family.sampling} defaults)`}</summary>
       <div className="form-stack">
-        <p className="subtle">Starts on Krea 2 Turbo's settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
+        <p className="subtle">Starts on {family.sampling}'s settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
         <div className="form-grid">
           <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} hint="Turbo models need few." onChange={(steps) => setDraft({ ...draft, steps })} />
           <SliderNumber label="CFG" value={shown.cfg} min={0} max={30} step={0.5} hint="At 1 the negative prompt is ignored." onChange={(cfg) => setDraft({ ...draft, cfg })} />
-          <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} krea={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
-          <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} krea={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
+          <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} matching={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
+          <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} matching={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
         </div>
         <FileActions changed={Object.keys(draft).length > 0} chosen={isTuned(saved)} busy={files.isFetching}
           save={() => void store(shown)} cancel={() => setDraft({})} reset={() => void store(defaults)} refresh={() => void files.refetch()} />
@@ -356,20 +380,21 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
 }
 
 /** The server's file lists, asked once the panel is opened and shared by the file and LoRA pickers. */
-function useBackendFiles(id: string, open: boolean) {
-  const files = useQuery({ queryKey: ['image-backend-files', id], queryFn: () => api<BackendFiles>(`/images/backends/${id}/files`), enabled: open, staleTime: Infinity, retry: false })
+function useBackendFiles(backend: ImageBackend, open: boolean) {
+  // Each family lists its own loaders, so a new family asks the server again.
+  const files = useQuery({ queryKey: ['image-backend-files', backend.id, backend.family], queryFn: () => api<BackendFiles>(`/images/backends/${backend.id}/files`), enabled: open, staleTime: Infinity, retry: false })
   // A model dropped in ComfyUI's folders shows up when the user comes back to the app.
   useRefetchOnFocus(files.refetch, open)
   return files
 }
 
-/** A dropdown of the server's files (only `krea` when given), or a text box when it listed none. */
-function FileField({ slot, options, krea, value, fallback, onChange }: { slot: FileSlot; options: string[]; krea: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
+/** A dropdown of the server's files (only `matching` when given), or a text box when it listed none. */
+function FileField({ slot, options, matching, value, fallback, onChange }: { slot: FileSlot; options: string[]; matching: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
   const { label, hint, tip } = slot
   if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback} hint={hint} tip={tip} onChange={onChange} />
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => (
     <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
-      {fileChoices(options, value, krea, krea.length > 0).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      {fileChoices(options, value, matching, matching.length > 0).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
   )}</Field>
 }
@@ -379,8 +404,8 @@ function FileField({ slot, options, krea, value, fallback, onChange }: { slot: F
 function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; saved: StyleLora[]; save: (rows: StyleLora[]) => Promise<boolean> }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<StyleLora[] | null>(null)
-  const files = useBackendFiles(backend.id, open)
-  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, NO_CHOICE)
+  const files = useBackendFiles(backend, open)
+  const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, {})
   const store = async (body: StyleLora[]) => { if (await save(body)) setDraft(null) }
   return (
     <details onToggle={(event) => setOpen(event.currentTarget.open)}>
@@ -389,7 +414,7 @@ function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; save
         <p className="subtle">Extra LoRAs for the look of every picture from this server, such as a phone-photo or realism LoRA. They apply after the character's own LoRA, when one is adopted, in this order.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its LoRAs…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
-        {server.answered && <StyleLoraRows rows={draft ?? saved} options={server.options.lora} krea={server.krea.lora} setRows={setDraft} />}
+        {server.answered && <StyleLoraRows rows={draft ?? saved} options={server.options.lora} matching={server.matching.lora} short={familyOf(backend.family).short} setRows={setDraft} />}
         {draft && <FileActions changed chosen={false} busy={files.isFetching} save={() => void store(draft)} cancel={() => setDraft(null)} reset={() => undefined} refresh={() => void files.refetch()} />}
       </div>
     </details>
@@ -398,29 +423,29 @@ function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; save
 
 const LORA_SLOT: FileSlot = { key: 'unet_name', label: 'LoRA', role: null, hint: 'From ComfyUI\'s models/loras folder.' }
 
-function StyleLoraRows({ rows, options, krea, setRows }: { rows: StyleLora[]; options: string[]; krea: string[]; setRows: (rows: StyleLora[]) => void }) {
-  const [kreaOnly, setKreaOnly] = useState(true)
+function StyleLoraRows({ rows, options, matching, short, setRows }: { rows: StyleLora[]; options: string[]; matching: string[]; short: string; setRows: (rows: StyleLora[]) => void }) {
+  const [familyOnly, setFamilyOnly] = useState(true)
   const edit = (index: number, change: Partial<StyleLora>) => setRows(rows.map((row, at) => at === index ? { ...row, ...change } : row))
   return <>
-    {krea.length > 0 && <Toggle label="Only Krea 2 LoRAs" checked={kreaOnly} onChange={setKreaOnly} hint="LoRAs whose name or folder says Krea 2. Turn off to see every LoRA." />}
+    {matching.length > 0 && <Toggle label={`Only ${short} LoRAs`} checked={familyOnly} onChange={setFamilyOnly} hint={`LoRAs whose name or folder says ${short}. Turn off to see every LoRA.`} />}
     {rows.map((row, index) => <div key={index} className="form-grid">
-      <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} krea={kreaOnly ? krea : []} value={row.name} fallback="" onChange={(name) => edit(index, { name })} />
+      <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} matching={familyOnly ? matching : []} value={row.name} fallback="" onChange={(name) => edit(index, { name })} />
       <SliderNumber label="Strength" value={row.strength} min={-2} max={2} step={0.05} hint="0.6 to 0.8 suits most style LoRAs." onChange={(strength) => edit(index, { strength })} />
       <TextInput label="Trigger words" value={row.trigger} maxLength={200} hint="Put in front of the prompt when the LoRA needs them." onChange={(trigger) => edit(index, { trigger })} />
       <button type="button" className="text-button" onClick={() => setRows(rows.filter((_, at) => at !== index))}><Trash2 aria-hidden="true" />Remove</button>
     </div>)}
     {rows.length < MAX_STYLE_LORAS && <div className="form-actions">
-      <button type="button" className="button" onClick={() => setRows([...rows, { ...NEW_STYLE_LORA, name: (kreaOnly && krea[0]) || options[0] || '' }])}>Add a LoRA</button>
+      <button type="button" className="button" onClick={() => setRows([...rows, { ...NEW_STYLE_LORA, name: (familyOnly && matching[0]) || options[0] || '' }])}>Add a LoRA</button>
     </div>}
   </>
 }
 
 /** Official pages for the built-in workflow's files. Pages only, never a direct download. */
-function ModelLinks({ links }: { links: ModelLink[] }) {
-  const groups = linksByRole(links)
+function ModelLinks({ links, family }: { links: ModelLink[]; family: ImageFamily | null }) {
+  const groups = linksByRole(links, family ?? 'krea2')
   if (groups.length === 0) return null
   return <div>
-    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list. Pictures made from a reference also need the Krea 2 Identity Edit <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder; Check offers to install it. Check the license on each page before downloading.</p>
+    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list.{family === 'krea2' && <> Pictures made from a reference also need the Krea 2 Identity Edit <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder; Check offers to install it.</>} Check the license on each page before downloading.</p>
     <ul className="plain-list">
       {groups.flatMap(({ slot, links: items }) => items.map(link => <li key={link.name}>
         {slot.label}: <a className="text-button" href={link.url} target="_blank" rel="noreferrer">{link.name}</a>{link.file && <> · {link.file}</>}
@@ -435,19 +460,21 @@ type SavedWorkflows = Record<WorkflowField | 'built_in' | 'built_in_reference', 
 
 const tokens = (...names: string[]) => names.map((name, index) => <span key={name}>{index ? (index === names.length - 1 ? ' and ' : ', ') : ''}<code>{`{{${name}}}`}</code></span>)
 
-// Both boxes start with the built-in Krea 2 Turbo workflow filled in; editing and saving makes it yours.
-const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 'built_in' | 'built_in_reference'; hint: ReactNode; shown: string }> = {
+// Both boxes start with the family's built-in workflow filled in; editing and saving makes it yours.
+const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 'built_in' | 'built_in_reference'; hint: ReactNode; shown: (family: string) => string }> = {
   workflow: {
     title: 'Workflow', label: 'Workflow', builtIn: 'built_in',
     hint: <>ComfyUI's API format ("Save (API format)") with <code>{'{{prompt}}'}</code>, plus any of {tokens('negative', 'seed', 'width', 'height')}.</>,
-    shown: 'Shown is the built-in Krea 2 Turbo workflow; paste or edit one and save it to use your own.',
+    shown: (family) => `Shown is the built-in ${family} workflow; paste or edit one and save it to use your own.`,
   },
   reference_workflow: {
     title: 'Workflow for pictures made from a reference', label: 'Reference workflow', builtIn: 'built_in_reference',
     hint: <>Used for the profile pictures, where pictures 2 and 3 are made from picture 1. ComfyUI's API format with <code>{'{{prompt}}'}</code> and <code>{'{{reference_image}}'}</code> as a LoadImage node's image, plus any of {tokens('negative', 'seed', 'width', 'height')}.</>,
-    shown: 'Shown is the built-in Krea 2 Turbo reference workflow; paste or edit one and save it to use your own.',
+    shown: (family) => `Shown is the built-in ${family} reference workflow; paste or edit one and save it to use your own.`,
   },
 }
+/** For a family with no built-in reference workflow, in place of `shown`. */
+const NO_REFERENCE = (family: string) => `${family} has no built-in reference workflow. Paste one to make profile pictures from this server; until then they come from a backend that can follow a picture.`
 const USE_BUILT_IN = 'Use the built-in one'
 const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
@@ -455,7 +482,7 @@ const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 function needs(workflow: string): ReactNode {
   let nodes: { inputs?: Record<string, unknown> }[]
   try { nodes = Object.values(JSON.parse(workflow) as Record<string, { inputs?: Record<string, unknown> }>) } catch { return null }
-  const files = nodes.flatMap(({ inputs = {} }) => ['unet_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key]))
+  const files = nodes.flatMap(({ inputs = {} }) => ['unet_name', 'ckpt_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key]))
     .filter((name): name is string => typeof name === 'string' && name.endsWith('.safetensors'))
   if (!files.length) return null
   return <span className="workflow-needs">It needs, in ComfyUI's models folders: {files.map((file, index) => <span key={file}>{index ? ', ' : ''}<code>{file}</code></span>)}</span>
@@ -507,8 +534,12 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   const flow = useWorkflow(backend, field, save)
   // A built-in one starts closed and the user's own starts open (Iris); saving or resetting never folds it away.
   const [startOpen] = useState(set)
-  // The built-in one shows the chosen model files and sampler; once they change, an untouched box follows.
-  const picks = JSON.stringify([backend.model_files, backend.sampler])
+  // The built-in one shows the family's workflow with the chosen model files and sampler; once they change, an
+  // untouched box follows.
+  const picks = JSON.stringify([backend.family, backend.model_files, backend.sampler])
+  const family = familyOf(backend.family)
+  const none = field === 'reference_workflow' && !family.reference
+  const shownNote = none ? NO_REFERENCE(family.label) : copy.shown(family.sampling)
   const shownPicks = useRef(picks)
   const { saved, text, builtIn, load } = flow
   useEffect(() => {
@@ -518,9 +549,9 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   }, [picks, saved, text, builtIn, load])
   return (
     <details open={startOpen} onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
-      <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
+      <summary className="subtle">{copy.title} {set ? '(yours)' : none ? '(none)' : '(built-in)'}</summary>
       <div className="form-stack workflow-editor">
-        <Field label={copy.label} hint={<>{copy.hint}{!set && <> {copy.shown}{needs(flow.builtIn)}</>}</>}>{(id, describedBy) =>
+        <Field label={copy.label} hint={<>{copy.hint}{!set && <> {shownNote}{needs(flow.builtIn)}</>}</>}>{(id, describedBy) =>
           <>
             <textarea id={id} rows={12} value={flow.text} placeholder="Paste a workflow" spellCheck={false} aria-describedby={describedBy}
               aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />
@@ -624,7 +655,7 @@ function AddBackend({ phone, onDone, setResult }: { phone: boolean; onDone: () =
         <TextInput label="ComfyUI address" value={baseUrl} required onChange={setBaseUrl} hint="The app connects to this server only. It never starts or stops ComfyUI." />
         <Toggle label="This address is a machine I control" checked={controlled} onChange={setControlled} hint="Only for your own computer on your network. A rented or shared GPU service is not." />
         <TextArea label="Custom workflow (optional)" value={workflow} rows={3} onChange={setWorkflow}
-          hint="Leave empty for the built-in Krea 2 Turbo workflow; its model files can be picked once the backend is added. A custom one is ComfyUI's API format with {{prompt}}, {{negative}}, {{seed}}, {{width}} and {{height}}." />
+          hint="Leave empty for the built-in workflow (Krea 2 Turbo; another model family and its files can be picked once the backend is added). A custom one is ComfyUI's API format with {{prompt}}, {{negative}}, {{seed}}, {{width}} and {{height}}." />
       </>}
       {kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={cliPath} onChange={setCliPath} hint="Found on PATH when empty. Sign in once with codex login in a terminal; the app never sees your password or token." />}
       {kind === 'hosted' && <>

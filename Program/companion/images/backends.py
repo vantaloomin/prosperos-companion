@@ -11,7 +11,14 @@ from urllib.parse import urlsplit
 from companion.database import decode, encode, identifier, many, one
 from companion.errors import DomainError, require
 from companion.images import content
-from companion.images.adapters.comfyui import SAMPLER_INPUTS, default_sampler
+from companion.images.adapters.comfyui import (
+    DEFAULT_FAMILY,
+    FAMILIES,
+    SAMPLER_INPUTS,
+    default_sampler,
+    family_of,
+    has_reference,
+)
 from companion.images.adapters.hosted import api_base
 from companion.providers.urls import is_loopback, validate_compatible_url
 
@@ -29,7 +36,7 @@ NSFW_PROVIDERS = {'openrouter', 'nanogpt', 'other'}
 KIND_LABELS = {'comfyui': 'ComfyUI', 'codex': 'Codex (ChatGPT subscription)'}
 CONFIG_KEYS = ('base_url', 'model', 'workflow', 'reference_workflow', 'cli_path', 'api_style')
 # ComfyUI only: the files chosen for the built-in workflow's loaders (see adapters/comfyui.py).
-FILE_KEYS = ('unet_name', 'clip_name', 'clip_type', 'vae_name')
+FILE_KEYS = ('unet_name', 'clip_name', 'clip_type', 'vae_name', 'ckpt_name')
 
 
 def credential_ref(backend_id: str) -> str:
@@ -59,10 +66,12 @@ def accepts_nsfw(backend: dict) -> bool:
 def takes_reference(backend: dict) -> bool:
     """Whether this backend can make a picture that follows an earlier one (the onboarding
     portraits): Codex attaches it to the prompt, chat-style APIs and OpenAI's image edits read it,
-    and ComfyUI uses its built-in reference workflow or the user's own."""
-    if backend['kind'] in ('codex', 'comfyui'):
+    and ComfyUI uses its family's built-in reference workflow (Krea 2, Qwen Image 2.1) or the user's own."""
+    if backend['kind'] == 'codex':
         return True
     config = decode(backend['config'])
+    if backend['kind'] == 'comfyui':
+        return has_reference(config)
     from companion.images.adapters.hosted import takes_reference as hosted_takes
     return hosted_takes(config, backend['provider'])
 
@@ -100,7 +109,9 @@ def view(backend: dict) -> dict:
             'base_url': config.get('base_url', ''), 'model': config.get('model', ''), 'style': config.get('style', ''),
             'api_style': config.get('api_style'), 'cli_path': config.get('cli_path', ''),
             'custom_workflow': bool(config.get('workflow')),
-            'model_files': {key: config.get(key, '') for key in FILE_KEYS} if backend['kind'] == 'comfyui' else None,
+            'family': family_of(config) if backend['kind'] == 'comfyui' else None,
+            'model_files': {key: config.get(key, '') for key in FAMILIES[family_of(config)].files}
+            if backend['kind'] == 'comfyui' else None,
             'style_loras': config.get('style_loras', []) if backend['kind'] == 'comfyui' else None,
             'sampler': {key: config.get(key) for key in SAMPLER_INPUTS} if backend['kind'] == 'comfyui' else None,
             'reference_workflow': bool(config.get('reference_workflow')), 'takes_reference': takes_reference(backend),
@@ -162,6 +173,7 @@ def merged_config(kind, provider, previous: dict, body) -> dict:
         value = getattr(body, key)
         if value is not None:
             config[key] = api_base(value) if key == 'base_url' else value
+    choose_family(config, kind, body)
     for key in FILE_KEYS:
         value = getattr(body, key)
         if value is not None:
@@ -178,10 +190,24 @@ def merged_config(kind, provider, previous: dict, body) -> dict:
     return config
 
 
+def choose_family(config: dict, kind, body):
+    """The model family whose built-in workflow a ComfyUI server runs (Krea 2 when unset). Files and
+    sampler settings chosen for another family's workflow do not carry over, so a new family starts on
+    its own."""
+    if kind != 'comfyui' or body.family is None:
+        return
+    if body.family != family_of(config):
+        for key in (*FILE_KEYS, *SAMPLER_INPUTS):
+            config.pop(key, None)
+    config['family'] = body.family
+    if body.family == DEFAULT_FAMILY:
+        config.pop('family')
+
+
 def comfy_settings(config: dict, kind, body):
     """The built-in workflow's sampler (a value equal to the workflow's own is stored as unset) and
     the style LoRAs, for ComfyUI only."""
-    defaults = default_sampler()
+    defaults = default_sampler(family_of(config))
     for key in SAMPLER_INPUTS:
         value = getattr(body, key)
         if value is not None:
@@ -195,9 +221,18 @@ def comfy_settings(config: dict, kind, body):
         config.pop('style_loras', None)
 
 
+def own_style(backend: dict) -> str | None:
+    """The style this backend's prompts start with in place of the general one: the user's own for it,
+    else its model family's (an anime model draws no photographs), else none."""
+    config = decode(backend['config'])
+    if config.get('style'):
+        return config['style']
+    return FAMILIES[family_of(config)].style if backend['kind'] == 'comfyui' else None
+
+
 def style_for(backend: dict | None, general: str | None) -> str | None:
     """The style that starts this backend's prompts: its own, or the general one when it has none."""
-    own = decode(backend['config']).get('style') if backend else None
+    own = own_style(backend) if backend else None
     return own or general
 
 

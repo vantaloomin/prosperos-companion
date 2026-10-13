@@ -8,6 +8,7 @@ from companion.models import Input
 Kind = Literal['comfyui', 'codex', 'hosted']
 Provider = Literal['comfyui', 'codex', 'openrouter', 'google', 'openai', 'nanogpt', 'other']
 Aspect = Literal['square', 'landscape', 'portrait']
+Family = Literal['krea2', 'qwen21', 'anima', 'booru']
 FILE_NAME = r'^[^\x00-\x1f\x7f]*$'
 
 
@@ -32,6 +33,10 @@ class BackendFields(Input):
     clip_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
     clip_type: str | None = Field(default=None, max_length=60, pattern=FILE_NAME)
     vae_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
+    # A Booru (SDXL) model's single checkpoint file.
+    ckpt_name: str | None = Field(default=None, max_length=300, pattern=FILE_NAME)
+    # ComfyUI: which model family's built-in workflow to run (companion/images/adapters/comfyui.py FAMILIES).
+    family: Family | None = None
     # The built-in workflow's sampler; a value equal to the workflow's own is stored as unset.
     steps: int | None = Field(default=None, ge=1, le=100)
     cfg: float | None = Field(default=None, ge=0, le=30)

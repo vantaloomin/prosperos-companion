@@ -13,6 +13,7 @@ import contextlib
 from companion.database import decode, encode, one, optional
 from companion.images import backends, jobs, prompts, sheet, storage
 from companion.images.adapters.base import AdapterError, ImageRequest, size_for
+from companion.images.adapters.comfyui import FAMILIES, family_of
 from companion.images.content import classify, stricter
 from companion.images.routing import eligible
 
@@ -21,12 +22,19 @@ CANCEL_NOTES = {'hosted': 'Cancelled. The provider may still finish the request;
                 'comfyui': 'Cancelled; the request was removed from ComfyUI.'}
 
 
+def character_lora(backend, inputs) -> dict | None:
+    """The adopted LoRA, for a ComfyUI server of the family it was trained on (Krea 2)."""
+    if backend['kind'] != 'comfyui' or not FAMILIES[family_of(decode(backend['config']))].character_lora:
+        return None
+    return inputs.get('lora')
+
+
 def identity(backend, inputs) -> str:
     """How this image draws the character, recorded on the job (PRD LoRA maker, F2)."""
     lora = inputs.get('lora')
     if not lora:
         return 'text description' if backend['kind'] == 'comfyui' else 'text description only'
-    if backend['kind'] == 'comfyui':
+    if character_lora(backend, inputs):
         return f"LoRA {lora['name']} at strength {lora['strength']:g} (appearance version {inputs['appearance_version']})"
     return 'text description only; this backend cannot apply the adopted LoRA'
 
@@ -141,7 +149,7 @@ class ImageRunner:
             stale = prompts.stale(connection, inputs)
         if backend is not None:
             # The backend's own style replaces the general one now that the backend is known.
-            inputs = prompts.restyle(inputs, decode(backend['config']).get('style'))
+            inputs = prompts.restyle(inputs, backends.own_style(backend))
         if job['status'] != 'queued':
             return None
         problem = self.problem(job, backend, post, stale, inputs)
@@ -191,7 +199,7 @@ class ImageRunner:
         key = self.vault.get(backend['credential_ref']) if backend['credential_ref'] else None
         request = ImageRequest(job_id, inputs['prompt'], inputs['negative'], inputs['seed'], width, height,
                                backend, decode(backend['config']), key, storage.raw_directory(self.database),
-                               inputs.get('lora') if backend['kind'] == 'comfyui' else None)
+                               character_lora(backend, inputs))
         result = None
         followed = None
         try:

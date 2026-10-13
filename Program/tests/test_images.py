@@ -753,7 +753,7 @@ def test_comfyui_check_reports_the_chosen_files():
     chosen = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN}))
     assert chosen.ok, chosen.details
     # The built-in reference workflow's own nodes and LoRA are only noted: profile pictures need them, other pictures don't.
-    assert chosen.summary == ('ComfyUI has everything the built-in workflow needs. Pictures made from a reference need '
+    assert chosen.summary == ('ComfyUI has everything the built-in Krea 2 workflow needs. Pictures made from a reference need '
                               'the Krea 2 Identity Edit nodes and the files under Details first.')
     assert any('Krea2EditModelPatch' in line and 'Krea 2 Identity Edit nodes' in line for line in chosen.details)
     assert any('krea2_identity_edit_v1_2.safetensors' in line for line in chosen.details)
@@ -812,12 +812,12 @@ def test_backend_files_from_an_unreachable_server_or_another_kind(comfy_client):
 
 def test_backend_files_put_krea_2_files_first_and_style_loras_are_saved(comfy_client):
     """The lists only sort: Krea 2's files (by name or folder, or the Qwen encoder and VAE it uses)
-    come first and are named in `krea`; nothing is hidden for not matching."""
+    come first and are named in `matching`; nothing is hidden for not matching."""
     backend = local_comfy(comfy_client)
     listed = ok(comfy_client.get(f"/api/images/backends/{backend['id']}/files"))
     assert listed['options']['unet_name'] == [MODEL, 'krea2_turbo_fp8_scaled.safetensors']
-    assert listed['krea']['clip_name'] == [ENCODER] and listed['krea']['vae_name'] == [VAE]
-    assert listed['options']['lora'][0] == PHONE and listed['krea']['lora'] == [PHONE]
+    assert listed['matching']['clip_name'] == [ENCODER] and listed['matching']['vae_name'] == [VAE]
+    assert listed['options']['lora'][0] == PHONE and listed['matching']['lora'] == [PHONE]
     assert 'sdxl\\detail.safetensors' in listed['options']['lora'] and listed['character_lora'] is None
     assert backend['style_loras'] == []
     style = {'name': PHONE, 'strength': 0.7, 'trigger': 'phone photo'}
