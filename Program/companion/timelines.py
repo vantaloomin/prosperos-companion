@@ -25,6 +25,7 @@ from companion.life import (
     grooming,
     home,
     kitchen,
+    media,
     network,
     social,
     storylines,
@@ -195,6 +196,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     upkeep.copy(connection, parent_id, new_id, cutoff)
     grooming.copy(connection, parent_id, new_id, cutoff, ids)
     kitchen.copy(connection, parent_id, new_id, cutoff)
+    media.copy(connection, parent_id, new_id, cutoff)
     traditions.copy(connection, parent_id, new_id, ids)
     copy_posts(connection, posts, ids, new_id)
     social.copy(connection, parent_id, new_id, cutoff, ids, remap)

@@ -29,6 +29,7 @@ from companion.life import (
     grooming,
     home,
     kitchen,
+    media,
     money,
     network,
     occasions,
@@ -144,6 +145,10 @@ HEADINGS = {
             # Kitchen and food (companion/life/kitchen.py): drawn once a day.
             'kitchen': 'Your kitchen and meals (fictional, yours; when food comes up, keep to how you cook and eat '
                        'and what is listed for your dinners)',
+            # Reading, watching and listening (companion/life/media.py): changes about once a day.
+            'media': 'What you are reading, watching and listening to (fictional, yours; bring it up when it fits, the '
+                     'way anyone mentions what they are into. Keep to these titles, never quote passages or lyrics, '
+                     'and do not make up plot or people you are not sure of)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
@@ -674,9 +679,7 @@ def offer_life(packet, connection, companion, now):
     offer_home(packet, connection, companion, today)
     for identity, text in wardrobe.context_lines(connection, timeline_id, date.fromisoformat(today), now):
         packet.offer('wearing' if ':now:' in identity else 'wardrobe', identity, text)
-    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
-                                                    version['timezone']):
-        packet.offer('kitchen', identity, text)
+    offer_kitchen_and_media(packet, connection, timeline_id, version, now)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
@@ -730,6 +733,17 @@ def offer_daily(packet, connection, version, now):
     if digest := lookups.fresh_culture(connection, now, version['definition']):
         packet.offer('culture_now', digest['id'], f"- From {digest['service_name']}, retrieved "
                                                   f"{digest['retrieved_at'][:10]}: «{lookups.culture_text(digest)}»")
+
+
+def offer_kitchen_and_media(packet, connection, timeline_id, version, now):
+    """Drawn about once a day: their kitchen (companion/life/kitchen.py) and what they are reading, watching and
+    listening to (companion/life/media.py)."""
+    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
+                                                version['timezone']):
+        packet.offer('kitchen', identity, text)
+    for identity, text in media.context_lines(connection, timeline_id, version['definition'], None, now,
+                                              version['timezone']):
+        packet.offer('media', identity, text)
 
 
 def offer_home(packet, connection, companion, today: str):

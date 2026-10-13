@@ -553,9 +553,18 @@ textarea { resize: vertical; line-height: 1.6; }
 .kitchen-avoids { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
 .kitchen-avoids legend { font-weight: 600; margin-bottom: 4px; padding: 0; }
 .kitchen-form { max-width: 28rem; margin-bottom: 4px; }
+.media-now { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.media-row { display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start; }
+.media-icon { width: 18px; height: 18px; margin-top: 2px; color: var(--muted); }
+.media-body { display: grid; gap: 2px; min-width: 0; }
+.media-body p { margin: 0; overflow-wrap: anywhere; }
+.media-mine { margin-left: 8px; vertical-align: 1px; }
+.media-lately .diary-list li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 8px; align-items: baseline; }
+.media-form { max-width: 28rem; margin-top: 6px; }
+.media-lately h3 { margin: 0 0 4px; font-size: 1rem; }
 .kitchen-earlier summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
 @media (max-width: 520px) {
-  .kitchen-week .diary-list li { grid-template-columns: 1fr; gap: 0; }
+  .kitchen-week .diary-list li, .media-lately .diary-list li { grid-template-columns: 1fr; gap: 0; }
 }
 .home-add select, .rename-form select { max-width: 280px; }
 .pet-card header h3 { margin: 0; }
