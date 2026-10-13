@@ -29,7 +29,7 @@ def sliders(sheet: dict, changed: dict | None) -> dict[str, dict]:
 
 def view(sheet: dict, changed: dict | None) -> dict:
     """What their profile shows: the summary chips, and the sliders Edit opens."""
-    return personality.view(sliders(sheet, changed))
+    return {**personality.view(sliders(sheet, changed)), 'traits': personality.form_traits()}
 
 
 def save(connection, town: str, key: str, changed: dict, timestamp: str):

@@ -25,6 +25,8 @@ import { LifeAdmin } from './LifeAdmin'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
+import { PersonalityChips, PersonalityFields } from './PersonalityFields'
+import { sameLevels } from './personalityText'
 import { AdultSideFields } from './AdultSideFields'
 import { LooksFields } from './LooksFields'
 import { InPhotosField } from './InPhotosField'
@@ -78,6 +80,11 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [details, setDetails] = useCharacterDetails()
+  // A new character rolls its personality from its own seed; a saved one from its id (companion/world/personality.py).
+  const [seed] = useState(() => Math.random().toString(36).slice(2, 12))
+  // The drafted "How others see them" lines, which the app picked to suit the drafted personality.
+  const [draftedLines] = useState(() => draftedLinesOf(companion, start))
+  const setPersonality = (change: Partial<CharacterDefinition>) => setForm((current) => ({ ...current, definition: withPersonality(current.definition, change, draftedLines) }))
   const [result, setResult] = useState<{ tone: 'info' | 'error'; text: string; conflict?: boolean } | null>(null)
   const set = (change: Partial<CharacterDefinition>) => setForm((current) => ({ ...current, definition: { ...current.definition, ...change } }))
   const setText = (key: keyof FormState['texts']) => (value: string) => setForm((current) => ({ ...current, texts: { ...current.texts, [key]: value } }))
@@ -130,6 +137,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('identity', 'who they are')}
         <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} hint="Temperament, habits, what makes them laugh or snap. Specific beats general." />
         {help('personality', 'their personality')}
+        <PersonalityChips shown={!details} definition={cleaned} value={definition.personality_sliders} set={setPersonality} seed={seed} />
         <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} hint="How they talk: rhythm, humour, words they like." />
         {help('voice', 'their voice')}
         <TextArea label="Skills" value={texts.skills} onChange={setText('skills')} rows={4} hint="One per line. Concrete things they are good at, and a few they are only middling at." />
@@ -151,6 +159,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
           <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
           {help('routine', 'their routine')}
           <LifeFields definition={definition} set={set} themes={texts.themes} setThemes={setText('themes')} help={help} />
+          <PersonalityFields definition={cleaned} value={definition.personality_sliders} set={setPersonality} seed={seed} />
           <PerceptionFields definition={cleaned} seenAs={definition.seen_as ?? ''} seesSelf={definition.sees_self ?? ''} set={set} />
           <AdultSideFields definition={cleaned} value={definition.intimacy} set={set} />
           <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
@@ -209,6 +218,18 @@ async function afterCreating(): Promise<View> {
     const { backends } = await api<{ backends: ImageBackend[] }>('/images/backends')
     return backends.some((backend) => backend.enabled && !backend.blocked_reason) ? 'portraits' : 'conversation'
   } catch { return 'conversation' }
+}
+
+/** New personality sliders; when they change what a drafted character is like and the user left the drafted "How
+ * others see them" lines alone, those lines are cleared so the app picks new ones that suit (perception.py). */
+function withPersonality(definition: CharacterDefinition, change: Partial<CharacterDefinition>, drafted: { seen_as: string; sees_self: string } | null): CharacterDefinition {
+  const next = { ...definition, ...change }
+  const untouched = drafted && (definition.seen_as ?? '') === drafted.seen_as && (definition.sees_self ?? '') === drafted.sees_self && (drafted.seen_as || drafted.sees_self)
+  return untouched && !sameLevels(definition.personality_sliders, next.personality_sliders) ? { ...next, seen_as: '', sees_self: '' } : next
+}
+
+function draftedLinesOf(companion: Companion | null, start: Start | null) {
+  return start?.drafted && !companion ? { seen_as: start.definition.seen_as ?? '', sees_self: start.definition.sees_self ?? '' } : null
 }
 
 function initialForm(companion: Companion | null, start: Start | null): FormState {
