@@ -1300,6 +1300,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .note-count { align-self: flex-end; font-size: 0.8125rem; margin-top: -6px; }
 .note-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 0.8125rem; }
 .note-foot .text-button { padding: 0; }
+@media (max-width: 720px) { .note-foot .note-clear { min-height: 44px; padding: 0 4px; } }
 .note-grabber { align-self: center; width: 38px; height: 5px; border-radius: 3px; background: var(--border); }
 .chat-retro .note-tray { border-radius: 0; border: 2px outset #f2f1ee; box-shadow: none; }
 .chat-retro .note-tray textarea { border-radius: 0; }

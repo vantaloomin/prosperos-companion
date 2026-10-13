@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileText } from 'lucide-react'
 import { api } from '../../api'
 import { saveNote } from './noteApi'
-import { NOTE_LIMIT, noteKey, noteLook, type AuthorsNoteState, type Look } from './noteState'
+import { NOTE_LIMIT, NOTE_SWITCH, noteKey, noteLook, type AuthorsNoteState, type Look } from './noteState'
 import { ErrorNotice } from '../../components/ErrorNotice'
 
 const COUNT_FROM = 800
@@ -58,7 +58,7 @@ export function AuthorsNote({ chat, name, story = false }: { chat: string; name:
         <span className="note-grabber phone-only" aria-hidden="true" />
         <div className="note-head">
           <strong>Author's note</strong>
-          <label className="note-switch"><input type="checkbox" role="switch" checked={note.enabled} onChange={(event) => note.change(note.text, event.target.checked, true)} /> On</label>
+          <label className="note-switch"><input type="checkbox" role="switch" checked={note.enabled} onChange={(event) => note.change(note.text, event.target.checked, true)} /> {NOTE_SWITCH}</label>
         </div>
         <label className="visually-hidden" htmlFor={`note-text-${chat}`}>Author's note for this chat</label>
         <textarea ref={area} id={`note-text-${chat}`} value={note.text} maxLength={NOTE_LIMIT} rows={4} aria-describedby={`note-help-${chat}`}
@@ -68,7 +68,7 @@ export function AuthorsNote({ chat, name, story = false }: { chat: string; name:
         {note.error instanceof Error && <ErrorNotice error={note.error} />}
         <div className="note-foot">
           <span id={`note-help-${chat}`} className="subtle">{story ? 'This story only. Sent with every narration, never saved as a message or memory.' : 'This chat only. Sent with every reply, never saved as a message or memory.'}</span>
-          <button type="button" className="text-button desktop-only" disabled={!note.text} onClick={() => { note.change('', note.enabled, true); area.current?.focus() }}>Clear</button>
+          <button type="button" className="text-button note-clear" disabled={!note.text} onClick={() => { note.change('', note.enabled, true); area.current?.focus() }}>Clear</button>
         </div>
         <button type="button" className="button primary note-done phone-only" onClick={close}>Done</button>
       </div>
