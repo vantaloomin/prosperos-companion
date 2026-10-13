@@ -28,7 +28,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import jobs, memes, prompts
-from companion.life import agenda, feed, routine, simulation
+from companion.life import agenda, composer, feed, routine, simulation
 from companion.life.openers import Trigger, held
 from companion.life.synthesis import PROMPT_VERSION as WORDING_VERSION
 from companion.text_models import config_for
@@ -324,7 +324,10 @@ def yours(moment: dict) -> str:
     summary = moment['summary']
     if moment.get('name'):
         summary = prompts.unnamed(summary, moment['name'], 'they')
-    return re.sub(r'\b(' + '|'.join(YOU) + r')\b', lambda m: YOU[m.group(1)], summary)
+    # "Took Jo out for their birthday" is Jo's birthday, so that "their" stays (composer.py's own birthday lines aside).
+    friends = ' for their birthday' in summary and not composer.OWN_BIRTHDAY_LINE.search(summary)
+    told = re.sub(r'\b(' + '|'.join(YOU) + r')\b', lambda m: YOU[m.group(1)], summary)
+    return told.replace(' for your birthday', ' for their birthday') if friends else told
 
 
 def moment_text(moment, kind='moment', unasked=False) -> str:
