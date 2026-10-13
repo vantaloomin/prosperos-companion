@@ -164,3 +164,9 @@ def test_a_fork_keeps_the_habit_and_what_was_set_before_it(client, mira):
     assert forked['habit_set'] == 'messy' and forked['set_on'] == view['today'] and forked['set_level'] == 1
 
 
+
+
+def test_a_recent_big_clean_reads_as_days_ago():
+    assert upkeep.days_ago(date(2026, 10, 11), date(2026, 10, 13)) == 'Sunday, 2 days ago'
+    assert upkeep.days_ago(date(2026, 10, 12), date(2026, 10, 13)) == 'yesterday'
+    assert upkeep.days_ago(date(2026, 10, 13), date(2026, 10, 13)) == 'today'

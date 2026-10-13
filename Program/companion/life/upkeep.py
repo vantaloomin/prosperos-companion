@@ -388,8 +388,15 @@ def context_lines(connection, timeline_id: str, definition: dict, day: date) -> 
              (f'upkeep:habit:{habit(state)}', f'- Your habit: you {you_habit(habit(state))}.')]
     cleaned = last_big_clean(days)
     if cleaned:
-        lines.append((f'upkeep:big:{cleaned}', f'- Recently ({cleaned}): you did a big clean.'))
+        lines.append((f'upkeep:big:{cleaned}', f'- Recently ({days_ago(date.fromisoformat(cleaned), day)}): you did a '
+                      'big clean.'))
     return lines
+
+
+def days_ago(then: date, today: date) -> str:
+    """"today", "yesterday" or "Sunday, 3 days ago": models misread a bare date as yesterday (A/B, 2026-10-13)."""
+    gap = (today - then).days
+    return 'today' if gap <= 0 else 'yesterday' if gap == 1 else f"{then.strftime('%A')}, {gap} days ago"
 
 
 def you_habit(kind: str) -> str:
