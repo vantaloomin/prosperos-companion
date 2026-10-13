@@ -48,6 +48,7 @@ test('a guest reads as who they are to the group, with their numbers only as hid
   assert.equal(guestLine(ada), "Mira's close friend · guest")
   assert.equal(guestMeters(ada), 'visit 1 of 3 to stay · 2 of 4 replies left this conversation')
   assert.equal(guestLine({ ...ada, guest: { ...guest, regular: true } }), "Mira's close friend · regular")
+  assert.equal(guestLine({ ...ada, guest: { ...guest, kept: true } }), "Mira's close friend · staying")
   assert.equal(guestMeters({ ...ada, guest: { ...guest, kept: true } }), '2 of 4 replies left this conversation')
   assert.equal(guestLine(member('Billy')), '')
 })

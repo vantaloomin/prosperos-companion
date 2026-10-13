@@ -61,11 +61,12 @@ export function toldOnly(value: Backstory[]): Backstory[] {
   return value.filter((item) => item.level || item.how.trim()).map((item) => ({ ...item, how: item.how.trim() }))
 }
 
-/** Who a guest is, in the people panel: "Mira's close friend · guest", "· regular" once they keep coming back. */
+/** Who a guest is, in the people panel: "Mira's close friend · guest", "· regular" once they keep coming back on
+ * their own, "· staying" once you kept them. */
 export function guestLine(member: GroupMember): string {
   const guest = member.guest
   if (!guest) return ''
-  return `${guest.relation} · ${guest.regular ? 'regular' : 'guest'}`
+  return `${guest.relation} · ${guest.regular ? 'regular' : guest.kept ? 'staying' : 'guest'}`
 }
 
 /** A guest's numbers, shown only with Hidden values on: visits toward staying, and replies left this conversation. */

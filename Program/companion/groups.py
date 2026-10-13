@@ -204,9 +204,11 @@ def welcome(connection, group_id: str, person: dict, timestamp: str, by: str, se
     third visit makes them a regular, who stays."""
     stay = join_as(connection, group_id, person['key'], person['full'] if ' ' in person['name'] else person['name'],
                    timestamp, sees_from, person['host'], person['relation'])
-    who = 'You' if by == 'user' else next((item['name'] for item in current_members(connection, group_id)
-                                           if item['member'] == by), 'Someone')
-    note(connection, group_id, timestamp, f"{who} added {stay['name']} ({person['relation']}).")
+    if by == 'user':
+        note(connection, group_id, timestamp, f"You added {stay['name']}, {person['relation']}.")
+    else:
+        who = next((item['name'] for item in current_members(connection, group_id) if item['member'] == by), 'Someone')
+        note(connection, group_id, timestamp, f"{who} brought {stay['name']}, {person['tie']}.")
     if group_guests.visits(connection, group_id, person['key']) == group_guests.REGULAR_VISITS:
         note(connection, group_id, timestamp, f"{stay['name']} is a regular here now.")
     return stay

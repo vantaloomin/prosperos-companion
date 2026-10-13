@@ -398,8 +398,8 @@ the shared prefix stays the same) and `kept`.
 **Who comes in.**
 
 - When a finished message (the user's or anyone's) names someone a companion here knows, that companion may bring
-  them in: "Mira added Ada (Mira's close friend)." Its writer brings them when the writer knows them, else the first
-  member who does. Seeded by the message, so a retry decides the same way.
+  them in: "Mira brought Ada, their close friend." Its writer brings them when the writer knows them, else the first
+  member who does. (When the user adds someone it reads "You added Ada, Mira's close friend.") Seeded by the message, so a retry decides the same way.
 - How often follows Settings > Realism > Their days > "Guests in group chats" (`life_settings.guests_realism`):
 
   | Level | Chance a named person comes in | At most one pull-in per group every |
@@ -434,5 +434,6 @@ the group."), checked with the news every ten minutes, rules only. Someone whose
 Someone who is gone from their host's life (removed from the circle, the host deleted or starting over) leaves at
 once. An unnamed group's title lists only those who stay, so a guest passing through doesn't rename it.
 
-The people panel shows each guest as "Mira's close friend · guest" (or "· regular"); with Settings > Realism > Hidden
-values > home numbers on, also their visits toward staying and replies left this conversation.
+The people panel shows each guest as "Mira's close friend · guest" ("· regular" once they keep coming back, "· staying"
+once kept), with a Keep in group checkbox; with Settings > Realism > Hidden values > "Show the numbers behind their
+life" on, a muted line under it with their visits toward staying and replies left this conversation.

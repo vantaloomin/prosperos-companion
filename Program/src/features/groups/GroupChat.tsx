@@ -247,7 +247,10 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
       <ul>
         {group.members.map((member) => (
           <li key={member.key}>
-            <span>{member.name}{member.main && <span className="subtle"> · main character</span>}{member.guest && <GuestLine member={member} />}<MoodLine mood={member.mood} /></span>
+            <span className="group-person">
+              <span>{member.name}{member.main && <span className="subtle"> · main character</span>}{member.guest && <span className="subtle"> · {guestLine(member)}</span>}<MoodLine mood={member.mood} /></span>
+              {member.guest && <GuestMeters member={member} />}
+            </span>
             <span className="group-person-actions">
               {member.guest && !member.guest.regular && <KeepGuest group={group} member={member} onChange={onChange} />}
               <button type="button" className="text-button" onClick={() => setRemoving(member)}>Remove from group</button>
@@ -278,20 +281,20 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
   )
 }
 
-/** Who a guest is to the group, and, with Hidden values > home numbers on, how close they are to staying. */
-function GuestLine({ member }: { member: GroupMember }) {
+/** A guest's numbers on their own muted line, only with Hidden values > "Show the numbers behind their life" on. */
+function GuestMeters({ member }: { member: GroupMember }) {
   const meters = useWorkspaceSettings().data?.show_home_meters ? guestMeters(member) : ''
-  return <span className="subtle"> · {guestLine(member)}{meters && <span className="group-guest-meters"> · {meters}</span>}</span>
+  return meters ? <span className="group-guest-meters subtle">{meters}</span> : null
 }
 
-/** One tap keeps a guest in the group; tapped again, they come and go like any guest. */
+/** One tap keeps a guest in the group; unticked, they come and go like any guest. */
 function KeepGuest({ group, member, onChange }: { group: Group; member: GroupMember; onChange: Change }) {
-  const kept = !!member.guest?.kept
   return (
-    <button type="button" className={`text-button${kept ? ' kept' : ''}`} aria-pressed={kept}
-      onClick={() => void onChange(() => api(`/groups/${group.id}/guests/keep`, { person: member.key, kept: !kept }))}>
-      {kept ? 'Kept in group' : 'Keep in group'}
-    </button>
+    <label className="group-keep">
+      <input type="checkbox" checked={!!member.guest?.kept}
+        onChange={(event) => void onChange(() => api(`/groups/${group.id}/guests/keep`, { person: member.key, kept: event.target.checked }))} />
+      Keep in group
+    </label>
   )
 }
 

@@ -44,7 +44,7 @@ def test_anyone_a_member_knows_can_join_and_speaks_from_their_own_sheet(client, 
     assert guest['companion_id'] is None and guest['guest']['relation'] == "Mira's close friend"
     assert guest['guest']['visits'] == 1 and not guest['guest']['kept'] and not guest['guest']['regular']
     assert group['title'] == 'Friday crew'
-    assert messages(client, cast['group'])[-1]['text'] == f"You added {guest['label']} (Mira's close friend)."
+    assert messages(client, cast['group'])[-1]['text'] == f"You added {guest['label']}, Mira's close friend."
     assert friend['key'] not in {person['key'] for person in guest_list(client, cast['group'])}
 
     ok(client.post('/api/memories', json={'layer': 'user_fact', 'subject': 'Favourite fruit', 'value': 'Quince'}))
@@ -76,8 +76,8 @@ def test_a_member_pulls_in_someone_they_name_by_the_realism_slider(client, cast,
     ok(client.put('/api/life/settings', json={'guests_realism': 2}))
     say(client, cast['group'], f"Honestly we should ask {friend['name']} along.", 'pull-0002')
     lines = messages(client, cast['group'])
-    joined = next(line for line in lines if line['kind'] == 'app' and 'added' in line['text'])
-    assert re.match(rf"Mira added {friend['name']}\b.* \(Mira's close friend\)\.", joined['text'])
+    joined = next(line for line in lines if line['kind'] == 'app' and 'brought' in line['text'])
+    assert re.match(rf"Mira brought {friend['name']}\b.*, their close friend\.", joined['text'])
     assert any(line['kind'] == 'guest' and line['seq'] > joined['seq'] for line in lines)
     # One pull-in at a time: someone else named straight after waits for the gap.
     other = next(person for person in cast['circle'] if person['key'] != friend['key'])

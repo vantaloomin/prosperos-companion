@@ -82,22 +82,28 @@ def circle_people(connection, companion: dict) -> list[dict]:
 def from_circle(row: dict, host: str, host_name: str) -> dict:
     details = decode(row['details']) or {}
     return {'key': row['seed'], 'kind': 'circle', 'name': row['name'], 'full': details.get('full_name') or row['name'],
-            'host': host, 'relation': f"{host_name}'s {row['role']}", 'person_id': row['id'],
+            'host': host, 'relation': f"{host_name}'s {row['role']}", 'tie': f"their {row['role']}", 'person_id': row['id'],
             'timeline_id': row['timeline_id']}
+
+
+def town_tie(person: dict) -> str:
+    """Who a townsperson is, as the host would introduce them: "the barista at Blue Moon", "a neighbor from Canton"."""
+    if person['kind'] == 'resident':
+        return f"a neighbor from {person['neighborhood']}" if person['neighborhood'] else 'someone from around town'
+    return f"the {person['role']} at {person['place']['name']}" if person['staff'] else \
+        f"a regular at {person['place']['name']}"
 
 
 def town_relation(person: dict, host_name: str) -> str:
     if person['kind'] == 'resident':
         return f"{host_name}'s neighbor from {person['neighborhood']}" if person['neighborhood'] else \
             f'someone {host_name} knows from around town'
-    where = f"the {person['role']} at {person['place']['name']}" if person['staff'] else \
-        f"a regular at {person['place']['name']}"
-    return f'{where}, someone {host_name} knows from around town'
+    return f'{town_tie(person)}, someone {host_name} knows from around town'
 
 
 def from_town(person: dict, host: str, host_name: str) -> dict:
     return {'key': person['key'], 'kind': 'town', 'name': person['name'], 'full': person['full'], 'host': host,
-            'relation': town_relation(person, host_name)}
+            'relation': town_relation(person, host_name), 'tie': town_tie(person)}
 
 
 def known_by(connection, companion: dict, now) -> list[dict]:
