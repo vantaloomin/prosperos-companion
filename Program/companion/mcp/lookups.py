@@ -203,6 +203,9 @@ def session_id(service_id: str, date: str) -> str:
 def typed(value, schema: dict):
     """A fixed value as the tool's schema types it, so "true" or "5" typed as text goes out as a boolean or number."""
     kind = schema.get('type') if isinstance(schema, dict) else None
+    if isinstance(kind, list):  # A nullable type such as ["integer", "null"] counts as its one real type.
+        real = [item for item in kind if item != 'null']
+        kind = real[0] if len(real) == 1 else None
     if not isinstance(value, str):
         return value
     if kind == 'boolean' and value.strip().lower() in {'true', 'false'}:

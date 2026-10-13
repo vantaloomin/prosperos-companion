@@ -105,3 +105,12 @@ def test_a_failed_search_is_never_invented():
     [(_, line)] = lookups.context_lines([failed], None, 'America/New_York')
     assert line == ('- The web search for chess openings did not work, so you have seen no results: do not invent '
                     'any. Say, in character, that you could not look it up just now, and carry on.')
+
+
+def test_a_fixed_value_follows_a_nullable_type():
+    """A tool schema may type an optional field as ["integer", "null"]; a fixed value saved as text still goes out
+    as its real type (the editor treats it as a number or yes/no field too)."""
+    assert lookups.typed('5', {'type': ['integer', 'null']}) == 5
+    assert lookups.typed('true', {'type': ['null', 'boolean']}) is True
+    assert lookups.typed('0.5', {'type': ['number', 'null']}) == 0.5
+    assert lookups.typed('5', {'type': ['integer', 'string']}) == '5'
