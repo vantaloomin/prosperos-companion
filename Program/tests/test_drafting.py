@@ -170,7 +170,7 @@ def test_every_template_placeholder_is_filled():
                                      'field_shape'},
               'character-split.md': {'rules', 'pasted', 'city', 'careers', 'names', 'emotional'},
               'sidecar.md': {'rules', 'character', 'city', 'emotional', 'fields', 'name', 'view', 'conversation',
-                             'memories'},
+                             'memories', 'note'},
               'character-repair.md': {'problem'}}
     for name, keys in filled.items():
         assert set(re.findall(r'\{\{(\w+)\}\}', drafting.template(name))) == keys, name

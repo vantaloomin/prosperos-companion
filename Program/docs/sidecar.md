@@ -52,7 +52,8 @@ and, while the character form is open, the form as it stands. The server adds:
 - the character: the open form, or the saved character;
 - the last 30 active messages of the conversation, labelled `m1`, `m2`, …;
 - up to 150 active memories, labelled `k1`, `k2`, …, each with its kind and subject;
-- the reply the user pointed it at, if any.
+- the reply the user pointed it at, if any;
+- the chat's author's note ([authors-note.md](authors-note.md)), and whether it is on.
 
 ## What it can change
 
@@ -68,6 +69,7 @@ character drafting.
 | A memory's wording | The Memories correction (`/memories/{id}/correct`), so the correction reaches everywhere the fact is used | A correction back |
 | A new memory | `POST /api/memories` | Delete the new memory |
 | Setting a memory aside | `/memories/{id}/exclude` (kept in Memories, no longer used) | `/include` |
+| The chat's author's note | `PUT /api/authors-notes/companion:{id}`, switched on | The earlier note and switch back |
 
 The relationship, home city and emotional traits are never changed from the sidecar. While the
 form is still empty, a long paste is split into every field at once ([character-drafting.md](character-drafting.md)).

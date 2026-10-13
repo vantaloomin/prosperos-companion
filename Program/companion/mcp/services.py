@@ -63,6 +63,7 @@ SOURCES = {
     'date': 'Today\'s date where the lookup applies',
     'literal': 'A fixed value you chose',
     'url': 'The link you pasted in chat',
+    'session': 'A random ID the app makes for this service, new each day; it says nothing about you',
 }
 # Schema property names that each source can fill, best first.
 FILLS = {
@@ -73,6 +74,7 @@ FILLS = {
               'search_queries', 'queries', 'question'),
     'date': ('date', 'day', 'start_date', 'startdate', 'from'),
     'url': ('url', 'urls', 'link', 'links', 'href', 'uri'),
+    'session': ('session_id', 'sessionid', 'session', 'conversation_id', 'conversationid'),
 }
 NEVER_SENT = ('your conversation', 'your memories', 'your name', 'the companion\'s character',
               'API keys of other services')
@@ -336,9 +338,10 @@ def schema_properties(schema: dict) -> tuple[dict, list[str]]:
 
 
 def wanted_sources(category: str) -> list[str]:
+    # A service that asks for a session id (such as Parallel, for its free-tier limits) gets the app's own.
     if category in PLACELESS:
-        return ['url'] if category == 'link' else ['topic']
-    return ['place', 'latitude', 'longitude', 'date'] + (['topic'] if category == 'news' else [])
+        return (['url'] if category == 'link' else ['topic']) + ['session']
+    return ['place', 'latitude', 'longitude', 'date'] + (['topic'] if category == 'news' else []) + ['session']
 
 
 def infer_arguments(category: str, schema: dict) -> tuple[dict, list[str]]:
@@ -424,11 +427,13 @@ def disclosure(service: dict, mapping: dict, place: dict) -> dict:
     arguments, run_in = decode(mapping['arguments']), decode(mapping['run_in'])
     examples = {'place': place['user_place'] or '(not set)', 'latitude': place['user_latitude'],
                 'longitude': place['user_longitude'], 'topic': 'for example "the Orioles"', 'date': 'today',
-                'url': 'for example https://example.com/story'}
+                'url': 'for example https://example.com/story', 'session': 'a random ID, new each day'}
     sends = []
     for name, argument in sorted(arguments.items()):
         source = argument['source']
         example = argument.get('value') if source == 'literal' else examples.get(source)
+        if isinstance(example, bool):
+            example = 'yes' if example else 'no'
         sends.append({'argument': name, 'source': source, 'description': SOURCES[source], 'example': example})
     basis = {'destination': destination(service), 'tool': mapping['tool'], 'arguments': arguments,
              'run_in': sorted(run_in), 'category': mapping['category']}

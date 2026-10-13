@@ -84,6 +84,10 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'Opens every reply in the Story tab, before the scene: the place, the hour, the weather and who is '
            'there, which the app decides. OOC answers are also enforced by the app.',
            constant('companion.story', 'NARRATOR')),
+    Prompt('authors-note', CHAT, "Author's note",
+           "Goes right before your author's note, the last thing the model reads before your message in a chat "
+           'that has a note switched on. Your note follows this line.',
+           constant('companion.authors_note', 'HEADER')),
     Prompt('group-rules', CHAT, 'Group chats',
            'Opens every reply in a group chat, before who is in the group and the chat so far. Each person still '
            "answers only from what they know, which the app decides; staying in character is enforced as in 1:1 chats.",
@@ -122,7 +126,7 @@ PROMPTS = {prompt.name: prompt for prompt in (
            {'name': "the companion's name", 'view': 'where you are in the app', 'character': 'the character',
             'city': 'the home city', 'conversation': 'the recent conversation', 'memories': 'the memories',
             'rules': 'the believable-character prompt', 'emotional': 'the emotional-edges rule',
-            'fields': 'the character fields it may change'}),
+            'fields': 'the character fields it may change', 'note': "the chat's author's note"}),
 )}
 
 
