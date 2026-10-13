@@ -498,7 +498,7 @@ def changes_on(connection, timeline_id: str, definition: dict, sheet: dict, day:
     so_far, found, fields = fold(state, rows), decode(state['profile']), editable(definition)
     result = {}
     hair = parse_hair(sheet.get('hair') or '', state['seed']) if 'hair' in fields else None
-    if hair and (rows or not bold_only):
+    if hair:  # The reference sheet keeps the length the pictures use, before any bold change too.
         result['hair'] = hair_text(hair, so_far, day, found['trim_days'], not bold_only)
     if so_far.get('facial_hair') and 'facial_hair' in fields:
         result['facial_hair'] = so_far['facial_hair']

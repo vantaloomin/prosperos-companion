@@ -258,3 +258,16 @@ def test_a_bold_change_is_posted_however_long_the_user_was_away(client, rosa, cl
         posted = connection.execute('SELECT COUNT(*) FROM life_events WHERE idempotency_key=?',
                                     (f'life:{tid}:{slot}',)).fetchone()[0]
     assert posted == 1
+
+
+def test_the_reference_sheet_keeps_the_hair_length_the_pictures_use(client, rosa):
+    rosa_id, tid = ids(client)
+    client.get('/api/life/grooming')
+    with connect(client) as connection:
+        connection.execute('DELETE FROM grooming_log WHERE timeline_id=?', (tid,))
+        drawn = looks.for_companion(rosa_id, ROSA)['hair']
+        day = client.app.state.database.clock.now().date()
+        reference = grooming.sheet(connection, rosa_id, ROSA, day, bold_only=True)['hair']
+        pictured = grooming.sheet(connection, rosa_id, ROSA, day)['hair']
+    lengths = [word for word in grooming.LENGTHS if re.search(rf"\b{word}\b", pictured)]
+    assert lengths and all(word in reference for word in lengths), (drawn, reference, pictured)
