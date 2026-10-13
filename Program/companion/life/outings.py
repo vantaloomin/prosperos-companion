@@ -600,7 +600,7 @@ def planned_line(outing: dict) -> str:
     return line + (' They picked the place.' if outing['named'] else ' You picked the place.')
 
 
-def booked_line(outing: dict) -> str:
+def booked_line(outing: dict, holding: dict | None = None) -> str:
     """The outing settled for the turn being answered, as what the reply says (first in its notes)."""
     if outing['activity'] == 'dinner-in':
         line = f"- You are having the user over: {what(outing)}, {day_text(outing['local_date'])} at " \
@@ -609,9 +609,19 @@ def booked_line(outing: dict) -> str:
         line = f"- You agreed to go: {what(outing)}, {day_text(outing['local_date'])} at {outing['at_time']}. " \
             'Confirm where and when in this reply, in your own words.'
     if outing['asked_date'] and outing['asked_date'] != outing['local_date']:
-        line += f" They asked for {day_text(outing['asked_date'])}, but you can't make that day, so say so and " \
-                f"that it is {day_text(outing['local_date'])} instead."
+        why = f"something is already booked then ({holding['title']}), so name it, say you can't make that day " \
+            "and" if holding else "you can't make that day, so say so and"
+        line += f" They asked for {day_text(outing['asked_date'])}, but {why} that it is " \
+                f"{day_text(outing['local_date'])} instead."
     return line
+
+
+def holding_for(connection, companion: dict, outing: dict) -> dict | None:
+    """The appointment that kept the day the user asked for (companion/life/admin.py), so the reply can name it."""
+    if not outing['asked_date'] or outing['asked_date'] == outing['local_date']:
+        return None
+    from companion.life import admin
+    return admin.holding(connection, companion, date.fromisoformat(outing['asked_date']), outing['at_time'])
 
 
 def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str]) -> list[tuple[str, str]]:
@@ -627,7 +637,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         elif found == 'planned':
             result.append((f"outing:{outing['id']}", planned_line(outing)))
             if outing['message_id'] in fresh_ids:
-                result.append((f"outing:{outing['id']}:booked", booked_line(outing)))
+                result.append((f"outing:{outing['id']}:booked",
+                               booked_line(outing, holding_for(connection, companion, outing))))
         elif now - window(outing, version['timezone'])[1] < RECENT:
             paid = money_text(companion, outing)
             result.append((f"outing:{outing['id']}:done",

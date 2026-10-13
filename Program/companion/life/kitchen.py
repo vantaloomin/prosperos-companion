@@ -914,6 +914,15 @@ def hosting_text(menu: dict, era_modern: bool = True) -> str:
 
 # --- Inviting the user over ---
 
+def planned_menu(menu: dict, era_modern: bool = True) -> str:
+    """The menu for a dinner still ahead: 'You plan to cook mushroom risotto, with lemon bars for dessert.' or 'You plan
+    to order pad thai from Thai Landing and set the table.'"""
+    if menu.get('takeout'):
+        item, verb = menu['takeout'], 'order' if era_modern else 'pick up'
+        return f"You plan to {verb} {item['dish']} from {item['source']} and set the table."
+    return hosting_text(menu, era_modern).replace('You are cooking', 'You plan to cook')
+
+
 def invite_due(connection, companion: dict, now: datetime) -> list:
     """Now and then, a first text asking the user over for dinner on a free evening a few days off, with what they
     will make (companion/life/openers.py). Saving the text settles the plan (`settle_invite`)."""
@@ -943,8 +952,8 @@ def invite_due(connection, companion: dict, now: datetime) -> list:
         when = f'{day:%A}'
         what = f"I'll make {dish}" if menu['dish'] else f"I'll get {dish} from {menu['takeout']['source']}"
         reason = (f'You want to have the user over for dinner at your place on {day:%A, %B} {day.day} at 7 PM. '
-                  f"{hosting_text(menu, era_modern).replace('You are cooking', 'You plan to cook')} "
-                  'Invite them in your own words, naming the day and what you will make.')
+                  f'{planned_menu(menu, era_modern)} '
+                  f"Invite them in your own words, naming the day and what you will {'make' if menu['dish'] else 'get'}.")
         return [Trigger(key, 'dinner_invite', reason, f'Come over for dinner {when}? {what}.',
                         (day.isoformat(),))]
     return []
