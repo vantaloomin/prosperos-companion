@@ -453,7 +453,7 @@ class ContextBuiltin(Input):
 
 
 class ToolArgument(Input):
-    source: Literal['place', 'latitude', 'longitude', 'topic', 'date', 'literal', 'url']
+    source: Literal['place', 'latitude', 'longitude', 'topic', 'date', 'literal', 'url', 'session']
     value: str | int | float | bool | None = None
 
 

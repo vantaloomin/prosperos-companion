@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { canSave, initialMapping, withPurpose, withSource, missingArguments, observationSummary, sentArguments, serviceBody, sourcesFor } from '../../src/features/settings/contextTools.ts'
+import { argumentKind, canSave, initialMapping, propertyLabel, withAppFilled, withPurpose, withSource, missingArguments, observationSummary, sentArguments, serviceBody, sourcesFor } from '../../src/features/settings/contextTools.ts'
 import type { ContextTool, Observation } from '../../src/types.ts'
 
 test('a stdio service sends the program and one argument per line', () => {
@@ -50,4 +50,20 @@ test('drafts change one property or timing at a time', () => {
   assert.equal(canSave(withSource(placed, 'units', '') , { ...tool, input_schema: { required: ['location'] } }), true)
   assert.deepEqual(withPurpose(draft, 'companion_city', true).run_in, ['conversation', 'companion_city'])
   assert.equal(canSave(withPurpose(placed, 'conversation', false), tool), false)
+})
+
+test('tool arguments read as words and are offered by their type', () => {
+  assert.equal(propertyLabel('allow_live_fetch'), 'Allow live fetch')
+  assert.equal(propertyLabel('maxResults'), 'Max results')
+  assert.equal(propertyLabel('urls'), 'URLs')
+  assert.equal(propertyLabel('request_id'), 'Request ID')
+  assert.equal(argumentKind('session_id', { type: 'string' }), 'app')
+  assert.equal(argumentKind('allow_live_fetch', { type: 'boolean' }), 'boolean')
+  assert.equal(argumentKind('mode', { type: 'string', enum: ['fast', 'deep'] }), 'choice')
+  assert.equal(argumentKind('max_results', { type: ['integer', 'null'] }), 'number')
+  assert.equal(argumentKind('objective', { type: 'string' }), 'text')
+  const search: ContextTool = { name: 'web_search', description: '', read_only: true, input_schema: { properties: { objective: {}, session_id: { type: 'string' } } } }
+  const filled = withAppFilled({ tool: 'web_search', arguments: { objective: { source: 'topic' } }, run_in: ['conversation'] }, search)
+  assert.deepEqual(filled.arguments, { objective: { source: 'topic' }, session_id: { source: 'session' } })
+  assert.equal(withAppFilled(filled, search), filled)
 })

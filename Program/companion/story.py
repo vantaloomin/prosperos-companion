@@ -9,12 +9,13 @@ only voices it. Moving somewhere else is the user's choice in the place picker, 
 """
 from datetime import datetime
 
-from companion import in_character, prompt_library, safety, story_people
+from companion import authors_note, in_character, prompt_library, safety, story_people
 from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
 from companion.life import agenda, encounters, network
+from companion.memory.context import NOTE_CLOSE
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import config_for, default_name, key_for
@@ -295,6 +296,13 @@ def model_messages(rows: list[dict], budget_chars: int) -> list[dict]:
     return chat
 
 
+def steered(chat: list[dict], steer: str) -> list[dict]:
+    """The story's author's note (companion/authors_note.py) right before the user's latest words."""
+    if not steer or not chat or chat[-1]['role'] != 'user':
+        return chat
+    return [*chat[:-1], {'role': 'user', 'content': f"{steer}\n{NOTE_CLOSE}\n{chat[-1]['content']}"}]
+
+
 def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
     view = scene(connection, now)
     system = prompt_library.text(connection, 'story-narrator') + '\n\n' + scene_text(view)
@@ -302,7 +310,10 @@ def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
         system += '\n\n' + in_character.OUT_OF_CHARACTER_NOTE.format(name='the narrator', model=default_name(config))
     budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system)
     rows = [row for row in messages(connection) if row['seq'] <= latest['seq']]
-    return {'system': system, 'messages': model_messages(rows, max(budget, 2000)), 'people': view['people'],
+    chat = model_messages(rows, max(budget, 2000))
+    if not in_character.out_of_character(latest['text']):
+        chat = steered(chat, authors_note.prompt_text(connection, 'story'))
+    return {'system': system, 'messages': chat, 'people': view['people'],
             'city_id': view['city']['id'], 'day': datetime.fromisoformat(view['local_time']).date()}
 
 

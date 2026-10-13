@@ -30,12 +30,29 @@ def test_a_search_tool_gets_the_request_in_every_field_that_takes_it():
                              'session_id': {'type': 'string'}, 'location': {'type': 'string'}},
               'required': ['objective', 'search_queries']}
     arguments, missing = infer_arguments('web_search', schema)
-    assert (arguments, missing) == ({'objective': {'source': 'topic'}, 'search_queries': {'source': 'topic'}}, [])
+    assert (arguments, missing) == ({'objective': {'source': 'topic'}, 'search_queries': {'source': 'topic'},
+                                     'session_id': {'source': 'session'}}, [])
     mapping = {'tool': 'web_search', 'arguments': '{"objective": {"source": "topic"}, '
                                                   '"search_queries": {"source": "topic"}}'}
     where = {'place': 'Towson, MD', 'latitude': None, 'longitude': None, 'date': '2026-10-05'}
     sent = lookups.arguments_for(mapping, [{'name': 'web_search', 'input_schema': schema}], where, 'bridge news')
     assert sent == {'objective': 'bridge news', 'search_queries': ['bridge news']}
+
+
+def test_the_app_fills_session_ids_and_types_fixed_values():
+    schema = {'properties': {'objective': {'type': 'string'}, 'session_id': {'type': 'string'},
+                             'allow_live_fetch': {'type': 'boolean'}, 'max_results': {'type': 'integer'}}}
+    mapping = {'tool': 'web_search', 'arguments': '{"objective": {"source": "topic"}, '
+                                                  '"session_id": {"source": "session"}, '
+                                                  '"allow_live_fetch": {"source": "literal", "value": "false"}, '
+                                                  '"max_results": {"source": "literal", "value": "5"}}'}
+    where = {'place': None, 'latitude': None, 'longitude': None, 'date': '2026-10-05'}
+    today = lookups.session_id('s1', '2026-10-05')
+    sent = lookups.arguments_for(mapping, [{'name': 'web_search', 'input_schema': schema}], where, 'bridge', today)
+    assert sent == {'objective': 'bridge', 'session_id': today, 'allow_live_fetch': False, 'max_results': 5}
+    # The same all day for one service; a new one the next day and for another service.
+    assert len(today) == 32 and today == lookups.session_id('s1', '2026-10-05')
+    assert today not in {lookups.session_id('s1', '2026-10-06'), lookups.session_id('s2', '2026-10-05')}
 
 
 def test_presets_are_keyless_hosted_services(client, companion):
@@ -70,6 +87,9 @@ def test_searching_from_chat_sends_only_the_request(client, connected, provider)
     sent = client.post('/api/conversation/messages', json={'text': 'Can you search reddit for bridge opinions?',
                                                            'client_id': 'client-search-1'}).json()
     [observation] = client.get(f"/api/context/messages/{sent['message']['id']}/observations").json()['observations']
+    # Besides what was asked, only the app's own random session id goes out.
+    session = observation['arguments'].pop('session_id')
+    assert len(session) == 32 and 'Towson' not in session
     assert observation['arguments'] == {'objective': 'bridge opinions on Reddit',
                                         'search_queries': ['bridge opinions on Reddit']}
     assert observation['location']['label'] == 'bridge opinions on Reddit'

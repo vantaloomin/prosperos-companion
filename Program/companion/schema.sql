@@ -1877,3 +1877,11 @@ CREATE TABLE IF NOT EXISTS upkeep_days (
   since_big INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (timeline_id, local_date)
 );
+-- Author's note (companion/authors_note.py): one note of the user's per chat, sent with every reply while it is on.
+-- `chat` is `companion:<id>`, `group:<id>` or `story`. Never a message: not in the transcript, memories or exports.
+CREATE TABLE IF NOT EXISTS authors_notes (
+  chat TEXT PRIMARY KEY,
+  text TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  updated_at TEXT NOT NULL
+);

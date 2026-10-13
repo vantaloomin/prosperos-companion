@@ -1,11 +1,11 @@
 import { appDate } from '../../appTime.ts'
-import type { ArgumentSource, ContextCategory, ContextMapping, ContextPurpose, ContextTool, MappingSuggestion, Observation, ToolArgument } from '../../types'
+import type { ArgumentSource, ContextCategory, ContextMapping, ContextPurpose, ContextTool, MappingSuggestion, Observation, ToolArgument, ToolProperty } from '../../types'
 
 export const CONTEXT_KEY = ['context-tools']
 export const CATEGORY_ORDER: ContextCategory[] = ['weather', 'news', 'local_events', 'culture', 'web_search', 'link']
 export const CATEGORY_LABELS: Record<ContextCategory, string> = { weather: 'Weather', news: 'News and recent events', local_events: 'Local events', link: 'Reading links', web_search: 'Web search', culture: "Movies, shows, games and what's trending" }
 export const SOURCE_LABELS: Record<ArgumentSource, string> = {
-  place: 'Your city or region', latitude: 'Latitude', longitude: 'Longitude', topic: 'Topic you asked about', date: "Today's date", literal: 'A fixed value', url: 'The link you pasted',
+  place: 'Your city or region', latitude: 'Latitude', longitude: 'Longitude', topic: 'Topic you asked about', date: "Today's date", literal: 'A fixed value', url: 'The link you pasted', session: 'A random ID made by the app',
 }
 
 export interface ServiceDraft { name: string; transport: 'stdio' | 'http'; program: string; args: string; url: string; secret: string; secretName: string }
@@ -75,6 +75,42 @@ export function sourcesFor(category: ContextCategory): ArgumentSource[] {
   if (category === 'web_search' || category === 'culture') return ['topic', 'literal']
   const all: ArgumentSource[] = ['place', 'latitude', 'longitude', 'topic', 'date', 'literal']
   return category === 'weather' ? all.filter((source) => source !== 'topic') : all
+}
+
+/** A tool argument's key as words: "allow_live_fetch" and "allowLiveFetch" read "Allow live fetch". */
+export function propertyLabel(property: string): string {
+  const words = property.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim().toLowerCase()
+    .split(' ').map((word) => ACRONYMS[word] ?? word).join(' ')
+  return words ? words[0].toUpperCase() + words.slice(1) : property
+}
+
+const ACRONYMS: Record<string, string> = { url: 'URL', urls: 'URLs', id: 'ID', ids: 'IDs', api: 'API', uri: 'URI' }
+
+/** Keys a service uses for a per-conversation id; the app fills these itself (see the backend's FILLS). */
+const SESSION_KEYS = ['session_id', 'sessionid', 'session', 'conversation_id', 'conversationid']
+
+/**
+ * How the editor offers one argument: filled by the app, a yes/no, a pick from the tool's own list,
+ * a number, or text that can come from what you asked.
+ */
+export type ArgumentKind = 'app' | 'boolean' | 'choice' | 'number' | 'text'
+
+const KIND_OF_TYPE: Record<string, ArgumentKind> = { boolean: 'boolean', integer: 'number', number: 'number' }
+
+export function argumentKind(property: string, schema: ToolProperty = {}): ArgumentKind {
+  if (SESSION_KEYS.includes(property.toLowerCase())) return 'app'
+  if (Array.isArray(schema.enum) && schema.enum.length > 0) return 'choice'
+  // A nullable type such as ["integer", "null"] counts as its one real type.
+  const types = (Array.isArray(schema.type) ? schema.type : [schema.type ?? '']).filter((type) => type !== 'null')
+  return (types.length === 1 && KIND_OF_TYPE[types[0]]) || 'text'
+}
+
+/** The draft with every argument the app fills itself (such as a session id) filled. */
+export function withAppFilled(draft: MappingDraft, tool: ContextTool | undefined): MappingDraft {
+  const add = Object.entries(tool?.input_schema.properties ?? {})
+    .filter(([property, schema]) => argumentKind(property, schema) === 'app' && !draft.arguments[property])
+  if (add.length === 0) return draft
+  return { ...draft, arguments: { ...draft.arguments, ...Object.fromEntries(add.map(([property]) => [property, { source: 'session' as const }])) } }
 }
 
 /** Required properties of the chosen tool that the draft does not fill yet. */

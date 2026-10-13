@@ -33,7 +33,18 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from companion import away, group_openers, in_character, moods, news, prompt_library, safety, secrets, texting
+from companion import (
+    authors_note,
+    away,
+    group_openers,
+    in_character,
+    moods,
+    news,
+    prompt_library,
+    safety,
+    secrets,
+    texting,
+)
 from companion.characters import by_id
 from companion.database import identifier, many, one, optional, settings
 from companion.errors import DomainError, require
@@ -481,9 +492,19 @@ def prompt(connection, group: dict, companion: dict, stay: dict, now, config: di
 
 
 def add_note(packet: dict, text: str) -> dict:
-    """An instruction for this reply only, added to the notes just before the turn."""
+    """An instruction for this reply only, added to the notes just before the author's note and the turn."""
+    tail = packet.get('tail', packet['turn'])
+    notes = packet['messages'][-1]['content'].removesuffix(tail)
+    return {**packet, 'messages': [{'role': 'user', 'content': f"{notes}{text}\n\n{tail}"}]}
+
+
+def steer(packet: dict, text: str) -> dict:
+    """The group's author's note (companion/authors_note.py), last of the notes, right before the turn."""
+    if not text:
+        return packet
+    tail = f"{text}\n\n{packet['turn']}"
     notes = packet['messages'][-1]['content'].removesuffix(packet['turn'])
-    return {**packet, 'messages': [{'role': 'user', 'content': f"{notes}{text}\n\n{packet['turn']}"}]}
+    return {**packet, 'tail': tail, 'messages': [{'role': 'user', 'content': f"{notes}{tail}"}]}
 
 
 # Who answers ----------------------------------------------------------------------------------------
@@ -909,6 +930,9 @@ class GroupChats:
         with self.database.connect() as connection:
             packet = prompt(connection, group, companion, stay, self.database.clock.now(), config, until_seq,
                             user['text'], user.get('turn'))
+            # A reply to the user carries the group's author's note; a member starting a conversation does not.
+            if user['text'] and not in_character.out_of_character(user['text']):
+                packet = steer(packet, authors_note.prompt_text(connection, f"group:{group['id']}"))
         if in_character.out_of_character(user['text']):
             reminder = in_character.OUT_OF_CHARACTER_NOTE.format(name=stay['name'], model=default_name(config))
             packet = add_note(packet, reminder)
