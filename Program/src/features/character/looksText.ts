@@ -8,7 +8,7 @@ export function emptyLooks(): Looks {
 
 export const looksWords: { field: LooksWord; label: string }[] = [
   { field: 'build', label: 'Build' }, { field: 'skin', label: 'Skin tone' }, { field: 'face', label: 'Face shape' },
-  { field: 'jaw', label: 'Jaw and chin' }, { field: 'nose', label: 'Nose' }, { field: 'eyes', label: 'Eye colour' },
+  { field: 'jaw', label: 'Jaw and chin' }, { field: 'nose', label: 'Nose' }, { field: 'eyes', label: 'Eye color' },
   { field: 'eye_shape', label: 'Eye shape' }, { field: 'hair', label: 'Hair' }, { field: 'facial_hair', label: 'Facial hair' },
   { field: 'feature', label: 'Something people notice' },
 ]
