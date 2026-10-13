@@ -157,6 +157,12 @@ def test_the_user_can_move_an_entry_to_another_day(client, mira):
     panel = client.post(f"/api/life/admin/{chore['id']}/move").json()
     [moved] = [item for item in panel['upcoming'] if item['key'] == 'test:books']
     assert moved['local_date'] == '2026-10-07' and moved['moved_reason'] == 'moved by you'
+    # Someone who leaves things to the last minute never puts off the day the user picked.
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        from companion.characters import require_current
+        companion = require_current(connection)
+        assert admin.put_off(connection, companion, TUESDAY, 1.0, database.clock.now()) == 0
 
 
 def test_seeded_admin_plans_ahead_and_counts_its_costs(client, mira, monkeypatch, clock):

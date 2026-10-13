@@ -483,8 +483,8 @@ def put_off(connection, companion: dict, today: date, chance: float, now) -> int
     moved = 0
     for item in upcoming(connection, companion['active_timeline_id'], today.isoformat(),
                          (today + timedelta(days=1)).isoformat()):
-        if item['fixed'] or item['source'] != 'admin' or item['moves'] >= MAX_PUT_OFF:
-            continue
+        if item['fixed'] or item['source'] != 'admin' or item['moves'] >= MAX_PUT_OFF or item['moved_reason'] == 'user':
+            continue  # A day the user picked stands.
         roll = f"{item['key']}:{item['moves']}"
         if generators.unit(roll, 'put-off') >= chance:
             continue
