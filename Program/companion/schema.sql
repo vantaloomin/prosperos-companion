@@ -1955,7 +1955,7 @@ CREATE TABLE IF NOT EXISTS life_admin (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   key TEXT NOT NULL,
-  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks')),
+  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work')),
   kind TEXT NOT NULL,
   title TEXT NOT NULL,
   done_text TEXT NOT NULL,
@@ -1980,6 +1980,45 @@ CREATE TABLE IF NOT EXISTS life_admin (
   UNIQUE (timeline_id, key)
 );
 CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date);
+
+-- Work life (companion/life/work.py): the companion's job state. `career` is the career it is for (a new career
+-- starts it afresh); `review_on` is the yearly review day ('MM-DD'); `pay` is their pay as a share of the career's
+-- base after raises and promotions; between jobs `status` is 'hunting' until `hunt_until`. `project` is the running
+-- project ({title, index, started, due}) and `used` the recent titles, so one does not come back soon.
+CREATE TABLE IF NOT EXISTS work_life (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  career TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT 'general',
+  started_on TEXT NOT NULL,
+  review_on TEXT NOT NULL,
+  pay REAL NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'working' CHECK (status IN ('working', 'hunting')),
+  hunt_since TEXT,
+  hunt_until TEXT,
+  hunt_reason TEXT,
+  employer TEXT NOT NULL DEFAULT '',
+  project TEXT NOT NULL,
+  used TEXT NOT NULL DEFAULT '[]',
+  checked_through TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- What changed at work (companion/life/work.py): reviews, promotions, projects wrapped up, a lost job and a new one.
+-- `key` keeps each from being recorded twice; `pay` is the pay share after it and `change` the percent change.
+CREATE TABLE IF NOT EXISTS work_events (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('raise', 'freeze', 'promotion', 'project', 'laid-off', 'quit', 'new-job')),
+  local_date TEXT NOT NULL,
+  text TEXT NOT NULL,
+  pay REAL NOT NULL DEFAULT 1,
+  change REAL NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, key)
+);
+CREATE INDEX IF NOT EXISTS work_events_day ON work_events(timeline_id, local_date);
 -- Hobbies that progress (companion/life/hobbies.py): the companion's tracked pastimes, each with a skill that grows
 -- with practice, and how far their life has been walked. `hobby_log` keeps what happened (sessions, milestones,
 -- stalls, new starts, gear and fees) and a weekly `mark` of every pastime, so the days ahead can be walked again after

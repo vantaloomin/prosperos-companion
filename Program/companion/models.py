@@ -406,6 +406,8 @@ class LifeSettingsUpdate(Input):
     day_shifts: bool | None = None
     # Life admin calendar (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic.
     admin_realism: int | None = Field(default=None, ge=0, le=3)
+    # Work life (companion/life/work.py): 0 off, 1 steady, 2 true to life, 3 dramatic.
+    work_realism: int | None = Field(default=None, ge=0, le=3)
     # Hobbies that progress (companion/life/hobbies.py): 0 off, 1 light, 2 true to life, 3 dramatic.
     hobbies_realism: int | None = Field(default=None, ge=0, le=3)
     on_her_mind: bool | None = None

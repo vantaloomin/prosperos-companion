@@ -22,6 +22,7 @@ Other modules read it through `touch` (a practice session takes a free slot of t
 "hobbies" section), `purchases` (money), `news_due` and `invite_due` (first texts: a milestone, or asking the user
 along), `patterns` and `outing_place` (the user suggesting one as a Go somewhere together plan, outings.py).
 """
+import hashlib
 import json
 import re
 from datetime import date, datetime, timedelta
@@ -251,7 +252,9 @@ def new_row(timeline_id: str, item: dict, source: str, day: date, seed: str, *, 
     per_week = generators.pick(label, 'weekly', weekly, [3, 4, 2] if source == 'interest' else [5, 3])
     talent = 0.7 + 0.6 * generators.unit(label, 'talent')
     started = day - timedelta(days=int(months * 30.4))
-    return {'id': identifier(), 'timeline_id': timeline_id, 'hobby': item['id'], 'label': item['label'],
+    # Seeded, so a pastime taken up again on a re-walk is the same row, with the same sessions and milestones.
+    row_id = hashlib.sha256(f'{timeline_id}:{label}:{source}:{day.isoformat()}:{position}'.encode()).hexdigest()[:32]
+    return {'id': row_id, 'timeline_id': timeline_id, 'hobby': item['id'], 'label': item['label'],
             'name': name or item['name'], 'kind': item['kind'], 'source': 'app' if source == 'new' else source,
             'status': 'active', 'skill': round(skill, 2), 'best': round(skill, 2), 'talent': round(talent, 3),
             'per_week': per_week, 'started_on': started.isoformat(), 'status_since': day.isoformat(),

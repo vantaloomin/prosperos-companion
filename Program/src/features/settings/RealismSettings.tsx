@@ -9,6 +9,7 @@ import { StageControls } from '../memories/Closeness'
 import { DRAMA_LEVELS } from '../today/storyText'
 import { LOOKS_LEVELS } from '../character/looksLatelyText'
 import { KITCHEN_LEVELS } from '../character/kitchenText'
+import { WORK_LEVELS } from '../character/workText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
@@ -41,6 +42,7 @@ export function PaceSettings() {
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
   const level = DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
   const looks = LOOKS_LEVELS[data.looks_realism] ?? LOOKS_LEVELS[2]
+  const work = WORK_LEVELS[data.work_realism] ?? WORK_LEVELS[2]
   const pastimes = HOBBY_LEVELS[data.hobbies_realism] ?? HOBBY_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
@@ -52,6 +54,10 @@ export function PaceSettings() {
       <Field label={`Their looks change: ${looks.label}`} hint={looks.hint} tip="Only looks the app picked change. Anything you wrote about how someone looks stays exactly as you wrote it.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.looks_realism} label={looks.label}
           onChange={(looks_realism) => void save({ looks_realism })} />}
+      </Field>
+      <Field label={`Work life: ${work.label}`} hint={work.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.work_realism} label={work.label}
+          onChange={(work_realism) => void save({ work_realism })} />}
       </Field>
       <Field label={`Their pastimes: ${pastimes.label}`} hint={pastimes.hint} tip="Pastimes from their interests, and ones you add, are never given up on their own.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.hobbies_realism} label={pastimes.label}

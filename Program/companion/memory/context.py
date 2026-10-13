@@ -44,6 +44,7 @@ from companion.life import (
     trips,
     upkeep,
     wardrobe,
+    work,
 )
 from companion.life import mood as moods
 from companion.life.feed import linked_post
@@ -129,6 +130,9 @@ HEADINGS = {
             'occasions': 'Birthdays and anniversaries (from the calendar; never guess a date that is not here)',
             'money': 'Your money (fictional, from your pay and your city\'s rents; mention it only when it fits, '
                      'never ask the user for money and never treat it as theirs)',
+            # Work life (companion/life/work.py): the week at work, the project and what changed lately.
+            'work': 'Your job (fictional, yours; decided: bring it up the way a person would and never contradict '
+                    'it)',
             'weather': "Today where you live (typical weather for the season in your fictional day, from "
                        'climate averages, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
@@ -666,11 +670,7 @@ def offer_life(packet, connection, companion, now):
     today = now.astimezone(zone(version['timezone'])).date().isoformat()
     offer_day(packet, connection, timeline_id, version, now, today)
     offer_people(packet, connection, companion, now, today)
-    budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
-    for identity, text in money.context_lines(version['definition'], today, budget_home):
-        packet.offer('money', identity, text)
-    for identity, text in consequences.money_line(connection, timeline_id, f"companion:{companion['id']}", today):
-        packet.offer('money', identity, text)
+    offer_money(packet, connection, companion, now, today)
     for identity, text in reactions.lately_lines(connection, companion, now):
         packet.offer('lately', identity, text)
     for item in recommendations.progress(connection, timeline_id):
@@ -689,6 +689,16 @@ def offer_life(packet, connection, companion, now):
         packet.offer('city_news', identity, text)
 
 
+def offer_money(packet, connection, companion, now, today: str):
+    """Their budget and their job (companion/life/money.py, work.py)."""
+    timeline_id, version = companion['active_timeline_id'], companion['version']
+    budget_home = money.household(connection, timeline_id, version['definition'], date.fromisoformat(today))
+    for identity, text in money.context_lines(version['definition'], today, budget_home):
+        packet.offer('money', identity, text)
+    for identity, text in consequences.money_line(connection, timeline_id, f"companion:{companion['id']}", today):
+        packet.offer('money', identity, text)
+    for identity, text in work.context_lines(connection, companion, now):
+        packet.offer('work', identity, text)
 def offer_kitchen_and_pastimes(packet, connection, timeline_id, version, now):
     """Their kitchen and meals (companion/life/kitchen.py) and their pastimes (companion/life/hobbies.py)."""
     for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,

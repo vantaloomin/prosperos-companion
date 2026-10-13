@@ -42,6 +42,7 @@ from companion.life import (
     trips,
     upkeep,
     wardrobe,
+    work,
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
@@ -127,6 +128,7 @@ def extend(connection, companion, world, now) -> dict:
     timeline_id, timezone = companion['active_timeline_id'], companion['version']['timezone']
     trips.plan_ahead(connection, companion, world, now)
     outings.finish_due(connection, companion, now)
+    work.plan_ahead(connection, companion, world, now)
     admin.plan_ahead(connection, companion, world, now)
     found = subjects(connection, companion, world, now)
     active = [subject for subject, _definition, _basis in found]
@@ -190,6 +192,9 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     schedule, _default = routine.blocks(definition)
     recent = recent_activities(connection, timeline_id, subject, stamp(start))
     days_off = days_off_for(world, definition, subject, start, end)
+    if subject == COMPANION and companion:
+        # Vacation days and days between jobs (companion/life/work.py); a public holiday keeps its own name.
+        days_off = {**work.days_off(connection, companion, start.date(), end.date()), **days_off}
     days = {}
     written = 0
     scope = {'timeline_id': timeline_id, 'subject': subject, 'definition': definition, 'basis': basis, 'world': world,
@@ -243,6 +248,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
     if scope['shifting'] and not resting and slot.block.key not in pinned:
         tilt = disruptions.tilts(connection, timeline_id, pairs.companion_key(scope['companion']['id']),
                                  slot.local_date.isoformat()) if subject == COMPANION else None
+        if subject == COMPANION and block['kind'] == 'work':
+            tilt = work.tilt(connection, scope['companion'], slot.local_date, tilt)
         shift = disruptions.roll(f'{seed}:shift', block, company, tilt)
     starts_at, ends_at, shift = disruptions.place(connection, timeline_id, subject, slot.starts_at, slot.ends_at, shift)
     block = disruptions.shifted(block, shift)
@@ -258,6 +265,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                               own_plans.entry(plan, block, definition))
         else:
             entry = compose_entry(connection, scope, slot, view, company, recent, seed)
+            if subject == COMPANION:
+                entry = work.touch(connection, scope['companion'], entry, block, slot.local_date, seed)
             entry = disruptions.entry_with(entry, shift, definition['name'])
         entry = hobbies.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
                               scope['world'], scope['now'], scope.get('timezone') or 'UTC')
@@ -387,7 +396,7 @@ def holiday_block(block: dict, holiday: str | None) -> dict:
     """On a public holiday, a work or study block becomes a day off named after the holiday."""
     if not holiday or block['kind'] not in WORKING:
         return block
-    return {**block, 'kind': 'leisure', 'label': f'{holiday} (day off)', 'holiday': holiday}
+    return {**block, 'kind': 'leisure', 'label': work.LABELS.get(holiday, f'{holiday} (day off)'), 'holiday': holiday}
 
 
 def recent_activities(connection, timeline_id, subject, before) -> list[str]:
