@@ -385,8 +385,10 @@ def rebuild(connection, timeline_id: str, now):
 
 # --- Chat, pictures and Life admin ---
 
-def last_big_clean(days: list[dict]) -> str | None:
-    return next((day['date'] for day in reversed(days) if 'big-clean' in day['done']), None)
+def last_big_clean(days: list[dict], state: dict | None = None) -> str | None:
+    """The last big clean in these days; one from before the user last set how tidy the place is does not count."""
+    since = (state or {}).get('set_on') or ''
+    return next((day['date'] for day in reversed(days) if 'big-clean' in day['done'] and day['date'] >= since), None)
 
 
 def context_lines(connection, timeline_id: str, definition: dict, day: date) -> list[tuple[str, str]]:
@@ -401,7 +403,7 @@ def context_lines(connection, timeline_id: str, definition: dict, day: date) -> 
     words = ' '.join(area_text(state, area, today['mess'][area]) for area in AREAS)
     lines = [(f'upkeep:{today["date"]}', f'- Housework today: {words}'),
              (f'upkeep:habit:{habit(state)}', f'- Your habit: you {you_habit(habit(state))}.')]
-    cleaned = last_big_clean(days)
+    cleaned = last_big_clean(days, state)
     if cleaned:
         lines.append((f'upkeep:big:{cleaned}', f'- Recently ({days_ago(date.fromisoformat(cleaned), day)}): you did a '
                       'big clean.'))
@@ -458,7 +460,7 @@ def view(connection, timeline_id: str, definition: dict, day: date) -> dict:
             'set_on': state['set_on'], 'levels': list(TIDINESS),
             'areas': [{'area': area, 'text': area_text(state, area, today['mess'][area]),
                        'value': round(today['mess'][area])} for area in AREAS],
-            'last_big_clean': last_big_clean(days), 'recent': recent[:6]}
+            'last_big_clean': last_big_clean(days, state), 'recent': recent[:6]}
 
 
 def set_tidiness(connection, timeline_id: str, index: int, day: date, now):

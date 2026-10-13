@@ -181,3 +181,17 @@ def test_older_eras_get_no_modern_housework():
     lines = [line for bank in banks for line in upkeep.lines_for(old, bank)]
     lines += [upkeep.pet_line(old, f'seed{n}', [{'name': 'Rex', 'variety': 'cat'}]) for n in range(200)]
     assert not [line for line in lines if any(word in line.casefold() for word in modern)]
+
+
+def test_a_big_clean_before_set_it_is_not_the_last_one(client, mira):
+    tid = timeline(client)
+    yesterday = (TODAY - timedelta(days=1)).isoformat()
+    with connect(client) as connection:
+        connection.execute("INSERT OR REPLACE INTO upkeep_days (timeline_id, local_date, mess, done, away, busy, "
+                           "since_big) VALUES (?, ?, '{\"laundry\": 3, \"dishes\": 3, \"clutter\": 3}', "
+                           "'[\"big-clean\"]', 0, 0, 0)", (tid, yesterday))
+    assert client.get('/api/life/upkeep').json()['last_big_clean'] == yesterday
+    disaster = client.put('/api/life/upkeep', json={'tidiness': 4}).json()
+    assert disaster['last_big_clean'] is None
+    system = client.get('/api/context/preview').json()['system']
+    assert 'The place is a mess.' in system and 'you did a big clean' not in system
