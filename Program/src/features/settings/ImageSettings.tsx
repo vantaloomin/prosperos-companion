@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
@@ -464,6 +464,15 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   const copy = WORKFLOWS[field]
   const set = field === 'workflow' ? backend.custom_workflow : backend.reference_workflow
   const flow = useWorkflow(backend, field, save)
+  // The built-in one shows the chosen model files and sampler; once they change, an untouched box follows.
+  const picks = JSON.stringify([backend.model_files, backend.sampler])
+  const shownPicks = useRef(picks)
+  const { saved, text, builtIn, load } = flow
+  useEffect(() => {
+    if (picks === shownPicks.current) return
+    shownPicks.current = picks
+    if (saved !== null && !saved && text === builtIn) void load()
+  }, [picks, saved, text, builtIn, load])
   return (
     <details onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
       <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
