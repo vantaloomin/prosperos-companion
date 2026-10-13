@@ -35,7 +35,7 @@ test('the shipped download list links to pages, never to a file download', () =>
   assert.ok(links.length > 0)
   for (const item of links) {
     assert.match(item.url, /^https:\/\/huggingface\.co\/[\w.-]+\/[\w.-]+(\/tree\/main(\/[\w./-]+)?)?$/)
-    assert.ok(['model', 'clip', 'vae'].includes(item.role) && item.name && item.licence)
+    assert.ok(['model', 'clip', 'vae', 'reference'].includes(item.role) && item.name && item.licence)
   }
 })
 

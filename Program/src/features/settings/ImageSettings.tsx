@@ -427,6 +427,17 @@ const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 
 const USE_BUILT_IN = 'Use the built-in one'
 const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
+/** The files a built-in workflow loads, for its hint: " It needs a, b and c in ComfyUI's models folders." */
+function needs(workflow: string): string {
+  let nodes: { inputs?: Record<string, unknown> }[]
+  try { nodes = Object.values(JSON.parse(workflow) as Record<string, { inputs?: Record<string, unknown> }>) } catch { return '' }
+  const files = nodes.flatMap(({ inputs = {} }) => ['unet_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key]))
+    .filter((name): name is string => typeof name === 'string' && name.endsWith('.safetensors'))
+  if (!files.length) return ''
+  const listed = files.length === 1 ? files[0] : `${files.slice(0, -1).join(', ')} and ${files[files.length - 1]}`
+  return ` It needs ${listed} in ComfyUI's models folders.`
+}
+
 /** Saved workflows come back indented so they can be read and edited; anything else is shown as saved. */
 const readable = (text: string) => { try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text } }
 
@@ -471,6 +482,8 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   const copy = WORKFLOWS[field]
   const set = field === 'workflow' ? backend.custom_workflow : backend.reference_workflow
   const flow = useWorkflow(backend, field, save)
+  // A built-in one starts closed and the user's own starts open (Iris); saving or resetting never folds it away.
+  const [startOpen] = useState(set)
   // The built-in one shows the chosen model files and sampler; once they change, an untouched box follows.
   const picks = JSON.stringify([backend.model_files, backend.sampler])
   const shownPicks = useRef(picks)
@@ -481,10 +494,10 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
     if (saved !== null && !saved && text === builtIn) void load()
   }, [picks, saved, text, builtIn, load])
   return (
-    <details onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
+    <details open={startOpen} onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
       <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
       <div className="form-stack workflow-editor">
-        <Field label={copy.label} hint={<>{copy.hint}{!set && ` ${copy.shown}`}</>}>{(id, describedBy) =>
+        <Field label={copy.label} hint={<>{copy.hint}{!set && ` ${copy.shown}${needs(flow.builtIn)}`}</>}>{(id, describedBy) =>
           <>
             <textarea id={id} rows={12} value={flow.text} placeholder="Paste a workflow" spellCheck={false} aria-describedby={describedBy}
               aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />
@@ -504,11 +517,12 @@ function WorkflowActions({ flow, set }: { flow: Workflow; set: boolean }) {
   const edited = flow.saved !== null && flow.text !== flow.shown
   return <>
     {flow.removed && <Notice action={<button type="button" className="text-button" onClick={() => void flow.store(flow.removed)}>Undo</button>}>{BACK_TO_BUILT_IN}</Notice>}
-    <div className="form-actions">
-      <button type="button" className="button primary" disabled={!flow.text.trim() || !edited} onClick={() => void flow.store(flow.text.trim())}>Save workflow</button>
+    {(edited || set) && <div className="form-actions">
+      {/* Shown only once something changed, like Undo changes (Iris). */}
+      {edited && <button type="button" className="button primary" disabled={!flow.text.trim()} onClick={() => void flow.store(flow.text.trim())}>Save workflow</button>}
       {edited && <button type="button" className="button" onClick={() => flow.edit(flow.shown)}>Undo changes</button>}
       {set && <button type="button" className="text-button subtle workflow-reset" onClick={() => void flow.store('')}>{USE_BUILT_IN}</button>}
-    </div>
+    </div>}
   </>
 }
 
