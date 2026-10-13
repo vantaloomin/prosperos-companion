@@ -111,7 +111,7 @@ def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken
                    'refs': job['refs'], 'sources': job['sources'], 'data_version': job['data_version']}
         schedule = job['schedule']
     else:
-        offered = {key: career for key, career in catalog.careers().items() if 'modern' in career['eras']}
+        offered = {key: career for key, career in catalog.everyday(catalog.careers()).items() if 'modern' in career['eras']}
         career_id = generators.pick(seed, 'career', sorted(offered))
         career = offered[career_id]
         details = {'career': career['name'], 'employer': '', 'neighborhood': '', 'city': '', 'refs': [],

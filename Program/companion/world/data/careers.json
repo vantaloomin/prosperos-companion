@@ -1382,6 +1382,228 @@
    "eras": [
     "jazz-age"
    ]
+  },
+  {
+   "id": "subscription-creator",
+   "name": "Subscription content creator",
+   "sector": "adult-entertainment",
+   "schedule": "flexible",
+   "pay": "$$",
+   "summary": "Self-employed: shoots and edits explicit photo and video sets for a paid fan page (OnlyFans, Fansly), answers subscriber messages, fills custom requests and promotes the page on social media. Income swings month to month and the platform takes 20 percent.",
+   "themes": [
+    "shooting sets",
+    "editing",
+    "subscriber messages",
+    "custom requests",
+    "promo posts",
+    "payout day",
+    "quarterly taxes"
+   ],
+   "adult": true
+  },
+  {
+   "id": "cam-model",
+   "name": "Webcam model",
+   "sector": "adult-entertainment",
+   "schedule": "evening",
+   "pay": "$$",
+   "summary": "Streams live explicit shows on a cam site from a corner of the apartment set up with ring lights, paid in tips and private shows; the good hours are late evenings and weekends.",
+   "themes": [
+    "going live",
+    "regular tippers",
+    "lighting and setup",
+    "private shows",
+    "moderators",
+    "slow nights"
+   ],
+   "adult": true
+  },
+  {
+   "id": "exotic-dancer",
+   "name": "Exotic dancer",
+   "sector": "adult-entertainment",
+   "schedule": "shift-night",
+   "pay": "$$",
+   "summary": "Dances topless or nude at a strip club as an independent contractor: pays the house a fee each shift, tips the DJ and the bouncers, and earns from stage sets and private dances.",
+   "themes": [
+    "house fee",
+    "stage sets",
+    "private dances",
+    "regulars",
+    "the dressing room",
+    "counting tips at 3 a.m."
+   ],
+   "adult": true
+  },
+  {
+   "id": "adult-film-performer",
+   "name": "Adult film performer",
+   "sector": "adult-entertainment",
+   "schedule": "flexible",
+   "pay": "$$$",
+   "summary": "Performs in sex scenes for adult studios, booked through an agent; tests for STIs every two weeks, shoots a few days a month and runs their own social media and fan page between bookings.",
+   "themes": [
+    "bookings from the agent",
+    "test results",
+    "shoot days",
+    "studio sets",
+    "conventions",
+    "fan page"
+   ],
+   "adult": true
+  },
+  {
+   "id": "phone-sex-operator",
+   "name": "Phone sex operator",
+   "sector": "adult-entertainment",
+   "schedule": "evening",
+   "pay": "$",
+   "summary": "Takes explicit calls and paid sexting sessions from home for a chat line, paid by the minute; keeps a headset, a log of regular callers and a voice that does not match their day.",
+   "themes": [
+    "regular callers",
+    "the headset",
+    "per-minute pay",
+    "scripts",
+    "long quiet stretches"
+   ],
+   "adult": true
+  },
+  {
+   "id": "adult-store-clerk",
+   "name": "Adult store clerk",
+   "sector": "retail",
+   "schedule": "evening",
+   "pay": "$",
+   "summary": "Works the register and floor at an adult store: checks IDs at the door, explains toys and lube to nervous shoppers, restocks lingerie and handles returns that cannot be resold.",
+   "themes": [
+    "checking IDs",
+    "nervous customers",
+    "restocking",
+    "product questions",
+    "inventory",
+    "bachelorette parties"
+   ],
+   "adult": true
+  },
+  {
+   "id": "professional-dominatrix",
+   "name": "Professional dominatrix",
+   "sector": "adult-entertainment",
+   "schedule": "flexible",
+   "pay": "$$$",
+   "summary": "Runs paid BDSM sessions by appointment in a rented dungeon: screens clients, agrees limits and safewords in advance and keeps the equipment clean. Sessions are kink, not sex.",
+   "themes": [
+    "client screening",
+    "sessions",
+    "limits and safewords",
+    "the dungeon",
+    "cleaning gear",
+    "deposits"
+   ],
+   "adult": true
+  },
+  {
+   "id": "burlesque-performer",
+   "name": "Burlesque performer",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "pay": "$",
+   "summary": "Performs striptease acts in neo-burlesque shows at bars and small theatres, makes their own costumes and pasties, and teaches a weekly class to cover rent.",
+   "themes": [
+    "acts",
+    "costumes",
+    "rhinestones",
+    "producers",
+    "the weekly class",
+    "stage names"
+   ],
+   "adult": true
+  },
+  {
+   "id": "glamour-model",
+   "name": "Glamour model",
+   "sector": "adult-entertainment",
+   "schedule": "flexible",
+   "pay": "$$",
+   "summary": "Poses for lingerie, topless and nude shoots for photographers, magazines and paid sites; books jobs through a profile and an agency and sells prints and sets on the side.",
+   "themes": [
+    "bookings",
+    "shoots",
+    "photographers",
+    "releases and contracts",
+    "selling sets"
+   ],
+   "adult": true
+  },
+  {
+   "id": "erotica-author",
+   "name": "Erotica author",
+   "sector": "media",
+   "schedule": "flexible",
+   "pay": "$",
+   "summary": "Writes and self-publishes explicit romance and erotica e-books under a pen name, a novella every few weeks to stay visible in the store rankings.",
+   "themes": [
+    "deadlines",
+    "the pen name",
+    "cover art",
+    "sales rankings",
+    "reader emails"
+   ],
+   "adult": true
+  },
+  {
+   "id": "adult-video-editor",
+   "name": "Adult video editor",
+   "sector": "adult-entertainment",
+   "schedule": "office",
+   "pay": "$$",
+   "summary": "Cuts scenes, color-corrects and writes descriptions for an adult studio, often remotely; sees hours of explicit footage a day and finds it about as exciting as spreadsheets.",
+   "themes": [
+    "editing timelines",
+    "deadlines",
+    "the studio producer",
+    "exports and uploads",
+    "scene descriptions"
+   ],
+   "adult": true
+  },
+  {
+   "id": "burlesque-dancer",
+   "name": "Burlesque dancer",
+   "sector": "entertainment",
+   "schedule": "evening",
+   "pay": "$",
+   "summary": "Strips in a burlesque house between the comics: three or four shows a night, run by the house manager and raided by the police now and then.",
+   "themes": [
+    "the runway",
+    "the comics",
+    "costumes",
+    "police raids",
+    "the house manager"
+   ],
+   "eras": [
+    "jazz-age"
+   ],
+   "adult": true
+  },
+  {
+   "id": "art-model",
+   "name": "Artists' model",
+   "sector": "entertainment",
+   "schedule": "flexible",
+   "pay": "$",
+   "summary": "Poses nude for art classes and painters by the hour: long holds in a cold studio, gossip on the breaks.",
+   "themes": [
+    "long holds",
+    "art students",
+    "cold studios",
+    "painters",
+    "breaks"
+   ],
+   "eras": [
+    "jazz-age"
+   ],
+   "adult": true
   }
  ]
 }
