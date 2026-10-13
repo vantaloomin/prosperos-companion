@@ -1954,7 +1954,7 @@
    "name": "The Charmery",
    "kind": "cafe",
    "neighborhood": "hampden",
-   "summary": "Small-batch ice cream shop with local flavours like Old Bay caramel.",
+   "summary": "Small-batch ice cream shop with local flavors like Old Bay caramel.",
    "tags": [
     "ice-cream",
     "dessert"
@@ -3336,7 +3336,7 @@
    "name": "32nd Street Farmers Market",
    "kind": "market",
    "neighborhood": "charles-village",
-   "summary": "Year-round Saturday market in Waverly with produce, coffee, breakfast stalls and neighbours catching up.",
+   "summary": "Year-round Saturday market in Waverly with produce, coffee, breakfast stalls and neighbors catching up.",
    "tags": [
     "farmers-market",
     "saturday",
@@ -4090,7 +4090,7 @@
    "name": "Northeast Market",
    "kind": "market",
    "neighborhood": "east-baltimore",
-   "summary": "City public market on Monument Street with lunch counters feeding hospital staff and neighbours.",
+   "summary": "City public market on Monument Street with lunch counters feeding hospital staff and neighbors.",
    "tags": [
     "food",
     "lunch",
@@ -4862,7 +4862,7 @@
     "high_f": 46,
     "low_f": 28,
     "rain_days": 9,
-    "note": "Cold, grey; snow possible."
+    "note": "Cold, gray; snow possible."
    },
    {
     "high_f": 55,
@@ -5128,7 +5128,7 @@
    "id": "snowball",
    "name": "Snowball",
    "kind": "dish",
-   "summary": "Finely shaved ice soaked in syrup, with egg custard the local favourite and marshmallow cream on top, sold from neighborhood stands that open for the warm months.",
+   "summary": "Finely shaved ice soaked in syrup, with egg custard the local favorite and marshmallow cream on top, sold from neighborhood stands that open for the warm months.",
    "places": [],
    "seasons": [
     "spring",

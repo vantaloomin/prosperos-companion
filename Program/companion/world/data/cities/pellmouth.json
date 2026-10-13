@@ -5,7 +5,7 @@
  "setting": "original",
  "era": "jazz-age",
  "category": "fictional",
- "basis": "Original setting written for Prospero Companion: a 1920s New England town with a cosmic-horror lean, modelled on real Massachusetts river and harbour towns. Nothing is taken from Lovecraft's stories or later works.",
+ "basis": "Original setting written for Prospero Companion: a 1920s New England town with a cosmic-horror lean, modeled on real Massachusetts river and harbor towns. Nothing is taken from Lovecraft's stories or later works.",
  "region": "Massachusetts",
  "country": "United States",
  "timezone": "America/New_York",
@@ -14,7 +14,7 @@
   "Pellmouth, Massachusetts",
   "Pellmouth 1926"
  ],
- "summary": "A fog-bound town of about eighteen thousand people at the mouth of the Pell River on the North Shore of Massachusetts, 1926: a harbour and cannery, a shut-mouthed fishing quarter, a hill of gambrel roofs and a meetinghouse sealed for thirty years, a small university with a strange bequest, shoe mills, a flooded quarry, an asylum on the bluff and a lighthouse that keeps its own hours.",
+ "summary": "A fog-bound town of about eighteen thousand people at the mouth of the Pell River on the North Shore of Massachusetts, 1926: a harbor and cannery, a shut-mouthed fishing quarter, a hill of gambrel roofs and a meetinghouse sealed for thirty years, a small university with a strange bequest, shoe mills, a flooded quarry, an asylum on the bluff and a lighthouse that keeps its own hours.",
  "lat": 42.705,
  "lon": -70.815,
  "currency": {
@@ -37,7 +37,7 @@
    "title": "Pellmouth, Massachusetts, written for Prospero Companion",
    "license": "CC0-1.0",
    "retrieved": "2026-10-10",
-   "note": "An invented town. Its institutions, trades, prices and yearly calendar follow what was usual in North Shore harbour, shoe-mill, quarry and college towns of the mid-1920s, drawn from general historical knowledge. Every business, family and person named is fictional, and the legends and rumours are written for it; none is taken from Lovecraft or any later work. Rents are monthly, in 1926 dollars. Coordinates sit on the Essex County coast for distance estimates only; the climate follows that coast."
+   "note": "An invented town. Its institutions, trades, prices and yearly calendar follow what was usual in North Shore harbor, shoe-mill, quarry and college towns of the mid-1920s, drawn from general historical knowledge. Every business, family and person named is fictional, and the legends and rumours are written for it; none is taken from Lovecraft or any later work. Rents are monthly, in 1926 dollars. Coordinates sit on the Essex County coast for distance estimates only; the climate follows that coast."
   }
  },
  "neighborhoods": [
@@ -363,7 +363,7 @@
   {
    "id": "gannet-point",
    "name": "Gannet Point",
-   "summary": "The rocky point at the harbour entrance with the lighthouse, the Coast Guard station, a long beach, the summer dance pavilion and shingled cottages that stand empty from October to June.",
+   "summary": "The rocky point at the harbor entrance with the lighthouse, the Coast Guard station, a long beach, the summer dance pavilion and shingled cottages that stand empty from October to June.",
    "vibe": [
     "coast",
     "lighthouse",
@@ -1178,7 +1178,7 @@
    "name": "Old Hill Burying Ground",
    "kind": "park",
    "neighborhood": "meetinghouse-hill",
-   "summary": "Slate stones with winged skulls and weeping willows under old elms; a quiet walk with a view of the harbour, and the sexton's lantern after dark.",
+   "summary": "Slate stones with winged skulls and weeping willows under old elms; a quiet walk with a view of the harbor, and the sexton's lantern after dark.",
    "tags": [
     "cemetery",
     "slate-stones",
@@ -1939,7 +1939,7 @@
    "name": "Bluff cliff walk",
    "kind": "trail",
    "neighborhood": "the-bluff",
-   "summary": "A path along the cliff above the rocks with the whole harbour mouth below, the light on the point opposite and the fog coming in like a wall.",
+   "summary": "A path along the cliff above the rocks with the whole harbor mouth below, the light on the point opposite and the fog coming in like a wall.",
    "tags": [
     "cliff",
     "sea-view",
@@ -2069,7 +2069,7 @@
    "name": "Gannet Point Light",
    "kind": "landmark",
    "neighborhood": "gannet-point",
-   "summary": "A white stone tower and keeper's house on the rocks at the harbour mouth. The lamp is lit at sunset by the almanac, and sometimes well before it, which the keeper puts down to the fog.",
+   "summary": "A white stone tower and keeper's house on the rocks at the harbor mouth. The lamp is lit at sunset by the almanac, and sometimes well before it, which the keeper puts down to the fog.",
    "tags": [
     "lighthouse",
     "fog-bell",
@@ -3115,7 +3115,7 @@
     "underworld",
     "defense"
    ],
-   "summary": "Wharves, the cannery, the boatyard, the ferry, the light and every boat in the harbour, including the ones that come in without lights.",
+   "summary": "Wharves, the cannery, the boatyard, the ferry, the light and every boat in the harbor, including the ones that come in without lights.",
    "source": "curated-2026-10"
   },
   {
@@ -3178,7 +3178,7 @@
     "high_f": 35,
     "low_f": 19,
     "rain_days": 11,
-    "note": "Cold and grey; nor'easters bring snow and tides over the wharves."
+    "note": "Cold and gray; nor'easters bring snow and tides over the wharves."
    },
    {
     "high_f": 37,
@@ -3238,7 +3238,7 @@
     "high_f": 50,
     "low_f": 34,
     "rain_days": 10,
-    "note": "Grey and blowing; nor'easter season begins."
+    "note": "Gray and blowing; nor'easter season begins."
    },
    {
     "high_f": 40,
@@ -3277,7 +3277,7 @@
     6
    ],
    "neighborhood": "the-narrows",
-   "summary": "The priest of the Holy Ghost blesses every boat from the end of the landing, the boats circle the harbour dressed in flags, and the Narrows holds open house for an afternoon.",
+   "summary": "The priest of the Holy Ghost blesses every boat from the end of the landing, the boats circle the harbor dressed in flags, and the Narrows holds open house for an afternoon.",
    "source": "curated-2026-10"
   },
   {
@@ -3794,7 +3794,7 @@
    },
    {
     "text": "won't whistle near the water after dark",
-    "bio": "I will not whistle by the harbour after dark. Do not ask me why; nobody here does."
+    "bio": "I will not whistle by the harbor after dark. Do not ask me why; nobody here does."
    },
    {
     "text": "counts the foghorn blasts under their breath",
@@ -3856,20 +3856,20 @@
      "market",
      "morning"
     ],
-    "progress": "{name} tried another batch of chowder on the neighbours",
+    "progress": "{name} tried another batch of chowder on the neighbors",
     "done": "{name} took first prize for chowder, and will not share the secret",
     "interest": "cooking",
     "bio": "Working on a chowder that will win the Grange supper."
    },
    {
     "id": "pellmouth-mooring",
-    "text": "save for a mooring and a boat in the harbour",
+    "text": "save for a mooring and a boat in the harbor",
     "steps": 6,
     "practice": null,
     "progress": "{name} put another week of pay towards a mooring",
     "done": "{name} has a boat on a mooring of their own at last",
     "interest": "boats",
-    "bio": "Saving for a mooring in the harbour."
+    "bio": "Saving for a mooring in the harbor."
    },
    {
     "id": "pellmouth-boston-job",

@@ -85,7 +85,7 @@ CITY = {
         S: {'kind': 'curated', 'title': 'New Orleans places and neighborhoods written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-10',
             'note': 'Well-known public places, institutions, festivals and employers from general knowledge, '
-                    'covering Orleans Parish plus Metairie in neighbouring Jefferson Parish. Businesses open and '
+                    'covering Orleans Parish plus Metairie in neighboring Jefferson Parish. Businesses open and '
                     'close, festival dates move and rents change: treat this as a snapshot for fiction. Rents are '
                     'rounded estimates of typical asking ranges, not listings. Coordinates are approximate '
                     'neighborhood centers.'},
@@ -100,7 +100,7 @@ CITY = {
              'blocks of locals toward Esplanade.', ['historic', 'nightlife', 'touristy', 'music', 'architecture'],
              29.958, -90.065, 'very-high', ([1300, 1800], [1500, 2300], [2100, 3200]),
              ['creole-townhouse', 'apartment', 'condo'], 'high', ['riverfront', 'rampart', 'canal', 'ferry', *CORE]),
-        hood('marigny', 'Faubourg Marigny', 'Colourful Creole cottages downriver from the Quarter, with Frenchmen '
+        hood('marigny', 'Faubourg Marigny', 'Colorful Creole cottages downriver from the Quarter, with Frenchmen '
              'Street\'s jazz clubs at one end and St. Claude Avenue\'s bars and galleries at the other.',
              ['music', 'nightlife', 'lgbtq-friendly', 'artsy', 'historic'], 29.964, -90.054, 'high',
              ([1100, 1500], [1300, 1800], [1700, 2500]), ['creole-cottage', 'shotgun', 'apartment'], 'high',
@@ -115,7 +115,7 @@ CITY = {
              ['historic', 'music', 'black-culture', 'second-lines'], 29.966, -90.071, 'mid',
              ([950, 1300], [1100, 1500], [1400, 2000]), ['creole-cottage', 'shotgun', 'double'], 'high',
              ['rampart', 'canal', *CORE]),
-        hood('seventh-ward', 'Seventh Ward', 'Historically the heart of Creole of colour New Orleans, home to '
+        hood('seventh-ward', 'Seventh Ward', 'Historically the heart of Creole of color New Orleans, home to '
              'generations of plasterers, carpenters and musicians, with fried chicken counters, Bayou Road '
              'shops and the Claiborne Avenue underpass where Mardi Gras Indians meet.',
              ['historic', 'creole', 'working-class', 'black-culture'], 29.976, -90.060, 'low',
@@ -158,7 +158,7 @@ CITY = {
              'medium', ['st-charles', *CORE]),
         hood('uptown', 'Uptown', 'Oak-lined avenues between St. Charles and the river: Tulane and Loyola, '
              'Audubon Park and Zoo, snowball stands, Tipitina\'s and the parade route that turns into a '
-             'neighbourhood picnic every Carnival.', ['leafy', 'students', 'family', 'music', 'parades'],
+             'neighborhood picnic every Carnival.', ['leafy', 'students', 'family', 'music', 'parades'],
              29.920, -90.105, 'high', ([1100, 1450], [1250, 1750], [1650, 2500]),
              ['double', 'single-family', 'apartment', 'student-housing'], 'medium', ['st-charles', *CORE]),
         hood('carrollton', 'Carrollton and Riverbend', 'Where the St. Charles streetcar turns onto Carrollton '
@@ -310,7 +310,7 @@ CITY = {
               'a stage for brass bands, funk and blues most nights.', ['live-music', 'beer', 'whiskey'], '$$',
               'indoor', ['friends', 'date', 'solo'], LATE),
         place('frenchmen-art-market', 'Frenchmen Art Market', 'market', 'marigny', 'Evening open-air market of '
-              'local artists\' prints, jewellery and oddities under string lights between the clubs.',
+              'local artists\' prints, jewelry and oddities under string lights between the clubs.',
               ['art', 'night-market', 'local-makers'], '$$', 'outdoor', ADULT, NIGHT),
         place('washington-square-park', 'Washington Square Park', 'park', 'marigny', 'Fenced green square at the '
               'end of Frenchmen with dog walkers, picnics and the odd festival stage.',
@@ -341,7 +341,7 @@ CITY = {
               'pick a bottle and cheese inside, then sit under the lights to small plates and live jazz.',
               ['wine', 'backyard', 'live-music'], '$$', 'outdoor', ['date', 'friends'], LATE,
               cuisine='mediterranean'),
-        place('elizabeths', 'Elizabeth\'s', 'restaurant', 'bywater', 'Upstairs-downstairs neighbourhood brunch spot '
+        place('elizabeths', 'Elizabeth\'s', 'restaurant', 'bywater', 'Upstairs-downstairs neighborhood brunch spot '
               'near the levee, famous for praline bacon and its "Real Food Done Real Good" sign.',
               ['brunch', 'praline-bacon', 'local'], '$$', 'indoor', ALL, DAY, cuisine='creole'),
         place('the-joint', 'The Joint', 'restaurant', 'bywater', 'Smokehouse in a Mazant Street cottage with '
@@ -351,9 +351,9 @@ CITY = {
               'art, with DJs, local bands and a crowd of artists and musicians.',
               ['dive-bar', 'art', 'live-music'], '$', 'indoor', ['friends', 'solo'], NIGHT),
         place('pizza-delicious', 'Pizza Delicious', 'restaurant', 'bywater', 'New York-style pizza by the slice '
-              'on Piety Street, grown from a once-a-week pop-up into a neighbourhood hangout.',
+              'on Piety Street, grown from a once-a-week pop-up into a neighborhood hangout.',
               ['pizza', 'casual', 'patio'], '$', 'mixed', ALL, ['afternoon', 'evening'], cuisine='pizza'),
-        place('bywater-bakery', 'Bywater Bakery', 'cafe', 'bywater', 'Neighbourhood bakery on Dauphine Street for '
+        place('bywater-bakery', 'Bywater Bakery', 'cafe', 'bywater', 'Neighborhood bakery on Dauphine Street for '
               'coffee, king cakes in Carnival and a bulletin board of local goings-on, with music on weekends.',
               ['bakery', 'king-cake', 'coffee', 'local'], '$', 'indoor', ALL, DAY, cuisine='bakery'),
         place('parleaux-beer-lab', 'Parleaux Beer Lab', 'bar', 'bywater', 'Small brewery with a big backyard of '
@@ -392,7 +392,7 @@ CITY = {
               'cooking for the crowd.', ['live-music', 'trumpet', 'murals'], '$', 'indoor',
               ['friends', 'solo'], NIGHT),
         place('noaam', 'New Orleans African American Museum', 'museum', 'treme', 'Museum in the Meilleur-Goldthwaite '
-              'House and its grounds telling the story of Black New Orleans, from Tremé\'s free people of colour '
+              'House and its grounds telling the story of Black New Orleans, from Tremé\'s free people of color '
               'onward.', ['history', 'black-history', 'art'], '$', 'mixed', ALL, DAY),
         place('lafitte-greenway', 'Lafitte Greenway', 'trail', 'treme', 'Paved path along an old canal and rail '
               'line from Armstrong Park to Mid-City, with ball fields and Blue Bikes along the way.',
@@ -414,7 +414,7 @@ CITY = {
         place('community-book-center', 'Community Book Center', 'shopping', 'seventh-ward', 'Black-owned bookstore '
               'on Bayou Road since 1983, a gathering place for readings and conversation.',
               ['books', 'black-owned', 'community'], '$', 'indoor', ['solo', 'friends'], DAY),
-        place('hunters-field', 'Hunter\'s Field', 'park', 'seventh-ward', 'Neighbourhood ball field and playground '
+        place('hunters-field', 'Hunter\'s Field', 'park', 'seventh-ward', 'Neighborhood ball field and playground '
               'on Claiborne where the downtown Mardi Gras Indian gangs gather to start Super Sunday.', ['sports', 'playground', 'mardi-gras-indians'], 'free', 'outdoor', ALL, OPEN),
         place('claiborne-underpass', 'Claiborne Avenue underpass', 'landmark', 'seventh-ward', 'Under the I-10, '
               'whose building in the 1960s cut down the oaks of the old Black main street, the concrete pillars '
@@ -444,7 +444,7 @@ CITY = {
               '1932: turtle soup, trout amandine, red beans on Monday and a busy bar of regulars.',
               ['creole-italian', 'old-school', 'family'], '$$', 'indoor', ALL, ['afternoon', 'evening'],
               cuisine='creole-italian'),
-        place('liuzzas', 'Liuzza\'s Restaurant & Bar', 'restaurant', 'mid-city', 'Corner neighbourhood joint '
+        place('liuzzas', 'Liuzza\'s Restaurant & Bar', 'restaurant', 'mid-city', 'Corner neighborhood joint '
               'serving frozen fishbowl mugs of beer, fried pickles and the "Frenchuletta".',
               ['po-boys', 'frozen-mugs', 'neighbourhood'], '$', 'indoor', ALL, ['afternoon', 'evening'],
               cuisine='creole-italian'),
@@ -455,7 +455,7 @@ CITY = {
               'founded in 1905 and still run by the family, with fig cookies for St. Joseph\'s Day.',
               ['gelato', 'cannoli', 'dessert', 'historic'], '$', 'indoor', ALL, ['afternoon', 'evening'],
               cuisine='italian-pastry'),
-        place('pandoras-snowballs', 'Pandora\'s Snowballs', 'cafe', 'mid-city', 'Neighbourhood snowball stand on '
+        place('pandoras-snowballs', 'Pandora\'s Snowballs', 'cafe', 'mid-city', 'Neighborhood snowball stand on '
               'North Carrollton with a long syrup board and a line of kids and parents on hot afternoons.',
               ['snowballs', 'dessert', 'kids'], '$', 'outdoor', ALL, ['afternoon', 'evening'], SNOBALL,
               cuisine='snowballs'),
@@ -466,7 +466,7 @@ CITY = {
               'Broad Street since 1934 with curtained private booths and steaks sizzling in butter.',
               ['steak', 'old-school', 'booths'], '$$$', 'indoor', ['date', 'family'], DINNER, cuisine='steakhouse'),
         place('ralphs-on-the-park', 'Ralph\'s on the Park', 'restaurant', 'mid-city', 'Contemporary Creole '
-              'restaurant facing City Park\'s oaks, a favourite for anniversaries and jazz brunch.',
+              'restaurant facing City Park\'s oaks, a favorite for anniversaries and jazz brunch.',
               ['creole', 'brunch', 'park-views'], '$$$', 'indoor', ['date', 'family'], ['afternoon', 'evening'],
               cuisine='creole'),
         place('cypress-grove-cemetery', 'Cypress Grove and Greenwood cemeteries', 'landmark', 'mid-city', 'Cities '
@@ -480,7 +480,7 @@ CITY = {
               'from about 1799 on the bayou, open for tours.', ['history', 'architecture', 'house-museum'], '$',
               'mixed', ['solo', 'family', 'date'], DAY),
         place('fair-grinds', 'Fair Grinds Coffeehouse', 'cafe', 'bayou-st-john', 'Community coffeehouse a block '
-              'from the Fair Grounds, full of neighbours, laptops and flyers for the next fundraiser.',
+              'from the Fair Grounds, full of neighbors, laptops and flyers for the next fundraiser.',
               ['coffee', 'community', 'laptop'], '$', 'indoor', ['solo', 'friends', 'coworkers'], DAY,
               cuisine='coffee'),
         place('cafe-degas', 'Café Degas', 'restaurant', 'bayou-st-john', 'French bistro on Esplanade built around '
@@ -489,7 +489,7 @@ CITY = {
         place('bayou-st-john-water', 'Bayou St. John', 'park', 'bayou-st-john', 'The slow bayou itself, lined with '
               'grass banks for picnics and kayak and paddleboard launches, busy with crawfish boils and festivals '
               'in spring.', ['kayaking', 'picnic', 'waterside'], 'free', 'outdoor', ALL, OPEN, WARM),
-        place('pals-lounge', 'Pal\'s Lounge', 'bar', 'bayou-st-john', 'Cosy neighbourhood bar with strong drinks, '
+        place('pals-lounge', 'Pal\'s Lounge', 'bar', 'bayou-st-john', 'Cozy neighborhood bar with strong drinks, '
               'a pool table and a bathroom wallpapered in vintage pin-ups.', ['neighbourhood-bar', 'pool',
               'cocktails'], '$', 'indoor', ['friends', 'solo', 'date'], NIGHT),
         place('liuzzas-by-the-track', 'Liuzza\'s by the Track', 'restaurant', 'bayou-st-john', 'Tiny corner bar '
@@ -559,7 +559,7 @@ CITY = {
               ['river', 'views', 'ferry'], '$', 'outdoor', ALL, OPEN),
         # Lower Garden District
         place('coliseum-square', 'Coliseum Square', 'park', 'lower-garden-district', 'Long, oak-shaded park '
-              'surrounded by Greek Revival mansions, used by dog walkers and the neighbourhood\'s fall art fair.',
+              'surrounded by Greek Revival mansions, used by dog walkers and the neighborhood\'s fall art fair.',
               ['dogs', 'shade', 'architecture'], 'free', 'outdoor', ALL, OPEN),
         place('courtyard-brewery', 'Courtyard Brewery', 'bar', 'lower-garden-district', 'Small brewery taproom '
               'with a gravel yard for food trucks, dogs and long afternoons.', ['brewery', 'food-trucks', 'dogs'],
@@ -610,13 +610,13 @@ CITY = {
               'cottage, known for fried green tomato and shrimp remoulade po-boys and a porch to eat them on.',
               ['po-boys', 'porch', 'casual'], '$', 'mixed', ALL, ['afternoon', 'evening'], cuisine='po-boys'),
         place('st-mary-assumption', 'St. Mary\'s Assumption Church', 'landmark', 'irish-channel', 'Towering German '
-              'Baroque church built by the neighbourhood\'s German Catholics, with the shrine of Blessed Francis '
+              'Baroque church built by the neighborhood\'s German Catholics, with the shrine of Blessed Francis '
               'Xavier Seelos.', ['church', 'architecture', 'history'], 'free', 'indoor', ALL, DAY),
         place('urban-south', 'Urban South Brewery', 'bar', 'irish-channel', 'Warehouse brewery on Tchoupitoulas '
               'with a big family- and dog-friendly taproom.', ['brewery', 'family-friendly', 'dogs'], '$$', 'indoor',
               ALL, ['afternoon', 'evening']),
         place('irish-channel-blocks', 'Irish Channel shotgun blocks', 'landmark', 'irish-channel', 'Streets of '
-              'nineteenth-century shotgun doubles in candy colours, with neighbours on stoops and porches.',
+              'nineteenth-century shotgun doubles in candy colors, with neighbors on stoops and porches.',
               ['architecture', 'walk', 'neighbourhood'], 'free', 'outdoor', ALL, OPEN),
         # Central City
         place('sofab', 'Southern Food & Beverage Museum', 'museum', 'central-city', 'Museum of Southern food and '
@@ -635,7 +635,7 @@ CITY = {
         place('central-city-bbq', 'Central City BBQ', 'restaurant', 'central-city', 'Smoked brisket and ribs on '
               'a huge patio with yard games and Saints games on the big screen.', ['barbecue', 'patio', 'sports'],
               '$$', 'mixed', ALL, ['afternoon', 'evening'], cuisine='barbecue'),
-        place('al-davis-park', 'A.L. Davis Park', 'park', 'central-city', 'Neighbourhood park on Washington Avenue '
+        place('al-davis-park', 'A.L. Davis Park', 'park', 'central-city', 'Neighborhood park on Washington Avenue '
               'where the Uptown Mardi Gras Indian gangs gather on Super Sunday in their new suits.',
               ['mardi-gras-indians', 'playground', 'community'], 'free', 'outdoor', ALL, OPEN),
         place('dryades-ymca', 'Dryades YMCA', 'fitness', 'central-city', 'Historic YMCA founded in 1905 for Black '
@@ -661,7 +661,7 @@ CITY = {
               '1939, shaving ice on a homemade machine and dousing it in house syrups.',
               ['snowballs', 'historic', 'dessert'], '$', 'indoor', ALL, ['afternoon', 'evening'], SNOBALL,
               cuisine='snowballs'),
-        place('le-bon-temps-roule', 'Le Bon Temps Roulé', 'bar', 'uptown', 'Magazine Street neighbourhood bar with a '
+        place('le-bon-temps-roule', 'Le Bon Temps Roulé', 'bar', 'uptown', 'Magazine Street neighborhood bar with a '
               'pool table and free live music in the back room, including a long-running Thursday brass band.',
               ['live-music', 'brass-band', 'pool'], '$', 'indoor', ['friends', 'solo'], NIGHT),
         place('casamentos', 'Casamento\'s', 'restaurant', 'uptown', 'Tiled oyster bar on Magazine since 1919 that '
@@ -681,14 +681,14 @@ CITY = {
         place('hey-cafe', 'Hey! Café', 'cafe', 'uptown', 'Magazine Street coffee shop that roasts its own beans in '
               'the room, with comfy chairs and a regular crowd of students.', ['coffee', 'roaster', 'laptop'], '$',
               'indoor', ['solo', 'friends'], OPEN, cuisine='coffee'),
-        place('tulane-campus', 'Tulane and Loyola campuses', 'landmark', 'uptown', 'Neighbouring campuses on St. '
+        place('tulane-campus', 'Tulane and Loyola campuses', 'landmark', 'uptown', 'Neighboring campuses on St. '
               'Charles Avenue facing Audubon Park, with Gibson Hall, Holy Name of Jesus church and the streetcar '
               'stop out front.', ['campus', 'architecture', 'walk'], 'free', 'outdoor', ALL, DAY),
         # Carrollton and Riverbend
         place('oak-street', 'Oak Street', 'shopping', 'carrollton', 'Small-town main street of shops, bars and '
               'cafés off Carrollton, home of the Po-Boy Festival.', ['main-street', 'shops', 'walk'], '$',
               'outdoor', ALL, OPEN),
-        place('jacques-imos', 'Jacques-Imo\'s Café', 'restaurant', 'carrollton', 'Loud, colourful Oak Street '
+        place('jacques-imos', 'Jacques-Imo\'s Café', 'restaurant', 'carrollton', 'Loud, colorful Oak Street '
               'restaurant reached through the bar, known for shrimp and alligator sausage cheesecake.',
               ['creole', 'funky', 'loud'], '$$$', 'indoor', ['friends', 'date'], DINNER, cuisine='creole'),
         place('maple-leaf-bar', 'Maple Leaf Bar', 'venue', 'carrollton', 'Pressed-tin-ceilinged music bar where '
@@ -697,7 +697,7 @@ CITY = {
         place('cooter-browns', 'Cooter Brown\'s Tavern & Oyster Bar', 'bar', 'carrollton', 'Riverbend bar by the '
               'levee with hundreds of beers, oysters on the half shell and a gallery of celebrity caricatures.',
               ['beer', 'oysters', 'sports'], '$$', 'indoor', ['friends', 'solo'], LATE, cuisine='seafood'),
-        place('plum-street-snoball', 'Plum Street Snoball', 'cafe', 'carrollton', 'Neighbourhood snowball stand '
+        place('plum-street-snoball', 'Plum Street Snoball', 'cafe', 'carrollton', 'Neighborhood snowball stand '
               'serving towering cups, including the famous ones in Chinese takeout boxes.',
               ['snowballs', 'dessert', 'kids'], '$', 'outdoor', ALL, ['afternoon', 'evening'], SNOBALL,
               cuisine='snowballs'),
@@ -707,7 +707,7 @@ CITY = {
         place('levee-path', 'Mississippi River levee path', 'trail', 'carrollton', 'Paved path along the top of the '
               'levee from the Fly upriver, used by runners and cyclists, with ships passing below.',
               ['running', 'cycling', 'river', 'views'], 'free', 'outdoor', ALL, OPEN),
-        place('college-inn', 'Ye Olde College Inn', 'restaurant', 'carrollton', 'Neighbourhood restaurant since '
+        place('college-inn', 'Ye Olde College Inn', 'restaurant', 'carrollton', 'Neighborhood restaurant since '
               'the 1930s, with po-boys and Creole plates and vegetables from its own urban farm.',
               ['po-boys', 'creole', 'family'], '$$', 'indoor', ALL, ['afternoon', 'evening'], cuisine='creole'),
         # Freret
@@ -728,7 +728,7 @@ CITY = {
               ['bars', 'students', 'walk'], '$$', 'outdoor', ['friends', 'date'], NIGHT),
         # Broadmoor and Gert Town
         place('rosa-keller-library', 'Rosa F. Keller Library & Community Center', 'library', 'broadmoor', 'Branch '
-              'library rebuilt by the neighbourhood after Katrina in an old mansion and a modern wing, with '
+              'library rebuilt by the neighborhood after Katrina in an old mansion and a modern wing, with '
               'meeting rooms and homework help.', ['books', 'community', 'study'], 'free', 'indoor', ALL, DAY),
         place('zony-mash', 'Zony Mash Beer Project', 'bar', 'broadmoor', 'Brewery in the restored Gem Theater on '
               'Broad Street, with a kitchen, trivia and a family-friendly taproom.', ['brewery', 'historic',
@@ -740,13 +740,13 @@ CITY = {
               'Broad Street with a gym, fields and youth sports.', ['gym', 'youth-sports', 'rec-center'], 'free',
               'indoor', ALL, ['morning', 'afternoon', 'evening']),
         place('washington-avenue-neutral-ground', 'Washington Avenue neutral ground', 'park', 'broadmoor', 'Wide '
-              'grassy median where neighbours walk dogs, kids ride bikes and Sunday second lines pass.',
+              'grassy median where neighbors walk dogs, kids ride bikes and Sunday second lines pass.',
               ['walk', 'dogs', 'second-lines'], 'free', 'outdoor', ALL, OPEN),
         # Gentilly
         place('dillard-campus', 'Dillard University', 'landmark', 'gentilly', 'White-columned buildings around a '
               'long oak avenue on the campus of the historically Black university on Gentilly Boulevard.',
               ['campus', 'hbcu', 'live-oaks'], 'free', 'outdoor', ['solo', 'family'], DAY),
-        place('pontchartrain-park', 'Pontchartrain Park', 'park', 'gentilly', 'Park and neighbourhood built in the '
+        place('pontchartrain-park', 'Pontchartrain Park', 'park', 'gentilly', 'Park and neighborhood built in the '
               '1950s as the first suburb for Black homeowners in the city, with ball fields and a lagoon.',
               ['history', 'playground', 'sports'], 'free', 'outdoor', ALL, OPEN),
         place('bartholomew-golf', 'Joseph M. Bartholomew Sr. Golf Course', 'fitness', 'gentilly', 'Public course in '
@@ -774,10 +774,10 @@ CITY = {
         place('velvet-cactus', 'The Velvet Cactus', 'restaurant', 'lakeview', 'Tex-Mex with a sprawling courtyard '
               'of string lights and frozen margaritas.', ['tex-mex', 'courtyard', 'margaritas'], '$$', 'mixed',
               ['friends', 'family', 'date'], ['afternoon', 'evening'], cuisine='tex-mex'),
-        place('parlays', 'Parlay\'s', 'bar', 'lakeview', 'Lakeview neighbourhood bar on Harrison Avenue for '
+        place('parlays', 'Parlay\'s', 'bar', 'lakeview', 'Lakeview neighborhood bar on Harrison Avenue for '
               'cold beer, darts and every LSU and Saints game.', ['neighbourhood-bar', 'sports'], '$', 'indoor',
               ['friends', 'solo'], NIGHT),
-        place('lakeview-brew', 'Lakeview Brew Coffee Café', 'cafe', 'lakeview', 'Neighbourhood café for coffee, '
+        place('lakeview-brew', 'Lakeview Brew Coffee Café', 'cafe', 'lakeview', 'Neighborhood café for coffee, '
               'pastries and lunch salads on Harrison Avenue.', ['coffee', 'pastries', 'lunch'], '$', 'indoor', ALL,
               DAY, cuisine='cafe'),
         place('harrison-avenue', 'Harrison Avenue', 'shopping', 'lakeview', 'Lakeview\'s main street of shops, '
@@ -787,14 +787,14 @@ CITY = {
         place('congregation-coffee', 'Congregation Coffee Roasters', 'cafe', 'algiers-point', 'Algiers Point\'s '
               'coffee roaster and café, a short walk from the ferry landing.', ['coffee', 'roaster', 'local'], '$',
               'indoor', ['solo', 'friends', 'coworkers'], DAY, cuisine='coffee'),
-        place('old-point-bar', 'Old Point Bar', 'bar', 'algiers-point', 'Neighbourhood bar by the levee with live '
+        place('old-point-bar', 'Old Point Bar', 'bar', 'algiers-point', 'Neighborhood bar by the levee with live '
               'music on weekends and a crowd of locals who all know each other.', ['live-music', 'local',
               'neighbourhood-bar'], '$', 'indoor', ['friends', 'solo'], NIGHT),
         place('algiers-levee', 'Algiers Point levee', 'park', 'algiers-point', 'Grassy levee top and path with the '
               'best view of the downtown skyline across the river, crowded for Fourth of July fireworks.',
               ['views', 'riverfront', 'sunset'], 'free', 'outdoor', ALL, OPEN),
         place('tout-de-suite', 'Tout de Suite Café', 'cafe', 'algiers-point', 'Casual café in an old corner store '
-              'serving breakfast, sandwiches and coffee to neighbours.', ['breakfast', 'coffee', 'local'], '$',
+              'serving breakfast, sandwiches and coffee to neighbors.', ['breakfast', 'coffee', 'local'], '$',
               'indoor', ALL, DAY, cuisine='cafe'),
         place('dry-dock-cafe', 'Dry Dock Café', 'restaurant', 'algiers-point', 'Seafood and po-boy spot by the ferry '
               'landing, a stop for commuters and day-trippers.', ['seafood', 'po-boys', 'ferry'], '$$', 'indoor',
@@ -813,14 +813,14 @@ CITY = {
               'back to the city, popular with walkers, fishers and photographers.', ['riverfront', 'walk', 'views'],
               'free', 'outdoor', ALL, OPEN),
         place('fats-domino-house', 'Fats Domino\'s house', 'landmark', 'lower-ninth-ward', 'The yellow-and-black '
-              'home and studio on Caffin Avenue that Antoine "Fats" Domino kept in the neighbourhood he never '
+              'home and studio on Caffin Avenue that Antoine "Fats" Domino kept in the neighborhood he never '
               'left.', ['music', 'history'], 'free', 'outdoor', ['solo', 'friends'], DAY),
         place('cafe-dauphine', 'Café Dauphine', 'restaurant', 'lower-ninth-ward', 'Family-owned Creole soul '
-              'restaurant serving stuffed shrimp, gumbo and fried chicken to a neighbourhood with few sit-down '
+              'restaurant serving stuffed shrimp, gumbo and fried chicken to a neighborhood with few sit-down '
               'spots.', ['creole', 'soul-food', 'local'], '$$', 'indoor', ALL, ['afternoon', 'evening'],
               cuisine='creole'),
         place('lower-ninth-living-museum', 'Lower Ninth Ward Living Museum', 'museum', 'lower-ninth-ward', 'Small '
-              'museum in a house telling the neighbourhood\'s story from plantation land to the 2005 flood and '
+              'museum in a house telling the neighborhood\'s story from plantation land to the 2005 flood and '
               'return.', ['history', 'katrina', 'community'], 'free', 'indoor', ALL, DAY),
         place('sankofa-wetland-park', 'Sankofa Wetland Park', 'park', 'lower-ninth-ward', 'Restored wetland park '
               'with trails, birdwatching and a nature classroom, built to soak up stormwater.',
@@ -998,7 +998,7 @@ CITY = {
             {'high_f': 88, 'low_f': 72, 'rain_days': 10, 'note': 'Still hot; height of hurricane season.'},
             {'high_f': 80, 'low_f': 62, 'rain_days': 7, 'note': 'First cool front brings relief; festivals return.'},
             {'high_f': 71, 'low_f': 52, 'rain_days': 7, 'note': 'Pleasant and dry; hurricane season ends.'},
-            {'high_f': 64, 'low_f': 46, 'rain_days': 9, 'note': 'Mild, grey; Christmas lights in the oaks.'},
+            {'high_f': 64, 'low_f': 46, 'rain_days': 9, 'note': 'Mild, gray; Christmas lights in the oaks.'},
         ],
         'source': CLIMATE,
     },
@@ -1014,7 +1014,7 @@ CITY = {
               'Gras, krewes like Muses, Nyx, Bacchus and Orpheus roll down St. Charles; families stake out the '
               'neutral ground with ladders, tents and grills.'),
         event('endymion', 'Endymion', [2, 3], 'mid-city', 'The Saturday super-krewe that rolls through Mid-City, '
-              'where neighbours camp along Orleans Avenue and Canal Street from the night before.'),
+              'where neighbors camp along Orleans Avenue and Canal Street from the night before.'),
         event('lundi-gras', 'Lundi Gras', [2, 3], 'cbd', 'The Monday before Mardi Gras, when Zulu and Rex arrive '
               'by river and Orpheus rolls through the night.'),
         event('mardi-gras-day', 'Mardi Gras Day', [2, 3], None, 'Fat Tuesday: Zulu and Rex parade from dawn, the '
@@ -1033,7 +1033,7 @@ CITY = {
         event('wednesday-at-the-square', 'Wednesday at the Square', [3, 4, 5], 'cbd', 'Free after-work concerts in '
               'Lafayette Square each spring.'),
         event('french-quarter-fest', 'French Quarter Festival', [4], 'french-quarter', 'Four free days of local '
-              'music on stages from Jackson Square to the riverfront, with food booths from neighbourhood '
+              'music on stages from Jackson Square to the riverfront, with food booths from neighborhood '
               'restaurants.'),
         event('jazz-fest', 'New Orleans Jazz & Heritage Festival', [4, 5], 'bayou-st-john', 'Two weekends at the '
               'Fair Grounds: a dozen stages of jazz, gospel, blues, brass, zydeco and pop, crawfish Monica and '
@@ -1054,7 +1054,7 @@ CITY = {
               'festival with a walking parade, balcony parties and huge crowds around Bourbon and St. Ann.'),
         event('second-line-season', 'Second line season', [8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6], None, 'Almost every '
               'Sunday from late summer to early summer, a social aid and pleasure club parades for hours through '
-              'its neighbourhood behind a brass band, with a crowd dancing along.'),
+              'its neighborhood behind a brass band, with a crowd dancing along.'),
         event('saints-season', 'Saints football season', [9, 10, 11, 12, 1], 'cbd', 'Black-and-gold Sundays: '
               'tailgates, "Who Dat" chants, church let out early and the Superdome shaking.'),
         event('pelicans-season', 'Pelicans basketball season', [10, 11, 12, 1, 2, 3, 4], 'cbd', 'NBA nights at the '
@@ -1147,7 +1147,7 @@ CITY = {
               'beignet or an extra scoop, and anything extra in general.'),
         color('yeah-you-right', '"Yeah you right"', 'saying', 'Emphatic agreement, often heard as "yeah you rite".'),
         color('second-line', 'Second lines', 'custom', 'Behind a social aid and pleasure club and its brass band '
-              'comes the "second line" of anyone who joins in, dancing for hours through the neighbourhood with '
+              'comes the "second line" of anyone who joins in, dancing for hours through the neighborhood with '
               'stops at bars along the route; jazz funerals end the same way.',
               ['treme', 'central-city', 'seventh-ward']),
         color('krewes-throws', 'Krewes and throws', 'custom', 'Carnival clubs called krewes build floats and toss '

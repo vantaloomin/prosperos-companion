@@ -44,7 +44,7 @@
    "title": "New Orleans places and neighborhoods written for Prospero Companion",
    "license": "CC0-1.0",
    "retrieved": "2026-10-10",
-   "note": "Well-known public places, institutions, festivals and employers from general knowledge, covering Orleans Parish plus Metairie in neighbouring Jefferson Parish. Businesses open and close, festival dates move and rents change: treat this as a snapshot for fiction. Rents are rounded estimates of typical asking ranges, not listings. Coordinates are approximate neighborhood centers."
+   "note": "Well-known public places, institutions, festivals and employers from general knowledge, covering Orleans Parish plus Metairie in neighboring Jefferson Parish. Businesses open and close, festival dates move and rents change: treat this as a snapshot for fiction. Rents are rounded estimates of typical asking ranges, not listings. Coordinates are approximate neighborhood centers."
   },
   "curated-climate-2026-10": {
    "kind": "curated",
@@ -102,7 +102,7 @@
   {
    "id": "marigny",
    "name": "Faubourg Marigny",
-   "summary": "Colourful Creole cottages downriver from the Quarter, with Frenchmen Street's jazz clubs at one end and St. Claude Avenue's bars and galleries at the other.",
+   "summary": "Colorful Creole cottages downriver from the Quarter, with Frenchmen Street's jazz clubs at one end and St. Claude Avenue's bars and galleries at the other.",
    "vibe": [
     "music",
     "nightlife",
@@ -223,7 +223,7 @@
   {
    "id": "seventh-ward",
    "name": "Seventh Ward",
-   "summary": "Historically the heart of Creole of colour New Orleans, home to generations of plasterers, carpenters and musicians, with fried chicken counters, Bayou Road shops and the Claiborne Avenue underpass where Mardi Gras Indians meet.",
+   "summary": "Historically the heart of Creole of color New Orleans, home to generations of plasterers, carpenters and musicians, with fried chicken counters, Bayou Road shops and the Claiborne Avenue underpass where Mardi Gras Indians meet.",
    "vibe": [
     "historic",
     "creole",
@@ -547,7 +547,7 @@
   {
    "id": "uptown",
    "name": "Uptown",
-   "summary": "Oak-lined avenues between St. Charles and the river: Tulane and Loyola, Audubon Park and Zoo, snowball stands, Tipitina's and the parade route that turns into a neighbourhood picnic every Carnival.",
+   "summary": "Oak-lined avenues between St. Charles and the river: Tulane and Loyola, Audubon Park and Zoo, snowball stands, Tipitina's and the parade route that turns into a neighborhood picnic every Carnival.",
    "vibe": [
     "leafy",
     "students",
@@ -1663,7 +1663,7 @@
    "name": "Frenchmen Art Market",
    "kind": "market",
    "neighborhood": "marigny",
-   "summary": "Evening open-air market of local artists' prints, jewellery and oddities under string lights between the clubs.",
+   "summary": "Evening open-air market of local artists' prints, jewelry and oddities under string lights between the clubs.",
    "tags": [
     "art",
     "night-market",
@@ -1905,7 +1905,7 @@
    "name": "Elizabeth's",
    "kind": "restaurant",
    "neighborhood": "bywater",
-   "summary": "Upstairs-downstairs neighbourhood brunch spot near the levee, famous for praline bacon and its \"Real Food Done Real Good\" sign.",
+   "summary": "Upstairs-downstairs neighborhood brunch spot near the levee, famous for praline bacon and its \"Real Food Done Real Good\" sign.",
    "tags": [
     "brunch",
     "praline-bacon",
@@ -1984,7 +1984,7 @@
    "name": "Pizza Delicious",
    "kind": "restaurant",
    "neighborhood": "bywater",
-   "summary": "New York-style pizza by the slice on Piety Street, grown from a once-a-week pop-up into a neighbourhood hangout.",
+   "summary": "New York-style pizza by the slice on Piety Street, grown from a once-a-week pop-up into a neighborhood hangout.",
    "tags": [
     "pizza",
     "casual",
@@ -2011,7 +2011,7 @@
    "name": "Bywater Bakery",
    "kind": "cafe",
    "neighborhood": "bywater",
-   "summary": "Neighbourhood bakery on Dauphine Street for coffee, king cakes in Carnival and a bulletin board of local goings-on, with music on weekends.",
+   "summary": "Neighborhood bakery on Dauphine Street for coffee, king cakes in Carnival and a bulletin board of local goings-on, with music on weekends.",
    "tags": [
     "bakery",
     "king-cake",
@@ -2301,7 +2301,7 @@
    "name": "New Orleans African American Museum",
    "kind": "museum",
    "neighborhood": "treme",
-   "summary": "Museum in the Meilleur-Goldthwaite House and its grounds telling the story of Black New Orleans, from Tremé's free people of colour onward.",
+   "summary": "Museum in the Meilleur-Goldthwaite House and its grounds telling the story of Black New Orleans, from Tremé's free people of color onward.",
    "tags": [
     "history",
     "black-history",
@@ -2489,7 +2489,7 @@
    "name": "Hunter's Field",
    "kind": "park",
    "neighborhood": "seventh-ward",
-   "summary": "Neighbourhood ball field and playground on Claiborne where the downtown Mardi Gras Indian gangs gather to start Super Sunday.",
+   "summary": "Neighborhood ball field and playground on Claiborne where the downtown Mardi Gras Indian gangs gather to start Super Sunday.",
    "tags": [
     "sports",
     "playground",
@@ -2731,7 +2731,7 @@
    "name": "Liuzza's Restaurant & Bar",
    "kind": "restaurant",
    "neighborhood": "mid-city",
-   "summary": "Corner neighbourhood joint serving frozen fishbowl mugs of beer, fried pickles and the \"Frenchuletta\".",
+   "summary": "Corner neighborhood joint serving frozen fishbowl mugs of beer, fried pickles and the \"Frenchuletta\".",
    "tags": [
     "po-boys",
     "frozen-mugs",
@@ -2812,7 +2812,7 @@
    "name": "Pandora's Snowballs",
    "kind": "cafe",
    "neighborhood": "mid-city",
-   "summary": "Neighbourhood snowball stand on North Carrollton with a long syrup board and a line of kids and parents on hot afternoons.",
+   "summary": "Neighborhood snowball stand on North Carrollton with a long syrup board and a line of kids and parents on hot afternoons.",
    "tags": [
     "snowballs",
     "dessert",
@@ -2893,7 +2893,7 @@
    "name": "Ralph's on the Park",
    "kind": "restaurant",
    "neighborhood": "mid-city",
-   "summary": "Contemporary Creole restaurant facing City Park's oaks, a favourite for anniversaries and jazz brunch.",
+   "summary": "Contemporary Creole restaurant facing City Park's oaks, a favorite for anniversaries and jazz brunch.",
    "tags": [
     "creole",
     "brunch",
@@ -2996,7 +2996,7 @@
    "name": "Fair Grinds Coffeehouse",
    "kind": "cafe",
    "neighborhood": "bayou-st-john",
-   "summary": "Community coffeehouse a block from the Fair Grounds, full of neighbours, laptops and flyers for the next fundraiser.",
+   "summary": "Community coffeehouse a block from the Fair Grounds, full of neighbors, laptops and flyers for the next fundraiser.",
    "tags": [
     "coffee",
     "community",
@@ -3079,7 +3079,7 @@
    "name": "Pal's Lounge",
    "kind": "bar",
    "neighborhood": "bayou-st-john",
-   "summary": "Cosy neighbourhood bar with strong drinks, a pool table and a bathroom wallpapered in vintage pin-ups.",
+   "summary": "Cozy neighborhood bar with strong drinks, a pool table and a bathroom wallpapered in vintage pin-ups.",
    "tags": [
     "neighbourhood-bar",
     "pool",
@@ -3638,7 +3638,7 @@
    "name": "Coliseum Square",
    "kind": "park",
    "neighborhood": "lower-garden-district",
-   "summary": "Long, oak-shaded park surrounded by Greek Revival mansions, used by dog walkers and the neighbourhood's fall art fair.",
+   "summary": "Long, oak-shaded park surrounded by Greek Revival mansions, used by dog walkers and the neighborhood's fall art fair.",
    "tags": [
     "dogs",
     "shade",
@@ -4003,7 +4003,7 @@
    "name": "St. Mary's Assumption Church",
    "kind": "landmark",
    "neighborhood": "irish-channel",
-   "summary": "Towering German Baroque church built by the neighbourhood's German Catholics, with the shrine of Blessed Francis Xavier Seelos.",
+   "summary": "Towering German Baroque church built by the neighborhood's German Catholics, with the shrine of Blessed Francis Xavier Seelos.",
    "tags": [
     "church",
     "architecture",
@@ -4057,7 +4057,7 @@
    "name": "Irish Channel shotgun blocks",
    "kind": "landmark",
    "neighborhood": "irish-channel",
-   "summary": "Streets of nineteenth-century shotgun doubles in candy colours, with neighbours on stoops and porches.",
+   "summary": "Streets of nineteenth-century shotgun doubles in candy colors, with neighbors on stoops and porches.",
    "tags": [
     "architecture",
     "walk",
@@ -4215,7 +4215,7 @@
    "name": "A.L. Davis Park",
    "kind": "park",
    "neighborhood": "central-city",
-   "summary": "Neighbourhood park on Washington Avenue where the Uptown Mardi Gras Indian gangs gather on Super Sunday in their new suits.",
+   "summary": "Neighborhood park on Washington Avenue where the Uptown Mardi Gras Indian gangs gather on Super Sunday in their new suits.",
    "tags": [
     "mardi-gras-indians",
     "playground",
@@ -4432,7 +4432,7 @@
    "name": "Le Bon Temps Roulé",
    "kind": "bar",
    "neighborhood": "uptown",
-   "summary": "Magazine Street neighbourhood bar with a pool table and free live music in the back room, including a long-running Thursday brass band.",
+   "summary": "Magazine Street neighborhood bar with a pool table and free live music in the back room, including a long-running Thursday brass band.",
    "tags": [
     "live-music",
     "brass-band",
@@ -4590,7 +4590,7 @@
    "name": "Tulane and Loyola campuses",
    "kind": "landmark",
    "neighborhood": "uptown",
-   "summary": "Neighbouring campuses on St. Charles Avenue facing Audubon Park, with Gibson Hall, Holy Name of Jesus church and the streetcar stop out front.",
+   "summary": "Neighboring campuses on St. Charles Avenue facing Audubon Park, with Gibson Hall, Holy Name of Jesus church and the streetcar stop out front.",
    "tags": [
     "campus",
     "architecture",
@@ -4645,7 +4645,7 @@
    "name": "Jacques-Imo's Café",
    "kind": "restaurant",
    "neighborhood": "carrollton",
-   "summary": "Loud, colourful Oak Street restaurant reached through the bar, known for shrimp and alligator sausage cheesecake.",
+   "summary": "Loud, colorful Oak Street restaurant reached through the bar, known for shrimp and alligator sausage cheesecake.",
    "tags": [
     "creole",
     "funky",
@@ -4721,7 +4721,7 @@
    "name": "Plum Street Snoball",
    "kind": "cafe",
    "neighborhood": "carrollton",
-   "summary": "Neighbourhood snowball stand serving towering cups, including the famous ones in Chinese takeout boxes.",
+   "summary": "Neighborhood snowball stand serving towering cups, including the famous ones in Chinese takeout boxes.",
    "tags": [
     "snowballs",
     "dessert",
@@ -4808,7 +4808,7 @@
    "name": "Ye Olde College Inn",
    "kind": "restaurant",
    "neighborhood": "carrollton",
-   "summary": "Neighbourhood restaurant since the 1930s, with po-boys and Creole plates and vegetables from its own urban farm.",
+   "summary": "Neighborhood restaurant since the 1930s, with po-boys and Creole plates and vegetables from its own urban farm.",
    "tags": [
     "po-boys",
     "creole",
@@ -4966,7 +4966,7 @@
    "name": "Rosa F. Keller Library & Community Center",
    "kind": "library",
    "neighborhood": "broadmoor",
-   "summary": "Branch library rebuilt by the neighbourhood after Katrina in an old mansion and a modern wing, with meeting rooms and homework help.",
+   "summary": "Branch library rebuilt by the neighborhood after Katrina in an old mansion and a modern wing, with meeting rooms and homework help.",
    "tags": [
     "books",
     "community",
@@ -5073,7 +5073,7 @@
    "name": "Washington Avenue neutral ground",
    "kind": "park",
    "neighborhood": "broadmoor",
-   "summary": "Wide grassy median where neighbours walk dogs, kids ride bikes and Sunday second lines pass.",
+   "summary": "Wide grassy median where neighbors walk dogs, kids ride bikes and Sunday second lines pass.",
    "tags": [
     "walk",
     "dogs",
@@ -5126,7 +5126,7 @@
    "name": "Pontchartrain Park",
    "kind": "park",
    "neighborhood": "gentilly",
-   "summary": "Park and neighbourhood built in the 1950s as the first suburb for Black homeowners in the city, with ball fields and a lagoon.",
+   "summary": "Park and neighborhood built in the 1950s as the first suburb for Black homeowners in the city, with ball fields and a lagoon.",
    "tags": [
     "history",
     "playground",
@@ -5362,7 +5362,7 @@
    "name": "Parlay's",
    "kind": "bar",
    "neighborhood": "lakeview",
-   "summary": "Lakeview neighbourhood bar on Harrison Avenue for cold beer, darts and every LSU and Saints game.",
+   "summary": "Lakeview neighborhood bar on Harrison Avenue for cold beer, darts and every LSU and Saints game.",
    "tags": [
     "neighbourhood-bar",
     "sports"
@@ -5386,7 +5386,7 @@
    "name": "Lakeview Brew Coffee Café",
    "kind": "cafe",
    "neighborhood": "lakeview",
-   "summary": "Neighbourhood café for coffee, pastries and lunch salads on Harrison Avenue.",
+   "summary": "Neighborhood café for coffee, pastries and lunch salads on Harrison Avenue.",
    "tags": [
     "coffee",
     "pastries",
@@ -5465,7 +5465,7 @@
    "name": "Old Point Bar",
    "kind": "bar",
    "neighborhood": "algiers-point",
-   "summary": "Neighbourhood bar by the levee with live music on weekends and a crowd of locals who all know each other.",
+   "summary": "Neighborhood bar by the levee with live music on weekends and a crowd of locals who all know each other.",
    "tags": [
     "live-music",
     "local",
@@ -5518,7 +5518,7 @@
    "name": "Tout de Suite Café",
    "kind": "cafe",
    "neighborhood": "algiers-point",
-   "summary": "Casual café in an old corner store serving breakfast, sandwiches and coffee to neighbours.",
+   "summary": "Casual café in an old corner store serving breakfast, sandwiches and coffee to neighbors.",
    "tags": [
     "breakfast",
     "coffee",
@@ -5678,7 +5678,7 @@
    "name": "Fats Domino's house",
    "kind": "landmark",
    "neighborhood": "lower-ninth-ward",
-   "summary": "The yellow-and-black home and studio on Caffin Avenue that Antoine \"Fats\" Domino kept in the neighbourhood he never left.",
+   "summary": "The yellow-and-black home and studio on Caffin Avenue that Antoine \"Fats\" Domino kept in the neighborhood he never left.",
    "tags": [
     "music",
     "history"
@@ -5702,7 +5702,7 @@
    "name": "Café Dauphine",
    "kind": "restaurant",
    "neighborhood": "lower-ninth-ward",
-   "summary": "Family-owned Creole soul restaurant serving stuffed shrimp, gumbo and fried chicken to a neighbourhood with few sit-down spots.",
+   "summary": "Family-owned Creole soul restaurant serving stuffed shrimp, gumbo and fried chicken to a neighborhood with few sit-down spots.",
    "tags": [
     "creole",
     "soul-food",
@@ -5729,7 +5729,7 @@
    "name": "Lower Ninth Ward Living Museum",
    "kind": "museum",
    "neighborhood": "lower-ninth-ward",
-   "summary": "Small museum in a house telling the neighbourhood's story from plantation land to the 2005 flood and return.",
+   "summary": "Small museum in a house telling the neighborhood's story from plantation land to the 2005 flood and return.",
    "tags": [
     "history",
     "katrina",
@@ -6822,7 +6822,7 @@
     "high_f": 64,
     "low_f": 46,
     "rain_days": 9,
-    "note": "Mild, grey; Christmas lights in the oaks."
+    "note": "Mild, gray; Christmas lights in the oaks."
    }
   ],
   "source": "curated-climate-2026-10"
@@ -6880,7 +6880,7 @@
     3
    ],
    "neighborhood": "mid-city",
-   "summary": "The Saturday super-krewe that rolls through Mid-City, where neighbours camp along Orleans Avenue and Canal Street from the night before.",
+   "summary": "The Saturday super-krewe that rolls through Mid-City, where neighbors camp along Orleans Avenue and Canal Street from the night before.",
    "source": "curated-2026-10"
   },
   {
@@ -6964,7 +6964,7 @@
     4
    ],
    "neighborhood": "french-quarter",
-   "summary": "Four free days of local music on stages from Jackson Square to the riverfront, with food booths from neighbourhood restaurants.",
+   "summary": "Four free days of local music on stages from Jackson Square to the riverfront, with food booths from neighborhood restaurants.",
    "source": "curated-2026-10"
   },
   {
@@ -7066,7 +7066,7 @@
     6
    ],
    "neighborhood": null,
-   "summary": "Almost every Sunday from late summer to early summer, a social aid and pleasure club parades for hours through its neighbourhood behind a brass band, with a crowd dancing along.",
+   "summary": "Almost every Sunday from late summer to early summer, a social aid and pleasure club parades for hours through its neighborhood behind a brass band, with a crowd dancing along.",
    "source": "curated-2026-10"
   },
   {
@@ -7487,7 +7487,7 @@
    "id": "second-line",
    "name": "Second lines",
    "kind": "custom",
-   "summary": "Behind a social aid and pleasure club and its brass band comes the \"second line\" of anyone who joins in, dancing for hours through the neighbourhood with stops at bars along the route; jazz funerals end the same way.",
+   "summary": "Behind a social aid and pleasure club and its brass band comes the \"second line\" of anyone who joins in, dancing for hours through the neighborhood with stops at bars along the route; jazz funerals end the same way.",
    "places": [
     "treme",
     "central-city",
