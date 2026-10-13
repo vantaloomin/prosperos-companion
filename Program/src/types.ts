@@ -203,7 +203,7 @@ export interface MoneySetup {
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' | 'media' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -461,6 +461,8 @@ export interface LifeSettings {
   work_realism: number
   /** Group chat guests (companion/group_guests.py): how often someone named in a group is pulled in, 0 never to 3. */
   guests_realism: number
+  /** Reading, watching and listening (companion/life/media.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  media_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -1785,4 +1787,18 @@ export interface WorkLifeView {
   level: number
   /** Only with Hidden values' home-life meters on. */
   meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
+}
+
+/** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */
+export interface MediaNow {
+  id: string; kind: 'book' | 'show' | 'music'; title: string; by: string; format: string; text: string
+  set_by_you: boolean; started_on: string; on_hold: string | null
+}
+export interface MediaView {
+  off: boolean; today: string; realism: number; real: boolean
+  now: MediaNow[]
+  lately: { id: string; kind: 'book' | 'show' | 'music'; title: string; ended_on: string; text: string }[]
+  /** Hidden values (show_home_meters). */
+  numbers?: { reader: number; watcher: number; library: boolean; drop: number; recommend: number
+    items: Record<string, { along: number; days_left: number; ends: 'finish' | 'put down' }> }
 }
