@@ -58,7 +58,7 @@ function Titled({ text, title, kind }: { text: string; title: string; kind: Medi
 function NowRow({ item, view, save }: { item: MediaNow; view: MediaView; save: Save }) {
   const [editing, setEditing] = useState(false)
   const Icon = ICONS[item.kind]
-  const numbers = itemNumbers(view, item.id)
+  const numbers = itemNumbers(view, item.id, item.kind)
   return (
     <li className="media-row">
       <Icon aria-hidden="true" className="media-icon" />

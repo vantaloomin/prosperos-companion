@@ -55,9 +55,11 @@ export function verdictSplit(text: string): [string, string | null] {
 export const LATELY_SHOWN = 5
 
 /** Hidden values: "About 45% through, 9 days to go, will finish." */
-export function itemNumbers(view: MediaView, id: string): string | null {
+export function itemNumbers(view: MediaView, id: string, kind?: MediaNow['kind']): string | null {
   const found = view.numbers?.items[id]
   if (!found) return null
+  const days = `${found.days_left} more ${found.days_left === 1 ? 'day' : 'days'}`
+  if (kind === 'music') return `On repeat for ${days}.`
   return `${found.along}% through, ${found.days_left} ${found.days_left === 1 ? 'day' : 'days'} to go, will ${found.ends === 'finish' ? 'finish it' : 'put it down'}.`
 }
 
@@ -67,5 +69,5 @@ export function numbersLine(view: MediaView): string | null {
   if (!numbers) return null
   const keen = ['not much', 'a little', 'a fair bit', 'a lot']
   return `Reads ${keen[numbers.reader]}, watches ${keen[numbers.watcher]}${numbers.library ? ', borrows books from the library' : ''}. ` +
-    `Gives up on what they don't like ${numbers.drop}% of the time; passes on what they love ${numbers.recommend}% of the time.`
+    `Gives up on what they don't like ${numbers.drop}% of the time; tells you about something they loved ${numbers.recommend}% of the time.`
 }

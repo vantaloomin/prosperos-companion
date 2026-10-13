@@ -16,9 +16,10 @@ test('each kind has its own label and the slider four steps', () => {
 test('hidden values read as words, and only when shown', () => {
   assert.equal(numbersLine(view()), null)
   const shown = view({ reader: 3, watcher: 0, library: true, drop: 45, recommend: 40, items: { a: { along: 45, days_left: 1, ends: 'finish' } } })
-  assert.equal(numbersLine(shown), "Reads a lot, watches not much, borrows books from the library. Gives up on what they don't like 45% of the time; passes on what they love 40% of the time.")
+  assert.equal(numbersLine(shown), "Reads a lot, watches not much, borrows books from the library. Gives up on what they don't like 45% of the time; tells you about something they loved 40% of the time.")
   assert.equal(itemNumbers(shown, 'a'), '45% through, 1 day to go, will finish it.')
   assert.equal(itemNumbers(shown, 'b'), null)
+  assert.equal(itemNumbers(shown, 'a', 'music'), 'On repeat for 1 more day.')
 })
 
 test('the heading goes by first name and titles and verdicts split out of the line', async () => {
