@@ -52,6 +52,7 @@ export function PersonalityFields(props: Props) {
   const found = usePersonality(props)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [started, setStarted] = useState('')
   const traits = found.data?.traits
   if (!found.data || !traits) return null
   const sliders = value ?? found.data.sliders
@@ -61,6 +62,7 @@ export function PersonalityFields(props: Props) {
     try {
       const result = await api<PersonalityView>('/companion/personality', { definition: { ...definition(), personality_sliders: sliders }, seed, ...extra })
       set({ personality_sliders: result.sliders })
+      setStarted(extra.type ?? '')
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'That did not work.')
     } finally { setBusy(false) }
@@ -81,7 +83,7 @@ export function PersonalityFields(props: Props) {
           <option value="">Choose…</option>
           {TYPES.map((code) => <option key={code} value={code}>{code}</option>)}
         </select>
-        {type && <span className="subtle">Reads as {type}</span>}
+        <span className="subtle">{typeLine(started, type)}</span>
       </div>
       {error && <p className="field-help-error" role="alert">{error}</p>}
     </section>
@@ -137,4 +139,11 @@ function SourceTag({ source, idea, name, onRelease }: { source: PersonalitySlide
       {source === 'you' && <button type="button" className="personality-tag-reset" aria-label={`Hand back to the roll: ${name}`} onClick={onRelease}><X aria-hidden="true" /></button>}
     </span>
   )
+}
+
+/** "Reads as INFJ", and once a type was just picked, what it started from and why it may differ. */
+function typeLine(started: string, type: string | null): string {
+  if (!started) return type ? `Reads as ${type}` : ''
+  if (started === type) return `Started from ${started}.`
+  return `Started from ${started}. ${type ? `Reads as ${type}` : 'Reads differently'} because their own words keep some of it.`
 }
