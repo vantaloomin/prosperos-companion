@@ -32,7 +32,7 @@ function usePersonality({ definition, value, set, seed }: Props) {
 }
 
 /** The quick view: the summary chips only; the sliders open with "Show details". */
-export function PersonalityChips({ shown, ...props }: Props & { shown: boolean }) {
+export function PersonalityChips({ shown, onOpen, ...props }: Props & { shown: boolean; onOpen: () => void }) {
   const found = usePersonality(props)
   const traits = found.data?.traits
   if (!shown || !found.data || !traits) return null
@@ -40,7 +40,8 @@ export function PersonalityChips({ shown, ...props }: Props & { shown: boolean }
     <div className="personality-quick">
       <strong>Personality in short</strong>
       <PersonalitySummary traits={traits} sliders={props.value ?? found.data.sliders} />
-      <p className="subtle">Rolled for them, with anything their own words say kept. Change it under Show details.</p>
+      <p className="subtle">Rolled for them, with anything their own words say kept.{' '}
+        <button type="button" className="text-button inline" onClick={onOpen}>Change their personality</button></p>
     </div>
   )
 }
@@ -71,7 +72,7 @@ export function PersonalityFields(props: Props) {
         <h3 id="personality-title">Personality</h3>
         <button type="button" className="button" disabled={busy} onClick={() => void ask({ roll: Date.now() % 100000 || 1 })}><Dices aria-hidden="true" />Roll again</button>
       </div>
-      <p className="subtle">Rolled for {definition().name.trim() || 'them'}. Anything their own words already say stays as it is; Roll again only changes the rest.</p>
+      <p className="subtle">Rolled for {definition().name.trim().split(/\s+/)[0] || 'them'}. Anything their own words already say stays as it is; Roll again only changes the rest.</p>
       <PersonalitySummary traits={traits} sliders={sliders} />
       <PersonalitySliderList traits={traits} sliders={sliders} onChange={(personality_sliders) => set({ personality_sliders })} />
       <div className="personality-type">
@@ -118,11 +119,11 @@ function SliderRow({ trait, slider, idea, onMove, onRelease }: RowProps) {
         <label htmlFor={id}>{trait.name}</label>
         <SourceTag source={slider.source} idea={idea} name={trait.name} onRelease={onRelease} />
       </div>
-      <input id={id} className="step-slider" type="range" min={0} max={2} step={1} value={level} list={`${id}-stops`}
+      <input id={id} className="personality-range" type="range" min={0} max={2} step={1} value={level} list={`${id}-stops`}
         aria-valuetext={levelLabel(trait, level)} aria-describedby={`${id}-shows`} onChange={(event) => onMove(Number(event.target.value))} />
       <datalist id={`${id}-stops`}>{[0, 1, 2].map((stop) => <option key={stop} value={stop} />)}</datalist>
       <div className="personality-poles" aria-hidden="true">
-        {[0, 1, 2].map((stop) => <span key={stop} className={stop === level ? 'on' : undefined}>{levelLabel(trait, stop)}</span>)}
+        {[0, 1, 2].map((stop) => <span key={stop} className={stop === level ? 'on' : stop === 1 ? 'middle' : undefined}>{levelLabel(trait, stop)}</span>)}
       </div>
       <p id={`${id}-shows`} className="subtle personality-shows">{trait.shows[level]}</p>
     </div>
@@ -133,7 +134,7 @@ function SourceTag({ source, idea, name, onRelease }: { source: PersonalitySlide
   return (
     <span className={`personality-tag ${source}`}>
       {sourceLabel(source, idea)}
-      {source === 'you' && <button type="button" className="personality-tag-reset" aria-label={`${name}: go back to rolled`} onClick={onRelease}><X aria-hidden="true" /></button>}
+      {source === 'you' && <button type="button" className="personality-tag-reset" aria-label={`Hand back to the roll: ${name}`} onClick={onRelease}><X aria-hidden="true" /></button>}
     </span>
   )
 }

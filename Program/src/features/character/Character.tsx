@@ -137,7 +137,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         {help('identity', 'who they are')}
         <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} hint="Temperament, habits, what makes them laugh or snap. Specific beats general." />
         {help('personality', 'their personality')}
-        <PersonalityChips shown={!details} definition={cleaned} value={definition.personality_sliders} set={setPersonality} seed={seed} />
+        <PersonalityChips shown={!details} onOpen={() => openPersonality(setDetails)} definition={cleaned} value={definition.personality_sliders} set={setPersonality} seed={seed} />
         <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} hint="How they talk: rhythm, humour, words they like." />
         {help('voice', 'their voice')}
         <TextArea label="Skills" value={texts.skills} onChange={setText('skills')} rows={4} hint="One per line. Concrete things they are good at, and a few they are only middling at." />
@@ -226,6 +226,12 @@ function withPersonality(definition: CharacterDefinition, change: Partial<Charac
   const next = { ...definition, ...change }
   const untouched = drafted && (definition.seen_as ?? '') === drafted.seen_as && (definition.sees_self ?? '') === drafted.sees_self && (drafted.seen_as || drafted.sees_self)
   return untouched && !sameLevels(definition.personality_sliders, next.personality_sliders) ? { ...next, seen_as: '', sees_self: '' } : next
+}
+
+/** Show details, then bring the Personality panel into view once it is there. */
+function openPersonality(setDetails: (shown: boolean) => void) {
+  setDetails(true)
+  window.requestAnimationFrame(() => document.getElementById('personality-title')?.scrollIntoView({ block: 'start' }))
 }
 
 function draftedLinesOf(companion: Companion | null, start: Start | null) {

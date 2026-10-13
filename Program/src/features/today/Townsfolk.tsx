@@ -97,9 +97,12 @@ function TownPersonality({ person }: { person: Townsperson }) {
     <div className="town-personality">
       <div className="town-personality-row">
         <PersonalitySummary traits={found.traits} sliders={found.sliders} />
-        <button type="button" className="text-button" aria-expanded={editing} onClick={() => setEditing((value) => !value)}>{editing ? 'Done' : 'Edit'}</button>
+        {!editing && <button type="button" className="text-button" aria-expanded={false} onClick={() => setEditing(true)}>Edit</button>}
       </div>
-      {editing && <PersonalitySliderList traits={found.traits} sliders={found.sliders} onChange={(sliders) => void save(sliders)} />}
+      {editing && <>
+        <PersonalitySliderList traits={found.traits} sliders={found.sliders} onChange={(sliders) => void save(sliders)} />
+        <div><button type="button" className="button town-personality-done" onClick={() => setEditing(false)}>Done</button></div>
+      </>}
       {error && <p className="field-help-error" role="alert">{error}</p>}
     </div>
   )
