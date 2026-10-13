@@ -232,6 +232,9 @@ def test_now_and_then_they_ask_the_user_over(client, kim, monkeypatch, clock):
         [trigger] = kitchen.invite_due(connection, companion, clock.now())
         assert trigger.kind == 'dinner_invite' and trigger.template.startswith('Come over for dinner')
         assert trigger in openers.candidates(connection, companion, clock.now())
+        # It goes ahead of the daily news that would otherwise take each day's text.
+        assert openers.FINDERS.index(kitchen.invite_due) < min(openers.FINDERS.index(openers.dream_news),
+                                                               openers.FINDERS.index(openers.little_news))
         message = {'id': 'invite-message'}
         connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, "
                            "memory_revision, created_at, completed_at) VALUES ('invite-message', ?, 99, 'companion', ?, "

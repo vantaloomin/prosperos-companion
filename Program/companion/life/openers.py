@@ -409,8 +409,10 @@ def usual_time(connection, companion, now) -> list[Trigger]:
 # What may go out while the user hasn't answered the last text: a birthday, and a trip's postcard (its afternoon
 # passes otherwise).
 PAST_WAITING = {'occasion', 'postcard'}
+# A dinner invite comes up about one fortnight in two and waits a day or two at most, so it goes ahead of the daily
+# dream and Life deck news, which otherwise took every day's text first and the invite never went out.
 FINDERS = [occasion, trips.postcard_due, plan_follow_ups, promises, finished, chapter_news, storyline_news, news, crossed_paths, heard_news, reminders, silence,
-           dream_news, little_news, kitchen.invite_due, usual_time, check_in]
+           kitchen.invite_due, dream_news, little_news, usual_time, check_in]
 
 
 def candidates(connection, companion, now) -> list[Trigger]:
