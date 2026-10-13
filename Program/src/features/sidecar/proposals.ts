@@ -9,6 +9,7 @@ export type Change =
   | { kind: 'memory'; memory_id: string; revision: number; layer: Layer; subject: string; before: string; value: string }
   | { kind: 'new_memory'; layer: Layer; subject: string; value: string }
   | { kind: 'forget_memory'; memory_id: string; layer: Layer; subject: string; before: string }
+  | { kind: 'authors_note'; chat: string; before: string; enabled: boolean; text: string }
 /** A pasted character split into the open character form, as one proposal. */
 export interface WholeForm { kind: 'whole'; form: FormState; filledIn: DraftField[] }
 
@@ -41,6 +42,7 @@ export function after(proposal: Proposal): string {
   if (change.kind === 'field') return shownValue(change.field, change.value)
   if (change.kind === 'reply') return change.text
   if (change.kind === 'memory' || change.kind === 'new_memory') return change.value
+  if (change.kind === 'authors_note') return change.text
   return ''
 }
 
@@ -51,6 +53,7 @@ export function title(proposal: Proposal, name: string): string {
   if (change.kind === 'reply') return `${name}'s reply${when(change.created_at)}`
   if (change.kind === 'memory') return `Memory: ${change.subject}`
   if (change.kind === 'new_memory') return `New memory: ${change.subject}`
+  if (change.kind === 'authors_note') return "Author's note"
   return `Set aside memory: ${change.subject}`
 }
 
@@ -62,6 +65,7 @@ export function effect(proposal: Proposal, formOpen: boolean): string {
   if (change.kind === 'reply') return 'Later replies and recall see the new wording.'
   if (change.kind === 'memory') return 'Corrects the memory everywhere it is used.'
   if (change.kind === 'forget_memory') return 'Keeps it in Memories but stops using it.'
+  if (change.kind === 'authors_note') return 'Switches the note on; it steers every reply in this chat until you change it.'
   return ''
 }
 

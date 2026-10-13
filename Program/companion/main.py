@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from companion import (
+    authors_note_routes,
     auto_backup,
     dating_routes,
     export_routes,
@@ -252,6 +253,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(image_routes.router)
     app.include_router(context_routes.router)
     app.include_router(story_routes.router)
+    app.include_router(authors_note_routes.router)
     app.include_router(group_routes.router)
     app.include_router(group_routes.secrets_router)
     app.include_router(dating_routes.router)

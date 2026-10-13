@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass, field
 
 from companion import (
+    authors_note,
     in_character,
     logs,
     model_calls,
@@ -377,6 +378,8 @@ class Conversation:
             packet = context.build(connection, companion, self.database.clock.now(),
                                    config['context_tokens'] - config['max_output_tokens'], user['seq'], semantic,
                                    outside, photo)
+            if not in_character.out_of_character(user['text']):
+                packet = context.steer(packet, authors_note.prompt_text(connection, f"companion:{companion['id']}"))
             revision = settings(connection)['memory_revision']
         with self.database.connect(write=True) as connection:
             connection.execute('UPDATE messages SET memory_revision=?, character_version_id=?, receipt=? WHERE id=?',

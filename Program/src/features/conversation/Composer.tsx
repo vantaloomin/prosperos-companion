@@ -6,12 +6,13 @@ import { InfoTip } from '../../components/InfoTip'
 import { AiFooter } from '../../components/Safety'
 import { sendPicture } from './pictureUpload'
 import { canSend as ready, PER_MESSAGE } from './pictureState'
+import { AuthorsNote } from './AuthorsNote'
 
 const OUT_OF_CHARACTER = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)) for a plain, honest answer.'
 
 /** `compact` while the reader scrolls up through the history: on a phone the box keeps one line until they come back
- * down or tap it. A group chat has no picture button (`pictures` false). */
-export function Composer({ name, draft, streaming, compact, onSend, onStop, pictures: withPictures }: { name: string; draft: DraftState; streaming: boolean; compact: boolean; onSend: () => void; onStop: () => void; pictures?: boolean }) {
+ * down or tap it. A group chat has no picture button (`pictures` false). `chat` names the chat's author's note. */
+export function Composer({ name, chat, draft, streaming, compact, onSend, onStop, pictures: withPictures }: { name: string; chat: string; draft: DraftState; streaming: boolean; compact: boolean; onSend: () => void; onStop: () => void; pictures?: boolean }) {
   const prepare = usePrepare()
   const text = useGrowing(draft.value.text, compact)
   const pictures = usePictureAdder(draft, withPictures !== false)
@@ -22,6 +23,7 @@ export function Composer({ name, draft, streaming, compact, onSend, onStop, pict
     <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}
       {...pictures.formEvents}>
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
+      <AuthorsNote key={chat} chat={chat} name={name} />
       <label className="visually-hidden" htmlFor="composer-text">Message {name}</label>
       <textarea ref={text} id="composer-text" rows={1} value={draft.value.text} placeholder={`Message ${name}`} maxLength={40000}
         onChange={(event) => { draft.edit(event.target.value); prepare() }} onKeyDown={onKeyDown} {...pictures.textEvents} aria-describedby="composer-help" />

@@ -7,6 +7,8 @@ import type { Companion, Memory } from '../../types'
 import { completeDefinition } from '../character/definition'
 import type { FieldValue, FormState } from '../character/drafting'
 import { FIELD_LABELS, currentValue, withHelperField, type HelperField } from '../character/helper'
+import { saveNote } from '../conversation/noteApi'
+import { noteKey, type AuthorsNoteState } from '../conversation/noteState'
 import type { Proposal } from './proposals'
 import type { FormBridge } from './store'
 
@@ -28,6 +30,7 @@ export async function apply(proposal: Proposal, bridge: FormBridge | null, clien
     return null
   }
   if (change.kind === 'memory') return (await memoryCall(client, `/memories/${change.memory_id}/correct`, { value: change.value, expected_revision: change.revision }))
+  if (change.kind === 'authors_note') return noteCall(client, change.chat, change.text, true)
   if (change.kind === 'new_memory') return (await memoryCall(client, '/memories', { layer: change.layer, subject: change.subject, value: change.value, companion_id: companionId }))
   await memoryCall(client, `/memories/${change.memory_id}/exclude`, {})
   return null
@@ -46,11 +49,20 @@ export async function undo(proposal: Proposal, bridge: FormBridge | null, client
   } else if (change.kind === 'memory') {
     const corrected = proposal.undo as Memory
     await memoryCall(client, `/memories/${corrected.id}/correct`, { value: change.before, expected_revision: corrected.revision })
+  } else if (change.kind === 'authors_note') {
+    await noteCall(client, change.chat, change.before, change.enabled)
   } else if (change.kind === 'new_memory') {
     await memoryCall(client, `/memories/${(proposal.undo as Memory).id}/delete`, { delete_sources: false })
   } else {
     await memoryCall(client, `/memories/${change.memory_id}/include`, {})
   }
+}
+
+/** The note is saved through its own path, and the chat's note button shows it at once. */
+async function noteCall(client: QueryClient, chat: string, text: string, enabled: boolean): Promise<AuthorsNoteState> {
+  const saved = await saveNote(chat, text, enabled)
+  client.setQueryData(noteKey(chat), saved)
+  return saved
 }
 
 async function memoryCall(client: QueryClient, path: string, body: unknown): Promise<Memory> {

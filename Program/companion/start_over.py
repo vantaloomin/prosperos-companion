@@ -38,7 +38,7 @@ WORKSPACE = (
     'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'townsfolk_mix', 'image_settings',
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
-    'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge',
+    'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge', 'authors_notes',
     'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books',
     'sqlite_sequence',
 )
