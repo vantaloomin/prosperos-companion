@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ChevronLeft, HeartHandshake, Pencil, RotateCcw, UsersRound } from 'lucide-react'
 import { api, ApiError } from '../../api'
 import { useWorkspaceSettings, type View } from '../../companion'
-import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage, GroupMood } from '../../types'
+import type { Backstory, CastMember, Group, GroupChat as GroupChatData, GroupMember, GroupMessage, GroupMood, GuestOption } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -23,7 +23,7 @@ import { useScrollAway } from '../conversation/useScrollAway'
 import { Backstories } from './Backstories'
 import { NewGroup } from './Groups'
 import { chatKey, GROUPS_KEY, useCast } from './groupState'
-import { canRetry, failureText, groupActivity, membersLine, shownMessages, toldOnly } from './groupText'
+import { canRetry, failureText, groupActivity, guestLine, guestMeters, membersLine, shownMessages, toldOnly } from './groupText'
 import { guardNote } from './secretText'
 
 // While replies are being written, the chat asks for what is new this often.
@@ -82,7 +82,7 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
     draft.setSending(false)
   }
   // What the members said, once finished, counts as read while the chat is on screen (chats.py group_chats).
-  const said = data.messages.filter((message) => message.kind === 'companion' && message.status === 'complete')
+  const said = data.messages.filter((message) => (message.kind === 'companion' || message.kind === 'guest') && message.status === 'complete')
   useMarkRead(id, said.length ? Math.max(...said.map((message) => message.seq)) : null)
   return (
     <div className={`chat-shell shell-${style.style}`}>
@@ -168,7 +168,7 @@ function GroupLine({ message, onKeep }: { message: GroupMessage; onKeep: (kept: 
         <span className="speaker">{name}</span>
         <span className={mine ? 'message-actions' : 'reply-tools'}>
           <Stamp value={message.created_at} />
-          {!mine && message.status === 'complete' && <KeepMoment kept={!!message.kept} onKeep={onKeep} />}
+          {message.kind === 'companion' && message.status === 'complete' && <KeepMoment kept={!!message.kept} onKeep={onKeep} />}
         </span>
       </header>
       <div className="prose"><Paragraphs text={message.text} /></div>
@@ -241,16 +241,21 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
   const [deleting, setDeleting] = useState(false)
   const [copying, setCopying] = useState(false)
   const inside = group.members.flatMap((member) => member.companion_id ? [member.companion_id] : [])
+  const passing = group.members.some((member) => member.guest && !member.guest.kept && !member.guest.regular)
   return (
     <div className="group-people" role="region" aria-label="People in this group">
       <ul>
         {group.members.map((member) => (
-          <li key={member.companion_id ?? member.label}>
-            <span>{member.name}{member.main && <span className="subtle"> · main character</span>}<MoodLine mood={member.mood} /></span>
-            <button type="button" className="text-button" onClick={() => setRemoving(member)}>Remove from group</button>
+          <li key={member.key}>
+            <span>{member.name}{member.main && <span className="subtle"> · main character</span>}{member.guest && <GuestLine member={member} />}<MoodLine mood={member.mood} /></span>
+            <span className="group-person-actions">
+              {member.guest && !member.guest.regular && <KeepGuest group={group} member={member} onChange={onChange} />}
+              <button type="button" className="text-button" onClick={() => setRemoving(member)}>Remove from group</button>
+            </span>
           </li>
         ))}
       </ul>
+      {passing && <p className="subtle">Guests slip out once the chat goes quiet. Keep someone and they stay.</p>}
       <AddSomeone group={group} outside={(cast.data?.members ?? []).filter((member) => !inside.includes(member.id))} onChange={onChange} />
       <label className="group-cap">Replies to each message
         <select value={group.reply_cap} onChange={(event) => void onChange(() => api(`/groups/${group.id}`, { reply_cap: Number(event.target.value) }, 'PATCH'))}>
@@ -273,6 +278,23 @@ function GroupPeople({ group, go, onChange, onClose }: { group: Group; go: (view
   )
 }
 
+/** Who a guest is to the group, and, with Hidden values > home numbers on, how close they are to staying. */
+function GuestLine({ member }: { member: GroupMember }) {
+  const meters = useWorkspaceSettings().data?.show_home_meters ? guestMeters(member) : ''
+  return <span className="subtle"> · {guestLine(member)}{meters && <span className="group-guest-meters"> · {meters}</span>}</span>
+}
+
+/** One tap keeps a guest in the group; tapped again, they come and go like any guest. */
+function KeepGuest({ group, member, onChange }: { group: Group; member: GroupMember; onChange: Change }) {
+  const kept = !!member.guest?.kept
+  return (
+    <button type="button" className={`text-button${kept ? ' kept' : ''}`} aria-pressed={kept}
+      onClick={() => void onChange(() => api(`/groups/${group.id}/guests/keep`, { person: member.key, kept: !kept }))}>
+      {kept ? 'Kept in group' : 'Keep in group'}
+    </button>
+  )
+}
+
 /** How someone seems right now, read-only, with why (companion/moods.py). Nothing while they seem calm. */
 function MoodLine({ mood }: { mood?: GroupMood | null }) {
   if (!mood || mood.feeling === 'calm') return null
@@ -280,25 +302,36 @@ function MoodLine({ mood }: { mood?: GroupMood | null }) {
   return <span className="group-mood subtle"> · {mood.text}{why}{mood.ignoring ? `. Not speaking to ${mood.ignoring}.` : ''}</span>
 }
 
+/** Add a companion, or someone a companion here knows (their circle, or a familiar face from around town) as a guest. */
 function AddSomeone({ group, outside, onChange }: { group: Group; outside: CastMember[]; onChange: Change }) {
   const [adding, setAdding] = useState('')
   const [everything, setEverything] = useState(false)
   const [ties, setTies] = useState<Backstory[]>([])
-  if (!outside.length) return null
-  const chosen = outside.some((member) => member.id === adding) ? adding : outside[0].id
+  const known = useQuery({ queryKey: [...chatKey(group.id), 'guests', group.members.map((member) => member.key).join(',')],
+    queryFn: () => api<{ people: GuestOption[] }>(`/groups/${group.id}/guests`) })
+  const people = known.data?.people ?? []
+  const options = [...outside.map((member) => member.id), ...people.map((person) => person.key)]
+  if (!options.length) return null
+  const chosen = options.includes(adding) ? adding : options[0]
+  const guest = people.some((person) => person.key === chosen)
   const inside = group.members.flatMap((member) => member.companion_id ? [member.companion_id] : [])
-  const told = toldOnly(ties).filter((item) => item.a === chosen || item.b === chosen)
+  const told = guest ? [] : toldOnly(ties).filter((item) => item.a === chosen || item.b === chosen)
   const add = () => void onChange(() => api(`/groups/${group.id}/members`, { companion_id: chosen, history: everything ? 'everything' : 'from_now', ties: told }))
     .then(() => { setAdding(''); setEverything(false); setTies([]) })
   return (
     <fieldset className="group-add">
       <legend>Add someone</legend>
       <select aria-label="Who to add" value={chosen} onChange={(event) => setAdding(event.target.value)}>
-        {outside.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+        {outside.length > 0 && <optgroup label="Companions">
+          {outside.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+        </optgroup>}
+        {people.length > 0 && <optgroup label="People they know">
+          {people.map((person) => <option key={person.key} value={person.key}>{person.name}, {person.relation}</option>)}
+        </optgroup>}
       </select>
       <label><input type="radio" name="group-history" checked={!everything} onChange={() => setEverything(false)} /> They see the chat from now on</label>
       <label><input type="radio" name="group-history" checked={everything} onChange={() => setEverything(true)} /> They see everything so far</label>
-      <Backstories companionIds={[chosen, ...inside]} value={ties} onChange={setTies} />
+      {!guest && <Backstories companionIds={[chosen, ...inside]} value={ties} onChange={setTies} />}
       <button type="button" className="button" onClick={add}>Add</button>
     </fieldset>
   )
@@ -308,7 +341,7 @@ function RemoveDialog({ group, member, onChange, onClose }: { group: Group; memb
   return (
     <ConfirmDialog title={`Remove ${member.label}?`} onClose={onClose} actions={<>
       <button type="button" className="button" onClick={onClose}>Cancel</button>
-      <button type="button" className="button primary" onClick={() => void onChange(() => api(`/groups/${group.id}/members/${member.companion_id}`, undefined, 'DELETE')).then(onClose)}>Remove</button>
+      <button type="button" className="button primary" onClick={() => void onChange(() => api(`/groups/${group.id}/members/${member.companion_id ?? member.key}`, undefined, 'DELETE')).then(onClose)}>Remove</button>
     </>}>
       <p>{member.label} stops getting messages from this group. What {member.label} already heard here stays known: people don&apos;t unlearn a conversation.</p>
     </ConfirmDialog>

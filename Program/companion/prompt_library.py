@@ -97,6 +97,13 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'what from their day they share; the others then answer as usual.',
            constant('companion.group_openers', 'INSTRUCTION'),
            {'name': "the member's name", 'news': 'what happened in their day, from the life sim'}),
+    Prompt('group-guest', CHAT, 'Guests in group chats',
+           "Who a guest is, in their own reply: someone from a member's circle or around town who joined the chat. "
+           'The app picks who comes in and writes the rest of their sheet; the group rules and staying in '
+           'character apply as for everyone.',
+           constant('companion.group_guests', 'SHEET'),
+           {'who': 'their name, who they are to the member who knows them, and their work',
+            'host': 'the member who brought them in', 'lines': 'how others see them and how they see themselves'}),
     Prompt('character-rules.md', DRAFTING, 'What makes a character believable', 'Sent with every draft and rewrite.',
            drafting_file('character-rules.md')),
     Prompt('character-draft.md', DRAFTING, 'Drafting a whole character',

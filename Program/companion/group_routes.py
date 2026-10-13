@@ -41,10 +41,16 @@ class GroupChange(Input):
 
 
 class NewMember(Input):
-    companion_id: str = Field(min_length=1, max_length=100)
+    # A companion's id, or the person key of a guest someone in the group knows (GET .../guests).
+    companion_id: str = Field(min_length=1, max_length=200)
     # What they can see: the chat from when they join (the default), or all of it so far.
     history: Literal['from_now', 'everything'] = 'from_now'
     ties: list[Backstory] = Field(default_factory=list, max_length=50)
+
+
+class KeepGuest(Input):
+    person: str = Field(min_length=1, max_length=200)
+    kept: bool = True
 
 
 class GroupMessage(Input):
@@ -94,9 +100,21 @@ def add(request: Request, group_id: str, body: NewMember):
                       body.ties)
 
 
-@router.delete('/{group_id}/members/{companion_id}')
+@router.delete('/{group_id}/members/{companion_id:path}')
 def remove(request: Request, group_id: str, companion_id: str):
+    """Takes a companion (by id) or a guest (by person key) out of the group."""
     return groups.remove(request.app.state.database, group_id, companion_id)
+
+
+@router.get('/{group_id}/guests')
+def guests(request: Request, group_id: str):
+    """People the companions in the group know who could join it as guests (companion/group_guests.py)."""
+    return {'people': groups.guests(request.app.state.database, group_id)}
+
+
+@router.post('/{group_id}/guests/keep')
+def keep_guest(request: Request, group_id: str, body: KeepGuest):
+    return groups.keep_guest(request.app.state.database, group_id, body.person, body.kept)
 
 
 @router.post('/{group_id}/copy')

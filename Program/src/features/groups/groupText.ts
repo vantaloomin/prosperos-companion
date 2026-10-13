@@ -1,4 +1,4 @@
-import type { Backstory, Group, GroupChat, GroupMessage, GroupPhase } from '../../types'
+import type { Backstory, Group, GroupChat, GroupMember, GroupMessage, GroupPhase } from '../../types'
 
 /** "Billy", "Billy and Sally", "Billy, Sally and Mira". */
 export function namesText(names: string[]): string {
@@ -59,4 +59,20 @@ export function failureText(message: GroupMessage): string | null {
 /** Only what the user actually told goes to the server; untouched pairs stay as they are. */
 export function toldOnly(value: Backstory[]): Backstory[] {
   return value.filter((item) => item.level || item.how.trim()).map((item) => ({ ...item, how: item.how.trim() }))
+}
+
+/** Who a guest is, in the people panel: "Mira's close friend · guest", "· regular" once they keep coming back. */
+export function guestLine(member: GroupMember): string {
+  const guest = member.guest
+  if (!guest) return ''
+  return `${guest.relation} · ${guest.regular ? 'regular' : 'guest'}`
+}
+
+/** A guest's numbers, shown only with Hidden values on: visits toward staying, and replies left this conversation. */
+export function guestMeters(member: GroupMember): string {
+  const guest = member.guest
+  if (!guest) return ''
+  const visits = guest.regular || guest.kept ? '' : `visit ${guest.visits} of ${guest.regular_after} to stay`
+  const replies = `${guest.replies_left} of ${guest.replies_each} replies left this conversation`
+  return [visits, replies].filter(Boolean).join(' · ')
 }
