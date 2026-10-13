@@ -95,6 +95,7 @@ def test_only_looks_the_app_filled_in_change():
     assert 'nails' not in grooming.editable(wrote) and 'feature' not in grooming.editable(wrote)  # Appearance says
     photos = {**ROSA, 'in_photos': 'Long braids and gold hoops.'}
     assert 'hair' not in grooming.editable(photos)  # the In photos line says
+    assert 'skin' not in grooming.editable({**ROSA, 'in_photos': 'Curly hair and a deep tan.'})
     # A townsperson's looks copied when they became a companion stay the app's until the user edits one.
     drawn = {'hair': 'black hair, in a bob', 'skin': 'olive'}
     town = {**ROSA, 'looks': {**drawn, 'drawn': drawn}}
@@ -239,3 +240,34 @@ def test_a_fork_keeps_the_looks_history_as_it_was(client, rosa):
                                     (tid,)).fetchone()[0]
         forked = connection.execute("SELECT COUNT(*) FROM grooming_log WHERE timeline_id='fork'").fetchone()[0]
     assert forked == parent and (latest is None or latest <= '2026-12-15')
+
+
+def test_a_bold_change_is_posted_however_long_the_user_was_away(client, rosa, clock):
+    reconcile(client)
+    _, tid = ids(client)
+    soon = (clock.now() + timedelta(days=2)).isoformat()
+    with connect(client) as connection:
+        slot = connection.execute(
+            "SELECT slot_key FROM life_agenda WHERE timeline_id=? AND subject='companion' AND starts_at>? "
+            "AND json_extract(block, '$.kind')='leisure' ORDER BY starts_at LIMIT 1", (tid, soon)).fetchone()[0]
+        connection.execute("UPDATE life_agenda SET entry=json_set(entry, '$.looks', json(?)) WHERE timeline_id=? "
+                           "AND slot_key=?", (json.dumps({'change': 'g9', 'bold': True, 'sentence': 'x'}), tid, slot))
+    clock.advance(timedelta(days=6))
+    reconcile(client)
+    with connect(client, False) as connection:
+        posted = connection.execute('SELECT COUNT(*) FROM life_events WHERE idempotency_key=?',
+                                    (f'life:{tid}:{slot}',)).fetchone()[0]
+    assert posted == 1
+
+
+def test_the_reference_sheet_keeps_the_hair_length_the_pictures_use(client, rosa):
+    rosa_id, tid = ids(client)
+    client.get('/api/life/grooming')
+    with connect(client) as connection:
+        connection.execute('DELETE FROM grooming_log WHERE timeline_id=?', (tid,))
+        drawn = looks.for_companion(rosa_id, ROSA)['hair']
+        day = client.app.state.database.clock.now().date()
+        reference = grooming.sheet(connection, rosa_id, ROSA, day, bold_only=True)['hair']
+        pictured = grooming.sheet(connection, rosa_id, ROSA, day)['hair']
+    lengths = [word for word in grooming.LENGTHS if re.search(rf"\b{word}\b", pictured)]
+    assert lengths and all(word in reference for word in lengths), (drawn, reference, pictured)

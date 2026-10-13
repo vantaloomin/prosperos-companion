@@ -157,6 +157,12 @@ def test_the_user_can_move_an_entry_to_another_day(client, mira):
     panel = client.post(f"/api/life/admin/{chore['id']}/move").json()
     [moved] = [item for item in panel['upcoming'] if item['key'] == 'test:books']
     assert moved['local_date'] == '2026-10-07' and moved['moved_reason'] == 'moved by you'
+    # Someone who leaves things to the last minute never puts off the day the user picked.
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        from companion.characters import require_current
+        companion = require_current(connection)
+        assert admin.put_off(connection, companion, TUESDAY, 1.0, database.clock.now()) == 0
 
 
 def test_seeded_admin_plans_ahead_and_counts_its_costs(client, mira, monkeypatch, clock):
@@ -211,6 +217,17 @@ def test_on_light_the_dentist_moves_for_dinner(client, mira, provider):
     assert moved['local_date'] != '2026-10-08' and moved['moved_reason'] == 'moved for a plan'
 
 
+def test_dinner_at_their_place_moves_a_chore_out_of_the_evening(client, mira, provider):
+    add(client, key='test:books', day=TUESDAY)
+    reconcile(client)
+    says(provider, 'Yes, come over!')
+    send(client, 'Can I come over for dinner at your place Tuesday?', 'client-admin-04')
+    [outing] = client.get('/api/life/outings').json()['outings']
+    assert outing['activity'] == 'dinner-in' and outing['local_date'] == '2026-10-06'
+    [moved] = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['key'] == 'test:books']
+    assert moved['local_date'] == '2026-10-07' and moved['moved_reason'] == 'moved for a plan'
+
+
 def test_big_cleans_from_home_upkeep_land_on_the_calendar_once(client, mira, monkeypatch, clock):
     monkeypatch.setattr(admin, 'ACTIVE', True)
     client.put('/api/life/settings', json={'admin_realism': 0})  # Only the home features' items, none of its own.
@@ -249,3 +266,51 @@ def test_vet_visits_haircuts_and_grocery_runs_show_alongside_read_only(client, m
     assert [(item['title'], item['movable'], item['fixed']) for item in today] == [
         ('Return library books', True, False), ('Vet check-up for Biscuit', False, True), ('Haircut', False, True),
         ('Grocery run (out of eggs)', False, False)]
+
+
+def test_later_shows_the_soonest_of_each_kind(monkeypatch):
+    """Quarter-day rent comes due at Christmas before Lady Day, whatever order the rule lists its days in."""
+    monkeypatch.setattr(admin, 'owns', lambda *_args: {'rent'})
+    companion = {'active_timeline_id': 't1', 'version': {'definition': {'name': 'Wynn'}}}
+    found = admin.later(None, companion, catalog.city('camelot'), date(2026, 10, 13))
+    assert {item['kind']: item['local_date'] for item in found}['quarter-rent'] == '2026-12-25'
+
+
+def test_small_errands_cost_an_everyday_price_in_the_citys_money():
+    nurse = {'name': 'Mara', 'home_city': 'baltimore', 'identity': 'A registered nurse at Hopkins.'}
+    small = [admin.priced(nurse, '$', f'letter:{index}') for index in range(40)]
+    assert all(4 <= cost <= 20 for cost in small), small
+    assert all(25 <= admin.priced(nurse, '$$', f'repair:{index}') <= 100 for index in range(40))
+    smith = {'name': 'Wat', 'home_city': 'camelot', 'identity': 'A smith by the castle gate.'}
+    fines = [admin.priced(smith, '$', f'fine:{index}') for index in range(40)]
+    assert all(0 < fine <= 3 for fine in fines), fines
+
+
+def test_a_lower_level_takes_off_what_it_would_not_have_planned(client, mira):
+    add(client, key='test:books', day=TUESDAY)
+    add(client, key='test:dentist', kind='dentist', title='Dentist check-up', fixed=True, out=True,
+        done='went to the dentist for a check-up and cleaning', day=THURSDAY)
+    kept = add(client, key='test:keys', title='Cut spare keys', done='had spare keys cut', day=TUESDAY)
+    client.post(f"/api/life/admin/{kept['id']}/move")  # The user's own move stays whatever the level.
+    def keys():
+        return {item['key'] for item in client.get('/api/life/admin').json()['upcoming']}
+    client.put('/api/life/settings', json={'admin_realism': 1})
+    reconcile(client)
+    assert {'test:dentist', 'test:keys'} <= keys() and 'test:books' not in keys()
+    client.put('/api/life/settings', json={'admin_realism': 0})
+    reconcile(client)
+    assert 'test:keys' in keys() and 'test:dentist' not in keys()
+
+
+def test_in_older_eras_errands_out_keep_daylight_hours():
+    from companion.life import routine
+    taken = object.__new__(admin.Taken)
+    taken.schedule, taken.away, taken.closed = routine.blocks({'schedule': EVENINGS})[0], set(), set()
+    taken.times, taken.entries, taken.jitter = {}, {}, 0.99
+    saturday = date(2026, 10, 10)  # No work: the evening is the only free block that ends after dark.
+    taken.daylight = False
+    assert taken.fits(saturday, None, True, False) >= '18:00'
+    taken.daylight = True
+    found = taken.fits(saturday, None, True, False)
+    assert found is None or found < '18:00'
+    assert taken.fits(saturday, None, False, False) >= '18:00'  # Paperwork at home can wait for the evening.

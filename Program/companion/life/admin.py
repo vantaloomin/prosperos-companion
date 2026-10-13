@@ -155,6 +155,8 @@ class Taken:
         data_city = outings.city_data(connection, definition)
         self.closed = {item['date'] for item in generators.holidays(data_city, start, end)
                        if item['kind'] == 'public'} if data_city else set()
+        # Before electric light, shops, markets and offices keep daylight hours: every errand out does too.
+        self.daylight = era_group(data_city) != 'modern'
         self.times: dict[str, list[str]] = {}
         for plan in own_plans.in_force(connection, timeline_id, start.isoformat()):
             self.times.setdefault(plan['local_date'], []).append(plan['at_time'] or '19:00')
@@ -182,7 +184,7 @@ class Taken:
         """The time on this day an entry can have, or None."""
         if self.blocked(day, out):
             return None
-        office = out and fixed
+        office = out and (fixed or self.daylight)
         for block in free_blocks(self.schedule, day):
             if fixed and at and not own_plans.holds(block, at):
                 continue
@@ -426,14 +428,25 @@ def city_place(city: dict | None, where: str, seed: str, label: str) -> dict | N
             'neighborhood': hoods.get(found.get('neighborhood'), '')}
 
 
+# Small errands cost about what a cheap meal does in their city, so a padlock or a registered letter is an everyday
+# price; only the biggest bills ('$$$') stay a share of a month's pay.
+MEALS = ('cheap-lunch', 'lunch-counter', 'meal', 'inn-meal', 'eating-house', 'chophouse', 'diner-breakfast',
+         'pie-and-peas', 'pie')
+EVERYDAY = {'$': (0.6, 0.002), '$$': (4, 0.012)}
+
+
 def priced(definition: dict, spend: str, seed: str) -> float:
-    """A price tier as an amount in their city's money, a seeded 60% to 140% of the tier's share of a month's pay, so
-    two small bills are not the same to the cent. 0 where money does not apply."""
+    """A price tier as an amount in their city's money, seeded 60% to 140% of the tier's price so two small bills are
+    not the same to the cent: '$' and '$$' are a share of a cheap meal there (or of a month's pay where the city lists
+    no meal), '$$$' a share of a month's pay. 0 where money does not apply."""
     found = money.profile(definition)
     if not found or not spend:
         return 0.0
-    share = money.PURCHASES.get(spend, 0) * money.monthly_share(found) * (0.6 + 0.8 * generators.unit(seed, 'price'))
-    return round(share, 0 if share >= 20 else 2)
+    meals, share = EVERYDAY.get(spend, (None, money.PURCHASES.get(spend, 0)))
+    meal = money.price(found.city, MEALS) if meals else None
+    base = meals * meal if meal else share * money.monthly_share(found)
+    cost = base * (0.6 + 0.8 * generators.unit(seed, 'price'))
+    return round(cost, 0 if cost >= 20 else 2)
 
 
 def recent_titles(connection, timeline_id: str, around: date) -> set[str]:
@@ -483,8 +496,8 @@ def put_off(connection, companion: dict, today: date, chance: float, now) -> int
     moved = 0
     for item in upcoming(connection, companion['active_timeline_id'], today.isoformat(),
                          (today + timedelta(days=1)).isoformat()):
-        if item['fixed'] or item['source'] != 'admin' or item['moves'] >= MAX_PUT_OFF:
-            continue
+        if item['fixed'] or item['source'] != 'admin' or item['moves'] >= MAX_PUT_OFF or item['moved_reason'] == 'user':
+            continue  # A day the user picked stands.
         roll = f"{item['key']}:{item['moves']}"
         if generators.unit(roll, 'put-off') >= chance:
             continue
@@ -560,10 +573,29 @@ def plan_ahead(connection, companion: dict, world, now) -> dict:
         for week in range(0, AHEAD // 7 + 1):
             added += plan_week(connection, companion, city, seed, monday + timedelta(weeks=week), today,
                                WEEKLY[chosen], now)
-    moved = reflow(connection, companion, today, now)
+    moved = reflow(connection, companion, today, now) + drop_above(connection, companion, chosen, now)
     if ACTIVE and chosen >= 2:
         moved += put_off(connection, companion, today, PUT_OFF[habit(companion['version']['definition'])], now)
     return {'finished': finished, 'added': added, 'moved': moved}
+
+
+WEEKLY_KINDS = ('errand', 'paperwork', 'surprise')
+
+
+def drop_above(connection, companion: dict, chosen: int, now) -> int:
+    """What a lower level would not have planned comes off the calendar when the level is lowered: on Light the week's
+    errands, paperwork and surprises, on Off everything life admin planned itself. Never what has already happened or
+    an entry the user moved themselves."""
+    if chosen >= 2:
+        return 0
+    local = local_now(companion, now)
+    day, at = local.date().isoformat(), local.strftime('%H:%M')
+    kinds = ' AND kind IN (%s)' % ','.join('?' * len(WEEKLY_KINDS)) if chosen else ''
+    return connection.execute(
+        "UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND source='admin' AND "
+        "status='planned' AND COALESCE(moved_reason, '')!='user' AND (local_date>? OR (local_date=? AND at_time>?))"
+        + kinds, (stamp(now), companion['active_timeline_id'], day, day, at, *(WEEKLY_KINDS if chosen else ()))
+    ).rowcount
 
 
 # --- The agenda ---
@@ -675,7 +707,7 @@ def later(connection, companion: dict, city: dict | None, today: date) -> list[d
     for rule in rules_for(city):
         if rule.get('needs') and rule['needs'] not in has:
             continue
-        found = occurrences(rule, seed, start, today + timedelta(days=LATER))
+        found = sorted(occurrences(rule, seed, start, today + timedelta(days=LATER)), key=lambda item: item[0])
         if found and rule['id'] not in result:
             day, due = found[0]
             result[rule['id']] = {'kind': rule['id'], 'title': rule['title'], 'local_date': day.isoformat(),

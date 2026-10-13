@@ -22,7 +22,7 @@ export function LifeAdmin({ name }: { name: string }) {
         {view.meter !== null && <p className="subtle">On top of things: {view.meter} out of 100</p>}
         {view.upcoming.length > 0 && <><h3>Coming up</h3><AdminList items={view.upcoming} /></>}
         {view.later.length > 0 && <>
-          <h3>Later this year</h3>
+          <h3>Later on</h3>
           <dl className="admin-later">{view.later.map((item) => <div key={item.kind}><dt>{item.title}</dt><dd>{item.due ? 'Due' : 'Around'} {dayText(item.local_date)}</dd></div>)}</dl>
         </>}
         {view.done.length > 0 && <details className="wardrobe-group">

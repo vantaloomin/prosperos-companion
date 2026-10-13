@@ -19,7 +19,7 @@ export interface Together { outings: Outing[]; trips: Trip[] }
 
 const WHAT: Record<string, string> = {
   dinner: 'Dinner', 'lunch-out': 'Lunch', coffee: 'Coffee', drinks: 'Drinks', show: 'A show', museum: 'A few hours',
-  walk: 'A walk', market: 'A look round', 'dinner-in': 'Dinner',
+  walk: 'A walk', market: 'A look around', 'dinner-in': 'Dinner',
 }
 
 /** "Thu, Oct 8" from a local date. */

@@ -176,6 +176,9 @@
     ["Ethiopian veggie combo with injera", "ethiopian", "the Ethiopian restaurant", "vegan gluten"],
     ["chicken bento with rice", "japanese", "the bento shop", "meat gluten"],
     ["spinach and cheese börek", "bakery", "the bakery down the street", "veg dairy egg gluten"],
-    ["poke bowl with tuna", "hawaiian", "the poke bar", "fish gluten"]
+    ["poke bowl with tuna", "hawaiian", "the poke bar", "fish gluten"],
+    ["marinara pizza", "pizza", "the pizzeria around the corner", "vegan gluten"],
+    ["vegetable pho with tofu", "vietnamese", "the Vietnamese place", "vegan gluten"],
+    ["chana masala with rice", "indian", "the Indian restaurant nearby", "vegan"]
   ]
 }

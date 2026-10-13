@@ -144,7 +144,11 @@
     ["shakshuka with crusty bread", 1, "veg egg gluten quick"],
     ["penne with tomato and basil sauce", 1, "vegan gluten quick"],
     ["chicken noodle soup", 2, "meat gluten big warm"],
-    ["Irish stew", 2, "meat big warm"]
+    ["Irish stew", 2, "meat big warm"],
+    ["peanut noodles with cucumber", 1, "vegan gluten nuts quick cold"],
+    ["jacket potato with beans", 1, "vegan quick warm"],
+    ["tomato soup with crusty bread", 1, "vegan gluten quick warm"],
+    ["hummus and roasted veg wraps", 1, "vegan gluten quick"]
   ],
   "takeout": [
     ["cod and chips with mushy peas", "fish-and-chips", "the chippy on the high street", "fish gluten"],
@@ -181,6 +185,9 @@
     ["chicken shawarma with garlic sauce", "lebanese", "the Lebanese grill down the road", "meat egg gluten"],
     ["mezze platter with hummus and falafel", "lebanese", "the Lebanese grill down the road", "vegan gluten"],
     ["pho with beef brisket", "vietnamese", "the Vietnamese café by the market", "meat"],
-    ["chicken burrito with guacamole", "mexican", "the burrito place near the station", "meat dairy gluten"]
+    ["chicken burrito with guacamole", "mexican", "the burrito place near the station", "meat dairy gluten"],
+    ["vegetable biryani with dal", "indian", "the Indian takeaway down the road", "vegan"],
+    ["vegetable chow mein and spring rolls", "chinese", "the Chinese takeaway round the corner", "vegan gluten"],
+    ["green curry with tofu", "thai", "the Thai place around the corner", "vegan"]
   ]
 }

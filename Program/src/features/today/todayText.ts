@@ -22,11 +22,13 @@ export function changesEmpty(name: string, waiting: number): string {
   return `${things} waiting for you above. What you keep shows up here.`
 }
 
-export function eventWhen(startsAt: string, now = appDate()): string {
+/** When it happens. With `timeZone` (the companion's, beside a label from their day such as "Afternoon") the day
+ *  and time are theirs, so the time and the label agree. */
+export function eventWhen(startsAt: string, now = appDate(), timeZone?: string): string {
   const date = new Date(startsAt)
-  const sameDay = date.toDateString() === now.toDateString()
-  const day = sameDay ? 'Today' : new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' }).format(date)
-  return `${day}, ${time(startsAt)}`
+  const dayOf = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(value)
+  const day = dayOf(date) === dayOf(now) ? 'Today' : new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone }).format(date)
+  return `${day}, ${time(startsAt, timeZone)}`
 }
 
 /** A few words for the conversation header. */

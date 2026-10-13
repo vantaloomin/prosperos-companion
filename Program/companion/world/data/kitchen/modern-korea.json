@@ -165,6 +165,10 @@
     ["cheeseburger and fries", "burgers", "the burger place downtown", "meat dairy gluten"],
     ["hotteok with seeds and brown sugar", "street-food", "the hotteok stall at the market", "veg dairy gluten nuts"],
     ["bungeoppang with red bean", "street-food", "the bungeoppang cart", "veg dairy egg gluten"],
-    ["gyeran-ppang egg bread", "street-food", "the street cart by the bus stop", "veg dairy egg gluten"]
+    ["gyeran-ppang egg bread", "street-food", "the street cart by the bus stop", "veg dairy egg gluten"],
+    ["vegetable mandu", "mandu", "the dumpling shop at the market", "vegan gluten"],
+    ["hotteok with brown sugar and seeds", "street-food", "the hotteok stall at the market", "vegan gluten nuts"],
+    ["potato pancakes from the market", "jeon", "the pancake stall at the market", "vegan"],
+    ["naengmyeon with radish kimchi", "noodles", "the noodle house on the noodle street", "vegan gluten cold"]
   ]
 }

@@ -129,7 +129,11 @@
     ["bread and butter pudding", 1, "veg dairy egg gluten warm"],
     ["baked apples stuffed with currants", 1, "vegan warm"],
     ["stewed prunes with boiled rice", 1, "vegan quick"],
-    ["mashed swedes and carrots with butter", 1, "veg dairy quick"]
+    ["mashed swedes and carrots with butter", 1, "veg dairy quick"],
+    ["fried potatoes and onions", 1, "vegan quick warm"],
+    ["toast with stewed tomatoes", 1, "vegan gluten quick warm"],
+    ["boiled rice with stewed apples", 1, "vegan quick warm"],
+    ["mashed swede and potatoes", 1, "vegan quick warm"]
   ],
   "takeout": [
     ["hot baked potato with butter and salt", "baked-potato", "the baked-potato man on the corner", "veg dairy"],
@@ -163,6 +167,12 @@
     ["pork pie", "pork-butcher", "the pork butcher's", "pork gluten"],
     ["Cornish pasty", "pie-shop", "the pasty shop near the station", "meat gluten"],
     ["tripe and onions", "tripe", "the tripe shop", "meat dairy"],
-    ["hot pigs' trotters with vinegar", "street", "the trotter woman in the market", "pork"]
+    ["hot pigs' trotters with vinegar", "street", "the trotter woman in the market", "pork"],
+    ["baked potato with salt and pepper", "baked-potato", "the baked-potato man on the corner", "vegan"],
+    ["hot pease pudding with bread", "cookshop", "the cookshop on the corner", "vegan gluten"],
+    ["vegetable soup with bread", "cookshop", "the cookshop on the corner", "vegan gluten"],
+    ["penny loaf with pickled onions", "bakery", "the baker's on the corner", "vegan gluten"],
+    ["baked apples", "street", "the baked-apple seller in the market", "vegan"],
+    ["hot boiled potatoes with parsley", "cookshop", "the cookshop on the corner", "vegan"]
   ]
 }
