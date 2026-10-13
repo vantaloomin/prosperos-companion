@@ -140,7 +140,7 @@ def test_chat_and_pictures_see_the_mess(client, mira):
         out = upkeep.image_hint(connection, tid, {'place': 'Cafe', 'moment': {'activity': 'slow',
                                                                              'local_date': view['today']}})
     assert at_home.startswith('In view: ') and out == ''
-    client.put('/api/life/settings', json={'upkeep': 0})
+    client.put('/api/life/settings', json={'upkeep_realism': 0})
     assert '- Housework today: ' not in client.get('/api/context/preview').json()['system']
     assert client.get('/api/life/upkeep').json()['on'] is False
 

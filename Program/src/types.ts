@@ -280,7 +280,7 @@ export interface WorkspaceSettings {
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
   /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
-  show_home_numbers?: boolean
+  show_home_meters?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
@@ -434,7 +434,7 @@ export interface LifeSettings {
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
   /** Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy. */
-  upkeep: number
+  upkeep_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }

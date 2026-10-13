@@ -33,8 +33,8 @@ export function PaceSettings() {
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
       <Field label={`Drama in your world: ${level.label}`} hint={level.hint}>
-        {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={data.drama} aria-valuetext={level.label} aria-describedby={describedBy}
-          onChange={(event) => void save({ drama: Number(event.target.value) })} />}
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
+          onChange={(drama) => void save({ drama })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
@@ -45,24 +45,33 @@ export function PaceSettings() {
   )
 }
 
-/** Home life: one slider for each home feature (Vanta, 2026-10-13), each its own life setting. */
+/** Around the home: one slider for each home feature (Vanta, 2026-10-13), each its own life setting. */
 export function HomeLifeSettings() {
   const { settings, data, save, result } = useLifeSettings()
-  if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Home life" />
-  const upkeep = UPKEEP_LEVELS[data.upkeep] ?? UPKEEP_LEVELS[2]
+  if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Around the home" />
+  const upkeep = UPKEEP_LEVELS[data.upkeep_realism] ?? UPKEEP_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="home-life-heading">
       <div>
-        <h2 id="home-life-heading">Home life</h2>
+        <h2 id="home-life-heading">Around the home</h2>
         <p className="subtle">What keeping a home is like for companions. Each one's page shows how it is going in words.</p>
       </div>
       <Field label={`Housework: ${upkeep.label}`} hint={upkeep.hint}>
-        {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={data.upkeep} aria-valuetext={upkeep.label} aria-describedby={describedBy}
-          onChange={(event) => void save({ upkeep: Number(event.target.value) })} />}
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.upkeep_realism} label={upkeep.label}
+          onChange={(upkeep_realism) => void save({ upkeep_realism })} />}
       </Field>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
+}
+
+/** A four-step Realism slider (0 to 3) in the accent colour, with a tick at each step and the step's name read out. */
+function StepSlider({ id, describedBy, value, label, onChange }: { id: string; describedBy?: string; value: number; label: string; onChange: (value: number) => void }) {
+  return <>
+    <input id={id} className="step-slider" type="range" list={`${id}-steps`} min={0} max={3} step={1} value={value} aria-valuetext={label}
+      aria-describedby={describedBy} onChange={(event) => onChange(Number(event.target.value))} />
+    <datalist id={`${id}-steps`}>{[0, 1, 2, 3].map((step) => <option key={step} value={step} />)}</datalist>
+  </>
 }
 
 /** The Housework slider's steps (companion/life/upkeep.py SCALE). */

@@ -10,7 +10,7 @@ clean, never on a day with a plan with the user (it waits for the next day off).
 Each day is walked from the one before with seeded dice, and days before their today are kept once walked
 (upkeep_days), so what already happened never changes and the days ahead follow from it. The user can set how tidy
 the place is today ("Set it"); the walk starts again from there and drifts with their week. The realism slider
-(life_settings.upkeep) turns it off, or makes mess lighter or heavier.
+(life_settings.upkeep_realism) turns it off, or makes mess lighter or heavier.
 
 What happened shows up as one sentence woven onto an at-home agenda entry (`touch`, called once from
 companion/life/agenda.py), as plain lines in the chat's home section (`context_lines`), in pictures at home when an
@@ -48,7 +48,9 @@ FRESH = 3
 BUILD = {'laundry': (8, 6), 'clutter': (5, 3)}
 PER_MEAL = 9
 TRIP_LAUNDRY = 30
-PET_MESS = {'dog': 4, 'cat': 3, 'rabbit': 2, 'guinea pig': 2, 'hamster': 1, 'bird': 1, 'ferret': 3, 'parrot': 2}
+# Agreed with Pets (v0.10 #15): fish, reptiles and a horse at a stable make no mess at home; unknown kinds a little.
+PET_MESS = {'dog': 3, 'cat': 2, 'ferret': 1, 'rabbit': 1, 'guinea-pig': 1, 'hamster': 1, 'parrot': 1, 'bird': 1,
+            'chickens': 1, 'fish': 0, 'lizard': 0, 'snake': 0, 'tortoise': 0, 'horse': 0}
 PILING = 70
 BUSY_KINDS = {'work', 'study'}
 MODERN = {'modern', 'future'}
@@ -78,8 +80,8 @@ WORKING = {'steady-shift', 'busy-shift', 'library', 'study-cafe'}
 # --- Settings and state ---
 
 def level(connection) -> int:
-    row = optional(connection, 'SELECT upkeep FROM life_settings WHERE id=1')
-    return int(row['upkeep']) if row else 2
+    row = optional(connection, 'SELECT upkeep_realism FROM life_settings WHERE id=1')
+    return int(row['upkeep_realism']) if row else 2
 
 
 def words_of(definition: dict) -> set[str]:

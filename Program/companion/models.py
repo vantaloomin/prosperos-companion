@@ -294,7 +294,7 @@ class SettingsUpdate(Input):
     adult_side: bool | None = None
     show_adult_side: bool | None = None
     # The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values).
-    show_home_numbers: bool | None = None
+    show_home_meters: bool | None = None
     # They can ask to remember more (companion/memory/look_back.py).
     recall_more: bool | None = None
     # Out-of-character messages go to the helper (Settings > Chat).
@@ -403,7 +403,7 @@ class LifeSettingsUpdate(Input):
     # While you were away (companion/recap.py): days away before a catch-up shows; 0 turns it off.
     recap_after_days: int | None = Field(default=None, ge=0, le=60)
     # Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy.
-    upkeep: int | None = Field(default=None, ge=0, le=3)
+    upkeep_realism: int | None = Field(default=None, ge=0, le=3)
     user_birthday: str | None = Field(default=None, pattern=r'^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$')
 
 
