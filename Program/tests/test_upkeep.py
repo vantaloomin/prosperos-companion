@@ -170,3 +170,14 @@ def test_a_recent_big_clean_reads_as_days_ago():
     assert upkeep.days_ago(date(2026, 10, 11), date(2026, 10, 13)) == 'Sunday, 2 days ago'
     assert upkeep.days_ago(date(2026, 10, 12), date(2026, 10, 13)) == 'yesterday'
     assert upkeep.days_ago(date(2026, 10, 13), date(2026, 10, 13)) == 'today'
+
+
+def test_older_eras_get_no_modern_housework():
+    modern = ('fridge', 'freezer', 'microwave', 'phone', 'remote', 'charger', 'recycling', 'vacuum', 'lint-roll',
+              'litter', 'jeans', 't-shirt', 'toaster', 'gym', 'favourite', 'reorganised', 'hoover')
+    old = {'era': 'medieval'}
+    banks = [upkeep_bank.LAUNDRY_DONE, upkeep_bank.LAUNDRY_PILING, upkeep_bank.DISHES_DONE, upkeep_bank.DISHES_PILING,
+             upkeep_bank.CLUTTER_DONE, upkeep_bank.CLUTTER_PILING, upkeep_bank.BIG_CLEAN, upkeep_bank.PET_MESS]
+    lines = [line for bank in banks for line in upkeep.lines_for(old, bank)]
+    lines += [upkeep.pet_line(old, f'seed{n}', [{'name': 'Rex', 'variety': 'cat'}]) for n in range(200)]
+    assert not [line for line in lines if any(word in line.casefold() for word in modern)]

@@ -298,12 +298,12 @@ PILING_BANKS = {'laundry': upkeep_bank.LAUNDRY_PILING, 'dishes': upkeep_bank.DIS
                 'clutter': upkeep_bank.CLUTTER_PILING}
 
 
-def pet_line(seed: str, pets: list[dict]) -> str | None:
+def pet_line(state: dict, seed: str, pets: list[dict]) -> str | None:
     pet = generators.pick(seed, 'pet', pets)
     if pet is None:
         return None
     kind = 'dog' if 'dog' in pet['variety'] else 'cat' if 'cat' in pet['variety'] else ''
-    fitting = [line.split('|', 1)[-1] for line in upkeep_bank.PET_MESS
+    fitting = [line.split('|', 1)[-1] for line in lines_for(state, upkeep_bank.PET_MESS)
                if '|' not in line or line.startswith(f'{kind}|')]
     return generators.pick(seed, 'pet-line', fitting).format(pet=pet['name'])
 
@@ -368,7 +368,7 @@ def pick_moment(connection, timeline_id, state, day, activity, seed) -> tuple[st
 def done_line(connection, timeline_id, state, kind, day, seed) -> str:
     if kind in ('clutter', 'big-clean') and generators.unit(seed, 'pet-mess') < 0.35:
         pets = pets_at_home(connection, timeline_id, date.fromisoformat(day['date']))
-        if line := pet_line(seed, pets):
+        if line := pet_line(state, seed, pets):
             return line
     return generators.pick(seed, f'{kind}-line', lines_for(state, DONE_BANKS[kind]))
 
