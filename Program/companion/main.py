@@ -42,7 +42,16 @@ from companion.imports import file_routes
 from companion.imports import routes as import_routes
 from companion.launcher import Launcher
 from companion.launcher_routes import router as launcher_router
-from companion.life import home_routes, outings, scrapbook_routes, status, traditions_routes, trips, wardrobe_routes
+from companion.life import (
+    home_routes,
+    outings,
+    scrapbook_routes,
+    status,
+    traditions_routes,
+    trips,
+    upkeep_routes,
+    wardrobe_routes,
+)
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
@@ -245,6 +254,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(life_routes.router)
     app.include_router(home_routes.router)
     app.include_router(wardrobe_routes.router)
+    app.include_router(upkeep_routes.router)
     app.include_router(traditions_routes.router)
     app.include_router(scrapbook_routes.router)
     app.include_router(life_routes.today_router)
