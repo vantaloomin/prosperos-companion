@@ -17,7 +17,7 @@ from functools import lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog
+from companion.world import catalog, intimacy
 from companion.world.source import CatalogWorld
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
@@ -174,6 +174,9 @@ def plain(text: str) -> str:
 
 def career_for(definition: dict, city: dict) -> tuple[dict | None, bool]:
     offered = catalog.careers_for(city)
+    if intimacy.reads_as_minor(definition):
+        # Adult work is only ever an adult's (companion/world/intimacy.py makes the same check).
+        offered = catalog.everyday(offered)
     chosen = (definition.get('money') or {}).get('career') or ''
     if chosen in offered:
         return offered[chosen], False

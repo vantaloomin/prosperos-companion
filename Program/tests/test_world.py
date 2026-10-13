@@ -642,3 +642,15 @@ def test_featured_cities_list_only_cities_that_load_and_are_new_on_their_release
     monkeypatch.setattr(catalog, 'VERSION', '0.1.4')
     featured = client.get('/api/world/featured').json()
     assert featured['new'] is True and [city['new'] for city in featured['cities']] == [True, False]
+
+
+def test_adult_work_is_never_rolled_for_townsfolk_or_job_changes():
+    adult = {key for key, career in catalog.careers().items() if career['adult']}
+    assert {'subscription-creator', 'cam-model', 'exotic-dancer', 'burlesque-dancer'} <= adult
+    for city_id in ('los-angeles', 'las-vegas', 'new-york-1925'):
+        data = catalog.city(city_id)
+        # Still found by id, for a companion whose work it is.
+        assert adult & set(catalog.careers_for(data))
+        assert not adult & set(catalog.everyday(catalog.careers_for(data)))
+        rolled = {generators.town_career(data, f'seed-{index}')['id'] for index in range(400)}
+        assert not adult & rolled

@@ -146,7 +146,7 @@ def plan_job(connection, companion, world, day, seed) -> dict | None:
     tier = money.PAY_TIERS.get(current['pay'], money.DEFAULT_TIER) if current else money.DEFAULT_TIER
     tight = consequences.total(connection, companion['active_timeline_id'], pairs.companion_key(companion['id']),
                                'money', day.isoformat()) < 0
-    options = sorted(career['id'] for career in catalog.careers_for(city).values()
+    options = sorted(career['id'] for career in catalog.everyday(catalog.careers_for(city)).values()
                      if (not current or (career['id'] != current['id'] and career['schedule'] == current['schedule']))
                      and money.PAY_TIERS.get(career['pay'], money.DEFAULT_TIER) >= tier + tight)
     if not options:

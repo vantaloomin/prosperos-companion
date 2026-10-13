@@ -298,6 +298,8 @@ def character_text(version, connection=None, intimate: bool = False) -> str:
     definition = version['definition']
     lines = [prompt_library.text(connection, 'chat-character', name=definition['name'],
                                  relationship=definition['relationship'])]
+    if intimate and (setting := intimacy.setting_text(connection, version)):
+        lines.append(setting)
     lines += emotional_lines(definition)
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
