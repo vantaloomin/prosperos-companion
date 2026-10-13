@@ -52,8 +52,12 @@ TRIP_LAUNDRY = 30
 PET_MESS = {'dog': 3, 'cat': 2, 'ferret': 1, 'rabbit': 1, 'guinea-pig': 1, 'hamster': 1, 'parrot': 1, 'bird': 1,
             'chickens': 1, 'fish': 0, 'lizard': 0, 'snake': 0, 'tortoise': 0, 'horse': 0}
 PILING = 70
+FURRY = {'dog', 'cat', 'rabbit', 'ferret', 'guinea-pig', 'hamster'}
 BUSY_KINDS = {'work', 'study'}
 MODERN = {'modern', 'future'}
+# Homes with a sink, a stove and mail; medieval, fantasy and frontier homes have none of them.
+PLUMBED = MODERN | {'jazz-age', 'victorian', 'steampunk'}
+MARKS = ('m|', 'p|', 'r|')
 # Set it: how tidy the place is, from spotless to a disaster, and the mess each level stands for.
 TIDINESS = ('Spotless', 'Tidy', 'Lived-in', 'Messy', 'A disaster')
 SET_TO = (3, 20, 45, 72, 95)
@@ -274,7 +278,7 @@ def band(value: float, bands=upkeep_bank.STATE_BANDS) -> int:
 
 
 def area_text(state: dict, area: str, value: float) -> str:
-    return upkeep_bank.STATES[area][band(value)].format(wash=wash_word(state))
+    return bank_for(state, upkeep_bank.STATES, upkeep_bank.STATES_RUSTIC)[area][band(value)].format(wash=wash_word(state))
 
 
 def tidiness(mess: dict) -> int:
@@ -287,9 +291,15 @@ def done_text(state: dict, kind: str) -> str:
 
 
 def lines_for(state: dict, bank) -> list[str]:
-    """The bank's lines that suit their era, without the era mark."""
-    modern = state['era'] in MODERN
-    return [line[2:] if line.startswith('m|') else line for line in bank if modern or not line.startswith('m|')]
+    """The bank's lines that suit their era, without the era mark: "m|" needs a modern home, "p|" one with running
+    water, a stove and mail (from Victorian times on), "r|" one without (a hearth, a washtub, water to fetch)."""
+    allowed = {'m': state['era'] in MODERN, 'p': state['era'] in PLUMBED, 'r': state['era'] not in PLUMBED}
+    return [line[2:] if line[:2] in MARKS else line for line in bank if line[:2] not in MARKS or allowed[line[0]]]
+
+
+def bank_for(state: dict, plumbed, rustic):
+    """A modern or Victorian home's line, or the one for a home without a sink or a mail slot."""
+    return plumbed if state['era'] in PLUMBED else rustic
 
 
 DONE_BANKS = {'laundry': upkeep_bank.LAUNDRY_DONE, 'dishes': upkeep_bank.DISHES_DONE,
@@ -299,13 +309,16 @@ PILING_BANKS = {'laundry': upkeep_bank.LAUNDRY_PILING, 'dishes': upkeep_bank.DIS
 
 
 def pet_line(state: dict, seed: str, pets: list[dict]) -> str | None:
-    pet = generators.pick(seed, 'pet', pets)
+    """A line about the mess one of their pets makes (fish, reptiles and a stabled horse make none): one for its kind
+    ("dog|"), for any furry pet ("fur|"), or for any pet that lives indoors."""
+    pet = generators.pick(seed, 'pet', [found for found in pets if PET_MESS.get(found['variety'], 1)])
     if pet is None:
         return None
-    kind = 'dog' if 'dog' in pet['variety'] else 'cat' if 'cat' in pet['variety'] else ''
+    tags = {pet['variety'], *(['fur'] if pet['variety'] in FURRY else [])}
     fitting = [line.split('|', 1)[-1] for line in lines_for(state, upkeep_bank.PET_MESS)
-               if '|' not in line or line.startswith(f'{kind}|')]
-    return generators.pick(seed, 'pet-line', fitting).format(pet=pet['name'])
+               if '|' not in line or line.split('|', 1)[0] in tags]
+    line = generators.pick(seed, 'pet-line', fitting)
+    return line.format(pet=pet['name']) if line else None
 
 
 # --- Their agenda ---
@@ -442,7 +455,8 @@ def image_hint(connection, timeline_id: str, event: dict) -> str:
     if not day or day['away']:
         return ''
     worst = max(AREAS, key=lambda area: day['mess'][area])
-    return f"In view: {upkeep_bank.PICTURE[worst]}." if day['mess'][worst] >= PILING else ''
+    picture = bank_for(state_of(connection, timeline_id), upkeep_bank.PICTURE, upkeep_bank.PICTURE_RUSTIC)
+    return f"In view: {picture[worst]}." if day['mess'][worst] >= PILING else ''
 
 
 def chores_between(connection, timeline_id: str, definition: dict, start: date, end: date) -> list[dict]:
