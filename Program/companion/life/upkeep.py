@@ -51,7 +51,9 @@ TRIP_LAUNDRY = 30
 # Agreed with Pets (v0.10 #15): fish, reptiles and a horse at a stable make no mess at home; unknown kinds a little.
 PET_MESS = {'dog': 3, 'cat': 2, 'ferret': 1, 'rabbit': 1, 'guinea-pig': 1, 'hamster': 1, 'parrot': 1, 'bird': 1,
             'chickens': 1, 'fish': 0, 'lizard': 0, 'snake': 0, 'tortoise': 0, 'horse': 0}
-PILING = 70
+# Mess that shows in their day and in pictures at home: a little past where the Home panel starts to say "piling up"
+# (STATE_BANDS 45), so an average home shows it now and then and a messy one often (2026-10-13).
+PILING = 50
 FURRY = {'dog', 'cat', 'rabbit', 'ferret', 'guinea-pig', 'hamster'}
 BUSY_KINDS = {'work', 'study'}
 MODERN = {'modern', 'future'}

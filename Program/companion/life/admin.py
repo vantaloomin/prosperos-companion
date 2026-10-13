@@ -287,11 +287,20 @@ def stands(item: dict, chosen: int) -> bool:
 def holds(connection, companion: dict, day: date, at: str) -> bool:
     """Whether an entry that stands (`stands`) has the part of the day this time falls in (an outing asked for then
     goes to another day, and the companion says so)."""
+    return holding(connection, companion, day, at) is not None
+
+
+def holding(connection, companion: dict, day: date, at: str) -> dict | None:
+    """The entry that stands (`stands`) in the part of the day this time falls in, if any: what the companion names
+    when an outing asked for then goes to another day."""
     schedule = routine.blocks(companion['version']['definition'])[0]
     block = next((block for block in free_blocks(schedule, day) if own_plans.holds(block, at)), None)
+    if not block:
+        return None
     chosen = level(connection)
-    return bool(block) and any(stands(item, chosen) and own_plans.holds(block, item['at_time']) for item in upcoming(
-        connection, companion['active_timeline_id'], day.isoformat(), day.isoformat()))
+    return next((item for item in upcoming(connection, companion['active_timeline_id'], day.isoformat(),
+                                           day.isoformat())
+                 if stands(item, chosen) and own_plans.holds(block, item['at_time'])), None)
 
 
 def make_room(connection, companion: dict, day: date, at: str, now: datetime) -> int:

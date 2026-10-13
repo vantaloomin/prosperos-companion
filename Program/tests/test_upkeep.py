@@ -254,7 +254,8 @@ def test_a_day_being_drawn_is_not_kept_before_its_dinners_are_known(client, mira
 
 
 def test_a_chores_slot_is_left_to_housework(client, mira):
-
+    # A plant fits any slot at home, so their things can come up whatever else the seed gave them.
+    assert client.post('/api/life/home/items', json={'kind': 'plant', 'name': 'a pothos'}).status_code == 200
     tid, database = timeline(client), client.app.state.database
     entry = {'activity': 'chores', 'summary': 'Mira did chores.'}
     with connect(client) as connection:
@@ -266,3 +267,25 @@ def test_a_chores_slot_is_left_to_housework(client, mira):
         woven = [home.touch(connection, tid, 'companion', entry, (TODAY + timedelta(days=1)).isoformat(), f's{n}',
                             MIRA, None, database.clock.now()) for n in range(30)]
     assert any('home' in found for found in woven)  # with housework off, their things can come up again
+
+
+def test_mess_shows_now_and_then_in_an_average_home_and_often_in_a_messy_one(monkeypatch):
+    # Days with an area at the piling line, over four months on True to life with a work week and dinners at home.
+    monkeypatch.setattr(upkeep, 'meals_cooked', lambda _context, _connection, _timeline, day: day.toordinal() % 3)
+    monkeypatch.setattr(upkeep, 'pets_at_home', lambda *_args: [])
+
+    def share(kind):
+        piling = total = 0
+        for run in range(20):
+            context = {'kind': kind, 'busy': {0, 1, 2, 3, 4}, 'scale': upkeep.SCALE[2], 'keen': upkeep.KEEN[2],
+                       'patience': upkeep.PATIENCE[2], 'planned': set(), 'seed': f'run-{run}', 'away': set()}
+            day = {'date': '2026-01-01', 'mess': {area: upkeep.SETTLE[kind] for area in upkeep.AREAS}, 'done': [],
+                   'away': False, 'busy': False, 'since_big': 0}
+            for offset in range(1, 121):
+                day = upkeep.step(None, 'timeline', day, date(2026, 1, 1) + timedelta(days=offset), context)
+                total += 1
+                piling += max(day['mess'].values()) >= upkeep.PILING
+        return piling / total
+    assert share('neat') < 0.03
+    assert 0.07 <= share('average') <= 0.35
+    assert share('messy') >= 0.45

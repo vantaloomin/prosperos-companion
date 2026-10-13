@@ -149,7 +149,8 @@ def test_a_plan_with_the_user_moves_a_chore_and_an_appointment_moves_the_plan(cl
     send(client, 'Dinner Thursday?', 'client-admin-02')
     second = [item for item in client.get('/api/life/outings').json()['outings'] if item['id'] != outing['id']]
     assert second[0]['asked_date'] == '2026-10-08' and second[0]['local_date'] == '2026-10-09'
-    assert "can't make that day" in provider.requests[-1]['prompt']
+    prompt = provider.requests[-1]['prompt']
+    assert "can't make that day" in prompt and 'something is already booked then (Dentist check-up)' in prompt
 
 
 def test_the_user_can_move_an_entry_to_another_day(client, mira):

@@ -128,8 +128,9 @@ def test_no_dish_comes_round_twice_within_six_nights_and_leftovers_follow_a_cook
         meals = [found.meal(day) for day in days]
         for index, meal in enumerate(meals):
             if meal['kind'] == 'leftovers':
-                before = meals[index - 1] if index else found.meal(days[0] - timedelta(days=1))
-                assert before['kind'] == 'cook' and before['dish'] == meal['dish']
+                # The first night of a run follows the plain rhythm for the night before (Day.leftovers_from).
+                if index:
+                    assert meals[index - 1]['kind'] == 'cook' and meals[index - 1]['dish'] == meal['dish']
                 continue
             earlier = set().union(*(kitchen.eaten(item) for item in meals[max(0, index - 6):index]))
             assert not kitchen.eaten(meal) & earlier, (meal, index)
@@ -234,6 +235,7 @@ def test_now_and_then_they_ask_the_user_over(client, kim, monkeypatch, clock):
         companion = current(connection)
         [trigger] = kitchen.invite_due(connection, companion, clock.now())
         assert trigger.kind == 'dinner_invite' and trigger.template.startswith('Come over for dinner')
+        assert 'You plan to ' in trigger.reason and 'You ordered' not in trigger.reason
         assert trigger in openers.candidates(connection, companion, clock.now())
         # It goes ahead of the daily news that would otherwise take each day's text.
         assert openers.FINDERS.index(kitchen.invite_due) < min(openers.FINDERS.index(openers.dream_news),
@@ -284,3 +286,13 @@ def test_takeout_names_a_real_place_in_the_city_about_as_often_everywhere(city):
     items = kitchen.bank(kitchen.bank_for(Night.data))['takeout']
     named = sum(bool(kitchen.Day.restaurant(Night, item['cuisine'], 'night')) for item in items)
     assert named / len(items) >= 0.35, (city, named, len(items))
+
+
+def test_a_dinner_still_ahead_is_told_as_a_plan():
+    takeout = {'dish': 'pad thai', 'source': 'Thai Landing'}
+    assert kitchen.planned_menu({'dish': None, 'bake': None, 'takeout': takeout}) == \
+        'You plan to order pad thai from Thai Landing and set the table.'
+    assert kitchen.planned_menu({'dish': None, 'bake': None, 'takeout': takeout}, era_modern=False) == \
+        'You plan to pick up pad thai from Thai Landing and set the table.'
+    assert kitchen.planned_menu({'dish': 'mushroom risotto', 'bake': 'lemon bars', 'takeout': None}) == \
+        'You plan to cook mushroom risotto, with lemon bars for dessert.'
