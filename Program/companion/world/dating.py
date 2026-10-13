@@ -52,9 +52,9 @@ EYES = {
     'east': {'dark brown': 90, 'brown': 10}, 'south': {'dark brown': 80, 'brown': 15, 'hazel': 5},
     'african': {'dark brown': 90, 'brown': 10}, 'latin': {'brown': 70, 'dark brown': 15, 'hazel': 10, 'green': 5},
     'arab': {'brown': 70, 'dark brown': 15, 'hazel': 10, 'green': 5},
-    'celtic': {'blue': 40, 'brown': 20, 'green': 15, 'hazel': 15, 'grey': 10},
-    'european': {'blue': 27, 'brown': 35, 'hazel': 16, 'green': 12, 'grey': 10},
-    None: {'brown': 55, 'blue': 20, 'hazel': 12, 'green': 8, 'grey': 5},
+    'celtic': {'blue': 40, 'brown': 20, 'green': 15, 'hazel': 15, 'gray': 10},
+    'european': {'blue': 27, 'brown': 35, 'hazel': 16, 'green': 12, 'gray': 10},
+    None: {'brown': 55, 'blue': 20, 'hazel': 12, 'green': 8, 'gray': 5},
 }
 HAIR_STYLES = {
     'woman': ('long', 'shoulder-length', 'in a bob', 'cropped short', 'curly', 'always up in a bun', 'in a ponytail',
@@ -197,7 +197,7 @@ def hair(seed: str, sheet: dict, who: str, era: str) -> str:
         return generators.pick(seed, 'bald-how', ['a shaved head', 'thinning hair', 'a receding hairline'])
     color = weighted(seed, 'hair', HAIR[region(sheet)])
     if age >= 55 and generators.unit(seed, 'grey') < 0.6:
-        color = generators.pick(seed, 'grey-how', ['grey', 'silver', 'salt-and-pepper'])
+        color = generators.pick(seed, 'grey-how', ['gray', 'silver', 'salt-and-pepper'])
     elif age >= 42 and generators.unit(seed, 'grey') < 0.3:
         color = f'greying {color}'
     elif era != 'period' and age < 40 and generators.unit(seed, 'dyed') < 0.08:

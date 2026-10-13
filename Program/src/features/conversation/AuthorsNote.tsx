@@ -61,7 +61,7 @@ export function AuthorsNote({ chat, name, story = false }: { chat: string; name:
           <label className="note-switch"><input type="checkbox" role="switch" checked={note.enabled} onChange={(event) => note.change(note.text, event.target.checked, true)} /> {NOTE_SWITCH}</label>
         </div>
         <label className="visually-hidden" htmlFor={`note-text-${chat}`}>Author's note for this chat</label>
-        <textarea ref={area} id={`note-text-${chat}`} value={note.text} maxLength={NOTE_LIMIT} rows={4} aria-describedby={`note-help-${chat}`}
+        <textarea ref={area} id={`note-text-${chat}`} className={note.enabled ? undefined : 'note-unused'} value={note.text} maxLength={NOTE_LIMIT} rows={4} aria-describedby={`note-help-${chat}`}
           placeholder={story ? 'Steer the story for every narration. It never shows in the story.' : `Steer the scene for every reply in this chat. ${name} won't see it as a message.`}
           onChange={(event) => note.change(event.target.value, note.enabled)} />
         {note.text.length > COUNT_FROM && <span className="note-count subtle" aria-live="polite">{note.text.length} / {NOTE_LIMIT}</span>}

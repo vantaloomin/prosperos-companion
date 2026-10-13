@@ -6,6 +6,7 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { AdminList } from '../today/AdminList'
 import { ADMIN_KEY } from '../today/adminText'
 import { dayText } from '../today/outingText'
+import { calendarDay } from '../../when'
 
 /** The companion's life admin in plain words: what is on the list, what comes due later and what got done lately. */
 export function LifeAdmin({ name }: { name: string }) {
@@ -23,7 +24,7 @@ export function LifeAdmin({ name }: { name: string }) {
         {view.upcoming.length > 0 && <><h3>Coming up</h3><AdminList items={view.upcoming} /></>}
         {view.later.length > 0 && <>
           <h3>Later on</h3>
-          <dl className="admin-later">{view.later.map((item) => <div key={item.kind}><dt>{item.title}</dt><dd>{item.due ? 'Due' : 'Around'} {dayText(item.local_date)}</dd></div>)}</dl>
+          <dl className="admin-later">{view.later.map((item) => <div key={item.kind}><dt>{item.title}</dt><dd>{item.due ? `Due ${dayText(item.local_date)}` : `Around ${calendarDay(item.local_date)}`}</dd></div>)}</dl>
         </>}
         {view.done.length > 0 && <details className="wardrobe-group">
           <summary>Done lately <span className="subtle">({view.done.length})</span></summary>

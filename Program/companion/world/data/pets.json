@@ -5358,7 +5358,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} lay with their chin on a foot the whole time.",
+   "text": "{pet} lay with its chin on a foot the whole time.",
    "eras": [
     "any"
    ]
@@ -5367,7 +5367,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} chased their tail in a full circle and lost.",
+   "text": "{pet} chased its tail in a full circle and lost.",
    "eras": [
     "any"
    ]
@@ -5385,7 +5385,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} dreamed, paws twitching, little woofs in their sleep.",
+   "text": "{pet} dreamed, paws twitching, little woofs in its sleep.",
    "eras": [
     "any"
    ]
@@ -5511,7 +5511,7 @@
    "kinds": [
     "rabbit"
    ],
-   "text": "{pet} rearranged the hay in their pen with great care.",
+   "text": "{pet} rearranged the hay in its pen with great care.",
    "eras": [
     "any"
    ]
@@ -5556,7 +5556,7 @@
    "kinds": [
     "guinea-pig"
    ],
-   "text": "{pet} hid in their little wooden house and peeked out.",
+   "text": "{pet} hid in its little wooden house and peeked out.",
    "eras": [
     "any"
    ]
@@ -5691,7 +5691,7 @@
    "kinds": [
     "bird"
    ],
-   "text": "{pet} chattered at their reflection in the mirror.",
+   "text": "{pet} chattered at its reflection in the mirror.",
    "eras": [
     "any"
    ]
@@ -5826,7 +5826,7 @@
    "kinds": [
     "fish"
    ],
-   "text": "{pet} flared their fins at their reflection.",
+   "text": "{pet} flared its fins at its reflection.",
    "eras": [
     "modern"
    ]
@@ -5889,7 +5889,7 @@
    "kinds": [
     "snake"
    ],
-   "text": "{pet} flicked their tongue at the glass, watching.",
+   "text": "{pet} flicked its tongue at the glass, watching.",
    "eras": [
     "modern"
    ]
@@ -6016,7 +6016,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} chased their own tail until dizzy.",
+   "text": "{pet} chased its own tail until dizzy.",
    "eras": [
     "any"
    ]
@@ -6025,7 +6025,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} rested their head on a foot and fell asleep.",
+   "text": "{pet} rested its head on a foot and fell asleep.",
    "eras": [
     "any"
    ]
@@ -6079,7 +6079,7 @@
    "kinds": [
     "cat"
    ],
-   "text": "{pet} washed their face very carefully, ears last.",
+   "text": "{pet} washed its face very carefully, ears last.",
    "eras": [
     "any"
    ]
@@ -6180,7 +6180,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} came along and found a stick twice their size.",
+   "text": "{pet} came along and found a stick twice its size.",
    "eras": [
     "any"
    ]
@@ -6561,7 +6561,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} came along and got their ears scratched by a stranger.",
+   "text": "{pet} came along and got its ears scratched by a stranger.",
    "eras": [
     "any"
    ]
@@ -6660,7 +6660,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} came along and came back with burrs in their coat.",
+   "text": "{pet} came along and came back with burrs in its coat.",
    "eras": [
     "any"
    ]
@@ -6723,7 +6723,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} came along and herded a few chickens back to their yard.",
+   "text": "{pet} came along and herded a few chickens back to the yard.",
    "eras": [
     "any"
    ]
@@ -6831,7 +6831,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} came along and sniffed the wind with their nose high.",
+   "text": "{pet} came along and sniffed the wind with its nose high.",
    "eras": [
     "any"
    ]
@@ -6876,7 +6876,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} came along and caught a snowflake on their tongue.",
+   "text": "{pet} came along and caught a snowflake on its tongue.",
    "eras": [
     "any"
    ]
@@ -7065,7 +7065,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "{pet} came along and came home with a twig still in their tail.",
+   "text": "{pet} came along and came home with a twig still in its tail.",
    "eras": [
     "any"
    ]
@@ -7286,7 +7286,7 @@
     "dog"
    ],
    "shows": "lying on a rug with a chewed toy between the paws",
-   "caption": "{pet} and their favorite toy, what is left of it.",
+   "caption": "{pet} and its favorite toy, what is left of it.",
    "eras": [
     "any"
    ]
@@ -7317,7 +7317,7 @@
     "dog"
    ],
    "shows": "looking up hopefully beside a kitchen table",
-   "caption": "{pet} has never been fed in their life, apparently.",
+   "caption": "{pet} has never been fed in its life, apparently.",
    "eras": [
     "any"
    ]
@@ -7881,7 +7881,7 @@
     "snake"
    ],
    "shows": "peeking out of a hide in a tank",
-   "caption": "{pet} saying hi in their own way.",
+   "caption": "{pet} saying hi in its own way.",
    "eras": [
     "modern"
    ]
