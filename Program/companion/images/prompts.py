@@ -28,7 +28,8 @@ def place_name(event) -> str:
 def when(event) -> dict:
     """What the wardrobe and the picture line need: its activity, block kind, local date, weather and company."""
     details = decode(event['details'])
-    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with', 'pet_photo')}
+    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with', 'pet_photo',
+                                                 'hobby')}
 
 
 def scene(connection, post_id) -> list[dict]:
@@ -265,15 +266,23 @@ PICTURES = {
     'tradition': 'at a holiday table with family, the dishes passed around',
     # A visit for their looks (companion/life/grooming.py): the new look is in the sheet that opens the picture.
     'salon': 'just out of the salon, showing off a fresh new look',
+    'hobby': 'absorbed in a favorite pastime',
     'nail-salon': 'holding up freshly done nails to show them off',
 }
 CALLS = ('called', 'phone')
 
 
+def picture_of(event) -> str | None:
+    """The activity's picture line; a pastime's own (companion/life/hobbies.py), with visible wording only."""
+    if event.get('activity') == 'hobby':
+        return (event.get('hobby') or {}).get('picture') or PICTURES['hobby']
+    return PICTURES.get(event.get('activity') or '')
+
+
 def doing(event, subject, possessive, who) -> str:
     """The picture line for the event's activity, or '' when there is none or the event was
     corrected (a correction's own words win over what the activity usually looks like)."""
-    line = PICTURES.get(event.get('activity') or '')
+    line = picture_of(event)
     if not line or (event.get('revision') or 1) > 1:
         return ''
     if event.get('activity') == 'birthday' and any(word in event['summary'].lower() for word in CALLS):
@@ -334,7 +343,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     definition = companion['version']['definition']
     first = {**events[0], 'hour': local_hour(events[0]['starts_at'], companion['version']['timezone']),
              'weather': events[0]['moment'].get('weather'), 'activity': events[0]['moment'].get('activity'),
-             'with': events[0]['moment'].get('with')}
+             'with': events[0]['moment'].get('with'), 'hobby': events[0]['moment'].get('hobby')}
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
     prompt = pet_prompt(connection, post['timeline_id'], events, image_settings)
@@ -407,7 +416,7 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     companion = require_current(connection)
     definition = companion['version']['definition']
     scene_text = {key: moment.get(key) for key in ('summary', 'caption', 'mood', 'place', 'hour', 'weather',
-                                                    'activity', 'with')}
+                                                    'activity', 'with', 'hobby')}
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
     sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))

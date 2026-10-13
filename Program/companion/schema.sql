@@ -2030,7 +2030,6 @@ CREATE TABLE IF NOT EXISTS townsfolk_personality (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (town, key)
 );
-
 -- Our history at a glance (companion/memory/history.py): the user's own words for a line of the "All of it" view,
 -- keyed by its stretch (w2026-10-06, m2026-09, y2025). Empty text leaves the line out; no row keeps the app's line.
 CREATE TABLE IF NOT EXISTS history_corrections (
@@ -2071,3 +2070,57 @@ CREATE TABLE IF NOT EXISTS media_items (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS media_items_chain ON media_items(timeline_id, kind, started_on);
+
+-- Hobbies that progress (companion/life/hobbies.py): the companion's tracked pastimes, each with a skill that grows
+-- with practice, and how far their life has been walked. `hobby_log` keeps what happened (sessions, milestones,
+-- stalls, new starts, gear and fees) and a weekly `mark` of every pastime, so the days ahead can be walked again after
+-- a change.
+CREATE TABLE IF NOT EXISTS hobby_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  through TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS hobbies (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  hobby TEXT NOT NULL,
+  label TEXT NOT NULL,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('interest', 'app', 'user')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'stalled', 'dropped')),
+  skill REAL NOT NULL DEFAULT 0,
+  best REAL NOT NULL DEFAULT 0,
+  talent REAL NOT NULL DEFAULT 1,
+  per_week INTEGER NOT NULL DEFAULT 1,
+  started_on TEXT NOT NULL,
+  status_since TEXT NOT NULL,
+  last_practice TEXT,
+  sessions INTEGER NOT NULL DEFAULT 0,
+  next_at REAL NOT NULL DEFAULT 0,
+  used TEXT NOT NULL DEFAULT '[]',
+  reason TEXT NOT NULL DEFAULT '',
+  paid_through TEXT NOT NULL DEFAULT '',
+  kept INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1)),
+  position INTEGER NOT NULL DEFAULT 0,
+  created_on TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hobbies_timeline ON hobbies(timeline_id, position);
+CREATE TABLE IF NOT EXISTS hobby_log (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  hobby_id TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  text TEXT NOT NULL DEFAULT '',
+  post TEXT NOT NULL DEFAULT '',
+  level INTEGER NOT NULL DEFAULT 0,
+  spend TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hobby_log_day ON hobby_log(timeline_id, local_date, kind);

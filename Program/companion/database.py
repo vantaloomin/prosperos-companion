@@ -277,6 +277,9 @@ ADDED_COLUMNS = (
     # Reading, watching and listening (companion/life/media.py, Settings > Realism > Their days): 0 off, 1 light,
     # 2 true to life, 3 dramatic.
     ('life_settings', 'media_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (media_realism BETWEEN 0 AND 3)'),
+    # Hobbies that progress (companion/life/hobbies.py, Settings > Realism > Their days): 0 off, 1 light, 2 true to
+    # life, 3 dramatic.
+    ('life_settings', 'hobbies_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (hobbies_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

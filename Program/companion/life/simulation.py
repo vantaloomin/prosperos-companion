@@ -26,7 +26,7 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, composer, deck, dreams, feed, mood, pets, routine, thoughts, upkeep
+from companion.life import agenda, composer, deck, dreams, feed, hobbies, mood, pets, routine, thoughts, upkeep
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -84,6 +84,8 @@ def update_settings(database, body) -> dict:
                 pets.settings_changed(connection, database.clock.now())
             if 'upkeep_realism' in changed:
                 upkeep.settings_changed(connection, database.clock.now())
+            if 'hobbies_realism' in changed:
+                hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
         return settings_view(life_settings(connection))
 
 
@@ -229,12 +231,14 @@ def recent_threads(connection, timeline_id, local_date: str) -> list[str]:
 
 def recommended(connection, timeline_id, slot_key) -> bool:
     """The slot holds a session of a recommendation or a plan the companion made in chat, or a bold change to their
-    looks (companion/life/grooming.py), which they would post about."""
+    looks (companion/life/grooming.py) or a milestone in a pastime (companion/life/hobbies.py), which they would post
+    about."""
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                          "AND slot_key=? AND (json_extract(entry, '$.recommendation.id') IS NOT NULL "
                          "OR json_extract(entry, '$.own_plan.id') IS NOT NULL OR json_extract(entry, '$.outing.id') "
                          "IS NOT NULL OR json_extract(entry, '$.trip.id') IS NOT NULL OR "
-                         "json_extract(entry, '$.looks.bold')=1)", (timeline_id, slot_key)))
+                         "json_extract(entry, '$.looks.bold')=1 OR json_extract(entry, '$.hobby.milestone') IS NOT NULL)",
+                         (timeline_id, slot_key)))
 
 
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:
@@ -579,7 +583,8 @@ class LifeEngine:
                      'fulfils': composed.get('fulfils'), 'weather': composed.get('weather'),
                      'body': block.get('body'), 'recommendation': composed.get('recommendation'),
                      'own_plan': composed.get('own_plan'), 'outing': composed.get('outing'),
-                     'trip': composed.get('trip'), 'pet_photo': composed.get('pet_photo')},
+                     'trip': composed.get('trip'), 'pet_photo': composed.get('pet_photo'),
+                     'hobby': composed.get('hobby')},
             starts_at=slot['starts_at'], ends_at=slot['ends_at'],
             inputs={'run_id': run['id'], 'mode': run['mode'], 'slot': slot, 'world': self.world.name,
                     'composer_version': composed['composer_version'], 'template': {

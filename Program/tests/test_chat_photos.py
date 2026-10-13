@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from companion.identity import CLIENT_HEADER
 from companion.images import memes
-from companion.images.photos import asked_kind, asks_for_photo, moment_text
+from companion.images.photos import asked_kind, asks_for_photo, moment_text, yours
 from companion.main import create_app
 from companion.providers.vault import MemoryVault
 from tests.conftest import reconcile, send, set_life
@@ -65,6 +65,13 @@ def test_asking_what_they_are_up_to_asks_for_a_photo(text):
                                   'I sent a picture to my mum', 'Good morning!', 'What are you up to tonight?'])
 def test_other_questions_do_not(text):
     assert not asks_for_photo(text)
+
+
+def test_a_friends_birthday_stays_theirs_when_told_as_you():
+    assert yours({'summary': 'Mira took Caleb out for their birthday.', 'name': 'Mira'}) == \
+        'You took Caleb out for their birthday.'
+    assert yours({'summary': 'Mira went out with Caleb for their birthday.', 'name': 'Mira'}) == \
+        'You went out with Caleb for your birthday.'
 
 
 def test_the_pictured_moment_is_the_one_the_agenda_holds(client, life, app):

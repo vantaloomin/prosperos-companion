@@ -27,6 +27,7 @@ from companion.life import (
     disruptions,
     encounters,
     grooming,
+    hobbies,
     home,
     kitchen,
     media,
@@ -198,7 +199,7 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     days = {}
     written = 0
     scope = {'timeline_id': timeline_id, 'subject': subject, 'definition': definition, 'basis': basis, 'world': world,
-             'shifting': disruptions.enabled(connection), 'now': now, 'companion': companion,
+             'shifting': disruptions.enabled(connection), 'now': now, 'companion': companion, 'timezone': timezone,
              'era': (circle.city_data(definition, world) or {}).get('era')}
     for slot in routine.slots(schedule, timezone, start, end):
         if optional(connection, 'SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND slot_key=?',
@@ -268,6 +269,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
             if subject == COMPANION:
                 entry = work.touch(connection, scope['companion'], entry, block, slot.local_date, seed)
             entry = disruptions.entry_with(entry, shift, definition['name'])
+        entry = hobbies.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
+                              scope['world'], scope['now'], scope.get('timezone') or 'UTC')
         entry = kitchen.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
                               scope['world'], scope['now'])
         entry = media.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), definition,
@@ -573,6 +576,9 @@ def intention_text(item) -> str:
     text = f"- {item['local_date']}, {item['block']['label'].lower()} ({item['block']['start']}): "
     if entry['activity'] == 'dinner-in':  # the user coming over (companion/life/outings.py)
         return text + 'having the user over for dinner at your place'
+    if entry.get('hobby'):  # a practice session (companion/life/hobbies.py)
+        place = f" at {entry['place']['name']}" if entry.get('place') else ''
+        return text + f"{entry['hobby']['label'].lower()}{place}"
     text += entry['activity'].replace('-', ' ')
     if entry.get('place'):
         text += f" at {entry['place']['name']}"
