@@ -212,11 +212,13 @@ def recent_threads(connection, timeline_id, local_date: str) -> list[str]:
 
 
 def recommended(connection, timeline_id, slot_key) -> bool:
-    """The slot holds a session of a recommendation or a plan the companion made in chat."""
+    """The slot holds a session of a recommendation or a plan the companion made in chat, or a bold change to their
+    looks (companion/life/grooming.py), which they would post about."""
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                          "AND slot_key=? AND (json_extract(entry, '$.recommendation.id') IS NOT NULL "
                          "OR json_extract(entry, '$.own_plan.id') IS NOT NULL OR json_extract(entry, '$.outing.id') "
-                         "IS NOT NULL OR json_extract(entry, '$.trip.id') IS NOT NULL)", (timeline_id, slot_key)))
+                         "IS NOT NULL OR json_extract(entry, '$.trip.id') IS NOT NULL OR "
+                         "json_extract(entry, '$.looks.bold')=1)", (timeline_id, slot_key)))
 
 
 def choose(connection, timeline_id, slots: list, count: int, seed: str) -> list:

@@ -242,7 +242,8 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
         'money': {'career': career['id'] if career else ''},
     }
     # They keep their face and build, so their pictures show the person met in town (companion/world/looks.py).
-    definition['looks'] = {field: value for field, value in looks.for_sheet(sheet, data).items() if field in looks.FIELDS}
+    found = {field: value for field, value in looks.for_sheet(sheet, data).items() if field in looks.FIELDS}
+    definition['looks'] = {**found, 'drawn': found}
     # They keep how they came across in town, and how they see themselves.
     lines = perception.for_sheet(data, sheet)
     definition |= {'seen_as': lines['public'], 'sees_self': '\n'.join(lines['private'])}

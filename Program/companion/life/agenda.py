@@ -25,6 +25,7 @@ from companion.life import (
     composer,
     disruptions,
     encounters,
+    grooming,
     home,
     network,
     occasions,
@@ -251,6 +252,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
                                scope['world'], scope['now'])
         entry = upkeep.touch(connection, timeline_id, subject, entry, slot.local_date.isoformat(), seed, definition,
                              scope['world'], scope['now'])
+        entry = grooming.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
+                               scope['world'], scope['now'])
         entry = with_spot(connection, timeline_id, subject, entry, slot.local_date, seed, scope['era'])
         if entry:
             recent.append(entry['activity'])
