@@ -2021,6 +2021,16 @@ CREATE TABLE IF NOT EXISTS work_events (
 );
 CREATE INDEX IF NOT EXISTS work_events_day ON work_events(timeline_id, local_date);
 
+-- Personality sliders the user changed on a townsperson's profile (companion/world/personality.py), by town (a
+-- companion's own town seed, '' for the city's shared townsfolk) and townsperson key. The rest stays rolled.
+CREATE TABLE IF NOT EXISTS townsfolk_personality (
+  town TEXT NOT NULL,
+  key TEXT NOT NULL,
+  sliders TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (town, key)
+);
+
 -- Reading, watching and listening (companion/life/media.py): the companion's seeded taste profile (their bank, how keen
 -- a reader and viewer they are, whether they borrow books) and the chain of books, shows and songs they are on. Each
 -- item's days, how it ends and the verdict are decided when it starts; `held` counts days it waited while they were on

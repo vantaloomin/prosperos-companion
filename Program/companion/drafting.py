@@ -20,9 +20,9 @@ from companion.models import CharacterDefinition, EmotionalTrait, RoutineBlock
 from companion.providers.scheduling import Work
 from companion.text_models import config_for, key_for
 from companion.traits import ABSENCE_WORDS
-from companion.world import catalog, custom, generators, intimacy, naming, perception
+from companion.world import catalog, custom, generators, intimacy, naming, perception, personality
 
-PROMPT_VERSION = 'character-draft-4'
+PROMPT_VERSION = 'character-draft-5'
 PROMPTS = Path(__file__).parent / 'prompts'
 # Requested by the user and waited on, so it goes ahead of background life and memory work.
 DRAFTING = Work(5, 'character drafting')
@@ -35,6 +35,9 @@ LIST_LIMITS = {'skills': (20, 300), 'flaws': (20, 300), 'interests': (50, 120), 
 REQUIRED = ('name', 'identity', 'personality')
 NO_EDGES = ('Leave "emotional_traits" as [] and "absence_reaction" as "". The user has not asked for jealousy, '
             'guilt over absence or similar traits, and the app adds none unless they do.')
+# Test 3 of the prompt-tweaks run (2026-10-10): a personality rolled before the model writes, as behaviour only.
+PERSONALITY_BRIEF = ('Their personality, decided by the app. Build the character around it and do not soften it; '
+                     'show it as behaviour, never as trait names or scores. Their job does not change it.')
 EDGES = ('The user asked for emotional edges. You may add up to 3 "emotional_traits", each {"name": short name, '
          '"intensity": "mild" | "moderate" | "strong", "note": how it shows}, and an "absence_reaction" sentence, '
          'but only ones their idea supports.')
@@ -429,11 +432,26 @@ def agreeing_routine(text: str, blocks: list[dict]) -> str:
     return ' '.join([*kept, schedule_text(blocks)]).strip()
 
 
+def rolled_personality(body, seed: str) -> dict:
+    """The personality sliders the app decides before the model writes (companion/world/personality.py): whatever
+    the user's idea and vibe say ("kind", "shy") is From your idea, the rest rolled by seed."""
+    return personality.settle({}, seed, personality.from_words(f'{body.idea} {body.vibe}'))
+
+
+def personality_brief(sliders: dict) -> str:
+    """The rolled personality for the drafting model, as behaviour only, and the perception ids that suit it."""
+    levels = personality.levels_of(sliders)
+    lines = '\n'.join(f'- {line}' for line in personality.behaviour(levels))
+    brief = (f'{PERSONALITY_BRIEF}\n{lines}\n\n' if lines else '')
+    return brief + perception.menu(levels)
+
+
 class Draft:
     """Turns the quick start's model reply into a definition the app accepts."""
 
-    def __init__(self, body, data: dict | None, offered: dict[str, dict], seed: str):
+    def __init__(self, body, data: dict | None, offered: dict[str, dict], seed: str, sliders: dict | None = None):
         self.body, self.data, self.offered, self.seed = body, data, offered, seed
+        self.sliders = sliders or rolled_personality(body, seed)
 
     def __call__(self, raw: dict, final: bool) -> dict:
         definition = {key: text_value(raw.get(key), limit) for key, limit in TEXT_LIMITS.items()}
@@ -458,6 +476,7 @@ class Draft:
             definition['emotional_traits'] = traits_value(raw.get('emotional_traits'))
         else:
             definition['absence_reaction'] = ''
+        definition['personality_sliders'] = self.sliders
         if isinstance(raw.get('perception'), dict):
             # Bank entries by id only; an id the bank doesn't have is dropped and the sheet's words fill in.
             picked = raw['perception']
@@ -477,17 +496,19 @@ class Draft:
         return picked
 
 
-async def draft(state, body) -> dict:
-    """The quick start: a whole character drafted from a short idea and the user's picks."""
+async def draft(state, body, sliders: dict | None = None) -> dict:
+    """The quick start: a whole character drafted from a short idea and the user's picks, around a personality the
+    app rolled first (`sliders`: one already decided, such as a townsperson's)."""
     adults_only({}, body.age)
     config = connection_config(state.database)
     data, seed = home(state.database, body.home_city), identifier()
     offered = careers(data, adult_side(state.database))
+    shaped = Draft(body, data, offered, seed, sliders)
     system = fill(template('character-draft.md', state.database), rules=template('character-rules.md', state.database),
                   picks=picks_text(body),
                   city=city_text(data), careers=careers_text(offered), names=names_text(data, seed, body.age),
-                  emotional=EDGES if edges_allowed(body) else NO_EDGES, perception=perception.menu())
-    return await ask(state, config, system, DRAFT_TOKENS, Draft(body, data, offered, seed))
+                  emotional=EDGES if edges_allowed(body) else NO_EDGES, perception=personality_brief(shaped.sliders))
+    return await ask(state, config, system, DRAFT_TOKENS, shaped)
 
 
 # --- One field --------------------------------------------------------------------------------

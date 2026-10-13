@@ -873,6 +873,52 @@ textarea { resize: vertical; line-height: 1.6; }
 .interest-group > summary { cursor: pointer; font-size: 0.875rem; font-weight: 600; padding: 4px 0; }
 .interest-group[open] > summary { margin-bottom: 6px; }
 .check-grid label { display: flex; align-items: center; gap: 6px; font-weight: normal; }
+/* Personality sliders (src/features/character/PersonalityFields.tsx): a panel on the form, chips in the quick view. */
+.personality { border: 1px solid var(--border); border-radius: 8px; padding: var(--panel-pad); display: grid; gap: 12px; }
+.personality-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.personality-head h3 { margin: 0; font-size: 1rem; }
+.personality > p { margin: 0; }
+.personality-quick { display: grid; gap: 6px; }
+.personality-quick p { margin: 0; }
+.personality-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.personality-chips li { padding: 3px 10px; border-radius: 999px; background: var(--accent-tint); color: var(--text); font-size: 0.8125rem; }
+.personality-sliders { display: grid; }
+.personality-row { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--border); }
+.personality-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.personality-row-top label { font-weight: 600; }
+/* Two-pole traits have no "more" end: a neutral track with ticks, and the thumb alone shows the stop. */
+.personality-range { -webkit-appearance: none; appearance: none; width: 100%; min-height: 28px; margin: 0; padding: 0; border: 0; background:
+  linear-gradient(var(--border), var(--border)) 9px center / calc(100% - 18px) 4px no-repeat,
+  linear-gradient(var(--muted), var(--muted)) 8px center / 2px 10px no-repeat,
+  linear-gradient(var(--muted), var(--muted)) 50% center / 2px 10px no-repeat,
+  linear-gradient(var(--muted), var(--muted)) calc(100% - 8px) center / 2px 10px no-repeat; cursor: pointer; }
+.personality-range::-webkit-slider-runnable-track { background: transparent; height: 18px; }
+.personality-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
+.personality-range::-moz-range-track { background: transparent; }
+.personality-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
+.personality-range:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.personality-poles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 0.8125rem; color: var(--muted); }
+.personality-poles span:nth-child(2) { text-align: center; }
+.personality-poles span:nth-child(3) { text-align: right; }
+.personality-poles .on { color: var(--text); font-weight: 600; }
+.personality-shows { margin: 0; min-height: 1.3em; }
+.personality-tag { display: inline-flex; align-items: center; gap: 2px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+.personality-tag.idea, .personality-tag.you { border-color: var(--accent); color: var(--accent); background: var(--accent-tint); }
+.personality-tag-reset { position: relative; display: inline-flex; align-items: center; justify-content: center; padding: 0; margin-right: -4px; border: 0; background: transparent; color: inherit; cursor: pointer; min-width: 20px; min-height: 20px; }
+.personality-tag-reset::before { content: ''; position: absolute; inset: 50% auto auto 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+.personality-tag-reset svg { width: 14px; height: 14px; }
+.personality-type { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.personality-type select { width: auto; }
+.town-personality { display: grid; gap: 6px; margin: 4px 0; }
+.town-personality-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 720px) {
+  .personality-range { min-height: 44px; }
+  .personality-tag-reset { min-width: 32px; min-height: 32px; }
+  .personality-poles { grid-template-columns: 1fr 1fr; }
+  .personality-poles .middle { display: none; }
+  .personality-poles span:nth-child(2).on { grid-column: 1 / -1; grid-row: 2; }
+  .town-personality-done { min-height: 44px; }
+}
 .vibes { display: flex; flex-direction: column; gap: 8px; }
 .vibe-picks { display: flex; flex-wrap: wrap; gap: 6px; }
 .vibe-pick { padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.8125rem; background: transparent; }

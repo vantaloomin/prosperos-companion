@@ -18,7 +18,7 @@ from companion.characters import by_id, current, insert_version, require_current
 from companion.clock import zone
 from companion.database import identifier, many, optional
 from companion.errors import DomainError, require
-from companion.life import encounters, network
+from companion.life import encounters, network, town_personality
 from companion.memory import pairs
 from companion.models import CharacterDefinition, CharacterDraftRequest
 from companion.world import catalog, generators, life_details, looks, perception, profile_bank, townsfolk
@@ -201,8 +201,9 @@ def starting_closeness(found: dict) -> int:
     return next(stage for stage, least in ((3, 6), (2, 3), (1, 0)) if met >= least)
 
 
-def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
-    """A full character definition from a townsperson's sheet, with no model involved."""
+def profile(data: dict, sheet: dict, found: dict, today: date, changed: dict | None = None) -> dict:
+    """A full character definition from a townsperson's sheet, with no model involved; `changed`: the personality
+    sliders the user set on their profile (companion/life/town_personality.py)."""
     name, career = sheet['name'], career_for(data, sheet)
     state = townsfolk.story(sheet, data, today)
     home = townsfolk.neighborhood_name(data, sheet['home'])
@@ -247,6 +248,8 @@ def profile(data: dict, sheet: dict, found: dict, today: date) -> dict:
     # They keep how they came across in town, and how they see themselves.
     lines = perception.for_sheet(data, sheet)
     definition |= {'seen_as': lines['public'], 'sees_self': '\n'.join(lines['private'])}
+    # And the personality sliders they had in town.
+    definition['personality_sliders'] = town_personality.sliders(sheet, changed)
     return CharacterDefinition.model_validate(definition).model_dump()
 
 
@@ -257,7 +260,9 @@ def draft(database, key: str) -> dict:
         found = candidate(connection, key, now)
         data, sheet, focus = found['data'], found['sheet'], found['focus']
         today = now.astimezone(zone(data['timezone'])).date()
-        return {'definition': profile(data, sheet, found, today), 'person': person_view(data, sheet),
+        town = found['match']['town'] if found['match'] else town_personality.town_of(focus)
+        changed = town_personality.edited(connection, town, key)
+        return {'definition': profile(data, sheet, found, today, changed), 'person': person_view(data, sheet),
                 'stepping_back': focus['version']['name'] if focus else None, 'matched': found['match'] is not None,
                 'ties': pairs.defaults_for_new(connection, others(connection), key, now)}
 
@@ -288,9 +293,9 @@ async def fleshed(state, key: str) -> dict:
     body = CharacterDraftRequest(idea=idea(base), name=base['name'], relationship=base['relationship'],
                                  age=str(found['person']['age']), home_city=base['home_city'],
                                  timezone=base['timezone'])
-    written = (await drafting.draft(state, body))['definition']
+    written = (await drafting.draft(state, body, base['personality_sliders']))['definition']
     written |= {field: base[field] for field in ('name', 'location', 'home_city', 'timezone', 'relationship', 'looks',
-                                                 'starting_closeness', 'history_together')}
+                                                 'starting_closeness', 'history_together', 'personality_sliders')}
     return {**found, 'definition': written}
 
 
