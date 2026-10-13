@@ -646,8 +646,11 @@ textarea { resize: vertical; line-height: 1.6; }
 .node-install-problem { margin: 0; color: var(--danger); }
 .node-install-note { margin: 0; font-size: 0.8125rem; }
 @media (max-width: 720px) { .node-install-button { min-width: 0; width: 100%; } }
-/* 16px between a workflow's actions and the next disclosure (Iris). */
+/* 16px between a workflow's actions and the next disclosure; the last one sits 12px from the divider (Iris). */
 .workflow-editor { margin-bottom: 16px; }
+.backend-row > details:last-of-type .workflow-editor { margin-bottom: 0; }
+.workflow-editor .form-actions:not(:has(.button)) { margin: -6px 0; }
+.workflow-needs { display: block; margin-top: 4px; }
 .workflow-editor .workflow-reset { margin-left: auto; }
 @media (max-width: 720px) { .workflow-editor textarea { height: calc(10 * 1.5em + 20px); } }
 .backend-title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

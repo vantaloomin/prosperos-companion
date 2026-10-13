@@ -451,15 +451,14 @@ const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 
 const USE_BUILT_IN = 'Use the built-in one'
 const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
-/** The files a built-in workflow loads, for its hint: " It needs a, b and c in ComfyUI's models folders." */
-function needs(workflow: string): string {
+/** The files a built-in workflow loads, for its hint, on a line of their own (Iris). */
+function needs(workflow: string): ReactNode {
   let nodes: { inputs?: Record<string, unknown> }[]
-  try { nodes = Object.values(JSON.parse(workflow) as Record<string, { inputs?: Record<string, unknown> }>) } catch { return '' }
+  try { nodes = Object.values(JSON.parse(workflow) as Record<string, { inputs?: Record<string, unknown> }>) } catch { return null }
   const files = nodes.flatMap(({ inputs = {} }) => ['unet_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key]))
     .filter((name): name is string => typeof name === 'string' && name.endsWith('.safetensors'))
-  if (!files.length) return ''
-  const listed = files.length === 1 ? files[0] : `${files.slice(0, -1).join(', ')} and ${files[files.length - 1]}`
-  return ` It needs ${listed} in ComfyUI's models folders.`
+  if (!files.length) return null
+  return <span className="workflow-needs">It needs, in ComfyUI's models folders: {files.map((file, index) => <span key={file}>{index ? ', ' : ''}<code>{file}</code></span>)}</span>
 }
 
 /** Saved workflows come back indented so they can be read and edited; anything else is shown as saved. */
@@ -521,7 +520,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
     <details open={startOpen} onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
       <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
       <div className="form-stack workflow-editor">
-        <Field label={copy.label} hint={<>{copy.hint}{!set && ` ${copy.shown}${needs(flow.builtIn)}`}</>}>{(id, describedBy) =>
+        <Field label={copy.label} hint={<>{copy.hint}{!set && <> {copy.shown}{needs(flow.builtIn)}</>}</>}>{(id, describedBy) =>
           <>
             <textarea id={id} rows={12} value={flow.text} placeholder="Paste a workflow" spellCheck={false} aria-describedby={describedBy}
               aria-invalid={Boolean(flow.error)} onChange={(event) => flow.edit(event.target.value)} />
