@@ -276,11 +276,18 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
  * (Vanta, 2026-10-13). Krea 2 until changed; saved on change. A workflow of the user's own runs whatever it says. */
 function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: object) => Promise<boolean> }) {
   // What a switch replaced, so it can be undone (undo over confirm); only when the user had made choices.
-  const [undo, setUndo] = useState<{ to: string; body: object } | null>(null)
+  const [undo, setUndo] = useState<{ to: string; body: object; before: string; after: string | null } | null>(null)
   const family = familyOf(backend.family)
+  const current = JSON.stringify([backend.family, backend.model_files, backend.sampler])
+  // Offered only until this backend changes again, so it never undoes something stale (Iris): the state the
+  // switch left is noted once it arrives, and any later change hides the notice.
+  if (undo && undo.after === null && current !== undo.before) setUndo({ ...undo, after: current })
+  const shown = undo && (undo.after ?? current) === current ? undo : null
   const choose = async (next: ImageFamily) => {
     const before = previous(backend)
-    if (await save({ family: next })) setUndo(before && { to: FAMILIES[next].sampling, body: before })
+    const was = current
+    if (!(await save({ family: next })) || !before) return setUndo(null)
+    setUndo({ to: FAMILIES[next].sampling, body: before, before: was, after: null })
   }
   return <div className="form-stack family-picker">
     <Field label="Model family" hint={familyHint(family, backend.custom_workflow)}>{(id, describedBy) => (
@@ -288,7 +295,7 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
         {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
       </select>
     )}</Field>
-    {undo && <Notice action={<button type="button" className="text-button" onClick={() => void save(undo.body).then(() => setUndo(null))}>Undo</button>}>Switched to {undo.to} defaults.</Notice>}
+    {shown && <div className="family-undo"><Notice action={<button type="button" className="text-button" onClick={() => void save(shown.body).then(() => setUndo(null))}>Undo</button>}>Switched to {shown.to} defaults.</Notice></div>}
   </div>
 }
 

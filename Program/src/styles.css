@@ -2023,3 +2023,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @media (min-width: 721px) { .family-picker select { max-width: 360px; } }
 .summary-none { color: var(--faint); }
 .field-missing { margin: 6px 0 0; }
+.family-undo .notice { align-items: center; }
+.family-undo .notice > svg { margin-top: 0; }
+.family-undo .text-button { padding: 0 2px; color: var(--accent); }
