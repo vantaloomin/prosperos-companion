@@ -323,7 +323,8 @@ def forget_ahead(connection, keys: list[str], day: date) -> None:
 
 def settings_changed(connection, now) -> None:
     """The Pets slider or "Pets can die" changed: the days ahead are lived again under the new settings, and the
-    upcoming agenda entries that told of them are drawn again. Days up to each companion's today stay put."""
+    upcoming agenda entries about their home are drawn again, so they tell what happens now (a pet that can die
+    again may die today). Days up to each companion's today stay put."""
     rows = many(connection, 'SELECT c.active_timeline_id AS timeline_id, v.timezone FROM companions c '
                 'JOIN character_versions v ON v.id=c.active_version_id')
     days = []
@@ -333,7 +334,7 @@ def settings_changed(connection, now) -> None:
         forget_ahead(connection, [f"home:{item['id']}" for item in home_rows(connection, row['timeline_id'])], today)
         removed = connection.execute(
             "DELETE FROM life_agenda WHERE timeline_id=? AND subject='companion' AND status='upcoming' "
-            "AND json_extract(entry, '$.home.pet_event') IS NOT NULL", (row['timeline_id'],)).rowcount
+            "AND json_extract(entry, '$.home') IS NOT NULL", (row['timeline_id'],)).rowcount
         if removed:
             connection.execute("UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND "
                                "subject='companion'", (stamp(now), row['timeline_id']))

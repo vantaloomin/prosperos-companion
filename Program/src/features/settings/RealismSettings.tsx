@@ -111,7 +111,7 @@ const UPKEEP_LEVELS = [
   { label: 'Off', hint: 'Laundry, dishes and clutter never come up. Their place stays as it is.' },
   { label: 'Light', hint: 'Mess builds slowly and they deal with it early. A tidy, easy home.' },
   { label: 'True to life', hint: 'Laundry, dishes and clutter build up with their week, and they catch up the way their habit says, with a big clean on a day off.' },
-  { label: 'Messy', hint: 'More mess, piling up longer, and big cleans that wait until the place is a real state.' },
+  { label: 'Messy', hint: 'More mess, piling up longer, and big cleans that wait until the place is a real mess.' },
 ]
 
 /**

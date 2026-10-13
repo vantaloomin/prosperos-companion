@@ -291,6 +291,11 @@ def test_changing_the_pets_settings_relives_only_the_days_ahead(client, mira, cl
                                                                          found['item_id']))
         connection.execute('INSERT INTO pet_state (pet_key, through) VALUES (?, ?) ON CONFLICT (pet_key) DO UPDATE '
                            'SET through=excluded.through', (found['key'], (NOW + timedelta(days=7)).isoformat()))
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, "
+                           "block, entry, basis, created_at) VALUES ('a1', ?, 'companion', 'evening@x', '', '', ?, "
+                           "'evening', ?, 'test', '')", (tid, ahead.isoformat(),
+                                                       '{"summary": "Mira said goodbye to Biscuit.", "home": '
+                                                       '{"pet_event": "d1"}}'))
     set_life(client, pets_can_die=False)
     with connect(client, False) as connection:
         assert pets.died_on(connection, found['key']) is None
@@ -298,6 +303,7 @@ def test_changing_the_pets_settings_relives_only_the_days_ahead(client, mira, cl
         assert connection.execute('SELECT through FROM pet_state WHERE pet_key=?',
                                   (found['key'],)).fetchone()[0] <= NOW.isoformat()
         assert pets.of_home(connection, tid, ahead + timedelta(days=2))
+        assert not connection.execute("SELECT id FROM life_agenda WHERE id='a1'").fetchall()
 
 
 def test_older_eras_get_no_modern_breeds_or_pet_lines():
