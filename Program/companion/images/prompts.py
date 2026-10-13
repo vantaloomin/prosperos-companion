@@ -337,7 +337,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
              'with': events[0]['moment'].get('with')}
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
-    prompt = pet_prompt(connection, post['timeline_id'], first, image_settings)
+    prompt = pet_prompt(connection, post['timeline_id'], events, image_settings)
     if prompt:
         # A photo of their pet alone (companion/life/pets.py): nobody in it, so no likeness.
         likeness = {**likeness, 'lora': None}
@@ -353,9 +353,12 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'marked_nsfw': bool(marked_nsfw), **likeness}
 
 
-def pet_prompt(connection, timeline_id, first, image_settings) -> str:
-    """A pet-only photo's fixed prompt, or '' for any other moment."""
-    shot = (first.get('moment') or {}).get('pet_photo')
+def pet_prompt(connection, timeline_id, events, image_settings) -> str:
+    """A pet-only photo's fixed prompt, or '' for any other post: a digest of several moments is drawn as a whole,
+    not as the pet photo one of them carries."""
+    if len(events) != 1:
+        return ''
+    shot = (events[0].get('moment') or {}).get('pet_photo')
     found = shot and pets.find_home(connection, timeline_id, shot.get('item'))
     return pets.photo_prompt(found, shot['shows'], image_settings['style']) if found else ''
 

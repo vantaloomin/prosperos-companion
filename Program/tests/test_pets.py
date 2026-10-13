@@ -7,6 +7,7 @@ from conftest import send, set_life, show
 
 from companion import moods
 from companion.characters import require_current
+from companion.images import prompts
 from companion.life import home, pets, trips
 from companion.world import life_details
 from companion.world.source import CatalogWorld
@@ -378,3 +379,36 @@ def test_a_death_on_a_day_already_drawn_is_still_told_and_weighs_on_their_mood(c
     assert entry['summary'] == 'Mira read at home. Mira said goodbye to Old Tom, who died of old age.'
     assert entry['mood'] == 'heartbroken' and entry['home']['pet_event']
     assert ('sad', 2) in [(mood['feeling'], mood['intensity']) for mood in feelings if 'Old Tom died' in mood['reason']]
+
+
+@pytest.mark.parametrize('era', ['modern', 'jazz-age', 'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'])
+def test_every_era_has_a_hundred_entries_per_kind_of_line(era):
+    data = pets.bank()
+    for key in ('looks', 'sick', 'vet', 'home', 'walks', 'photos'):
+        fitting = [item for item in data[key] if pets.fits(item, None, era) and not item.get('out')]
+        assert len(fitting) >= 100, (era, key)
+
+
+def test_photos_at_home_are_never_taken_outdoors_and_suit_the_home():
+    plumbed = ('sink', 'counter', 'cardboard', 'laptop', 'mail')
+    for era in ('modern', 'medieval'):
+        for kind in ('dog', 'cat', 'rabbit', 'tortoise'):
+            found = {**biscuit(NOW - timedelta(days=900), era=era, kind=kind)}
+            shows = {pets.photo(found, f's{n}')['shows'] for n in range(300)}
+            outdoor = {item['shows'] for item in pets.bank()['photos'] if item.get('out')}
+            assert shows and not shows & outdoor
+            assert era == 'modern' or not [text for text in shows if any(word in text for word in plumbed)]
+    assert {'splashing through a shallow stream', 'surrounded by fall leaves in a park'} <= outdoor
+    lines = {pets.moment({'name': 'Rex', 'kind': 'dog', 'era': 'medieval'}, f's{n}') for n in range(300)}
+    assert not [line for line in lines if 'mail' in line]
+
+
+def test_a_digest_of_several_moments_is_not_drawn_as_a_pet_photo(client, mira):
+    client.get('/api/life/pets')
+    with connect(client) as connection:
+        tid = timeline(client)
+        found = pets.of_home(connection, tid)[0]
+        event = {'moment': {'pet_photo': {'item': found['item_id'], 'shows': 'curled up on a blanket'}}}
+        settings = {'style': ''}
+        assert 'curled up on a blanket' in prompts.pet_prompt(connection, tid, [event], settings)
+        assert prompts.pet_prompt(connection, tid, [event, {'moment': {}}], settings) == ''

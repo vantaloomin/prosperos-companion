@@ -479,8 +479,8 @@ def moment(found: dict, seed: str, walking=False) -> str | None:
 
 
 def photo(found: dict, seed: str) -> dict | None:
-    """A pet-only photo for the owner's feed: what it shows and their caption."""
-    shots = [item for item in bank()['photos'] if fits(item, found['kind'], found['era'])]
+    """A pet-only photo for the owner's feed, taken at home: what it shows and their caption."""
+    shots = [item for item in bank()['photos'] if fits(item, found['kind'], found['era']) and not item.get('out')]
     shot = generators.pick(seed, 'pet-photo', shots)
     if shot is None:
         return None
