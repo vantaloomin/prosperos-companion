@@ -19,5 +19,6 @@ export function adminMoved(item: AdminItem): string {
 
 /** Booked with someone else, or something they can do any time; and its cost when it has one. */
 export function adminTags(item: AdminItem): string[] {
+  if (item.source === 'work') return [item.fixed ? 'Work, keeps its time' : 'Work']
   return [item.fixed ? 'Booked' : '', item.cost_text].filter(Boolean)
 }

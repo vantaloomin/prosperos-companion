@@ -55,6 +55,7 @@ from companion.life import (
     trips,
     upkeep_routes,
     wardrobe_routes,
+    work_routes,
 )
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
@@ -263,6 +264,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(grooming_routes.router)
     app.include_router(kitchen_routes.router)
     app.include_router(admin_routes.router)
+    app.include_router(work_routes.router)
     app.include_router(traditions_routes.router)
     app.include_router(scrapbook_routes.router)
     app.include_router(life_routes.today_router)

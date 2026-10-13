@@ -9,7 +9,8 @@ files taxes in Camelot. The week's errands and paperwork are seeded draws from t
 Bring on the drama a surprise now and then (a parking ticket, a bank error to sort out).
 
 This is also where the other home features put the time things take on a day: vet visits (Pets), chores (Home
-upkeep), grocery runs (Kitchen) and haircuts (Looks) all come through `add`, so there is one calendar.
+upkeep), grocery runs (Kitchen), haircuts (Looks) and late nights at work (Work life) all come through `add`, so there
+is one calendar.
 
 An entry takes a slot in the companion's agenda (companion/life/agenda.py) the way outings do, so the life simulation
 tells it as an event, and the chat context sees it in their next day's plans. It never lands on, or cancels, a plan
@@ -38,7 +39,7 @@ from companion.world import catalog, generators
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'life_admin.json'
 # Seeded appointments, errands and surprises; their tests turn them on (tests/conftest.py turns them off).
 ACTIVE = True
-SOURCES = ('admin', 'pets', 'upkeep', 'kitchen', 'looks')
+SOURCES = ('admin', 'pets', 'upkeep', 'kitchen', 'looks', 'work')
 AHEAD = 21  # Days planned ahead, so Today shows what is coming.
 MOVE_DAYS = 14  # How far an entry may move to find a free time.
 LATER = 365  # How far the Character page looks for what comes due later.
@@ -278,7 +279,10 @@ def ends(item: dict) -> str:
 def stands(item: dict, chosen: int) -> bool:
     """Whether an entry holds its time against a new plan with the user, by the Life admin slider: nothing does on
     Off or Light, an appointment booked with someone else does on True to life, and on Dramatic so does anything due
-    that very day (taxes on the 15th)."""
+    that very day (taxes on the 15th). A late night at work (companion/life/work.py) follows the Work life slider
+    instead, which sets `fixed` on it: held on True to life and up, moving for the user on Light."""
+    if item.get('source') == 'work':
+        return item['fixed']
     if chosen < 2:
         return False
     return item['fixed'] or (chosen >= 3 and item['deadline'] == item['local_date'])
@@ -735,7 +739,7 @@ def state_lines(items: list[dict], kind: str, today: date, chosen: int = DEFAULT
     lines = [f"{len(week)} thing{'s' if len(week) != 1 else ''} on the list this week." if week
              else 'Nothing on the list this week.', HABIT_WORDS[kind], GIVES_WAY[chosen]]
     for item in items:
-        if item['deadline'] and item['deadline'] != item['local_date']:
+        if item['deadline'] and item['deadline'] != item['local_date'] and item['source'] != 'work':
             lines.append(f"{item['title']}: due {day_text(item['deadline'])}.")
     lines += [f"Put off {'twice' if item['moves'] > 1 else 'once'}: {item['title']}." for item in items
               if item['moved_reason'] == 'put off']
