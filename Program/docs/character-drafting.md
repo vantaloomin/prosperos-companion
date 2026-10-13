@@ -32,6 +32,27 @@ city, weekly routine, life themes, birthday, money, emotional traits and reactio
 and, for a saved companion, their home, wardrobe and own facts. They are filled in either way; the
 choice to show them is remembered in this browser.
 
+## Personality sliders
+
+Every character and townsperson has five personality sliders (`companion/world/personality.py`, words in
+`world/data/personality.json`), each low, in between or high, in plain words: Reserved to Outgoing, Blunt to Warm,
+Goes with the flow to Organized, Sticks to what they know to Tries anything, Steady to Feels everything. No step asks
+the user to set them:
+
+- The quick start rolls them before the model writes. Whatever the idea or vibe already says ("kind", "shy",
+  "always late") is From your idea; the rest is Rolled, with at least two away from the middle. The drafting model
+  gets them as behaviour lines (Test 3 in the v0.7 prompt-tweaks run) and only the perception ids that suit them.
+- A character saved before sliders existed reads them from their own words (identity, personality, voice, flaws)
+  and rolls the rest from their id, the same every time. Words that disagree with a Rolled slider win.
+- On the form, the summary chips show in the quick view and the sliders under Show details: Roll again changes only
+  the Rolled ones, a moved slider is Set by you until its × hands it back, and Start from a type sets four of them.
+- The chat prompt gets one behaviour line per slider away from the middle, never a trait name
+  (`PERSONALITY` in `companion/memory/context.py`, editable as "How the companion acts").
+- Perception picks (habit, flaw, self-story) that clash with a slider are not drawn, for companions and townsfolk.
+- Townsfolk read what their temperament and flaw already say and roll the rest. Their profile in Around town shows
+  the chips, and Edit opens the same sliders (`companion/life/town_personality.py`); they carry over when the
+  townsperson becomes a companion.
+
 ## Rewriting one field
 
 While a text model is connected, each text field, the skills, flaws, interests, the weekly
