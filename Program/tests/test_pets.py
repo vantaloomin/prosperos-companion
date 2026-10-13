@@ -1,9 +1,11 @@
 """Pets with lives of their own (companion/life/pets.py)."""
+import json
 from datetime import date, timedelta
 
 import pytest
 from conftest import send, set_life, show
 
+from companion import moods
 from companion.characters import require_current
 from companion.life import home, pets, trips
 from companion.world import life_details
@@ -357,3 +359,22 @@ def test_add_a_pet_offers_the_kinds_of_the_city_era_and_the_ones_they_have(clien
     assert 'horse' in medieval and 'cat' in medieval and not {'hamster', 'snake', 'lizard', 'fish'} & set(medieval)
     client.post('/api/life/pets', json={'name': 'Nibbles', 'kind': 'hamster'})
     assert 'hamster' in [kind['id'] for kind in client.get('/api/life/pets').json()['kinds']]
+
+
+def test_a_death_on_a_day_already_drawn_is_still_told_and_weighs_on_their_mood(client, mira, clock):
+
+    today = client.get('/api/life/pets').json()['today']
+    tid = timeline(client)
+    with connect(client) as connection:
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, "
+                           "block, entry, basis, created_at) VALUES ('a1', ?, 'companion', 'evening@x', '', '', ?, "
+                           "'evening', ?, 'test', '')", (tid, today, '{"summary": "Mira read at home.", '
+                                                                      '"activity": "reading"}'))
+    added = client.post('/api/life/pets', json={'name': 'Old Tom', 'kind': 'cat', 'looks': 'a gray tabby', 'age': 25})
+    assert [pet['name'] for pet in added.json()['remembered']] == ['Old Tom']
+    with connect(client, False) as connection:
+        entry = json.loads(connection.execute("SELECT entry FROM life_agenda WHERE id='a1'").fetchone()[0])
+        feelings = moods.day_moods(connection, require_current(connection), clock.now())
+    assert entry['summary'] == 'Mira read at home. Mira said goodbye to Old Tom, who died of old age.'
+    assert entry['mood'] == 'heartbroken' and entry['home']['pet_event']
+    assert ('sad', 2) in [(mood['feeling'], mood['intensity']) for mood in feelings if 'Old Tom died' in mood['reason']]
