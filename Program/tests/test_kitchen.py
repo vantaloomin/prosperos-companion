@@ -100,6 +100,7 @@ def test_the_panel_shows_their_week_in_words_and_the_user_can_change_it(client, 
 
 
 def test_meals_are_drawn_the_same_way_every_time_and_follow_the_rhythm(client, kim):
+    client.patch('/api/life/kitchen', json={'skill': 2})  # A good home cook, whatever the seed drew.
     reconcile(client)
     with day_for(client) as found:
         days = [TODAY + timedelta(days=n) for n in range(-20, 2)]
@@ -119,6 +120,7 @@ def test_meals_are_drawn_the_same_way_every_time_and_follow_the_rhythm(client, k
 
 
 def test_no_dish_comes_round_twice_within_six_nights_and_leftovers_follow_a_cooking_night(client, kim):
+    client.patch('/api/life/kitchen', json={'skill': 2})  # A good home cook, whatever the seed drew.
     reconcile(client)
     with day_for(client) as found:
         start = kitchen.run_start(TODAY)
@@ -126,7 +128,8 @@ def test_no_dish_comes_round_twice_within_six_nights_and_leftovers_follow_a_cook
         meals = [found.meal(day) for day in days]
         for index, meal in enumerate(meals):
             if meal['kind'] == 'leftovers':
-                assert meals[index - 1]['kind'] == 'cook' and meals[index - 1]['dish'] == meal['dish']
+                before = meals[index - 1] if index else found.meal(days[0] - timedelta(days=1))
+                assert before['kind'] == 'cook' and before['dish'] == meal['dish']
                 continue
             earlier = set().union(*(kitchen.eaten(item) for item in meals[max(0, index - 6):index]))
             assert not kitchen.eaten(meal) & earlier, (meal, index)
