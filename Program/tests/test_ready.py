@@ -2,6 +2,7 @@
 chat profile it leaves (companion/providers/builtin_chat.py)."""
 import hashlib
 import time
+from pathlib import Path
 
 import httpx
 import pytest
@@ -315,3 +316,19 @@ def test_deleting_the_built_in_profile_stops_its_server_and_offers_set_up_again(
     assert again['status'] == 'ready' and len(hub.ranges) == asked
     with client.app.state.database.connect() as connection:
         assert config_for(connection, 'chat')['resource_group'] == 'builtin-chat'
+
+
+def test_saving_the_setup_waits_out_a_reader_that_has_it_open(tmp_path, monkeypatch):
+    from companion.providers import builtin_chat
+    real, turned_away = Path.replace, []
+
+    def busy_once(self, target):
+        if not turned_away:
+            turned_away.append(target)
+            raise PermissionError(5, 'Access is denied')
+        return real(self, target)
+
+    monkeypatch.setattr(Path, 'replace', busy_once)
+    builtin_chat.write_state(tmp_path, {'status': 'ready'})
+    assert turned_away and builtin_chat.read_state(tmp_path) == {'status': 'ready'}
+    assert not list((tmp_path / 'chat').glob('*.partial'))
