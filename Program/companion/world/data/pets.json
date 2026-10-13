@@ -304,7 +304,13 @@
   "horse": {
    "label": "horse kept at a stable",
    "eras": [
-    "modern"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "frontier",
+    "medieval",
+    "fantasy",
+    "steampunk"
    ],
    "weight": 0.12,
    "lifespan": [

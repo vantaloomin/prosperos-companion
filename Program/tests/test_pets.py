@@ -49,7 +49,7 @@ def test_pets_suit_the_city_era_and_stay_the_same_for_the_same_seed():
     first = pets.draw('seed', 'pet', 'modern', NOW)
     assert pets.draw('seed', 'pet', 'modern', NOW) == first
     kinds = {pets.draw(f'seed{n}', 'pet', 'medieval', NOW)['variety'] for n in range(300)}
-    assert kinds <= {'cat', 'dog', 'rabbit', 'tortoise', 'ferret', 'chickens'} and {'cat', 'dog'} <= kinds
+    assert kinds <= {'cat', 'dog', 'rabbit', 'tortoise', 'ferret', 'chickens', 'horse'} and {'cat', 'dog'} <= kinds
     modern = {pets.draw(f'seed{n}', 'pet', 'modern', NOW)['variety'] for n in range(600)}
     assert {'hamster', 'fish', 'lizard'} <= modern and 'horse' in modern  # common pets and a few rare ones
     born = date.fromisoformat(first['details']['born'])
@@ -346,3 +346,14 @@ def test_a_sitter_costs_money_even_on_a_free_trip_and_a_trip_ahead_reads_as_a_pl
     dog = {**biscuit(NOW), 'kind': 'dog'}
     along = [pets.minder({**dog, 'key': f'd{n}'}, {'id': 't1'}, [], ahead=True)['text'] for n in range(20)]
     assert 'Biscuit is coming along' in along and 'Biscuit came along' not in along
+
+
+def test_add_a_pet_offers_the_kinds_of_the_city_era_and_the_ones_they_have(client, mira):
+    modern = [kind['id'] for kind in client.get('/api/life/pets').json()['kinds']]
+    assert {'hamster', 'snake', 'horse'} <= set(modern)
+    with connect(client) as connection:
+        connection.execute("UPDATE home_state SET era='medieval'")
+    medieval = [kind['id'] for kind in client.get('/api/life/pets').json()['kinds']]
+    assert 'horse' in medieval and 'cat' in medieval and not {'hamster', 'snake', 'lizard', 'fish'} & set(medieval)
+    client.post('/api/life/pets', json={'name': 'Nibbles', 'kind': 'hamster'})
+    assert 'hamster' in [kind['id'] for kind in client.get('/api/life/pets').json()['kinds']]

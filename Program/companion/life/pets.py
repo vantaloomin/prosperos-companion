@@ -650,6 +650,14 @@ def drawable_any() -> list[str]:
     return [kind for kind, value in kinds().items() if value['weight'] > 0]
 
 
+def offered(connection, timeline_id: str) -> list[str]:
+    """The kinds "Add a pet" offers: those kept in the city's era, and any kind they already have."""
+    state = optional(connection, 'SELECT era FROM home_state WHERE timeline_id=?', (timeline_id,))
+    era = era_of({'era': state['era']} if state else None)
+    have = {found['kind'] for found in of_home(connection, timeline_id)}
+    return [kind for kind in drawable_any() if era in kinds()[kind]['eras'] or kind in have]
+
+
 def lived(connection, found: list[dict], day: date, now) -> list[dict]:
     """Views of other people's pets (circle, townsfolk, the persona's) after living them out through `day`."""
     numbers = show_numbers(connection)

@@ -57,7 +57,7 @@ def pets_view(connection, companion: dict, day, now) -> dict:
             for found in pets.remembered(connection, timeline_id, day)]
     return {'today': day.isoformat(), 'pets': living, 'remembered': gone,
             'yours': pets.lived(connection, pets.of_persona(connection), day, now),
-            'kinds': [{'id': kind, 'label': pets.label(kind)} for kind in pets.drawable_any()], 'numbers': numbers}
+            'kinds': [{'id': kind, 'label': pets.label(kind)} for kind in pets.offered(connection, timeline_id)], 'numbers': numbers}
 
 
 def change(request: Request, action=None) -> dict:

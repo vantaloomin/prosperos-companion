@@ -216,7 +216,7 @@ export function AdultSideSettings() {
 /** How much happens to pets (companion/life/pets.py), from nothing at all to a dramatic life. */
 const PET_LEVELS = [
   { label: 'Off', hint: 'Pets stay well: no off days, vet visits or losses.' },
-  { label: 'Light', hint: 'Now and then a pet has an off day or a checkup. Short spells, small bills.' },
+  { label: 'Light', hint: 'Now and then a pet has an off day or a checkup. Short spells and few vet visits.' },
   { label: 'True to life', hint: 'Off days, vet visits and checkups about as often as real pets have them, more as they grow old.' },
-  { label: 'Dramatic', hint: 'More illnesses, longer spells and bigger vet bills.' },
+  { label: 'Dramatic', hint: 'More illnesses and longer spells, so more vet visits and more vet bills.' },
 ]
