@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { HOBBY_LEVELS, hobbyNumbers, recentLine, sourceText, statusLine } from '../../src/features/character/hobbiesText.ts'
+import { HOBBY_LEVELS, gaveUpLine, hobbyNumbers, metaParts, recentLine, sourceText } from '../../src/features/character/hobbiesText.ts'
 import { outingTitle, placeLine } from '../../src/features/today/outingText.ts'
 import { boughtFor } from '../../src/features/today/moneyText.ts'
 import type { Hobby } from '../../src/types.ts'
@@ -14,8 +14,11 @@ test('a pastime reads in words: where it came from, how far along and how often'
   assert.equal(sourceText(hobby()), 'From their interests')
   assert.equal(sourceText(hobby({ source: 'app', kept: false })), 'Picked up on their own')
   assert.equal(sourceText(hobby({ source: 'app', kept: true })), 'Picked up on their own, kept')
-  assert.equal(statusLine(hobby()), 'About two years in. Twice a week.')
-  assert.equal(statusLine(hobby({ status: 'dropped', status_text: 'Gave it up in March.' })), 'Gave it up in March.')
+  const names = ['just starting out', 'getting the hang of it', 'getting good', 'good at it now', 'really good']
+  assert.deepEqual(metaParts(hobby(), names), { level: 'Getting good', rest: ['about two years in', 'twice a week'] })
+  assert.deepEqual(metaParts(hobby({ status: 'stalled', status_text: 'Stalled lately: work got busy.' }), names), { level: 'Getting good', rest: ['about two years in'] })
+  assert.deepEqual(metaParts(hobby({ status: 'dropped', status_text: 'Gave it up in March.' }), names), { level: '', rest: ['Gave it up in March'] })
+  assert.equal(gaveUpLine(hobby(), 'Kim'), 'Kim gave up the cello.')
   assert.equal(recentLine('played Clair de Lune all the way through', 'Kim'), 'Kim played Clair de Lune all the way through.')
   assert.equal(hobbyNumbers(hobby()), null)
   assert.equal(hobbyNumbers(hobby({ numbers: { skill: 34, best: 36, sessions: 41, next_at: 38, talent: 1.1 } })),

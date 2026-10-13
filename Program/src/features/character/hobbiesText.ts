@@ -19,10 +19,20 @@ export function sourceText(hobby: Hobby): string {
   return SOURCES[hobby.source]
 }
 
-/** "About two years in · twice a week." on one line, or the stalled or given-up line alone. */
-export function statusLine(hobby: Hobby): string {
-  if (hobby.status === 'dropped') return hobby.status_text
-  return `${hobby.since_text}. ${hobby.status_text}`
+/** The meta line under the title: the level in words, then how long and how often, e.g. "Good at it now",
+ * "about eight years in", "twice a week". A stalled pastime leaves out how often (its callout says why);
+ * a given-up one is only its status. */
+export function metaParts(hobby: Hobby, levelNames: string[]): { level: string; rest: string[] } {
+  if (hobby.status === 'dropped') return { level: '', rest: [hobby.status_text.replace(/\.$/, '')] }
+  const level = levelLabel(levelNames[hobby.level] ?? '')
+  const since = hobby.since_text.charAt(0).toLowerCase() + hobby.since_text.slice(1)
+  const often = hobby.status_text.replace(/\.$/, '')
+  return { level, rest: hobby.status === 'stalled' ? [since] : [since, often.charAt(0).toLowerCase() + often.slice(1)] }
+}
+
+/** "Kim gave up rock climbing." for the inline undo row. */
+export function gaveUpLine(hobby: Hobby, name: string): string {
+  return `${name} gave up ${hobby.name}.`
 }
 
 /** "Kim learned their first barre chord." from a log line about them. */
