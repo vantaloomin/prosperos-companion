@@ -29,7 +29,7 @@ export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
     if (done) { setSaid({ key, name, way: like ? 'like' : 'pass' }); setBack('') }
     return done
   }
-  const undo = said && (() => void onUndo(said.key).then((done) => { if (done) { setBack(`${said.name.charAt(0).toUpperCase()}${said.name.slice(1)} is back.`); setSaid(null) } }))
+  const undo = said && (() => void onUndo(said.key).then((done) => { if (done) { refocus(); setBack(`${said.name.charAt(0).toUpperCase()}${said.name.slice(1)} is back.`); setSaid(null) } }))
   const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, card ? cardHeading(card) : null) : '')}</p>
   const takeBack = said && undo ? <UndoButton said={said} onUndo={undo} /> : null
   if (!card) {
@@ -42,6 +42,11 @@ export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
       ? <Stack key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} />
       : <Notice key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} />}
   </>
+}
+
+/** After Undo the link is gone, so focus goes to the returned card's Like button rather than the page. */
+function refocus() {
+  window.setTimeout(() => document.querySelector<HTMLButtonElement>('.dating-actions .button.primary')?.focus())
 }
 
 /** "Undo": the last answer only, gone with the next one. */
