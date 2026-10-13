@@ -1389,8 +1389,9 @@ CREATE TABLE IF NOT EXISTS group_chats (
   updated_at TEXT NOT NULL
 );
 
--- Membership over time, one row per stay. `member` is a person key (companion:<id>), `name` how the chat names
--- them. They see messages from seq `sees_from` (1 when added with everything so far) until `left_seq`.
+-- Membership over time, one row per stay. `member` is a person key (companion:<id>, or a guest's circle or townsfolk
+-- key, companion/group_guests.py), `name` how the chat names them. They see messages from seq `sees_from` (1 when
+-- added with everything so far) until `left_seq`.
 CREATE TABLE IF NOT EXISTS group_members (
   id TEXT PRIMARY KEY,
   group_id TEXT NOT NULL REFERENCES group_chats(id),
