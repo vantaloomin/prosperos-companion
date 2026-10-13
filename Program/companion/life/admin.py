@@ -523,7 +523,7 @@ def finish_due(connection, companion: dict, now) -> int:
 
 
 def from_home(connection, companion: dict, world, today: date, now) -> int:
-    """The other home features' time-taking items on this calendar, each keyed by its own date so it is added once.
+    """The other home features' time-taking items on this calendar, each added once (by the feature's own key).
     Home upkeep's big cleans (laundry takes no real time and stays off); the feature has already kept them off plans
     with the user."""
     from companion.life import upkeep
@@ -534,7 +534,7 @@ def from_home(connection, companion: dict, world, today: date, now) -> int:
     added = 0
     for chore in upkeep.chores_between(connection, timeline_id, definition, today, today + timedelta(days=AHEAD)):
         if chore['kind'] == 'big-clean':
-            added += bool(add(connection, companion, key=f"upkeep:big-clean:{chore['date']}", source='upkeep',
+            added += bool(add(connection, companion, key=upkeep.big_clean_key(chore['date']), source='upkeep',
                               kind='big-clean', title='Big clean', done='did a big clean', minutes=180,
                               day=date.fromisoformat(chore['date']), out=False, now=now))
     return added

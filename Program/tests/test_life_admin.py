@@ -166,8 +166,10 @@ def test_seeded_admin_plans_ahead_and_counts_its_costs(client, mira, monkeypatch
     assert {item['title'] for item in panel['later']} >= {'Dentist check-up', 'File taxes'}
     # Again the same: seeded, not rolled afresh.
     reconcile(client)
-    assert [item['key'] for item in client.get('/api/life/admin').json()['upcoming']] == \
-        [item['key'] for item in panel['upcoming']]
+    # Home upkeep's big cleans can join as its walk ahead settles; Life admin's own draws stay put.
+    def own(view):
+        return [item['key'] for item in view['upcoming'] if item['source'] == 'admin']
+    assert own(client.get('/api/life/admin').json()) == own(panel)
     clock.advance(timedelta(days=22))
     reconcile(client)
     done = client.get('/api/life/admin').json()['done']
@@ -215,9 +217,13 @@ def test_big_cleans_from_home_upkeep_land_on_the_calendar_once(client, mira, mon
         {'date': '2026-10-10', 'kind': 'big-clean', 'text': 'did a big clean'},
         {'date': '2026-10-07', 'kind': 'laundry', 'text': 'did the laundry'}])
     reconcile(client)
+    # The walk ahead settles the same week's big clean on another day: still one big clean.
+    monkeypatch.setattr(upkeep, 'chores_between', lambda *_args: [
+        {'date': '2026-10-11', 'kind': 'big-clean', 'text': 'did a big clean'}])
+    reconcile(client)
     reconcile(client)
     [clean] = client.get('/api/life/admin').json()['upcoming']
-    assert (clean['source'], clean['title'], clean['key']) == ('upkeep', 'Big clean', 'upkeep:big-clean:2026-10-10')
+    assert (clean['source'], clean['title'], clean['key']) == ('upkeep', 'Big clean', 'upkeep:big-clean:2026-W41')
     with client.app.state.database.connect() as connection:
         assert upkeep.told(connection, mira['active_timeline_id'], '2026-10-10', 'big-clean')
 
