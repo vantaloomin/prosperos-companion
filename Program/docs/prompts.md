@@ -11,6 +11,7 @@ for comparison.
 | Prompt | Used for | Default lives in |
 | --- | --- | --- |
 | Who the companion is | The opening of every chat reply and first text, before the character sheet | `GUIDANCE` in `companion/memory/context.py` |
+| How the companion acts | After the character sheet: one behaviour line per personality slider away from the middle ([character-drafting.md](character-drafting.md#personality-sliders)) | `PERSONALITY` in `companion/memory/context.py` |
 | Your history together | Opens the line-a-week (then month, then year) record of the whole relationship in every chat reply, built from what happened and the user's corrections in the scrapbook's "All of it" view | `INTRO` in `companion/memory/history.py` |
 | Texting first | Added when the companion writes first | `INSTRUCTION` in `companion/life/openers.py` |
 | Voice notes | Added to a first text the app sends as a voice note ([voice-notes.md](voice-notes.md)) | `INSTRUCTION` in `companion/voice/notes.py` |

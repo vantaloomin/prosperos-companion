@@ -55,6 +55,11 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'whatever this says.',
            constant('companion.memory.context', 'GUIDANCE'),
            {'name': "the companion's name", 'relationship': 'the relationship framing from the character'}),
+    Prompt('chat-personality', CHAT, 'How the companion acts',
+           "Follows the character sheet in every chat reply and first text: one line of behaviour for each of the "
+           "companion's personality sliders that isn't in the middle (Character > Life details > Personality).",
+           constant('companion.memory.context', 'PERSONALITY'),
+           {'lines': 'what their personality sliders say, one behaviour per line'}),
     Prompt('our-history', CHAT, 'Your history together',
            'Opens the line-a-week (then a month, then a year) record of your whole time together in every chat reply. '
            'The lines come from what happened and your corrections in the scrapbook\'s "All of it" view.',

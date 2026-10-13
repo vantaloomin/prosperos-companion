@@ -2021,6 +2021,16 @@ CREATE TABLE IF NOT EXISTS work_events (
 );
 CREATE INDEX IF NOT EXISTS work_events_day ON work_events(timeline_id, local_date);
 
+-- Personality sliders the user changed on a townsperson's profile (companion/world/personality.py), by town (a
+-- companion's own town seed, '' for the city's shared townsfolk) and townsperson key. The rest stays rolled.
+CREATE TABLE IF NOT EXISTS townsfolk_personality (
+  town TEXT NOT NULL,
+  key TEXT NOT NULL,
+  sliders TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (town, key)
+);
+
 -- Our history at a glance (companion/memory/history.py): the user's own words for a line of the "All of it" view,
 -- keyed by its stretch (w2026-10-06, m2026-09, y2025). Empty text leaves the line out; no row keeps the app's line.
 CREATE TABLE IF NOT EXISTS history_corrections (
