@@ -69,11 +69,15 @@ backend is off until the user sets it up, and text never waits for an image. The
   place); saving an edited or pasted one makes it the backend's own, and **Use the built-in one**
   goes back (saving the built-in text unchanged stores nothing). A paired phone never sees or
   changes them.
-- **The built-in reference workflow** (`workflows/krea2-turbo-reference.json`) is the built-in
-  workflow with the reference picture read by Krea 2's Qwen3-VL text encoder through ComfyUI's own
-  `TextEncodeQwenImageEditPlus` node, from a `LoadImage` of `{{reference_image}}`. It takes the same
-  file and sampler choices. Check lists its missing nodes, but they do not fail the backend: only
-  profile pictures need it.
+- **The built-in reference workflow** (`workflows/krea2-turbo-reference.json`) follows the Krea 2
+  Identity Edit setup Vanta runs: the built-in workflow's model with the
+  `krea2_identity_edit_v1_2.safetensors` LoRA, the `{{reference_image}}` scaled to 1 megapixel and
+  read by `Krea2EditModelPatch` (appearance, `ref_boost` 1) and `Krea2EditGroundedEncode` (the
+  prompt read with the picture), a zeroed negative, then the usual sampler. Those two nodes come
+  from the [comfyui-krea2edit](https://github.com/lbouaraba/comfyui-krea2edit) pack (Apache-2.0, no
+  Python dependencies); ComfyUI has no core equivalent. The LoRA's page is in the model links. It
+  takes the same file and sampler choices. Check lists what it is missing with where to get it,
+  but that does not fail the backend: only profile pictures need it.
 - **Codex** uses Codex's own `image_generation` feature (stable and on by default in codex-cli
   0.160.1). Each image is one turn of `codex exec --json --skip-git-repo-check --ephemeral
   --ignore-user-config --ignore-rules --sandbox read-only --cd <empty scratch folder> -`, with a

@@ -245,7 +245,9 @@ def test_comfyui_has_a_built_in_reference_workflow():
     graph = server.prompts[0]
     by_class = {node['class_type']: node['inputs'] for node in graph.values()}
     assert by_class['LoadImage']['image'] == 'prospero-job1.png' and png(10, 12) in server.uploads[0]
-    assert by_class['TextEncodeQwenImageEditPlus']['prompt'] == 'A café'
+    assert by_class['Krea2EditGroundedEncode']['prompt'] == 'A café'
+    assert by_class['Krea2EditModelPatch']['model'] == ['14', 0]
+    assert by_class['LoraLoaderModelOnly']['lora_name'] == 'krea2_identity_edit_v1_2.safetensors'
     assert by_class['UNETLoader']['unet_name'] == 'mine.safetensors' and by_class['KSampler']['steps'] == 10
     assert result.workflow.startswith('krea2-turbo reference')
 

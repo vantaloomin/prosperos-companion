@@ -752,6 +752,10 @@ def test_comfyui_check_reports_the_chosen_files():
     assert not defaults.ok and any('qwen_image_vae.safetensors' in line for line in defaults.details)
     chosen = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN}))
     assert chosen.ok, chosen.details
+    # The built-in reference workflow's own nodes and LoRA are only noted: profile pictures need them, other pictures don't.
+    assert 'Profile pictures made from a reference cannot run yet' in chosen.summary
+    assert any('Krea2EditModelPatch' in line and 'github.com/lbouaraba/comfyui-krea2edit' in line for line in chosen.details)
+    assert any('krea2_identity_edit_v1_2.safetensors' in line for line in chosen.details)
     missing = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN, 'vae_name': 'gone.safetensors'}))
     assert missing.details == ['Missing file or option for VAELoader.vae_name: gone.safetensors.']
     # The subfolder is part of the name: the bare file name is not the server's file.
@@ -870,7 +874,7 @@ def test_a_style_lora_never_makes_a_server_less_strict(comfy_client):
 
 def test_model_links_are_pages_with_a_licence_note(client):
     links = ok(client.get('/api/images/model-links'))['links']
-    assert {link['role'] for link in links} == {'model', 'clip', 'vae'}
+    assert {link['role'] for link in links} == {'model', 'clip', 'vae', 'reference'}
     for link in links:
         assert link['url'].startswith('https://huggingface.co/') and '/resolve/' not in link['url']
         assert link['name'] and link['licence']

@@ -18,9 +18,11 @@ server which ones it has. Names are kept exactly as the server lists them, subfo
 
 Onboarding portraits follow an earlier picture. Those use a second workflow with
 `{{reference_image}}` (a LoadImage node's image); the app uploads the picture through
-`/upload/image` and puts its name there. The built-in one (`krea2-turbo-reference.json`) is the
-built-in workflow with the reference read by Qwen3-VL through ComfyUI's TextEncodeQwenImageEditPlus,
-and takes the same loader files and sampler settings. A custom reference workflow replaces it.
+`/upload/image` and puts its name there. The built-in one (`krea2-turbo-reference.json`) follows
+the Krea 2 Identity Edit setup: its LoRA on the built-in workflow's model, and the reference read by
+the Krea2EditModelPatch and Krea2EditGroundedEncode nodes of the comfyui-krea2edit pack (Apache-2.0,
+no Python dependencies), which ComfyUI has no core equivalent for. It takes the same loader files
+and sampler settings. A custom reference workflow replaces it.
 """
 import asyncio
 import json
@@ -46,6 +48,9 @@ MARKERS = re.compile(r'\{\{(?:prompt|negative|seed|width|height|reference_image)
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
                'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
 LORA_INPUT = ('LoraLoaderModelOnly', 'lora_name')
+# Custom nodes the built-in workflows use, with where to get them.
+NODE_PACKS = {name: ('Krea 2 Identity Edit', 'https://github.com/lbouaraba/comfyui-krea2edit')
+              for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')}
 # The built-in workflow's KSampler settings the user can change for their model; unset means the
 # workflow's own (8 steps, CFG 1, euler, simple: Krea 2 Turbo's).
 SAMPLER_INPUTS = ('steps', 'cfg', 'sampler_name', 'scheduler')
@@ -335,7 +340,11 @@ class ComfyAdapter:
         for node in workflow.values():
             spec = info.get(node['class_type'])
             if spec is None:
-                missing.append(f"Missing node: {node['class_type']} (install the custom node that provides it).")
+                pack = NODE_PACKS.get(node['class_type'])
+                where = f'the {pack[0]} nodes, {pack[1]}' if pack else 'the custom node that provides it'
+                problem = f"Missing node: {node['class_type']} (install {where})."
+                if problem not in missing:
+                    missing.append(problem)
                 continue
             required = {**(spec.get('input', {}).get('required') or {}), **(spec.get('input', {}).get('optional') or {})}
             for key_name, value in node.get('inputs', {}).items():
