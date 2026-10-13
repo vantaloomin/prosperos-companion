@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 import runpy
 from datetime import date
 from pathlib import Path
@@ -654,3 +655,17 @@ def test_adult_work_is_never_rolled_for_townsfolk_or_job_changes():
         assert not adult & set(catalog.everyday(catalog.careers_for(data)))
         rolled = {generators.town_career(data, f'seed-{index}')['id'] for index in range(400)}
         assert not adult & rolled
+
+
+def test_haddon_harbor_reads_in_american_spelling():
+    """A Maine town's own text (not its ids or tags) is in US spelling; "Elmwood Theatre" is a name and stays."""
+    british = re.compile(r'harbour|neighbour|honour|centre|licence|flavour|\bgrey\b|modelled', re.IGNORECASE)
+
+    def text(value, key=''):
+        if isinstance(value, dict):
+            return [line for name, item in value.items() if name not in ('id', 'tags') for line in text(item, name)]
+        if isinstance(value, list):
+            return [line for item in value for line in text(item, key)]
+        return [value] if isinstance(value, str) else []
+
+    assert [line for line in text(catalog.city('haddon-harbor')) if british.search(line)] == []

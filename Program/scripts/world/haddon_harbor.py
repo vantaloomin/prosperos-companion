@@ -1,4 +1,4 @@
-"""Haddon Harbor, an original small harbour town on the Maine coast. Run `python scripts/world/haddon_harbor.py` to
+"""Haddon Harbor, an original small harbor town on the Maine coast. Run `python scripts/world/haddon_harbor.py` to
 rewrite it."""
 import json
 from pathlib import Path
@@ -70,7 +70,7 @@ HOODS = [
          'mid', ([950, 1250], [1150, 1550], [1450, 1950]), ['apartment-over-shop', 'federal-house', 'condo'],
          'high', [SHUTTLE, BIKES]),
     hood('the-harbor', 'The Harbor', 'The working waterfront below Main Street: the town fish pier, the lobster '
-         'co-op, bait barrels, stacked traps, the ferry slip and a harbour full of boats on moorings. Busy at '
+         'co-op, bait barrels, stacked traps, the ferry slip and a harbor full of boats on moorings. Busy at '
          'four in the morning and again at four in the afternoon, when the boats come in.',
          ['working-waterfront', 'lobster', 'boats', 'early-risers'], 43.9662, -69.2958, 'mid',
          ([975, 1300], [1200, 1600], [1500, 2000]), ['apartment-over-shop', 'cape', 'converted-loft'], 'high',
@@ -80,7 +80,7 @@ HOODS = [
          'worker housing in the old mill tenements up the hill.', ['arts', 'makers', 'riverside', 'young',
          'brick'], 43.9742, -69.3062, 'mid', ([900, 1200], [1100, 1450], [1350, 1800]),
          ['mill-loft', 'tenement-apartment', 'triple-decker'], 'high', [BIKES]),
-    hood('packard-hill', 'Packard Hill', 'The hill above the harbour where the sea captains built: big square '
+    hood('packard-hill', 'Packard Hill', 'The hill above the harbor where the sea captains built: big square '
          'houses with widow\'s walks, the old Packard House Inn on its lawn, an eighteenth-century burying ground '
          'and the best sledding slope in town.', ['historic', 'views', 'quiet', 'old-houses', 'inns'], 43.9722,
          -69.2928, 'high', ([1100, 1450], [1350, 1800], [1750, 2500]), ['captains-house', 'carriage-house-flat',
@@ -96,11 +96,11 @@ HOODS = [
          -69.3150, 'mid', ([1000, 1300], [1250, 1600], [1650, 2250]), ['cape', 'colonial', 'townhouse'], 'low',
          []),
     hood('ridge-road', 'Ridge Road', 'The farms and orchards on the high ground inland: stone walls, apple '
-         'trees, a sugarhouse, the grange hall and the fairgrounds, with honour-system stands at the ends of '
+         'trees, a sugarhouse, the grange hall and the fairgrounds, with honor-system stands at the ends of '
          'driveways and a view of the bay from the top of Higgins Hill.', ['rural', 'farms', 'orchards',
          'stone-walls'], 44.0050, -69.3200, 'low', ([800, 1050], [950, 1300], [1250, 1700]),
          ['farmhouse', 'ell-apartment', 'mobile-home'], 'low', []),
-    hood('ledge-point', 'Ledge Point', 'The rocky point at the mouth of the harbour, with the white lighthouse, '
+    hood('ledge-point', 'Ledge Point', 'The rocky point at the mouth of the harbor, with the white lighthouse, '
          'the keeper\'s house museum, tide pools, a small sand cove and a road of shingled summer cottages that '
          'go dark after Columbus Day.', ['lighthouse', 'scenic', 'summer', 'rocky-shore'], 43.9500, -69.2820,
          'high', ([1100, 1500], [1350, 1850], [1750, 2600]), ['summer-cottage', 'cape'], 'low', [SHUTTLE]),
@@ -113,7 +113,7 @@ HOODS = [
          'the gym, the ice arena, candlepin lanes and a coffee shack, with plenty of parking and the only '
          'traffic light in town.', ['practical', 'errands', 'car-oriented', 'local'], 43.9900, -69.3000, 'low',
          ([850, 1100], [1000, 1350], [1300, 1700]), ['apartment', 'duplex', 'motel-conversion'], 'low', []),
-    hood('south-haddon', 'South Haddon', 'The neighbouring village down the peninsula: a white church, a general '
+    hood('south-haddon', 'South Haddon', 'The neighboring village down the peninsula: a white church, a general '
          'store with a porch bench, a town landing full of skiffs and a salt marsh where the land trust keeps '
          'the trails mown. Quieter than town, and proud of it.', ['village', 'rural', 'saltwater', 'quiet'],
          43.9350, -69.3200, 'mid', ([875, 1150], [1050, 1400], [1350, 1850]), ['cape', 'farmhouse',
@@ -128,7 +128,7 @@ HOODS = [
          'small houses whose yards hold more boats than cars.', ['boatyard', 'working', 'marina', 'tight-knit'],
          43.9620, -69.3050, 'low', ([875, 1150], [1050, 1400], [1350, 1800]), ['cape', 'bungalow', 'duplex'],
          'medium', [SHUTTLE, BIKES]),
-    hood('west-end', 'West End', 'Older neighbourhood of triple-deckers and capes west of the village, with '
+    hood('west-end', 'West End', 'Older neighborhood of triple-deckers and capes west of the village, with '
          'the hospital, the high school and its field, Cobb Pond for skating, an Italian market and the pub '
          'where the nurses go after a shift.', ['residential', 'working', 'hospital', 'schools'], 43.9720,
          -69.3150, 'low', ([875, 1150], [1050, 1400], [1350, 1800]), ['triple-decker', 'cape', 'duplex'],
@@ -238,7 +238,7 @@ PLACES = [
           'here, not at the mall.', ['chandlery', 'boots', 'boats', 'practical'], '$$', 'indoor',
           ['solo', 'friends'], DAY),
     place('harbormasters-float', "Harbormaster's Float", 'landmark', 'the-harbor', 'The little shingled office '
-          'on the float where the harbourmaster keeps the mooring list (twenty years long), lends a dinghy, '
+          'on the float where the harbormaster keeps the mooring list (twenty years long), lends a dinghy, '
           'and chalks the tide times on a board.', ['harbor', 'tides', 'moorings'], 'free', 'outdoor',
           ['solo', 'family'], DAY, WARM),
     # Mill End
@@ -287,7 +287,7 @@ PLACES = [
           'had the same table on Fridays for twenty years.', ['tavern', 'fireplace', 'chowder', 'historic'],
           '$$', 'indoor', ['friends', 'date', 'solo'], NIGHT, cuisine='new-england'),
     place('packard-hill-lookout', 'Packard Hill Lookout', 'park', 'packard-hill', 'The open top of the hill with '
-          'a bench and a view over the harbour to the islands: sunrise in summer, the sledding run in winter '
+          'a bench and a view over the harbor to the islands: sunrise in summer, the sledding run in winter '
           'and fireworks on the Fourth.', ['views', 'sledding', 'sunrise'], 'free', 'outdoor', ALL,
           ['morning', 'afternoon', 'evening']),
     place('old-burying-ground', 'Old Burying Ground', 'landmark', 'packard-hill', 'The town\'s first cemetery, '
@@ -312,7 +312,7 @@ PLACES = [
           'contest in February and the town walking through it on the way to everything.', ['campus', 'lawn',
           'oaks'], 'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
     place('kimball-pool', 'Kimball Pool', 'fitness', 'college-street', 'The college pool in the athletic '
-          'centre, open to town residents for early lap swim and Saturday family swim. The masters group swims '
+          'center, open to town residents for early lap swim and Saturday family swim. The masters group swims '
           'at six whatever the weather outside.', ['pool', 'swimming', 'lap-swim', 'family-swim'], '$',
           'indoor', ['solo', 'family', 'friends'], ['morning', 'evening']),
     place('hathaway-museum', 'Hathaway Museum of Art', 'museum', 'college-street', 'Whitcomb College\'s free art '
@@ -340,11 +340,11 @@ PLACES = [
           'opinions about every album you pick up.', ['records', 'music', 'secondhand'], '$', 'indoor',
           ['solo', 'friends', 'date'], ['afternoon', 'evening']),
     # Birch Meadow
-    place('birch-meadow-park', 'Birch Meadow Park', 'park', 'birch-meadow', 'A neighbourhood park with a big '
+    place('birch-meadow-park', 'Birch Meadow Park', 'park', 'birch-meadow', 'A neighborhood park with a big '
           'wooden playground the parents built in a weekend, a splash pad, a ball field and a skating rink the '
           'fire department floods in January.', ['playground', 'splash-pad', 'families'], 'free', 'outdoor',
           ['family', 'friends'], ['morning', 'afternoon']),
-    place('meadow-variety', 'Meadow Variety', 'market', 'birch-meadow', 'The neighbourhood store: milk, scratch '
+    place('meadow-variety', 'Meadow Variety', 'market', 'birch-meadow', 'The neighborhood store: milk, scratch '
           'tickets, breakfast sandwiches, and Italian sandwiches on soft rolls with pickles and olives, wrapped '
           'in paper for the beach.', ['convenience', 'italian-sandwich', 'breakfast'], '$', 'indoor', ALL, DAY,
           cuisine='deli'),
@@ -368,7 +368,7 @@ PLACES = [
           'pick-your-own apples in the fall, cider pressed in the barn, cider doughnuts, a corn maze and a view '
           'down to the bay from the top row of Macouns.', ['orchard', 'apples', 'cider-doughnuts',
           'pick-your-own'], '$', 'outdoor', ALL, DAY, ['summer', 'fall'], cuisine='farm'),
-    place('ridge-road-farm-stand', 'Ridge Road Farm Stand', 'market', 'ridge-road', 'An honour-system stand at '
+    place('ridge-road-farm-stand', 'Ridge Road Farm Stand', 'market', 'ridge-road', 'An honor-system stand at '
           'the end of a farm driveway: eggs in the cooler, sweet corn, pies on Saturdays, flowers in buckets '
           'and a cash box nobody has ever locked.', ['farm-stand', 'honor-system', 'eggs', 'corn'], '$',
           'outdoor', ALL, DAY, WARM, cuisine='farm'),
@@ -397,7 +397,7 @@ PLACES = [
           'agricultural', 'community'], '$', 'outdoor', ALL, DAYTIME, WARM),
     # Ledge Point
     place('ledge-point-light', 'Ledge Point Light', 'landmark', 'ledge-point', 'A white brick lighthouse from '
-          '1857 on the granite at the harbour mouth, with a red-roofed keeper\'s house, a foghorn the town hears '
+          '1857 on the granite at the harbor mouth, with a red-roofed keeper\'s house, a foghorn the town hears '
           'on thick nights, and the best sunsets on this side of the bay.', ['lighthouse', 'views', 'photos',
           'sunset'], 'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
     place('keepers-house-museum', "Keeper's House Museum", 'museum', 'ledge-point', 'The lighthouse keeper\'s '
@@ -523,7 +523,7 @@ PLACES = [
           'while the boats unload beside you.', ['lobster', 'co-op', 'wharf'], '$$', 'outdoor', ALL, DAY,
           WARM, cuisine='seafood'),
     place('tarbox-island-inn', 'Tarbox Island Inn', 'inn', 'tarbox-island', 'A rambling summer inn above the '
-          'harbour with rocking chairs facing the mainland, family-style dinners and rooms with no locks and no '
+          'harbor with rocking chairs facing the mainland, family-style dinners and rooms with no locks and no '
           'televisions.', ['inn', 'island', 'summer', 'family-style'], '$$$', 'indoor', ['date', 'family',
           'friends'], ['morning', 'evening'], SUMMER, cuisine='new-england'),
     place('tarbox-long-beach', 'Tarbox Long Beach', 'beach', 'tarbox-island', 'A long sand beach on the far '
@@ -539,7 +539,7 @@ PLACES = [
           'sunset, and a locals\' night on Thursdays in winter.', ['grill', 'deck', 'marina', 'locals-night'],
           '$$', 'mixed', ALL, ['afternoon', 'evening'], cuisine='american'),
     place('community-sailing', 'Haddon Harbor Community Sailing', 'fitness', 'dyers-cove', 'A nonprofit '
-          'sailing centre with small boats for lessons, adult evening races on Wednesdays and kids learning to '
+          'sailing center with small boats for lessons, adult evening races on Wednesdays and kids learning to '
           'capsize on purpose in July.', ['sailing', 'lessons', 'racing', 'nonprofit'], '$$', 'outdoor', ALL,
           ['morning', 'afternoon', 'evening'], SUMMER),
     place('cove-variety', 'Cove Variety', 'market', 'dyers-cove', 'A corner store that opens at five for the '
@@ -575,7 +575,7 @@ PLACES = [
           'pastry case, where a wash, a latte and the local paper make a Sunday morning, and the bulletin '
           'board sells everything from firewood to kittens.', ['laundromat', 'coffee', 'bulletin-board'], '$',
           'indoor', ['solo', 'friends'], DAY, cuisine='coffee'),
-    place('west-end-rec-center', 'West End Recreation Center', 'fitness', 'west-end', 'The town rec centre in '
+    place('west-end-rec-center', 'West End Recreation Center', 'fitness', 'west-end', 'The town rec center in '
           'an old school gym: pickup basketball, Zumba, a senior walking club in winter and after-school '
           'programs that half the parents in town depend on.', ['gym', 'basketball', 'community', 'seniors'],
           '$', 'indoor', ['solo', 'friends', 'family'], ['morning', 'afternoon', 'evening']),
@@ -606,10 +606,10 @@ PLACES = [
 
 CITY = {
     'schema_version': 1, 'id': 'haddon-harbor', 'name': 'Haddon Harbor', 'setting': 'original', 'era': 'modern',
-    'basis': 'Original setting written for Prospero Companion, modelled on real Maine coastal towns.',
+    'basis': 'Original setting written for Prospero Companion, modeled on real Maine coastal towns.',
     'region': 'Maine', 'country': 'US', 'timezone': 'America/New_York',
     'aliases': ['Haddon Harbor, Maine', 'Haddon Harbor, ME'],
-    'summary': 'A harbour town of about nine thousand on the Maine coast, where the lobster boats leave before '
+    'summary': 'A harbor town of about nine thousand on the Maine coast, where the lobster boats leave before '
                'dawn, the diner keeps a wall of regulars\' mugs, town meeting runs late every March and '
                'everyone knows everyone, including what they said at the last select board meeting.',
     'lat': 43.970, 'lon': -69.300,
@@ -623,7 +623,7 @@ CITY = {
         S: {'kind': 'curated', 'title': 'Haddon Harbor, an original setting written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-10',
             'note': 'Invented town with no real counterpart; every business, institution and person named is '
-                    'fictional. Its texture follows ordinary life in midcoast Maine harbour towns: working '
+                    'fictional. Its texture follows ordinary life in midcoast Maine harbor towns: working '
                     'waterfronts and lobstering co-ops, town meeting, bean suppers, grange halls, summer '
                     'people, mud season and island ferries. Rents are rounded typical asking ranges for a small '
                     'Maine town in 2026. Climate is rounded from midcoast Maine normals.'},
@@ -632,16 +632,16 @@ CITY = {
     'places': PLACES,
     'transit': [
         line(SHUTTLE, 'Harbor Summer Shuttle', 'bus', 'A free open-sided shuttle bus run by the town from late '
-             'June to Labor Day, looping every half hour from Main Street to the harbour, Packard Hill, Dyer\'s '
+             'June to Labor Day, looping every half hour from Main Street to the harbor, Packard Hill, Dyer\'s '
              'Cove, Ledge Point and the Back Shore.'),
         line(FERRY, 'Tarbox Island Ferry', 'ferry', 'The car ferry from the town pier to Tarbox Island, forty '
              'minutes each way, four round trips a day in winter and seven in summer, with reservations for cars '
              'and a deckhand who knows every islander\'s order.'),
         line(BIKES, 'Library loaner bikes', 'bike-share', 'Sturdy town bikes borrowed with a library card from '
-             'racks at the library, the harbour, the college, the mill and the hospital, April to November.'),
+             'racks at the library, the harbor, the college, the mill and the hospital, April to November.'),
         line('car', 'Car', 'car', 'How most people get around beyond the village: Route 1, the Augusta road and '
              'the back roads to the pond, the farms and South Haddon.'),
-        line('walk', 'On foot', 'walk', 'The village, the harbour, the mill and the college are all within a '
+        line('walk', 'On foot', 'walk', 'The village, the harbor, the mill and the college are all within a '
              'fifteen-minute walk of the green.'),
     ],
     'colleges': [
@@ -656,7 +656,7 @@ CITY = {
                  ['professor', 'biologist', 'data-analyst', 'marketing-coordinator', 'event-planner', 'accountant',
                   'software-engineer']),
         employer('sewall-memorial-hospital', 'Sewall Memorial Hospital', 'healthcare', 'west-end', 'medium',
-                 'A community hospital with an emergency department, a birthing centre and clinics that serve '
+                 'A community hospital with an emergency department, a birthing center and clinics that serve '
                  'the whole peninsula and the islands.', ['registered-nurse', 'night-nurse', 'physician-resident',
                  'pharmacist', 'social-worker', 'medical-researcher']),
         employer('hatch-boatyard', 'Hatch Boatyard', 'marine-trades', 'dyers-cove', 'medium', 'A family '
@@ -678,7 +678,7 @@ CITY = {
                  'inn on the hill with its tavern and wedding lawn, busy all summer and quiet but open all '
                  'winter.', ['innkeeper', 'hotel-front-desk', 'server', 'line-cook', 'bartender', 'event-planner']),
         employer('town-of-haddon-harbor', 'Town of Haddon Harbor', 'government', 'the-green', 'medium', 'The town '
-                 'office, public works, the harbourmaster, the library, the rec department and the summer '
+                 'office, public works, the harbormaster, the library, the rec department and the summer '
                  'lifeguards at the town beaches.', ['government-analyst', 'accountant', 'lifeguard',
                  'social-worker']),
         employer('hobbs-hardware-employer', 'Hobbs Hardware', 'retail', 'route-1', 'small', 'The family hardware '
@@ -724,7 +724,7 @@ CITY = {
     ],
     'careers': [
         career('lobster-fisher', 'Lobster fisher', 'fishing', 'early', '$$', 'Hauls traps from a lobster boat, '
-               'as a sternman or with a boat and a licence of their own, out before dawn and back mid-afternoon.',
+               'as a sternman or with a boat and a license of their own, out before dawn and back mid-afternoon.',
                ['weather', 'the boat', 'trap limits', 'prices at the co-op', 'early mornings', 'the sea']),
         career('boatbuilder', 'Boatbuilder', 'marine-trades', 'shift-day', '$$', 'Builds and repairs wooden and '
                'fibreglass boats at the boatyard: lofting, planking, glassing, painting and launching in spring.',
@@ -741,7 +741,7 @@ CITY = {
                    'fog, and a long golden fall. Nor\'easters bring snow or rain at any time from November to '
                    'April.',
         'months': [
-            month(31, 13, 11, 'Coldest month; the harbour steams with sea smoke on still mornings.'),
+            month(31, 13, 11, 'Coldest month; the harbor steams with sea smoke on still mornings.'),
             month(34, 15, 10, 'Snow on the ground, skating on Cobb Pond and the winter carnival.'),
             month(41, 24, 11, 'Sugaring season; snow, sleet and the first thaw.'),
             month(52, 34, 12, 'Mud season; ice goes out on Long Pond and the boats go back in.'),
@@ -751,7 +751,7 @@ CITY = {
             month(77, 57, 10, 'Lobster festival weather; busy and bright.'),
             month(69, 49, 10, 'Clear and crisp; the best month, locals say.'),
             month(57, 38, 11, 'Peak foliage and apple picking; the cottages close.'),
-            month(46, 30, 12, 'Grey and windy; boats come out of the water.'),
+            month(46, 30, 12, 'Gray and windy; boats come out of the water.'),
             month(36, 20, 12, 'Dark by four; first snow and the lighting of the green.'),
         ],
         'source': S,
@@ -761,10 +761,10 @@ CITY = {
               'Beach at noon on New Year\'s Day in costumes, raising money for the food pantry, then thaw out at '
               'the Legion.'),
         event('winter-carnival', 'Winter Carnival', [2], 'west-end', 'A weekend of skating races on Cobb Pond, '
-              'snow sculptures on the quad, a chili cook-off at the rec centre, a smelt fry and the crowning of '
+              'snow sculptures on the quad, a chili cook-off at the rec center, a smelt fry and the crowning of '
               'a carnival king and queen from the senior class.'),
         event('town-meeting-day', 'Town Meeting Day', [3], 'the-green', 'The annual open town meeting in the '
-              'high school gym, where every voter can stand up and argue over the budget, the harbour '
+              'high school gym, where every voter can stand up and argue over the budget, the harbor '
               'moorings and the new fire truck, usually until long after supper.'),
         event('maple-weekend', 'Maple Weekend', [3], 'ridge-road', 'The sugarhouses open their doors on the '
               'fourth weekend of March for syrup tastings, pancake breakfasts, sugar on snow and muddy boots.'),
@@ -783,7 +783,7 @@ CITY = {
               'church steps.'),
         event('fourth-of-july-parade', 'Fourth of July Parade', [7], 'the-green', 'Fire engines, the high school '
               'band, floats on hay wagons, kids on decorated bikes and the lobster boat on a trailer that wins '
-              'every year, with fireworks over the harbour that night.'),
+              'every year, with fireworks over the harbor that night.'),
         event('harbor-regatta', 'Harbor Regatta', [7], 'dyers-cove', 'A weekend of sailboat races off Dyer\'s Cove '
               'for every kind of boat, from children in prams to old wooden yachts, ending with a cookout at the '
               'boatyard.'),
@@ -810,7 +810,7 @@ CITY = {
               'Central Fire Station; the phone tree spreads the word the night before.'),
         event('lighting-of-the-green', 'Lighting of the Green', [12], 'the-green', 'On the first Saturday of '
               'December the town gathers on the green for carols, cocoa and the lighting of the tree, and the '
-              'harbour boats light up their rigging.'),
+              'harbor boats light up their rigging.'),
     ],
     'local_color': [
         color('mug-wall', 'The mug wall', 'custom', 'Regulars at the Bluebird keep their own mug on a numbered peg '
@@ -819,7 +819,7 @@ CITY = {
         color('phone-tree', 'The town phone tree', 'custom', 'Snow days, lost dogs, power cuts, a fire at the '
               'pier, a casserole needed for a family in trouble: news goes out on the phone tree, each person '
               'calling the next three, faster than any app.'),
-        color('honor-farm-stand', 'Honour-system farm stands', 'custom', 'Eggs, corn and pies sit unattended at '
+        color('honor-farm-stand', 'Honor-system farm stands', 'custom', 'Eggs, corn and pies sit unattended at '
               'the ends of driveways with a cash box or a jar. People leave exact change, or an IOU on the '
               'notepad, and settle up next time.', ['ridge-road-farm-stand', 'ridge-road'], WARM),
         color('police-log', 'Reading the police log', 'custom', 'Everyone turns first to the police log in the '
@@ -854,7 +854,7 @@ CITY = {
         color('moxie', 'Moxie', 'drink', 'The bitter, old-fashioned soda that older people swear by and '
               'newcomers try exactly once.', ['main-street-pharmacy', 'long-pond-store']),
         color('frappe', 'A frappe', 'drink', 'A thick milkshake made with ice cream; in this town a "milkshake" is '
-              'just flavoured milk, and the soda fountain will ask which you meant.', ['main-street-pharmacy',
+              'just flavored milk, and the soda fountain will ask which you meant.', ['main-street-pharmacy',
               'bickford-dairy-bar']),
         color('ayuh', '"Ayuh"', 'saying', 'Yes, or I agree, or I heard you, depending on the tone; heard on the '
               'fish pier more than on College Street.'),
