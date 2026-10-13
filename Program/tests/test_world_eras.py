@@ -144,6 +144,13 @@ def test_won_and_yen_read_as_people_write_them():
     usd = {'code': 'USD', 'symbol': '$', 'name': 'US dollars'}
     assert money.amount(4.4, usd) == '$4.40' and money.amount(5.5, usd) == '$5.50' and money.amount(5, usd) == '$5'
     assert money.amount(0.05, usd) == '$0.05'
+    # Coins are counted whole, and shillings in shillings and pence: never '0.73 d.' or '4.08 s'.
+    pennies = {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'}
+    assert money.amount(0.73, pennies) == '1 d.' and money.amount(2.6, pennies) == '3 d.'
+    victorian = {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'}
+    assert money.amount(4.08, victorian) == '4s. 1d.' and money.amount(0.17, victorian) == '2d.'
+    assert money.amount(15, victorian) == '15s.' and money.amount(42.4, victorian) == '42s.'
+    assert money.amount(4.08, {'code': 's', 'symbol': 's', 'name': 'shillings'}) == '4s 1d'
     assert generators.figure(1_200_000) == '1,200,000' and generators.figure(4.5) == '4.5'
     assert generators.rent_step(650_000) == 1000 and generators.rent_step(1900) == 25
     data = city_as('modern', 'South Korea', currency=won,
