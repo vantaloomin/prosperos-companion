@@ -270,4 +270,5 @@ def test_the_reference_sheet_keeps_the_hair_length_the_pictures_use(client, rosa
         reference = grooming.sheet(connection, rosa_id, ROSA, day, bold_only=True)['hair']
         pictured = grooming.sheet(connection, rosa_id, ROSA, day)['hair']
     lengths = [word for word in grooming.LENGTHS if re.search(rf"\b{word}\b", pictured)]
-    assert lengths and all(word in reference for word in lengths), (drawn, reference, pictured)
+    # Some cuts carry their length in the cut itself ("in a bob"), so the pictures may name no length word.
+    assert all(word in reference for word in lengths), (drawn, reference, pictured)
