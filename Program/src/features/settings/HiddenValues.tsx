@@ -48,7 +48,7 @@ export function HiddenValues({ name }: { name: string }) {
         hint={`Each evening Today gets one private thought, worked out from what happened in ${whose} day. Folded until you open it, never part of the chat, and never anything ${keeps} secret.`} />
       <Toggle label="Say when a secret slips out" checked={flag('show_secret_slips', true)} onChange={(checked) => void save({ show_secret_slips: checked })}
         hint="A note under a group message when someone lets a secret slip. Off: you only find out from what they say; everyone there still knows it, and Secrets on the Groups page still shows who knows." />
-      <Toggle label="Show the numbers behind their life (home and work)" checked={flag('show_home_meters')} onChange={(checked) => void save({ show_home_meters: checked })}
+      <Toggle label="Show the numbers behind their life" checked={flag('show_home_meters')} onChange={(checked) => void save({ show_home_meters: checked })}
         hint="On the Character page: how much laundry, dishes and clutter there is, and the numbers behind how they look lately (days since a haircut, how deep a tan is), and each pet's health out of 100 and how long its kind usually lives, and vacation days used and pay since they started. Off: you only see it in words." />
       {settings.data?.adult_side && (
         <Toggle label="Show townsfolk's adult side" checked={flag('show_adult_side')} onChange={(checked) => void save({ show_adult_side: checked })}
