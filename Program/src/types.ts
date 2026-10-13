@@ -292,7 +292,7 @@ export interface WorkspaceSettings {
   adult_side?: boolean
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
-  /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
+  /** The numbers behind their life, such as upkeep meters (Settings > Realism > Hidden values). */
   show_home_meters?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
@@ -457,6 +457,8 @@ export interface LifeSettings {
   kitchen_realism: number
   /** Life admin (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   admin_realism: number
+  /** Work life (companion/life/work.py): 0 off, 1 steady, 2 true to life, 3 dramatic. */
+  work_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -1687,7 +1689,7 @@ export interface TownsfolkMix {
 export interface AdminItem {
   id: string
   key: string
-  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks'
+  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks' | 'work'
   kind: string
   title: string
   /** What just happened, for a surprise ("A parking ticket was tucked under the wiper"). */
@@ -1706,6 +1708,8 @@ export interface AdminItem {
   cost_text: string
   /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
   movable: boolean
+  /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */
+  detail?: string
 }
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
@@ -1720,4 +1724,31 @@ export interface AdminView {
   level: number
   /** 0 to 100, only with Hidden values' home-life meters on. */
   meter: number | null
+}
+
+/** Something that changed at work (companion/life/work.py): a raise, a promotion, a project wrapped up, a new job. */
+export interface WorkEvent {
+  id: string
+  kind: 'raise' | 'freeze' | 'promotion' | 'project' | 'laid-off' | 'quit' | 'new-job'
+  local_date: string
+  /** "the yearly raise, about 3.2%", "wrapped up the spring menu change; it went well". */
+  text: string
+}
+
+/** The Character page's Work life panel (GET /api/life/work). */
+export interface WorkLifeView {
+  state: string[]
+  workload: 'slammed' | 'normal' | 'slow' | null
+  status: 'working' | 'hunting'
+  project: { title: string; index: number; started: string; due: string }
+  started_on: string
+  tenure: string
+  employer: string
+  late_nights: AdminItem[]
+  /** Vacation days still to come this year. */
+  vacation: string[]
+  events: WorkEvent[]
+  level: number
+  /** Only with Hidden values' home-life meters on. */
+  meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
 }

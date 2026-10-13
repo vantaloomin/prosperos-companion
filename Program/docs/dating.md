@@ -5,6 +5,12 @@ with a download badge on its icon. Opening it shows its "store page"; after a sh
 their profile over four screens (first name and age, who they are and who they want to see, what they are
 looking for and the ages, an optional bio). Then they swipe through the townsfolk of a city they pick.
 
+The deck is a stack (`src/features/dating/Deck.tsx`, rules in `swipe.ts`): the top card is dragged or flicked
+right to like or left to pass, tilting with a Like or Pass stamp, and springs back if let go before a third of
+its width. Pass and Like stay under the stack and the arrow keys answer too; reduced motion only fades. Cards
+are text first and never wait on a photo. Older eras (the personal column, the matchmaker) show one notice at
+a time with the buttons and arrow keys, no dragging.
+
 Everyone on the app is a townsperson (`companion/world/townsfolk.py`), and everything about them is decided by
 rules, never by a model. A match can become a companion through the same path as switching the main
 character to a townsperson (`companion/cast.py`), and is then chatted with like any companion.

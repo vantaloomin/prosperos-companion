@@ -9,6 +9,7 @@ import { StageControls } from '../memories/Closeness'
 import { DRAMA_LEVELS } from '../today/storyText'
 import { LOOKS_LEVELS } from '../character/looksLatelyText'
 import { KITCHEN_LEVELS } from '../character/kitchenText'
+import { WORK_LEVELS } from '../character/workText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -40,6 +41,7 @@ export function PaceSettings() {
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
   const level = DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
   const looks = LOOKS_LEVELS[data.looks_realism] ?? LOOKS_LEVELS[2]
+  const work = WORK_LEVELS[data.work_realism] ?? WORK_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
@@ -50,6 +52,10 @@ export function PaceSettings() {
       <Field label={`Their looks change: ${looks.label}`} hint={looks.hint} tip="Only looks the app picked change. Anything you wrote about how someone looks stays exactly as you wrote it.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.looks_realism} label={looks.label}
           onChange={(looks_realism) => void save({ looks_realism })} />}
+      </Field>
+      <Field label={`Work life: ${work.label}`} hint={work.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.work_realism} label={work.label}
+          onChange={(work_realism) => void save({ work_realism })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
