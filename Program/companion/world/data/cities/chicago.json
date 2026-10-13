@@ -1566,7 +1566,7 @@
    "name": "Lou Malnati's (River North)",
    "kind": "restaurant",
    "neighborhood": "river-north",
-   "summary": "The local favourite for deep-dish with a buttery crust and a sausage patty that covers the whole pie.",
+   "summary": "The local favorite for deep-dish with a buttery crust and a sausage patty that covers the whole pie.",
    "tags": [
     "deep-dish",
     "pizza"
@@ -4611,7 +4611,7 @@
    "name": "Bronzeville Walk of Fame",
    "kind": "landmark",
    "neighborhood": "bronzeville",
-   "summary": "Plaques along King Drive honouring Louis Armstrong, Ida B. Wells, Gwendolyn Brooks and other residents.",
+   "summary": "Plaques along King Drive honoring Louis Armstrong, Ida B. Wells, Gwendolyn Brooks and other residents.",
    "tags": [
     "history",
     "black-history",
@@ -6843,7 +6843,7 @@
     "high_f": 49,
     "low_f": 33,
     "rain_days": 10,
-    "note": "Grey and windy; the first snow flurries."
+    "note": "Gray and windy; the first snow flurries."
    },
    {
     "high_f": 36,

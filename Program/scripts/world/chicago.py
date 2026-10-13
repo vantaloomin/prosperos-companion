@@ -289,7 +289,7 @@ CITY = {
               'began, at Ohio and Wabash; expect a wait and a forty-minute bake.', ['deep-dish', 'historic',
               'pizza'], '$$', 'indoor', ALL, LUNCH, cuisine='pizza'),
         place('lou-malnatis-river-north', 'Lou Malnati\'s (River North)', 'restaurant', 'river-north', 'The local '
-              'favourite for deep-dish with a buttery crust and a sausage patty that covers the whole pie.',
+              'favorite for deep-dish with a buttery crust and a sausage patty that covers the whole pie.',
               ['deep-dish', 'pizza'], '$$', 'indoor', ALL, LUNCH, cuisine='pizza'),
         place('portillos-river-north', 'Portillo\'s (River North)', 'restaurant', 'river-north', 'Big, loud, '
               'fast hot dogs, Italian beef and chocolate cake shakes in a Prohibition-themed hall.',
@@ -654,7 +654,7 @@ CITY = {
               'Illinois regiment of the First World War, at 35th and King Drive.', ['history', 'black-history'],
               'free', 'outdoor', ALL, DAY),
         place('bronzeville-walk-of-fame', 'Bronzeville Walk of Fame', 'landmark', 'bronzeville', 'Plaques along King '
-              'Drive honouring Louis Armstrong, Ida B. Wells, Gwendolyn Brooks and other residents.', ['history',
+              'Drive honoring Louis Armstrong, Ida B. Wells, Gwendolyn Brooks and other residents.', ['history',
               'black-history', 'walk'], 'free', 'outdoor', ALL, DAY, WARM),
         place('chicago-bee-library', 'Chicago Bee Branch Library', 'library', 'bronzeville', 'A public library in '
               'the art deco home of the Chicago Bee, a Black newspaper of the 1920s.', ['books', 'history',
@@ -957,7 +957,7 @@ CITY = {
             month(83, 65, 9, 'Hot and humid; the lake is warmest for swimming.'),
             month(76, 57, 9, 'Warm days, cooler nights; the best weather of the year.'),
             month(63, 45, 10, 'Crisp; leaves turn and the first frost arrives.'),
-            month(49, 33, 10, 'Grey and windy; the first snow flurries.'),
+            month(49, 33, 10, 'Gray and windy; the first snow flurries.'),
             month(36, 22, 10, 'Cold, dark and snowy; the Hawk wind arrives.'),
         ],
         'source': CLIMATE,

@@ -60,7 +60,8 @@ def inputs(sheet: dict, data: dict) -> dict:
                            nose=face['nose'], hair=looks['hair'], eyes=looks['eyes'],
                            beard=f", {looks['beard']}" if looks.get('beard') else '', detail=looks['detail'],
                            style=looks['style'], setting=setting, smile=generators.pick(seed, 'smile', list(SMILES)))
-    return {'prompt': prompt, 'negative': NEGATIVE, 'aspect': 'portrait',
+    # Picture-safe wording, as in every picture prompt: a scar or a broken nose is said as what a camera sees.
+    return {'prompt': appearance.seen(prompt), 'negative': NEGATIVE, 'aspect': 'portrait',
             'seed': int(generators.unit(seed, 'photo') * 2 ** 31)}
 
 

@@ -114,7 +114,7 @@ export function Cities() {
     <section className="settings-section form-stack" aria-labelledby="cities-heading">
       <div>
         <h2 id="cities-heading">Cities</h2>
-        <p className="subtle">A companion's days are built from their home city: its neighbourhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared. A Marinara world map opens as a city straight away, with its places' notes as world lore.</p>
+        <p className="subtle">A companion's days are built from their home city: its neighborhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared. A Marinara world map opens as a city straight away, with its places' notes as world lore.</p>
       </div>
       <div className="form-actions">
         <button type="button" className="button" onClick={() => void startNew()}><FilePlus2 aria-hidden="true" />New city</button>
@@ -258,7 +258,7 @@ function CityEditor({ editing, onClose, onSaved }: { editing: Editing; onClose: 
   return (
     <div className="city-editor form-stack">
       <h3>{editing.mode === 'create' ? 'New city' : `Editing ${editing.id}`}</h3>
-      <p className="subtle" id="city-json-hint">A city is a JSON file. Every place, college and employer names its neighbourhood. New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
+      <p className="subtle" id="city-json-hint">A city is a JSON file. Every place, college and employer names its neighborhood. New kinds of places, schools and jobs are welcome, and small slips are mended when you save. <a href="https://github.com/vantaloomin/prosperos-companion/blob/main/Program/docs/world-data.md#building-a-city" target="_blank" rel="noreferrer">The guide</a> lists every field.</p>
       <label htmlFor="city-json" className="visually-hidden">City definition</label>
       <textarea id="city-json" aria-describedby="city-json-hint" className="city-json" rows={18} spellCheck={false} value={text} onChange={(event) => { setText(event.target.value); setResult(null) }} />
       <div aria-live="polite">{result && <FeedbackNotice feedback={result} />}</div>

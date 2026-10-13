@@ -8,7 +8,7 @@ from the character's appearance text; nothing looks at the picture to write them
 import hashlib
 
 from companion.characters import require_current
-from companion.database import decode, encode, identifier, many, one
+from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import DomainError, require
 from companion.images.adapters.base import AdapterError
 from companion.images.storage import sniff
@@ -229,7 +229,10 @@ def remove(database, reference_id) -> dict:
 
 
 def path_of(database, reference_id, cropped=False):
+    """A picture of the companion in focus, or any companion's profile picture (the chats list shows each one's)."""
     with database.connect() as connection:
-        row = get(connection, reference_id)
+        row = optional(connection, 'SELECT r.* FROM lora_references r JOIN companions c ON c.id=r.companion_id '
+                       'AND c.portrait_reference_id=r.id WHERE r.id=?', (reference_id,)) \
+            or get(connection, reference_id)
     name = row['crop_file'] if cropped and row['crop_file'] else row['file']
     return files.inside(directory(database), name), row['media_type']

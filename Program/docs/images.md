@@ -81,7 +81,8 @@ backend is off until the user sets it up, and text never waits for an image. The
 - **Installing the nodes** (Vanta's one exception to "the app never writes into ComfyUI",
   2026-10-13). When Check finds a node a listed pack provides (`images/node_packs.py`) on a ComfyUI
   at a loopback address, it offers **Install the Krea 2 Identity Edit nodes**. The press asks
-  ComfyUI for its custom_nodes folder (`/internal/folder_paths`), downloads the pack's files from
+  ComfyUI for its custom_nodes folder (`/internal/folder_paths`; only a folder named custom_nodes with
+  main.py, comfy/ or models/ beside it is used, anything else is refused), downloads the pack's files from
   the pinned commit, checks each against its SHA-256, and moves them in as a new
   `comfyui-krea2edit` folder. An existing folder is never replaced, no Python package is installed
   (the pack needs none), and nothing else is touched. ComfyUI loads it on its next start. Never from

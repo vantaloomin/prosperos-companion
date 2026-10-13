@@ -3072,7 +3072,7 @@
    "name": "Amici Park",
    "kind": "park",
    "neighborhood": "little-italy",
-   "summary": "Neighborhood park with bocce courts, a small amphitheatre and a dog run.",
+   "summary": "Neighborhood park with bocce courts, a small amphitheater and a dog run.",
    "tags": [
     "bocce",
     "dogs",
@@ -3394,7 +3394,7 @@
    "name": "Grape Street Dog Park",
    "kind": "park",
    "neighborhood": "south-park",
-   "summary": "Big off-leash meadow on the edge of Balboa Park where neighbours meet with their dogs.",
+   "summary": "Big off-leash meadow on the edge of Balboa Park where neighbors meet with their dogs.",
    "tags": [
     "dogs",
     "off-leash",
@@ -4463,7 +4463,7 @@
    "name": "College-Rolando Library",
    "kind": "library",
    "neighborhood": "college-area",
-   "summary": "Branch library on Montezuma Road used by students and neighbours.",
+   "summary": "Branch library on Montezuma Road used by students and neighbors.",
    "tags": [
     "books",
     "study",
@@ -5646,7 +5646,7 @@
   }
  ],
  "climate": {
-  "summary": "Mild Mediterranean coastal climate: dry, sunny and warm most of the year, with short rainy winters and a grey marine layer (\"May Gray\" and \"June Gloom\") in late spring.",
+  "summary": "Mild Mediterranean coastal climate: dry, sunny and warm most of the year, with short rainy winters and a gray marine layer (\"May Gray\" and \"June Gloom\") in late spring.",
   "months": [
    {
     "high_f": 66,
@@ -5835,7 +5835,7 @@
     11
    ],
    "neighborhood": "downtown",
-   "summary": "Weeks of events honouring the armed forces around the bay; dates vary by year.",
+   "summary": "Weeks of events honoring the armed forces around the bay; dates vary by year.",
    "source": "curated-2026-10"
   },
   {
@@ -5912,7 +5912,7 @@
    "id": "june-gloom",
    "name": "May Gray and June Gloom",
    "kind": "other",
-   "summary": "In late spring and early summer a marine layer keeps the coast grey until midday or longer, to the surprise of visitors expecting sun.",
+   "summary": "In late spring and early summer a marine layer keeps the coast gray until midday or longer, to the surprise of visitors expecting sun.",
    "places": [],
    "seasons": [
     "spring",
