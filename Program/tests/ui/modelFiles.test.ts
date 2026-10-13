@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { FAMILIES, FAMILY_KEYS, MISSING, familyOf, fileChoices, filesBody, TURBO, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody } from '../../src/features/settings/modelFiles.ts'
+import { FAMILIES, FAMILY_KEYS, familyOf, missingFrom, fileChoices, filesBody, TURBO, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody } from '../../src/features/settings/modelFiles.ts'
 import type { ModelFiles, ModelLink } from '../../src/types.ts'
 
 const DEFAULTS: ModelFiles = { unet_name: 'krea2_turbo_fp8_scaled.safetensors', clip_name: 'qwen3vl_4b_fp8_scaled.safetensors', clip_type: 'krea2', vae_name: 'qwen_image_vae.safetensors' }
@@ -16,7 +16,8 @@ test('each dropdown preselects the saved choice, else the default, and keeps a v
   assert.equal(shownFiles(SLOTS, { vae_name: 'Qwen\\sharp.safetensors' }, NONE, DEFAULTS).vae_name, 'Qwen\\sharp.safetensors')
   assert.deepEqual(fileChoices([MUSE], MUSE), [{ value: MUSE, label: MUSE }])
   const krea = DEFAULTS.unet_name ?? ''
-  assert.deepEqual(fileChoices([MUSE], krea), [{ value: krea, label: krea + MISSING }, { value: MUSE, label: MUSE }])
+  assert.deepEqual(fileChoices([MUSE], krea), [{ value: krea, label: krea }, { value: MUSE, label: MUSE }])
+  assert.ok(missingFrom([MUSE], krea) && !missingFrom([MUSE], MUSE) && !missingFrom([], krea))
 })
 
 test('saving stores only what differs from the default, exactly as named', () => {

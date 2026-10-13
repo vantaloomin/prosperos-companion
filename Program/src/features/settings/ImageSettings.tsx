@@ -11,7 +11,7 @@ import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
-import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
@@ -114,7 +114,6 @@ function BackendSetup({ backend, phone, put, putWorkflow }: { backend: ImageBack
   return <>
     {(!phone || phoneEdits(backend)) && <BackendConnection backend={backend} save={put} />}
     <BackendStyle backend={backend} save={(style) => put({ style })} />
-    {backend.kind === 'comfyui' && <FamilyPicker backend={backend} save={(family) => put({ family })} />}
     <ComfyFiles backend={backend} put={put} />
     {backend.kind === 'comfyui' && !phone && <>
       <WorkflowEditor backend={backend} field="workflow" save={(value) => putWorkflow({ workflow: value })} />
@@ -148,6 +147,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
       {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
         onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
         hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
+      {backend.kind === 'comfyui' && <FamilyPicker backend={backend} save={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />}
       <BackendSetup backend={backend} phone={phone} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))}
         putWorkflow={async (body) => {
           // A refused workflow says why beside its own box, not at the foot of the section.
@@ -274,16 +274,39 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
 
 /** Which kind of model this server runs, so the built-in workflow, its files, sampling and prompt style suit it
  * (Vanta, 2026-10-13). Krea 2 until changed; saved on change. A workflow of the user's own runs whatever it says. */
-function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (family: ImageFamily) => Promise<boolean> }) {
+function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: object) => Promise<boolean> }) {
+  // What a switch replaced, so it can be undone (undo over confirm); only when the user had made choices.
+  const [undo, setUndo] = useState<{ to: string; body: object } | null>(null)
   const family = familyOf(backend.family)
-  const custom = backend.custom_workflow
-  const hint = custom ? 'Your own workflow is used for pictures; the family still sets the reference workflow and the prompt style.'
-    : `Picks the built-in workflow and starts its files and sampling on ${family.sampling}'s.${family.reference ? '' : ` ${family.label} has no built-in way to follow a reference picture.`}`
-  return <Field label="Model family" hint={hint}>{(id, describedBy) => (
-    <select id={id} aria-describedby={describedBy} value={backend.family ?? 'krea2'} onChange={(event) => void save(event.target.value as ImageFamily)}>
-      {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
-    </select>
-  )}</Field>
+  const choose = async (next: ImageFamily) => {
+    const before = previous(backend)
+    if (await save({ family: next })) setUndo(before && { to: FAMILIES[next].sampling, body: before })
+  }
+  return <div className="form-stack family-picker">
+    <Field label="Model family" hint={familyHint(family, backend.custom_workflow)}>{(id, describedBy) => (
+      <select id={id} aria-describedby={describedBy} value={backend.family ?? 'krea2'} onChange={(event) => void choose(event.target.value as ImageFamily)}>
+        {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
+      </select>
+    )}</Field>
+    {undo && <Notice action={<button type="button" className="text-button" onClick={() => void save(undo.body).then(() => setUndo(null))}>Undo</button>}>Switched to {undo.to} defaults.</Notice>}
+  </div>
+}
+
+/** The dropdown's hint (Iris's wording). */
+function familyHint(family: ReturnType<typeof familyOf>, custom: boolean): string {
+  if (custom) return 'Your own workflow is used for pictures; the family still sets the reference workflow.'
+  const lines = [`Sets the built-in workflow, model files and sampling to ${family.sampling}'s. You can change any of them below.`]
+  if (!family.reference) lines.push(`${family.short === 'Booru' ? 'Booru models' : family.short} can't follow a reference picture, so profile pictures 2 and 3 come from another backend that can.`)
+  if (family.note) lines.push(family.note)
+  return lines.join(' ')
+}
+
+/** The family and the file and sampling choices a switch would replace, or null when nothing was chosen. */
+function previous(backend: ImageBackend): object | null {
+  const files = Object.fromEntries(Object.entries(backend.model_files ?? {}).filter(([, value]) => value))
+  const sampler = Object.fromEntries(Object.entries(backend.sampler ?? {}).filter(([, value]) => value !== null))
+  if (!Object.keys(files).length && !Object.keys(sampler).length) return null
+  return { family: backend.family ?? 'krea2', ...files, ...sampler }
 }
 
 /** The built-in workflow's model, text encoder and VAE, picked from the files the ComfyUI server
@@ -306,7 +329,7 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
         {hasMatching(server.matching) && <Toggle label={`Only ${family.short} files`} checked={familyOnly} onChange={setFamilyOnly}
-          hint={`Files whose name or folder looks like ${family.short}'s. Turn off to see every file.`} />}
+          hint={`Files whose name or folder says ${family.looks}. Turn off to see every file.`} />}
         {server.answered && <FileSlots slots={family.slots} server={server} familyOnly={familyOnly} shown={shown} onChange={(key, value) => setDraft({ ...draft, [key]: value })} />}
         <FileActions changed={Object.keys(draft).length > 0} chosen={isChosen(saved)} busy={files.isFetching}
           save={() => void store(filesBody(family.slots, shown, server.defaults))} cancel={() => setDraft({})} reset={() => void store(noChoice(family.slots))} refresh={() => void files.refetch()} />
@@ -367,7 +390,7 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
       <div className="form-stack">
         <p className="subtle">Starts on {family.sampling}'s settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
         <div className="form-grid">
-          <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} hint="Turbo models need few." onChange={(steps) => setDraft({ ...draft, steps })} />
+          <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} hint={family.steps} onChange={(steps) => setDraft({ ...draft, steps })} />
           <SliderNumber label="CFG" value={shown.cfg} min={0} max={30} step={0.5} hint="At 1 the negative prompt is ignored." onChange={(cfg) => setDraft({ ...draft, cfg })} />
           <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} matching={[]} value={shown.sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
           <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} matching={[]} value={shown.scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
@@ -392,11 +415,13 @@ function useBackendFiles(backend: ImageBackend, open: boolean) {
 function FileField({ slot, options, matching, value, fallback, onChange }: { slot: FileSlot; options: string[]; matching: string[]; value: string; fallback: string; onChange: (value: string) => void }) {
   const { label, hint, tip } = slot
   if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback} hint={hint} tip={tip} onChange={onChange} />
-  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => (
+  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <>
     <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
       {fileChoices(options, value, matching, matching.length > 0).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
     </select>
-  )}</Field>
+    {/* On its own line, so the file name in the box is never cut short by it (Iris). */}
+    {missingFrom(options, value) && <p className="subtle field-missing">{MISSING}</p>}
+  </>}</Field>
 }
 
 /** Up to three LoRAs from the server's loras folder, applied after the character's own LoRA (which is
@@ -414,7 +439,7 @@ function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; save
         <p className="subtle">Extra LoRAs for the look of every picture from this server, such as a phone-photo or realism LoRA. They apply after the character's own LoRA, when one is adopted, in this order.</p>
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its LoRAs…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
-        {server.answered && <StyleLoraRows rows={draft ?? saved} options={server.options.lora} matching={server.matching.lora} short={familyOf(backend.family).short} setRows={setDraft} />}
+        {server.answered && <StyleLoraRows rows={draft ?? saved} options={server.options.lora} matching={server.matching.lora} short={familyOf(backend.family).short} looks={familyOf(backend.family).looks} setRows={setDraft} />}
         {draft && <FileActions changed chosen={false} busy={files.isFetching} save={() => void store(draft)} cancel={() => setDraft(null)} reset={() => undefined} refresh={() => void files.refetch()} />}
       </div>
     </details>
@@ -423,11 +448,11 @@ function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; save
 
 const LORA_SLOT: FileSlot = { key: 'unet_name', label: 'LoRA', role: null, hint: 'From ComfyUI\'s models/loras folder.' }
 
-function StyleLoraRows({ rows, options, matching, short, setRows }: { rows: StyleLora[]; options: string[]; matching: string[]; short: string; setRows: (rows: StyleLora[]) => void }) {
+function StyleLoraRows({ rows, options, matching, short, looks, setRows }: { rows: StyleLora[]; options: string[]; matching: string[]; short: string; looks: string; setRows: (rows: StyleLora[]) => void }) {
   const [familyOnly, setFamilyOnly] = useState(true)
   const edit = (index: number, change: Partial<StyleLora>) => setRows(rows.map((row, at) => at === index ? { ...row, ...change } : row))
   return <>
-    {matching.length > 0 && <Toggle label={`Only ${short} LoRAs`} checked={familyOnly} onChange={setFamilyOnly} hint={`LoRAs whose name or folder says ${short}. Turn off to see every LoRA.`} />}
+    {matching.length > 0 && <Toggle label={`Only ${short} LoRAs`} checked={familyOnly} onChange={setFamilyOnly} hint={`LoRAs whose name or folder says ${looks}. Turn off to see every LoRA.`} />}
     {rows.map((row, index) => <div key={index} className="form-grid">
       <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} matching={familyOnly ? matching : []} value={row.name} fallback="" onChange={(name) => edit(index, { name })} />
       <SliderNumber label="Strength" value={row.strength} min={-2} max={2} step={0.05} hint="0.6 to 0.8 suits most style LoRAs." onChange={(strength) => edit(index, { strength })} />
@@ -474,7 +499,7 @@ const WORKFLOWS: Record<WorkflowField, { title: string; label: string; builtIn: 
   },
 }
 /** For a family with no built-in reference workflow, in place of `shown`. */
-const NO_REFERENCE = (family: string) => `${family} has no built-in reference workflow. Paste one to make profile pictures from this server; until then they come from a backend that can follow a picture.`
+const NO_REFERENCE = (family: string) => `${family === 'Booru' ? 'Booru models have' : `${family} has`} no built-in reference workflow. Paste one to make profile pictures from this server; until then they come from a backend that can follow a picture.`
 const USE_BUILT_IN = 'Use the built-in one'
 const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
@@ -539,7 +564,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   const picks = JSON.stringify([backend.family, backend.model_files, backend.sampler])
   const family = familyOf(backend.family)
   const none = field === 'reference_workflow' && !family.reference
-  const shownNote = none ? NO_REFERENCE(family.label) : copy.shown(family.sampling)
+  const shownNote = none ? NO_REFERENCE(family.short) : copy.shown(family.sampling)
   const shownPicks = useRef(picks)
   const { saved, text, builtIn, load } = flow
   useEffect(() => {
@@ -549,7 +574,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   }, [picks, saved, text, builtIn, load])
   return (
     <details open={startOpen} onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
-      <summary className="subtle">{copy.title} {set ? '(yours)' : none ? '(none)' : '(built-in)'}</summary>
+      <summary className="subtle">{copy.title} {set ? '(yours)' : none ? <span className="summary-none">(none)</span> : '(built-in)'}</summary>
       <div className="form-stack workflow-editor">
         <Field label={copy.label} hint={<>{copy.hint}{!set && <> {shownNote}{needs(flow.builtIn)}</>}</>}>{(id, describedBy) =>
           <>
