@@ -55,8 +55,8 @@ function HobbyLists({ view, name, act }: { view: HobbiesView; name: string; act:
   const dropped = view.hobbies.filter((hobby) => hobby.status === 'dropped' && hobby.id !== undo)
   const card = (hobby: Hobby) => hobby.id === undo
     ? <li key={hobby.id} className="person-card hobby-card hobby-undo">
-      <p>{gaveUpLine(hobby, first)}</p>
-      <button type="button" className="text-button" onClick={() => void patch(hobby, { status: 'active' }, null)}><Undo2 aria-hidden="true" />Undo</button>
+      <p role="status">{gaveUpLine(hobby, first)}</p>
+      <UndoButton onUndo={() => void patch(hobby, { status: 'active' }, null)} />
     </li>
     : <HobbyCard key={hobby.id} hobby={hobby} view={view} name={first} patch={patch} giveUp={giveUp} />
   return <>
@@ -85,8 +85,8 @@ function HobbyCard({ hobby, view, name, patch, giveUp }: { hobby: Hobby; view: H
         <h3>{hobby.label}</h3>
         <span className="badge hobby-source">{sourceText(hobby)}</span>
       </header>
-      <p className="hobby-meta">{meta.level && <strong>{meta.level}</strong>}{meta.rest.map((part, index) => (
-        <span key={part} className="subtle">{meta.level || index ? ' · ' : ''}{part}</span>
+      <p className="hobby-meta">{meta.level && <strong className="hobby-part">{meta.level}</strong>}{meta.rest.map((part, index) => (
+        <span key={part} className="subtle">{meta.level || index ? ' · ' : ''}<span className="hobby-part">{part}</span></span>
       ))}</p>
       {hobby.status === 'stalled' && <p className="pet-status hobby-stalled">{hobby.status_text}</p>}
       {hobbyNumbers(hobby) && <p className="subtle pet-numbers">{hobbyNumbers(hobby)}</p>}
@@ -170,4 +170,11 @@ function AddForm({ view, act, onDone }: { view: HobbiesView; act: Act; onDone: (
 
 function cancelOnEscape(event: KeyboardEvent, onDone: () => void) {
   if (event.key === 'Escape') { event.preventDefault(); onDone() }
+}
+
+/** Undo takes focus when it appears, since the Give it up button that had it is gone. */
+function UndoButton({ onUndo }: { onUndo: () => void }) {
+  const button = useRef<HTMLButtonElement>(null)
+  useEffect(() => { button.current?.focus() }, [])
+  return <button ref={button} type="button" className="text-button" onClick={onUndo}><Undo2 aria-hidden="true" />Undo</button>
 }

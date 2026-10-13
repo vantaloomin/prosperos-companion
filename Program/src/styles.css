@@ -594,6 +594,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .hobby-head h3 { margin: 0; }
 .hobby-source { background: transparent; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
 .hobby-card > p { margin: 0; }
+.hobby-part { white-space: nowrap; }
 .hobby-undo { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .hobby-add { display: grid; gap: 8px; margin-top: 16px; }
 .hobby-add h3 { margin: 0; }
@@ -602,6 +603,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .hobbies-dropped summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
 @media (max-width: 720px) {
   .hobby-card .person-actions .text-button, .hobby-undo .text-button { min-height: 44px; }
+  .hobby-card .person-actions { margin-bottom: -10px; }
   .hobby-form input:not([type="checkbox"]), .hobby-form select { max-width: none; }
 }
 .persona-pets { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
