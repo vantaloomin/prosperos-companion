@@ -264,6 +264,8 @@ ADDED_COLUMNS = (
     # Life admin calendar (companion/life/admin.py), on the home features' shared scale: 0 off, 1 light, 2 true to
     # life, 3 dramatic (Settings > Realism > Around the home).
     ('life_settings', 'admin_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (admin_realism BETWEEN 0 AND 3)'),
+    # Work life (companion/life/work.py, Settings > Realism > Their days): 0 off, 1 steady, 2 true to life, 3 dramatic.
+    ('life_settings', 'work_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (work_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -271,6 +273,8 @@ ADDED_COLUMNS = (
 WIDENED_CHECKS = (
     ('notification_deliveries', "'message')"),
     ('memory_vectors', "'storyline'))"),
+    # Work life's late nights on the shared calendar (companion/life/work.py).
+    ('life_admin', "'looks', 'work')"),
 )
 
 
@@ -285,6 +289,7 @@ def initialize(connection, timestamp: str):
     add_columns(connection)
     widen_context_categories(connection)
     widen_checks(connection)
+    connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS memories_person ON memories(person_id)')
     backfill_subject_keys(connection)

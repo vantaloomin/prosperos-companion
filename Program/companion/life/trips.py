@@ -75,9 +75,9 @@ def public_holidays(data: dict, start: date, end: date) -> set[str]:
     return {item['date'] for item in generators.holidays(data, start, end) if item['kind'] == 'public'}
 
 
-def days_off(data: dict, saturday: date) -> list[date]:
-    """The weekend, with the Friday or Monday when it is a public holiday."""
-    holidays = public_holidays(data, saturday - timedelta(days=1), saturday + timedelta(days=2))
+def days_off(data: dict, saturday: date, vacation: set[str] = frozenset()) -> list[date]:
+    """The weekend, with the Friday or Monday when it is a public holiday or a vacation day (companion/life/work.py)."""
+    holidays = public_holidays(data, saturday - timedelta(days=1), saturday + timedelta(days=2)) | vacation
     friday, monday = saturday - timedelta(days=1), saturday + timedelta(days=2)
     if friday.isoformat() in holidays:
         return [friday, saturday, saturday + timedelta(days=1)]
@@ -205,8 +205,10 @@ def decide(connection, companion: dict, home: dict, saturday: date) -> dict | No
     """Whether they go away that weekend, and where; the same answer for the same weekend."""
     definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
     seed = f'trip:{timeline_id}:{saturday.isoformat()}'
-    days = days_off(home, saturday)
-    holidays = public_holidays(home, days[0], days[-1])
+    from companion.life import work
+    vacation = work.vacation_dates(connection, companion, saturday - timedelta(days=1), saturday + timedelta(days=2))
+    days = days_off(home, saturday, vacation)
+    holidays = public_holidays(home, days[0], days[-1]) | vacation
     if not free(definition, days, holidays) or booked(connection, companion, days):
         return None
     if generators.unit(seed, 'go') >= (LONG_CHANCE if len(days) == 3 else CHANCE):
