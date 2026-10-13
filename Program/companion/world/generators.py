@@ -14,6 +14,7 @@ from datetime import date, timedelta
 
 from companion.errors import DomainError
 from companion.world import catalog, naming
+from companion.world import mix as town_mix
 from companion.world.schema import HEARSAY_KINDS
 
 COSTS = ['free', '$', '$$', '$$$', '$$$$']
@@ -580,7 +581,7 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
     names = groups[group]
     if pronouns not in PRONOUNS:
         modern = data['era'] in ('modern', 'future', 'other')
-        pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], [47, 47, 6 if modern else 2])
+        pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], town_mix.pronoun_weights(modern))
     links = naming.links(names, data)
     if family and not names.get('own_family'):
         # A relative's given name comes from a culture that fits the family name they share.

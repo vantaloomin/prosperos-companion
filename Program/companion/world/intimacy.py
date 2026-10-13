@@ -20,7 +20,7 @@ import re
 from functools import cache
 
 from companion.database import optional, settings
-from companion.world import catalog, dating, generators, newcomers, townsfolk
+from companion.world import catalog, dating, generators, mix, newcomers, townsfolk
 
 ADULT_AT = 18
 # How many interests each level draws, and the boldest tier it reaches.
@@ -71,6 +71,8 @@ def roll(seed: str, age: int, who: str) -> dict | None:
     levels = [level['id'] for level in bank()['levels']]
     # Two draws averaged lean towards the middle: most people are conventional or curious, few are at the ends.
     middle = (generators.unit(seed, 'intimacy-a') + generators.unit(seed, 'intimacy-b')) / 2
+    if mix.changed('bolder'):
+        middle = min(max(middle + mix.bolder_shift(), 0.0), 0.999)
     level = levels[min(len(levels) - 1, int(middle * len(levels)))]
     count, boldest = DRAWS[level]
     if level == 'conventional' and generators.unit(seed, 'intimacy-count') < 0.5:
@@ -78,7 +80,7 @@ def roll(seed: str, age: int, who: str) -> dict | None:
     options = sorted(entry['id'] for entry in bank()['interests'] if entry['tier'] <= boldest)
     interests = sorted(options, key=lambda entry: generators.unit(seed, 'intimacy-into', entry))[:count]
     return {'orientation': dating.orientation(seed, age, who)[0], 'level': level,
-            'drive': dating.weighted(seed, 'intimacy-drive', DRIVES), 'interests': sorted(interests), 'note': ''}
+            'drive': dating.weighted(seed, 'intimacy-drive', mix.drive_weights(DRIVES)), 'interests': sorted(interests), 'note': ''}
 
 
 def for_sheet(sheet: dict) -> dict | None:
