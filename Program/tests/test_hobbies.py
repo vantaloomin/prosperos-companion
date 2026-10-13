@@ -44,6 +44,8 @@ def kim(client, monkeypatch, provider):
     monkeypatch.setattr(composer, 'PLAN_SHARE', 0)
     monkeypatch.setattr(composer, 'THREAD_SHARE', 0)
     monkeypatch.setattr(hobbies, 'WEAVE', True)
+    # Their dice are seeded on the timeline's random id; no stalls keeps these checks from depending on the roll.
+    monkeypatch.setattr(hobbies, 'STALL', (0.0, 0.0, 0.0, 0.0))
     response = client.post('/api/companion', json={
         'name': 'Kim', 'timezone': 'UTC', 'schedule': EVENINGS, 'home_city': 'Baltimore',
         'identity': 'They are a nurse.', 'interests': ['rock climbing', 'the cello', 'true crime podcasts']})
@@ -105,7 +107,8 @@ def test_practice_adds_up_to_milestones_the_same_way_every_time(client, kim):
     assert sorted(item['text'] for item in again) == texts
 
 
-def test_written_interests_are_never_given_up_and_the_slider_off_stops_everything(client, kim):
+def test_written_interests_are_never_given_up_and_the_slider_off_stops_everything(client, kim, monkeypatch):
+    monkeypatch.setattr(hobbies, 'STALL', (0.0, 0.02, 0.05, 0.09))
     set_life(client, hobbies_realism=3)
     client.get('/api/life/hobbies')
     walk(client, 500)
