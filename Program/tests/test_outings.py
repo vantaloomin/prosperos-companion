@@ -23,6 +23,9 @@ def asked(text, firm=False):
 
 def test_asking_out_is_read_from_the_message():
     assert asked('Want to get dinner Friday?') == ('dinner', '2026-10-09', None, None)
+    # "Next Friday" said on a Monday is next week's.
+    assert asked('Dinner next Friday?') == ('dinner', '2026-10-16', None, None)
+    assert asked('Want to see a movie next Thursday?')[:2] == ('show', '2026-10-15')
     assert asked("Let's go for a walk this weekend!") == ('walk', '2026-10-10', None, None)
     assert asked('Drinks with me Thursday at 8?') == ('drinks', '2026-10-08', '20:00', None)
     assert asked('How about a date sometime?') == ('dinner', None, None, None)

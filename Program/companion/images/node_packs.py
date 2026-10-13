@@ -41,12 +41,27 @@ def providing(node_types) -> list[dict]:
     return [{'id': pack_id, 'label': pack['label']} for pack_id, pack in PACKS.items() if wanted & set(pack['nodes'])]
 
 
+# What sits beside custom_nodes in a ComfyUI folder: main.py and comfy/ in a source or portable install, models/ in
+# the desktop app's folder. A folder without any of them is not ComfyUI's, whatever the server says.
+COMFY_SIGNS = ('main.py', 'comfy', 'models')
+
+
+def comfyui_nodes_folder(path: Path) -> bool:
+    """A folder named custom_nodes inside what looks like a ComfyUI folder."""
+    return path.name == 'custom_nodes' and any((path.parent / sign).exists() for sign in COMFY_SIGNS)
+
+
 def custom_nodes_folder(folder_paths) -> Path:
-    """The first custom_nodes folder ComfyUI reports (`/internal/folder_paths`) that is on this computer."""
+    """The first custom_nodes folder ComfyUI reports (`/internal/folder_paths`) that is on this computer and is a
+    custom_nodes folder in a ComfyUI folder; nothing is ever written anywhere else."""
     paths = folder_paths.get('custom_nodes') if isinstance(folder_paths, dict) else None
-    for path in paths or []:
-        if isinstance(path, str) and Path(path).is_dir():
-            return Path(path)
+    found = [Path(path) for path in paths or [] if isinstance(path, str) and Path(path).is_dir()]
+    for path in found:
+        if comfyui_nodes_folder(path):
+            return path
+    if found:
+        raise DomainError("The folder ComfyUI named for its nodes doesn't look like ComfyUI's custom_nodes folder, "
+                          'so nothing was installed. Get the nodes from their page instead, then restart ComfyUI.', 409)
     raise DomainError("ComfyUI didn't say where its custom_nodes folder is. Get the nodes from their page "
                       'instead, then restart ComfyUI.', 409)
 

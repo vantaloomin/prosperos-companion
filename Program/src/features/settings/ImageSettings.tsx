@@ -420,7 +420,7 @@ function ModelLinks({ links }: { links: ModelLink[] }) {
   const groups = linksByRole(links)
   if (groups.length === 0) return null
   return <div>
-    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list. Pictures made from a reference also need the Krea 2 Identity Edit <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder; Check offers to install it. Check the licence on each page before downloading.</p>
+    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list. Pictures made from a reference also need the Krea 2 Identity Edit <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder; Check offers to install it. Check the license on each page before downloading.</p>
     <ul className="plain-list">
       {groups.flatMap(({ slot, links: items }) => items.map(link => <li key={link.name}>
         {slot.label}: <a className="text-button" href={link.url} target="_blank" rel="noreferrer">{link.name}</a>{link.file && <> · {link.file}</>}

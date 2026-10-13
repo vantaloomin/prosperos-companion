@@ -121,6 +121,10 @@ def when(clause: str, today: date, holidays: dict[str, date]) -> tuple[date, str
     if span and span.certain and span.end - span.start == timedelta(days=1):
         words = re.search(rf"\b(?:on |this |for )?{re.escape(span.phrase)}\b", clause, re.IGNORECASE)
         return span.start, words.group(0) if words else span.phrase, PARTS.get(span.phrase)
+    if span and span.phrase.startswith('next ') and span.end - span.start == timedelta(days=1):
+        # "Next Thursday" said earlier in the week is next week's: this week's would be "this Thursday" or "Thursday".
+        words = re.search(rf"\b(?:on |for )?{re.escape(span.phrase)}\b", clause, re.IGNORECASE)
+        return span.start + timedelta(days=7), words.group(0) if words else span.phrase, None
     return None
 
 

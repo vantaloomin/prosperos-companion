@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import pytest
 from conftest import reconcile
 
-from companion.life import composer, upkeep, upkeep_bank
+from companion.life import composer, home, upkeep, upkeep_bank
 
 TODAY = date(2026, 10, 5)  # the test clock's
 WORK = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'days': [0, 1, 2, 3, 4], 'start': '09:00', 'end': '17:00'},
@@ -170,3 +170,99 @@ def test_a_recent_big_clean_reads_as_days_ago():
     assert upkeep.days_ago(date(2026, 10, 11), date(2026, 10, 13)) == 'Sunday, 2 days ago'
     assert upkeep.days_ago(date(2026, 10, 12), date(2026, 10, 13)) == 'yesterday'
     assert upkeep.days_ago(date(2026, 10, 13), date(2026, 10, 13)) == 'today'
+
+
+def test_older_eras_get_no_modern_housework():
+    modern = ('fridge', 'freezer', 'microwave', 'phone', 'remote', 'charger', 'recycling', 'vacuum', 'lint-roll',
+              'litter', 'jeans', 't-shirt', 'toaster', 'gym', 'favourite', 'reorganised', 'hoover')
+    old = {'era': 'medieval'}
+    banks = [upkeep_bank.LAUNDRY_DONE, upkeep_bank.LAUNDRY_PILING, upkeep_bank.DISHES_DONE, upkeep_bank.DISHES_PILING,
+             upkeep_bank.CLUTTER_DONE, upkeep_bank.CLUTTER_PILING, upkeep_bank.BIG_CLEAN, upkeep_bank.PET_MESS]
+    lines = [line for bank in banks for line in upkeep.lines_for(old, bank)]
+    lines += [upkeep.pet_line(old, f'seed{n}', [{'name': 'Rex', 'variety': 'cat'}]) for n in range(200)]
+    assert not [line for line in lines if any(word in line.casefold() for word in modern)]
+
+
+@pytest.mark.parametrize('era', ['modern', 'jazz-age', 'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'])
+def test_every_era_has_a_hundred_moments_per_kind(era):
+    state = {'era': era}
+    banks = {'laundry': (upkeep_bank.LAUNDRY_DONE, upkeep_bank.LAUNDRY_PILING),
+             'dishes': (upkeep_bank.DISHES_DONE, upkeep_bank.DISHES_PILING),
+             'clutter': (upkeep_bank.CLUTTER_DONE, upkeep_bank.CLUTTER_PILING),
+             'big clean': (upkeep_bank.BIG_CLEAN,), 'pet mess': (upkeep_bank.PET_MESS,)}
+    for kind, parts in banks.items():
+        assert len([line for bank in parts for line in upkeep.lines_for(state, bank)]) >= 100, (era, kind)
+
+
+def test_a_home_without_plumbing_gets_no_sinks_or_mail():
+    plumbed = ('sink', 'faucet', 'tap', 'mail', 'stove', 'oven', 'bathroom', 'shower', 'radiator', 'counter')
+    old, victorian = {'era': 'medieval'}, {'era': 'victorian'}
+    banks = [upkeep_bank.LAUNDRY_DONE, upkeep_bank.LAUNDRY_PILING, upkeep_bank.DISHES_DONE, upkeep_bank.DISHES_PILING,
+             upkeep_bank.CLUTTER_DONE, upkeep_bank.CLUTTER_PILING, upkeep_bank.BIG_CLEAN, upkeep_bank.PET_MESS]
+    lines = [line for bank in banks for line in upkeep.lines_for(old, bank)]
+    lines += [upkeep.area_text(old, area, value) for area in upkeep.AREAS for value in (5, 30, 60, 90)]
+    lines += list(upkeep.bank_for(old, upkeep_bank.PICTURE, upkeep_bank.PICTURE_RUSTIC).values())
+    assert not [line for line in lines if any(re.search(rf'\b{word}', line.casefold()) for word in plumbed)]
+    assert 'sink' in upkeep.area_text(victorian, 'dishes', 30) and 'washtub' in upkeep.area_text(old, 'dishes', 30)
+    assert any('mail' in line for bank in banks for line in upkeep.lines_for(victorian, bank))
+
+
+def test_a_pet_without_mess_gets_no_mess_line_and_each_kind_gets_its_own():
+    state = {'era': 'modern'}
+    assert upkeep.pet_line(state, 'seed', [{'name': 'Bubbles', 'variety': 'fish'}]) is None
+    birds = {upkeep.pet_line(state, f'seed{n}', [{'name': 'Kiwi', 'variety': 'bird'}]) for n in range(200)}
+    assert not [line for line in birds if re.search(r'\b(fur|hair|litter|paw)', line)]
+    assert any('cage' in line for line in birds)
+
+
+def test_a_big_clean_before_set_it_is_not_the_last_one(client, mira):
+    tid = timeline(client)
+    yesterday = (TODAY - timedelta(days=1)).isoformat()
+    with connect(client) as connection:
+        connection.execute("INSERT OR REPLACE INTO upkeep_days (timeline_id, local_date, mess, done, away, busy, "
+                           "since_big) VALUES (?, ?, '{\"laundry\": 3, \"dishes\": 3, \"clutter\": 3}', "
+                           "'[\"big-clean\"]', 0, 0, 0)", (tid, yesterday))
+    assert client.get('/api/life/upkeep').json()['last_big_clean'] == yesterday
+    disaster = client.put('/api/life/upkeep', json={'tidiness': 4}).json()
+    assert disaster['last_big_clean'] is None
+    system = client.get('/api/context/preview').json()['system']
+    assert 'The place is a mess.' in system and 'you did a big clean' not in system
+
+
+def test_turning_housework_off_forgets_upcoming_housework_moments(client, mira):
+    tid = timeline(client)
+    with connect(client) as connection:
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, "
+                           "block, entry, basis, created_at) VALUES ('a1', ?, 'companion', 'evening@x', '', '', ?, "
+                           "'evening', ?, 'test', '')", (tid, (TODAY + timedelta(days=3)).isoformat(),
+                                                       '{"summary": "Mira did chores. Ran the dishwasher.", '
+                                                       '"upkeep": {"kind": "dishes"}}'))
+    assert client.put('/api/life/settings', json={'upkeep_realism': 0}).status_code == 200
+    with connect(client, False) as connection:
+        assert not connection.execute("SELECT id FROM life_agenda WHERE id='a1'").fetchall()
+
+
+def test_a_day_being_drawn_is_not_kept_before_its_dinners_are_known(client, mira):
+    tid, database = timeline(client), client.app.state.database
+    later = database.clock.now() + timedelta(days=10)  # catching up: their today is well past the day drawn
+    drawing = TODAY + timedelta(days=3)
+    with connect(client) as connection:
+        upkeep.touch(connection, tid, 'companion', {'activity': 'chores', 'summary': 'Mira did chores.'},
+                     drawing.isoformat(), 's1', MIRA, None, later)
+        kept = {row[0] for row in connection.execute('SELECT local_date FROM upkeep_days WHERE timeline_id=?', (tid,))}
+    assert (drawing - timedelta(days=1)).isoformat() in kept and drawing.isoformat() not in kept
+
+
+def test_a_chores_slot_is_left_to_housework(client, mira):
+
+    tid, database = timeline(client), client.app.state.database
+    entry = {'activity': 'chores', 'summary': 'Mira did chores.'}
+    with connect(client) as connection:
+        for n in range(12):
+            woven = home.touch(connection, tid, 'companion', entry, (TODAY + timedelta(days=1)).isoformat(), f's{n}',
+                               MIRA, None, database.clock.now())
+            assert 'home' not in woven or woven['home'].get('pet_event') or woven['home'].get('change')
+        connection.execute('UPDATE life_settings SET upkeep_realism=0')
+        woven = [home.touch(connection, tid, 'companion', entry, (TODAY + timedelta(days=1)).isoformat(), f's{n}',
+                            MIRA, None, database.clock.now()) for n in range(30)]
+    assert any('home' in found for found in woven)  # with housework off, their things can come up again

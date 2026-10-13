@@ -1298,8 +1298,12 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .note-switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .note-tray textarea, .composer .note-tray textarea { flex: none; width: 100%; min-height: 84px; max-height: min(calc(10 * 1.5em + 22px), 45dvh); resize: none; overflow-y: auto; line-height: 1.5; }
 .note-count { align-self: flex-end; font-size: 0.8125rem; margin-top: -6px; }
-.note-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 0.8125rem; }
-.note-foot .text-button { padding: 0; }
+.note-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.8125rem; }
+.note-foot > span { flex: 1; min-width: 0; }
+.note-foot .text-button { padding: 0; flex-shrink: 0; }
+.note-done { margin-top: 6px; }
+.note-tray textarea.note-unused { color: var(--muted); }
+@media (max-width: 720px) { .note-foot .note-clear { min-height: 44px; padding: 0 4px; } }
 .note-grabber { align-self: center; width: 38px; height: 5px; border-radius: 3px; background: var(--border); }
 .chat-retro .note-tray { border-radius: 0; border: 2px outset #f2f1ee; box-shadow: none; }
 .chat-retro .note-tray textarea { border-radius: 0; }
@@ -1733,7 +1737,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .admin-item p { margin: 0; }
 .admin-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .admin-item .text-button, .admin-more { padding-left: 0; padding-right: 0; }
-.admin-more { color: var(--accent); min-height: 44px; }
+.admin-more { color: var(--accent); min-height: 44px; margin-top: -11px; }
 .admin-when { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; width: 100%; }
 .admin-state { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .admin-later { display: grid; max-width: 28rem; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0; font-size: 0.875rem; }

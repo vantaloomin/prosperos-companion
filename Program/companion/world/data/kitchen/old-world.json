@@ -126,7 +126,12 @@
     ["Linzer torte with redcurrant jam", 3, "veg dairy egg gluten nuts bake treat"],
     ["roast duck with plum sauce", 3, "meat treat"],
     ["hand-scraped spätzle with venison gravy", 3, "meat egg gluten warm"],
-    ["dobos-style layered honey torte", 3, "veg dairy egg gluten bake treat"]
+    ["dobos-style layered honey torte", 3, "veg dairy egg gluten bake treat"],
+    ["fried bread with onions", 1, "vegan gluten quick warm"],
+    ["boiled potatoes with salt and parsley", 1, "vegan quick warm"],
+    ["stewed lentils with bread", 1, "vegan gluten quick warm"],
+    ["bread with pickled cabbage and onions", 1, "vegan gluten quick cold"],
+    ["fried mushrooms with bread", 1, "vegan gluten quick warm"]
   ],
   "takeout": [
     ["bratwurst in a crusty roll with mustard", "sausages", "the sausage stall in the square", "pork gluten"],
@@ -158,6 +163,11 @@
     ["goulash with bread", "tavern", "the tavern by the harbour", "meat gluten"],
     ["cheese board with radishes and rye bread", "tavern", "the tavern by the harbour", "veg dairy gluten"],
     ["Flammkuchen with bacon and onions", "tavern", "the tavern by the harbour", "pork dairy gluten"],
-    ["lobscouse with a fried egg", "tavern", "the tavern by the harbour", "meat egg"]
+    ["lobscouse with a fried egg", "tavern", "the tavern by the harbour", "meat egg"],
+    ["bean soup with bread", "soup", "the soup cauldron at the market", "vegan gluten"],
+    ["pea soup with bread", "soup", "the soup cauldron at the market", "vegan gluten"],
+    ["rye loaf and pickles", "bakery", "the bakery on the corner", "vegan gluten"],
+    ["roasted chestnuts", "tavern", "the tavern by the harbour", "vegan nuts"],
+    ["fried potatoes with onions", "inn", "the inn's kitchen", "vegan"]
   ]
 }

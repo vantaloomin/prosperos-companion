@@ -1,5 +1,6 @@
 """The dating app: townsfolk dating details by rule, the user's profile, swipes, matches becoming companions and
 dates in Story mode (companion/world/dating.py, companion/dating.py)."""
+import re
 from collections import Counter
 from datetime import date
 
@@ -48,6 +49,18 @@ def test_townsfolk_dating_details_are_seeded_adult_and_at_realistic_rates():
     card = dating.card(people[0], data, date(2026, 10, 7))
     assert card['name'] == people[0]['name'] and people[0]['full'].split()[-1] not in card['bio']
     assert '"' in card['looks'] and card['bio'] and not card['notice']
+
+
+def test_photo_prompts_say_scars_and_broken_noses_as_a_camera_sees_them():
+    """Matchlight photos follow the picture wording rule (companion/world/looks.seen): no scar, broken or cleft."""
+    from companion import dating_photos
+
+    data, people = everyone('baltimore')
+    prompts = [dating_photos.inputs(sheet, data)['prompt'] for sheet in people if sheet['age'] >= 18]
+    assert len(prompts) > 300
+    damage = re.compile(r'\b(scar|scarred|broken|crooked|cleft|chipped|scuffed|gap-toothed)\b', re.IGNORECASE)
+    assert not [prompt for prompt in prompts if damage.search(prompt)]
+    assert any('pale mark' in prompt or 'bends slightly' in prompt or 'dimple' in prompt for prompt in prompts)
 
 
 def test_older_eras_have_a_personal_column_with_initials():

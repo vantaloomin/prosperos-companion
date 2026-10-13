@@ -96,8 +96,11 @@ def test_an_edited_sheet_adds_its_people_and_pets_to_an_existing_world(client):
     pets = [item['name'] for item in client.get('/api/life/home').json()['items'] if item['kind'] == 'pet']
     assert 'Pickle' in pets
     # Read again: nothing is added twice, and a renamed Pickle still counts.
-    pickle = next(item for item in client.get('/api/life/home').json()['items'] if item['name'] == 'Pickle')
+    before_rename = [item for item in client.get('/api/life/home').json()['items'] if item['kind'] == 'pet']
+    pickle = next(item for item in before_rename if item['name'] == 'Pickle')
     assert client.patch(f"/api/life/home/items/{pickle['id']}", json={'name': 'Pickles'}).status_code == 200
     assert len(client.get('/api/life/circle').json()) == len(after)
-    pets = [item['name'] for item in client.get('/api/life/home').json()['items'] if item['kind'] == 'pet']
-    assert pets.count('Pickles') == 1 and 'Pickle' not in pets
+    pets = [item for item in client.get('/api/life/home').json()['items'] if item['kind'] == 'pet']
+    # The seeded pet's drawn name can itself be Pickles, so count pets rather than names.
+    assert len(pets) == len(before_rename) and 'Pickle' not in [item['name'] for item in pets]
+    assert next(item for item in pets if item['id'] == pickle['id'])['name'] == 'Pickles'

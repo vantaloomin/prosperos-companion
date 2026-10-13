@@ -64,7 +64,7 @@ def test_a_messy_city_loads_keeping_new_kinds_and_saying_what_changed():
     assert careers['aerospace-engineer']['name'] == 'Aerospace engineer'
 
     notes = ' '.join(data['import_notes'])
-    for expected in ('"Diner" as "restaurant"', 'Added the neighbourhood "Arts District"', 'Added the job "Aerospace '
+    for expected in ('"Diner" as "restaurant"', 'Added the neighborhood "Arts District"', 'Added the job "Aerospace '
                      'engineer", which JPL hires for', '"aliens"', 'ignored the field "website"', '"mars"'):
         assert expected in notes, notes
     assert 'bowling' not in notes and 'Film School' not in notes

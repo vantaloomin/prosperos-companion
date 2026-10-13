@@ -26,7 +26,7 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, composer, deck, dreams, feed, mood, routine, thoughts
+from companion.life import agenda, composer, deck, dreams, feed, mood, pets, routine, thoughts, upkeep
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -80,6 +80,10 @@ def update_settings(database, body) -> dict:
             if 'automatic_events' in changed:
                 connection.execute('UPDATE workspace_settings SET permission_revision=permission_revision+1, '
                                    'updated_at=? WHERE id=1', (timestamp,))
+            if {'pets_realism', 'pets_can_die'} & set(changed):
+                pets.settings_changed(connection, database.clock.now())
+            if 'upkeep_realism' in changed:
+                upkeep.settings_changed(connection, database.clock.now())
         return settings_view(life_settings(connection))
 
 
@@ -154,16 +158,20 @@ def background_used(connection, timeline_id, now) -> int:
 
 def candidates(connection, companion, through, now, lookback_hours, open_slot=None) -> list[routine.Slot]:
     """Completed, simulatable slots that start after the cursor and inside the lookback, plus the slot that
-    was still going when the cursor last moved (`open_slot`), so a block is not lost for being in progress."""
+    was still going when the cursor last moved (`open_slot`), so a block is not lost for being in progress. A bold
+    change to their looks is kept from further back too (up to the agenda's backfill), so it is always posted
+    however long the user was away."""
     version = companion['version']
     schedule, _default = routine.blocks(version['definition'])
     earliest = now - timedelta(hours=lookback_hours)
-    start = max(through, earliest)
     result = []
-    for slot in routine.slots(schedule, version['timezone'], earliest, now):
-        if slot.block.kind in routine.RESTING or slot.ends_at > now or slot.starts_at < earliest:
+    for slot in routine.slots(schedule, version['timezone'], max(earliest - BOLD_BACK, min(earliest, through - DAY)),
+                              now):
+        if slot.block.kind in routine.RESTING or slot.ends_at > now:
             continue
-        if slot.starts_at < start and not (slot_mark(slot) == open_slot and slot.ends_at > through):
+        if slot.starts_at < earliest and not bold_looks(connection, companion['active_timeline_id'], slot.key):
+            continue
+        if slot.starts_at < through and not (slot_mark(slot) == open_slot and slot.ends_at > through):
             continue
         if overlapping_pause(connection, stamp(slot.starts_at), stamp(slot.ends_at)):
             continue
@@ -172,6 +180,14 @@ def candidates(connection, companion, through, now, lookback_hours, open_slot=No
             continue
         result.append(slot)
     return result
+
+
+BOLD_BACK, DAY = timedelta(days=30), timedelta(days=1)
+
+
+def bold_looks(connection, timeline_id, slot_key) -> bool:
+    return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                         "AND slot_key=? AND json_extract(entry, '$.looks.bold')=1", (timeline_id, slot_key)))
 
 
 def plan_for(connection, timeline_id, slot_key) -> dict | None:

@@ -48,7 +48,7 @@ export function BuiltinRecall() {
   return <section className="settings-section form-stack" aria-labelledby="recall-heading">
     <div>
       <h2 id="recall-heading">Built-in recall</h2>
-      <p className="subtle">Recall finds related memories even when the words differ. The Companion can run a small embedding model for this itself, on this PC's processor, apart from LM Studio, Kobold or Ollama. You download the model file, so you accept its licence. While this is on, it does Semantic recall instead of the profile chosen above.</p>
+      <p className="subtle">Recall finds related memories even when the words differ. The Companion can run a small embedding model for this itself, on this PC's processor, apart from LM Studio, Kobold or Ollama. You download the model file, so you accept its license. While this is on, it does Semantic recall instead of the profile chosen above.</p>
     </div>
     <RuntimeStep data={data} busy={busy} run={run} onChange={update} />
     <ModelStep data={data} chosen={chosen} busy={busy} run={run} setPath={setPath} checking={query.isFetching} refresh={() => void query.refetch()} />
@@ -66,7 +66,7 @@ function RuntimeStep({ data, busy, run, onChange }: StepProps & { onChange: (vie
   return <div className="form-stack">
     <h3>1. llama.cpp</h3>
     {runtime.installed && <p className="subtle">llama.cpp {runtime.version} is ready.</p>}
-    {!runtime.installed && runtime.available && <div className="form-actions"><button type="button" className="button" onClick={() => void install()} disabled={!!busy}><Download size={15} aria-hidden="true" />{busy === 'install' ? 'Downloading…' : `Download llama.cpp (${runtime.download_mb} MB)`}</button><small>From llama.cpp's official releases, checked against a pinned checksum. MIT licence.</small></div>}
+    {!runtime.installed && runtime.available && <div className="form-actions"><button type="button" className="button" onClick={() => void install()} disabled={!!busy}><Download size={15} aria-hidden="true" />{busy === 'install' ? 'Downloading…' : `Download llama.cpp (${runtime.download_mb} MB)`}</button><small>From llama.cpp's official releases, checked against a pinned checksum. MIT license.</small></div>}
     {!runtime.installed && !runtime.available && <p className="subtle">There is no llama.cpp download for this computer. Set COMPANION_LLAMA_SERVER to a llama-server you installed.</p>}
   </div>
 }

@@ -262,7 +262,7 @@ CITY = {
         place('the-avenue', 'The Avenue on 36th Street', 'shopping', 'hampden', 'Thrift shops, boutiques, cafes '
               'and kitsch along Hampden\'s main street.', ['thrift', 'boutiques', 'walk'], '$', 'outdoor', ALL,
               ['morning', 'afternoon']),
-        place('the-charmery', 'The Charmery', 'cafe', 'hampden', 'Small-batch ice cream shop with local flavours '
+        place('the-charmery', 'The Charmery', 'cafe', 'hampden', 'Small-batch ice cream shop with local flavors '
               'like Old Bay caramel.', ['ice-cream', 'dessert'], '$', 'indoor', ALL, ['afternoon', 'evening']),
         place('ekiben', 'Ekiben', 'restaurant', 'hampden', 'Local favorite for steamed-bun sandwiches and tempura '
               'broccoli.', ['buns', 'casual'], '$', 'indoor', ADULT, ['afternoon', 'evening'], cuisine='asian-fusion'),
@@ -418,7 +418,7 @@ CITY = {
               'Museum of Art with a playground and the Charles Village Festival in spring.',
               ['playground', 'picnic', 'dogs'], 'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
         place('waverly-farmers-market', '32nd Street Farmers Market', 'market', 'charles-village', 'Year-round '
-              'Saturday market in Waverly with produce, coffee, breakfast stalls and neighbours catching up.',
+              'Saturday market in Waverly with produce, coffee, breakfast stalls and neighbors catching up.',
               ['farmers-market', 'saturday', 'breakfast'], '$', 'outdoor', ALL, ['morning']),
         place('normals-books', 'Normal\'s Books & Records', 'shopping', 'charles-village', 'Crammed used book and '
               'record shop in Waverly with occasional experimental music shows.', ['books', 'records', 'used'], '$',
@@ -498,7 +498,7 @@ CITY = {
               'Building with its dome and the marble Christus statue in the rotunda.', ['history', 'medical'],
               'free', 'indoor', ['solo', 'family'], DAY),
         place('northeast-market', 'Northeast Market', 'market', 'east-baltimore', 'City public market on Monument '
-              'Street with lunch counters feeding hospital staff and neighbours.', ['food', 'lunch', 'historic'],
+              'Street with lunch counters feeding hospital staff and neighbors.', ['food', 'lunch', 'historic'],
               '$', 'indoor', ALL, DAY),
         place('eager-park', 'Eager Park', 'park', 'east-baltimore', 'New neighborhood park with lawns, a '
               'playground and summer concerts near the Hopkins campus.', ['playground', 'lawn', 'events'], 'free',
@@ -641,7 +641,7 @@ CITY = {
                    'but changeable winters with occasional snow.',
         'months': [
             {'high_f': 42, 'low_f': 26, 'rain_days': 10, 'note': 'Coldest month; a few snow days most years.'},
-            {'high_f': 46, 'low_f': 28, 'rain_days': 9, 'note': 'Cold, grey; snow possible.'},
+            {'high_f': 46, 'low_f': 28, 'rain_days': 9, 'note': 'Cold, gray; snow possible.'},
             {'high_f': 55, 'low_f': 35, 'rain_days': 11, 'note': 'Changeable; early blossoms late in the month.'},
             {'high_f': 66, 'low_f': 45, 'rain_days': 11, 'note': 'Spring rain and blossoms.'},
             {'high_f': 75, 'low_f': 54, 'rain_days': 12, 'note': 'Warm and green; patios open.'},
@@ -702,7 +702,7 @@ CITY = {
               'of fudge icing, sold in grocery stores all over town and brought to every office party.'),
         color('lake-trout', 'Lake trout', 'dish', 'A carryout staple that is not trout at all: fried whiting on white '
               'bread with hot sauce, sold by the box at corner carryouts.'),
-        color('snowball', 'Snowball', 'dish', 'Finely shaved ice soaked in syrup, with egg custard the local favourite '
+        color('snowball', 'Snowball', 'dish', 'Finely shaved ice soaked in syrup, with egg custard the local favorite '
               'and marshmallow cream on top, sold from neighborhood stands that open for the warm months.',
               seasons=['spring', 'summer']),
         color('natty-boh', 'Natty Boh', 'drink', 'National Bohemian, the cheap local lager whose one-eyed, mustachioed '

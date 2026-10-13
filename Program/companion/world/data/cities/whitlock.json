@@ -4,7 +4,7 @@
  "name": "Whitlock",
  "setting": "original",
  "era": "frontier",
- "basis": "Original setting written for Prospero Companion, modelled on real territorial towns of the 1880s.",
+ "basis": "Original setting written for Prospero Companion, modeled on real territorial towns of the 1880s.",
  "region": "Arizona Territory",
  "country": "United States",
  "timezone": "America/Phoenix",
@@ -885,7 +885,7 @@
    "name": "Harlan Opera House",
    "kind": "venue",
    "neighborhood": "main-street",
-   "summary": "A two-storey adobe hall that hosts travelling theatre companies, minstrel shows, lectures, union meetings, church socials and the Saturday dances.",
+   "summary": "A two-story adobe hall that hosts traveling theater companies, minstrel shows, lectures, union meetings, church socials and the Saturday dances.",
    "tags": [
     "theatre",
     "dances",
@@ -1068,7 +1068,7 @@
    "name": "Freight yards and corrals",
    "kind": "docks",
    "neighborhood": "depot",
-   "summary": "Sheds, platforms and corrals where ore sacks go out and machinery, flour and barrels come in, worked by teamsters and Chinese labourers.",
+   "summary": "Sheds, platforms and corrals where ore sacks go out and machinery, flour and barrels come in, worked by teamsters and Chinese laborers.",
    "tags": [
     "freight",
     "wagons",
@@ -2428,7 +2428,7 @@
    "name": "Diamond K ranch headquarters",
    "kind": "workshop",
    "neighborhood": "turkey-creek",
-   "summary": "An adobe ranch house with corrals, a blacksmith shed and a windmill, where neighbours help at branding time.",
+   "summary": "An adobe ranch house with corrals, a blacksmith shed and a windmill, where neighbors help at branding time.",
    "tags": [
     "ranch",
     "corrals",
@@ -3858,7 +3858,7 @@
    "id": "bucking-the-tiger",
    "name": "Bucking the tiger",
    "kind": "saying",
-   "summary": "Playing faro, the favourite saloon card game, whose dealing boxes were often painted with a tiger.",
+   "summary": "Playing faro, the favorite saloon card game, whose dealing boxes were often painted with a tiger.",
    "places": [
     "palace-saloon",
     "railroad-exchange"
@@ -4035,7 +4035,7 @@
    "item": "Miner's wage",
    "low": 3.5,
    "high": 4,
-   "per": "a day; labourers $2-$3",
+   "per": "a day; laborers $2-$3",
    "source": "curated-2026-10"
   }
  ]

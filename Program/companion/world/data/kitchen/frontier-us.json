@@ -160,6 +160,10 @@
     ["flapjacks with molasses", "cafe", "the café across from the livery", "veg egg dairy gluten breakfast"],
     ["fried trout and potatoes", "cafe", "the café across from the livery", "fish gluten quick"],
     ["chicken-fried steak with gravy", "cafe", "the café across from the livery", "meat dairy egg gluten treat"],
-    ["chicken pie", "cafe", "the café across from the livery", "meat dairy gluten bake warm"]
+    ["chicken pie", "cafe", "the café across from the livery", "meat dairy gluten bake warm"],
+    ["beans and corn tortillas with red chile", "mexican", "the chili stand on the plaza", "vegan"],
+    ["bean tamales", "mexican", "the tamale vendor by the depot", "vegan"],
+    ["baked potatoes and stewed tomatoes", "hotel", "the hotel dining room on Main Street", "vegan"],
+    ["stewed beans with hominy", "boardinghouse", "the boardinghouse kitchen down the street", "vegan"]
   ]
 }

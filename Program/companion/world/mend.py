@@ -20,9 +20,9 @@ ID = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 GROUPS = ('neighborhoods', 'places', 'colleges', 'employers', 'career_hubs', 'transit', 'annual_events')
 SOURCED = (*GROUPS, 'local_color', 'prices', 'notables')
 LISTS = (*SOURCED, 'careers', 'holidays')
-SINGULAR = {'neighborhoods': 'neighbourhood', 'places': 'place', 'colleges': 'college', 'employers': 'employer',
+SINGULAR = {'neighborhoods': 'neighborhood', 'places': 'place', 'colleges': 'college', 'employers': 'employer',
             'career_hubs': 'career hub', 'transit': 'transit line', 'annual_events': 'event',
-            'local_color': 'local colour', 'prices': 'price', 'notables': 'notable', 'careers': 'career', 'holidays': 'holiday'}
+            'local_color': 'local color', 'prices': 'price', 'notables': 'notable', 'careers': 'career', 'holidays': 'holiday'}
 USER_SOURCE = {'kind': 'user', 'title': 'Written by the user', 'license': 'User content', 'retrieved': '2000-01-01'}
 # Keys the app itself adds to a loaded city (a city saved from the API, say), dropped without a note.
 LOADER_KEYS = ('data_version', 'builtin', 'origin', 'pack_file', 'revision', 'created_at', 'updated_at', 'import_notes')
@@ -188,7 +188,7 @@ class _Mender:
             if isinstance(event, dict) and event.get('neighborhood') is not None:
                 found = hoods.find(event['neighborhood'])
                 if not found:
-                    self.note(f'{self.label("annual_events", event)}: the neighbourhood "{event["neighborhood"]}" '
+                    self.note(f'{self.label("annual_events", event)}: the neighborhood "{event["neighborhood"]}" '
                               'is not in the city, so it happens citywide.')
                 event['neighborhood'] = found
         self.hubs(hoods)
@@ -238,7 +238,7 @@ class _Mender:
             if isinstance(hub, dict) and isinstance(hub.get('neighborhoods'), list):
                 found = [hoods.find(item) for item in hub['neighborhoods']]
                 if None in found:
-                    self.note(f'{self.label("career_hubs", hub)}: left out neighbourhoods the city does not have.')
+                    self.note(f'{self.label("career_hubs", hub)}: left out neighborhoods the city does not have.')
                 hub['neighborhoods'] = list(dict.fromkeys(item for item in found if item))
                 if not hub['neighborhoods']:
                     continue
@@ -275,7 +275,7 @@ class _Mender:
                 'vibe': ['local'], **center, 'housing': ['apartment'], 'walkability': 'medium',
                 'source': next(iter(self.data['sources']))}
         self.data['neighborhoods'].append(hood)
-        self.note(f'Added the neighbourhood "{name}", which {named_by} is in.')
+        self.note(f'Added the neighborhood "{name}", which {named_by} is in.')
         return hood
 
     # --- Field by field, from what validation found ---

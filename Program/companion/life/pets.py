@@ -45,6 +45,8 @@ TOWN_ANCHOR = date(2026, 1, 1)
 RECENT_DAYS = 21
 REMEMBERED_DAYS = 90
 TRAVELS_ALONG = 0.6
+# Moments at work, where pet news is not woven (companion/life/home.py WORKING_ACTIVITIES).
+WORKING = {'steady-shift', 'busy-shift', 'library', 'study-cafe'}
 LEGACY_AGE = re.compile(r',? about (\d+) years? old$')
 
 
@@ -233,7 +235,11 @@ def sick_entry(found: dict, day: date, frac: float) -> dict | None:
 
 
 def vet_entry(found: dict, day: date) -> str:
-    choices = [item['text'] for item in bank()['vet'] if fits(item, found['kind'], found['era'])]
+    """Why they take the pet in for its yearly checkup: nothing that needs a past it doesn't have, and talk of
+    growing old only once it is old."""
+    old = (day - found['born']).days / max(found['lifespan'], 1) >= OLD
+    choices = [item['text'] for item in bank()['vet'] if fits(item, found['kind'], found['era'])
+               and (old or not item.get('old'))]
     return generators.pick(found['key'], f'vet:{day.isoformat()}', choices) or 'a checkup'
 
 
@@ -288,15 +294,17 @@ def evolve(connection, found: dict, through: date, now) -> None:
         return
     realism, can_die = settings(connection)
     dead, resting = died_on(connection, key), sick_until(connection, key)
+    death = None
     while day <= through and dead is None and realism:
         for kind, on, until, text, serious, spend in day_of_life(found, day, realism, can_die, resting):
             if kind == 'sick':
                 resting = until
+            row_id = identifier()
             if kind == 'died':
-                dead = on
+                dead, death = on, {'id': row_id, 'local_date': on.isoformat(), 'kind': kind, 'text': text}
             connection.execute(
                 'INSERT INTO pet_log (id, pet_key, local_date, kind, until, text, serious, spend, created_at) '
-                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', (identifier(), key, on.isoformat(), kind,
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', (row_id, key, on.isoformat(), kind,
                                                        until.isoformat() if until else None, text, int(serious), spend,
                                                        stamp(now)))
         day += timedelta(days=1)
@@ -306,6 +314,73 @@ def evolve(connection, found: dict, through: date, now) -> None:
         # The companion's home no longer has the pet from the day after it died (companion/life/home.py).
         connection.execute('UPDATE home_items SET until=? WHERE id=? AND until IS NULL',
                            ((dead + timedelta(days=1)).isoformat(), found['item_id']))
+        if death:
+            tell_late(connection, found, death)
+
+
+TOLD_WITHIN = 3
+
+
+def tell_late(connection, found: dict, death: dict) -> None:
+    """A death written for a day whose agenda was already drawn (after a pet was added or a setting changed) is told
+    on the first upcoming moment that day or soon after, so they still say goodbye. A day not drawn yet tells it
+    as it is drawn (`untold`)."""
+    item = optional(connection, 'SELECT timeline_id FROM home_items WHERE id=?', (found['item_id'],))
+    day = date.fromisoformat(death['local_date'])
+    if not item or not optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                                'AND local_date=? LIMIT 1', (item['timeline_id'], death['local_date'])):
+        return
+    rows = many(connection, "SELECT id, entry FROM life_agenda WHERE timeline_id=? AND subject='companion' AND "
+                "status='upcoming' AND entry IS NOT NULL AND local_date>=? AND local_date<=? ORDER BY starts_at",
+                (item['timeline_id'], death['local_date'], (day + timedelta(days=TOLD_WITHIN)).isoformat()))
+    target = next((row for row in rows if json.loads(row['entry']).get('activity') not in WORKING), None)
+    who = optional(connection, 'SELECT v.name FROM companions c JOIN character_versions v ON '
+                   'v.id=c.active_version_id WHERE c.active_timeline_id=?', (item['timeline_id'],))
+    if target is None or who is None:
+        return
+    entry = json.loads(target['entry'])
+    sentence = news_sentence(death, found['name'], who['name'].split()[0])
+    note = {'items': [found['item_id']], 'change': None, 'sentence': sentence, **(entry.get('home') or {}),
+            'pet_event': death['id']}
+    entry = {**entry, 'summary': f"{entry['summary'].rstrip()} {sentence}", 'mood': 'heartbroken', 'home': note}
+    connection.execute('UPDATE life_agenda SET entry=? WHERE id=?', (json.dumps(entry), target['id']))
+
+
+def forget_ahead(connection, keys: list[str], day: date) -> None:
+    """Forget what was written for these pets after `day` (their agenda is planned a few days ahead, and their
+    lives with it), so the days ahead follow a changed pet or a changed Realism setting; up to `day` stays put."""
+    for key in keys:
+        died = died_on(connection, key)
+        if died and died > day and key.startswith('home:'):
+            connection.execute('UPDATE home_items SET until=NULL WHERE id=? AND until=?',
+                               (key.removeprefix('home:'), (died + timedelta(days=1)).isoformat()))
+        connection.execute('DELETE FROM pet_log WHERE pet_key=? AND local_date>?', (key, day.isoformat()))
+        connection.execute('UPDATE pet_state SET through=? WHERE pet_key=? AND through>?',
+                           (day.isoformat(), key, day.isoformat()))
+
+
+def settings_changed(connection, now) -> None:
+    """The Pets slider or "Pets can die" changed: the days ahead are lived again under the new settings, and the
+    upcoming agenda entries about their home are drawn again, so they tell what happens now (a pet that can die
+    again may die today). Days up to each companion's today stay put."""
+    rows = many(connection, 'SELECT c.active_timeline_id AS timeline_id, v.timezone FROM companions c '
+                'JOIN character_versions v ON v.id=c.active_version_id')
+    days = []
+    for row in rows:
+        today = now.astimezone(zone(row['timezone'] or 'UTC')).date()
+        days.append(today)
+        forget_ahead(connection, [f"home:{item['id']}" for item in home_rows(connection, row['timeline_id'])], today)
+        removed = connection.execute(
+            "DELETE FROM life_agenda WHERE timeline_id=? AND subject='companion' AND status='upcoming' "
+            "AND json_extract(entry, '$.home') IS NOT NULL", (row['timeline_id'],)).rowcount
+        if removed:
+            connection.execute("UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND "
+                               "subject='companion'", (stamp(now), row['timeline_id']))
+    # Everyone else's pets (the circle's, the townsfolk's and the user's own) from the earliest of those days.
+    day = min(days, default=now.astimezone(zone('UTC')).date())
+    others = many(connection, "SELECT pet_key FROM pet_state WHERE through>? AND pet_key NOT LIKE 'home:%'",
+                  (day.isoformat(),))
+    forget_ahead(connection, [row['pet_key'] for row in others], day)
 
 
 def log(connection, key: str, start: date, end: date) -> list[dict]:
@@ -404,8 +479,8 @@ def moment(found: dict, seed: str, walking=False) -> str | None:
 
 
 def photo(found: dict, seed: str) -> dict | None:
-    """A pet-only photo for the owner's feed: what it shows and their caption."""
-    shots = [item for item in bank()['photos'] if fits(item, found['kind'], found['era'])]
+    """A pet-only photo for the owner's feed, taken at home: what it shows and their caption."""
+    shots = [item for item in bank()['photos'] if fits(item, found['kind'], found['era']) and not item.get('out')]
     shot = generators.pick(seed, 'pet-photo', shots)
     if shot is None:
         return None
@@ -419,21 +494,25 @@ def photo_prompt(found: dict, shows: str, style: str) -> str:
             'The pet fills the frame. Nobody in focus, no people. Natural light, sharp focus on the animal.')
 
 
-def minder(found: dict, trip: dict, local: list[dict]) -> dict:
+def minder(found: dict, trip: dict, local: list[dict], ahead=False) -> dict:
     """Who looks after a pet while the companion is away: a dog often comes along; fish, reptiles and a horse at
-    its stable need nobody; else someone local from their circle, or a paid sitter or kennel."""
+    its stable need nobody; else someone local from their circle, or a paid sitter or kennel. `ahead` words it for
+    a trip still to come ("Pepper is coming along")."""
     info = kinds().get(found['kind'], {})
     seed = f"care:{trip['id']}:{found['key']}"
+    name = found['name']
     if info.get('travels') and generators.unit(seed, 'along') < TRAVELS_ALONG:
-        return {'how': 'along', 'who': None, 'text': f"{found['name']} came along"}
+        return {'how': 'along', 'who': None, 'text': f"{name} is coming along" if ahead else f"{name} came along"}
     if not info.get('minder'):
         return {'how': 'none', 'who': None, 'text': ''}
     if local:
         person = generators.pick(seed, 'who', local)
-        verb = 'is staying with' if info['minder'] == 'staying' else 'is being fed by'
-        return {'how': 'circle', 'who': person['name'], 'text': f"{found['name']} {verb} {person['name']}"}
+        staying = info['minder'] == 'staying'
+        verb = ('will stay with' if staying else 'will be fed by') if ahead else \
+            ('is staying with' if staying else 'is being fed by')
+        return {'how': 'circle', 'who': person['name'], 'text': f"{name} {verb} {person['name']}"}
     where = 'at a kennel' if found['kind'] == 'dog' else 'with a paid sitter'
-    return {'how': 'sitter', 'who': None, 'text': f"{found['name']} is {where}"}
+    return {'how': 'sitter', 'who': None, 'text': f"{name} {'will be' if ahead else 'is'} {where}"}
 
 
 # --- The companion's own pets (their home's pet items) ---
@@ -447,7 +526,7 @@ def home_rows(connection, timeline_id: str) -> list[dict]:
 
 
 def of_home(connection, timeline_id: str, day: date | None = None) -> list[dict]:
-    """The companion's pets: those at home on `day` (all ever kept when no day is given), oldest first."""
+    """The companion's pets: those alive and at home on `day` (all ever kept when no day is given), oldest first."""
     state = optional(connection, 'SELECT era, started FROM home_state WHERE timeline_id=?', (timeline_id,))
     if not state:
         return []
@@ -456,7 +535,12 @@ def of_home(connection, timeline_id: str, day: date | None = None) -> list[dict]
     for row in home_rows(connection, timeline_id):
         if day and not (row['since'] <= day.isoformat() and (row['until'] is None or row['until'] > day.isoformat())):
             continue
-        result.append({**from_home_item(row, era, started), 'until': row['until'], 'edited': row['edited']})
+        found = from_home_item(row, era, started)
+        # The home keeps a pet through the day it died (its `until` is the day after), but from that day it is
+        # remembered, not one of the pets they have now.
+        if day and (died := died_on(connection, found['key'])) and died <= day:
+            continue
+        result.append({**found, 'until': row['until'], 'edited': row['edited']})
     return result
 
 
@@ -554,21 +638,33 @@ def untold(connection, timeline_id: str, day: date, first_name: str) -> dict | N
                         "AND json_extract(entry, '$.home.pet_event')=?", (timeline_id, row['id']))
         if told:
             continue
-        name, extra = found['name'], {'pet_event': row['id']}
+        extra = {'pet_event': row['id']}
         if row['kind'] == 'died':
-            sentence = f"{first_name} said goodbye to {name}, who died {row['text']}."
             extra['mood'] = 'heartbroken'
-        elif row['kind'] == 'sick':
-            sentence = f"{name} was poorly with {row['text']}, so {first_name} kept a close eye on them."
-        else:
-            sentence = f"{first_name} {event_text(row, name)}."
-        return {'item': found['item_id'], 'sentence': sentence, 'extra': extra}
+        return {'item': found['item_id'], 'sentence': news_sentence(row, found['name'], first_name), 'extra': extra}
     return None
+
+
+def news_sentence(row: dict, name: str, first_name: str) -> str:
+    if row['kind'] == 'died':
+        return f"{first_name} said goodbye to {name}, who died {row['text']}."
+    if row['kind'] == 'sick':
+        return f"{name} was poorly with {row['text']}, so {first_name} kept a close eye on them."
+    return f"{first_name} {event_text(row, name)}."
+
+
+def losses(connection, timeline_id: str, day: date, days: int = TOLD_WITHIN) -> list[tuple[dict, date]]:
+    """The companion's pets that died in the last few days up to `day`, for their mood (companion/moods.py)."""
+    return [(found, died) for found in of_home(connection, timeline_id)
+            if (died := died_on(connection, found['key'])) and 0 <= (day - died).days < days]
 
 
 def at_home(connection, found: dict, day: date, seed: str, first_name: str) -> str | None:
     """A sentence about the pet while the companion is at home: a sick pet rests, a well one does its thing."""
-    if status_on(connection, found, day)['state'] in ('sick', 'vet'):
+    state = status_on(connection, found, day)['state']
+    if state == 'died':
+        return None
+    if state in ('sick', 'vet'):
         return f"{found['name']} rested, still poorly, and {first_name} checked on them often."
     return moment(found, seed)
 
@@ -595,6 +691,14 @@ def find_home(connection, timeline_id: str, item_id: str) -> dict | None:
 def drawable_any() -> list[str]:
     """Every kind a pet can be when the user adds or edits one."""
     return [kind for kind, value in kinds().items() if value['weight'] > 0]
+
+
+def offered(connection, timeline_id: str) -> list[str]:
+    """The kinds "Add a pet" offers: those kept in the city's era, and any kind they already have."""
+    state = optional(connection, 'SELECT era FROM home_state WHERE timeline_id=?', (timeline_id,))
+    era = era_of({'era': state['era']} if state else None)
+    have = {found['kind'] for found in of_home(connection, timeline_id)}
+    return [kind for kind in drawable_any() if era in kinds()[kind]['eras'] or kind in have]
 
 
 def lived(connection, found: list[dict], day: date, now) -> list[dict]:

@@ -172,6 +172,9 @@
     ["unagi don (grilled eel on rice)", "unagi", "the eel restaurant", "fish gluten"],
     ["fried chicken box with fries", "fried-chicken", "the fried chicken place", "meat gluten"],
     ["cheeseburger and fries", "burgers", "the burger place near the station", "meat dairy gluten"],
-    ["curry pan and melon pan", "bakery", "the bakery by the station", "meat dairy egg gluten"]
+    ["curry pan and melon pan", "bakery", "the bakery by the station", "meat dairy egg gluten"],
+    ["zaru soba with grated daikon", "soba", "the stand-up soba counter at the station", "vegan gluten"],
+    ["kitsune udon with kombu broth", "udon", "the udon shop on the corner", "vegan gluten"],
+    ["vegetable tempura soba", "soba", "the stand-up soba counter at the station", "vegan gluten"]
   ]
 }

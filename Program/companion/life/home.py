@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, money, named, pets
+from companion.life import circle, money, named, pets, upkeep
 from companion.world import catalog, generators
 
 COMPANION = 'companion'
@@ -426,7 +426,11 @@ def touch(connection, timeline_id: str, subject: str, entry: dict | None, local_
         sentence = f"{definition['name']} {change['text']}."
         return woven(entry, sentence, [change['item_id']] if change['item_id'] else [], change['id'])
     first = definition['name'].split()[0]
-    news = pets.untold(connection, timeline_id, day, first) or (
+    news = pets.untold(connection, timeline_id, day, first)
+    if not news and entry.get('activity') == 'chores' and upkeep.level(connection):
+        # A chores slot is housework's to tell (companion/life/upkeep.py), not a belonging's or a pet photo's.
+        return entry
+    news = news or (
         pets.photo_moment(connection, timeline_id, day, seed, first) if entry.get('activity') in AT_HOME else None)
     if news:
         return woven(entry, news['sentence'], [news['item']], None, news['extra'])
@@ -705,6 +709,7 @@ def rebuild(connection, timeline_id: str, day: date, now):
     upcoming agenda entries that mention the home, so both are drawn again from what is there now."""
     ahead = many(connection, 'SELECT * FROM home_log WHERE timeline_id=? AND local_date>?', (timeline_id,
                                                                                               day.isoformat()))
+    pets.forget_ahead(connection, [f"home:{row['id']}" for row in pets.home_rows(connection, timeline_id)], day)
     for row in ahead:
         if row['kind'] == 'plant-lost':
             connection.execute('UPDATE home_items SET until=NULL WHERE id=? AND until=?', (row['item_id'],

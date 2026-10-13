@@ -54,7 +54,7 @@ export function numbersLine(numbers: KitchenView['numbers']): string | null {
 /** The realism slider's steps (Settings > Realism > Around the home), shared by the home features: off, light, true to life, dramatic. */
 export const KITCHEN_LEVELS = [
   { value: 0, label: 'Off', hint: 'The fridge is always stocked and dinner always works out.' },
-  { value: 1, label: 'Light', hint: 'Things run out slowly, and a recipe rarely goes wrong.' },
+  { value: 1, label: 'Light', hint: 'The basics never run out, and a recipe rarely goes wrong.' },
   { value: 2, label: 'True to life', hint: 'Now and then they run out of milk or a recipe goes sideways.' },
   { value: 3, label: 'Dramatic', hint: 'Often out of something, and the odd kitchen disaster ends in takeout.' },
 ] as const

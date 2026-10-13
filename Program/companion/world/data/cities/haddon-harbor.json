@@ -4,7 +4,7 @@
  "name": "Haddon Harbor",
  "setting": "original",
  "era": "modern",
- "basis": "Original setting written for Prospero Companion, modelled on real Maine coastal towns.",
+ "basis": "Original setting written for Prospero Companion, modeled on real Maine coastal towns.",
  "region": "Maine",
  "country": "US",
  "timezone": "America/New_York",
@@ -12,7 +12,7 @@
   "Haddon Harbor, Maine",
   "Haddon Harbor, ME"
  ],
- "summary": "A harbour town of about nine thousand on the Maine coast, where the lobster boats leave before dawn, the diner keeps a wall of regulars' mugs, town meeting runs late every March and everyone knows everyone, including what they said at the last select board meeting.",
+ "summary": "A harbor town of about nine thousand on the Maine coast, where the lobster boats leave before dawn, the diner keeps a wall of regulars' mugs, town meeting runs late every March and everyone knows everyone, including what they said at the last select board meeting.",
  "lat": 43.97,
  "lon": -69.3,
  "speeds": {
@@ -44,7 +44,7 @@
    "title": "Haddon Harbor, an original setting written for Prospero Companion",
    "license": "CC0-1.0",
    "retrieved": "2026-10-10",
-   "note": "Invented town with no real counterpart; every business, institution and person named is fictional. Its texture follows ordinary life in midcoast Maine harbour towns: working waterfronts and lobstering co-ops, town meeting, bean suppers, grange halls, summer people, mud season and island ferries. Rents are rounded typical asking ranges for a small Maine town in 2026. Climate is rounded from midcoast Maine normals."
+   "note": "Invented town with no real counterpart; every business, institution and person named is fictional. Its texture follows ordinary life in midcoast Maine harbor towns: working waterfronts and lobstering co-ops, town meeting, bean suppers, grange halls, summer people, mud season and island ferries. Rents are rounded typical asking ranges for a small Maine town in 2026. Climate is rounded from midcoast Maine normals."
   }
  },
  "neighborhoods": [
@@ -91,7 +91,7 @@
   {
    "id": "the-harbor",
    "name": "The Harbor",
-   "summary": "The working waterfront below Main Street: the town fish pier, the lobster co-op, bait barrels, stacked traps, the ferry slip and a harbour full of boats on moorings. Busy at four in the morning and again at four in the afternoon, when the boats come in.",
+   "summary": "The working waterfront below Main Street: the town fish pier, the lobster co-op, bait barrels, stacked traps, the ferry slip and a harbor full of boats on moorings. Busy at four in the morning and again at four in the afternoon, when the boats come in.",
    "vibe": [
     "working-waterfront",
     "lobster",
@@ -170,7 +170,7 @@
   {
    "id": "packard-hill",
    "name": "Packard Hill",
-   "summary": "The hill above the harbour where the sea captains built: big square houses with widow's walks, the old Packard House Inn on its lawn, an eighteenth-century burying ground and the best sledding slope in town.",
+   "summary": "The hill above the harbor where the sea captains built: big square houses with widow's walks, the old Packard House Inn on its lawn, an eighteenth-century burying ground and the best sledding slope in town.",
    "vibe": [
     "historic",
     "views",
@@ -283,7 +283,7 @@
   {
    "id": "ridge-road",
    "name": "Ridge Road",
-   "summary": "The farms and orchards on the high ground inland: stone walls, apple trees, a sugarhouse, the grange hall and the fairgrounds, with honour-system stands at the ends of driveways and a view of the bay from the top of Higgins Hill.",
+   "summary": "The farms and orchards on the high ground inland: stone walls, apple trees, a sugarhouse, the grange hall and the fairgrounds, with honor-system stands at the ends of driveways and a view of the bay from the top of Higgins Hill.",
    "vibe": [
     "rural",
     "farms",
@@ -319,7 +319,7 @@
   {
    "id": "ledge-point",
    "name": "Ledge Point",
-   "summary": "The rocky point at the mouth of the harbour, with the white lighthouse, the keeper's house museum, tide pools, a small sand cove and a road of shingled summer cottages that go dark after Columbus Day.",
+   "summary": "The rocky point at the mouth of the harbor, with the white lighthouse, the keeper's house museum, tide pools, a small sand cove and a road of shingled summer cottages that go dark after Columbus Day.",
    "vibe": [
     "lighthouse",
     "scenic",
@@ -429,7 +429,7 @@
   {
    "id": "south-haddon",
    "name": "South Haddon",
-   "summary": "The neighbouring village down the peninsula: a white church, a general store with a porch bench, a town landing full of skiffs and a salt marsh where the land trust keeps the trails mown. Quieter than town, and proud of it.",
+   "summary": "The neighboring village down the peninsula: a white church, a general store with a porch bench, a town landing full of skiffs and a salt marsh where the land trust keeps the trails mown. Quieter than town, and proud of it.",
    "vibe": [
     "village",
     "rural",
@@ -543,7 +543,7 @@
   {
    "id": "west-end",
    "name": "West End",
-   "summary": "Older neighbourhood of triple-deckers and capes west of the village, with the hospital, the high school and its field, Cobb Pond for skating, an Italian market and the pub where the nurses go after a shift.",
+   "summary": "Older neighborhood of triple-deckers and capes west of the village, with the hospital, the high school and its field, Cobb Pond for skating, an Italian market and the pub where the nurses go after a shift.",
    "vibe": [
     "residential",
     "working",
@@ -1259,7 +1259,7 @@
    "name": "Harbormaster's Float",
    "kind": "landmark",
    "neighborhood": "the-harbor",
-   "summary": "The little shingled office on the float where the harbourmaster keeps the mooring list (twenty years long), lends a dinghy, and chalks the tide times on a board.",
+   "summary": "The little shingled office on the float where the harbormaster keeps the mooring list (twenty years long), lends a dinghy, and chalks the tide times on a board.",
    "tags": [
     "harbor",
     "tides",
@@ -1587,7 +1587,7 @@
    "name": "Packard Hill Lookout",
    "kind": "park",
    "neighborhood": "packard-hill",
-   "summary": "The open top of the hill with a bench and a view over the harbour to the islands: sunrise in summer, the sledding run in winter and fireworks on the Fourth.",
+   "summary": "The open top of the hill with a bench and a view over the harbor to the islands: sunrise in summer, the sledding run in winter and fireworks on the Fourth.",
    "tags": [
     "views",
     "sledding",
@@ -1748,7 +1748,7 @@
    "name": "Kimball Pool",
    "kind": "fitness",
    "neighborhood": "college-street",
-   "summary": "The college pool in the athletic centre, open to town residents for early lap swim and Saturday family swim. The masters group swims at six whatever the weather outside.",
+   "summary": "The college pool in the athletic center, open to town residents for early lap swim and Saturday family swim. The masters group swims at six whatever the weather outside.",
    "tags": [
     "pool",
     "swimming",
@@ -1940,7 +1940,7 @@
    "name": "Birch Meadow Park",
    "kind": "park",
    "neighborhood": "birch-meadow",
-   "summary": "A neighbourhood park with a big wooden playground the parents built in a weekend, a splash pad, a ball field and a skating rink the fire department floods in January.",
+   "summary": "A neighborhood park with a big wooden playground the parents built in a weekend, a splash pad, a ball field and a skating rink the fire department floods in January.",
    "tags": [
     "playground",
     "splash-pad",
@@ -1965,7 +1965,7 @@
    "name": "Meadow Variety",
    "kind": "market",
    "neighborhood": "birch-meadow",
-   "summary": "The neighbourhood store: milk, scratch tickets, breakfast sandwiches, and Italian sandwiches on soft rolls with pickles and olives, wrapped in paper for the beach.",
+   "summary": "The neighborhood store: milk, scratch tickets, breakfast sandwiches, and Italian sandwiches on soft rolls with pickles and olives, wrapped in paper for the beach.",
    "tags": [
     "convenience",
     "italian-sandwich",
@@ -2133,7 +2133,7 @@
    "name": "Ridge Road Farm Stand",
    "kind": "market",
    "neighborhood": "ridge-road",
-   "summary": "An honour-system stand at the end of a farm driveway: eggs in the cooler, sweet corn, pies on Saturdays, flowers in buckets and a cash box nobody has ever locked.",
+   "summary": "An honor-system stand at the end of a farm driveway: eggs in the cooler, sweet corn, pies on Saturdays, flowers in buckets and a cash box nobody has ever locked.",
    "tags": [
     "farm-stand",
     "honor-system",
@@ -2336,7 +2336,7 @@
    "name": "Ledge Point Light",
    "kind": "landmark",
    "neighborhood": "ledge-point",
-   "summary": "A white brick lighthouse from 1857 on the granite at the harbour mouth, with a red-roofed keeper's house, a foghorn the town hears on thick nights, and the best sunsets on this side of the bay.",
+   "summary": "A white brick lighthouse from 1857 on the granite at the harbor mouth, with a red-roofed keeper's house, a foghorn the town hears on thick nights, and the best sunsets on this side of the bay.",
    "tags": [
     "lighthouse",
     "views",
@@ -3237,7 +3237,7 @@
    "name": "Tarbox Island Inn",
    "kind": "inn",
    "neighborhood": "tarbox-island",
-   "summary": "A rambling summer inn above the harbour with rocking chairs facing the mainland, family-style dinners and rooms with no locks and no televisions.",
+   "summary": "A rambling summer inn above the harbor with rocking chairs facing the mainland, family-style dinners and rooms with no locks and no televisions.",
    "tags": [
     "inn",
     "island",
@@ -3354,7 +3354,7 @@
    "name": "Haddon Harbor Community Sailing",
    "kind": "fitness",
    "neighborhood": "dyers-cove",
-   "summary": "A nonprofit sailing centre with small boats for lessons, adult evening races on Wednesdays and kids learning to capsize on purpose in July.",
+   "summary": "A nonprofit sailing center with small boats for lessons, adult evening races on Wednesdays and kids learning to capsize on purpose in July.",
    "tags": [
     "sailing",
     "lessons",
@@ -3608,7 +3608,7 @@
    "name": "West End Recreation Center",
    "kind": "fitness",
    "neighborhood": "west-end",
-   "summary": "The town rec centre in an old school gym: pickup basketball, Zumba, a senior walking club in winter and after-school programs that half the parents in town depend on.",
+   "summary": "The town rec center in an old school gym: pickup basketball, Zumba, a senior walking club in winter and after-school programs that half the parents in town depend on.",
    "tags": [
     "gym",
     "basketball",
@@ -3810,7 +3810,7 @@
    "id": "summer-shuttle",
    "name": "Harbor Summer Shuttle",
    "kind": "bus",
-   "summary": "A free open-sided shuttle bus run by the town from late June to Labor Day, looping every half hour from Main Street to the harbour, Packard Hill, Dyer's Cove, Ledge Point and the Back Shore.",
+   "summary": "A free open-sided shuttle bus run by the town from late June to Labor Day, looping every half hour from Main Street to the harbor, Packard Hill, Dyer's Cove, Ledge Point and the Back Shore.",
    "source": "curated-2026-10"
   },
   {
@@ -3824,7 +3824,7 @@
    "id": "library-bikes",
    "name": "Library loaner bikes",
    "kind": "bike-share",
-   "summary": "Sturdy town bikes borrowed with a library card from racks at the library, the harbour, the college, the mill and the hospital, April to November.",
+   "summary": "Sturdy town bikes borrowed with a library card from racks at the library, the harbor, the college, the mill and the hospital, April to November.",
    "source": "curated-2026-10"
   },
   {
@@ -3838,7 +3838,7 @@
    "id": "walk",
    "name": "On foot",
    "kind": "walk",
-   "summary": "The village, the harbour, the mill and the college are all within a fifteen-minute walk of the green.",
+   "summary": "The village, the harbor, the mill and the college are all within a fifteen-minute walk of the green.",
    "source": "curated-2026-10"
   }
  ],
@@ -3885,7 +3885,7 @@
    "sector": "healthcare",
    "neighborhood": "west-end",
    "size": "medium",
-   "summary": "A community hospital with an emergency department, a birthing centre and clinics that serve the whole peninsula and the islands.",
+   "summary": "A community hospital with an emergency department, a birthing center and clinics that serve the whole peninsula and the islands.",
    "careers": [
     "registered-nurse",
     "night-nurse",
@@ -3976,7 +3976,7 @@
    "sector": "government",
    "neighborhood": "the-green",
    "size": "medium",
-   "summary": "The town office, public works, the harbourmaster, the library, the rec department and the summer lifeguards at the town beaches.",
+   "summary": "The town office, public works, the harbormaster, the library, the rec department and the summer lifeguards at the town beaches.",
    "careers": [
     "government-analyst",
     "accountant",
@@ -4170,7 +4170,7 @@
    "sector": "fishing",
    "schedule": "early",
    "pay": "$$",
-   "summary": "Hauls traps from a lobster boat, as a sternman or with a boat and a licence of their own, out before dawn and back mid-afternoon.",
+   "summary": "Hauls traps from a lobster boat, as a sternman or with a boat and a license of their own, out before dawn and back mid-afternoon.",
    "themes": [
     "weather",
     "the boat",
@@ -4245,7 +4245,7 @@
     "high_f": 31,
     "low_f": 13,
     "rain_days": 11,
-    "note": "Coldest month; the harbour steams with sea smoke on still mornings."
+    "note": "Coldest month; the harbor steams with sea smoke on still mornings."
    },
    {
     "high_f": 34,
@@ -4305,7 +4305,7 @@
     "high_f": 46,
     "low_f": 30,
     "rain_days": 12,
-    "note": "Grey and windy; boats come out of the water."
+    "note": "Gray and windy; boats come out of the water."
    },
    {
     "high_f": 36,
@@ -4334,7 +4334,7 @@
     2
    ],
    "neighborhood": "west-end",
-   "summary": "A weekend of skating races on Cobb Pond, snow sculptures on the quad, a chili cook-off at the rec centre, a smelt fry and the crowning of a carnival king and queen from the senior class.",
+   "summary": "A weekend of skating races on Cobb Pond, snow sculptures on the quad, a chili cook-off at the rec center, a smelt fry and the crowning of a carnival king and queen from the senior class.",
    "source": "curated-2026-10"
   },
   {
@@ -4344,7 +4344,7 @@
     3
    ],
    "neighborhood": "the-green",
-   "summary": "The annual open town meeting in the high school gym, where every voter can stand up and argue over the budget, the harbour moorings and the new fire truck, usually until long after supper.",
+   "summary": "The annual open town meeting in the high school gym, where every voter can stand up and argue over the budget, the harbor moorings and the new fire truck, usually until long after supper.",
    "source": "curated-2026-10"
   },
   {
@@ -4414,7 +4414,7 @@
     7
    ],
    "neighborhood": "the-green",
-   "summary": "Fire engines, the high school band, floats on hay wagons, kids on decorated bikes and the lobster boat on a trailer that wins every year, with fireworks over the harbour that night.",
+   "summary": "Fire engines, the high school band, floats on hay wagons, kids on decorated bikes and the lobster boat on a trailer that wins every year, with fireworks over the harbor that night.",
    "source": "curated-2026-10"
   },
   {
@@ -4505,7 +4505,7 @@
     12
    ],
    "neighborhood": "the-green",
-   "summary": "On the first Saturday of December the town gathers on the green for carols, cocoa and the lighting of the tree, and the harbour boats light up their rigging.",
+   "summary": "On the first Saturday of December the town gathers on the green for carols, cocoa and the lighting of the tree, and the harbor boats light up their rigging.",
    "source": "curated-2026-10"
   }
  ],
@@ -4532,7 +4532,7 @@
   },
   {
    "id": "honor-farm-stand",
-   "name": "Honour-system farm stands",
+   "name": "Honor-system farm stands",
    "kind": "custom",
    "summary": "Eggs, corn and pies sit unattended at the ends of driveways with a cash box or a jar. People leave exact change, or an IOU on the notepad, and settle up next time.",
    "places": [
@@ -4684,7 +4684,7 @@
    "id": "frappe",
    "name": "A frappe",
    "kind": "drink",
-   "summary": "A thick milkshake made with ice cream; in this town a \"milkshake\" is just flavoured milk, and the soda fountain will ask which you meant.",
+   "summary": "A thick milkshake made with ice cream; in this town a \"milkshake\" is just flavored milk, and the soda fountain will ask which you meant.",
    "places": [
     "main-street-pharmacy",
     "bickford-dairy-bar"

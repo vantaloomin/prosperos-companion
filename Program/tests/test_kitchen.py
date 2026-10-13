@@ -100,6 +100,7 @@ def test_the_panel_shows_their_week_in_words_and_the_user_can_change_it(client, 
 
 
 def test_meals_are_drawn_the_same_way_every_time_and_follow_the_rhythm(client, kim):
+    client.patch('/api/life/kitchen', json={'skill': 2})  # A good home cook, whatever the seed drew.
     reconcile(client)
     with day_for(client) as found:
         days = [TODAY + timedelta(days=n) for n in range(-20, 2)]
@@ -118,6 +119,22 @@ def test_meals_are_drawn_the_same_way_every_time_and_follow_the_rhythm(client, k
                 assert meal['cost'] > 0 and meal['takeout']['dish']
 
 
+def test_no_dish_comes_round_twice_within_six_nights_and_leftovers_follow_a_cooking_night(client, kim):
+    client.patch('/api/life/kitchen', json={'skill': 2})  # A good home cook, whatever the seed drew.
+    reconcile(client)
+    with day_for(client) as found:
+        start = kitchen.run_start(TODAY)
+        days = [start + timedelta(days=n) for n in range(kitchen.RUN_DAYS)]
+        meals = [found.meal(day) for day in days]
+        for index, meal in enumerate(meals):
+            if meal['kind'] == 'leftovers':
+                before = meals[index - 1] if index else found.meal(days[0] - timedelta(days=1))
+                assert before['kind'] == 'cook' and before['dish'] == meal['dish']
+                continue
+            earlier = set().union(*(kitchen.eaten(item) for item in meals[max(0, index - 6):index]))
+            assert not kitchen.eaten(meal) & earlier, (meal, index)
+
+
 def test_staples_run_out_between_grocery_runs_except_on_the_easy_setting(client, kim):
     reconcile(client)
     set_life(client, kitchen_realism=3)
@@ -130,6 +147,9 @@ def test_staples_run_out_between_grocery_runs_except_on_the_easy_setting(client,
     with day_for(client) as easy:
         assert {item['state'] for n in range(40) for item in easy.pantry(TODAY - timedelta(days=n))} == {'stocked'}
         assert not any(easy.meal(TODAY - timedelta(days=n))['mishap'] for n in range(60))
+    set_life(client, kitchen_realism=1)  # Light, what I want an easy life sets: the basics never run out either.
+    with day_for(client) as light:
+        assert {item['state'] for n in range(40) for item in light.pantry(TODAY - timedelta(days=n))} == {'stocked'}
 
 
 def test_takeout_counts_as_spending_and_the_chat_knows_dinner(client, kim, provider):
@@ -147,7 +167,9 @@ def test_takeout_counts_as_spending_and_the_chat_knows_dinner(client, kim, provi
     provider.replies.append([Chunk('Hey!'), Chunk('', 'stop')])
     send(client, 'What are you having for dinner?', 'client-kitchen-1')
     prompt = provider.requests[-1]['prompt']
-    assert '## Your kitchen and meals' in prompt and 'In the kitchen you are' in prompt and 'Dinner tonight:' in prompt
+    assert '## Your kitchen and meals' in prompt and 'Dinner tonight:' in prompt
+    # Said to them in plain grammar, whatever their skill ("you can't really cook", never "you are can't...").
+    assert any(f'- In the kitchen {skill}' in prompt for skill in kitchen.YOUR_SKILLS)
 
 
 def test_cooking_nights_name_the_dish_in_their_day(client, kim, clock):
@@ -213,6 +235,9 @@ def test_now_and_then_they_ask_the_user_over(client, kim, monkeypatch, clock):
         [trigger] = kitchen.invite_due(connection, companion, clock.now())
         assert trigger.kind == 'dinner_invite' and trigger.template.startswith('Come over for dinner')
         assert trigger in openers.candidates(connection, companion, clock.now())
+        # It goes ahead of the daily news that would otherwise take each day's text.
+        assert openers.FINDERS.index(kitchen.invite_due) < min(openers.FINDERS.index(openers.dream_news),
+                                                               openers.FINDERS.index(openers.little_news))
         message = {'id': 'invite-message'}
         connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, "
                            "memory_revision, created_at, completed_at) VALUES ('invite-message', ?, 99, 'companion', ?, "
@@ -221,3 +246,41 @@ def test_now_and_then_they_ask_the_user_over(client, kim, monkeypatch, clock):
                                                          clock.now().isoformat()))
         outing = kitchen.settle_invite(connection, companion, message, trigger, clock.now().isoformat())
         assert outing['activity'] == 'dinner-in' and outing['local_date'] == trigger.sources[0]
+
+
+def test_a_shopping_trip_is_named_for_its_era():
+    assert kitchen.run_label(kitchen.bank_for(WORLD.find('baltimore'))) == 'Grocery run'
+    assert kitchen.run_label(kitchen.bank_for(WORLD.find('camelot'))) == 'Market day'
+    assert {kitchen.run_label(kitchen.bank_for(WORLD.find(city))) for city in ('london-1895', 'new-york-1925')} == \
+        {'Food shopping'}
+
+
+def test_groceries_are_bought_at_most_twice_a_week(client, kim):
+    reconcile(client)
+    monday = TODAY - timedelta(days=TODAY.weekday()) + timedelta(weeks=3)
+    week = [monday + timedelta(days=offset) for offset in range(7)]
+    with day_for(client) as found:
+        for day in (week[1], week[3], week[5]):  # Three shopping trips in their agenda that week.
+            found.memo[('entries', day)] = [{'activity': 'groceries'}]
+        runs = [day for day in week if found.grocery_day(day)]
+        assert runs == [week[1], week[3]]
+        assert all(sum(found.grocery_day(monday + timedelta(weeks=n, days=d)) for d in range(7)) <= 2
+                   for n in range(-8, 0))
+
+
+def test_a_vegan_has_a_weeks_worth_of_takeout_and_quick_dishes_in_every_bank():
+    for path in sorted(kitchen.BANKS.glob('*.json')):
+        found = kitchen.bank(path.stem)
+        takeout = [item for item in found['takeout'] if kitchen.allowed(item['tags'], 'vegan', ())]
+        quick = [dish for dish in found['dishes'] if dish['skill'] <= 1 and {'vegan', 'quick'} <= dish['tags']
+                 and 'bake' not in dish['tags']]
+        assert len(takeout) >= 7 and len(quick) >= 7, (path.stem, len(takeout), len(quick))
+
+
+@pytest.mark.parametrize('city', ['los-angeles', 'baltimore', 'london-1895', 'calderwick'])
+def test_takeout_names_a_real_place_in_the_city_about_as_often_everywhere(city):
+    class Night:
+        data, seed = WORLD.find(city), 'seed'
+    items = kitchen.bank(kitchen.bank_for(Night.data))['takeout']
+    named = sum(bool(kitchen.Day.restaurant(Night, item['cuisine'], 'night')) for item in items)
+    assert named / len(items) >= 0.35, (city, named, len(items))

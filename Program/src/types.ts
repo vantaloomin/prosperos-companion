@@ -1202,6 +1202,8 @@ export interface KitchenView {
   summary: string
   cuisine: string
   week: { date: string; kind: MealKind; text: string; groceries: boolean; today: boolean }[]
+  /** "Grocery run" now, "Food shopping" from the 1880s to the 1920s, "Market day" in medieval towns. */
+  run_label: string
   pantry: { name: string; state: StapleState }[]
   pantry_text: string
   changed: string[]

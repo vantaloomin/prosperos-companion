@@ -1578,7 +1578,7 @@
    "name": "Bayfront Park",
    "kind": "park",
    "neighborhood": "downtown",
-   "summary": "Downtown park on Biscayne Bay with an amphitheatre and the Ultra festival grounds.",
+   "summary": "Downtown park on Biscayne Bay with an amphitheater and the Ultra festival grounds.",
    "tags": [
     "bay-views",
     "concerts",
@@ -2393,7 +2393,7 @@
    "name": "Azucar Ice Cream Company",
    "kind": "cafe",
    "neighborhood": "little-havana",
-   "summary": "Ice cream shop with Cuban flavours like Abuela Maria.",
+   "summary": "Ice cream shop with Cuban flavors like Abuela Maria.",
    "tags": [
     "ice-cream",
     "dessert",
@@ -2590,7 +2590,7 @@
    "name": "The Biltmore Hotel",
    "kind": "landmark",
    "neighborhood": "coral-gables",
-   "summary": "1926 Mediterranean Revival hotel with a huge pool and a tower modelled on the Giralda.",
+   "summary": "1926 Mediterranean Revival hotel with a huge pool and a tower modeled on the Giralda.",
    "tags": [
     "architecture",
     "historic",

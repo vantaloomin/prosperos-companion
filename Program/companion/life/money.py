@@ -381,17 +381,35 @@ def saved_since(found: Profile, since: date, day: date) -> float:
 
 # Currencies without minor units, and symbols written before the number.
 WHOLE = {'JPY', 'KRW'}
+# Coins counted whole: silver pennies, groschen, silver weights (a part of one rounds up to one).
+COINS = {'penny', 'groschen', 'sw'}
+# Shillings, said in shillings and pence (twelve pence to the shilling): 4s. 1d., 2d.
+SHILLINGS = {'shilling', 's'}
 PREFIXES = ('$', '£', '€', '¥', '₩', '₹')
 
 
+def shillings(value: float, symbol: str) -> str:
+    """'4s. 1d.', '2d.' or '15s.': whole shillings and pence, never a decimal."""
+    dot = '.' if symbol.endswith('.') else ''
+    if value >= 20:
+        return f'{round(value):,}s{dot}'
+    whole, pence = divmod(max(1, round(value * 12)), 12)
+    return ' '.join(part for part in (f'{whole}s{dot}' if whole else '', f'{pence}d{dot}' if pence else '') if part)
+
+
 def amount(value: float, currency: dict) -> str:
-    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000."""
+    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d."""
+    code = currency.get('code')
+    if code in SHILLINGS and value > 0:
+        return shillings(value, currency['symbol'])
+    if code in COINS and 0 < value < 1:
+        value = 1
     if value >= 100_000:
         rounded = round(value, -3)
     elif value >= 200:
         rounded = round(value, -1)
     else:
-        rounded = round(value) if value >= 10 or currency.get('code') in WHOLE else round(value, 2)
+        rounded = round(value) if value >= 10 or code in WHOLE | COINS else round(value, 2)
     # Whole amounts without cents, the rest with both cent digits: $5, $5.50, never $5.5.
     number = f'{rounded:,.0f}' if rounded == int(rounded) else f'{rounded:,.2f}'
     symbol = currency['symbol']

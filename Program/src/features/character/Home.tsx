@@ -154,7 +154,7 @@ function AddForm({ view, act, onDone }: { view: HomeView; act: Act; onDone: () =
       <label htmlFor="home-add-name">Name</label>
       <input id="home-add-name" value={name} maxLength={80} required placeholder={kind === 'pet' ? 'Biscuit' : kind === 'plant' ? 'the fern' : kind === 'vehicle' ? 'the car' : 'a chipped green mug'} onChange={(event) => setName(event.target.value)} />
       <label htmlFor="home-add-description">Description (optional)</label>
-      <input id="home-add-description" aria-describedby="home-add-description-hint" value={description} maxLength={300} placeholder="Such as a grey tabby with one white paw" onChange={(event) => setDescription(event.target.value)} />
+      <input id="home-add-description" aria-describedby="home-add-description-hint" value={description} maxLength={300} placeholder="Such as a gray tabby with one white paw" onChange={(event) => setDescription(event.target.value)} />
       <small id="home-add-description-hint" className="subtle">What it looks like. Pictures and replies use it.</small>
       <div className="rename-row">
         <button type="submit" className="button primary" disabled={!name.trim()}>Add</button>

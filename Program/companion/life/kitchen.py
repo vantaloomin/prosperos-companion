@@ -17,8 +17,9 @@ for you. A few staples (coffee, eggs, milk; tea and bread in London; ale in Came
 after each grocery run and run out until the next one.
 
 The Realism tab's kitchen slider (life_settings.kitchen_realism: 0 off, 1 light, 2 true to life, 3 dramatic) scales the
-ups and downs: off, staples never run out and nothing goes wrong; higher settings make staples run out sooner and now
-and then a dinner goes sideways (and they order in instead).
+ups and downs: off, staples never run out and nothing goes wrong; light (I want an easy life) never runs out either
+and a dinner rarely goes wrong; higher settings make staples run out sooner and now and then a dinner goes sideways
+(and they order in instead).
 
 Other modules read it through `touch` (the agenda), `context_lines` (the chat's "kitchen" section), `purchases`
 (takeout counts as spending in money.household), `cooked` (Home upkeep's dishes), `grocery_runs` (Life admin's
@@ -42,6 +43,8 @@ BANKS = Path(__file__).resolve().parents[1] / 'world' / 'data' / 'kitchen'
 DIETS = ('omnivore', 'pescatarian', 'vegetarian', 'vegan')
 AVOIDS = ('nuts', 'shellfish', 'dairy', 'gluten', 'pork')
 SKILLS = ("can't really cook", 'keeps it simple', 'a good home cook', 'a serious cook')
+# The same, said to them in the chat's kitchen section.
+YOUR_SKILLS = ("you can't really cook", 'you keep it simple', 'you are a good home cook', 'you are a serious cook')
 # New dinners and grocery runs are woven into the companion's agenda entries, and now and then they ask the user over;
 # tests turn these off.
 WEAVE = True
@@ -76,9 +79,9 @@ RHYTHM = {0: {'cook': 0.15, 'takeout': 0.45, 'simple': 0.4}, 1: {'cook': 0.45, '
 LEFTOVERS = 0.6
 BAKE_SHARE = 0.3
 # Ups and downs by the kitchen slider (off, light, true to life, dramatic): a dinner that goes sideways, and how long
-# staples last (off: never out).
+# staples last (off and light, the easy life: never out).
 MISHAP = (0.0, 0.02, 0.04, 0.1)
-STAPLE_PACE = (None, 1.4, 1.0, 0.75)
+STAPLE_PACE = (None, None, 1.0, 0.75)
 MISHAPS = ('the rice stuck to the bottom of the pot', 'the recipe took twice as long as it said',
            'they were out of a key ingredient halfway through', 'the sauce never came together',
            'they forgot the pot on the stove and it boiled dry', 'the dough refused to rise')
@@ -90,7 +93,15 @@ TAKEOUT_PRICES = ('takeout', 'pizza', 'cheap-lunch', 'lunch-counter', 'meal', 'i
                   'pie-and-peas', 'pie', 'chophouse')
 TAKEOUT_SHARE = 0.006
 MODERN = {'modern', 'future'}
+# Nights are drawn in runs of four weeks from a fixed Monday, so no dish comes round twice within six nights.
+RUN_FROM = date(2000, 1, 3)
+RUN_DAYS = 28
+# Other words a city's places use for a takeout cuisine, so a real place is named as often in every city.
+CUISINE_WORDS = {'mexican': ('mexican', 'tex mex', 'tacos'), 'burgers': ('burger', 'diner'),
+                 'chophouse': ('chop',), 'eel-pie': ('eel',), 'fried-fish': ('fried fish', 'fish and chips'),
+                 'pie-shop': ('pie',), 'cookshop': ('cookshop', 'dining', 'dinners'), 'coffee-stall': ('coffee',)}
 INVITE_EVERY = 14
+RUNS_A_WEEK = 2
 INVITE_CHANCE = 0.45
 INVITE_AHEAD = (2, 5)
 
@@ -372,15 +383,20 @@ class Day:
         return generators.pick(self.seed, f'{label}:{day.isoformat()}', options, [weight(dish) for dish in options])
 
     def recent_dishes(self, day: date) -> frozenset[str]:
-        """The plain picks of the six nights before, so a dish does not come round again within a week."""
-        return self.remember(('recent', day), lambda: frozenset(self.plain_picks(day)))
+        """What they ate the six nights before (cooked, simple, leftovers or ordered in), so a dish does not come
+        round again within a week. Nights are worked out in four-week runs from a fixed date, so a day never needs
+        more than the run it is in: before the run starts, the night's plain pick stands in."""
+        return self.remember(('recent', day), lambda: frozenset(self.eaten_before(day)))
 
-    def plain_picks(self, day: date) -> set[str]:
-        names = set()
+    def eaten_before(self, day: date) -> set[str]:
+        start, names = run_start(day), set()
         for back in range(1, 7):
-            found = self.dish(day - timedelta(days=back))
-            if found:
-                names.add(found['name'])
+            earlier = day - timedelta(days=back)
+            if earlier >= start:
+                names |= eaten(self.meal(earlier))
+            else:
+                names |= {item['name'] for item in (self.dish(earlier), self.simple(earlier, False)) if item}
+                names |= {(self.takeout(earlier, fresh=False) or {}).get('dish')} - {None}
         return names
 
     def simple(self, day: date, fresh: bool = True) -> dict | None:
@@ -391,14 +407,17 @@ class Day:
         options = [dish for dish in dishes_for(self.found, skill=1) if 'bake' not in dish['tags'] and
                    ('quick' in dish['tags'] or self.sick(day) and 'warm' in dish['tags'])]
         if fresh:
-            recent = {(self.simple(day - timedelta(days=back), False) or {}).get('name') for back in range(1, 5)}
+            recent = self.recent_dishes(day)
             options = [dish for dish in options if dish['name'] not in recent] or options
         return generators.pick(self.seed, f'simple:{day.isoformat()}', options or dishes_for(self.found, skill=1))
 
-    def takeout(self, day: date, label: str = 'takeout') -> dict | None:
+    def takeout(self, day: date, label: str = 'takeout', fresh: bool = True) -> dict | None:
         """What they order and where from: a real restaurant in their city with that cuisine when there is one."""
         options = [item for item in bank(self.found['bank'])['takeout']
                    if allowed(item['tags'], self.found['diet'], self.found['avoids'])]
+        if label == 'takeout' and fresh:
+            recent = self.recent_dishes(day)
+            options = [item for item in options if item['dish'] not in recent] or options
         item = generators.pick(self.seed, f'{label}:{day.isoformat()}', options)
         if not item:
             return None
@@ -409,10 +428,11 @@ class Day:
     def restaurant(self, cuisine: str, label: str) -> dict | None:
         if not self.data:
             return None
-        word = cuisine.replace('-', ' ')
+        words = CUISINE_WORDS.get(cuisine, (cuisine.replace('-', ' '),))
         places = [place for place in self.data.get('places', ()) if place.get('kind') in
                   ('restaurant', 'cafe', 'tavern', 'inn', 'market') and place.get('cost', '$') in ('', '$', '$$') and
-                  word in ' '.join([place.get('cuisine', ''), *place.get('tags', ())]).replace('-', ' ').casefold()]
+                  any(word in ' '.join([place.get('cuisine', ''), *place.get('tags', ())]).replace('-', ' ').casefold()
+                      for word in words)]
         return generators.pick(self.seed, f'{label}:place', places)
 
     def bake(self, day: date) -> dict | None:
@@ -497,12 +517,22 @@ class Day:
         return 'cook'
 
     def leftovers_from(self, day: date) -> str | None:
-        """Yesterday's dish when it was a big batch they cooked (from the plain rhythm, so no chain of days)."""
+        """Yesterday's dish when it was a big batch they cooked. Yesterday's actual dinner, so leftovers follow a
+        cooking night and never a night of leftovers or takeout; on the first night of a run (`recent_dishes`) the
+        plain rhythm stands in."""
         yesterday = day - timedelta(days=1)
-        if self.away(yesterday) or self.base(yesterday) != 'cook':
+        if yesterday < run_start(day):
+            if self.away(yesterday) or self.base(yesterday) != 'cook':
+                return None
+            dish = self.dish(yesterday)
+            return dish['name'] if dish and 'big' in dish['tags'] else None
+        meal = self.meal(yesterday)
+        if meal['kind'] != 'cook' or not meal['dish']:
             return None
-        dish = self.dish(yesterday, exclude=self.recent_dishes(yesterday)) or self.dish(yesterday)
-        return dish['name'] if dish and 'big' in dish['tags'] else None
+        return meal['dish'] if 'big' in self.tags_of(meal['dish']) else None
+
+    def tags_of(self, name: str) -> frozenset:
+        return next((dish['tags'] for dish in bank(self.found['bank'])['dishes'] if dish['name'] == name), frozenset())
 
     def hosted(self, day: date, outing: dict | None = None) -> dict:
         """What they cook when the user comes over: a dish for company within their skill (a favourite when it is
@@ -527,11 +557,16 @@ class Day:
         return self.remember(('grocery', day), lambda: self.shops(day))
 
     def shops(self, day: date) -> bool:
-        if self.away(day):
-            return False
-        if any(entry.get('activity') == 'groceries' for entry in self.entries(day)):
-            return True
-        return day in self.planned_runs(day)
+        monday = day - timedelta(days=day.weekday())
+        return day in self.remember(('runs', monday), lambda: self.week_runs(monday))
+
+    def week_runs(self, monday: date) -> set[date]:
+        """At most two runs a week: the days their agenda has them shopping first, then the seeded ones."""
+        days = [monday + timedelta(days=offset) for offset in range(7)]
+        shopping = [day for day in days if not self.away(day)
+                    and any(entry.get('activity') == 'groceries' for entry in self.entries(day))]
+        seeded = sorted(day for day in self.planned_runs(monday) if not self.away(day) and day not in shopping)
+        return set((shopping + seeded)[:RUNS_A_WEEK])
 
     def planned_runs(self, day: date) -> set[date]:
         monday = day - timedelta(days=day.weekday())
@@ -589,6 +624,24 @@ class Day:
         if not self.grocery_day(day):
             return []
         return [item['name'] for item in self.pantry(day - timedelta(days=1)) if item['state'] != 'stocked']
+
+
+def run_start(day: date) -> date:
+    """The first night of the four-week run a night belongs to (see `Day.recent_dishes`)."""
+    return day - timedelta(days=(day - RUN_FROM).days % RUN_DAYS)
+
+
+def eaten(meal: dict) -> set[str]:
+    """The dishes a night's dinner was."""
+    return {name for name in (meal.get('dish'), (meal.get('takeout') or {}).get('dish')) if name}
+
+
+def run_label(bank_id: str) -> str:
+    """What a shopping trip is called: a grocery run now, food shopping from the 1880s to the 1920s, and market day
+    in medieval and older-world towns."""
+    if modern_bank(bank_id):
+        return 'Grocery run'
+    return 'Market day' if bank_id in ('medieval', 'old-world') else 'Food shopping'
 
 
 def day_for(connection, timeline_id: str, definition: dict, world, now) -> Day:
@@ -767,7 +820,7 @@ def context_lines(connection, timeline_id: str, definition: dict, world, now, ti
     today, era_modern = local.date(), modern_bank(found.found['bank'])
     me = found.found
     baking = ' and you love baking' if me.get('bakes') else ''
-    lines = [(f'kitchen:{timeline_id}:you', f"- In the kitchen you are {skill_text(me)}{baking}; you "
+    lines = [(f'kitchen:{timeline_id}:you', f"- In the kitchen {YOUR_SKILLS[me['skill']]}{baking}; you "
                                             f"{diet_text(me, 'you')}.")]
     if me.get('favorites'):
         lines.append((f'kitchen:{timeline_id}:favorites', f"- Dishes you make a lot: {listing(me['favorites'])}."))
@@ -817,11 +870,11 @@ def cooked_on(found: Day, day: date) -> int:
 def grocery_runs(connection, timeline_id: str, start: date, end: date, definition: dict, world, now) -> list[dict]:
     """Grocery runs between two local dates inclusive, for Life admin's Today: {date, text, staples}."""
     found = day_for(connection, timeline_id, definition, world, now)
-    result, day = [], start
+    result, day, label = [], start, run_label(found.found['bank'])
     while day <= end:
         if found.grocery_day(day):
             back = found.restocked(day)
-            text = f"Grocery run (out of {listing(back)})" if back else 'Grocery run'
+            text = f"{label} (out of {listing(back)})" if back else label
             result.append({'date': day.isoformat(), 'text': text, 'staples': back})
         day += timedelta(days=1)
     return result
@@ -930,7 +983,7 @@ def view(connection, timeline_id: str, definition: dict, world, now, timezone: s
               'skill_text': skill_text(me), 'bakes': bool(me.get('bakes')), 'favorites': me.get('favorites') or [],
               'summary': f"{skill_text(me)[:1].upper()}{skill_text(me)[1:]}"
                          f"{' who loves baking' if me.get('bakes') else ''}; they {diet_text(me)}.",
-              'cuisine': bank(me['bank'])['label'], 'week': week,
+              'cuisine': bank(me['bank'])['label'], 'week': week, 'run_label': run_label(me['bank']),
               'pantry': [{'name': item['name'], 'state': item['state']} for item in pantry],
               'pantry_text': pantry_text(pantry) or 'The basics are stocked.',
               'changed': sorted(overrides), 'diets': list(DIETS), 'avoid_choices': list(AVOIDS), 'skills': list(SKILLS),

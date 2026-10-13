@@ -42,7 +42,7 @@ ACTIVITIES = {
                'a museum visit'),
     'walk': (r'walk|stroll|hike|picnic', ('park', 'garden', 'trail', 'beach', 'landmark'), '16:00', 1.5, 'walk',
              'a walk'),
-    'market': (r'market|shopping', ('market', 'shopping'), '11:00', 1.5, 'market', 'a look round the shops'),
+    'market': (r'market|shopping', ('market', 'shopping'), '11:00', 1.5, 'market', 'a look around the shops'),
     # Dinner at the companion's place (companion/life/kitchen.py): found by HOSTED below, never by its own words.
     'dinner-in': (r'(?!x)x', ('home',), '19:00', 3.0, 'dinner-in', 'dinner at their place'),
 }
@@ -405,6 +405,8 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
             'place, named, cost, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)',
             (outing_id, companion['id'], message['id'], day.isoformat(), at, until(at, 'dinner-in'), 'dinner-in',
              wanted['day'].isoformat() if wanted['day'] else None, encode(place), timestamp))
+        from companion.life import admin
+        admin.make_room(connection, companion, day, at, parse(timestamp))
         return get(connection, outing_id)
     cost, affordable = bill(definition, wanted['activity'], day,
                             money.spendable(connection, companion['active_timeline_id'], definition, day))
