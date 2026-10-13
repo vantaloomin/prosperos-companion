@@ -344,8 +344,8 @@ class ComfyAdapter:
             spec = info.get(node['class_type'])
             if spec is None:
                 pack = NODE_PACKS.get(node['class_type'])
-                where = f'the {pack[0]} nodes, {pack[1]}' if pack else 'the custom node that provides it'
-                problem = f"Missing node: {node['class_type']} (install {where})."
+                where = f'from the {pack[0]} nodes' if pack else 'install the custom node that provides it'
+                problem = f"Missing node: {node['class_type']} ({where})."
                 if problem not in missing:
                     missing.append(problem)
                 continue
@@ -382,13 +382,23 @@ class ComfyAdapter:
                                       style_loras(config, {'comfy_name': config.get('lora_name')}))
         if config.get('reference_workflow'):
             missing += follows
+        # Users never see the template's file name, so it reads as "the built-in workflow".
+        shown = 'built-in' if name == TEMPLATE_NAME else name
         if missing:
-            return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing, packs)
+            return Check(False, f'ComfyUI is reachable, but the {shown} workflow cannot run yet.', missing, packs)
         if follows:
-            # The built-in reference workflow needs a newer ComfyUI than the main one; pictures still work.
-            return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses. '
-                         'Profile pictures made from a reference cannot run yet.', follows, packs)
-        return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses.')
+            # Only profile pictures need the reference workflow, so the backend still passes (Iris's wording).
+            pack_nodes = {node for pack in packs for node in node_packs.PACKS[pack['id']]['nodes']}
+            needs = ' and '.join(f"the {pack['label']} nodes" for pack in packs)
+            others = [line for line in follows if not any(f'Missing node: {node} ' in line for node in pack_nodes)]
+            if needs and not others:
+                tail = f'Pictures made from a reference need {needs} first.'
+            elif needs:
+                tail = f'Pictures made from a reference need {needs} and the files under Details first.'
+            else:
+                tail = 'Pictures made from a reference cannot run yet; Details says what is missing.'
+            return Check(True, f'ComfyUI has everything the {shown} workflow needs. {tail}', follows, packs)
+        return Check(True, f'ComfyUI is reachable and has every node and model the {shown} workflow uses.')
 
     async def folder_paths(self, config) -> dict:
         """Where ComfyUI keeps each kind of file, from its own `/internal/folder_paths`."""

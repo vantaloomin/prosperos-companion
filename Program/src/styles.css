@@ -96,6 +96,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .notice-error { color: var(--danger); border-color: var(--danger-border); background: var(--danger-tint); }
 .notice-warning { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: var(--accent-tint); }
 .notice-warning > svg { color: var(--accent); }
+.notice-success, .notice-success > svg { color: var(--accent); }
 .error-details { display: block; margin-top: 4px; font-size: 0.8rem; opacity: 0.85; }
 .hardware-summary { margin: 0; }
 
@@ -637,6 +638,14 @@ textarea { resize: vertical; line-height: 1.6; }
 .in-photos-follow { align-self: flex-start; }
 .workflow-editor code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.92em; }
 .workflow-editor .form-actions { flex-wrap: wrap; }
+/* Check's notes and the node pack install (Iris). */
+.check-details summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
+.check-details ul { margin: 6px 0 0; }
+.node-install { display: grid; gap: 6px; justify-items: start; margin-top: 10px; }
+.node-install-button { min-width: 18rem; }
+.node-install-problem { margin: 0; color: var(--danger); }
+.node-install-note { margin: 0; font-size: 0.8125rem; }
+@media (max-width: 720px) { .node-install-button { min-width: 0; width: 100%; } }
 /* 16px between a workflow's actions and the next disclosure (Iris). */
 .workflow-editor { margin-bottom: 16px; }
 .workflow-editor .workflow-reset { margin-left: auto; }

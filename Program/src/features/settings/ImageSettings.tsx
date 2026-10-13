@@ -152,14 +152,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
           // A refused workflow says why beside its own box, not at the foot of the section.
           try { await api(`/images/backends/${backend.id}`, body, 'PUT'); await refresh(); return '' } catch (error) { return failure(error, 'That workflow could not be saved.') }
         }} />
-      {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul>
-        {/* One press puts a listed node pack into this computer's ComfyUI (Vanta approved, 2026-10-13). */}
-        {check.install?.map((pack) => <button key={pack.id} type="button" className="button" aria-disabled={busy}
-          onClick={() => void act(async () => {
-            await api(`/images/backends/${backend.id}/install-nodes/${pack.id}`, {})
-            setCheck({ ok: check.ok, summary: `${pack.label} nodes installed. Restart ComfyUI to load them, then press Check again.`, details: [] })
-          })}>Install the {pack.label} nodes</button>)}
-      </Notice>}
+      {check && <CheckResult key={JSON.stringify(check)} backend={backend} check={check} />}
       <div className="post-actions backend-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === 0} aria-label={`Move ${backend.label} up`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index - 1 }))}><ArrowUp aria-hidden="true" />Up</button>
@@ -168,6 +161,37 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
         <LaunchFor id={backend.id} />
       </div>
     </li>
+  )
+}
+
+/** What Check found. Notes that do not stop the backend sit under Details; a node pack the app can
+ * install gets a button (Vanta approved one-press installs, 2026-10-13; wording and states per Iris). */
+function CheckResult({ backend, check }: { backend: ImageBackend; check: BackendCheck }) {
+  const [installing, setInstalling] = useState('')
+  const [installed, setInstalled] = useState('')
+  const [problem, setProblem] = useState('')
+  const install = async (pack: { id: string; label: string }) => {
+    if (installing) return
+    setInstalling(pack.id); setProblem('')
+    try {
+      await api(`/images/backends/${backend.id}/install-nodes/${pack.id}`, {})
+      setInstalled(pack.label)
+    } catch (error) { setProblem(failure(error, `Couldn't install the ${pack.label} nodes. Try again.`)) } finally { setInstalling('') }
+  }
+  if (installed) return <Notice tone="success">{installed} nodes installed. Restart ComfyUI to load them, then press Check again.</Notice>
+  const lines = <ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul>
+  return (
+    <Notice tone={check.ok ? 'info' : 'error'}>
+      {check.summary}
+      {check.details.length > 0 && (check.ok ? <details className="check-details"><summary>Details</summary>{lines}</details> : lines)}
+      {(check.install ?? []).map((pack) => <div key={pack.id} className="node-install">
+        {problem && <p className="node-install-problem" role="alert">{problem}</p>}
+        <button type="button" className="button node-install-button" disabled={Boolean(installing)} onClick={() => void install(pack)}>
+          {installing === pack.id ? 'Installing…' : `Install the ${pack.label} nodes`}
+        </button>
+        <p className="subtle node-install-note">Adds one folder to ComfyUI's custom_nodes. No Python packages.</p>
+      </div>)}
+    </Notice>
   )
 }
 
@@ -396,7 +420,7 @@ function ModelLinks({ links }: { links: ModelLink[] }) {
   const groups = linksByRole(links)
   if (groups.length === 0) return null
   return <div>
-    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list. Pictures made from a reference also need the Krea 2 Identity Edit nodes in ComfyUI's custom_nodes folder: <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">get them here</a>, then restart ComfyUI. Check the licence on each page before downloading.</p>
+    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list. Pictures made from a reference also need the Krea 2 Identity Edit <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder; Check offers to install it. Check the licence on each page before downloading.</p>
     <ul className="plain-list">
       {groups.flatMap(({ slot, links: items }) => items.map(link => <li key={link.name}>
         {slot.label}: <a className="text-button" href={link.url} target="_blank" rel="noreferrer">{link.name}</a>{link.file && <> · {link.file}</>}

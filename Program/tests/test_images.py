@@ -753,8 +753,9 @@ def test_comfyui_check_reports_the_chosen_files():
     chosen = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN}))
     assert chosen.ok, chosen.details
     # The built-in reference workflow's own nodes and LoRA are only noted: profile pictures need them, other pictures don't.
-    assert 'Profile pictures made from a reference cannot run yet' in chosen.summary
-    assert any('Krea2EditModelPatch' in line and 'github.com/lbouaraba/comfyui-krea2edit' in line for line in chosen.details)
+    assert chosen.summary == ('ComfyUI has everything the built-in workflow needs. Pictures made from a reference need '
+                              'the Krea 2 Identity Edit nodes and the files under Details first.')
+    assert any('Krea2EditModelPatch' in line and 'Krea 2 Identity Edit nodes' in line for line in chosen.details)
     assert any('krea2_identity_edit_v1_2.safetensors' in line for line in chosen.details)
     assert chosen.install == [{'id': 'krea2edit', 'label': 'Krea 2 Identity Edit'}]
     missing = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN, 'vae_name': 'gone.safetensors'}))
