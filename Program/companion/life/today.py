@@ -4,7 +4,20 @@ from companion import moods as feelings
 from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional, settings
-from companion.life import agenda, circle, composer, deck, dreams, feed, mood, occasions, routine, simulation, thoughts
+from companion.life import (
+    admin,
+    agenda,
+    circle,
+    composer,
+    deck,
+    dreams,
+    feed,
+    mood,
+    occasions,
+    routine,
+    simulation,
+    thoughts,
+)
 from companion.memory.records import OPEN_PLANS, eligible
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
@@ -93,7 +106,9 @@ def plans(connection, companion, now) -> dict:
             shown.append(row)
     definition = companion['version']['definition']
     return {'shared': user_plans, 'companion': [event_view(row, definition) for row in shown],
-            'threads': [event_view(row, definition) for row in threads]}
+            'threads': [event_view(row, definition) for row in threads],
+            # Appointments, errands and chores in the week ahead (companion/life/admin.py).
+            'admin': admin.today_items(connection, companion, now)}
 
 
 def day(connection, timeline_id, local_date) -> dict:

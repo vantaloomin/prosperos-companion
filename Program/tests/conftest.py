@@ -101,6 +101,13 @@ def no_trips(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_life_admin(monkeypatch):
+    """Seeded appointments, errands and surprises (companion/life/admin.py) would take slots in unrelated tests'
+    days; tests/test_life_admin.py turns them on."""
+    monkeypatch.setattr('companion.life.admin.ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_unasked_pictures(monkeypatch):
     """Unasked chat pictures are a seeded chance; test_chat_photos turns them on where it needs them."""
     monkeypatch.setattr('companion.images.photos.UNASKED', False)

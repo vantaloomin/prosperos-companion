@@ -977,6 +977,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .mix-now dd { margin: 0; }
 .range-ticks { position: relative; height: 1.2em; margin: 0 8px; color: var(--muted); font-size: 0.75rem; }
 .range-ticks span { position: absolute; transform: translateX(-50%); }
+/* Every range input takes the accent colour (Iris). */
+input[type='range'] { accent-color: var(--accent); }
 .reading-fonts, .motion-choice { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
 .reading-fonts legend, .motion-choice legend { padding: 0; margin-bottom: 8px; }
 .reading-font { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
@@ -1725,6 +1727,18 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .together-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .together-actions { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 2px; }
 .together-item .together-actions .text-button, .together-undo .text-button { padding-left: 0; padding-right: 0; }
+.admin-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.admin-list > .admin-item { display: grid; gap: 2px; justify-items: start; padding-block: 10px; border-top: 1px solid var(--border); }
+.admin-list > .admin-item:first-child { border-top: 0; padding-top: 0; }
+.admin-item p { margin: 0; }
+.admin-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.admin-item .text-button, .admin-more { padding-left: 0; padding-right: 0; }
+.admin-more { color: var(--accent); min-height: 44px; }
+.admin-when { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; width: 100%; }
+.admin-state { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
+.admin-later { display: grid; max-width: 28rem; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0; font-size: 0.875rem; }
+.admin-later > div { display: contents; }
+.admin-later dd { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
 .together-undo { grid-template-columns: 1fr auto; align-items: center; }
 /* The strip shares the composer row's edges (input through Send) in every chat style. */
 .out-now { display: flex; align-items: center; gap: 8px; max-width: 696px; width: calc(100% - 64px); margin: 0 auto 8px; padding: 6px 8px 6px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-tint); font-family: system-ui, sans-serif; font-size: 0.875rem; }

@@ -310,7 +310,18 @@ def pet_line(seed: str, pets: list[dict]) -> str | None:
 
 # --- Their agenda ---
 
+def big_clean_key(local_date: str) -> str:
+    """The week's big clean on Life admin's calendar (companion/life/admin.py). Keyed by week, not day: the walk ahead
+    can settle a big clean on a different day once more of the week is planned, and it is still the same one."""
+    return f"upkeep:big-clean:{date.fromisoformat(local_date).strftime('%G-W%V')}"
+
+
 def told(connection, timeline_id: str, local_date: str, kind: str) -> bool:
+    """Whether the day's agenda already tells this; the week's big clean on Life admin's calendar is told there, in
+    its own slot."""
+    if kind == 'big-clean' and optional(connection, "SELECT id FROM life_admin WHERE timeline_id=? AND key=? AND "
+                                        "status!='removed'", (timeline_id, big_clean_key(local_date))):
+        return True
     return bool(optional(connection, "SELECT id FROM life_agenda WHERE timeline_id=? AND subject=? AND local_date=? "
                          "AND json_extract(entry, '$.upkeep.kind')=? LIMIT 1",
                          (timeline_id, COMPANION, local_date, kind)))

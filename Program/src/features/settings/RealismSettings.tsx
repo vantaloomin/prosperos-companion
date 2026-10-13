@@ -16,6 +16,14 @@ import { SectionPending } from '../../components/SectionPending'
 import { useLifeSettings, type SaveResult } from './useLifeSettings'
 import { RealismPresets } from './RealismPresets'
 
+/** Life admin (companion/life/admin.py) on the home features' shared scale: how much of the boring stuff fills their weeks. */
+const ADMIN_LEVELS = [
+  { label: 'Off', hint: 'No appointments, errands or paperwork of their own.' },
+  { label: 'Light', hint: 'Only what comes due: the dentist, taxes, the lease. Nothing gets put off, no surprise bills, and anything moves for plans with you.' },
+  { label: 'True to life', hint: 'What comes due, plus an errand or some paperwork most weeks. Now and then a chore gets put off, never past its deadline. The dentist and the vet keep their time; you can still move them.' },
+  { label: 'Dramatic', hint: 'Errands and paperwork every week, and surprises like a parking ticket or a bank mix-up to sort out. Anything due that day holds too.' },
+]
+
 /** The top of Settings > Realism: Iris's opening line and one-tap presets for the world-wide settings below. */
 export function RealismIntro() {
   return (
@@ -59,6 +67,7 @@ export function HomeLifeSettings() {
   const upkeep = UPKEEP_LEVELS[data.upkeep_realism] ?? UPKEEP_LEVELS[2]
   const kitchen = KITCHEN_LEVELS[data.kitchen_realism] ?? KITCHEN_LEVELS[2]
   const pets = PET_LEVELS[data.pets_realism] ?? PET_LEVELS[2]
+  const admin = ADMIN_LEVELS[data.admin_realism] ?? ADMIN_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="home-life-heading">
       <div>
@@ -79,6 +88,10 @@ export function HomeLifeSettings() {
       </Field>
       <Toggle label="Pets can die" checked={data.pets_can_die} disabled={data.pets_realism === 0} onChange={(value) => void save({ pets_can_die: value })}
         hint="Rarely, and only late in life: of old age, or a serious illness when they are very old. Off: pets still grow old but are always there. A pet that died can be brought back on the Character page." />
+      <Field label={`Life admin: ${admin.label}`} hint={admin.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.admin_realism} label={admin.label}
+          onChange={(admin_realism) => void save({ admin_realism })} />}
+      </Field>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )

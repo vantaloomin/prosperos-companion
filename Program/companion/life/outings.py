@@ -270,6 +270,13 @@ def taken(connection, companion: dict, day: date) -> bool:
         trips.away_on(connection, companion['id'], day) or traditions.busy(connection, companion, day, day)
 
 
+def booked(connection, companion: dict, day: date, at: str) -> bool:
+    """An appointment booked with someone else (the dentist, the vet) has that part of the day
+    (companion/life/admin.py); chores and errands move out of the way instead."""
+    from companion.life import admin
+    return admin.holds(connection, companion, day, at)
+
+
 def first_day(local_now: datetime, at: str) -> date:
     """Today when the time is still a while off, else tomorrow."""
     later = local_now + timedelta(hours=1)
@@ -291,7 +298,7 @@ def when_free(connection, companion: dict, wanted: dict, local_now: datetime) ->
             if wanted['firm'] and offset:
                 return None
             if not busy_at(schedule, day, at) and not cut_short(schedule, day, at, until(at, wanted['activity'])) \
-                    and not taken(connection, companion, day):
+                    and not taken(connection, companion, day) and not booked(connection, companion, day, at):
                 return day, at
     return None
 
@@ -414,6 +421,8 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
         (outing_id, companion['id'], message['id'], day.isoformat(), at, until(at, wanted['activity']),
          wanted['activity'], wanted['day'].isoformat() if wanted['day'] else None, encode(place_view(item, data)),
          int(wanted['place'] is not None), cost if affordable else round(cost * 0.6, 2), timestamp))
+    from companion.life import admin
+    admin.make_room(connection, companion, day, at, parse(timestamp))
     return get(connection, outing_id)
 
 
