@@ -240,3 +240,10 @@ def test_now_and_then_they_ask_the_user_over(client, kim, monkeypatch, clock):
                                                          clock.now().isoformat()))
         outing = kitchen.settle_invite(connection, companion, message, trigger, clock.now().isoformat())
         assert outing['activity'] == 'dinner-in' and outing['local_date'] == trigger.sources[0]
+
+
+def test_a_shopping_trip_is_named_for_its_era():
+    assert kitchen.run_label(kitchen.bank_for(WORLD.find('baltimore'))) == 'Grocery run'
+    assert kitchen.run_label(kitchen.bank_for(WORLD.find('camelot'))) == 'Market day'
+    assert {kitchen.run_label(kitchen.bank_for(WORLD.find(city))) for city in ('london-1895', 'new-york-1925')} == \
+        {'Food shopping'}

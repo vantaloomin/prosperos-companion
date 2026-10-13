@@ -625,6 +625,14 @@ def eaten(meal: dict) -> set[str]:
     return {name for name in (meal.get('dish'), (meal.get('takeout') or {}).get('dish')) if name}
 
 
+def run_label(bank_id: str) -> str:
+    """What a shopping trip is called: a grocery run now, food shopping from the 1880s to the 1920s, and market day
+    in medieval and older-world towns."""
+    if modern_bank(bank_id):
+        return 'Grocery run'
+    return 'Market day' if bank_id in ('medieval', 'old-world') else 'Food shopping'
+
+
 def day_for(connection, timeline_id: str, definition: dict, world, now) -> Day:
     return Day(connection, timeline_id, definition, world, ensure(connection, timeline_id, definition, world, now))
 
@@ -851,11 +859,11 @@ def cooked_on(found: Day, day: date) -> int:
 def grocery_runs(connection, timeline_id: str, start: date, end: date, definition: dict, world, now) -> list[dict]:
     """Grocery runs between two local dates inclusive, for Life admin's Today: {date, text, staples}."""
     found = day_for(connection, timeline_id, definition, world, now)
-    result, day = [], start
+    result, day, label = [], start, run_label(found.found['bank'])
     while day <= end:
         if found.grocery_day(day):
             back = found.restocked(day)
-            text = f"Grocery run (out of {listing(back)})" if back else 'Grocery run'
+            text = f"{label} (out of {listing(back)})" if back else label
             result.append({'date': day.isoformat(), 'text': text, 'staples': back})
         day += timedelta(days=1)
     return result
@@ -964,7 +972,7 @@ def view(connection, timeline_id: str, definition: dict, world, now, timezone: s
               'skill_text': skill_text(me), 'bakes': bool(me.get('bakes')), 'favorites': me.get('favorites') or [],
               'summary': f"{skill_text(me)[:1].upper()}{skill_text(me)[1:]}"
                          f"{' who loves baking' if me.get('bakes') else ''}; they {diet_text(me)}.",
-              'cuisine': bank(me['bank'])['label'], 'week': week,
+              'cuisine': bank(me['bank'])['label'], 'week': week, 'run_label': run_label(me['bank']),
               'pantry': [{'name': item['name'], 'state': item['state']} for item in pantry],
               'pantry_text': pantry_text(pantry) or 'The basics are stocked.',
               'changed': sorted(overrides), 'diets': list(DIETS), 'avoid_choices': list(AVOIDS), 'skills': list(SKILLS),

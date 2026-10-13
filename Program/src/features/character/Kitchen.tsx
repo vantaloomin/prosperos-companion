@@ -66,7 +66,7 @@ function Week({ view }: { view: KitchenView }) {
   const row = (day: WeekDay) => (
     <li key={day.date} className={day.today ? 'kitchen-today' : undefined}>
       <span className="kitchen-day">{mealDay(day, view.today)}</span>
-      <span>{mealLine(day)}{day.groceries && <span className="badge kitchen-run"><ShoppingBasket aria-hidden="true" />Grocery run</span>}</span>
+      <span>{mealLine(day)}{day.groceries && <span className="badge kitchen-run"><ShoppingBasket aria-hidden="true" />{view.run_label}</span>}</span>
     </li>
   )
   return (
