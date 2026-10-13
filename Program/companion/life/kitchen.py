@@ -97,6 +97,7 @@ MODERN = {'modern', 'future'}
 RUN_FROM = date(2000, 1, 3)
 RUN_DAYS = 28
 INVITE_EVERY = 14
+RUNS_A_WEEK = 2
 INVITE_CHANCE = 0.45
 INVITE_AHEAD = (2, 5)
 
@@ -551,11 +552,16 @@ class Day:
         return self.remember(('grocery', day), lambda: self.shops(day))
 
     def shops(self, day: date) -> bool:
-        if self.away(day):
-            return False
-        if any(entry.get('activity') == 'groceries' for entry in self.entries(day)):
-            return True
-        return day in self.planned_runs(day)
+        monday = day - timedelta(days=day.weekday())
+        return day in self.remember(('runs', monday), lambda: self.week_runs(monday))
+
+    def week_runs(self, monday: date) -> set[date]:
+        """At most two runs a week: the days their agenda has them shopping first, then the seeded ones."""
+        days = [monday + timedelta(days=offset) for offset in range(7)]
+        shopping = [day for day in days if not self.away(day)
+                    and any(entry.get('activity') == 'groceries' for entry in self.entries(day))]
+        seeded = sorted(day for day in self.planned_runs(monday) if not self.away(day) and day not in shopping)
+        return set((shopping + seeded)[:RUNS_A_WEEK])
 
     def planned_runs(self, day: date) -> set[date]:
         monday = day - timedelta(days=day.weekday())

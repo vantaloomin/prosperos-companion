@@ -250,3 +250,16 @@ def test_a_shopping_trip_is_named_for_its_era():
     assert kitchen.run_label(kitchen.bank_for(WORLD.find('camelot'))) == 'Market day'
     assert {kitchen.run_label(kitchen.bank_for(WORLD.find(city))) for city in ('london-1895', 'new-york-1925')} == \
         {'Food shopping'}
+
+
+def test_groceries_are_bought_at_most_twice_a_week(client, kim):
+    reconcile(client)
+    monday = TODAY - timedelta(days=TODAY.weekday()) + timedelta(weeks=3)
+    week = [monday + timedelta(days=offset) for offset in range(7)]
+    with day_for(client) as found:
+        for day in (week[1], week[3], week[5]):  # Three shopping trips in their agenda that week.
+            found.memo[('entries', day)] = [{'activity': 'groceries'}]
+        runs = [day for day in week if found.grocery_day(day)]
+        assert runs == [week[1], week[3]]
+        assert all(sum(found.grocery_day(monday + timedelta(weeks=n, days=d)) for d in range(7)) <= 2
+                   for n in range(-8, 0))
