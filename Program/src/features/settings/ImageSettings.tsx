@@ -152,7 +152,14 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
           // A refused workflow says why beside its own box, not at the foot of the section.
           try { await api(`/images/backends/${backend.id}`, body, 'PUT'); await refresh(); return '' } catch (error) { return failure(error, 'That workflow could not be saved.') }
         }} />
-      {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul></Notice>}
+      {check && <Notice tone={check.ok ? 'info' : 'error'}>{check.summary}<ul>{check.details.map((line) => <li key={line}>{line}</li>)}</ul>
+        {/* One press puts a listed node pack into this computer's ComfyUI (Vanta approved, 2026-10-13). */}
+        {check.install?.map((pack) => <button key={pack.id} type="button" className="button" aria-disabled={busy}
+          onClick={() => void act(async () => {
+            await api(`/images/backends/${backend.id}/install-nodes/${pack.id}`, {})
+            setCheck({ ok: check.ok, summary: `${pack.label} nodes installed. Restart ComfyUI to load them, then press Check again.`, details: [] })
+          })}>Install the {pack.label} nodes</button>)}
+      </Notice>}
       <div className="post-actions backend-actions">
         <button type="button" className="text-button" aria-disabled={busy} onClick={() => void act(async () => setCheck(await api<BackendCheck>(`/images/backends/${backend.id}/check`, {})))}>Check</button>
         <button type="button" className="text-button" aria-disabled={busy} disabled={index === 0} aria-label={`Move ${backend.label} up`} onClick={() => void act(() => api(`/images/backends/${backend.id}/move`, { position: index - 1 }))}><ArrowUp aria-hidden="true" />Up</button>

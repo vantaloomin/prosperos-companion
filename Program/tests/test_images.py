@@ -756,6 +756,7 @@ def test_comfyui_check_reports_the_chosen_files():
     assert 'Profile pictures made from a reference cannot run yet' in chosen.summary
     assert any('Krea2EditModelPatch' in line and 'github.com/lbouaraba/comfyui-krea2edit' in line for line in chosen.details)
     assert any('krea2_identity_edit_v1_2.safetensors' in line for line in chosen.details)
+    assert chosen.install == [{'id': 'krea2edit', 'label': 'Krea 2 Identity Edit'}]
     missing = asyncio.run(adapter.check({}, {'base_url': 'http://127.0.0.1:8188', **CHOSEN, 'vae_name': 'gone.safetensors'}))
     assert missing.details == ['Missing file or option for VAELoader.vae_name: gone.safetensors.']
     # The subfolder is part of the name: the bare file name is not the server's file.

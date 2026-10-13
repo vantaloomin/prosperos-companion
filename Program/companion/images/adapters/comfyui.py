@@ -28,12 +28,15 @@ import asyncio
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
 
 from companion.errors import DomainError
+from companion.images import node_packs
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
+from companion.providers.urls import is_loopback
 
 TEMPLATE = Path(__file__).parent.parent / 'workflows' / 'krea2-turbo.json'
 TEMPLATE_NAME = 'krea2-turbo'
@@ -368,6 +371,10 @@ class ComfyAdapter:
         except (AdapterError, ValueError) as error:
             return Check(False, getattr(error, 'message', 'ComfyUI returned an unreadable node list.'))
         missing = self.node_problems(info, workflow)
+        # Only a server on this computer can have nodes installed into it.
+        packs = node_packs.providing([node['class_type'] for node in [*workflow.values(), *reference.values()]
+                                      if node['class_type'] not in info]) \
+            if is_loopback(urlsplit(config['base_url']).hostname) else []
         # Problems the two workflows share (the built-in ones' loaders) are listed once.
         follows = [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)
                    if problem not in missing]
@@ -376,12 +383,21 @@ class ComfyAdapter:
         if config.get('reference_workflow'):
             missing += follows
         if missing:
-            return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing)
+            return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing, packs)
         if follows:
             # The built-in reference workflow needs a newer ComfyUI than the main one; pictures still work.
             return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses. '
-                         'Profile pictures made from a reference cannot run yet.', follows)
+                         'Profile pictures made from a reference cannot run yet.', follows, packs)
         return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses.')
+
+    async def folder_paths(self, config) -> dict:
+        """Where ComfyUI keeps each kind of file, from its own `/internal/folder_paths`."""
+        async with self.client(config['base_url']) as client:
+            response = await self.call(client, 'GET', '/internal/folder_paths')
+        try:
+            return response.json() if response.status_code == 200 else {}
+        except ValueError:
+            return {}
 
     async def files(self, config) -> dict:
         """The files the server offers the built-in workflow's loaders, asked of the configured

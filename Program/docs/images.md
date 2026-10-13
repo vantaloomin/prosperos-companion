@@ -78,6 +78,14 @@ backend is off until the user sets it up, and text never waits for an image. The
   Python dependencies); ComfyUI has no core equivalent. The LoRA's page is in the model links. It
   takes the same file and sampler choices. Check lists what it is missing with where to get it,
   but that does not fail the backend: only profile pictures need it.
+- **Installing the nodes** (Vanta's one exception to "the app never writes into ComfyUI",
+  2026-10-13). When Check finds a node a listed pack provides (`images/node_packs.py`) on a ComfyUI
+  at a loopback address, it offers **Install the Krea 2 Identity Edit nodes**. The press asks
+  ComfyUI for its custom_nodes folder (`/internal/folder_paths`), downloads the pack's files from
+  the pinned commit, checks each against its SHA-256, and moves them in as a new
+  `comfyui-krea2edit` folder. An existing folder is never replaced, no Python package is installed
+  (the pack needs none), and nothing else is touched. ComfyUI loads it on its next start. Never from
+  a paired phone.
 - **Codex** uses Codex's own `image_generation` feature (stable and on by default in codex-cli
   0.160.1). Each image is one turn of `codex exec --json --skip-git-repo-check --ephemeral
   --ignore-user-config --ignore-rules --sandbox read-only --cd <empty scratch folder> -`, with a
@@ -345,7 +353,8 @@ All writes need the `x-companion-client: workspace` header.
 | `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address or turning `allows_nsfw` on needs the disclosure again |
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
-| `POST /api/images/backends/{id}/check` | `{ok, summary, details}`; spends no generation quota |
+| `POST /api/images/backends/{id}/check` | `{ok, summary, details, install}`; spends no generation quota; `install` lists node packs (`{id, label}`) the app can put into a ComfyUI on this computer |
+| `POST /api/images/backends/{id}/install-nodes/{pack}` | Installs a listed node pack into that ComfyUI's custom_nodes (loopback only, PC only); `{installed, folder}` |
 | `GET /api/images/backends/{id}/workflows` | ComfyUI's saved `{workflow, reference_workflow}` text (empty when unset) and the built-in ones as `built_in` and `built_in_reference`, for editing on the PC; refused from a paired phone |
 | `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, sampler_defaults, options, krea, character_lora}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, Krea 2's first and listed in `krea` |
 | `GET /api/images/model-links` | `{links: [{name, role, file, url, licence}]}`: download pages for the built-in workflow's files |

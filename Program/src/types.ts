@@ -662,7 +662,7 @@ export interface ImageBackend {
 
 export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
-export interface BackendCheck { ok: boolean; summary: string; details: string[] }
+export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
 export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name'
 export type ModelFiles = Record<ModelFileKey, string>

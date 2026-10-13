@@ -61,9 +61,11 @@ class Check:
     ok: bool
     summary: str
     details: list[str] = field(default_factory=list)
+    # Node packs the app can install for what is missing ({id, label} from node_packs), for an Install button.
+    install: list[dict] = field(default_factory=list)
 
     def view(self) -> dict:
-        return {'ok': self.ok, 'summary': self.summary, 'details': self.details}
+        return {'ok': self.ok, 'summary': self.summary, 'details': self.details, 'install': self.install}
 
 
 class AdapterError(Exception):
