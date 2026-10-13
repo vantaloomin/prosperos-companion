@@ -2,13 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { api } from '../../api'
-import type { ArgumentSource, ContextCategory, ContextMapping, ContextOverview, ContextPurpose, ContextServiceInfo, MappingSuggestion, Observation, ToolArgument } from '../../types'
+import type { ArgumentSource, ContextCategory, ContextMapping, ContextOverview, ContextPurpose, ContextServiceInfo, MappingSuggestion, Observation, ToolArgument, ToolProperty } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { BuiltinCulture } from './BuiltinCulture'
 import { BuiltinPulse } from './BuiltinPulse'
 import { BuiltinWeather } from './BuiltinWeather'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
-import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SEARCH_PRESETS, SOURCE_LABELS, canSave, canTry, purposeLabel, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
+import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SEARCH_PRESETS, SOURCE_LABELS, argumentKind, canSave, canTry, propertyLabel, purposeLabel, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withAppFilled, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
 import { SectionPending } from '../../components/SectionPending'
 
 type Result = { tone: 'info' | 'error'; text: string } | null
@@ -265,7 +265,7 @@ function SavedMapping({ category, mapping, path, name, busy, act, onEdit }: Save
         <strong>{CATEGORY_LABELS[category]}</strong>
         <span className="badge">{mappingBadge(mapping)}</span>
       </div>
-      {on ? <p className="subtle">Sends {mapping.disclosure.sends.map((item) => item.argument).join(', ') || 'nothing'} to “{mapping.tool}”.</p>
+      {on ? <p className="subtle">Sends {mapping.disclosure.sends.map((item) => propertyLabel(item.argument).toLowerCase()).join(', ') || 'nothing'} to “{mapping.tool}”.</p>
         : <ul className="disclosure">{mapping.disclosure.summary.map((line) => <li key={line}>{line}</li>)}</ul>}
       <Toggle label={on ? 'Turned on' : 'Turn on'} checked={on} onChange={(value) => void toggle(value)}
         hint={on ? undefined : 'Turning it on confirms what it sends, as described above. Any later change asks again.'} />
@@ -303,8 +303,9 @@ function TryResults({ items }: { items: Observation[] }) {
 interface EditorProps { category: ContextCategory; service: ContextServiceInfo; data: Overview; name: string; draft: MappingDraft; busy: boolean; onCancel: () => void; onSave: (draft: MappingDraft) => void }
 
 function MappingEditor({ category, service, data, name, draft: initial, busy, onCancel, onSave }: EditorProps) {
-  const [draft, setDraft] = useState(initial)
-  const tool = service.tools.find((item) => item.name === draft.tool)
+  const toolNamed = (name: string) => service.tools.find((item) => item.name === name)
+  const [draft, setDraft] = useState(() => withAppFilled(initial, toolNamed(initial.tool)))
+  const tool = toolNamed(draft.tool)
   const properties = Object.entries(tool?.input_schema.properties ?? {})
   const required = new Set(tool?.input_schema.required ?? [])
   const missing = missingArguments(tool, draft.arguments)
@@ -312,21 +313,21 @@ function MappingEditor({ category, service, data, name, draft: initial, busy, on
     <div className="context-mapping form-stack">
       <strong>{CATEGORY_LABELS[category]}</strong>
       <Field label="Tool" hint="Which of this service's tools runs for this lookup. What it does is described below.">{(id, hint) => (
-        <select id={id} aria-describedby={hint} value={draft.tool} onChange={(event) => setDraft({ tool: event.target.value, arguments: {}, run_in: draft.run_in })}>
+        <select id={id} aria-describedby={hint} value={draft.tool} onChange={(event) => setDraft(withAppFilled({ tool: event.target.value, arguments: {}, run_in: draft.run_in }, toolNamed(event.target.value)))}>
           {service.tools.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
         </select>
       )}</Field>
       <p className="subtle">{tool?.description || (properties.length ? '' : 'This tool takes no arguments.')}</p>
       {properties.map(([property, schema]) => (
-        <ArgumentRow key={property} category={category} property={property} description={schema.description} required={required.has(property)}
+        <ArgumentRow key={property} category={category} property={property} schema={schema} required={required.has(property)}
           argument={draft.arguments[property]} onSource={(source) => setDraft(withSource(draft, property, source))}
           onValue={(value) => setDraft({ ...draft, arguments: { ...draft.arguments, [property]: { source: 'literal', value } } })} />
       ))}
       {data.categories[category].purposes.map((purpose) => (
         <Toggle key={purpose} label={purposeLabel(category, purpose, name)}
-          hint={data.purposes[purpose]} checked={draft.run_in.includes(purpose)} onChange={(value) => setDraft(withPurpose(draft, purpose, value))} />
+          hint={canTry(category) ? data.purposes[purpose] : undefined} checked={draft.run_in.includes(purpose)} onChange={(value) => setDraft(withPurpose(draft, purpose, value))} />
       ))}
-      {missing.length > 0 && <p className="subtle">The tool needs {missing.join(', ')}.</p>}
+      {missing.length > 0 && <p className="subtle">The tool needs {missing.map((item) => propertyLabel(item).toLowerCase()).join(', ')}.</p>}
       <p className="subtle">Saving keeps it off. You will see exactly what it sends before turning it on.</p>
       <div className="form-actions">
         <button type="button" className="button primary" disabled={busy || !canSave(draft, tool)} onClick={() => onSave(draft)}>Save</button>
@@ -336,12 +337,49 @@ function MappingEditor({ category, service, data, name, draft: initial, busy, on
   )
 }
 
-interface ArgumentProps { category: ContextCategory; property: string; description?: string; required: boolean; argument?: ToolArgument; onSource: (source: ArgumentSource | '') => void; onValue: (value: string) => void }
+interface ArgumentProps { category: ContextCategory; property: string; schema: ToolProperty; required: boolean; argument?: ToolArgument; onSource: (source: ArgumentSource | '') => void; onValue: (value: string | number | boolean) => void }
 
-function ArgumentRow({ category, property, description, required, argument, onSource, onValue }: ArgumentProps) {
+/** One argument of the tool, offered the way its schema types it. The app fills ids like session_id itself, so they are not shown. */
+function ArgumentRow(props: ArgumentProps) {
+  const kind = argumentKind(props.property, props.schema)
+  if (kind === 'app') return null
+  const label = props.required ? `${propertyLabel(props.property)} (required)` : propertyLabel(props.property)
+  if (kind === 'boolean' || kind === 'choice') return <PickRow {...props} label={label} options={kind === 'boolean' ? [true, false] : props.schema.enum!} />
+  if (kind === 'number') return <NumberRow {...props} label={label} />
+  return <SourceRow {...props} label={label} />
+}
+
+type RowProps = ArgumentProps & { label: string }
+const fixedValue = (argument?: ToolArgument) => argument?.source === 'literal' ? argument.value : undefined
+
+/** A yes/no, or one of the tool's own listed values; left alone, the service uses its default. */
+function PickRow({ schema, required, argument, label, options, onSource, onValue }: RowProps & { options: unknown[] }) {
+  const fixed = fixedValue(argument)
+  const current = fixed === undefined ? '' : String(options.findIndex((option) => option === fixed))
+  const optionLabel = (option: unknown) => option === true ? 'Yes' : option === false ? 'No' : String(option)
+  return (
+    <Field label={label} hint={schema.description}>{(id, describedBy) => (
+      <select id={id} aria-describedby={describedBy} value={current}
+        onChange={(event) => event.target.value === '' ? onSource('') : onValue(options[Number(event.target.value)] as string | number | boolean)}>
+        <option value="">{required ? 'Choose one' : "The service's default"}</option>
+        {options.map((option, index) => <option key={String(option)} value={String(index)}>{optionLabel(option)}</option>)}
+      </select>
+    )}</Field>
+  )
+}
+
+function NumberRow({ schema, required, argument, label, onSource, onValue }: RowProps) {
+  const fixed = fixedValue(argument)
+  const hint = [schema.description, required ? '' : "Leave empty for the service's default."].filter(Boolean).join(' ')
+  return <TextInput label={label} type="number" value={fixed === undefined ? '' : String(fixed)} min={schema.minimum} max={schema.maximum} hint={hint}
+    onChange={(value) => value === '' ? onSource('') : onValue(Number(value))} />
+}
+
+/** Text that can come from what you asked (or the link, or where you are), or a fixed value. */
+function SourceRow({ category, schema, argument, label, onSource, onValue }: RowProps) {
   return (
     <div className="form-grid">
-      <Field label={required ? `${property} (required)` : property} hint={description}>{(id, describedBy) => (
+      <Field label={label} hint={schema.description}>{(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={argument?.source ?? ''} onChange={(event) => onSource(event.target.value as ArgumentSource | '')}>
           <option value="">Not sent</option>
           {sourcesFor(category).map((source) => <option key={source} value={source}>{SOURCE_LABELS[source]}</option>)}
