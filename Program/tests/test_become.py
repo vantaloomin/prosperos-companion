@@ -41,7 +41,7 @@ def test_their_circle_is_there_and_they_are_not_a_stranger_in_it(client, met):
     assert starter['town_seed'] == town and data['you'] == person['key']
     sheet = townsfolk.find(data, starter['townsfolk_key'])
     assert sheet['place']['id'] == person['place']['id']
-    background = starter['version']['definition']['background']
+    background = starter['version']['definition']['history_together']
     # Only the sentence about the user is checked: a seeded life story can say "grown up there." on its own.
     knows = background.split('Knows the user')[-1]
     assert f"Knows the user, {person['full'].split()[0]}," in background and ' there.' not in knows

@@ -252,7 +252,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             if (was && was.status !== 'complete') void client.invalidateQueries({ queryKey: HISTORY_KEY })
           }} />
         {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
-        <Composer name={name} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
+        <Composer name={name} chat={`companion:${companion.id}`} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
       </section>
     </div>
   )

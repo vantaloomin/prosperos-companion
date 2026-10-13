@@ -37,7 +37,7 @@ from companion import consequences
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, optional
-from companion.life import storylines
+from companion.life import pets, storylines
 from companion.world import perception
 
 FEELINGS = ('calm', 'happy', 'excited', 'annoyed', 'hurt', 'angry', 'anxious', 'sad')
@@ -129,6 +129,10 @@ def day_moods(connection, companion: dict, now) -> list[dict]:
     for row in consequences.active(connection, companion['active_timeline_id'], today.isoformat(), 'mood', key):
         if not row['told']:
             found.append((('sad', 1) if row['amount'] < 0 else ('happy', 1), row['note'].rstrip('.')))
+    for pet, died in pets.losses(connection, companion['active_timeline_id'], today):
+        # Losing a pet weighs most that day and lingers a few days after.
+        found.append((('sad', 2 if died == today else 1), f"{first_of(companion)}'s {pets.label(pet['kind'])} "
+                      f"{pet['name']} died"))
     for row in many(connection, "SELECT block FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                     "AND local_date=? AND status='happened' ORDER BY starts_at DESC", (companion['active_timeline_id'],
                                                                                         today.isoformat())):

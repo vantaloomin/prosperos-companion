@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ImageOff, ImagePlus, RefreshCw, X } from 'lucide-react'
 import { api } from '../../api'
+import { Lightbox } from '../../components/Lightbox'
 import type { FeedPost, ImageJob, PostImage as Illustration } from '../../types'
 import { imageAlt, imageFile, imageLine, isActive, provenance } from './imageState'
 
@@ -41,9 +42,18 @@ export function PostImage({ post, image, onChange }: { post: FeedPost; image: Il
 function ImageView({ post, image, waiting, error }: { post: FeedPost; image: Illustration; waiting?: string | null; error: string | null }) {
   const line = imageLine(image, waiting)
   return <>
-    {image.ref ? <img src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} loading="lazy" /> : <Placeholder status={image.status} />}
+    {image.ref ? <FullSize src={imageFile(image.ref)} alt={imageAlt(image, post.events[0]?.summary ?? 'this moment')} from={post.author.name} when={post.occurs_at} /> : <Placeholder status={image.status} />}
     {line && <p className={image.status === 'failed' ? 'image-line error-text' : 'image-line subtle'} role="status">{line}</p>}
     {error && <p className="image-line error-text" role="alert">{error}</p>}
+  </>
+}
+
+/** The picture as posted, which opens at full size when clicked. */
+function FullSize({ src, alt, from, when }: { src: string; alt: string; from: string; when: string }) {
+  const [open, setOpen] = useState(false)
+  return <>
+    <button type="button" className="photo-open-inline" aria-label={`View full size: ${alt}`} onClick={() => setOpen(true)}><img src={src} alt={alt} loading="lazy" /></button>
+    {open && <Lightbox pictures={[{ src, alt, from, when }]} onClose={() => setOpen(false)} />}
   </>
 }
 

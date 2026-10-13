@@ -19,7 +19,19 @@ from companion import consequences, pictures
 from companion.characters import require_current
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import encounters, feed, home, network, social, storylines, traditions, wardrobe
+from companion.life import (
+    encounters,
+    feed,
+    grooming,
+    home,
+    kitchen,
+    network,
+    social,
+    storylines,
+    traditions,
+    upkeep,
+    wardrobe,
+)
 from companion.voice import notes as voice_notes
 
 ID = re.compile(r'\b[0-9a-f]{32}\b')
@@ -180,6 +192,9 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     insert(connection, 'circle_people', [{**row, 'id': ids[row['id']], 'timeline_id': new_id} for row in people])
     home.copy(connection, parent_id, new_id, cutoff, ids)
     wardrobe.copy(connection, parent_id, new_id, cutoff, ids)
+    upkeep.copy(connection, parent_id, new_id, cutoff)
+    grooming.copy(connection, parent_id, new_id, cutoff, ids)
+    kitchen.copy(connection, parent_id, new_id, cutoff)
     traditions.copy(connection, parent_id, new_id, ids)
     copy_posts(connection, posts, ids, new_id)
     social.copy(connection, parent_id, new_id, cutoff, ids, remap)

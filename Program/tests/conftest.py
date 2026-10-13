@@ -82,6 +82,11 @@ def no_storylines(monkeypatch):
     monkeypatch.setattr('companion.life.openers.CHECK_INS', False)
     # And new clothes woven into the companion's day (companion/life/wardrobe.py), on seeded days.
     monkeypatch.setattr('companion.life.wardrobe.WEAVE', False)
+    # And haircuts, nails and bold looks changes woven into the companion's day (companion/life/grooming.py).
+    monkeypatch.setattr('companion.life.grooming.WEAVE', False)
+    # And dinners and grocery runs woven into the day, and dinner invitations (companion/life/kitchen.py).
+    monkeypatch.setattr('companion.life.kitchen.WEAVE', False)
+    monkeypatch.setattr('companion.life.kitchen.INVITES', False)
     # And the Life deck's small moments (companion/life/deck.py), drawn on seeded days.
     monkeypatch.setattr('companion.life.deck.ACTIVE', False)
     # And dreams (companion/life/dreams.py), on seeded nights.
@@ -93,6 +98,13 @@ def no_trips(monkeypatch):
     """Weekends away (companion/life/trips.py) are seeded dice; their own tests turn them on."""
     from companion.life import trips
     monkeypatch.setattr(trips, 'ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
+def no_life_admin(monkeypatch):
+    """Seeded appointments, errands and surprises (companion/life/admin.py) would take slots in unrelated tests'
+    days; tests/test_life_admin.py turns them on."""
+    monkeypatch.setattr('companion.life.admin.ACTIVE', False)
 
 
 @pytest.fixture(autouse=True)

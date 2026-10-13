@@ -1,10 +1,10 @@
 """The companion's home and belongings: where they live and the things they live with.
 
 Assembled once per timeline from the world data and a seed, without a model: a home from the
-city's housing and rent data (companion/world/generators.home), sometimes a pet, a few plants, a
-way to get around and a few favourite things suited to their interests and the city's era. It
-changes slowly: every two weeks a seeded draw may bring home a plant, lose one, send the car to
-the shop or add a favourite thing, each logged once on the day it happens.
+city's housing and rent data (companion/world/generators.home), sometimes a pet (always the ones the
+character sheet names), a few plants, a way to get around and a few favourite things suited to their
+interests and the city's era. It changes slowly: every two weeks a seeded draw may bring home a plant,
+lose one, send the car to the shop or add a favourite thing, each logged once on the day it happens.
 
 Belongings show up in the companion's own agenda entries (`touch`, called once from
 companion/life/agenda.py) as a plain sentence the model may rephrase, in image prompts for the
@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, money
+from companion.life import circle, money, named, pets, upkeep
 from companion.world import catalog, generators
 
 COMPANION = 'companion'
@@ -29,28 +29,6 @@ MAX_PLANTS, MAX_FAVORITES = 4, 6
 RECENT_DAYS = 21
 MODERN = {'modern', 'future'}
 
-# variety: (description choices, sentences while at home, sentences out walking). {pet} is its name.
-PETS = {
-    'cat': (('an orange tabby cat', 'a gray shorthair cat', 'a tuxedo cat', 'a calico cat', 'a sleek black cat'),
-            ('{pet} stayed curled up nearby the whole time.', '{pet} supervised from the windowsill.',
-             '{pet} knocked a pen off the table, as usual.'), ()),
-    'dog': (('a scruffy terrier mix', 'a beagle mix', 'a lanky greyhound', 'a shaggy collie mix', 'a stocky pit mix'),
-            ('{pet} stayed close the whole time.', '{pet} got a long belly rub.', '{pet} snored on the rug.'),
-            ('{pet} came along and sniffed every tree.', '{pet} came along, tail going the whole way.')),
-    'rabbit': (('a lop-eared rabbit', 'a brown dwarf rabbit'),
-               ('{pet} hopped laps around the room.', '{pet} chewed on a cardboard box.'), ()),
-    'bird': (('a chatty green budgie', 'a yellow canary'),
-             ('{pet} chirped along in the background.', '{pet} sang from the cage by the window.'), ()),
-}
-PET_VARIETIES = {True: ('cat', 'dog', 'rabbit', 'bird'), False: ('cat', 'dog', 'bird')}
-PET_WEIGHTS = {True: (5, 4, 1, 1), False: (5, 4, 1)}
-PET_NAMES = {
-    True: ('Biscuit', 'Pepper', 'Miso', 'Juniper', 'Olive', 'Mochi', 'Pickles', 'Moose', 'Clementine', 'Bean',
-           'Waffles', 'Ziggy', 'Hazel', 'Basil', 'Nugget', 'Otis', 'Tofu', 'Maple', 'Pip', 'Sprout', 'Turnip',
-           'Dumpling', 'Figaro', 'Nori', 'Fennel', 'Winnie'),
-    False: ('Bramble', 'Tuppence', 'Barnaby', 'Patch', 'Captain', 'Duchess', 'Rags', 'Bess', 'Merlin', 'Hob',
-            'Jasper', 'Thimble', 'Clover', 'Smudge'),
-}
 PLANTS = {
     True: ('monstera', 'pothos', 'snake plant', 'fiddle-leaf fig', 'spider plant', 'pot of basil', 'aloe',
            'peace lily', 'tray of succulents', 'rosemary bush'),
@@ -186,12 +164,15 @@ def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = ''
         'features': features, 'refs': [hood['id']], 'sources': [hood['source']], 'data_version': data['data_version']}}
 
 
-def pet_item(seed: str, era_modern: bool, label: str = 'pet') -> dict:
-    variety = generators.pick(seed, f'{label}:kind', list(PET_VARIETIES[era_modern]), list(PET_WEIGHTS[era_modern]))
-    description = generators.pick(seed, f'{label}:look', list(PETS[variety][0]))
-    age = 1 + int(generators.unit(seed, label, 'age') * 9)
-    return {'kind': 'pet', 'name': generators.pick(seed, f'{label}:name', list(PET_NAMES[era_modern])),
-            'variety': variety, 'details': {'description': f'{description}, about {age} years old'}}
+def pet_item(seed: str, era: str, label: str = 'pet', day: date | None = None, young=False) -> dict:
+    """A pet suited to the city's era, with its looks, birth date and lifespan (companion/life/pets.py)."""
+    return pets.draw(seed, label, era, day or pets.TOWN_ANCHOR, young)
+
+
+def sheet_pets(definition: dict) -> list[dict]:
+    """The pets the character sheet names (companion/life/named.py): "a one-eyed cat named Pickle"."""
+    return [{'kind': 'pet', 'name': pet['name'], 'variety': pet['variety'],
+             'details': {'description': pet['description'], 'sheet': pet['name']}} for pet in named.pets_of(definition)]
 
 
 def plant_item(seed: str, era_modern: bool, label: str, taken=()) -> dict | None:
@@ -235,12 +216,14 @@ def favorite_item(seed: str, definition: dict, era_modern: bool, label: str, tak
     return {'kind': 'favorite', 'name': chosen[0], 'variety': chosen[0], 'details': {'description': chosen[0]}}
 
 
-def assemble(seed: str, definition: dict, data: dict | None) -> list[dict]:
-    """Everything they start with: the same for the same seed, definition and city data."""
+def assemble(seed: str, definition: dict, data: dict | None, day: date | None = None) -> list[dict]:
+    """Everything they start with: the same for the same seed, definition, city data and start day."""
     era_modern = modern(data)
     items = [place_item(seed, definition, data)]
-    if generators.unit(seed, 'has-pet') < 0.55:
-        items.append(pet_item(seed, era_modern))
+    # The pets the sheet names are their pets; only a sheet that names none leaves it to chance.
+    items += sheet_pets(definition)
+    if not items[1:] and generators.unit(seed, 'has-pet') < 0.55:
+        items.append(pet_item(seed, pets.era_of(data), day=day))
     names: list[str] = []
     for index in range(int(generators.unit(seed, 'plants') * 4)):
         if plant := plant_item(seed, era_modern, f'plant{index}', names):
@@ -265,16 +248,30 @@ def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
     """The timeline's home state, assembling the home the first time it is needed."""
     state = optional(connection, 'SELECT * FROM home_state WHERE timeline_id=?', (timeline_id,))
     if state:
+        add_sheet_pets(connection, timeline_id, definition, date.fromisoformat(state['started']), now)
         return state
     seed, start = f'home:{timeline_id}', started_on(connection, timeline_id, definition.get('timezone'))
     data = circle.city_data(definition, world)
-    for item in assemble(seed, definition, data):
+    for item in assemble(seed, definition, data, start):
         insert_item(connection, timeline_id, item, 'generated', start, now)
     connection.execute('INSERT INTO home_state (timeline_id, seed, started, era, next_period, created_at, updated_at) '
                        'VALUES (?, ?, ?, ?, 1, ?, ?)', (timeline_id, seed, start.isoformat(),
                                                         'modern' if modern(data) else data['era'], stamp(now),
                                                         stamp(now)))
     return one(connection, 'SELECT * FROM home_state WHERE timeline_id=?', (timeline_id,))
+
+
+def add_sheet_pets(connection, timeline_id: str, definition: dict, since: date, now):
+    """Pets the sheet names that a home assembled earlier lacks (the sheet was edited, or the home is from before
+    sheets were read), there from the start. A pet the user renamed or removed counts as there."""
+    pets = sheet_pets(definition)
+    if not pets:
+        return
+    rows = many(connection, "SELECT name, details FROM home_items WHERE timeline_id=? AND kind='pet'", (timeline_id,))
+    there = {row['name'] for row in rows} | {decode(row['details']).get('sheet') for row in rows}
+    for pet in pets:
+        if pet['name'] not in there:
+            insert_item(connection, timeline_id, pet, 'generated', since, now)
 
 
 def insert_item(connection, timeline_id, item: dict, origin: str, since: date, now) -> str:
@@ -343,8 +340,6 @@ def options(items: list[dict], repairs: dict, era_modern: bool) -> list[tuple[st
         choices.append(('new-favorite', 2.0))
     if any(item['kind'] == 'vehicle' and item['id'] not in repairs for item in items):
         choices.append(('repair', 2.0))
-    if 'pet' in kinds and era_modern:
-        choices.append(('vet', 1.5))
     if 'pet' not in kinds:
         choices.append(('new-pet', 0.5))
     return choices
@@ -399,13 +394,8 @@ def repair(connection, state, seed, day, items, era_modern, now):
     return vehicle['id'], phrase.format(name=vehicle['name']), until, '$$'
 
 
-def vet(connection, state, seed, day, items, era_modern, now):
-    pet = next(item for item in items if item['kind'] == 'pet')
-    return pet['id'], f"took {pet['name']} to the vet for a checkup", None, '$$'
-
-
 def new_pet(connection, state, seed, day, items, era_modern, now):
-    pet = pet_item(seed, era_modern, 'adopted')
+    pet = pet_item(seed, pets.era_of({'era': state['era']}), 'adopted', day, young=True)
     item_id = insert_item(connection, state['timeline_id'], pet, 'change', day, now)
     return item_id, f"adopted {pet['name']}, {pet['details']['description']}", None, '$$'
 
@@ -415,7 +405,7 @@ def rearrange(connection, state, seed, day, items, era_modern, now):
 
 
 CHANGES = {'new-plant': new_plant, 'plant-lost': plant_lost, 'new-favorite': new_favorite, 'repair': repair,
-           'vet': vet, 'new-pet': new_pet, 'rearrange': rearrange}
+           'new-pet': new_pet, 'rearrange': rearrange}
 
 
 # --- Events ---
@@ -429,11 +419,22 @@ def touch(connection, timeline_id: str, subject: str, entry: dict | None, local_
     day = date.fromisoformat(local_date)
     ensure(connection, timeline_id, definition, world, now)
     evolve(connection, timeline_id, day, now)
+    pets.evolve_home(connection, timeline_id, day, now)
+    pets.evolve_persona(connection, day, now)
     change = untold_change(connection, timeline_id, day)
     if change:
         sentence = f"{definition['name']} {change['text']}."
         return woven(entry, sentence, [change['item_id']] if change['item_id'] else [], change['id'])
-    found = belonging(connection, timeline_id, entry, day, seed)
+    first = definition['name'].split()[0]
+    news = pets.untold(connection, timeline_id, day, first)
+    if not news and entry.get('activity') == 'chores' and upkeep.level(connection):
+        # A chores slot is housework's to tell (companion/life/upkeep.py), not a belonging's or a pet photo's.
+        return entry
+    news = news or (
+        pets.photo_moment(connection, timeline_id, day, seed, first) if entry.get('activity') in AT_HOME else None)
+    if news:
+        return woven(entry, news['sentence'], [news['item']], None, news['extra'])
+    found = belonging(connection, timeline_id, entry, day, seed, first)
     return woven(entry, found[1], found[0], None) if found else entry
 
 
@@ -451,15 +452,23 @@ def untold_change(connection, timeline_id, day: date) -> dict | None:
     return None
 
 
-def belonging(connection, timeline_id, entry, day, seed) -> tuple[list[str], str] | None:
+def belonging(connection, timeline_id, entry, day, seed, first='') -> tuple[list[str], str] | None:
     """(item ids, sentence) for a belonging that fits this activity, or None most of the time."""
     items = items_on(connection, timeline_id, day)
     roll = generators.unit(seed, 'home')
     activity = entry.get('activity')
     if activity in AT_HOME and roll < 0.45:
-        return at_home(items, seed, activity)
+        found = at_home(items, seed, activity)
+        if found and found[1] is None:
+            pet = pets.find_home(connection, timeline_id, found[0][0])
+            line = pet and pets.at_home(connection, pet, day, seed, first or 'They')
+            return (found[0], line) if line else None
+        return found
     if activity == 'walk' and roll < 0.7:
-        return walked(items, seed)
+        dogs = [pet for pet in pets.of_home(connection, timeline_id, day) if pets.kinds()[pet['kind']]['walks']
+                and pets.status_on(connection, pet, day)['state'] == 'well']
+        line = dogs and pets.moment(dogs[0], seed, walking=True)
+        return ([dogs[0]['item_id']], line) if line else None
     if activity in DRIVEN and roll < 0.3:
         return driven(items, repairs_on(connection, timeline_id, day), seed)
     return None
@@ -472,20 +481,12 @@ def at_home(items, seed, activity=None) -> tuple[list[str], str] | None:
     if item is None:
         return None
     if item['kind'] == 'pet':
-        lines = PETS.get(item['variety'], PETS['cat'])[1]
-        return [item['id']], generators.pick(seed, 'pet-line', list(lines)).format(pet=item['name'])
+        # The pet's own line comes from companion/life/pets.py, which knows how it is today.
+        return [item['id']], None
     if item['kind'] == 'plant':
         return [item['id']], f"Watered {item['name']} while at it."
     use = next((favorite[1] for favorite in FAVORITES if favorite[0] == item['variety']), None)
     return [item['id']], f'{use}.' if use else f"Made good use of {item['name']}."
-
-
-def walked(items, seed) -> tuple[list[str], str] | None:
-    dogs = [item for item in items if item['kind'] == 'pet' and PETS.get(item['variety'], PETS['cat'])[2]]
-    if not dogs:
-        return None
-    dog = dogs[0]
-    return [dog['id']], generators.pick(seed, 'walk-line', list(PETS[dog['variety']][2])).format(pet=dog['name'])
 
 
 def driven(items, repairs, seed) -> tuple[list[str], str] | None:
@@ -499,10 +500,16 @@ def driven(items, repairs, seed) -> tuple[list[str], str] | None:
     return [vehicle['id']], f"{verb} {vehicle['name']} there."
 
 
-def woven(entry: dict, sentence: str, item_ids: list[str], change_id: str | None) -> dict:
+def woven(entry: dict, sentence: str, item_ids: list[str], change_id: str | None, extra: dict | None = None) -> dict:
+    """The entry with the sentence added. `extra` is a pet's news (companion/life/pets.py): its log id stays with the
+    home note, a mood, a caption (`post`) or a pet-only photo (`pet_photo`) go on the entry itself."""
     sentence = sentence[0].upper() + sentence[1:]
-    return {**entry, 'summary': f"{entry['summary'].rstrip()} {sentence}",
-            'home': {'items': item_ids, 'change': change_id, 'sentence': sentence}}
+    extra = extra or {}
+    note = {'items': item_ids, 'change': change_id, 'sentence': sentence}
+    if extra.get('pet_event'):
+        note['pet_event'] = extra['pet_event']
+    fields = {key: extra[key] for key in ('mood', 'post', 'pet_photo') if key in extra}
+    return {**entry, **fields, 'summary': f"{entry['summary'].rstrip()} {sentence}", 'home': note}
 
 
 # --- Images and chat ---
@@ -526,9 +533,29 @@ def image_hint(connection, timeline_id: str, event: dict) -> str:
     if home and not event.get('place'):
         features = home.get('features') or []
         parts.append(f"At home: {home['description']}" + (f", with {' and '.join(features)}" if features else '') + '.')
-    parts += [f"{item['name'][:1].upper()}{item['name'][1:]} is {item['description']}." for item in
-              mentioned(items, event.get('summary', '')) if item['description'] != item['name']]
+    named_items = mentioned(items, event.get('summary', ''))
+    parts += [f"{item['name'][:1].upper()}{item['name'][1:]} is {item['description']}." for item in named_items
+              if item['description'] != item['name'] and item['kind'] != 'pet']
+    parts += pet_hint(connection, timeline_id, event, [item['id'] for item in named_items if item['kind'] == 'pet'],
+                      bool(home and not event.get('place')))
     return ' '.join(parts)
+
+
+PET_IN_SHOT = 0.35
+
+
+def pet_hint(connection, timeline_id: str, event: dict, named_ids: list[str], at_home: bool) -> list[str]:
+    """How the pets the event names look, in visible words only (companion/life/pets.py); at home, now and then a
+    pet is in the picture too."""
+    local = (event.get('moment') or {}).get('local_date')
+    living = pets.of_home(connection, timeline_id, date.fromisoformat(local) if local else None)
+    shown = [found for found in living if found['item_id'] in named_ids]
+    parts = [f"{found['name']} is {pets.picture_line(found)}." for found in shown]
+    nearby = [found for found in living if found['kind'] not in ('horse', 'fish') and found not in shown]
+    if at_home and not shown and nearby and generators.unit(event.get('id') or '', 'pet-in-shot') < PET_IN_SHOT:
+        line = pets.picture_line(nearby[0])
+        parts.append(f'{line[:1].upper()}{line[1:]} is nearby.')
+    return parts
 
 
 def money_text(home: dict) -> str:
@@ -548,6 +575,8 @@ def context_lines(connection, timeline_id: str, day: date) -> list[tuple[str, st
     repairs = repairs_on(connection, timeline_id, day)
     lines = []
     for item in items:
+        if item['kind'] == 'pet':
+            continue
         text = item_line(item)
         if item['id'] in repairs:
             text += f" Right now it is {repair_status(item)} (back {repairs[item['id']]['until']})."
@@ -556,7 +585,7 @@ def context_lines(connection, timeline_id: str, day: date) -> list[tuple[str, st
     for row in many(connection, 'SELECT * FROM home_log WHERE timeline_id=? AND local_date>? AND local_date<=? '
                     'ORDER BY local_date', (timeline_id, since, day.isoformat())):
         lines.append((row['id'], f"- Recently ({row['local_date']}): you {row['text']}."))
-    return lines
+    return lines + pets.context_lines(connection, timeline_id, day)
 
 
 def item_line(item: dict) -> str:
@@ -591,8 +620,10 @@ def purchases(connection, timeline_id: str, start: date, end: date) -> list[dict
     """Home changes that cost something, between two local dates inclusive: {date, kind, text, spend}."""
     rows = many(connection, "SELECT * FROM home_log WHERE timeline_id=? AND spend!='' AND local_date>=? "
                 'AND local_date<=? ORDER BY local_date', (timeline_id, start.isoformat(), end.isoformat()))
-    return [{'date': row['local_date'], 'kind': row['kind'], 'text': row['text'], 'spend': row['spend']}
-            for row in rows]
+    found = [{'date': row['local_date'], 'kind': row['kind'], 'text': row['text'], 'spend': row['spend']}
+             for row in rows]
+    # Vet bills for their pets (companion/life/pets.py) count with the home's.
+    return sorted(found + pets.purchases(connection, timeline_id, start, end), key=lambda item: item['date'])
 
 
 # --- Edits ---
@@ -617,7 +648,7 @@ def view(connection, timeline_id: str, day: date, include_removed=False) -> dict
                    'AND local_date<=? ORDER BY local_date DESC', (timeline_id, since, day.isoformat()))
     return {'today': day.isoformat(), 'items': items, 'removed': removed, 'changes': changes,
             'costs': monthly_costs(connection, timeline_id, day),
-            'varieties': {'pet': list(PETS), 'vehicle': list(VEHICLES)}}
+            'varieties': {'pet': list(pets.drawable_any()), 'vehicle': list(VEHICLES)}}
 
 
 def item(connection, timeline_id: str, item_id: str) -> dict:
@@ -632,8 +663,10 @@ def edit(connection, timeline_id: str, item_id: str, change: dict, day: date, no
     details = decode(row['details'])
     if change.get('description') is not None:
         details['description'] = change['description']
+    if change.get('born'):
+        details['born'] = change['born']
     variety = change.get('variety') or row['variety']
-    allowed = {'pet': PETS, 'vehicle': VEHICLES}.get(row['kind'])
+    allowed = {'pet': pets.drawable_any(), 'vehicle': VEHICLES}.get(row['kind'])
     require(variety == row['variety'] or (allowed is not None and variety in allowed), 'Pick one of the listed kinds.',
             422)
     connection.execute('UPDATE home_items SET name=?, variety=?, details=?, edited=1, revision=revision+1, '
@@ -647,10 +680,12 @@ def add(connection, timeline_id: str, body: dict, day: date, now) -> str:
     variety = body.get('variety') or ''
     if body['kind'] in ('pet', 'vehicle'):
         variety = variety or ('cat' if body['kind'] == 'pet' else 'car')
-        require(variety in (PETS if body['kind'] == 'pet' else VEHICLES), 'Pick one of the listed kinds.', 422)
+        require(variety in (pets.drawable_any() if body['kind'] == 'pet' else VEHICLES), 'Pick one of the listed kinds.',
+                422)
     item_id = insert_item(connection, timeline_id, {
         'kind': body['kind'], 'name': body['name'], 'variety': variety or body['name'],
-        'details': {'description': body.get('description') or body['name']}}, 'user', day, now)
+        'details': {'description': body.get('description') or body['name'],
+                    **({'born': body['born']} if body.get('born') else {})}}, 'user', day, now)
     connection.execute('UPDATE home_items SET edited=1 WHERE id=?', (item_id,))
     rebuild(connection, timeline_id, day, now)
     return item_id
@@ -659,6 +694,11 @@ def add(connection, timeline_id: str, body: dict, day: date, now) -> str:
 def set_removed(connection, timeline_id: str, item_id: str, removed: bool, day: date, now):
     row = item(connection, timeline_id, item_id)
     require(row['kind'] != 'home', 'Their home can be described differently, not removed.', 422)
+    if row['kind'] == 'pet' and not removed and pets.died_on(connection, f'home:{item_id}'):
+        # Brought back after dying: it is spared from now on (companion/life/pets.py).
+        pets.spare(connection, f'home:{item_id}', now)
+        connection.execute('UPDATE home_items SET details=? WHERE id=?',
+                           (encode({**decode(row['details']), 'spared': True}), item_id))
     connection.execute('UPDATE home_items SET until=?, edited=1, revision=revision+1, updated_at=? WHERE id=?',
                        (day.isoformat() if removed else None, stamp(now), item_id))
     rebuild(connection, timeline_id, day, now)
@@ -669,6 +709,7 @@ def rebuild(connection, timeline_id: str, day: date, now):
     upcoming agenda entries that mention the home, so both are drawn again from what is there now."""
     ahead = many(connection, 'SELECT * FROM home_log WHERE timeline_id=? AND local_date>?', (timeline_id,
                                                                                               day.isoformat()))
+    pets.forget_ahead(connection, [f"home:{row['id']}" for row in pets.home_rows(connection, timeline_id)], day)
     for row in ahead:
         if row['kind'] == 'plant-lost':
             connection.execute('UPDATE home_items SET until=NULL WHERE id=? AND until=?', (row['item_id'],
@@ -714,6 +755,7 @@ def copy(connection, parent_id: str, new_id: str, cutoff: str, ids: dict):
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (ids[row['id']], new_id, row['period'], row['local_date'], row['kind'], ids.get(row['item_id']),
              row['until'], row['text'], row['spend'], row['created_at']))
+    pets.copy(connection, {row['id']: ids[row['id']] for row in rows if row['kind'] == 'pet'}, day)
     elapsed = (date.fromisoformat(day) - date.fromisoformat(state['started'])).days
     connection.execute('INSERT INTO home_state (timeline_id, seed, started, era, next_period, created_at, updated_at) '
                        'VALUES (?, ?, ?, ?, ?, ?, ?)', (new_id, state['seed'], state['started'], state['era'],

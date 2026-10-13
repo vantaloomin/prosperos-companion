@@ -2,8 +2,7 @@
 
 A persona is the user as someone in particular: a name, a gender, an age, a birthday and a few lines about them.
 A world is everything that happened to one persona there: its companions, their lives and town, the chats,
-memories, feed and pictures. Each persona has one or more worlds, and two worlds may share a city: each world
-seeds its own townsfolk, so the same streets hold different people.
+memories, feed and pictures. Each persona has one or more worlds, and two worlds may share a city.
 
 Each world is a workspace of its own, one database in its own folder (the first world keeps the data folder's
 own database, `Database.root`), so nothing in one world can reach another. Which worlds and personas there are
@@ -13,8 +12,10 @@ settings, their own cities, paired phones) is carried over from the world they l
 
 "The world exists outside of User" (Vanta, 2026-10-08): nobody sets anything up. An existing workspace silently
 becomes the first world, with a persona made from what the app already knows about the user; a new persona or
-world arrives ready, in the current city with fresh townsfolk and a starter companion drawn from them, and the
-user changes whatever they like afterwards.
+world arrives ready in the city the user picked (the form starts on a featured one the app picks), and the user
+makes its first companion there, as on a first run (Vanta, 2026-10-12: a new world starts with a blank companion to
+create, not a townsperson). Becoming a townsperson is the exception: that world starts with someone from their
+circle.
 """
 import json
 import os
@@ -28,8 +29,9 @@ from companion import backup, cast, characters, dating, lore, restore, story
 from companion.clock import AppClock, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
+from companion.life import pets
 from companion.models import CharacterDefinition
-from companion.world import changes, custom, generators, townsfolk
+from companion.world import catalog, changes, custom, generators, mix, townsfolk
 
 REGISTRY = 'worlds.json'
 FOLDER = 'worlds'
@@ -42,6 +44,8 @@ SHARED = tuple(table for table in restore.KEPT_SETTINGS if table != 'debug_time'
 REVISIONS = ('permission_revision', 'memory_revision')
 # A starter companion is a grown-up townsperson who has a life of their own to bring.
 STARTER_AGES = (21, 45)
+# The city picker's "Somewhere new (picked for you)": a featured city other than the one the user is in.
+SOMEWHERE_NEW = 'somewhere-new'
 
 
 # The registry -------------------------------------------------------------------------------------------
@@ -159,6 +163,7 @@ def start(database: Database):
     save(database.root, data)
     if path != database.path:
         database.use(path)
+    mix.load(database)
     with database.connect(write=True) as connection:
         write_persona(connection, found(data['personas'], world['persona_id'], 'persona'), database.now())
 
@@ -168,9 +173,10 @@ def start(database: Database):
 def write_persona(connection, persona: dict, timestamp: str):
     """Who the user is in this world, for the prompt (companion/memory/context.py) and Matchlight."""
     connection.execute('INSERT OR REPLACE INTO persona (id, persona_id, name, gender, age, about, updated_at, '
-                       'townsfolk_key, town_seed) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       'townsfolk_key, town_seed, pets) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                        (persona['id'], persona['name'], persona['gender'], persona['age'], persona['about'],
-                        timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', '')))
+                        timestamp, persona.get('townsfolk_key', ''), persona.get('town_seed', ''),
+                        json.dumps(persona.get('pets') or [])))
     connection.execute('UPDATE life_settings SET user_birthday=? WHERE id=1', (persona.get('birthday') or '',))
 
 
@@ -283,6 +289,7 @@ def switch(state, world_id: str) -> dict:
     previous = database.path
     restore.settle(previous)
     database.use(target)
+    mix.load(database)
     carry_settings(target, previous, database.now())
     data['active'], world['used_at'] = world['id'], database.now()
     database.world = world['id']
@@ -324,25 +331,39 @@ def starter(connection, data: dict, seed: str, timestamp: str, today: date, pers
     definition = cast.profile(data, sheet, met, today) | {'starting_closeness': 2}
     if you:
         definition |= {'starting_closeness': 3,
-                       'background': f"{definition['background']} {known_from(data, sheet, you, persona['name'])}"}
+                       'history_together': known_from(data, sheet, you, persona['name']) or definition['history_together']}
     made = characters.create_in(connection, timestamp, CharacterDefinition.model_validate(definition),
                                 'The first companion of a new world.')
     connection.execute('UPDATE companions SET townsfolk_key=?, town_seed=? WHERE id=?',
                        (sheet['key'], data.get('town', ''), made['id']))
 
 
-def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None):
-    """A new world's database: the user's settings, the persona, its townsfolk (its own, or `town`'s when the user
-    became one of a town's people) and a starter companion."""
+def build(database: Database, path: Path, persona: dict, city_id: str, seed: str, town: str | None = None,
+          town_mix: dict | None = None):
+    """A new world's database: the user's settings and the persona; when the user became one of a town's people
+    (`town`), also a starter companion from that person's circle. Its townsfolk mix (companion/world/mix.py) is
+    `town_mix`, else the one of the world it was made from."""
     restore.settle(database.path)
+    if town_mix is None:
+        with database.connect() as connection:
+            town_mix = mix.read(connection)
     made = Database(path, AppClock(database.clock.base))
     carry_settings(path, database.path, made.now())
-    with made.connect(write=True) as connection:
+    with made.connect(write=True) as connection, mix.using(town_mix):
+        if town_mix != mix.DEFAULTS:
+            mix.write(connection, town_mix, made.now())
         write_persona(connection, persona, made.now())
         data = dating.city_for(connection, city_id, seed[:16] if town is None else town)
-        today = made.clock.now().astimezone(zone(data['timezone'])).date()
-        starter(connection, data, seed, made.now(), today, persona)
+        if town is not None:
+            today = made.clock.now().astimezone(zone(data['timezone'])).date()
+            starter(connection, data, seed, made.now(), today, persona)
     lore.carry_city_lore(path, database.path, data)
+
+
+def somewhere_new(connection, here: str, seed: str) -> str:
+    """A featured city other than `here`, the same one for the same world; `here` when nothing else is featured."""
+    others = [city['id'] for city in catalog.featured(custom.all_cities(connection))['cities'] if city['id'] != here]
+    return min(others, key=lambda city_id: generators.unit(city_id, 'somewhere-new', seed), default=here)
 
 
 def unique_name(data: dict, wanted: str) -> str:
@@ -353,19 +374,22 @@ def unique_name(data: dict, wanted: str) -> str:
 
 
 def create_world(database: Database, persona_id: str | None = None, name: str | None = None,
-                 city_id: str | None = None, town: str | None = None) -> dict:
+                 city_id: str | None = None, town: str | None = None, town_mix: dict | None = None) -> dict:
     """A new world for a persona (the active one by default), in the current city unless another is named. `town`
-    reuses a town's people instead of seeding new ones (Become a townsperson)."""
+    reuses a town's people instead of seeding new ones (Become a townsperson). `SOMEWHERE_NEW` lets the app pick.
+    `town_mix` is its townsfolk mix (Settings > Debug), else the current world's."""
     data = registry(database)
     active = found(data['worlds'], data['active'], 'world')
     persona = found(data['personas'], persona_id or active['persona_id'], 'persona')
-    with database.connect() as connection:
-        city = story.city_data(connection, city_id) if city_id else city_of(connection)
     world_id = identifier()
+    with database.connect() as connection:
+        if city_id == SOMEWHERE_NEW:
+            city_id = somewhere_new(connection, city_of(connection)['id'], world_id)
+        city = story.city_data(connection, city_id) if city_id else city_of(connection)
     folder = f'{FOLDER}/{world_id}'
     path = database.root / folder / DATABASE
     try:
-        build(database, path, persona, city['id'], world_id, town)
+        build(database, path, persona, city['id'], world_id, town, town_mix)
     except BaseException:
         shutil.rmtree(path.parent, ignore_errors=True)
         raise
@@ -418,8 +442,7 @@ def known_from(data: dict, sheet: dict, you: str, name: str) -> str:
 
 def sheet_text(definition: dict) -> str:
     """The persona's starting text from the person's drafted profile, without how a companion met them."""
-    background = definition['background'].split(cast.SHARED[1])[0].strip()
-    parts = (definition['identity'], definition['personality'], background, f"Usually: {definition['routine']}",
+    parts = (definition['identity'], definition['personality'], definition['background'], f"Usually: {definition['routine']}",
              definition.get('seen_as') and f"Comes across as: {definition['seen_as']}")
     return '\n'.join(part for part in parts if part)
 
@@ -461,16 +484,25 @@ def become(state, key: str) -> dict:
 
 def create_persona(database: Database, body) -> dict:
     """A new persona with a world of their own. Who the user is stays theirs to say (Vanta, 2026-10-09): the name
-    they typed, and nothing the app makes up; what they leave blank stays blank. The world is decided for them."""
+    they typed, and nothing the app makes up; what they leave blank stays blank. Where they live is theirs to pick
+    too (the form starts on somewhere new, picked for them); everyone in it is decided for them."""
     name = (body.name or '').strip()
     require(bool(name), 'Give the new persona a name.', 422)
     data = registry(database)
     persona_id = identifier()
     persona = {'id': persona_id, 'name': name, 'gender': body.gender or '', 'age': body.age,
-               'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now()}
+               'about': (body.about or '').strip(), 'birthday': body.birthday or '', 'created_at': database.now(),
+               'pets': pets.persona_entries([], [pet.model_dump() for pet in body.pets or []],
+                                            database.clock.now().date())}
     data['personas'].append(persona)
     save(database.root, data)
-    world = create_world(database, persona_id)
+    try:
+        world = create_world(database, persona_id, city_id=getattr(body, 'city_id', None))
+    except BaseException:
+        data = registry(database)
+        data['personas'] = [item for item in data['personas'] if item['id'] != persona_id]
+        save(database.root, data)
+        raise
     return {**persona, 'worlds': [world]}
 
 
@@ -480,6 +512,9 @@ def update_persona(database: Database, persona_id: str, body) -> dict:
     changes = body.model_dump(exclude_unset=True)
     if 'name' in changes:
         changes['name'] = (changes['name'] or '').strip()
+    if 'pets' in changes:
+        changes['pets'] = pets.persona_entries(persona.get('pets') or [], changes['pets'] or [],
+                                               database.clock.now().date())
     persona.update({key: '' if value is None and key != 'age' else value for key, value in changes.items()})
     save(database.root, data)
     active = found(data['worlds'], data['active'], 'world')

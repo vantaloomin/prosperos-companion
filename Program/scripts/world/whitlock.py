@@ -1,6 +1,6 @@
 """Original frontier town for Prospero Companion. Run `python scripts/world/whitlock.py` to rewrite the shipped JSON.
 
-Whitlock is invented: a copper and silver town in southeastern Arizona Territory around 1882, modelled on real
+Whitlock is invented: a copper and silver town in southeastern Arizona Territory around 1882, modeled on real
 territorial towns of the period (Tombstone, Bisbee, Globe, Silver City, Prescott) without copying any of them.
 """
 import json
@@ -62,7 +62,7 @@ BETTER = ([4, 7], [6, 10], [10, 16])
 
 CITY = {
     'schema_version': 1, 'id': 'whitlock', 'name': 'Whitlock', 'setting': 'original', 'era': ERA,
-    'basis': 'Original setting written for Prospero Companion, modelled on real territorial towns of the 1880s.',
+    'basis': 'Original setting written for Prospero Companion, modeled on real territorial towns of the 1880s.',
     'region': 'Arizona Territory', 'country': 'United States', 'timezone': 'America/Phoenix',
     'aliases': ['Whitlock, A.T.', 'Whitlock, Arizona Territory'],
     'summary': 'A copper and silver town of about four thousand people in southeastern Arizona Territory, 1882: '
@@ -192,8 +192,8 @@ CITY = {
               'bank: newspapers from San Francisco and New York, a few hundred books, chess boards and a stove, '
               'open to members and their families.', ['reading', 'newspapers', 'chess', 'quiet'], 'free',
               'indoor', ['solo', 'friends'], ALLDAY),
-        place('harlan-opera-house', 'Harlan Opera House', 'venue', 'main-street', 'A two-storey adobe hall '
-              'that hosts travelling theatre companies, minstrel shows, lectures, union meetings, church '
+        place('harlan-opera-house', 'Harlan Opera House', 'venue', 'main-street', 'A two-story adobe hall '
+              'that hosts traveling theater companies, minstrel shows, lectures, union meetings, church '
               'socials and the Saturday dances.', ['theatre', 'dances', 'meetings', 'lectures'], '$', 'indoor',
               ALL, NIGHT),
         place('wickes-photograph-gallery', 'Wickes\' Photograph Gallery', 'attraction', 'main-street', 'A skylit '
@@ -219,7 +219,7 @@ CITY = {
               'teamsters', 'faro'], '$', 'indoor', ['solo', 'friends'], NIGHT),
         place('freight-yards', 'Freight yards and corrals', 'docks', 'depot', 'Sheds, platforms and corrals where '
               'ore sacks go out and machinery, flour and barrels come in, worked by teamsters and Chinese '
-              'labourers.', ['freight', 'wagons', 'work'], 'free', 'outdoor', ['solo', 'coworkers'], DAY),
+              'laborers.', ['freight', 'wagons', 'work'], 'free', 'outdoor', ['solo', 'coworkers'], DAY),
         place('union-livery', 'Union Livery and Feed', 'workshop', 'depot', 'A big barn of rental horses, buggies and '
               'hay, with a farrier and a boy who will hold your horse for a nickel.', ['livery', 'horses',
               'buggies'], '$', 'mixed', ALL, ALLDAY),
@@ -387,7 +387,7 @@ CITY = {
               'off the military reservation, where troopers spend their pay on whiskey and stew.',
               ['roadhouse', 'soldiers', 'payday'], '$', 'indoor', ['solo', 'friends'], NIGHT, cuisine='american'),
         place('diamond-k-headquarters', 'Diamond K ranch headquarters', 'workshop', 'turkey-creek', 'An adobe '
-              'ranch house with corrals, a blacksmith shed and a windmill, where neighbours help at branding time.',
+              'ranch house with corrals, a blacksmith shed and a windmill, where neighbors help at branding time.',
               ['ranch', 'corrals', 'branding'], 'free', 'outdoor', ['solo', 'friends', 'family'], DAY),
         place('turkey-creek-store', 'Turkey Creek store and post office', 'market', 'turkey-creek', 'A one-room '
               'store with flour, coffee, cartridges and the ranch mail, and a bench out front for talking cattle '
@@ -645,7 +645,7 @@ CITY = {
         color('border-spanish', 'Border Spanish', 'saying', 'English in the town is full of borrowed Spanish: '
               '"savvy?", "pronto", "vamoose", the "calaboose" for the jail, a "ramada" for a brush shade, and "mañana" '
               'for later.'),
-        color('bucking-the-tiger', 'Bucking the tiger', 'saying', 'Playing faro, the favourite saloon card game, whose '
+        color('bucking-the-tiger', 'Bucking the tiger', 'saying', 'Playing faro, the favorite saloon card game, whose '
               'dealing boxes were often painted with a tiger.', ['palace-saloon', 'railroad-exchange']),
         color('check-your-guns', 'Checking your guns', 'custom', 'A town ordinance says pistols must be left with the '
               'hotel clerk, livery or bartender on arriving in town; most people do it, and the deputies remind the '
@@ -677,7 +677,7 @@ CITY = {
         price('opera-house', 'Opera-house seat', 0.5, 1.5),
         price('tobacco', 'Plug tobacco', 0.1, 0.25, 'a plug'),
         price('boots', 'Boots', 5, 10, 'a pair'),
-        price('wage', "Miner's wage", 3.5, 4, 'a day; labourers $2-$3'),
+        price('wage', "Miner's wage", 3.5, 4, 'a day; laborers $2-$3'),
     ],
 }
 

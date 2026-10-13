@@ -18,10 +18,33 @@ backend is off until the user sets it up, and text never waits for an image. The
   machine they control. A remote address otherwise counts as hosted (F6). The app only connects to
   the server the user entered; it never starts, stops or restarts one. Cancelling removes the
   app's own prompt from the queue, or interrupts it only when it is the prompt running.
-- **The built-in workflow** (`workflows/krea2-turbo.json`) targets Krea 2 Turbo with the files
+- **Model family.** Each ComfyUI backend has a **Model family** (Vanta, 2026-10-13: not Krea 2
+  every time), stored as `family` in its config and Krea 2 when unset. It picks the built-in
+  workflow, which files the pickers list first, the sampling the workflow starts on, and whether there
+  it uses for pictures made from a reference. Changing it clears file and sampling choices made for the old
+  family; style LoRAs and the user's own workflows stay. The built-in workflows are made from Vanta's own
+  TXT2IMG and reference workflows (2026-10-13), on public default files; they are untested on a real
+  server except Krea 2's text workflow:
+
+  | Family | Built-in workflow | Files (defaults) | Sampling | Reference workflow |
+  | --- | --- | --- | --- | --- |
+  | Krea 2 (`krea2`) | `krea2-turbo.json`, empty negative | as below | 8 steps, CFG 1, euler_ancestral, simple | `krea2-turbo-reference.json`: Identity Edit LoRA + comfyui-krea2edit nodes (below) |
+  | Qwen Image 2.1 (`qwen21`) | `qwen-image-2.1.json`, empty negative | `qwen_image_2.1_int8_convrot`, `qwen3vl_8b_int8_convrot` (type `qwen_image`), `qwen_image_2.1_vae_bf16` | 25 steps, CFG 1, euler, simple | `qwen-image-2.1-reference.json`: the picture goes to core `TextEncodeQwenImage21` as `<image1>` |
+  | Z-Image Turbo (`zimage`) | `z-image-turbo.json`, empty negative | `z_image_turbo_bf16`, `qwen_3_4b` (type `lumina2`), `ae` (Flux VAE); `ModelSamplingAuraFlow` shift 3 | 9 steps, CFG 1, res_multistep, simple | `z-image-turbo-reference.json`: image-to-image at denoise 0.7, core nodes; keeps the picture's pose and colours |
+  | Anima (`anima`) | `anima.json`, `masterpiece, best quality, score_7, newest` ahead of the prompt (no rating tag) | `anima-base-v1.0`, `qwen_3_06b_base` (type `stable_diffusion`), `qwen_image_vae` | 30 steps, CFG 4, er_sde, simple | `anima-reference.json`: the Anima Edit LoRA (`AnimeEditV2.safetensors`, on Civitai; no link in the app) and `ApplyCosmosReferenceLatent` from ComfyUI-Cosmos-Reference |
+  | Booru (`booru`: SDXL, Pony, Illustrious) | `booru-sdxl.json`, `masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest` ahead of the prompt | one checkpoint (`ckpt_name`, `Illustrious-XL-v2.0`), clip skip 2 | 30 steps, CFG 6, euler_ancestral, normal | `booru-sdxl-reference.json`: IP-Adapter Plus (ComfyUI_IPAdapter_plus; weight 0.7 ending at 0.5) |
+
+  The adopted character LoRA is trained on Krea 2, so only Krea 2 applies it. Anima and Booru
+  backends start their prompts as an "Anime illustration" unless the backend has a style of its own
+  (`backends.own_style`). A reference workflow that needs a custom node pack is still offered; the check
+  names the missing nodes and their page. Only the Krea 2 pack installs with one press. Krea 2 can use a
+  separate model for pictures from a reference (`ref_unet_name`, "Same as the Model" by default). With a
+  Krea 2 Edit merge (a name with "Edit", such as the KREA 2 Edit SNOFS Merge, recognised by name only), the
+  Identity Edit LoRA is left out, since the merge has it built in, and `ref_boost` goes to 2.5.
+- **The built-in Krea 2 workflow** (`workflows/krea2-turbo.json`) targets Krea 2 Turbo with the files
   ComfyUI's own Krea 2 template uses: `UNETLoader` with `krea2_turbo_fp8_scaled.safetensors`,
   `CLIPLoader` of type `krea2` with `qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`,
-  8 steps at CFG 1 with euler and simple. Verified on Windows with an RTX 5090 and ComfyUI 0.39.0,
+  8 steps at CFG 1 (euler and simple then; euler_ancestral and an empty negative since Vanta's workflow). Verified on Windows with an RTX 5090 and ComfyUI 0.39.0,
   unchanged, with a Krea 2 fine-tune in NVFP4 (Muse Krea2 V3.5) and a Qwen3-VL 4B NVFP4 text encoder
   chosen for its loaders: about 3 seconds an image once loaded, after a first load of about 216
   seconds. Text drawn inside a picture usually comes out garbled. The default files themselves
@@ -34,7 +57,7 @@ backend is off until the user sets it up, and text never waits for an image. The
   means the default file. Names are kept exactly as the server lists them, subfolder and all (a
   Windows server lists `Krea 2\model.safetensors`). When the server cannot be reached the names can
   be typed. A custom workflow is used as given and ignores these choices. Krea 2's files are listed
-  first and **Only Krea 2 files** (on by default) narrows each list to them: a model or LoRA whose
+  first and **Only Krea 2 files** (on by default; named for the backend's family) narrows each list to them: a model or LoRA whose
   path matches `krea`, `kr2` or `kera` (so a `Krea 2\` folder counts), the Qwen3-VL 4B encoder and
   a Qwen VAE (`adapters/comfyui.KREA_FILES`). ComfyUI cannot say a file's model family, so this only
   sorts; the current choice always stays in the list, and the toggle shows everything.
@@ -64,9 +87,29 @@ backend is off until the user sets it up, and text never waits for an image. The
   the chosen file names; nothing is installed or downloaded. A custom workflow in ComfyUI's API
   format replaces the built-in one, with `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
   `{{height}}` where the request's values belong. On the PC, **Workflow** and **Workflow for pictures
-  made from a reference** under the backend show the saved workflows, indented, to read or edit;
-  saving an empty main workflow (**Use the built-in one**) goes back to the built-in one. A paired
-  phone never sees or changes them.
+  made from a reference** under the backend show the workflows, indented, to read or edit. Each box
+  starts filled in with the built-in one (with the chosen model files and sampler settings in
+  place); saving an edited or pasted one makes it the backend's own, and **Use the built-in one**
+  goes back (saving the built-in text unchanged stores nothing). A paired phone never sees or
+  changes them.
+- **The built-in reference workflow** (`workflows/krea2-turbo-reference.json`) follows the Krea 2
+  Identity Edit setup Vanta runs: the built-in workflow's model with the
+  `krea2_identity_edit_v1_2.safetensors` LoRA, the `{{reference_image}}` scaled to 1 megapixel and
+  read by `Krea2EditModelPatch` (appearance, `ref_boost` 1) and `Krea2EditGroundedEncode` (the
+  prompt read with the picture), a zeroed negative, then the usual sampler. Those two nodes come
+  from the [comfyui-krea2edit](https://github.com/lbouaraba/comfyui-krea2edit) pack (Apache-2.0, no
+  Python dependencies); ComfyUI has no core equivalent. The LoRA's page is in the model links. It
+  takes the same file and sampler choices. Check lists what it is missing with where to get it,
+  but that does not fail the backend: only profile pictures need it.
+- **Installing the nodes** (Vanta's one exception to "the app never writes into ComfyUI",
+  2026-10-13). When Check finds a node a listed pack provides (`images/node_packs.py`) on a ComfyUI
+  at a loopback address, it offers **Install the Krea 2 Identity Edit nodes**. The press asks
+  ComfyUI for its custom_nodes folder (`/internal/folder_paths`; only a folder named custom_nodes with
+  main.py, comfy/ or models/ beside it is used, anything else is refused), downloads the pack's files from
+  the pinned commit, checks each against its SHA-256, and moves them in as a new
+  `comfyui-krea2edit` folder. An existing folder is never replaced, no Python package is installed
+  (the pack needs none), and nothing else is touched. ComfyUI loads it on its next start. Never from
+  a paired phone.
 - **Codex** uses Codex's own `image_generation` feature (stable and on by default in codex-cli
   0.160.1). Each image is one turn of `codex exec --json --skip-git-repo-check --ephemeral
   --ignore-user-config --ignore-rules --sandbox read-only --cd <empty scratch folder> -`, with a
@@ -262,9 +305,8 @@ step can be skipped and run again from the Character page (**Profile pictures**)
 - Pictures 2 and 3 each send picture 1 along as a reference, so the set shows one person. The whole set goes to the first enabled backend that can take a reference picture:
   **Codex** (attached with `codex exec --image`), a **chat-style API** such as OpenRouter (the
   picture goes in the message), the **OpenAI API** (`/images/edits`), or a **ComfyUI** server with
-  a second, user-supplied *reference workflow* that has `{{reference_image}}` as a LoadImage
-  node's image (the app uploads the picture through `/upload/image`). There is no built-in
-  reference workflow, and Google's OpenAI-compatible endpoint and other `images`-style APIs
+  its *reference workflow*, the built-in one or the user's own with `{{reference_image}}` as a
+  LoadImage node's image (the app uploads the picture through `/upload/image`). Google's OpenAI-compatible endpoint and other `images`-style APIs
   cannot take one.
 - When no enabled backend can, nothing is sent and the page says so. The user can choose to make
   all three from the description alone; the page then says they may not look like one person.
@@ -335,10 +377,11 @@ All writes need the `x-companion-client: workspace` header.
 | `PUT /api/images/backends/{id}` | The same fields; saving a key clears a sign-in block; changing the address or turning `allows_nsfw` on needs the disclosure again |
 | `POST /api/images/backends/{id}/move` | `{position}` |
 | `DELETE /api/images/backends/{id}` | Remove it; its queued jobs fail at dispatch |
-| `POST /api/images/backends/{id}/check` | `{ok, summary, details}`; spends no generation quota |
-| `GET /api/images/backends/{id}/workflows` | ComfyUI's saved `{workflow, reference_workflow}` text (empty when unset), for editing on the PC; refused from a paired phone |
-| `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, defaults, sampler_defaults, options, krea, character_lora}`, the files the server offers each built-in loader (`unet_name`, `clip_name`, `clip_type`, `vae_name`) its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, Krea 2's first and listed in `krea` |
-| `GET /api/images/model-links` | `{links: [{name, role, file, url, licence}]}`: download pages for the built-in workflow's files |
+| `POST /api/images/backends/{id}/check` | `{ok, summary, details, install}`; spends no generation quota; `install` lists node packs (`{id, label}`) the app can put into a ComfyUI on this computer |
+| `POST /api/images/backends/{id}/install-nodes/{pack}` | Installs a listed node pack into that ComfyUI's custom_nodes (loopback only, PC only); `{installed, folder}` |
+| `GET /api/images/backends/{id}/workflows` | ComfyUI's saved `{workflow, reference_workflow}` text (empty when unset) and the built-in ones as `built_in` and `built_in_reference`, for editing on the PC; refused from a paired phone |
+| `GET /api/images/backends/{id}/files` | ComfyUI only: `{ok, error, family, defaults, sampler_defaults, options, matching, character_lora}`, the files the server offers each of the family's built-in loaders (`unet_name`, `clip_name`, `clip_type`, `vae_name`, Krea 2's `ref_unet_name`, or `ckpt_name`), its LoRAs (`lora`, without the character's own) and KSampler's `sampler_name` and `scheduler` lists, the family's own first and listed in `matching` |
+| `GET /api/images/model-links` | `{links: [{name, role, file, url, licence, family}]}`: download pages for each family's built-in workflow files |
 | `POST /api/images/backends/{id}/unblock` | The user signed in to Codex again |
 | `POST /api/images/preview` | `{post_id, marked_nsfw?}`: the prompt, classification and route, without queuing |
 | `POST /api/images/jobs` | `{post_id, backend_id?, marked_nsfw?}`: queue a manual image |

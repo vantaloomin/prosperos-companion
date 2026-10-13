@@ -7,12 +7,22 @@ import { CHATS_KEY } from '../chats/useChats'
 import { CLOSENESS_KEY } from '../memories/closenessText'
 import { StageControls } from '../memories/Closeness'
 import { DRAMA_LEVELS } from '../today/storyText'
+import { LOOKS_LEVELS } from '../character/looksLatelyText'
+import { KITCHEN_LEVELS } from '../character/kitchenText'
 import { Notice } from '../../components/Feedback'
 import { Field, TextInput, Toggle } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { SectionPending } from '../../components/SectionPending'
 import { useLifeSettings, type SaveResult } from './useLifeSettings'
 import { RealismPresets } from './RealismPresets'
+
+/** Life admin (companion/life/admin.py) on the home features' shared scale: how much of the boring stuff fills their weeks. */
+const ADMIN_LEVELS = [
+  { label: 'Off', hint: 'No appointments, errands or paperwork of their own.' },
+  { label: 'Light', hint: 'Only what comes due: the dentist, taxes, the lease. Nothing gets put off, no surprise bills, and anything moves for plans with you.' },
+  { label: 'True to life', hint: 'What comes due, plus an errand or some paperwork most weeks. Now and then a chore gets put off, never past its deadline. The dentist and the vet keep their time; you can still move them.' },
+  { label: 'Dramatic', hint: 'Errands and paperwork every week, and surprises like a parking ticket or a bank mix-up to sort out. Anything due that day holds too.' },
+]
 
 /** The top of Settings > Realism: Iris's opening line and one-tap presets for the world-wide settings below. */
 export function RealismIntro() {
@@ -29,12 +39,17 @@ export function PaceSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
   const level = DRAMA_LEVELS[data.drama] ?? DRAMA_LEVELS[1]
+  const looks = LOOKS_LEVELS[data.looks_realism] ?? LOOKS_LEVELS[2]
   return (
     <section className="settings-section form-stack" aria-labelledby="pace-heading">
       <h2 id="pace-heading">Their days</h2>
       <Field label={`Drama in your world: ${level.label}`} hint={level.hint}>
-        {(id, describedBy) => <input id={id} type="range" min={0} max={3} step={1} value={data.drama} aria-valuetext={level.label} aria-describedby={describedBy}
-          onChange={(event) => void save({ drama: Number(event.target.value) })} />}
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
+          onChange={(drama) => void save({ drama })} />}
+      </Field>
+      <Field label={`Their looks change: ${looks.label}`} hint={looks.hint} tip="Only looks the app picked change. Anything you wrote about how someone looks stays exactly as you wrote it.">
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.looks_realism} label={looks.label}
+          onChange={(looks_realism) => void save({ looks_realism })} />}
       </Field>
       <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
         hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off for replies right away.`} />
@@ -44,6 +59,60 @@ export function PaceSettings() {
     </section>
   )
 }
+
+/** Around the home: one slider for each home feature (Vanta, 2026-10-13), each its own life setting. */
+export function HomeLifeSettings() {
+  const { settings, data, save, result } = useLifeSettings()
+  if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Around the home" />
+  const upkeep = UPKEEP_LEVELS[data.upkeep_realism] ?? UPKEEP_LEVELS[2]
+  const kitchen = KITCHEN_LEVELS[data.kitchen_realism] ?? KITCHEN_LEVELS[2]
+  const pets = PET_LEVELS[data.pets_realism] ?? PET_LEVELS[2]
+  const admin = ADMIN_LEVELS[data.admin_realism] ?? ADMIN_LEVELS[2]
+  return (
+    <section className="settings-section form-stack" aria-labelledby="home-life-heading">
+      <div>
+        <h2 id="home-life-heading">Around the home</h2>
+        <p className="subtle">How much everyday life happens at home. Past days stay as they were; changes apply from today.</p>
+      </div>
+      <Field label={`Housework: ${upkeep.label}`} hint={upkeep.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.upkeep_realism} label={upkeep.label}
+          onChange={(upkeep_realism) => void save({ upkeep_realism })} />}
+      </Field>
+      <Field label={`Kitchen: ${kitchen.label}`} hint={kitchen.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.kitchen_realism} label={kitchen.label}
+          onChange={(kitchen_realism) => void save({ kitchen_realism })} />}
+      </Field>
+      <Field label={`Pets: ${pets.label}`} hint={pets.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.pets_realism} label={pets.label}
+          onChange={(pets_realism) => void save({ pets_realism })} />}
+      </Field>
+      <Toggle label="Pets can die" checked={data.pets_can_die} disabled={data.pets_realism === 0} onChange={(value) => void save({ pets_can_die: value })}
+        hint="Rarely, and only late in life: of old age, or a serious illness when they are very old. Off: pets still grow old but are always there. A pet that died can be brought back on the Character page." />
+      <Field label={`Life admin: ${admin.label}`} hint={admin.hint}>
+        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.admin_realism} label={admin.label}
+          onChange={(admin_realism) => void save({ admin_realism })} />}
+      </Field>
+      {result && <Notice tone={result.tone}>{result.text}</Notice>}
+    </section>
+  )
+}
+
+/** A four-step Realism slider (0 to 3) in the accent colour, with a tick at each step and the step's name read out. */
+function StepSlider({ id, describedBy, value, label, onChange }: { id: string; describedBy?: string; value: number; label: string; onChange: (value: number) => void }) {
+  return <>
+    <input id={id} className="step-slider" type="range" list={`${id}-steps`} min={0} max={3} step={1} value={value} aria-valuetext={label}
+      aria-describedby={describedBy} onChange={(event) => onChange(Number(event.target.value))} />
+    <datalist id={`${id}-steps`}>{[0, 1, 2, 3].map((step) => <option key={step} value={step} />)}</datalist>
+  </>
+}
+
+/** The Housework slider's steps (companion/life/upkeep.py SCALE). */
+const UPKEEP_LEVELS = [
+  { label: 'Off', hint: 'Laundry, dishes and clutter never come up. Their place stays as it is.' },
+  { label: 'Light', hint: 'Mess builds slowly and they deal with it early. A tidy, easy home.' },
+  { label: 'True to life', hint: 'Laundry, dishes and clutter build up with their week, and they catch up the way their habit says, with a big clean on a day off.' },
+  { label: 'Messy', hint: 'More mess, piling up longer, and big cleans that wait until the place is a real mess.' },
+]
 
 /**
  * Closeness for any companion, picked from a list that starts on the open one (picking never changes the open chat):
@@ -143,3 +212,11 @@ export function AdultSideSettings() {
     </section>
   )
 }
+
+/** How much happens to pets (companion/life/pets.py), from nothing at all to a dramatic life. */
+const PET_LEVELS = [
+  { label: 'Off', hint: 'Pets stay well: no off days, vet visits or losses.' },
+  { label: 'Light', hint: 'Now and then a pet has an off day or a checkup. Short spells and few vet visits.' },
+  { label: 'True to life', hint: 'Off days, vet visits and checkups about as often as real pets have them, more as they grow old.' },
+  { label: 'Dramatic', hint: 'More illnesses and longer spells, so more vet visits and more vet bills.' },
+]

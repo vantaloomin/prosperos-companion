@@ -35,10 +35,10 @@ from companion.voice.notes import files_of as voice_files
 
 WORKSPACE = (
     'app_identity', 'workspace_settings', 'pauses', 'pause_catch_ups', 'connection', 'model_profiles',
-    'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'image_settings',
+    'model_routes', 'life_settings', 'world_cities', 'world_changes', 'world_change_dismissals', 'townsfolk_mix', 'image_settings',
     'image_backends', 'context_settings', 'context_services', 'context_tools', 'lora_settings', 'notification_settings', 'notification_deliveries', 'prompt_overrides', 'phone_settings',
     'phone_devices', 'phone_push', 'deletion_markers', 'debug_time', 'builtin_recall', 'voice_settings', 'story_scene', 'story_messages', 'story_people', 'dating_profile', 'dating_swipes', 'dating_dates', 'dating_photos',
-    'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge',
+    'group_moments', 'group_chats', 'group_members', 'group_messages', 'pair_backstories', 'knowledge', 'authors_notes',
     'knowledge_holders', 'moods', 'local_programs', 'persona', 'lore_entries', 'lore_books',
     'sqlite_sequence',
 )
@@ -56,7 +56,7 @@ HISTORY = (
     'feed_post_events', 'image_jobs', 'feed_posts', 'memory_sources', 'memory_declines', 'memory_jobs',
     'memory_candidates', 'memory_vectors', 'memory_summaries', 'memory_proposals', 'memory_activity',
     'closeness_jokes', 'closeness_settings', 'openers', 'self_fact_jobs', 'self_facts', 'companion_plans', 'outings', 'trips', 'recommendations', 'life_chapters', 'chapter_days', 'thoughts', 'life_moments', 'dreams', 'news_holders', 'news', 'marks', 'consequences', 'storylines',
-    'storyline_days', 'family_traditions', 'scrapbook_seen', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_agenda',
+    'storyline_days', 'family_traditions', 'scrapbook_seen', 'pet_log', 'pet_state', 'home_log', 'home_items', 'home_state', 'wardrobe_log', 'wardrobe_items', 'wardrobe_state', 'grooming_log', 'grooming_state', 'upkeep_days', 'upkeep_state', 'kitchen_state', 'townsfolk_encounters', 'acquaintances', 'circle_people', 'life_admin', 'life_agenda',
     'agenda_cursors', 'relationship_moods', 'visits', 'life_runs', 'life_cursors', 'memories', 'life_events',
     'user_people', 'voice_notes', 'message_pictures', 'message_edits', 'chat_reads', 'away_messages', 'messages', 'chat_imports', 'timelines',
 )
@@ -77,6 +77,8 @@ SCOPE = (
     ('gone_evaluations', 'SELECT id FROM lora_evaluations WHERE companion_id=:companion'),
     ('gone_generations', 'SELECT id FROM lora_generations WHERE companion_id=:companion'),
 )
+PET_KEYS = ("pet_key IN (SELECT 'home:' || id FROM home_items WHERE timeline_id IN gone_timelines) "
+            "OR pet_key IN (SELECT 'circle:' || id || ':0' FROM circle_people WHERE timeline_id IN gone_timelines)")
 # How a table without its own timeline or companion column finds one companion's rows; None keeps them.
 OWN = {
     'context_uses': 'message_id IN gone_messages',
@@ -103,6 +105,10 @@ OWN = {
     'news_holders': "news_id IN (SELECT id FROM news WHERE timeline_id IN gone_timelines) "
                     "OR holder='companion:' || :companion",
     'companions': 'id=:companion',
+    # A pet's life (companion/life/pets.py) by its key: the companion's own pets and their circle's; townsfolk and
+    # the persona's pets belong to the world and stay.
+    'pet_log': PET_KEYS,
+    'pet_state': PET_KEYS,
 }
 
 

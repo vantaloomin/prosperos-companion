@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { bodyText, changesEmpty, moodText, pauseToFill, recommendationText } from '../../src/features/today/todayText.ts'
+import { bodyText, changesEmpty, eventWhen, moodText, pauseToFill, recommendationText } from '../../src/features/today/todayText.ts'
 import { shortDate } from '../../src/features/today/moneyText.ts'
 
 test('the mood names its cause and the traits behind it', () => {
@@ -49,4 +49,11 @@ test('an empty "since you were last here" points at what is waiting', () => {
   assert.equal(changesEmpty('Mira', 0), "Nothing new in Mira's life yet. Quiet stretches are normal.")
   assert.equal(changesEmpty('Mira', 1), '1 thing is waiting for you above. What you keep shows up here.')
   assert.equal(changesEmpty('Mira', 3), '3 things are waiting for you above. What you keep shows up here.')
+})
+
+test('a time beside a label from their day is in their time zone', () => {
+  const now = new Date('2026-11-25T12:00:00Z')
+  // 6 PM in UTC is 1 PM in Baltimore: the "Afternoon" beside it reads right.
+  assert.match(eventWhen('2026-11-29T18:00:00Z', now, 'America/New_York'), /1:00\sPM$/)
+  assert.match(eventWhen('2026-11-25T18:00:00Z', now, 'America/New_York'), /^Today, /)
 })

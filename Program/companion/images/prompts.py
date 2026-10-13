@@ -10,12 +10,12 @@ from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
 from companion.errors import require
-from companion.life import feed, home, traditions, wardrobe
+from companion.life import feed, grooming, home, pets, traditions, upkeep, wardrobe
 from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import looks
 
-PROMPT_VERSION = 5
+PROMPT_VERSION = 6
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -28,7 +28,7 @@ def place_name(event) -> str:
 def when(event) -> dict:
     """What the wardrobe and the picture line need: its activity, block kind, local date, weather and company."""
     details = decode(event['details'])
-    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with')}
+    return {key: details.get(key) for key in ('activity', 'block_kind', 'local_date', 'weather', 'with', 'pet_photo')}
 
 
 def scene(connection, post_id) -> list[dict]:
@@ -131,9 +131,10 @@ def plural_verb(verb: str) -> str:
 
 def visible(appearance: str, name: str, who: str) -> str:
     """What a camera can show of them: impressions ("looks like someone who...") are dropped and
-    backstory is cut off a clause ("a scar on her chin from a derby fall" keeps the scar)."""
+    backstory is cut off a clause ("a scar on her chin from a derby fall" keeps the mark), and old injuries are said
+    as what they look like now (looks.seen)."""
     kept = []
-    for sentence in re.split(r'(?<=[.!?])\s+', unnamed(appearance.strip(), name, who)):
+    for sentence in re.split(r'(?<=[.!?])\s+', looks.seen(unnamed(appearance.strip(), name, who))):
         if IMPRESSION.search(sentence):
             continue
         clauses = [BACKSTORY.sub('', clause).strip() for clause in CLAUSE.split(sentence.rstrip('.!? ')) if clause]
@@ -228,7 +229,7 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
              sheet, f'{look}.' if look else '', setting, action,
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
              light(event.get('hour'), event.get('weather')), camera(style, framing)]
-    return ' '.join(part for part in parts if part)
+    return looks.seen(' '.join(part for part in parts if part))
 
 
 # What each activity of the life sim (companion/life/composer.py and the circle's gatherings) looks
@@ -252,6 +253,7 @@ PICTURES = {
     'market': 'browsing the stalls of a busy market',
     'workout': 'mid-workout, slightly out of breath',
     'home-cooking': 'cooking at the stove at home, stirring a pan, ingredients on the counter',
+    'dinner-in': 'at a dinner table set for two at home, a home-cooked meal on the plates, candles lit',
     'reading': 'curled up at home reading a book under a blanket',
     'nap': 'lying on a sofa at home under a blanket, just waking from a nap',
     'slow': 'lounging on the sofa at home with a mug',
@@ -261,6 +263,9 @@ PICTURES = {
     'own-birthday': 'celebrating {possessive} own birthday at a table, a cake with candles in front of {possessive}',
     'gathering': 'gathered around a table with family and friends',
     'tradition': 'at a holiday table with family, the dishes passed around',
+    # A visit for their looks (companion/life/grooming.py): the new look is in the sheet that opens the picture.
+    'salon': 'just out of the salon, showing off a fresh new look',
+    'nail-salon': 'holding up freshly done nails to show them off',
 }
 CALLS = ('called', 'phone')
 
@@ -288,10 +293,12 @@ def drawn_as(definition) -> str:
     return who
 
 
-def sheet_for(companion, definition) -> tuple[str, str]:
-    """Their looks sheet (companion/world/looks.py) in words, and the pronoun to draw them with."""
+def sheet_for(companion, definition, connection=None, day=None, bold_only=False) -> tuple[str, str]:
+    """Their looks sheet (companion/world/looks.py) in words, and the pronoun to draw them with. With a connection it
+    is their looks on that local day (companion/life/grooming.py: haircuts, nails, a tan, bold changes), the latest
+    day of their life without one; `bold_only` keeps to the bold changes (the Codex reference sheet)."""
     who = drawn_as(definition)
-    return looks.picture(looks.for_companion(companion['id'], definition), who), who
+    return looks.picture(grooming.sheet(connection, companion['id'], definition, day, bold_only), who), who
 
 
 def in_photos(definition, who=None, dressed=False) -> str:
@@ -328,17 +335,32 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     first = {**events[0], 'hour': local_hour(events[0]['starts_at'], companion['version']['timezone']),
              'weather': events[0]['moment'].get('weather'), 'activity': events[0]['moment'].get('activity'),
              'with': events[0]['moment'].get('with')}
-    sheet, who = sheet_for(companion, definition)
+    sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
+    likeness = current_for_images(connection)
+    prompt = pet_prompt(connection, post['timeline_id'], events, image_settings)
+    if prompt:
+        # A photo of their pet alone (companion/life/pets.py): nobody in it, so no likeness.
+        likeness = {**likeness, 'lora': None}
     return {'prompt_version': PROMPT_VERSION,
-            'prompt': feed_prompt(definition, first, image_settings, setting(connection, post['timeline_id'], events[0]),
-                                  who, sheet),
+            'prompt': prompt or feed_prompt(definition, first, image_settings,
+                                            setting(connection, post['timeline_id'], events[0]), who, sheet),
             'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
-            'marked_nsfw': bool(marked_nsfw), **current_for_images(connection)}
+            'marked_nsfw': bool(marked_nsfw), **likeness}
+
+
+def pet_prompt(connection, timeline_id, events, image_settings) -> str:
+    """A pet-only photo's fixed prompt, or '' for any other post: a digest of several moments is drawn as a whole,
+    not as the pet photo one of them carries."""
+    if len(events) != 1:
+        return ''
+    shot = (events[0].get('moment') or {}).get('pet_photo')
+    found = shot and pets.find_home(connection, timeline_id, shot.get('item'))
+    return pets.photo_prompt(found, shot['shows'], image_settings['style']) if found else ''
 
 
 def feed_prompt(definition, first, image_settings, worn: tuple[str, bool], who, sheet) -> str:
@@ -351,7 +373,8 @@ def setting(connection, timeline_id, event) -> tuple[str, bool]:
     """Their home where the moment is at home, and what they are wearing (companion/life/wardrobe.py),
     with whether it says what they wear."""
     wearing = wardrobe.image_hint(connection, timeline_id, event.get('moment') or {})
-    parts = [home.image_hint(connection, timeline_id, event), traditions.image_hint(connection, timeline_id, event), wearing]
+    parts = [home.image_hint(connection, timeline_id, event), upkeep.image_hint(connection, timeline_id, event),
+             traditions.image_hint(connection, timeline_id, event), wearing]
     return ' '.join(part for part in parts if part), bool(wearing)
 
 
@@ -387,7 +410,7 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
                                                     'activity', 'with')}
     appearance = '' if framing == 'view' else definition.get('appearance', '')
     wearing = '' if framing == 'view' else wardrobe.image_hint(connection, companion['active_timeline_id'], moment)
-    sheet, who = sheet_for(companion, definition)
+    sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
     look = '' if framing == 'view' else in_photos(definition, who, bool(wearing))
     prompt = compose(definition['name'], appearance, [scene_text], image_settings['style'], wearing, bool(wearing),
                      framing, who, '' if framing == 'view' else sheet, look)
@@ -408,11 +431,12 @@ def build_meme(connection, meme, image_settings) -> dict:
         prompt = f"Reaction-meme style photo, simple and centered: {meme['subject']}. A fictional scene."
         likeness = {**current_for_images(connection), 'lora': None}
     else:
-        sheet, who = sheet_for(companion, definition)
+        sheet, who = sheet_for(companion, definition, connection)
         look = in_photos(definition, who)
         prompt = (f"Reaction-meme style photo, simple and centered, of a fictional person with a {meme['expression']} "
                   f"expression{meme['where']}, room above and below the face. {sheet} {look}.").rstrip(' .') + '.'
         likeness = current_for_images(connection)
+    prompt = looks.seen(prompt)
     return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': 'meme',
             'aspect': 'square', 'captions': [meme['top'], meme['bottom'], meme['subject'] or ''],
             'meme': meme, **likeness}

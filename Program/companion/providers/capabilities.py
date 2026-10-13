@@ -14,6 +14,7 @@ SAMPLING = {
     'local': {'temperature', 'top_p', 'top_k', 'min_p', 'frequency_penalty', 'presence_penalty', 'repetition_penalty', 'seed'},
     'kobold': {'temperature', 'top_p', 'top_k', 'repetition_penalty'},
     'codex': set(),
+    'claude_code': set(),
 }
 
 

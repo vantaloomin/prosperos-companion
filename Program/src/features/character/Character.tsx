@@ -16,8 +16,12 @@ import { useFormBridge } from '../sidecar/useFormBridge'
 import { sidecar } from '../sidecar/store'
 import { TextingFields } from './TextingFields'
 import { Home } from './Home'
+import { Pets } from './Pets'
 import { Traditions } from './Traditions'
 import { Wardrobe } from './Wardrobe'
+import { LooksLately } from './LooksLately'
+import { Kitchen } from './Kitchen'
+import { LifeAdmin } from './LifeAdmin'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
@@ -142,7 +146,7 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
           <LooksFields definition={cleaned} looks={definition.looks} set={set} />
-          <TextInput label="Their timezone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
+          <TextInput label="Their time zone" value={definition.timezone} onChange={(timezone) => set({ timezone })} list="timezones" maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
           <TextingFields value={definition.texting} onChange={(texting) => set({ texting })} />
           <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
           {help('routine', 'their routine')}
@@ -171,8 +175,12 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
   return (<>
     {details && <>
       <Home name={name} />
+      <Pets name={name} />
       <Traditions name={name} />
       <Wardrobe name={name} />
+      <LooksLately name={name} />
+      <Kitchen name={name} />
+      <LifeAdmin name={name} />
       <SelfFacts name={name} />
     </>}
     <Lore />

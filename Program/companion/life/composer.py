@@ -251,13 +251,55 @@ OWN = (('went home to their ', 'went home to {their} '), ('celebrated their birt
        ('one they like almost', 'one {they} like{s} almost'))
 
 
-def said(text: str | None, definition: dict) -> str | None:
-    """A day event's summary with the companion's own pronouns, when those are known."""
+def said(text: str | None, definition: dict, found: dict | None = None) -> str | None:
+    """A day event's summary with the companion's own pronouns, when those are known (`found` gives other forms)."""
     if text and TRADITION_MARK in text:
-        text = pronouns.said(text, TRADITION_OWN, definition)
+        text = pronouns.said(text, TRADITION_OWN, definition, found)
     if text and OWN_BIRTHDAY_LINE.search(text):
-        text = pronouns.said(text, OWN_BIRTHDAY_SAID, definition)
-    return pronouns.said(text, OWN, definition)
+        text = pronouns.said(text, OWN_BIRTHDAY_SAID, definition, found)
+    return pronouns.said(text, OWN, definition, found)
+
+
+# A post is written by the one it is about, so the line under it says "I" (companion/life/feed.py, social.py): the
+# summaries name them in the third person. A name that starts a clause is "I", anywhere else "me"; "Sam's" is "my".
+SUBJECT_BEFORE = r'(?:^|[.;:!?,] |\b(?:but|and|so|while|because|when|that|then) )'
+I_VERBS = {'is': 'am', 'has': 'have', 'does': 'do', 'goes': 'go', "isn't": "aren't", "hasn't": "haven't",
+           "doesn't": "don't", 'was': 'was', "wasn't": "wasn't"}
+# Words between the subject and its verb that leave the verb as it is: "Sam often goes" is "I often go".
+ADVERBS = ('always', 'often', 'usually', 'never', 'still', 'also', 'just', 'really', 'finally', 'rarely',
+           'sometimes', 'already', 'even', 'only')
+# Endings that take -es: "watches", "fixes", "misses", "buzzes", "goes".
+ES = re.compile(r'(?:ch|sh|ss|x|zz|o)es$')
+
+
+def first_person(verb: str) -> str:
+    """A verb after "I": "goes" is "go", "watches" "watch", "tries" "try", "wins" "win"; past tense stays."""
+    lower = verb.lower()
+    if lower in I_VERBS:
+        return I_VERBS[lower]
+    if not re.fullmatch(r'[a-z]+s', lower) or lower.endswith(('ss', 'us', 'is')):
+        return verb
+    if lower.endswith('ies') and len(lower) > 4:
+        return verb[:-3] + 'y'
+    return verb[:-2] if ES.search(lower) else verb[:-1]
+
+
+def mine(text: str | None, name: str) -> str | None:
+    """A summary about `name` (the companion or a circle member) said by them: "Sam kept up" reads "I kept up",
+    "Sam goes" "I go", and "Sam's" is "my" ("My" only to start a sentence)."""
+    if not text or not name:
+        return text
+    text = said(text, {}, pronouns.FIRST)
+    names = sorted({name.strip(), name.strip().split()[0]}, key=len, reverse=True)
+    who = '(?:' + '|'.join(re.escape(each) for each in names if each) + ')'
+    adverbs = '|'.join(ADVERBS)
+    text = re.sub(rf'^{who} and ((?:[A-Z][\w.\'-]*)(?: [A-Z][\w.\'-]*)*) ', r'\1 and I ', text)
+    text = re.sub(rf"(^|[.!?] ){who}'s\b", lambda found: found.group(1) + 'My', text)
+    text = re.sub(rf"\b{who}'s\b", 'my', text)
+    text = re.sub(rf"({SUBJECT_BEFORE}){who} ((?:(?:{adverbs}) )?)([\w']+)\b",
+                  lambda found: f'{found.group(1)}I {found.group(2)}{first_person(found.group(3))}', text)
+    text = re.sub(rf'\b{who}\b', 'me', text)
+    return text[0].upper() + text[1:]
 
 
 def happenings(world, definition: dict, local_date: str) -> list[dict]:

@@ -255,6 +255,17 @@ def revealed(sheet: dict, data: dict, meetings: list[dict], now, companion: dict
     return person
 
 
+def pets_of(connection, companion: dict, key: str, times: int, now) -> list[dict]:
+    """A townsperson's pet (companion/life/pets.py), once the companion knows about their home life."""
+    from companion.life import pets
+    if times < life_details.KNOWS_HOME:
+        return []
+    data = network.city(connection, companion)
+    sheet = resolve(data, key, town_cast(connection, companion, data))
+    found = pets.town_pets(sheet, life_details.pet_of(sheet), pets.era_of(data)) if sheet else []
+    return pets.lived(connection, found, now.astimezone(zone(companion['version']['timezone'])).date(), now)
+
+
 def adult_side(sheet: dict, times: int, shown: bool) -> dict:
     """With Settings > Realism > Adult side of life on (companion/world/intimacy.py): who they're drawn to once
     the companion knows their heart, and, as a hidden value the user can show, all of it for the user's eyes only.

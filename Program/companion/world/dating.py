@@ -11,7 +11,7 @@ one in fifty), and the chance of having a partner rises with age until widowhood
 """
 from datetime import date
 
-from companion.world import generators, townsfolk
+from companion.world import generators, mix, townsfolk
 
 GENDERS = ('woman', 'man', 'nonbinary')
 GENDER_OF = {'she/her': 'woman', 'he/him': 'man', 'they/them': 'nonbinary'}
@@ -52,9 +52,9 @@ EYES = {
     'east': {'dark brown': 90, 'brown': 10}, 'south': {'dark brown': 80, 'brown': 15, 'hazel': 5},
     'african': {'dark brown': 90, 'brown': 10}, 'latin': {'brown': 70, 'dark brown': 15, 'hazel': 10, 'green': 5},
     'arab': {'brown': 70, 'dark brown': 15, 'hazel': 10, 'green': 5},
-    'celtic': {'blue': 40, 'brown': 20, 'green': 15, 'hazel': 15, 'grey': 10},
-    'european': {'blue': 27, 'brown': 35, 'hazel': 16, 'green': 12, 'grey': 10},
-    None: {'brown': 55, 'blue': 20, 'hazel': 12, 'green': 8, 'grey': 5},
+    'celtic': {'blue': 40, 'brown': 20, 'green': 15, 'hazel': 15, 'gray': 10},
+    'european': {'blue': 27, 'brown': 35, 'hazel': 16, 'green': 12, 'gray': 10},
+    None: {'brown': 55, 'blue': 20, 'hazel': 12, 'green': 8, 'gray': 5},
 }
 HAIR_STYLES = {
     'woman': ('long', 'shoulder-length', 'in a bob', 'cropped short', 'curly', 'always up in a bun', 'in a ponytail',
@@ -68,6 +68,10 @@ BUILDS = {
     'man': ('slim', 'lean', 'average', 'athletic', 'stocky', 'broad-shouldered', 'heavyset', 'wiry'),
     'nonbinary': ('slim', 'lean', 'average', 'athletic', 'soft', 'wiry', 'stocky'),
 }
+# Builds by how much of them there is, for the world's mix of builds (companion/world/mix.py).
+BUILD_GROUPS = {'slender': ('slim', 'petite', 'lean', 'wiry', 'tall and lean'),
+                'middle': ('average', 'athletic', 'broad-shouldered', 'curvy'),
+                'heavier': ('soft', 'stocky', 'full-figured', 'heavyset')}
 # Mean and spread of adult height in centimetres; people in older eras were a little shorter.
 HEIGHT = {'woman': (162, 6.5), 'man': (176, 7.0), 'nonbinary': (169, 8.0)}
 STYLES = {
@@ -113,9 +117,14 @@ def gender(sheet: dict) -> str:
     return GENDER_OF.get(sheet.get('pronouns', ''), 'nonbinary')
 
 
+def rates(age: int) -> tuple:
+    """The age band's orientation rates, as the world's mix has them (companion/world/mix.py)."""
+    return mix.orientation_band(next(band for band in ORIENTATION_RATES if age <= band[0]))
+
+
 def orientation(seed: str, age: int, who: str) -> tuple[str, list[str]]:
     """Their orientation label and the genders they are drawn to."""
-    _upper, gay, bi_woman, bi_man = next(band for band in ORIENTATION_RATES if age <= band[0])
+    _upper, gay, bi_woman, bi_man = rates(age)
     roll = generators.unit(seed, 'orientation')
     if who == 'nonbinary':
         return 'queer', weighted(seed, 'drawn-to', {('woman', 'man', 'nonbinary'): 6, ('woman', 'nonbinary'): 2,
@@ -149,7 +158,7 @@ def looking(seed: str, age: int, desire: str, single: bool, modern: bool) -> str
         away = max(away, 0.55)
     # Gay, lesbian and bisexual adults use dating apps about twice as often (Pew, 2023: 51% against 28%). This
     # reads the same roll `orientation` does, before their gender is known.
-    _upper, gay, bi_woman, bi_man = next(band for band in ORIENTATION_RATES if age <= band[0])
+    _upper, gay, bi_woman, bi_man = rates(age)
     if generators.unit(seed, 'orientation') < gay + max(bi_woman, bi_man):
         away /= 3
     if generators.unit(seed, 'looking') < away:
@@ -176,6 +185,7 @@ def age_range(age: int, looking_for: str) -> tuple[int, int]:
 
 def height_cm(seed: str, who: str, modern: bool) -> int:
     mean, spread = HEIGHT[who]
+    mean = mix.height_mean(who, mean)
     # The mean of three draws is close enough to a bell curve, with the spread restored.
     draw = sum(generators.unit(seed, 'height', n) for n in range(3)) / 3 - 0.5
     return round(mean - (0 if modern else 5) + draw * spread * 6)
@@ -187,7 +197,7 @@ def hair(seed: str, sheet: dict, who: str, era: str) -> str:
         return generators.pick(seed, 'bald-how', ['a shaved head', 'thinning hair', 'a receding hairline'])
     color = weighted(seed, 'hair', HAIR[region(sheet)])
     if age >= 55 and generators.unit(seed, 'grey') < 0.6:
-        color = generators.pick(seed, 'grey-how', ['grey', 'silver', 'salt-and-pepper'])
+        color = generators.pick(seed, 'grey-how', ['gray', 'silver', 'salt-and-pepper'])
     elif age >= 42 and generators.unit(seed, 'grey') < 0.3:
         color = f'greying {color}'
     elif era != 'period' and age < 40 and generators.unit(seed, 'dyed') < 0.08:
@@ -199,13 +209,20 @@ def hair(seed: str, sheet: dict, who: str, era: str) -> str:
 
 def build(seed: str, sheet: dict, who: str) -> str:
     sporty = sheet.get('goals', [''])[0] in ('race', 'strong') or 'trainer' in (sheet.get('occupation') or '')
-    return 'athletic' if sporty and generators.unit(seed, 'sporty') < 0.7 else \
-        generators.pick(seed, 'build', list(BUILDS[who]))
+    if sporty and generators.unit(seed, 'sporty') < 0.7:
+        return 'athletic'
+    if not mix.builds_changed():
+        return generators.pick(seed, 'build', list(BUILDS[who]))
+    # Each group's share is split evenly among the builds it has for them.
+    groups = [(group, [item for item in BUILDS[who] if item in members]) for group, members in BUILD_GROUPS.items()]
+    weights = [mix.current()[group] / len(items) for group, items in groups for _item in items]
+    return generators.pick(seed, 'build', [item for _group, items in groups for item in items], weights) \
+        if sum(weights) else generators.pick(seed, 'build', list(BUILDS[who]))
 
 
 def fitted(drawn: str, tall: int, who: str) -> str:
     """A build that names a height agrees with the height drawn: no 5'2" 'tall and lean', no 6' 'petite'."""
-    mean = HEIGHT[who][0]
+    mean = mix.height_mean(who, HEIGHT[who][0])
     if drawn == 'tall and lean' and tall < mean + 5:
         return 'lean'
     return 'slim' if drawn == 'petite' and tall > mean else drawn
@@ -224,7 +241,7 @@ def looks(sheet: dict, data: dict) -> dict:
              'hair': hair(seed, sheet, who, era), 'eyes': f"{weighted(seed, 'eyes', EYES[region(sheet)])} eyes",
              'style': generators.pick(seed, 'style', list(STYLES.get(data.get('era', ''), STYLES[era]))),
              'detail': generators.pick(seed, 'detail', details)}
-    if who == 'man' and generators.unit(seed, 'beard') < 0.35:
+    if who == 'man' and generators.unit(seed, 'beard') < mix.beard_share():
         found['beard'] = generators.pick(seed, 'beard-how', list(BEARDS))
     return found
 

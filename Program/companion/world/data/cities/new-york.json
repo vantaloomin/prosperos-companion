@@ -4062,7 +4062,7 @@
    "name": "Hungarian Pastry Shop",
    "kind": "cafe",
    "neighborhood": "morningside-heights",
-   "summary": "Dim, cosy cafe on Amsterdam Avenue where Columbia students write papers over pastries for hours.",
+   "summary": "Dim, cozy cafe on Amsterdam Avenue where Columbia students write papers over pastries for hours.",
    "tags": [
     "pastry",
     "study",
@@ -4193,7 +4193,7 @@
    "name": "Marcus Garvey Park",
    "kind": "park",
    "neighborhood": "harlem",
-   "summary": "Rocky park with a fire watchtower, an amphitheatre for summer concerts and a Saturday drum circle.",
+   "summary": "Rocky park with a fire watchtower, an amphitheater for summer concerts and a Saturday drum circle.",
    "tags": [
     "music",
     "playground",
@@ -6378,7 +6378,7 @@
     "high_f": 42,
     "low_f": 29,
     "rain_days": 10,
-    "note": "Cold and grey; the snowiest month on average."
+    "note": "Cold and gray; the snowiest month on average."
    },
    {
     "high_f": 50,

@@ -34,7 +34,9 @@ before it. Local servers (llama.cpp, LM Studio, Ollama, KoboldCpp) and hosted pr
 they already did on that part (prompt caching), so a reply starts sooner and costs less. It is also easier on
 small local models, which follow facts best when they sit right next to the message they answer.
 
-1. **The system prompt**: who the companion is (the prompt above), then the sections that change rarely, in
+1. **The system prompt**: who the companion is (the prompt above; in their own chat, while Settings > Realism >
+   Adult side of life is on and they read as an adult, followed by the adults-only setting line `SETTING` in
+   `companion/world/intimacy.py`), then the sections that change rarely, in
    `HEADINGS` in `companion/memory/context.py`: the user's persona, always-on lore, home, the circle, today's calendar, weather and money, then what
    grows during a chat (memories, what they have said about themselves, plans, recent life).
 2. **The conversation**: at least the last 20 messages. Its first message moves forward 12 messages at a time,

@@ -55,6 +55,37 @@ def test_friends_post_from_their_diary_and_people_react(client, city, clock, mon
     assert all(comment['name'] != post['author']['name'] for post in friends for comment in post['audience']['comments'])
     # Reading again posts nothing new.
     assert [post['id'] for post in feed(client)['posts']] == [post['id'] for post in posts]
+    # Each post says what happened in its writer's own words, never their name.
+    for post in friends:
+        first = post['author']['name'].split()[0]
+        assert first not in post['context'] and first not in post['text'], post
+    own = [event for post in posts if post['source'] == 'life' for event in post['events']]
+    assert own and all('Mira' not in event['mine']['summary'] for event in own)
+    assert all('Mira' in event['summary'] for event in own if event['summary'].startswith('Mira '))
+
+
+@pytest.mark.parametrize(('summary', 'said'), [
+    ('Work got hectic during the shift, but Bradley kept up.', 'Work got hectic during the shift, but I kept up.'),
+    ('Bradley had a busy shift, with one rush after another.', 'I had a busy shift, with one rush after another.'),
+    ('Bradley and Jess Moore joined the crowds for Pride.', 'Jess Moore and I joined the crowds for Pride.'),
+    ('Bradley Shaw treated themselves at Lou\'s for their birthday.', "I treated myself at Lou's for my birthday."),
+    ('Bradley took Sam out at Lou\'s for their birthday.', "I took Sam out at Lou's for their birthday."),
+    ("Bradley spent Easter at their aunt Rose's, the way they always do.",
+     "I spent Easter at my aunt Rose's, the way I always do."),
+    ("The landlord finally sent someone to fix Bradley's sink.", 'The landlord finally sent someone to fix my sink.'),
+    ('Ava got a job offer and keeps asking Bradley whether to take it.',
+     'Ava got a job offer and keeps asking me whether to take it.'),
+    ('The pottery class filled up, so Bradley is on the list.', 'The pottery class filled up, so I am on the list.'),
+    # Present tense: the verb after "I" drops its -s, and "my" is capitalized only to start a sentence.
+    ('Bradley goes to the market.', 'I go to the market.'),
+    ("Bradley watches the game; Bradley's team wins.", 'I watch the game; my team wins.'),
+    ('Bradley has a cold and Bradley is staying in.', 'I have a cold and I am staying in.'),
+    ('Bradley does the dishes, then Bradley tries a new recipe.', 'I do the dishes, then I try a new recipe.'),
+    ('Bradley often fixes bikes. Bradley\'s brother misses the bus.', "I often fix bikes. My brother misses the bus."),
+    ("Bradley's dog runs off, but Bradley was ready.", 'My dog runs off, but I was ready.'),
+])
+def test_a_post_says_what_happened_as_i(summary, said):
+    assert composer.mine(summary, 'Bradley Shaw') == said
 
 
 def test_the_feed_can_show_only_the_companion_or_only_the_circle(client, city, clock):

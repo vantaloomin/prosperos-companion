@@ -875,7 +875,7 @@ CITY = {
         career('cigarette-seller', 'Cigarette seller', 'hospitality', 'evening', '$', 'Walking a nightclub with a '
                'tray of cigarettes, cigars and candy on a strap, selling to the tables and living on tips.',
                ['the tray', 'tips', 'the club', 'late nights']),
-        career('pushcart-peddler', 'Pushcart peddler', 'retail', 'early', '$', 'Renting a pushcart and a licence to '
+        career('pushcart-peddler', 'Pushcart peddler', 'retail', 'early', '$', 'Renting a pushcart and a license to '
                'sell fruit, fish, notions or clothing on a market street, haggling from dawn till dark.',
                ['the cart', 'regulars', 'haggling', 'the license inspector', 'weather']),
         career('taxi-dancer', 'Taxi dancer', 'entertainment', 'evening', '$', 'Dancing with paying customers at ten '

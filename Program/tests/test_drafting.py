@@ -170,7 +170,7 @@ def test_every_template_placeholder_is_filled():
                                      'field_shape'},
               'character-split.md': {'rules', 'pasted', 'city', 'careers', 'names', 'emotional'},
               'sidecar.md': {'rules', 'character', 'city', 'emotional', 'fields', 'name', 'view', 'conversation',
-                             'memories'},
+                             'memories', 'note'},
               'character-repair.md': {'problem'}}
     for name, keys in filled.items():
         assert set(re.findall(r'\{\{(\w+)\}\}', drafting.template(name))) == keys, name
@@ -278,3 +278,43 @@ def test_invented_names_are_swapped_consistently_whatever_the_seed():
         given = re.search(r'calls (.+) every Sunday', swapped['background'])[1]
         assert swapped['name'].startswith(f'{given} ')
         assert not drafting.naming.invented_in(json.dumps(swapped))
+
+
+ADULT = GOOD | {'name': 'Ashley Ruiz', 'career': 'subscription-creator',
+                'identity': 'Ashley is 20 and runs a paid fan page from the apartment she shares with a roommate.'}
+
+
+def test_adult_work_is_offered_only_with_the_adult_side_on(client, provider):
+    connect(client)
+    provider.respond = replying(json.dumps(ADULT))
+    off = client.post('/api/companion/draft', json={'idea': 'a 20 year old OnlyFans creator', 'age': '20',
+                                                    'home_city': 'los-angeles'}).json()
+    assert 'subscription-creator' not in provider.requests[-1]['system'] and off['career'] is None
+    assert client.put('/api/settings', json={'adult_side': True}).status_code == 200
+    provider.respond = replying(json.dumps(ADULT))
+    on = client.post('/api/companion/draft', json={'idea': 'a 20 year old OnlyFans creator', 'age': '20',
+                                                   'home_city': 'los-angeles'}).json()
+    assert 'subscription-creator: Subscription content creator' in provider.requests[-1]['system']
+    assert on['career']['id'] == 'subscription-creator'
+    assert on['definition']['money']['career'] == 'subscription-creator'
+
+
+def test_adult_work_is_only_ever_an_adults():
+    creator = drafting.catalog.careers()['subscription-creator']
+    assert drafting.adult_career_allowed(creator, {'identity': 'Ashley is 20 and runs a fan page.'}, '20')
+    assert not drafting.adult_career_allowed(creator, {'identity': 'Ashley is 20 and runs a fan page.'}, '17')
+    assert not drafting.adult_career_allowed(creator, {'identity': 'A 17-year-old who runs a fan page.'})
+    assert drafting.adult_career_allowed(drafting.catalog.careers()['teacher'], {'identity': 'A 17-year-old.'}, '17')
+
+
+def test_a_draft_is_always_an_adult(client, provider):
+    connect(client)
+    young = GOOD | {'identity': 'Madison is 17 and posts videos from her bedroom.'}
+    provider.respond = replying(json.dumps(young))
+    response = client.post('/api/companion/draft', json={'idea': 'a video creator'})
+    assert response.status_code == 422 and response.json()['code'] == 'under_18'
+    picked = client.post('/api/companion/draft', json={'idea': 'a video creator', 'age': '17'})
+    assert picked.status_code == 422 and picked.json()['code'] == 'under_18'
+    parent = GOOD | {'identity': 'Dana is 41 and raising a 15-year-old on her own.'}
+    provider.respond = replying(json.dumps(parent))
+    assert client.post('/api/companion/draft', json={'idea': 'a single parent'}).status_code == 200

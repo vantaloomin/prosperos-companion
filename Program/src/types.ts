@@ -121,6 +121,8 @@ export interface Looks {
   hair: string
   facial_hair: string
   feature: string
+  /** What the app filled in when a townsperson became a companion; still-equal fields may change over time. */
+  drawn?: Partial<Record<string, string | number>>
 }
 
 export interface CharacterDefinition {
@@ -188,9 +190,9 @@ export interface MoneySetup {
   goal_since: string
 }
 
-export interface CareerSummary { id: string; name: string; pay: string; eras: string[] }
+export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
-interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' }
+interface MoneyHappening { label: string; on: string; cost: number; for?: 'home' | 'clothes' | 'outing' | 'trip' | 'looks' | 'food' }
 
 export type MoneyView = { date: string } & ({ available: false; reason: string } | {
   available: true
@@ -279,6 +281,8 @@ export interface WorkspaceSettings {
   adult_side?: boolean
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
+  /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
+  show_home_meters?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
@@ -431,6 +435,17 @@ export interface LifeSettings {
   on_her_mind: boolean
   /** Storylines from quiet (0) through realistic and dramatic to soap opera (3). */
   drama: number
+  /** Home upkeep (companion/life/upkeep.py): 0 off, 1 light, 2 true to life, 3 messy. */
+  upkeep_realism: number
+  /** Looks that change (companion/life/grooming.py): never (0), now and then, like real life (2), often (3). */
+  looks_realism: number
+  /** Pets with lives of their own (companion/life/pets.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  pets_realism: number
+  pets_can_die: boolean
+  /** Kitchen ups and downs on the same scale: staples running out, dinners going sideways (companion/life/kitchen.py). */
+  kitchen_realism: number
+  /** Life admin (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
+  admin_realism: number
 }
 
 export interface BackupResult { path: string; created_at: string; database_bytes: number }
@@ -485,7 +500,7 @@ export interface Today {
   routine: { default_schedule: boolean; current: RoutineSlot | null; next: RoutineSlot | null }
   changes: LifeEvent[]
   review: LifeEvent[]
-  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[] }
+  plans: { shared: SharedPlan[]; companion: LifeEvent[]; threads: LifeEvent[]; admin?: AdminItem[] }
   feed_unread: number
   last_run: LifeRun | null
   paused: boolean
@@ -534,7 +549,7 @@ export interface FeedPost {
   reaction: Reaction | null
   occurs_at: string
   created_at: string
-  events: { id: string; summary: string; caption: string; mood: string | null; label: string | null; kind: string; starts_at: string; ends_at: string; revision: number }[]
+  events: { id: string; summary: string; caption: string; mine?: { caption: string; summary: string }; mood: string | null; label: string | null; kind: string; starts_at: string; ends_at: string; revision: number }[]
   text?: string
   context?: string
   place?: string
@@ -588,6 +603,8 @@ export interface CirclePerson {
   stage?: PairStage | null
   now: RoutineBlock | null
   recent: DiaryEntry[]
+  /** Their pets (companion/life/pets.py), seeded by who they are. */
+  pets?: PetView[]
 }
 
 /** Someone around the circle, a few layers out (companion/life/network.py); built on request, never stored. */
@@ -632,6 +649,8 @@ export interface ImageBackend {
   style: string
   cli_path: string
   custom_workflow: boolean
+  // ComfyUI: the model family whose built-in workflow runs; null for other kinds.
+  family: ImageFamily | null
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
   // ComfyUI: LoRAs applied after the character's own, in order; null for other kinds.
@@ -658,17 +677,19 @@ export interface ImageBackend {
 
 export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
-export interface BackendCheck { ok: boolean; summary: string; details: string[] }
+export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
-export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name'
-export type ModelFiles = Record<ModelFileKey, string>
+export type ImageFamily = 'krea2' | 'qwen21' | 'zimage' | 'anima' | 'booru'
+export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name' | 'ckpt_name' | 'ref_unet_name'
+/** The files of the family's own loaders only ('' means the workflow's default). */
+export type ModelFiles = Partial<Record<ModelFileKey, string>>
 export type FileListKey = ModelFileKey | 'lora' | 'sampler_name' | 'scheduler'
 export interface SamplerSettings { steps: number | null; cfg: number | null; sampler_name: string | null; scheduler: string | null }
 export interface StyleLora { name: string; strength: number; trigger: string }
-/** What a ComfyUI server offers the built-in workflow's loaders and its LoRAs, Krea 2's first (`krea` lists
- * those); ok is false when it could not be asked. The character's own LoRA is left out of `lora`. */
-export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; sampler_defaults: SamplerSettings; options: Record<FileListKey, string[]>; krea: Record<FileListKey, string[]>; character_lora: string | null }
-export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae'; file: string | null; url: string; licence: string }
+/** What a ComfyUI server offers the built-in workflow's loaders and its LoRAs, the family's own first (`matching`
+ * lists those); ok is false when it could not be asked. The character's own LoRA is left out of `lora`. */
+export interface BackendFiles { ok: boolean; error: string | null; family: ImageFamily; defaults: ModelFiles; sampler_defaults: SamplerSettings; options: Partial<Record<FileListKey, string[]>>; matching: Partial<Record<FileListKey, string[]>>; character_lora: string | null }
+export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae' | 'reference'; file: string | null; url: string; licence: string; family: ImageFamily }
 
 export interface ImageJob {
   id: string
@@ -705,9 +726,10 @@ export interface ImageJob {
 // Current context through MCP (PRD X1–X3)
 export type ContextCategory = 'weather' | 'news' | 'local_events' | 'link' | 'web_search' | 'culture'
 export type ContextPurpose = 'conversation' | 'companion_city' | 'ambient'
-export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal' | 'url'
+export type ArgumentSource = 'place' | 'latitude' | 'longitude' | 'topic' | 'date' | 'literal' | 'url' | 'session'
 export interface ToolArgument { source: ArgumentSource; value?: string | number | boolean }
-export interface ContextTool { name: string; description: string; input_schema: { properties?: Record<string, { type?: string; description?: string }>; required?: string[] }; read_only: boolean }
+export interface ToolProperty { type?: string | string[]; description?: string; enum?: unknown[]; minimum?: number; maximum?: number; default?: unknown }
+export interface ContextTool { name: string; description: string; input_schema: { properties?: Record<string, ToolProperty>; required?: string[] }; read_only: boolean }
 export interface Disclosure {
   digest: string
   destination: string
@@ -948,6 +970,8 @@ export interface Chat {
   active_at: string
   /** A companion's status line (companion/life/status.py); absent for group chats. */
   status?: CompanionStatus | null
+  /** A companion's profile picture (lora_references), or null while they have none; absent for group chats. */
+  portrait_reference_id?: string | null
 }
 export interface ChatList { chats: Chat[]; unread: number }
 
@@ -1059,6 +1083,10 @@ export interface SelfFact {
   user_said?: string
   /** For a fact the character definition contradicts: the place it names. */
   definition_says?: string
+  /** A pet fact: 'tracked' when it names a pet the app keeps (that pet's own lines win), else 'untracked'. */
+  pet_link?: 'tracked' | 'untracked'
+  /** The pet kind the fact's words point to, for "Add as their pet". */
+  pet_kind?: string
   created_at: string
   decided_at: string | null
 }
@@ -1163,6 +1191,33 @@ export interface HomeItem {
 
 export interface HomeChange { local_date: string; kind: string; text: string }
 
+export type MealKind = 'cook' | 'leftovers' | 'takeout' | 'simple' | 'out' | 'hosting' | 'away'
+export type StapleState = 'stocked' | 'low' | 'out'
+
+/** The Character page's Kitchen panel (GET /api/life/kitchen): all in words; `numbers` only with hidden values shown. */
+export interface KitchenView {
+  today: string
+  diet: string
+  avoids: string[]
+  skill: number
+  skill_text: string
+  bakes: boolean
+  favorites: string[]
+  summary: string
+  cuisine: string
+  week: { date: string; kind: MealKind; text: string; groceries: boolean; today: boolean }[]
+  /** "Grocery run" now, "Food shopping" from the 1880s to the 1920s, "Market day" in medieval towns. */
+  run_label: string
+  pantry: { name: string; state: StapleState }[]
+  pantry_text: string
+  changed: string[]
+  diets: string[]
+  avoid_choices: string[]
+  skills: string[]
+  realism: number
+  numbers?: { rhythm: Record<string, number>; days_left: Record<string, number | null> }
+}
+
 export interface HomeView {
   today: string
   items: HomeItem[]
@@ -1170,6 +1225,28 @@ export interface HomeView {
   changes: HomeChange[]
   costs: { rent: number | null; rent_period: string } | null
   varieties: { pet: string[]; vehicle: string[] }
+}
+
+export type UpkeepArea = 'laundry' | 'dishes' | 'clutter'
+export type UpkeepHabit = 'neat' | 'average' | 'messy'
+
+/** How tidy the companion's place is today (companion/life/upkeep.py), in words, with the numbers behind it. */
+export interface UpkeepView {
+  on: boolean
+  level: number
+  today: string
+  away: boolean
+  habit: UpkeepHabit
+  habit_set: boolean
+  habit_text: string
+  /** 0 spotless to 4 a disaster. */
+  tidiness: number
+  tidiness_label: string
+  levels: string[]
+  set_on: string | null
+  areas: { area: UpkeepArea; text: string; value: number }[]
+  last_big_clean: string | null
+  recent: { date: string; kind: string; text: string }[]
 }
 
 export type WardrobeCategory = 'top' | 'bottom' | 'dress' | 'suit' | 'layer' | 'outerwear' | 'shoes' | 'accessory' | 'active' | 'lounge' | 'sleep' | 'work'
@@ -1201,7 +1278,57 @@ export interface WardrobeView {
   labels: Record<WardrobeCategory, string>
 }
 
+/** How the companion looks lately (companion/life/grooming.py `view`). */
+export interface GroomingView {
+  today: string
+  /** The user keeps their looks as they are. */
+  kept: boolean
+  /** Settings > Realism: 0 never, 1 now and then, 2 like real life, 3 often. */
+  level: number
+  level_name: string
+  lines: { label: string; text: string }[]
+  /** Looks fields the user wrote, which never change. */
+  fixed: string[]
+  /** Pictured with a LoRA: gradual changes only. */
+  lora: boolean
+  changes: { local_date: string; kind: string; text: string; bold: boolean }[]
+  /** Hidden values on: the numbers behind the words. */
+  numbers: { label: string; value: string }[] | null
+}
+
 /** A townsperson the companion has met around the city: only what the companion has learned so far. */
+/** A pet and how it is doing, in plain words (companion/life/pets.py `view`). */
+export interface PetView {
+  key: string
+  name: string
+  kind: string
+  kind_label: string
+  looks: string
+  born: string
+  age: string
+  state: 'well' | 'sick' | 'vet' | 'away' | 'died'
+  /** Plain words: "Biscuit is under the weather: an upset stomach." Empty when all is well. */
+  status: string
+  /** A serious illness, the one status shown as a warning. */
+  serious?: boolean
+  died_on: string | null
+  recent: { date: string; kind: 'sick' | 'vet' | 'checkup' | 'died'; text: string }[]
+  /** Hidden values (show_home_meters): 0 to 100, and how long their kind usually lives. */
+  health: number | null
+  lifespan_years: number | null
+}
+/** The companion's own pets (GET /api/life/pets): a pet id is its home item's. */
+export interface CompanionPet extends PetView { id: string; edited?: boolean }
+export interface PetsView {
+  today: string
+  pets: CompanionPet[]
+  remembered: CompanionPet[]
+  /** The user's own pets, from their persona. */
+  yours: PetView[]
+  kinds: { id: string; label: string }[]
+  numbers: boolean
+}
+
 export interface Townsperson {
   key: string
   name: string
@@ -1347,6 +1474,8 @@ export interface Dating {
   words: DatingWords
   city: { id: string; name: string }
   profile: DatingProfile | null
+  /** Settings > Debug > 100% Matchlight matches is on. */
+  all_matches?: boolean
   /** Who the user is in this world, so a new profile starts filled in. */
   persona?: { name: string; gender: string; age: number | null; about: string } | null
   /** Whether Story mode is on, so a match can be met there. */
@@ -1505,8 +1634,11 @@ export interface World {
   companions: string[]
 }
 export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
+/** One of the user's own pets on their persona: their words, given a life by companion/life/pets.py. */
+export interface PersonaPet { name: string; kind: string; looks: string; born?: string; added?: string; age?: number | null }
 export interface Persona {
   id: string; name: string; gender: PersonaGender; age: number | null; about: string; birthday: string; created_at: string
+  pets?: PersonaPet[]
   active: boolean
   worlds: World[]
 }
@@ -1516,3 +1648,63 @@ export interface Worlds {
 
 /** While you were away (companion/recap.py): a catch-up after a few days without a message. */
 export interface AwayRecap { since: string; days: number; items: string[] }
+
+/** Settings > Debug > Townsfolk mix (companion/world/mix.py): the shares the townsfolk rolls use. */
+export interface MixValues {
+  nonbinary: number; women: number; height_woman: number; height_man: number
+  slender: number; middle: number; heavier: number; beard: number
+  gay: number; bisexual: number; bolder: number; drive: number
+}
+export interface MixTown {
+  city: string; people: number
+  genders: Record<'woman' | 'man' | 'nonbinary', number>
+  heights: Record<'woman' | 'man' | 'nonbinary', number | null>
+  builds: Record<'slender' | 'middle' | 'heavier', number>
+  beard: number; gay: number; bisexual: number
+  levels: Record<string, number>; drives: Record<string, number>
+}
+export interface TownsfolkMix {
+  mix: MixValues; defaults: MixValues; limits: Record<keyof MixValues, [number, number, number]>
+  bands: { ages: string; gay: number; bisexual_women: number; bisexual_men: number }[]
+  levels: Record<string, Record<string, number>>; drives: Record<string, Record<string, number>>
+  adult_side: boolean; town: MixTown | null
+}
+
+/** One appointment, errand or chore on a companion's calendar (companion/life/admin.py). */
+export interface AdminItem {
+  id: string
+  key: string
+  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks'
+  kind: string
+  title: string
+  /** What just happened, for a surprise ("A parking ticket was tucked under the wiper"). */
+  line: string
+  local_date: string
+  at_time: string
+  until: string
+  fixed: boolean
+  status: 'planned' | 'done' | 'removed'
+  place: string
+  moved_from: string | null
+  /** "moved for a plan", "put off", "moved by you", "moved for a trip", or empty. */
+  moved_reason: string
+  moves: number
+  deadline: string | null
+  cost_text: string
+  /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
+  movable: boolean
+}
+
+export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
+
+/** The Character page's Life admin panel (/api/life/admin). */
+export interface AdminView {
+  state: string[]
+  habit: 'organised' | 'average' | 'scattered'
+  upcoming: AdminItem[]
+  later: AdminLater[]
+  done: AdminItem[]
+  level: number
+  /** 0 to 100, only with Hidden values' home-life meters on. */
+  meter: number | null
+}

@@ -243,7 +243,7 @@ CITY = {
               'two museums, used for festivals and dog walks.', ['bay-views', 'lawn', 'dogs'], 'free', 'outdoor',
               ALL, ['morning', 'afternoon', 'evening']),
         place('bayfront-park', 'Bayfront Park', 'park', 'downtown', 'Downtown park on Biscayne Bay with an '
-              'amphitheatre and the Ultra festival grounds.', ['bay-views', 'concerts', 'walk'], 'free',
+              'amphitheater and the Ultra festival grounds.', ['bay-views', 'concerts', 'walk'], 'free',
               'outdoor', ALL, ['morning', 'afternoon', 'evening']),
         place('freedom-tower', 'Freedom Tower', 'landmark', 'downtown', 'Mediterranean Revival tower where Cuban '
               'refugees were processed in the 1960s, now a Miami Dade College museum.', ['history', 'cuban',
@@ -335,7 +335,7 @@ CITY = {
         place('sanguich', 'Sanguich de Miami', 'restaurant', 'little-havana', 'Small shop making Cuban '
               'sandwiches with house-cured meats.', ['sandwiches', 'cuban'], '$', 'indoor', ALL,
               ['morning', 'afternoon'], cuisine='cuban'),
-        place('azucar', 'Azucar Ice Cream Company', 'cafe', 'little-havana', 'Ice cream shop with Cuban flavours '
+        place('azucar', 'Azucar Ice Cream Company', 'cafe', 'little-havana', 'Ice cream shop with Cuban flavors '
               'like Abuela Maria.', ['ice-cream', 'dessert', 'cuban'], '$', 'indoor', ALL,
               ['afternoon', 'evening'], cuisine='ice-cream'),
         place('la-camaronera', 'La Camaronera', 'restaurant', 'little-havana', 'Fish market turned seafood '
@@ -358,7 +358,7 @@ CITY = {
               'former coral rock quarry, with grottoes and waterfalls.', ['swimming', 'historic', 'kids'], '$$',
               'outdoor', ALL, DAY, ['spring', 'summer', 'fall']),
         place('biltmore', 'The Biltmore Hotel', 'landmark', 'coral-gables', '1926 Mediterranean Revival hotel '
-              'with a huge pool and a tower modelled on the Giralda.', ['architecture', 'historic', 'brunch'],
+              'with a huge pool and a tower modeled on the Giralda.', ['architecture', 'historic', 'brunch'],
               '$$$', 'mixed', ['date', 'family'], ['morning', 'afternoon']),
         place('fairchild', 'Fairchild Tropical Botanic Garden', 'park', 'coral-gables', 'Large botanic garden of '
               'palms, cycads and rainforest plants, with a butterfly conservatory.', ['garden', 'nature',

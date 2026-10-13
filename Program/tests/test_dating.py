@@ -1,5 +1,6 @@
 """The dating app: townsfolk dating details by rule, the user's profile, swipes, matches becoming companions and
 dates in Story mode (companion/world/dating.py, companion/dating.py)."""
+import re
 from collections import Counter
 from datetime import date
 
@@ -7,7 +8,9 @@ from conftest import Chunk, send
 from test_drafting import connect
 from test_social_circle import make
 
+from companion import backup
 from companion import dating as app
+from companion.images import storage
 from companion.world import changes, dating, townsfolk
 
 PROFILE = {'name': 'Sam', 'age': 30, 'gender': 'man', 'interested_in': ['woman'], 'looking_for': 'serious',
@@ -46,6 +49,18 @@ def test_townsfolk_dating_details_are_seeded_adult_and_at_realistic_rates():
     card = dating.card(people[0], data, date(2026, 10, 7))
     assert card['name'] == people[0]['name'] and people[0]['full'].split()[-1] not in card['bio']
     assert '"' in card['looks'] and card['bio'] and not card['notice']
+
+
+def test_photo_prompts_say_scars_and_broken_noses_as_a_camera_sees_them():
+    """Matchlight photos follow the picture wording rule (companion/world/looks.seen): no scar, broken or cleft."""
+    from companion import dating_photos
+
+    data, people = everyone('baltimore')
+    prompts = [dating_photos.inputs(sheet, data)['prompt'] for sheet in people if sheet['age'] >= 18]
+    assert len(prompts) > 300
+    damage = re.compile(r'\b(scar|scarred|broken|crooked|cleft|chipped|scuffed|gap-toothed)\b', re.IGNORECASE)
+    assert not [prompt for prompt in prompts if damage.search(prompt)]
+    assert any('pale mark' in prompt or 'bends slightly' in prompt or 'dimple' in prompt for prompt in prompts)
 
 
 def test_older_eras_have_a_personal_column_with_initials():
@@ -127,7 +142,7 @@ def test_a_match_becomes_a_companion_even_as_the_first_one(client, clock, provid
     draft = ok(client.get('/api/companion/cast/draft', params={'key': match['key']}))
     assert draft['matched'] is True and draft['stepping_back'] is None
     definition = draft['definition']
-    assert definition['relationship'] == 'romance' and 'Matched with the user through a dating app' in definition['background']
+    assert definition['relationship'] == 'romance' and definition['history_together'] == 'Matched on Matchlight.'
     assert definition['home_city'] == 'baltimore'
     companion = ok(client.post('/api/companion/cast/switch', json={'key': match['key'], 'definition': definition}))
     assert companion['version']['name'] == definition['name'] and companion['townsfolk_key'] == match['key']
@@ -220,3 +235,16 @@ def test_show_photo_makes_one_saved_portrait_from_their_looks(tmp_path, clock, p
         assert ok(client.post('/api/dating/photos', json={'key': key}))['status'] == 'completed'
         asyncio.run(client.app.state.dating_photos.drain())
         assert len(adapters['comfyui'].requests) == 1
+        # Backups carry the photo, so a restored workspace still has it.
+        database = client.app.state.database
+        saved = next(storage.directory(database).glob('dating-*'))
+        assert f'images/{saved.name}' in dict(backup.named_files(database.path, database.path.parent, False))
+        # A photo whose file is gone (a backup from before photos were carried) is no error: it reads as no photo,
+        # and asking makes it again.
+        saved.unlink()
+        assert client.get(made['url']).status_code == 404
+        assert ok(client.get(f'/api/dating/photos/{key}')) == {'status': 'none'}
+        assert ok(client.post('/api/dating/photos', json={'key': key}))['status'] == 'queued'
+        asyncio.run(client.app.state.dating_photos.drain())
+        assert client.get(ok(client.get(f'/api/dating/photos/{key}'))['url']).content == png()
+        assert len(adapters['comfyui'].requests) == 2

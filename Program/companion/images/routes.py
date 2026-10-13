@@ -1,21 +1,23 @@
 """Image backends, settings and jobs API (PRD F3–F9)."""
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
 from companion.database import decode
 from companion.errors import DomainError
-from companion.images import backends, jobs, photos, storage
+from companion.images import backends, jobs, node_packs, photos, storage
 from companion.images.adapters.base import AdapterError
 from companion.images.adapters.comfyui import (
-    FILE_INPUTS,
+    FAMILIES,
     SAMPLER_LISTS,
     built_in,
     default_files,
     default_sampler,
-    krea_first,
+    family_first,
+    family_of,
 )
 from companion.images.adapters.hosted import api_base
 from companion.images.models import (
@@ -30,7 +32,7 @@ from companion.images.models import (
 )
 from companion.lora.appearance import current_for_images
 from companion.phone.access import via_lan
-from companion.providers.urls import validate_compatible_url
+from companion.providers.urls import is_loopback, validate_compatible_url
 
 router = APIRouter(prefix='/api/images')
 MODEL_LINKS = Path(__file__).parent / 'model_links.json'
@@ -104,7 +106,9 @@ def backend_workflows(request: Request, backend_id: str):
     with db(request).connect() as connection:
         config = decode(backends.get(connection, backend_id)['config'])
     return {**{key: config.get(key) or '' for key in ('workflow', 'reference_workflow')},
-            'built_in': json.dumps(built_in(config))}
+            'built_in': json.dumps(built_in(config)),
+            # Empty for a family with no built-in reference workflow (Anima, Booru models).
+            'built_in_reference': json.dumps(reference) if (reference := built_in(config, reference=True)) else ''}
 
 
 @router.post('/backends/{backend_id}/move')
@@ -127,6 +131,25 @@ async def check_backend(request: Request, backend_id: str):
     adapter = runner(request).adapters[backend['kind']]
     config = {**decode(backend['config']), **({'lora_name': lora['comfy_name']} if lora else {})}
     return (await adapter.check(backend, config, key)).view()
+
+
+@router.post('/backends/{backend_id}/install-nodes/{pack_id}')
+async def install_nodes(request: Request, backend_id: str, pack_id: str):
+    """Put a listed node pack into the custom_nodes folder of a ComfyUI server on this computer, at the
+    user's press (node_packs). ComfyUI loads it when it next starts."""
+    if getattr(request.state, 'device', None) is not None:
+        raise DomainError(f'ComfyUI nodes are installed {ON_THE_PC}.', 403)
+    with db(request).connect() as connection:
+        backend = backends.get(connection, backend_id)
+    config = decode(backend['config'])
+    if backend['kind'] != 'comfyui' or not is_loopback(urlsplit(config.get('base_url', '')).hostname):
+        raise DomainError('Nodes can only be installed into a ComfyUI running on this computer.', 409)
+    try:
+        folders = await runner(request).adapters['comfyui'].folder_paths(config)
+    except AdapterError as error:
+        raise DomainError(error.message, 502) from error
+    target = await node_packs.install(pack_id, folders)
+    return {'installed': node_packs.PACKS[pack_id]['label'], 'folder': str(target)}
 
 
 @router.post('/models')
@@ -157,8 +180,8 @@ async def list_models(request: Request, body: ModelProbe):
 @router.get('/backends/{backend_id}/files')
 async def backend_files(request: Request, backend_id: str):
     """The model files and LoRAs a ComfyUI server offers the built-in workflow, from the address the
-    user entered, Krea 2's first (`krea` lists those). The character's own LoRA is left out of the
-    LoRA list: it is applied by itself. An unreachable server is not an error: the page then takes
+    user entered, the backend's model family's first (`matching` lists those). The character's own LoRA
+    is left out of the LoRA list: it is applied by itself (Krea 2 only). An unreachable server is not an error: the page then takes
     typed names."""
     with db(request).connect() as connection:
         backend = backends.get(connection, backend_id)
@@ -167,10 +190,13 @@ async def backend_files(request: Request, backend_id: str):
     if backend['kind'] != 'comfyui':
         raise DomainError('Only a ComfyUI server lists its model files.', 422)
     config = decode(backend['config'])
-    keys = [*FILE_INPUTS, 'lora', *SAMPLER_LISTS]
-    result = {'ok': True, 'error': None, 'defaults': default_files(), 'sampler_defaults': default_sampler(),
-              'options': {key: [] for key in keys},
-              'krea': {key: [] for key in keys}, 'character_lora': character['comfy_name'] if character else None}
+    family = family_of(config)
+    if not FAMILIES[family].character_lora:
+        character = None
+    keys = [*FAMILIES[family].files, 'lora', *SAMPLER_LISTS]
+    result = {'ok': True, 'error': None, 'family': family, 'defaults': default_files(family),
+              'sampler_defaults': default_sampler(family), 'options': {key: [] for key in keys},
+              'matching': {key: [] for key in keys}, 'character_lora': character['comfy_name'] if character else None}
     try:
         found = await runner(request).adapters['comfyui'].files(config)
     except AdapterError as error:
@@ -178,7 +204,7 @@ async def backend_files(request: Request, backend_id: str):
         return result
     for key in keys:
         options = [name for name in found.get(key, []) if not (key == 'lora' and character and name == character['comfy_name'])]
-        result['options'][key], result['krea'][key] = krea_first(key, options)
+        result['options'][key], result['matching'][key] = family_first(key, options, family)
     return result
 
 

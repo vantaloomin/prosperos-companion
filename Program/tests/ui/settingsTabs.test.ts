@@ -76,7 +76,7 @@ test('prompts are grouped in order and their placeholders explained', () => {
 test('everything that dials realism down is on the Realism tab, and search finds it there', () => {
   const tab = (query: string) => searchSettings(query, true).map((match) => match.tab.id)
   assert.equal(availableTabs(true).findIndex((item) => item.id === 'realism'), availableTabs(true).findIndex((item) => item.id === 'life') + 1)
-  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'drama', 'off plan', 'realism']) {
+  for (const query of ['never closer than', 'closeness', 'cooling', 'hidden values', 'moods', 'odds', 'paced replies', 'drama', 'off plan', 'realism', 'haircut', 'hair colour', 'pets', 'vet', 'life admin']) {
     assert.ok(tab(query).length && tab(query).every((id) => id === 'realism'), query)
   }
   assert.equal(pickTab('realism', true), 'realism')
@@ -84,19 +84,20 @@ test('everything that dials realism down is on the Realism tab, and search finds
 
 test('realism presets match the settings they set, and a new world starts on real life', async () => {
   const { REALISM_PRESETS, matchPreset } = await import('../../src/features/settings/presetChoices.ts')
-  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true } as unknown as LifeSettings
+  const life = { drama: 1, paced_replies: true, day_shifts: true, on_her_mind: true, upkeep_realism: 2, kitchen_realism: 2, looks_realism: 2, pets_realism: 2, pets_can_die: true, admin_realism: 2 } as unknown as LifeSettings
   const fresh = {} as WorkspaceSettings
   assert.equal(matchPreset(life, fresh)?.id, 'real')
   for (const preset of REALISM_PRESETS) {
     assert.equal(matchPreset({ ...life, ...preset.life }, { ...fresh, ...preset.shown })?.id, preset.id)
   }
   assert.equal(matchPreset({ ...life, drama: 2 }, fresh), null)
+  assert.equal(matchPreset({ ...life, pets_can_die: false }, fresh), null)
   assert.equal(new Set(REALISM_PRESETS.map((preset) => preset.label)).size, REALISM_PRESETS.length)
 })
 
 test('your own mix names the preset it is closest to', async () => {
   const { nearestPreset } = await import('../../src/features/settings/presetChoices.ts')
-  const life = { drama: 3, paced_replies: false, day_shifts: true, on_her_mind: true } as unknown as LifeSettings
+  const life = { drama: 3, paced_replies: false, day_shifts: true, on_her_mind: true, upkeep_realism: 3, looks_realism: 3 } as unknown as LifeSettings
   assert.equal(nearestPreset(life, {} as WorkspaceSettings).id, 'drama')
   assert.equal(nearestPreset({ ...life, drama: 0, day_shifts: false }, {} as WorkspaceSettings).id, 'easy')
 })

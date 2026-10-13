@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, X } from 'lucide-react'
+import { Check, PawPrint, X } from 'lucide-react'
 import { api } from '../../api'
 import type { SelfFact } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { conflictText, orderFacts, selfFactText } from './selfFactText'
+import { PETS_KEY } from '../pets/petText'
 
 const KEY = ['self-facts']
 
@@ -16,6 +17,13 @@ export function SelfFacts({ name }: { name: string }) {
   const decide = async (fact: SelfFact, keep: boolean) => {
     try {
       client.setQueryData(KEY, await api<{ facts: SelfFact[] }>(`/self-facts/${fact.id}/${keep ? 'keep' : 'remove'}`, {}))
+      setError(null)
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'That did not work.') }
+  }
+  const adopt = async (fact: SelfFact) => {
+    try {
+      client.setQueryData(PETS_KEY, await api('/life/pets', { name: fact.value, kind: fact.pet_kind ?? 'other', looks: '' }))
+      void client.invalidateQueries({ queryKey: KEY })
       setError(null)
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'That did not work.') }
   }
@@ -31,9 +39,11 @@ export function SelfFacts({ name }: { name: string }) {
             <li key={fact.id}>
               <strong>{selfFactText(fact)}</strong>{fact.status === 'kept' && <span className="badge">kept</span>}
               {fact.status === 'conflict' && <span className="badge">{conflictText(fact)}</span>}
+              {fact.pet_link === 'tracked' && <span className="badge">one of their pets</span>}
               <br /><small className="subtle">"{fact.statement}"</small>
               <span className="form-actions">
                 {fact.status !== 'kept' && <button type="button" className="text-button" onClick={() => void decide(fact, true)}><Check aria-hidden="true" />{fact.status === 'conflict' ? 'Keep this one' : 'Keep'}</button>}
+                {fact.pet_link === 'untracked' && <button type="button" className="text-button" onClick={() => void adopt(fact)}><PawPrint aria-hidden="true" />Add as their pet</button>}
                 <button type="button" className="text-button" onClick={() => void decide(fact, false)}><X aria-hidden="true" />Remove</button>
               </span>
             </li>

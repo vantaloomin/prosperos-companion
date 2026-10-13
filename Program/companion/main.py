@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from companion import (
+    authors_note_routes,
     auto_backup,
     dating_routes,
     export_routes,
@@ -26,7 +27,7 @@ from companion import (
 from companion.conversation import Conversation, recover
 from companion.database import Database
 from companion.dating_photos import DatingPhotos
-from companion.debug_routes import calls_router
+from companion.debug_routes import calls_router, matches_router, mix_router
 from companion.debug_routes import router as debug_router
 from companion.debug_time import DebugTime
 from companion.errors import DomainError
@@ -41,7 +42,20 @@ from companion.imports import file_routes
 from companion.imports import routes as import_routes
 from companion.launcher import Launcher
 from companion.launcher_routes import router as launcher_router
-from companion.life import home_routes, outings, scrapbook_routes, status, traditions_routes, trips, wardrobe_routes
+from companion.life import (
+    admin_routes,
+    grooming_routes,
+    home_routes,
+    kitchen_routes,
+    outings,
+    pets_routes,
+    scrapbook_routes,
+    status,
+    traditions_routes,
+    trips,
+    upkeep_routes,
+    wardrobe_routes,
+)
 from companion.life import routes as life_routes
 from companion.life.openers import Openers
 from companion.life.simulation import LifeEngine
@@ -243,7 +257,12 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(ready_router)
     app.include_router(life_routes.router)
     app.include_router(home_routes.router)
+    app.include_router(pets_routes.router)
     app.include_router(wardrobe_routes.router)
+    app.include_router(upkeep_routes.router)
+    app.include_router(grooming_routes.router)
+    app.include_router(kitchen_routes.router)
+    app.include_router(admin_routes.router)
     app.include_router(traditions_routes.router)
     app.include_router(scrapbook_routes.router)
     app.include_router(life_routes.today_router)
@@ -252,6 +271,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(image_routes.router)
     app.include_router(context_routes.router)
     app.include_router(story_routes.router)
+    app.include_router(authors_note_routes.router)
     app.include_router(group_routes.router)
     app.include_router(group_routes.secrets_router)
     app.include_router(dating_routes.router)
@@ -267,6 +287,8 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(debug_router)
     app.include_router(worlds_routes.router)
     app.include_router(calls_router)
+    app.include_router(mix_router)
+    app.include_router(matches_router)
     if FRONTEND.exists():
         app.mount('/', StaticFiles(directory=FRONTEND, html=True), name='frontend')
     return app

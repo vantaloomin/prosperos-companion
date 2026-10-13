@@ -17,7 +17,7 @@ from functools import lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog
+from companion.world import catalog, intimacy
 from companion.world.source import CatalogWorld
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
@@ -174,6 +174,9 @@ def plain(text: str) -> str:
 
 def career_for(definition: dict, city: dict) -> tuple[dict | None, bool]:
     offered = catalog.careers_for(city)
+    if intimacy.reads_as_minor(definition):
+        # Adult work is only ever an adult's (companion/world/intimacy.py makes the same check).
+        offered = catalog.everyday(offered)
     chosen = (definition.get('money') or {}).get('career') or ''
     if chosen in offered:
         return offered[chosen], False
@@ -378,17 +381,35 @@ def saved_since(found: Profile, since: date, day: date) -> float:
 
 # Currencies without minor units, and symbols written before the number.
 WHOLE = {'JPY', 'KRW'}
+# Coins counted whole: silver pennies, groschen, silver weights (a part of one rounds up to one).
+COINS = {'penny', 'groschen', 'sw'}
+# Shillings, said in shillings and pence (twelve pence to the shilling): 4s. 1d., 2d.
+SHILLINGS = {'shilling', 's'}
 PREFIXES = ('$', '£', '€', '¥', '₩', '₹')
 
 
+def shillings(value: float, symbol: str) -> str:
+    """'4s. 1d.', '2d.' or '15s.': whole shillings and pence, never a decimal."""
+    dot = '.' if symbol.endswith('.') else ''
+    if value >= 20:
+        return f'{round(value):,}s{dot}'
+    whole, pence = divmod(max(1, round(value * 12)), 12)
+    return ' '.join(part for part in (f'{whole}s{dot}' if whole else '', f'{pence}d{dot}' if pence else '') if part)
+
+
 def amount(value: float, currency: dict) -> str:
-    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000."""
+    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d."""
+    code = currency.get('code')
+    if code in SHILLINGS and value > 0:
+        return shillings(value, currency['symbol'])
+    if code in COINS and 0 < value < 1:
+        value = 1
     if value >= 100_000:
         rounded = round(value, -3)
     elif value >= 200:
         rounded = round(value, -1)
     else:
-        rounded = round(value) if value >= 10 or currency.get('code') in WHOLE else round(value, 2)
+        rounded = round(value) if value >= 10 or code in WHOLE | COINS else round(value, 2)
     # Whole amounts without cents, the rest with both cent digits: $5, $5.50, never $5.5.
     number = f'{rounded:,.0f}' if rounded == int(rounded) else f'{rounded:,.2f}'
     symbol = currency['symbol']
@@ -405,16 +426,26 @@ def happened(item, day: date) -> dict | None:
 
 # What their home costs to keep, as shares of a month's take-home (so it works in any currency), and
 # what a home change costs by its spend tier.
-UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005,
+UPKEEP = {'dog': 0.025, 'cat': 0.015, 'rabbit': 0.01, 'bird': 0.005, 'parrot': 0.01, 'fish': 0.004, 'hamster': 0.004,
+          'guinea-pig': 0.006, 'lizard': 0.008, 'snake': 0.006, 'tortoise': 0.005, 'ferret': 0.012, 'chickens': 0.006,
           'car': 0.08, 'motorcar': 0.08, 'scooter': 0.02, 'horse': 0.06, 'bike': 0.003, 'bicycle': 0.003}
 PURCHASES = {'$': 0.01, '$$': 0.04, '$$$': 0.1, '$$$$': 0.25}
 
 
 def household(connection, timeline_id: str, definition: dict, day: date) -> dict | None:
-    """The home's rent, pets and vehicles, and what home changes, new clothes, outings with the user and trips cost
-    this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, outings.py's and trips.py's
+    """The home's rent, pets and vehicles, and what home changes, new clothes, looks, takeout, outings with the user and
+    trips cost this pay cycle, read through home.py's `monthly_costs` and `purchases`, wardrobe.py's, grooming.py's,
+    kitchen.py's, outings.py's, trips.py's and admin.py's
     `purchases`. None before the home exists or where money does not apply."""
-    from companion.life import home, outings, trips, wardrobe  # all build from this budget, so import late
+    from companion.life import (  # all build from this budget, so import late
+        admin,
+        grooming,
+        home,
+        kitchen,
+        outings,
+        trips,
+        wardrobe,
+    )
 
     found = profile(definition)
     costs = home.monthly_costs(connection, timeline_id, day) if found else None
@@ -422,7 +453,10 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
         return None
     start = cycle_start(found, day)
     bought = [*home.purchases(connection, timeline_id, start, day), *wardrobe.purchases(connection, timeline_id, start, day),
-              *outings.purchases(connection, timeline_id, start, day), *trips.purchases(connection, timeline_id, start, day)]
+              *grooming.purchases(connection, timeline_id, start, day),
+              *outings.purchases(connection, timeline_id, start, day), *trips.purchases(connection, timeline_id, start, day),
+              *kitchen.purchases(connection, timeline_id, start, day, definition, None, None),
+              *admin.purchases(connection, timeline_id, start, day)]
     return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date'])}
 
 
@@ -529,7 +563,7 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     return [(f'money:{local_date}:{key}', line) for key, line in lines]
 
 
-SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip'}
+SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout'}
 
 
 def payday_text(view: dict, local_date: str) -> str:

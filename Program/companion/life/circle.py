@@ -25,6 +25,7 @@ from datetime import date, timedelta
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
+from companion.life import named
 from companion.world import catalog, generators, naming
 
 CIRCLE_SIZE = 5
@@ -40,7 +41,8 @@ QUIET_WORDS = re.compile(r"\b(?:introverted|introvert|shy|loner|reserved|homebod
                          r"keeps to (?:herself|himself|themselves|themself)|private person|antisocial|anti-social)\b",
                          re.IGNORECASE)
 NEGATED = re.compile(r"\b(?:not|never|isn't|aren't|wasn't|hardly|far from|anything but)\s+(?:\w+\s+)?$", re.IGNORECASE)
-FAMILY = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother', 'cousin'}
+FAMILY = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother', 'cousin', 'partner', 'wife', 'husband', 'girlfriend',
+          'boyfriend', 'fiancée', 'fiancé', 'son', 'daughter', 'aunt', 'uncle', 'grandmother', 'grandfather'}
 # Relatives who share the companion's family name unless a marriage explains otherwise.
 IMMEDIATE = {'parent', 'mom', 'dad', 'sibling', 'sister', 'brother'}
 SUFFIXES = {'jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'}
@@ -109,7 +111,7 @@ def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken
                    'refs': job['refs'], 'sources': job['sources'], 'data_version': job['data_version']}
         schedule = job['schedule']
     else:
-        offered = {key: career for key, career in catalog.careers().items() if 'modern' in career['eras']}
+        offered = {key: career for key, career in catalog.everyday(catalog.careers()).items() if 'modern' in career['eras']}
         career_id = generators.pick(seed, 'career', sorted(offered))
         career = offered[career_id]
         details = {'career': career['name'], 'employer': '', 'neighborhood': '', 'city': '', 'refs': [],
@@ -119,50 +121,103 @@ def assemble(seed: str, ordinal: int, definition: dict, data: dict | None, taken
 
 
 def from_city(data: dict, definition: dict, timeline_id: str, size: int = CIRCLE_SIZE, seed: str | None = None,
-              taken: set[str] | None = None) -> list[dict]:
+              taken: set[str] | None = None, sheet: bool = True) -> list[dict]:
     """The circle from the world data's generator, closest first, living near the companion when
-    their location names a neighborhood. A circle bigger than the usual one fills in sociably."""
+    their location names a neighborhood. A circle bigger than the usual one fills in sociably. With `sheet`, the
+    people the character sheet names take their places (with_named)."""
     match = catalog.resolve(definition.get('location') or '')
     hoods = {hood['id'] for hood in data['neighborhoods']}
     home = match['neighborhood'] if match and match['neighborhood'] in hoods else None
     social = size > CIRCLE_SIZE
     order = generators.SOCIAL if social else generators.CIRCLE
     works = social and bool(work_blocks(definition))
-    family = family_name(definition)
-    made = generators.circle(data, seed=seed or f'circle:{timeline_id}', size=min(size, len(order)), home=home,
-                             order=order, coworkers=works, family=family, group=family_group(data, family))
-    result, taken = [], set(taken or ()) | {definition['name']}
-    for member in made['people']:
-        job = member['job'] or {}
-        details = {'career': (job.get('career') or {}).get('name', 'Retired' if member['local'] else ''),
-                   'employer': (job.get('employer') or {}).get('name', ''),
-                   'neighborhood': member['home']['neighborhood']['name'] if member['home'] else '',
-                   'city': data['name'] if member['local'] else '', 'full_name': member['name']['full'],
-                   'pronouns': member['name']['pronouns'], 'age': member['age'], 'local': member['local'],
-                   'closeness': member['closeness'], 'haunts': [spot['name'] for spot in member['haunts']],
-                   'refs': member.get('refs', []), 'sources': member.get('sources', []),
-                   'data_version': data['data_version']}
-        if family and member['role'] in ('parent', 'sibling'):
-            details['full_name'] = f"{member['name']['given']} {family_form(family, member['name']['pronouns'])}"
-            if member['role'] == 'sibling':
-                details |= married_sibling(data, timeline_id, member['name'], member['age'], family)
-        # Two people with the same first name go by their full names, so events stay unambiguous.
-        shown = member['name']['given'] if member['name']['given'] not in taken else details['full_name']
-        taken.add(shown)
-        made_person = {'name': shown, 'role': relation(member['role'], member['name']['pronouns']),
-                       'career': (job.get('career') or {}).get('id', ''), 'details': details,
-                       'schedule': member['schedule'] or []}
-        result.append(colleague(made_person, definition) if member['role'] == 'coworker' else made_person)
+    family, base = family_name(definition), seed or f'circle:{timeline_id}'
+    group = family_group(data, family)
+    made = generators.circle(data, seed=base, size=min(size, len(order)), home=home, order=order, coworkers=works,
+                             family=family, group=group)
+    sheet_people = named.people(definition) if sheet else []
+    taken = set(taken or ()) | {definition['name']} | {person['name'].split()[0] for person in sheet_people}
+    result = [city_person(member, data, definition, family, timeline_id, taken) for member in made['people']]
+
+    def make(index, person):
+        role = person['generator_role']
+        related = role in ('parent', 'sibling', 'cousin')
+        member = generators.resident(data, seed=f'{base}:named:{index}', role=role, local=person['local'],
+                                     near=home if role in ('neighbor', 'parent', 'sibling') else None,
+                                     family=family if related else None, group=group if related else None)
+        pronouns = person['pronouns'] or 'they/them'
+        given = person['name'].split()[0]
+        full = person['name'] if ' ' in person['name'] else given
+        member['name'] = {**member['name'], 'given': given, 'full': full, 'pronouns': pronouns}
+        made = city_person(member, data, definition, family, timeline_id, set(), named_role(person))
+        return made | {'details': made['details'] | {'sheet': person['name']}}
+    return with_named(result, sheet_people, make)
+
+
+def city_person(member: dict, data: dict, definition: dict, family: str | None, timeline_id: str, taken: set[str],
+                role: str | None = None) -> dict:
+    """One generated city resident as a circle member; `role` is the sheet's own word for a named person."""
+    job = member['job'] or {}
+    details = {'career': (job.get('career') or {}).get('name', 'Retired' if member['local'] else ''),
+               'employer': (job.get('employer') or {}).get('name', ''),
+               'neighborhood': member['home']['neighborhood']['name'] if member['home'] else '',
+               'city': data['name'] if member['local'] else '', 'full_name': member['name']['full'],
+               'pronouns': member['name']['pronouns'], 'age': member['age'], 'local': member['local'],
+               'closeness': member['closeness'], 'haunts': [spot['name'] for spot in member['haunts']],
+               'refs': member.get('refs', []), 'sources': member.get('sources', []),
+               'data_version': data['data_version']}
+    # Relatives carry the family name, unless the sheet gives a named one their full name.
+    if family and member['role'] in ('parent', 'sibling') and (role is None or ' ' not in member['name']['full']):
+        details['full_name'] = f"{member['name']['given']} {family_form(family, member['name']['pronouns'])}"
+        if member['role'] == 'sibling' and role is None:
+            details |= married_sibling(data, timeline_id, member['name'], member['age'], family)
+    # Two people with the same first name go by their full names, so events stay unambiguous.
+    shown = member['name']['given'] if member['name']['given'] not in taken else details['full_name']
+    taken.add(shown)
+    made_person = {'name': shown, 'role': role or relation(member['role'], member['name']['pronouns']),
+                   'career': (job.get('career') or {}).get('id', ''), 'details': details,
+                   'schedule': member['schedule'] or []}
+    return colleague(made_person, definition) if member['role'] == 'coworker' else made_person
+
+
+def named_role(person: dict) -> str:
+    """How the circle lists someone the sheet names: mom or brother by their pronouns, else the sheet's word."""
+    if person['kind'] in ('parent', 'sibling'):
+        return relation(person['kind'], person['pronouns'])
+    return person['role']
+
+
+def with_named(built: list[dict], sheet_people: list[dict], make) -> list[dict]:
+    """The circle with the people the sheet names (companion/life/named.py), each in place of a seeded person in
+    the same role (mom for mom first) or added after them when nobody has it: the sheet's brother Tunde, never a
+    seeded brother Darrell beside him. `make(index, person)` builds the named person's entry."""
+    result, kept = list(built), set()
+    for index, person in enumerate(sheet_people):
+        entry = make(index, person)
+        slots = named.SLOTS.get(person['kind'], ())
+        open_slots = [at for at, row in enumerate(result) if at not in kept and row['role'] in slots]
+        slot = next((at for at in open_slots if result[at]['role'] == entry['role']), open_slots[0] if open_slots else None)
+        if slot is None:
+            result.append(entry)
+            kept.add(len(result) - 1)
+        else:
+            result[slot] = entry
+            kept.add(slot)
     return result
 
 
 def family_name(definition: dict) -> str | None:
     """The family name the companion's parents and siblings carry (in its listed form: Kowalski for Anna
-    Kowalska): their own last name, or the birth name they give with "née"; None for a one-word name or a companion who has married without naming one."""
+    Kowalska): their own last name (from the sheet when their name is one word), or the birth name they give with
+    "née"; None for a one-word name or a companion who has married without naming one."""
     text = ' '.join(definition.get(key) or '' for key in ('identity', 'background'))
     if match := BIRTH_NAME.search(text):
         return family_form(match.group(1), 'he/him')
     words = [word for word in (definition.get('name') or '').split() if word.casefold() not in SUFFIXES]
+    # A one-word name the sheet spells out in full: "Dana Okafor is 34 and...".
+    if len(words) == 1 and (full := re.search(rf"\b{re.escape(words[0])} ((?!(?:Is|Was|Has|And)\b)[A-Z][a-z'’-]+)\b",
+                                               text)):
+        words.append(full.group(1))
     if len(words) < 2 or MARRIED.search(text):
         return None
     return family_form(words[-1], 'he/him')
@@ -253,18 +308,31 @@ def view(row: dict) -> dict:
             'schedule': decode(row['schedule'])}
 
 
-def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=()) -> list[dict]:
-    """`size` people, closest first, from the city's generator when the world knows their city."""
+def build(definition: dict, world, timeline_id: str, size: int, seed: str | None = None, taken=(),
+          sheet: bool = True) -> list[dict]:
+    """`size` people, closest first, from the city's generator when the world knows their city, with the people
+    the sheet names in their places (`sheet`; False for people added to a circle later)."""
     base = seed or f'circle:{timeline_id}'
     data = city_data(definition, world)
     if data:
-        return from_city(data, definition, timeline_id, size, base, set(taken))
+        return from_city(data, definition, timeline_id, size, base, set(taken), sheet)
     names, roles, built = set(taken) | {definition['name']}, SOCIAL_ROLES if size > CIRCLE_SIZE else None, []
     for ordinal in range(min(size, len(SOCIAL_ROLES))):
         person = assemble(f'{base}:{ordinal}', ordinal, definition, None, names, roles[ordinal] if roles else None)
         built.append(colleague(person, definition) if roles and person['role'] == 'coworker' else person)
         names.add(person['name'])
-    return built
+
+    def make(index, person):
+        made = assemble(f'{base}:named:{index}', len(built) + index, definition, None, set(), named_role(person))
+        full = person['name'] if ' ' in person['name'] else ''
+        made |= {'name': person['name'].split()[0],
+                 'details': made['details'] | {'pronouns': person['pronouns'] or 'they/them', 'local': person['local'],
+                                               'sheet': person['name']}
+                 | ({'full_name': full} if full else {})}
+        if not person['local']:
+            made |= {'career': '', 'schedule': [], 'details': made['details'] | {'career': '', 'employer': ''}}
+        return made
+    return with_named(built, named.people(definition) if sheet else [], make)
 
 
 def insert(connection, timeline_id, built: list[dict], first: int, now):
@@ -282,6 +350,7 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
     rows = people(connection, timeline_id, include_removed=True)
     if rows:
         changed = match_family(connection, companion, world, rows, now)
+        changed = add_named(connection, companion, world, rows, now) or changed
         # A circle assembled smaller than it should now be (a bigger size in Settings, a more sociable
         # companion) fills itself. People the user removed still count, so nobody is replaced behind their back.
         if (missing := target_size(companion['version']['definition'], setting(connection)) - len(rows)) > 0:
@@ -294,6 +363,25 @@ def ensure(connection, companion: dict, world, now) -> list[dict]:
     insert(connection, timeline_id, build(definition, world, timeline_id, target_size(definition, setting(connection))),
            0, now)
     return people(connection, timeline_id)
+
+
+def add_named(connection, companion: dict, world, rows: list[dict], now) -> bool:
+    """People the sheet names whom a circle assembled earlier lacks (the sheet was edited, or the circle is from
+    before sheets were read), added after everyone else. Nobody already there is renamed: a mom or dad the circle
+    already has keeps their place, and someone the user renamed or removed counts as there. True when anyone was
+    added."""
+    definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
+    there = {row['name'].split()[0] for row in rows} | {decode(row['details']).get('sheet') for row in rows}
+    parents = {row['role'] for row in rows if row['status'] == 'active' and role_kind(row['role']) == 'parent'}
+    missing = {person['name'] for person in named.people(definition) if person['name'].split()[0] not in there
+               and person['name'] not in there and not (person['kind'] == 'parent' and parents & {named_role(person),
+                                                                                                    'parent'})}
+    if not missing:
+        return False
+    built = build(definition, world, timeline_id, 1, f'circle:{timeline_id}:sheet', {row['name'] for row in rows})
+    added = [person for person in built if person['details'].get('sheet') in missing]
+    insert(connection, timeline_id, added, max(row['ordinal'] for row in rows) + 1, now)
+    return bool(added)
 
 
 def match_family(connection, companion: dict, world, rows: list[dict], now) -> bool:
@@ -360,7 +448,8 @@ def fill(connection, companion: dict, world, rows: list[dict], now, count: int):
     active = [row for row in rows if row['status'] == 'active']
     want = target_size(definition, setting(connection))
     taken = {row['name'] for row in rows}
-    candidates = build(definition, world, timeline_id, len(SOCIAL_ROLES), f'circle:{timeline_id}:more:{len(rows)}', taken)
+    candidates = build(definition, world, timeline_id, len(SOCIAL_ROLES), f'circle:{timeline_id}:more:{len(rows)}', taken,
+                       sheet=False)
     have = {}
     for row in active:
         have[role_kind(row['role'])] = have.get(role_kind(row['role']), 0) + 1

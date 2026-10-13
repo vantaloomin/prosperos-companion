@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { calendarDay, clockTime, exactTime, relativeTime } from '../../src/when.ts'
+import { calendarDay, clockTime, dayAndClock, exactTime, relativeTime } from '../../src/when.ts'
 
-const at = (day: number, hour: number, minute = 0) => new Date(2026, 9, day, hour, minute).getTime()
+const at = (day: number, hour: number, minute = 0, second = 0) => new Date(2026, 9, day, hour, minute, second).getTime()
 const iso = (ms: number) => new Date(ms).toISOString()
 const now = at(8, 21, 30)
 
@@ -35,6 +35,14 @@ test('Retro IM shows the clock today and the date before it on older messages', 
   assert.ok(clockTime(iso(at(5, 9, 14)), now).startsWith(clockTime(iso(at(5, 9, 14)), now).split(',')[0]))
   assert.ok(clockTime(iso(at(5, 9, 14)), now).includes(', '))
   assert.ok(clockTime(iso(new Date(2025, 2, 3, 9).getTime()), now).includes('2025'))
+})
+
+test('a lookup time always shows its day and clock, the year only when it differs', () => {
+  assert.ok(dayAndClock(iso(at(8, 9, 14)), now).includes(', '))
+  assert.ok(!dayAndClock(iso(at(8, 9, 14)), now).includes('2026'))
+  assert.ok(!dayAndClock(iso(at(8, 9, 14, 30)), now).includes(':30'))
+  assert.ok(dayAndClock(iso(new Date(2025, 2, 3, 9).getTime()), now).includes('2025'))
+  assert.equal(dayAndClock('nonsense', now), '')
 })
 
 test('calendar days read month first in en-US, without shifting through a timezone', () => {

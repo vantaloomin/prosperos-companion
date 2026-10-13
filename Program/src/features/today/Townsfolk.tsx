@@ -3,13 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { MapPin } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
-import type { Townsperson, TownspersonNow } from '../../types'
+import type { PetView, Townsperson, TownspersonNow } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { stageText } from '../memories/pairText'
 import { townMet, townNow, townRole } from './townText'
 import { BecomeThem } from './BecomeThem'
+import { PetLines } from '../pets/PetLines'
 
 /** Background people the companion keeps running into around town. Hidden until there is someone. */
 export function Townsfolk({ name, go }: { name: string; go: (view: View) => void }) {
@@ -38,7 +39,7 @@ function TownItem({ person, go }: { person: Townsperson; go: (view: View) => voi
 }
 
 function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => void }) {
-  const now = useQuery({ queryKey: ['townsfolk', person.key], queryFn: () => api<{ now: TownspersonNow | null }>(`/life/townsfolk/person?key=${encodeURIComponent(person.key)}`) })
+  const now = useQuery({ queryKey: ['townsfolk', person.key], queryFn: () => api<{ now: TownspersonNow | null; pets?: PetView[] }>(`/life/townsfolk/person?key=${encodeURIComponent(person.key)}`) })
   return (
     <div className="town-detail">
       <p>About {person.age}, {person.temperament}; {person.quirk}.</p>
@@ -50,7 +51,10 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
       {person.flaw && <p>{person.flaw.charAt(0).toUpperCase()}{person.flaw.slice(1)}; seems to want {person.desire}.</p>}
       <AdultSide person={person} />
       {!person.goal && <p className="subtle">Cross paths again to learn more.</p>}
-      {now.isPending ? <Loading label="Finding them" /> : now.isError ? <ErrorNotice error={now.error} /> : now.data.now && <p className="subtle">{townNow(now.data.now)}</p>}
+      {now.isPending ? <Loading label="Finding them" /> : now.isError ? <ErrorNotice error={now.error} /> : <>
+        <PetLines pets={now.data.pets} />
+        {now.data.now && <p className="subtle">{townNow(now.data.now)}</p>}
+      </>}
       <TownSwitch person={person} go={go} />
     </div>
   )

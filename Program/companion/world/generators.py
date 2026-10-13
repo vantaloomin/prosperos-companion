@@ -14,6 +14,7 @@ from datetime import date, timedelta
 
 from companion.errors import DomainError
 from companion.world import catalog, naming
+from companion.world import mix as town_mix
 from companion.world.schema import HEARSAY_KINDS
 
 COSTS = ['free', '$', '$$', '$$$', '$$$$']
@@ -28,12 +29,14 @@ WORKPLACE_KINDS = {
     'bartender': ('bar', 'nightlife', 'tavern', 'inn'), 'retail-associate': ('shopping',), 'tour-guide': ('attraction', 'landmark'),
     'performer': ('venue',), 'musician': ('venue', 'bar'), 'fitness-trainer': ('fitness',),
     'lifeguard': ('beach',), 'surf-instructor': ('beach',),
+    'exotic-dancer': ('nightlife', 'bar'), 'burlesque-performer': ('venue', 'nightlife', 'bar'),
+    'adult-store-clerk': ('shopping',),
     # The 1920s (jazz-age careers).
     'speakeasy-bartender': ('bar', 'nightlife'), 'jazz-musician': ('nightlife', 'venue', 'bar'),
     'chorus-dancer': ('venue', 'nightlife'), 'hatcheck-attendant': ('nightlife', 'restaurant'),
     'soda-jerk': ('cafe',), 'department-store-clerk': ('shopping',), 'grocer': ('market', 'shopping'),
     'druggist': ('shopping',), 'antiquarian-bookseller': ('shopping',), 'librarian': ('library',),
-    'museum-curator': ('museum',), 'minister': ('temple',),
+    'museum-curator': ('museum',), 'minister': ('temple',), 'burlesque-dancer': ('venue', 'nightlife'),
 }
 # Where any career in a sector can plausibly work, for cities that name no employer for it.
 SECTOR_KINDS = {
@@ -138,7 +141,7 @@ def _career_weights(offered: tuple, own: tuple, employers: tuple, sectors: tuple
 def town_career(data: dict, seed: str, label: str = 'career', fits=None) -> dict | None:
     """A career for someone living in this city, weighted towards the city's own industries (career_weights).
     `fits(career_id)` keeps only careers that suit them (their age, say)."""
-    offered = catalog.careers_for(data)
+    offered = catalog.everyday(catalog.careers_for(data))
     weights = {key: weight for key, weight in career_weights(data, offered).items() if not fits or fits(key)}
     chosen = rank_pick(seed, label, weights)
     return offered[chosen] if chosen else None
@@ -578,7 +581,7 @@ def name(data: dict, *, seed: str, pronouns: str | None = None, group: str | Non
     names = groups[group]
     if pronouns not in PRONOUNS:
         modern = data['era'] in ('modern', 'future', 'other')
-        pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], [47, 47, 6 if modern else 2])
+        pronouns = pick(seed, 'pronouns', ['she', 'he', 'they'], town_mix.pronoun_weights(modern))
     links = naming.links(names, data)
     if family and not names.get('own_family'):
         # A relative's given name comes from a culture that fits the family name they share.
@@ -659,7 +662,7 @@ def _career_for(data: dict, seed: str, age: int, employer: str | None) -> str | 
         return None
     record = catalog.find(data, employer) if employer else None
     if record and record.get('careers'):
-        offered = catalog.careers_for(data)
+        offered = catalog.everyday(catalog.careers_for(data))
         options = [career for career in record['careers'] if career in offered]
         return pick(seed, 'career', sorted(options)) if options else None
     found = town_career(data, seed, fits=lambda career: AGES.get(career, (0, 99))[0] <= age <= AGES.get(career, (0, 99))[1])

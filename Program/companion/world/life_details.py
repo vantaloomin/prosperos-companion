@@ -26,6 +26,9 @@ SECOND_FAMILY_CHANCE = 0.5
 WORK_FROM = 18
 # Meetings before the companion knows each part (the first meeting is 1).
 KNOWS_ORIGIN, KNOWS_WORK, KNOWS_HOME, FIRST_STORY = 1, 2, 3, 4
+# How a story is told about them: "the time she won a ribbon"; with they/them pronouns the verb agrees (`agreed`).
+SUBJECTS = {'she/her': 'she', 'he/him': 'he'}
+THEY_VERBS = {'was': 'were', "wasn't": "weren't", 'has': 'have', "hasn't": "haven't", 'is': 'are'}
 NUMBERS = ('no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve')
 
 
@@ -70,15 +73,22 @@ def origin(data: dict, sheet: dict, seed: str, modern: bool) -> str:
     return text.replace('{hood}', generators.pick(seed, 'details-hood', hoods) or '').replace('{city}', data['name'])
 
 
+def retired_from(data: dict, sheet: dict, seed: str) -> str | None:
+    """The career (lowercase name) a retired townsperson retired from."""
+    careers = sorted(career['name'].lower() for career in catalog.everyday(catalog.careers_for(data)).values())
+    past = [career for career in careers if career != (sheet.get('occupation') or '').lower()]
+    return generators.pick(seed, 'details-retired', past)
+
+
 def work(data: dict, sheet: dict, seed: str) -> list[str]:
     """How long at the current job (staff), or retirement, and the jobs before it, newest first."""
     span = max(sheet['age'] - WORK_FROM, 0)
-    careers = sorted(career['name'].lower() for career in catalog.careers_for(data).values())
+    careers = sorted(career['name'].lower() for career in catalog.everyday(catalog.careers_for(data)).values())
     current = (sheet.get('occupation') or '').lower()
     past = [career for career in careers if career != current]
     lines, used = [], 0
     if current == 'retired' and past:
-        career = generators.pick(seed, 'details-retired', past)
+        career = retired_from(data, sheet, seed)
         tenure = max(5, round(span * (0.4 + 0.4 * generators.unit(seed, 'details-retired-years'))))
         lines.append(f'retired after {years(tenure)} as {article(career)}')
         past.remove(career)
@@ -109,11 +119,27 @@ def family(sheet: dict, seed: str) -> list[str]:
 
 
 def pet(seed: str, modern: bool) -> str | None:
+    found = pet_identity(seed)
+    if found is None:
+        return None
+    item = next(item for item in bank()['pets'] if item['id'] == found[0])
+    text = generators.pick(seed, 'details-pet-text', phrases(item, 'seen', modern))
+    return text.replace('{pet}', found[1])
+
+
+def pet_identity(seed: str) -> tuple[str, str] | None:
+    """(bank id, name) of the townsperson's pet, or None: companion/life/pets.py gives it a life."""
     if generators.unit(seed, 'details-pet') >= PET_CHANCE:
         return None
     item = generators.pick(seed, 'details-pet-kind', bank()['pets'])
-    text = generators.pick(seed, 'details-pet-text', phrases(item, 'seen', modern))
-    return text.replace('{pet}', generators.pick(seed, 'details-pet-name', bank()['pet_names']))
+    return item['id'], generators.pick(seed, 'details-pet-name', bank()['pet_names'])
+
+
+def pet_of(sheet: dict) -> tuple[str, str] | None:
+    """A townsperson's pet as pet_identity gives it; a companion living in town has none here."""
+    if sheet.get('cast') or not sheet['key'].startswith('town:'):
+        return None
+    return pet_identity(townsfolk.drawn(sheet))
 
 
 def likes(seed: str, modern: bool) -> list[str]:
@@ -174,6 +200,12 @@ def newly_told(data: dict, sheet: dict, times: int) -> str | None:
     return told[-1] if len(told) == times - FIRST_STORY + 1 else None
 
 
+def agreed(story: str, who: str) -> str:
+    """A story's opening verb agreeing with "they": "they were elected", not "they was elected"."""
+    first, _space, rest = story.partition(' ')
+    return f"{THEY_VERBS.get(first, first)} {rest}".strip() if who == 'they' else story
+
+
 def background(data: dict, sheet: dict) -> str:
     """All of it as a few sentences, for a townsperson becoming a companion (companion/cast.py)."""
     found = for_sheet(data, sheet)
@@ -188,5 +220,7 @@ def background(data: dict, sheet: dict) -> str:
         parts.append(f"{name} {'; '.join(home)}.")
     parts.append(f"{name} {' and '.join(found['likes'])}.")
     if found['stories']:
-        parts.append('Stories ' + name + ' likes to tell: the time they ' + '; the time they '.join(found['stories']) + '.')
+        who = SUBJECTS.get(sheet.get('pronouns', ''), 'they')
+        told = [f'{who} {agreed(story, who)}' for story in found['stories']]
+        parts.append(f"Stories {name} likes to tell: the time {'; the time '.join(told)}.")
     return ' '.join(parts)

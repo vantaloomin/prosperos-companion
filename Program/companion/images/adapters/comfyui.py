@@ -3,55 +3,157 @@
 The app only talks to a ComfyUI server the user configured. It never starts, stops or restarts
 one, and cancelling removes or interrupts only the prompt this app queued.
 
-The built-in workflow targets Krea 2 Turbo with the files ComfyUI's own Krea 2 template uses
-(UNETLoader with `krea2_turbo_fp8_scaled.safetensors`, CLIPLoader of type `krea2` with
-`qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, 8 steps at CFG 1 with
-euler/simple). It ran on an RTX 5090 with ComfyUI 0.39.0, with other files chosen for the three
-loaders. The check reports any node or model file the server does not have. A custom workflow in
-ComfyUI's API format can replace it, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}`
-and `{{height}}` where the request's values belong.
+Each backend has a model family (Settings > Images; Vanta, 2026-10-13), and each family a built-in
+workflow (FAMILIES), made from Vanta's own TXT2IMG and reference workflows for it (2026-10-13). Krea 2 is
+the default, on the files ComfyUI's own Krea 2 template uses (`krea2_turbo_fp8_scaled.safetensors`, the
+`qwen3vl_4b_fp8_scaled.safetensors` encoder of type `krea2`, `qwen_image_vae.safetensors`), 8 steps at
+CFG 1 with an empty negative. The other families start on their makers' public files. The check reports
+any node or model file the server does not have. A custom workflow in ComfyUI's API format can replace a
+built-in one, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and `{{height}}` where the
+request's values belong.
 
-With the built-in workflow the user can pick other files from their server for its three loaders
-(`unet_name`, `clip_name` with its `type`, and `vae_name` in the backend's config); `files` asks the
-server which ones it has. Names are kept exactly as the server lists them, subfolder and all
-(`Krea 2\\model.safetensors` on Windows). A custom workflow is used exactly as given.
+With a built-in workflow the user can pick other files from their server for its loaders
+(`unet_name`, `clip_name` with its `type`, and `vae_name`, or a Booru model's `ckpt_name`, in the
+backend's config); `files` asks the server which ones it has. Names are kept exactly as the server
+lists them, subfolder and all (`Krea 2\\model.safetensors` on Windows). A custom workflow is used
+exactly as given.
 
-Onboarding portraits follow an earlier picture. A ComfyUI server makes those only with a second
-custom workflow that also has `{{reference_image}}` (a LoadImage node's image); the app uploads
-the picture through `/upload/image` and puts its name there. There is no built-in one.
+Onboarding portraits follow an earlier picture. Those use a second workflow with
+`{{reference_image}}` (a LoadImage node's image); the app uploads the picture through
+`/upload/image` and puts its name there. Each family has a built-in one with the same loader files and
+sampler settings; three need a custom node pack, which the check names:
+- Krea 2: the Identity Edit LoRA and the comfyui-krea2edit nodes (Apache-2.0, no Python dependencies,
+  installable with one press, images/node_packs.py). Its model can be a separate one (`ref_unet_name`);
+  a Krea 2 Edit model reads the reference by itself, so with one the LoRA is left out and ref_boost is 2.5.
+- Qwen Image 2.1: ComfyUI's own TextEncodeQwenImage21.
+- Z-Image Turbo: plain image-to-image (denoise 0.7), core nodes; it keeps the picture's layout and colours.
+- Anima: an edit with the Anima Edit LoRA and ApplyCosmosReferenceLatent (ComfyUI-Cosmos-Reference).
+- Booru: IP-Adapter Plus (ComfyUI_IPAdapter_plus, with its SDXL ViT-H models).
+A custom reference workflow replaces a built-in one.
 """
 import asyncio
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
 
 from companion.errors import DomainError
+from companion.images import node_packs
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
+from companion.providers.urls import is_loopback
 
-TEMPLATE = Path(__file__).parent.parent / 'workflows' / 'krea2-turbo.json'
-TEMPLATE_NAME = 'krea2-turbo'
+WORKFLOWS = Path(__file__).parent.parent / 'workflows'
 NUMERIC = {'{{seed}}', '{{width}}', '{{height}}'}
 MODEL_KEYS = ('unet_name', 'ckpt_name')
 LORA_NODE = 'prospero-lora'
 REFERENCE = '{{reference_image}}'
 MARKERS = re.compile(r'\{\{(?:prompt|negative|seed|width|height|reference_image)\}\}')
-# The built-in workflow's loader inputs the user can choose files for: config key -> (node, input).
+# The built-in workflows' loader inputs the user can choose files for: config key -> (node, input).
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
-               'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
+               'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name'),
+               'ckpt_name': ('CheckpointLoaderSimple', 'ckpt_name'),
+               # The reference workflow's own model, where a family has one; unset means the same as unet_name.
+               'ref_unet_name': ('UNETLoader', 'unet_name')}
+REFERENCE_ONLY = ('ref_unet_name',)
+# A Krea 2 Edit model reads the reference by itself, so the Identity Edit LoRA is left out for one and
+# the reference counts for more (Vanta's Krea 2 Reference workflow, 2026-10-13).
+EDIT_MODEL = re.compile(r'edit', re.IGNORECASE)
 LORA_INPUT = ('LoraLoaderModelOnly', 'lora_name')
+# Custom nodes the built-in workflows use, with where to get them.
+NODE_PACKS = {
+    **{name: ('Krea 2 Identity Edit', 'https://github.com/lbouaraba/comfyui-krea2edit')
+       for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')},
+    **{name: ('IPAdapter Plus', 'https://github.com/cubiq/ComfyUI_IPAdapter_plus')
+       for name in ('IPAdapterUnifiedLoader', 'IPAdapterAdvanced')},
+    'ApplyCosmosReferenceLatent': ('Cosmos Reference', 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference')}
+# Files a node loads by preset rather than by name: IPAdapter Plus's loader finds its models by name in their
+# folders, which its own loader nodes list (src/features/settings/modelFiles.ts PRESET_FILES).
+PRESET_FILES = {'IPAdapterUnifiedLoader': (
+    ('IPAdapterModelLoader', 'ipadapter_file', 'ip-adapter-plus_sdxl_vit-h.safetensors', 'models/ipadapter'),
+    ('CLIPVisionLoader', 'clip_name', 'CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors', 'models/clip_vision'))}
 # The built-in workflow's KSampler settings the user can change for their model; unset means the
-# workflow's own (8 steps, CFG 1, euler, simple: Krea 2 Turbo's).
+# workflow's own (Krea 2 Turbo's are 8 steps, CFG 1, euler, simple).
 SAMPLER_INPUTS = ('steps', 'cfg', 'sampler_name', 'scheduler')
 SAMPLER_LISTS = ('sampler_name', 'scheduler')
-# Which listed files are Krea 2's, matched on the whole path so a "Krea 2" folder counts. ComfyUI
-# cannot say a file's model family, so these only sort a list; nothing is hidden for not matching.
-KREA_FILES = {'unet_name': re.compile(r'krea|kr2|kera', re.IGNORECASE),
-              'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?4b', re.IGNORECASE),
-              'vae_name': re.compile(r'qwen.*vae|krea', re.IGNORECASE),
-              'lora': re.compile(r'krea|kr2|kera', re.IGNORECASE)}
+SEPARATE = ('unet_name', 'clip_name', 'clip_type', 'vae_name')
+
+
+@dataclass(frozen=True)
+class Family:
+    """A kind of image model with a built-in workflow of its own (Vanta, 2026-10-13: not Krea 2 every time).
+    `files` are the loader inputs the user picks files for; `matching` says which listed files look like
+    this family's (matched on the whole path, so a "Krea 2" folder counts). ComfyUI cannot say a file's
+    model family, so `matching` only sorts a list; nothing is hidden for not matching. `reference` is
+    None where the family has no way to follow a picture with ComfyUI's own nodes."""
+    label: str
+    template: str
+    reference: str | None
+    files: tuple[str, ...]
+    matching: dict
+    # The character's adopted LoRA is trained on Krea 2 (companion/lora/trainer.py), so only Krea 2 applies it.
+    character_lora: bool = False
+    # The style its prompts start with when the backend has none of its own (images/backends.own_style);
+    # None keeps the general one.
+    style: str | None = None
+
+
+QWEN_VAE = re.compile(r'qwen.*vae', re.IGNORECASE)
+ANIME = 'Anime illustration'
+FAMILIES = {
+    'krea2': Family('Krea 2', 'krea2-turbo', 'krea2-turbo-reference', (*SEPARATE, 'ref_unet_name'), {
+        'unet_name': re.compile(r'krea|kr2|kera', re.IGNORECASE),
+        'ref_unet_name': EDIT_MODEL,
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?4b', re.IGNORECASE),
+        'vae_name': re.compile(r'qwen.*vae|krea', re.IGNORECASE),
+        'lora': re.compile(r'krea|kr2|kera', re.IGNORECASE)}, character_lora=True),
+    # Qwen Image 2.1 (Comfy-Org/Qwen-Image-2.1): the full int8 model at 25 steps, and a reference read by
+    # ComfyUI's own TextEncodeQwenImage21, which takes pictures to edit from.
+    'qwen21': Family('Qwen Image 2.1', 'qwen-image-2.1', 'qwen-image-2.1-reference', SEPARATE, {
+        'unet_name': re.compile(r'qwen[-_ ]?image[-_ ]?2[._-]?1', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?8b', re.IGNORECASE),
+        'vae_name': re.compile(r'qwen[-_ ]?image[-_ ]?2[._-]?1.*vae', re.IGNORECASE),
+        'lora': re.compile(r'qwen', re.IGNORECASE)}),
+    # Z-Image Turbo (Tongyi-MAI, Comfy-Org/z_image_turbo): photographic, 9 steps at CFG 1 with an empty negative.
+    # It has no edit model yet, so its reference workflow is plain image-to-image at denoise 0.7.
+    'zimage': Family('Z-Image Turbo', 'z-image-turbo', 'z-image-turbo-reference', SEPARATE, {
+        'unet_name': re.compile(r'z[-_ ]?image', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?4b', re.IGNORECASE),
+        'vae_name': re.compile(r'(^|[\\/])ae\.safetensors|flux.*vae|z[-_ ]?image', re.IGNORECASE),
+        'lora': re.compile(r'z[-_ ]?image|zit', re.IGNORECASE)}),
+    # Anima (circlestone-labs/Anima), an anime model: Base v1.0 at 30 steps, CFG 4, with its quality tags. Its
+    # reference workflow is an edit: the Anima Edit LoRA and the ComfyUI-Cosmos-Reference pack's node.
+    'anima': Family('Anima', 'anima', 'anima-reference', SEPARATE, style=ANIME, matching={
+        'unet_name': re.compile(r'anima', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?0?[._]?6b', re.IGNORECASE),
+        'vae_name': QWEN_VAE,
+        'lora': re.compile(r'anima', re.IGNORECASE)}),
+    # SDXL and the anime models built on it (Pony, Illustrious, NoobAI): one checkpoint file, clip skip 2. Its
+    # reference workflow steers the picture with IP-Adapter Plus (the ComfyUI_IPAdapter_plus pack).
+    'booru': Family('Booru (SDXL, Pony, Illustrious)', 'booru-sdxl', 'booru-sdxl-reference', ('ckpt_name',), style=ANIME,
+                    matching={
+        'ckpt_name': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|animagine', re.IGNORECASE),
+        'lora': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|pdxl|ilxl', re.IGNORECASE)}),
+}
+DEFAULT_FAMILY = 'krea2'
+# Krea 2's built-in names, which jobs and tests know it by.
+TEMPLATE_NAME = FAMILIES[DEFAULT_FAMILY].template
+REFERENCE_TEMPLATE_NAME = f'{TEMPLATE_NAME} reference'
+TEMPLATE_NAMES = {family.template for family in FAMILIES.values()}
+
+
+def family_of(config) -> str:
+    family = (config or {}).get('family')
+    return family if family in FAMILIES else DEFAULT_FAMILY
+
+
+def has_reference(config) -> bool:
+    """Whether this ComfyUI backend can make a picture that follows another: its own reference workflow,
+    or its family's built-in one."""
+    return bool(config.get('reference_workflow')) or FAMILIES[family_of(config)].reference is not None
 
 
 def parse_workflow(text: str, reference=False) -> dict:
@@ -69,38 +171,76 @@ def parse_workflow(text: str, reference=False) -> dict:
     return workflow
 
 
-def workflow_for(config, reference=False) -> tuple[dict, str]:
+def workflow_for(config, reference=False) -> tuple[dict | None, str]:
+    """The workflow to run and its name. A family without a built-in reference workflow has none
+    (None) unless the user saved their own."""
     if reference:
-        if not config.get('reference_workflow'):
-            raise AdapterError('incompatible', 'This ComfyUI server has no workflow for pictures made from a '
-                               'reference. Add one in Settings, Images.')
-        return parse_workflow(config['reference_workflow'], reference=True), 'custom reference'
+        if config.get('reference_workflow'):
+            return parse_workflow(config['reference_workflow'], reference=True), 'custom reference'
+        family = FAMILIES[family_of(config)]
+        if family.reference is None:
+            return None, ''
+        return built_in(config, reference=True), f'{family.template} reference'
     if config.get('workflow'):
         return parse_workflow(config['workflow']), 'custom'
-    return built_in(config), TEMPLATE_NAME
+    return built_in(config), FAMILIES[family_of(config)].template
 
 
-def built_in(config) -> dict:
-    """The built-in workflow with the user's chosen loader files in place of its defaults."""
-    workflow = json.loads(TEMPLATE.read_text(encoding='utf-8'))
-    chosen = [(class_type, name, config[key]) for key, (class_type, name) in FILE_INPUTS.items() if config.get(key)]
+def built_in(config, reference=False) -> dict | None:
+    """The family's built-in workflow (the reference one when asked, None when it has none) with the
+    user's chosen loader files and sampler settings in place of its defaults."""
+    family = FAMILIES[family_of(config)]
+    name = family.reference if reference else family.template
+    if name is None:
+        return None
+    workflow = json.loads((WORKFLOWS / f'{name}.json').read_text(encoding='utf-8'))
+    # The reference model comes last, so it replaces the main one in the reference workflow only.
+    keys = [key for key in family.files if key not in REFERENCE_ONLY] + \
+        ([key for key in family.files if key in REFERENCE_ONLY] if reference else [])
+    chosen = [(*FILE_INPUTS[key], config[key]) for key in keys if config.get(key)]
     chosen += [('KSampler', key, config[key]) for key in SAMPLER_INPUTS if config.get(key) not in (None, '')]
-    for class_type, name, value in chosen:
+    for class_type, field, value in chosen:
         for node in workflow.values():
             if node['class_type'] == class_type:
-                node['inputs'][name] = value
+                node['inputs'][field] = value
+    if reference and EDIT_MODEL.search(config.get('ref_unet_name') or ''):
+        without_identity_lora(workflow)
     return workflow
 
 
-def default_sampler() -> dict:
-    sampler = next(node for node in built_in({}).values() if node['class_type'] == 'KSampler')
+def without_identity_lora(workflow: dict):
+    """The Krea 2 reference workflow for an Edit model: its LoRA node taken out, and the reference boosted."""
+    for key, node in list(workflow.items()):
+        if node['class_type'] == 'LoraLoaderModelOnly':
+            source = node['inputs']['model']
+            del workflow[key]
+            for other in workflow.values():
+                for field, value in other['inputs'].items():
+                    if value == [key, 0]:
+                        other['inputs'][field] = source
+    for node in workflow.values():
+        if node['class_type'] == 'Krea2EditModelPatch':
+            node['inputs']['ref_boost'] = 2.5
+
+
+def default_sampler(family=DEFAULT_FAMILY) -> dict:
+    sampler = next(node for node in built_in({'family': family}).values() if node['class_type'] == 'KSampler')
     return {key: sampler['inputs'][key] for key in SAMPLER_INPUTS}
 
 
-def default_files() -> dict:
-    workflow = built_in({})
-    return {key: next(node['inputs'][name] for node in workflow.values() if node['class_type'] == class_type)
-            for key, (class_type, name) in FILE_INPUTS.items()}
+def default_files(family=DEFAULT_FAMILY) -> dict:
+    """The family's own file for each of its loader inputs."""
+    workflow = built_in({'family': family})
+    # The reference model's default is the main one: empty, "the same".
+    return {key: '' if key in REFERENCE_ONLY else next(node['inputs'][FILE_INPUTS[key][1]] for node in workflow.values()
+                      if node['class_type'] == FILE_INPUTS[key][0]) for key in FAMILIES[family].files}
+
+
+def model_file(config) -> str:
+    """The diffusion model or checkpoint the built-in workflow loads."""
+    family = family_of(config)
+    key = 'ckpt_name' if 'ckpt_name' in FAMILIES[family].files else 'unet_name'
+    return config.get(key) or default_files(family)[key]
 
 
 def options_of(spec) -> list | None:
@@ -175,9 +315,9 @@ def triggered(prompt: str, character: dict | None, styles: list[dict]) -> str:
     return ', '.join([*words, prompt])
 
 
-def krea_first(key: str, options: list[str]) -> tuple[list[str], list[str]]:
-    """The list with Krea 2's files first, and which those are."""
-    pattern = KREA_FILES.get(key)
+def family_first(key: str, options: list[str], family=DEFAULT_FAMILY) -> tuple[list[str], list[str]]:
+    """The list with the family's files first, and which those are."""
+    pattern = FAMILIES[family].matching.get(key)
     found = [option for option in options if pattern and pattern.search(option)]
     return found + [option for option in options if option not in found], found
 
@@ -209,8 +349,11 @@ class ComfyAdapter:
 
     async def generate(self, request) -> ImageResult:
         workflow, name = workflow_for(request.config, reference=request.reference is not None)
-        if name == TEMPLATE_NAME and any(request.config.get(key) not in (None, '') for key in SAMPLER_INPUTS):
-            used = {**default_sampler(), **{key: request.config[key] for key in SAMPLER_INPUTS
+        if workflow is None:
+            raise AdapterError('incompatible', f"The built-in {FAMILIES[family_of(request.config)].label} workflow cannot "
+                               'follow a reference picture. Add a reference workflow in Settings > Images.')
+        if name in TEMPLATE_NAMES and any(request.config.get(key) not in (None, '') for key in SAMPLER_INPUTS):
+            used = {**default_sampler(family_of(request.config)), **{key: request.config[key] for key in SAMPLER_INPUTS
                                              if request.config.get(key) not in (None, '')}}
             name = f"{name} ({used['steps']} steps, CFG {used['cfg']:g}, {used['sampler_name']}/{used['scheduler']})"
         styles = style_loras(request.config, request.lora)
@@ -331,7 +474,11 @@ class ComfyAdapter:
         for node in workflow.values():
             spec = info.get(node['class_type'])
             if spec is None:
-                missing.append(f"Missing node: {node['class_type']} (install the custom node that provides it).")
+                pack = NODE_PACKS.get(node['class_type'])
+                where = f'from the {pack[0]} nodes, {pack[1]}' if pack else 'install the custom node that provides it'
+                problem = f"Missing node: {node['class_type']} ({where})."
+                if problem not in missing:
+                    missing.append(problem)
                 continue
             required = {**(spec.get('input', {}).get('required') or {}), **(spec.get('input', {}).get('optional') or {})}
             for key_name, value in node.get('inputs', {}).items():
@@ -339,13 +486,16 @@ class ComfyAdapter:
                 # A placeholder such as {{reference_image}} is filled in per request.
                 if isinstance(value, str) and '{{' not in value and options is not None and value not in options:
                     missing.append(f'Missing file or option for {node["class_type"]}.{key_name}: {value}.')
+            for loader, field, file, folder in PRESET_FILES.get(node['class_type'], ()):
+                if loader in info and not any(option.endswith(file) for option in input_options(info, loader, field)):
+                    missing.append(f'Missing file for {node["class_type"]}: {file} (in {folder}).')
         return missing
 
     async def check(self, backend, config, key=None) -> Check:
         """Ask the server which nodes and model files it has; nothing is queued or downloaded."""
         try:
             workflow, name = workflow_for(config)
-            reference = workflow_for(config, reference=True)[0] if config.get('reference_workflow') else None
+            reference = workflow_for(config, reference=True)[0] or {}
         except DomainError as error:
             return Check(False, error.message)
         try:
@@ -355,20 +505,53 @@ class ComfyAdapter:
         except (AdapterError, ValueError) as error:
             return Check(False, getattr(error, 'message', 'ComfyUI returned an unreadable node list.'))
         missing = self.node_problems(info, workflow)
-        if reference is not None:
-            missing += [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)]
-        missing += self.lora_problems(info, config.get('lora_name'),
+        # Only a server on this computer can have nodes installed into it.
+        packs = node_packs.providing([node['class_type'] for node in [*workflow.values(), *reference.values()]
+                                      if node['class_type'] not in info]) \
+            if is_loopback(urlsplit(config['base_url']).hostname) else []
+        # Problems the two workflows share (the built-in ones' loaders) are listed once.
+        follows = [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)
+                   if problem not in missing]
+        # The adopted LoRA is a Krea 2 one, used only by Krea 2 (Family.character_lora).
+        character = config.get('lora_name') if FAMILIES[family_of(config)].character_lora else None
+        missing += self.lora_problems(info, character,
                                       style_loras(config, {'comfy_name': config.get('lora_name')}))
+        if config.get('reference_workflow'):
+            missing += follows
+        # Users never see the template's file name, so it reads as "the built-in workflow".
+        shown = f'built-in {FAMILIES[family_of(config)].label}' if name in TEMPLATE_NAMES else name
         if missing:
-            return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing)
-        return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses.')
+            return Check(False, f'ComfyUI is reachable, but the {shown} workflow cannot run yet.', missing, packs)
+        if follows:
+            # Only profile pictures need the reference workflow, so the backend still passes (Iris's wording).
+            pack_nodes = {node for pack in packs for node in node_packs.PACKS[pack['id']]['nodes']}
+            needs = ' and '.join(f"the {pack['label']} nodes" for pack in packs)
+            others = [line for line in follows if not any(f'Missing node: {node} ' in line for node in pack_nodes)]
+            if needs and not others:
+                tail = f'Pictures made from a reference need {needs} first.'
+            elif needs:
+                tail = f'Pictures made from a reference need {needs} and the files under Details first.'
+            else:
+                tail = 'Pictures made from a reference cannot run yet; Details says what is missing.'
+            return Check(True, f'ComfyUI has everything the {shown} workflow needs. {tail}', follows, packs)
+        return Check(True, f'ComfyUI is reachable and has every node and model the {shown} workflow uses.')
+
+    async def folder_paths(self, config) -> dict:
+        """Where ComfyUI keeps each kind of file, from its own `/internal/folder_paths`."""
+        async with self.client(config['base_url']) as client:
+            response = await self.call(client, 'GET', '/internal/folder_paths')
+        try:
+            return response.json() if response.status_code == 200 else {}
+        except ValueError:
+            return {}
 
     async def files(self, config) -> dict:
         """The files the server offers the built-in workflow's loaders, asked of the configured
         address with the same client as the check. Nothing is queued or downloaded."""
         found = {}
+        inputs = {key: FILE_INPUTS[key] for key in FAMILIES[family_of(config)].files}
         async with self.client(config['base_url']) as client:
-            for class_type in dict.fromkeys([*(class_type for class_type, _ in FILE_INPUTS.values()), LORA_INPUT[0],
+            for class_type in dict.fromkeys([*(class_type for class_type, _ in inputs.values()), LORA_INPUT[0],
                                              'KSampler']):
                 response = await self.call(client, 'GET', f'/object_info/{class_type}')
                 try:
@@ -377,5 +560,5 @@ class ComfyAdapter:
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.') from error
                 if not isinstance(found[class_type], dict):
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.')
-        lists = {**FILE_INPUTS, 'lora': LORA_INPUT, **{key: ('KSampler', key) for key in SAMPLER_LISTS}}
+        lists = {**inputs, 'lora': LORA_INPUT, **{key: ('KSampler', key) for key in SAMPLER_LISTS}}
         return {key: input_options(found[class_type], class_type, name) for key, (class_type, name) in lists.items()}

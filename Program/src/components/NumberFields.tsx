@@ -1,9 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { Field } from './Fields'
 import { bounded, presetOptions } from './numberBounds'
 
-interface Common { label: string; value: number; onChange: (value: number) => void; hint?: string; format: (value: number) => string }
+interface Common { label: string; value: number; onChange: (value: number) => void; hint?: ReactNode; format: (value: number) => string }
 interface Ranged extends Common { min: number; max: number }
 
 /** A small count: [ - ] 3 events [ + ]. The buttons stop at the ends, so nothing out of range can be chosen. */
@@ -16,6 +16,25 @@ export function Stepper({ label, value, min, max, onChange, hint, format }: Rang
       <button type="button" className="stepper-button" aria-label="Fewer" aria-disabled={value <= min} onClick={() => { if (value > min) onChange(value - 1) }}><Minus aria-hidden="true" /></button>
       <output aria-live="polite">{format(value)}</output>
       <button type="button" className="stepper-button" aria-label="More" aria-disabled={value >= max} onClick={() => { if (value < max) onChange(value + 1) }}><Plus aria-hidden="true" /></button>
+    </div>
+    {hint && <small id={`${id}-hint`}>{hint}</small>}
+  </div>
+}
+
+/**
+ * A bounded count that can also be left unset: [ - ] Default [ + ]. More from "Default" starts at the least;
+ * fewer from the least goes back to "Default".
+ */
+export function OptionalStepper({ label, value, min, max, onChange, hint, format }: Omit<Ranged, 'value' | 'onChange'> & { value: number | undefined; onChange: (value: number | undefined) => void }) {
+  const id = useId()
+  const fewer = () => { if (value !== undefined) onChange(value > min ? value - 1 : undefined) }
+  const more = () => { if (value === undefined) onChange(min); else if (value < max) onChange(value + 1) }
+  return <div className="field">
+    <span className="label-row"><span className="field-label" id={`${id}-label`}>{label}</span></span>
+    <div className="number-stepper" role="group" aria-labelledby={`${id}-label`} aria-describedby={hint ? `${id}-hint` : undefined}>
+      <button type="button" className="stepper-button" aria-label="Fewer" aria-disabled={value === undefined} onClick={fewer}><Minus aria-hidden="true" /></button>
+      <output aria-live="polite">{value === undefined ? 'Default' : format(value)}</output>
+      <button type="button" className="stepper-button" aria-label="More" aria-disabled={value !== undefined && value >= max} onClick={more}><Plus aria-hidden="true" /></button>
     </div>
     {hint && <small id={`${id}-hint`}>{hint}</small>}
   </div>

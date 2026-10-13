@@ -182,6 +182,9 @@ class Career(Record):
     eras: list[Era] = Field(default_factory=lambda: ['modern'], min_length=1)
     # Place kinds the work needs; a city with none of them and no employer for it doesn't offer it.
     needs: list[Id] = Field(default_factory=list, max_length=4)
+    # Adult work (a cam model, say): only ever chosen for an adult, and only offered to people while Settings >
+    # Realism > Adult side of life is on. Never rolled for townsfolk, circles or job changes.
+    adult: bool = False
 
 
 class Currency(Record):

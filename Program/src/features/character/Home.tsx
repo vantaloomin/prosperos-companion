@@ -7,9 +7,11 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
 import { KIND_LABELS, homeTitle, itemDetail, rentText, sentence, sinceText } from './homeText'
+import { Upkeep } from './Upkeep'
 
 const HOME_KEY = ['home']
-const ADDABLE: HomeKind[] = ['pet', 'plant', 'vehicle', 'favorite']
+/** Pets have their own panel (Pets.tsx), so they are added and shown there. */
+const ADDABLE: HomeKind[] = ['plant', 'vehicle', 'favorite']
 
 type Act = (action: () => Promise<HomeView>, done: string) => Promise<boolean>
 
@@ -40,12 +42,15 @@ export function Home({ name }: { name: string }) {
       {home.isPending && <Loading label="Loading their home" />}
       {home.isError && <ErrorNotice error={home.error} />}
       {home.isSuccess && <>
-        <ul className="person-list">{home.data.items.map((item) => <ItemCard key={item.id} item={item} view={home.data} act={act} />)}</ul>
+        {/* The place first, then how it's kept (Iris), then what's in it. */}
+        <ul className="person-list">{home.data.items.filter((item) => item.kind === 'home').map((item) => <ItemCard key={item.id} item={item} view={home.data} act={act} />)}</ul>
+        <Upkeep name={name} />
+        <ul className="person-list">{home.data.items.filter((item) => item.kind !== 'home' && notPet(item)).map((item) => <ItemCard key={item.id} item={item} view={home.data} act={act} />)}</ul>
         {adding
           ? <AddForm view={home.data} act={act} onDone={() => setAdding(false)} />
           : <button type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Add a belonging</button>}
         <Toggle label="Show things they no longer have" checked={removed} onChange={setRemoved} />
-        {removed && <ul className="person-list">{home.data.removed.map((item) => <ItemCard key={item.id} item={item} view={home.data} act={act} gone />)}</ul>}
+        {removed && <ul className="person-list">{home.data.removed.filter(notPet).map((item) => <ItemCard key={item.id} item={item} view={home.data} act={act} gone />)}</ul>}
         {home.data.changes.length > 0 && (
           <div className="home-changes">
             <h3>Recent changes</h3>
@@ -128,7 +133,7 @@ function EditForm({ item, view, act, onDone }: { item: HomeItem; view: HomeView;
 }
 
 function AddForm({ view, act, onDone }: { view: HomeView; act: Act; onDone: () => void }) {
-  const [kind, setKind] = useState<HomeKind>('pet')
+  const [kind, setKind] = useState<HomeKind>('plant')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const options = varieties(view, kind)
@@ -149,7 +154,7 @@ function AddForm({ view, act, onDone }: { view: HomeView; act: Act; onDone: () =
       <label htmlFor="home-add-name">Name</label>
       <input id="home-add-name" value={name} maxLength={80} required placeholder={kind === 'pet' ? 'Biscuit' : kind === 'plant' ? 'the fern' : kind === 'vehicle' ? 'the car' : 'a chipped green mug'} onChange={(event) => setName(event.target.value)} />
       <label htmlFor="home-add-description">Description (optional)</label>
-      <input id="home-add-description" aria-describedby="home-add-description-hint" value={description} maxLength={300} placeholder="Such as a grey tabby with one white paw" onChange={(event) => setDescription(event.target.value)} />
+      <input id="home-add-description" aria-describedby="home-add-description-hint" value={description} maxLength={300} placeholder="Such as a gray tabby with one white paw" onChange={(event) => setDescription(event.target.value)} />
       <small id="home-add-description-hint" className="subtle">What it looks like. Pictures and replies use it.</small>
       <div className="rename-row">
         <button type="submit" className="button primary" disabled={!name.trim()}>Add</button>
@@ -170,4 +175,8 @@ function VarietySelect({ id, options, value, onChange }: { id: string; options: 
 
 function capital(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+function notPet(item: { kind: string }): boolean {
+  return item.kind !== 'pet'
 }

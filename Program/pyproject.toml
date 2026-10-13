@@ -1,6 +1,6 @@
 [project]
 name = "prospero-companion"
-version = "0.9.0"
+version = "0.10.0"
 requires-python = ">=3.12"
 license = "AGPL-3.0-only"
 dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "httpx>=0.28,<1", "pydantic>=2.12,<3",
@@ -14,7 +14,7 @@ dev = ["pytest>=8,<10", "pytest-xdist>=3.8,<4", "ruff>=0.11,<1"]
 include = ["companion*"]
 
 [tool.setuptools.package-data]
-companion = ["schema.sql", "prompts/*.md", "prompts/*.json", "images/workflows/*.json", "images/model_links.json", "world/data/*.json", "world/data/cities/*.json", "almanac/data/*.json"]
+companion = ["schema.sql", "prompts/*.md", "prompts/*.json", "images/workflows/*.json", "images/model_links.json", "world/data/*.json", "world/data/cities/*.json", "world/data/kitchen/*.json", "almanac/data/*.json"]
 
 [tool.ruff]
 target-version = "py312"

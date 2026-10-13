@@ -135,8 +135,8 @@ function TimezoneForm({ data, save, problem }: { data: Settings; save: Save; pro
       {pc && <p className="subtle">This PC's timezone: {pc}</p>}
       {(edited || offerPc) && (
         <div className="form-actions">
-          {edited && <button type="button" className="button primary" onClick={() => savedZone({ user_timezone: zone!, user_timezone_source: 'chosen' })}>Save timezone</button>}
-          {offerPc && <button type="button" className="button" onClick={() => savedZone({ user_timezone: pc!, user_timezone_source: 'pc' })}>Use this PC's timezone</button>}
+          {edited && <button type="button" className="button primary" onClick={() => savedZone({ user_timezone: zone!, user_timezone_source: 'chosen' })}>Save time zone</button>}
+          {offerPc && <button type="button" className="button" onClick={() => savedZone({ user_timezone: pc!, user_timezone_source: 'pc' })}>Use this PC's time zone</button>}
         </div>
       )}
     </section>

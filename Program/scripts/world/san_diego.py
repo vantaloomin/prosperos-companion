@@ -412,7 +412,7 @@ CITY = {
               'red-sauce restaurant on India Street since 1950, with Chianti bottles on the ceiling.',
               ['pizza', 'italian', 'old-school'], '$$', 'indoor', ALL, ['afternoon', 'evening'], cuisine='italian'),
         place('amici-park', 'Amici Park', 'park', 'little-italy', 'Neighborhood park with bocce courts, a small '
-              'amphitheatre and a dog run.', ['bocce', 'dogs', 'local'], 'free', 'outdoor', ALL,
+              'amphitheater and a dog run.', ['bocce', 'dogs', 'local'], 'free', 'outdoor', ALL,
               ['morning', 'afternoon', 'evening']),
         place('hob-nob-hill', 'Hob Nob Hill', 'restaurant', 'bankers-hill', 'Comfort-food coffee shop on First '
               'Avenue serving breakfasts and pot roast since 1944.', ['diner', 'breakfast', 'historic'], '$',
@@ -446,7 +446,7 @@ CITY = {
               'public pool, tennis courts, disc golf and the velodrome.', ['pool', 'tennis', 'disc-golf'], '$',
               'outdoor', ALL, ['morning', 'afternoon', 'evening']),
         place('grape-street-dog-park', 'Grape Street Dog Park', 'park', 'south-park', 'Big off-leash meadow on the '
-              'edge of Balboa Park where neighbours meet with their dogs.', ['dogs', 'off-leash', 'local'], 'free',
+              'edge of Balboa Park where neighbors meet with their dogs.', ['dogs', 'off-leash', 'local'], 'free',
               'outdoor', ['solo', 'family', 'friends'], ['morning', 'afternoon', 'evening']),
         place('blind-lady-ale-house', 'Blind Lady Ale House', 'restaurant', 'normal-heights', 'Neighborhood beer '
               'hall on Adams Avenue with wood-fired pizza and long shared tables.', ['pizza', 'craft-beer', 'local'],
@@ -569,7 +569,7 @@ CITY = {
               'campus around Hepner Hall\'s bell tower, with a student union and free galleries.',
               ['campus', 'architecture', 'students'], 'free', 'outdoor', ALL, DAY),
         place('college-rolando-library', 'College-Rolando Library', 'library', 'college-area', 'Branch library on '
-              'Montezuma Road used by students and neighbours.', ['books', 'study', 'quiet'], 'free', 'indoor', ALL,
+              'Montezuma Road used by students and neighbors.', ['books', 'study', 'quiet'], 'free', 'indoor', ALL,
               DAY),
         place('pal-joeys', 'Pal Joey\'s', 'bar', 'college-area', 'Old neighborhood dive bar with live bands, pool '
               'tables and cheap drinks.', ['dive-bar', 'live-music', 'pool-tables'], '$', 'indoor',
@@ -792,7 +792,7 @@ CITY = {
     ],
     'climate': {
         'summary': 'Mild Mediterranean coastal climate: dry, sunny and warm most of the year, with short rainy '
-                   'winters and a grey marine layer ("May Gray" and "June Gloom") in late spring.',
+                   'winters and a gray marine layer ("May Gray" and "June Gloom") in late spring.',
         'months': [
             {'high_f': 66, 'low_f': 49, 'rain_days': 7, 'note': 'Mild days, chilly nights; occasional storms.'},
             {'high_f': 66, 'low_f': 51, 'rain_days': 7, 'note': 'Wettest stretch of the year, still mostly sunny.'},
@@ -837,7 +837,7 @@ CITY = {
         {'id': 'little-italy-festa', 'name': 'Little Italy Festa', 'months': [10], 'neighborhood': 'little-italy',
          'summary': 'Street festival with Italian food, music and chalk art.', 'source': S},
         {'id': 'fleet-week', 'name': 'Fleet Week San Diego', 'months': [10, 11], 'neighborhood': 'downtown',
-         'summary': 'Weeks of events honouring the armed forces around the bay; dates vary by year.', 'source': S},
+         'summary': 'Weeks of events honoring the armed forces around the bay; dates vary by year.', 'source': S},
         {'id': 'december-nights', 'name': 'December Nights', 'months': [12], 'neighborhood': 'bankers-hill',
          'summary': 'Free holiday festival with lights, food and music across Balboa Park.', 'source': S},
         {'id': 'bay-parade-of-lights', 'name': 'San Diego Bay Parade of Lights', 'months': [12],
@@ -857,7 +857,7 @@ CITY = {
         color('bertos-taco-shops', '-berto\'s taco shops', 'shop', 'Cheap, often 24-hour taco shops whose names end in '
               '"-berto\'s" (Roberto\'s, Alberto\'s, Rigoberto\'s and many more) are on almost every main road.'),
         color('june-gloom', 'May Gray and June Gloom', 'other', 'In late spring and early summer a marine layer keeps '
-              'the coast grey until midday or longer, to the surprise of visitors expecting sun.',
+              'the coast gray until midday or longer, to the surprise of visitors expecting sun.',
               seasons=['spring', 'summer']),
         color('craft-beer', 'Craft beer and IPAs', 'drink', 'San Diego has well over a hundred breweries and is known '
               'for hoppy West Coast IPAs; locals talk about breweries the way other cities talk about restaurants.',

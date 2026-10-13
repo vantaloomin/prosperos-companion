@@ -1,7 +1,7 @@
 """Original 1920s town for Prospero Companion. Run `python scripts/world/pellmouth.py` to rewrite the shipped JSON.
 
-Pellmouth is invented: a fog-bound river-mouth town on the North Shore of Massachusetts in 1926, modelled on real
-Essex County harbour, mill and college towns of the period. Its cosmic-horror lean is mood, local custom, legend and
+Pellmouth is invented: a fog-bound river-mouth town on the North Shore of Massachusetts in 1926, modeled on real
+Essex County harbor, mill and college towns of the period. Its cosmic-horror lean is mood, local custom, legend and
 rumour only: nothing uncanny is ever confirmed, and nothing is taken from Lovecraft's stories or later works.
 """
 import json
@@ -80,12 +80,12 @@ CITY = {
     'schema_version': 1, 'id': 'pellmouth', 'name': 'Pellmouth', 'setting': 'original', 'era': ERA,
     'category': 'fictional',
     'basis': 'Original setting written for Prospero Companion: a 1920s New England town with a cosmic-horror lean, '
-             'modelled on real Massachusetts river and harbour towns. Nothing is taken from Lovecraft\'s stories or '
+             'modeled on real Massachusetts river and harbor towns. Nothing is taken from Lovecraft\'s stories or '
              'later works.',
     'region': 'Massachusetts', 'country': 'United States', 'timezone': 'America/New_York',
     'aliases': ['Pellmouth, Mass.', 'Pellmouth, Massachusetts', 'Pellmouth 1926'],
     'summary': 'A fog-bound town of about eighteen thousand people at the mouth of the Pell River on the North Shore '
-               'of Massachusetts, 1926: a harbour and cannery, a shut-mouthed fishing quarter, a hill of gambrel '
+               'of Massachusetts, 1926: a harbor and cannery, a shut-mouthed fishing quarter, a hill of gambrel '
                'roofs and a meetinghouse sealed for thirty years, a small university with a strange bequest, shoe '
                'mills, a flooded quarry, an asylum on the bluff and a lighthouse that keeps its own hours.',
     'lat': 42.705, 'lon': -70.815,
@@ -96,7 +96,7 @@ CITY = {
         S: {'kind': 'curated', 'title': 'Pellmouth, Massachusetts, written for Prospero Companion',
             'license': 'CC0-1.0', 'retrieved': '2026-10-10',
             'note': 'An invented town. Its institutions, trades, prices and yearly calendar follow what was usual '
-                    'in North Shore harbour, shoe-mill, quarry and college towns of the mid-1920s, drawn from '
+                    'in North Shore harbor, shoe-mill, quarry and college towns of the mid-1920s, drawn from '
                     'general historical knowledge. Every business, family and person named is fictional, and the '
                     'legends and rumours are written for it; none is taken from Lovecraft or any later work. Rents '
                     'are monthly, in 1926 dollars. Coordinates sit on the Essex County coast for distance estimates '
@@ -137,7 +137,7 @@ CITY = {
              'Hospital, its farm and greenhouses, a cliff walk above the rocks, and a few houses for hospital staff.',
              ['hospital', 'windswept', 'quiet', 'lonely'], 42.722, -70.808, 'low', CHEAP,
              ['staff-cottage', 'boarding-house', 'farmhouse'], 'low', [CAR, BUS]),
-        hood('gannet-point', 'Gannet Point', 'The rocky point at the harbour entrance with the lighthouse, the Coast '
+        hood('gannet-point', 'Gannet Point', 'The rocky point at the harbor entrance with the lighthouse, the Coast '
              'Guard station, a long beach, the summer dance pavilion and shingled cottages that stand empty from '
              'October to June.', ['coast', 'lighthouse', 'summer', 'remote'], 42.700, -70.790, 'mid', MIDDLE,
              ['summer-cottage', 'keepers-house', 'boarding-house'], 'medium', [FERRY, BUS]),
@@ -264,7 +264,7 @@ CITY = {
               'and the roof failed; nobody has paid to mend it, and nobody will buy it.', ['sealed', 'church',
               'historic', 'legend'], 'free', 'outdoor', ['solo', 'friends', 'date'], DAY),
         place('hill-burying-ground', 'Old Hill Burying Ground', 'park', 'meetinghouse-hill', 'Slate stones with '
-              'winged skulls and weeping willows under old elms; a quiet walk with a view of the harbour, and the '
+              'winged skulls and weeping willows under old elms; a quiet walk with a view of the harbor, and the '
               'sexton\'s lantern after dark.', ['cemetery', 'slate-stones', 'view', 'quiet'], 'free', 'outdoor',
               ['solo', 'date'], DAY),
         place('pellmouth-historical-society', 'Pellmouth Historical Society', 'museum', 'meetinghouse-hill',
@@ -371,7 +371,7 @@ CITY = {
               'there on visiting Sundays, and townsfolk lower their voices driving past.', ['hospital', 'tower',
               'lawns', 'visiting-day'], 'free', 'outdoor', ['solo', 'family'], DAY),
         place('bluff-cliff-walk', 'Bluff cliff walk', 'trail', 'the-bluff', 'A path along the cliff above the rocks '
-              'with the whole harbour mouth below, the light on the point opposite and the fog coming in like a '
+              'with the whole harbor mouth below, the light on the point opposite and the fog coming in like a '
               'wall.', ['cliff', 'sea-view', 'fog', 'walk'], 'free', 'outdoor', ['solo', 'date', 'friends'],
               ['morning', 'afternoon']),
         place('hospital-road-inn', 'Hospital Road Inn', 'inn', 'the-bluff', 'A plain inn by the hospital gate for '
@@ -390,7 +390,7 @@ CITY = {
               ['evening']),
         # Gannet Point
         place('gannet-point-light', 'Gannet Point Light', 'landmark', 'gannet-point', 'A white stone tower and '
-              'keeper\'s house on the rocks at the harbour mouth. The lamp is lit at sunset by the almanac, and '
+              'keeper\'s house on the rocks at the harbor mouth. The lamp is lit at sunset by the almanac, and '
               'sometimes well before it, which the keeper puts down to the fog.', ['lighthouse', 'fog-bell', 'rocks',
               'legend'], 'free', 'outdoor', ['solo', 'date', 'family'], ['afternoon', 'evening']),
         place('long-sands-beach', 'Long Sands beach', 'beach', 'gannet-point', 'A mile of sand inside the point '
@@ -570,7 +570,7 @@ CITY = {
         {'id': 'hub-waterfront', 'name': 'The waterfront', 'neighborhoods': ['harbor-front', 'the-narrows',
          'gannet-point'], 'sectors': ['fishing', 'logistics', 'maritime', 'transit', 'trades', 'underworld',
          'defense'], 'summary': 'Wharves, the cannery, the boatyard, the ferry, the light and every boat in the '
-         'harbour, including the ones that come in without lights.', 'source': S},
+         'harbor, including the ones that come in without lights.', 'source': S},
         {'id': 'hub-hill', 'name': 'The hill and the square', 'neighborhoods': ['market-square', 'college-hill',
          'meetinghouse-hill', 'the-bluff'], 'sectors': ['education', 'healthcare', 'religion', 'spiritualism', 'media',
          'communications', 'law', 'legal', 'finance', 'business', 'retail', 'hospitality', 'entertainment',
@@ -585,7 +585,7 @@ CITY = {
         'summary': 'The North Shore coast: cold snowy winters with nor\'easters, a raw late spring, fog banks off the '
                    'water from May to July, warm summers cooled by the sea breeze, and a clear, bright autumn.',
         'months': [
-            {'high_f': 35, 'low_f': 19, 'rain_days': 11, 'note': 'Cold and grey; nor\'easters bring snow and tides '
+            {'high_f': 35, 'low_f': 19, 'rain_days': 11, 'note': 'Cold and gray; nor\'easters bring snow and tides '
              'over the wharves.'},
             {'high_f': 37, 'low_f': 21, 'rain_days': 10, 'note': 'Snow on the ground, ice in the river; the winter '
              'carnival.'},
@@ -601,7 +601,7 @@ CITY = {
             {'high_f': 71, 'low_f': 53, 'rain_days': 9, 'note': 'Clear and golden; a gale now and then.'},
             {'high_f': 60, 'low_f': 42, 'rain_days': 9, 'note': 'Bright leaves, frost in West Parish, the Harvest '
              'Moon.'},
-            {'high_f': 50, 'low_f': 34, 'rain_days': 10, 'note': 'Grey and blowing; nor\'easter season begins.'},
+            {'high_f': 50, 'low_f': 34, 'rain_days': 10, 'note': 'Gray and blowing; nor\'easter season begins.'},
             {'high_f': 40, 'low_f': 25, 'rain_days': 11, 'note': 'Short dark days, first snow, ice creeping out on '
              'the pond.'},
         ],
@@ -613,7 +613,7 @@ CITY = {
         event('commencement', 'Haskett commencement', [6], 'college-hill', 'Caps and gowns in the Old Yard, the '
               'chapel bell, class day picnics and parents filling every room in town.'),
         event('blessing-of-the-fleet', 'Blessing of the Fleet', [6], 'the-narrows', 'The priest of the Holy Ghost '
-              'blesses every boat from the end of the landing, the boats circle the harbour dressed in flags, and '
+              'blesses every boat from the end of the landing, the boats circle the harbor dressed in flags, and '
               'the Narrows holds open house for an afternoon.'),
         event('founders-day', 'Founders\' Day', [6], 'market-square', 'The town\'s birthday, kept since 1843: a '
               'parade of the militia, fire companies and schools, an oration on the common and a band concert.'),
@@ -724,7 +724,7 @@ CITY = {
         'quirks': [
             {'text': 'keeps the tide table pinned by the door', 'bio': 'I know when high water is. Always.'},
             {'text': "won't whistle near the water after dark",
-             'bio': 'I will not whistle by the harbour after dark. Do not ask me why; nobody here does.'},
+             'bio': 'I will not whistle by the harbor after dark. Do not ask me why; nobody here does.'},
             {'text': 'counts the foghorn blasts under their breath', 'bio': 'I count the foghorn. It passes the time.'},
             {'text': 'always takes the long way round the old meetinghouse',
              'bio': 'I take the long way round the old meetinghouse. Habit.'},
@@ -749,13 +749,13 @@ CITY = {
              'interest': 'family history', 'bio': 'Digging through the town records for my family.'},
             {'id': 'pellmouth-chowder', 'text': 'win the chowder supper at the West Parish Grange', 'steps': 4,
              'practice': ['market', 'morning'],
-             'progress': '{name} tried another batch of chowder on the neighbours',
+             'progress': '{name} tried another batch of chowder on the neighbors',
              'done': '{name} took first prize for chowder, and will not share the secret',
              'interest': 'cooking', 'bio': 'Working on a chowder that will win the Grange supper.'},
-            {'id': 'pellmouth-mooring', 'text': 'save for a mooring and a boat in the harbour', 'steps': 6,
+            {'id': 'pellmouth-mooring', 'text': 'save for a mooring and a boat in the harbor', 'steps': 6,
              'practice': None, 'progress': '{name} put another week of pay towards a mooring',
              'done': '{name} has a boat on a mooring of their own at last',
-             'interest': 'boats', 'bio': 'Saving for a mooring in the harbour.'},
+             'interest': 'boats', 'bio': 'Saving for a mooring in the harbor.'},
             {'id': 'pellmouth-boston-job', 'text': 'get a place in Boston and off the North Shore', 'steps': 7,
              'practice': None, 'progress': '{name} wrote off to another Boston firm about a position',
              'done': '{name} got an offer in Boston, and has not yet said whether they will go',

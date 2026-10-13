@@ -197,16 +197,23 @@ def world_books(client) -> list[str]:
     return [book['name'] for book in client.get('/api/lore').json()['books'] if book['world']]
 
 
+def settle_in(client, world_id: str, city_id: str):
+    """Switch to a new world and make its first companion there, as the user does (it starts with none)."""
+    assert client.post(f"/api/worlds/{world_id}/switch").status_code == 200
+    made = client.post('/api/companion', json={'name': 'Wren', 'timezone': 'Europe/Lisbon', 'home_city': city_id})
+    assert made.status_code == 200, made.text
+
+
 def test_the_lore_follows_the_city_into_a_new_world(client, companion):
     assert client.post('/api/world/import/marinara', json=sample()).status_code == 200
     made = client.post('/api/worlds', json={'city_id': 'lisbon'})
     assert made.status_code == 200, made.text
     elsewhere = client.post('/api/worlds', json={})
-    assert client.post(f"/api/worlds/{made.json()['id']}/switch").status_code == 200
+    settle_in(client, made.json()['id'], 'lisbon')
     assert world_books(client) == ['Harbourlight, chapter 3']
     [book] = [book for book in client.get('/api/lore').json()['books'] if book['world']]
     assert any(entry['title'] == 'Copper Kettle' for entry in book['entries'])
-    assert client.post(f"/api/worlds/{elsewhere.json()['id']}/switch").status_code == 200
+    settle_in(client, elsewhere.json()['id'], 'baltimore')
     assert world_books(client) == [], 'a world in another city does not get it'
 
 
@@ -216,7 +223,7 @@ def test_deleting_the_city_deletes_its_lore_in_every_world(client, companion):
     response = client.delete('/api/world/cities/lisbon')
     assert response.status_code in (200, 204), response.text
     assert world_books(client) == []
-    assert client.post(f"/api/worlds/{made['id']}/switch").status_code == 200
+    settle_in(client, made['id'], 'baltimore')
     assert world_books(client) == [], 'the copy in the world made there goes too'
 
 

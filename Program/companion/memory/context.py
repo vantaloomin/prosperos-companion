@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from companion import consequences, lore, news, pictures, prompt_library, secrets, self_facts, texting
 from companion import moods as feelings
 from companion.almanac import context as almanac
+from companion.characters import definition_for_timeline
 from companion.clock import parse, stamp, zone
 from companion.database import decode, many, settings
 from companion.errors import DomainError
@@ -25,18 +26,22 @@ from companion.life import (
     disruptions,
     dreams,
     encounters,
+    grooming,
     home,
+    kitchen,
     money,
     network,
     occasions,
     outings,
     own_plans,
     pacing,
+    pets,
     reactions,
     recommendations,
     storylines,
     traditions,
     trips,
+    upkeep,
     wardrobe,
 )
 from companion.life import mood as moods
@@ -136,6 +141,9 @@ HEADINGS = {
              'something that happened)',
             'wardrobe': 'Your clothes (fictional, yours; when you describe what you wear, pick from these and keep '
                         'it consistent with what you have on now)',
+            # Kitchen and food (companion/life/kitchen.py): drawn once a day.
+            'kitchen': 'Your kitchen and meals (fictional, yours; when food comes up, keep to how you cook and eat '
+                       'and what is listed for your dinners)',
             'circle': 'People in your life (fictional supporting characters, not the user)',
             # Grows during a chat as memories are saved and the companion's life moves on.
             'boundaries': "The user's boundaries",
@@ -251,13 +259,16 @@ FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
 NOT_ROMANTIC = 'The relationship is not romantic: never express jealousy or possessiveness as romantic exclusivity.'
 
 
-def persona_text(connection) -> str | None:
+def persona_text(connection, today: date | None = None) -> str | None:
     """The user's persona in this world (companion/worlds.py): only what they filled in, never a placeholder."""
     row = connection.execute('SELECT * FROM persona WHERE id=1').fetchone()
     if not row:
         return None
     parts = [f"Name: {row['name']}" if row['name'].strip() else '', f"Age: {row['age']}" if row['age'] else '',
              f"Gender: {row['gender']}" if row['gender'] else '', row['about'].strip()]
+    # The user's own pets, as they wrote them, and how each is today (companion/life/pets.py).
+    if found := pets.persona_lines(connection, today or date.today()):
+        parts.append('Pets: ' + '; '.join(found))
     return '\n'.join(f'- {part}' for part in parts if part) or None
 
 
@@ -286,21 +297,25 @@ def list_lines(definition) -> list[str]:
     return lines
 
 
-def character_text(version, connection=None, intimate: bool = False) -> str:
+def character_text(version, connection=None, intimate: bool = False, day: str | None = None) -> str:
     """How the character feels about absence is a user-chosen trait; product controls stay neutral.
 
     With a connection, GUIDANCE is the user's wording when they changed it in Settings > Advanced. `intimate` adds
     their adult side when Settings > Realism turns it on (companion/world/intimacy.py): only their own chat prompt
-    asks for it, never prompts whose words end up somewhere else (life events, the feed).
+    asks for it, never prompts whose words end up somewhere else (life events, the feed). Their looks are as on `day`
+    (companion/life/grooming.py: a haircut, new nails, a tan, a bold change), the latest day of their life without one.
     """
     definition = version['definition']
     lines = [prompt_library.text(connection, 'chat-character', name=definition['name'],
                                  relationship=definition['relationship'])]
+    if intimate and (setting := intimacy.setting_text(connection, version)):
+        lines.append(setting)
     lines += emotional_lines(definition)
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
-    if version.get('companion_id') and (sheet := looks.text(looks.for_companion(version['companion_id'], definition))):
+    if version.get('companion_id') and (sheet := looks.text(grooming.sheet(connection, version['companion_id'],
+                                                                          definition, day))):
         lines.append(f'Looks: {sheet}')
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
@@ -659,6 +674,9 @@ def offer_life(packet, connection, companion, now):
     offer_home(packet, connection, companion, today)
     for identity, text in wardrobe.context_lines(connection, timeline_id, date.fromisoformat(today), now):
         packet.offer('wearing' if ':now:' in identity else 'wardrobe', identity, text)
+    for identity, text in kitchen.context_lines(connection, timeline_id, version['definition'], None, now,
+                                                    version['timezone']):
+        packet.offer('kitchen', identity, text)
     for item in agenda.upcoming(connection, timeline_id, version['id'], now):
         packet.offer('intentions', f"{item['subject']}:{item['slot']}", agenda.intention_text(item))
     for event in committed(connection, timeline_id)[-RECENT_EVENTS:]:
@@ -715,8 +733,13 @@ def offer_daily(packet, connection, version, now):
 
 
 def offer_home(packet, connection, companion, today: str):
-    """Their home and belongings, and what is up at home for the season (companion/life/traditions.py)."""
+    """Their home and belongings, the housework (companion/life/upkeep.py) and what is up at home for the season
+    (companion/life/traditions.py)."""
     for identity, text in home.context_lines(connection, companion['active_timeline_id'], date.fromisoformat(today)):
+        packet.offer('home', identity, text)
+    timeline_id = companion['active_timeline_id']
+    for identity, text in upkeep.context_lines(connection, timeline_id, definition_for_timeline(connection, timeline_id),
+                                               date.fromisoformat(today)):
         packet.offer('home', identity, text)
     if line := traditions.decoration_line(connection, companion, date.fromisoformat(today)):
         packet.offer('home', f'decorations:{today}', line)
@@ -773,8 +796,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     if group is not None:
         recent, older = [], messages + group['older']
     packet = Packet(budget)
-    packet.require('character', version['id'], character_text(version, connection, intimate=True))
-    if who := persona_text(connection):
+    today = now.astimezone(zone(version['timezone'])).date().isoformat()
+    packet.require('character', version['id'], character_text(version, connection, intimate=True, day=today))
+    if who := persona_text(connection, date.fromisoformat(today)):
         packet.offer('persona', 'persona', who)
     for memory in groups['boundaries']:
         packet.require('boundaries', memory['id'], memory_text(memory))
@@ -878,9 +902,13 @@ def section_text(packet, headings) -> list[str]:
             if packet.sections.get(key)]
 
 
-def with_note(history: list[dict], note: str) -> list[dict]:
+def with_note(history: list[dict], note: str, steer: str = '') -> list[dict]:
     """The conversation with the notes for this reply in front of the message being answered, or as a message of their
-    own when the companion writes first. The user's own words stay last."""
+    own when the companion writes first. The user's author's note (`steer`, companion/authors_note.py) goes last in
+    the notes, and the user's own words stay last of all."""
+    note = '\n\n'.join(filter(None, (note, steer)))
+    if not note:
+        return history
     if history and history[-1]['role'] == 'user':
         return [*history[:-1], {'role': 'user', 'content': f"{NOTE_OPEN}\n{note}\n{NOTE_CLOSE}\n"
                                                            f"{history[-1]['content']}"}]
@@ -891,7 +919,13 @@ def add_note(packet: dict, text: str) -> dict:
     """An instruction for this reply only (busy, out of character, a reminder), added to its notes so the system
     prompt and the conversation stay cacheable."""
     note = f"{packet['note']}\n\n{text}" if packet['note'] else text
-    return {**packet, 'note': note, 'messages': with_note(packet['history'], note)}
+    return {**packet, 'note': note, 'messages': with_note(packet['history'], note, packet.get('steer', ''))}
+
+
+def steer(packet: dict, text: str) -> dict:
+    """The user's author's note for this reply (companion/authors_note.py): kept after every other note, even one
+    added later, so it is the last thing read before the user's message."""
+    return {**packet, 'steer': text, 'messages': with_note(packet['history'], packet['note'], text)} if text else packet
 
 
 def render(packet, conversation) -> dict:
@@ -911,5 +945,5 @@ def render(packet, conversation) -> dict:
     receipt = {'budget_tokens': packet.budget, 'estimated_tokens': packet.used,
                'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic,
                'widened_recall': packet.widened}
-    return {'system': system, 'note': note, 'history': chat, 'messages': with_note(chat, note) if note else chat,
+    return {'system': system, 'note': note, 'history': chat, 'messages': with_note(chat, note),
             'receipt': receipt}

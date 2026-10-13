@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 import runpy
 from datetime import date
 from pathlib import Path
@@ -642,3 +643,41 @@ def test_featured_cities_list_only_cities_that_load_and_are_new_on_their_release
     monkeypatch.setattr(catalog, 'VERSION', '0.1.4')
     featured = client.get('/api/world/featured').json()
     assert featured['new'] is True and [city['new'] for city in featured['cities']] == [True, False]
+
+
+def test_adult_work_is_never_rolled_for_townsfolk_or_job_changes():
+    adult = {key for key, career in catalog.careers().items() if career['adult']}
+    assert {'subscription-creator', 'cam-model', 'exotic-dancer', 'burlesque-dancer'} <= adult
+    for city_id in ('los-angeles', 'las-vegas', 'new-york-1925'):
+        data = catalog.city(city_id)
+        # Still found by id, for a companion whose work it is.
+        assert adult & set(catalog.careers_for(data))
+        assert not adult & set(catalog.everyday(catalog.careers_for(data)))
+        rolled = {generators.town_career(data, f'seed-{index}')['id'] for index in range(400)}
+        assert not adult & rolled
+
+
+US_CITIES = [key for key in CITIES if catalog.city(key).get('country') in ('US', 'United States')]
+BRITISH = re.compile(r'harbour|neighbour|honour|centre|licence|flavour|colour|favourit|labour|travell|jewellery|'
+                     r'amphitheatre|\bcosy\b|\bgrey\b|modelled|storey|\btheatre\b', re.IGNORECASE)
+# Real names keep their own spelling: a "... Theatre", Centre Street in Manhattan, Bal Harbour in Florida.
+PROPER = re.compile(r'[A-Z][\w.\'&-]*(?: [A-Z][\w.\'&-]*)* Theatre\b|\bCentre Street\b|\bBal Harbour\b')
+
+
+def shown_text(value):
+    """Every string a city shows: not ids or tags, nor slugs such as vibe words, which the app matches on."""
+    if isinstance(value, dict):
+        return [line for name, item in value.items() if name not in ('id', 'tags') for line in shown_text(item)]
+    if isinstance(value, list):
+        return [line for item in value for line in shown_text(item)]
+    return [value] if isinstance(value, str) and not re.fullmatch(r'[a-z0-9-]+', value) else []
+
+
+@pytest.mark.parametrize('city_id', US_CITIES)
+def test_us_cities_read_in_american_spelling(city_id):
+    lines = [PROPER.sub('', line) for line in shown_text(catalog.city(city_id))]
+    assert [line for line in lines if BRITISH.search(line)] == []
+
+
+def test_every_shipped_us_city_is_checked_for_spelling():
+    assert {'baltimore', 'haddon-harbor', 'new-orleans', 'new-york-1925', 'pellmouth', 'whitlock'} <= set(US_CITIES)

@@ -2,6 +2,7 @@
 chat profile it leaves (companion/providers/builtin_chat.py)."""
 import hashlib
 import time
+from pathlib import Path
 
 import httpx
 import pytest
@@ -48,6 +49,14 @@ def test_local_pictures_on_the_same_card_keep_their_room():
     # A second card that holds the pictures leaves the big one to the chat model.
     two = report([card('RTX 5090', 32.0), {**card('RTX 4090', 24.0), 'index': 1}], [comfy])
     assert ready.pick(two)[0]['key'] == 'qwen3.8-27b'
+
+
+def test_a_card_with_room_to_spare_gets_the_bigger_context():
+    big, nine = ready.MODELS[0], ready.MODELS[1]
+    assert ready.context_for(big, 24.0) == 32768  # 21 GB plus 1 GB more for 32K.
+    assert ready.context_for(big, 21.5) == 16384
+    assert ready.context_for(nine, 12.0) == 16384 and ready.context_for(nine, 12.6) == 32768
+    assert ready.context_for(ready.MODELS[-1], 0.0) == 16384  # On the processor: the usual context.
 
 
 def test_every_model_is_pinned_and_needs_no_click_through():
@@ -164,8 +173,17 @@ def test_set_it_up_downloads_resumes_and_makes_the_chat_profile(client, hub):
         config = config_for(connection, 'chat')
     assert config['profile_name'] == 'Built-in · Qwen3.5 4B' and config['resource_group'] == 'builtin-chat'
     assert config['model'] == 'Qwen3.5-4B-Q4_K_M' and config['provider'] == 'local'
-    process = hub.processes[-1]
-    assert '--jinja' in process.arguments and process.arguments[process.arguments.index('-ngl') + 1] == '999'
+    # Qwen's non-thinking sampling, and a 4 GB card has no room for more than the usual context.
+    assert (config['temperature'], config['top_p'], config['top_k'], config['min_p'], config['presence_penalty'],
+            config['repetition_penalty']) == (0.7, 0.8, 20, 0.0, 1.5, 1.0)
+    assert config['context_tokens'] == 16384
+    arguments = hub.processes[-1].arguments
+    assert '--jinja' in arguments and arguments[arguments.index('-ngl') + 1] == '999'
+    assert arguments[arguments.index('-c') + 1] == '16384'
+    assert arguments[arguments.index('--reasoning-budget') + 1] == '0'
+    for flag, value in [('--temp', '0.7'), ('--top-p', '0.8'), ('--top-k', '20'), ('--min-p', '0.0'),
+                        ('--presence-penalty', '1.5'), ('--repeat-penalty', '1.0')]:
+        assert arguments[arguments.index(flag) + 1] == value
 
 
 def test_a_reply_starts_the_server_and_asks_it(client, hub, companion):
@@ -214,13 +232,13 @@ def test_cancel_keeps_the_part_for_undo_then_clears_it(client, monkeypatch):
 def test_a_chat_profile_picked_during_the_download_stays(client, hub, monkeypatch):
     real = ready.Ready.make_profile
 
-    def picked_meanwhile(self, item, port):
+    def picked_meanwhile(self, item, port, context):
         with client.app.state.database.connect(write=True) as connection:
             connection.execute("INSERT INTO model_profiles (id, name, config, revision, created_at, updated_at) "
                                "VALUES ('theirs', 'Theirs', '{}', 1, 'now', 'now')")
             connection.execute("INSERT OR REPLACE INTO model_routes (job, profile_id, updated_at) "
                                "VALUES ('chat', 'theirs', 'now')")
-        real(self, item, port)
+        real(self, item, port, context)
 
     monkeypatch.setattr(ready.Ready, 'make_profile', picked_meanwhile)
     client.post('/api/ready', json={'model': 'qwen3.5-4b'})
@@ -298,3 +316,19 @@ def test_deleting_the_built_in_profile_stops_its_server_and_offers_set_up_again(
     assert again['status'] == 'ready' and len(hub.ranges) == asked
     with client.app.state.database.connect() as connection:
         assert config_for(connection, 'chat')['resource_group'] == 'builtin-chat'
+
+
+def test_saving_the_setup_waits_out_a_reader_that_has_it_open(tmp_path, monkeypatch):
+    from companion.providers import builtin_chat
+    real, turned_away = Path.replace, []
+
+    def busy_once(self, target):
+        if not turned_away:
+            turned_away.append(target)
+            raise PermissionError(5, 'Access is denied')
+        return real(self, target)
+
+    monkeypatch.setattr(Path, 'replace', busy_once)
+    builtin_chat.write_state(tmp_path, {'status': 'ready'})
+    assert turned_away and builtin_chat.read_state(tmp_path) == {'status': 'ready'}
+    assert not list((tmp_path / 'chat').glob('*.partial'))

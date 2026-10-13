@@ -50,10 +50,11 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     // Every setting that dials real life down or off, in one place (Vanta, 2026-10-10).
     id: 'realism', label: 'Realism', sections: [
       { heading: 'presets-heading', title: 'Start from', keywords: 'realism realistic preset presets template templates difficulty easy life real life drama pull the strings control everything mode' },
-      { heading: 'pace-heading', title: 'Their days', keywords: 'realism realistic pace paced replies reply right away instant busy later asleep wait off plan day shifts late plans fall through surprise drama storylines soap opera quiet' },
+      { heading: 'pace-heading', title: 'Their days', keywords: 'realism realistic pace paced replies reply right away instant busy later asleep wait off plan day shifts late plans fall through surprise drama storylines soap opera quiet looks change hair haircut trim colour color dye nails manicure tan glasses beard shave appearance style makeover' },
+      { heading: 'home-life-heading', title: 'Around the home', keywords: 'realism realistic home life upkeep housework chores laundry dishes clutter mess messy tidy tidiness clean cleaning big clean spotless pets pet dog cat vet sick ill old age die death lifespan kitchen food cooking dinner meals groceries pantry run out staples takeout life admin errands paperwork dentist taxes lease appointments bills inspection' },
       { heading: 'closeness-settings-heading', title: 'Closeness', keywords: 'realism realistic closeness close stage level relationship friends set it to step closer back keep it at hold max maximum min minimum limit ceiling never closer than slow burn cooling silence' },
       { heading: 'adult-side-heading', title: 'Adult side of life', keywords: 'realism realistic adult adults nsfw 18 sex sexual sexuality orientation gay straight bisexual kink kinks fetish deviancy adventurous drive intimacy intimate bedroom' },
-      { heading: 'hidden-values-heading', title: 'Hidden values', keywords: 'realism realistic hidden values show reveal mood moods feeling feelings news word gets around odds dice why it went secret secrets slip on their mind thoughts' },
+      { heading: 'hidden-values-heading', title: 'Hidden values', keywords: 'realism realistic hidden values show reveal mood moods feeling feelings news word gets around odds dice why it went secret secrets slip on their mind thoughts home numbers meters housework' },
     ],
   },
   {
@@ -90,6 +91,8 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
     id: 'debug', label: 'Debug', pcOnly: true, sections: [
       { heading: 'debug-heading', title: 'Debug time', keywords: 'debug test testing time travel jump skip ahead days fast forward speed accelerate spoof date clock' },
       { heading: 'model-calls-heading', title: 'Record model calls', keywords: 'log logs logging record recording full conversation conversations chats requests responses raw sent strange reply support troubleshoot' },
+      { heading: 'townsfolk-mix-heading', title: 'Townsfolk mix', keywords: 'townsfolk mix ratio ratios shares population generation generate new world reseed gender women men nonbinary height build weight beard facial hair orientation sexuality gay lesbian bisexual straight adult side adventurous drive sliders' },
+      { heading: 'debug-matches-heading', title: 'Matchlight', keywords: 'matchlight dating app match matches 100% always like back every swipe test' },
     ],
   },
   {

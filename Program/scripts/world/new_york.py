@@ -549,7 +549,7 @@ CITY = {
         place('toms-restaurant-morningside', 'Tom\'s Restaurant', 'restaurant', 'morningside-heights', 'Columbia '
               'students\' diner on Broadway, whose sign was used as Monk\'s Café on Seinfeld.', ['diner', 'students',
               'cheap'], '$', 'indoor', ALL, ['morning', 'afternoon', 'evening', 'late'], cuisine='american-diner'),
-        place('hungarian-pastry-shop', 'Hungarian Pastry Shop', 'cafe', 'morningside-heights', 'Dim, cosy cafe on '
+        place('hungarian-pastry-shop', 'Hungarian Pastry Shop', 'cafe', 'morningside-heights', 'Dim, cozy cafe on '
               'Amsterdam Avenue where Columbia students write papers over pastries for hours.', ['pastry', 'study',
               'students'], '$', 'mixed', ['solo', 'friends', 'date'], ['morning', 'afternoon', 'evening'],
               cuisine='hungarian-pastry'),
@@ -566,7 +566,7 @@ CITY = {
               'research library and exhibition space on Malcolm X Boulevard devoted to the African diaspora.',
               ['books', 'black-history', 'exhibits'], 'free', 'indoor', ['solo', 'friends', 'family'], DAY),
         place('marcus-garvey-park', 'Marcus Garvey Park', 'park', 'harlem', 'Rocky park with a fire watchtower, '
-              'an amphitheatre for summer concerts and a Saturday drum circle.', ['music', 'playground', 'local'],
+              'an amphitheater for summer concerts and a Saturday drum circle.', ['music', 'playground', 'local'],
               'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
         place('amy-ruths', 'Amy Ruth\'s', 'restaurant', 'harlem', 'Soul food restaurant on West 116th Street known '
               'for chicken and waffles named after famous Harlemites.', ['soul-food', 'chicken-and-waffles'], '$$',
@@ -868,7 +868,7 @@ CITY = {
                    'winters with a few snowstorms most years.',
         'months': [
             {'high_f': 39, 'low_f': 27, 'rain_days': 11, 'note': 'Coldest month; snow and icy wind off the rivers.'},
-            {'high_f': 42, 'low_f': 29, 'rain_days': 10, 'note': 'Cold and grey; the snowiest month on average.'},
+            {'high_f': 42, 'low_f': 29, 'rain_days': 10, 'note': 'Cold and gray; the snowiest month on average.'},
             {'high_f': 50, 'low_f': 35, 'rain_days': 11, 'note': 'Changeable; early blossoms late in the month.'},
             {'high_f': 62, 'low_f': 45, 'rain_days': 11, 'note': 'Cherry blossoms and spring showers.'},
             {'high_f': 72, 'low_f': 55, 'rain_days': 11, 'note': 'Mild and green; outdoor dining fills up.'},

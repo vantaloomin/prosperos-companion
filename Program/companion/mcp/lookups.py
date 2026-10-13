@@ -10,8 +10,10 @@ Results are external data. They are stored as plain text, quoted in the reply's 
 heading that says so, and never parsed for instructions or used to call further tools.
 """
 import asyncio
+import hashlib
 import json
 import re
+import secrets
 from datetime import timedelta
 
 from companion.characters import current
@@ -189,23 +191,54 @@ def target(connection, purpose: str, world, now) -> dict | None:
     return {**found, 'date': local.date().isoformat(), 'whose': 'companion'}
 
 
-def arguments_for(mapping: dict, tools: list[dict], where: dict, topic: str | None) -> dict | None:
+# Mixed into session ids so they cannot be worked out from the service and the date; new each run of the app.
+SESSION_SALT = secrets.token_hex(16)
+
+
+def session_id(service_id: str, date: str) -> str:
+    """A random-looking id for one service on one day: stable across its calls that day, unlinked to anything else."""
+    return hashlib.sha256(f'{SESSION_SALT}:{service_id}:{date}'.encode()).hexdigest()[:32]
+
+
+def typed(value, schema: dict):
+    """A fixed value as the tool's schema types it, so "true" or "5" typed as text goes out as a boolean or number."""
+    kind = schema.get('type') if isinstance(schema, dict) else None
+    if isinstance(kind, list):  # A nullable type such as ["integer", "null"] counts as its one real type.
+        real = [item for item in kind if item != 'null']
+        kind = real[0] if len(real) == 1 else None
+    if not isinstance(value, str):
+        return value
+    if kind == 'boolean' and value.strip().lower() in {'true', 'false'}:
+        return value.strip().lower() == 'true'
+    try:
+        if kind == 'integer':
+            return int(value.strip())
+        if kind == 'number':
+            return float(value.strip())
+    except ValueError:
+        pass
+    return value
+
+
+def arguments_for(mapping: dict, tools: list[dict], where: dict, topic: str | None, session: str | None = None
+                  ) -> dict | None:
     """The mapped arguments with today's values. None when a required value is unavailable."""
     schema = next((tool['input_schema'] for tool in tools if tool['name'] == mapping['tool']), {})
     required = set(schema.get('required') or [])
     properties = schema.get('properties') if isinstance(schema.get('properties'), dict) else {}
     values = {'place': where['place'], 'latitude': where['latitude'], 'longitude': where['longitude'],
-              'topic': topic, 'date': where['date'], 'url': where.get('url')}
+              'topic': topic, 'date': where['date'], 'url': where.get('url'), 'session': session}
     arguments = {}
     for name, argument in decode(mapping['arguments']).items():
-        value = argument.get('value') if argument['source'] == 'literal' else values.get(argument['source'])
+        literal = argument['source'] == 'literal'
+        value = typed(argument.get('value'), properties.get(name)) if literal else values.get(argument['source'])
         if value is None or value == '':
             if name in required:
                 return None
             continue
         # A tool that takes a list (such as `urls` or `search_queries`) gets a list of one.
         wants_list = isinstance(properties.get(name), dict) and properties[name].get('type') == 'array'
-        arguments[name] = [value] if wants_list and argument['source'] != 'literal' else value
+        arguments[name] = [value] if wants_list and not literal else value
     return arguments
 
 
@@ -339,7 +372,8 @@ class Lookups:
         return [item for batch in results for item in batch]
 
     async def one(self, service, mapping, where, purpose, topic, deadline) -> list[dict]:
-        arguments = arguments_for(mapping, decode(service['tools']), where, topic)
+        arguments = arguments_for(mapping, decode(service['tools']), where, topic,
+                                  session_id(service['id'], where['date']))
         if arguments is None:
             return []
         key = json.dumps([service['id'], mapping['tool'], arguments], sort_keys=True)

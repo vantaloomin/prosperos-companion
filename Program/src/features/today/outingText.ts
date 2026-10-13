@@ -19,7 +19,7 @@ export interface Together { outings: Outing[]; trips: Trip[] }
 
 const WHAT: Record<string, string> = {
   dinner: 'Dinner', 'lunch-out': 'Lunch', coffee: 'Coffee', drinks: 'Drinks', show: 'A show', museum: 'A few hours',
-  walk: 'A walk', market: 'A look round',
+  walk: 'A walk', market: 'A look around', 'dinner-in': 'Dinner',
 }
 
 /** "Thu, Oct 8" from a local date. */
@@ -49,6 +49,7 @@ const JOINED: Record<string, string> = {
 
 /** "Greek restaurant in Harbor East", "Irish pub in Canton", "Tex-Mex restaurant in Fells Point". */
 export function placeLine(place: OutingPlace): string {
+  if (place.kind === 'home') return place.neighborhood ? `Their place in ${place.neighborhood}` : 'Their place'
   const cuisine = JOINED[place.cuisine] ?? place.cuisine.replace(/-/g, ' ')
   const kind = !cuisine ? place.kind : PLACE_WORDS.test(cuisine) ? cuisine : `${cuisine} ${place.kind}`
   const text = place.neighborhood ? `${kind} in ${place.neighborhood}` : kind

@@ -12,6 +12,9 @@ FORMS = {'she/her': {'they': 'she', 'them': 'her', 'their': 'her', 'theirs': 'he
                      'do': 'does', 's': 's'},
          'he/him': {'they': 'he', 'them': 'him', 'their': 'his', 'theirs': 'his', 'themselves': 'himself', 'are': 'is', 'were': 'was',
                     'do': 'does', 's': 's'}}
+# A post the companion or a circle member writes speaks of them as "I" (companion/life/composer.mine).
+FIRST = {'they': 'I', 'them': 'me', 'their': 'my', 'theirs': 'mine', 'themselves': 'myself', 'are': 'am', 'were': 'was',
+         'do': 'do', 's': ''}
 
 
 def forms(definition: dict) -> dict | None:
@@ -24,11 +27,11 @@ def their(definition: dict) -> str:
     return (forms(definition) or {}).get('their', 'their')
 
 
-def said(text: str | None, swaps: tuple[tuple[str, str], ...], definition: dict) -> str | None:
+def said(text: str | None, swaps: tuple[tuple[str, str], ...], definition: dict, found: dict | None = None) -> str | None:
     """The text with each phrase about the companion said with their pronouns; `{they}`, `{them}`, `{their}`,
     `{theirs}`, `{themselves}`, `{are}`, `{were}`, `{do}` and `{s}` (a verb's "s": "like{s}") in the new phrase are filled from
-    their forms."""
-    found = forms(definition) if text else None
+    their forms. `found` gives the forms instead (FIRST for "I")."""
+    found = (found or forms(definition)) if text else None
     if not found:
         return text
     for old, new in swaps:

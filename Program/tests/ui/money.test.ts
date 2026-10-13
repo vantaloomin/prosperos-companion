@@ -39,6 +39,13 @@ test('career choices follow the home city era and keep the current pick', () => 
   assert.equal(todayIso(new Date(2026, 0, 9)), '2026-01-09')
 })
 
+test('adult work is listed only with the adult side on, and a current pick always stays', () => {
+  const careers = [{ id: 'nurse', name: 'Nurse', pay: '$$', eras: ['modern'] }, { id: 'cam-model', name: 'Webcam model', pay: '$$', eras: ['modern'], adult: true }]
+  assert.deepEqual(careersFor(careers, 'modern', '').map((career) => career.id), ['nurse'])
+  assert.deepEqual(careersFor(careers, 'modern', '', true).map((career) => career.id), ['nurse', 'cam-model'])
+  assert.deepEqual(careersFor(careers, 'modern', 'cam-model').map((career) => career.id), ['nurse', 'cam-model'])
+})
+
 test('older saved characters get a default money setup', () => {
   assert.deepEqual(completeDefinition({ name: 'Mira' }).money, { career: '', style: 'balanced', saving_for: '', goal: 0, goal_since: '' })
   assert.equal(completeDefinition({ name: 'Mira', money: { career: 'teacher', style: 'careful', saving_for: '', goal: 0, goal_since: '' } }).money.career, 'teacher')

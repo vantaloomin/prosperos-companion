@@ -198,6 +198,43 @@ def article(phrase: str) -> str:
     return f"{'an' if phrase[:1].lower() in 'aeiou' else 'a'} {phrase}"
 
 
+# Words a picture model draws literally, as damage: a "broken nose that healed a little crooked" came back from Krea as
+# fresh wounds, "a cleft chin" as a cut chin, "chipped nail polish" as chipped paint on clothes. In pictures they are
+# said as the shape a camera sees now; profiles and chat keep the words and their history.
+SCAR_WORDS = r'(?:(?:thin|faint|small|tiny|little|pale|old|long|short|jagged|white|silvery|deep|raised)\s+)*'
+SEEN = (
+    (r'\b(?:an?\s+)?(?:(?:once|old|long)[- ])?(?:broken|crooked)\s+nose(?:\s+(?:that|which)\s+(?:has\s+|had\s+)?'
+     r'(?:healed|set|mended)(?:\s+(?:a\s+(?:little|bit)|slightly|badly|a\s+touch))?(?:\s+crooked)?)?',
+     'a nose that bends slightly to one side'),
+    (r'\b(?:an?\s+)?' + SCAR_WORDS + r'scar\s+(?:through|across|splitting)\s+(?:one|her|his|their|the|an?)\s+'
+     r'(?:left\s+|right\s+)?eyebrow', 'a thin bare notch through one eyebrow'),
+    (r'\b(?:an?\s+)?' + SCAR_WORDS + r'burn\s+scar\b', 'a patch of smoother, paler skin'),
+    (r'\b' + SCAR_WORDS + r'burn\s+scars\b', 'patches of smoother, paler skin'),
+    (r'\b(?:(?:that|which)\s+(?:has\s+|had\s+)?)?(?:long[- ])?healed(?:\s+over)?\b\s*', ''),
+    (r'\b(?:an?\s+)?' + SCAR_WORDS + r'scar\b', 'a faint pale mark'),
+    (r'\b' + SCAR_WORDS + r'scars\b', 'faint pale marks'),
+    (r'\bscarred\b', 'marked'),
+    (r'\b(?:an?\s+)?(?:deeply\s+|slightly\s+)?cleft\s+chin\b', 'a chin with a faint vertical dimple'),
+    (r'\b(?:an?\s+)?(?:slightly\s+)?crooked\s+(smile|grin)\b', r'a lopsided \1'),
+    (r'\b(?:slightly\s+)?crooked\s+teeth\b', 'slightly uneven teeth'),
+    (r'\b(?:an?\s+)?gap-toothed\s+(smile|grin)\b', r'a \1 with a small gap between the front teeth'),
+    (r'\bripped\s+jeans\b', 'faded jeans with open knees'),
+    (r'\b(?:chipped|scuffed)\s+', ''),
+)
+
+
+def seen(text: str) -> str:
+    """The text with damage words said as the shape they describe: "a broken nose that healed a little crooked" is
+    "a nose that bends slightly to one side", a scar "a faint pale mark", "a cleft chin" "a chin with a faint
+    vertical dimple". Only for picture prompts."""
+    for pattern, said in SEEN:
+        # "her broken nose" keeps its "her": the article goes with the words only where the text had one.
+        text = re.sub(pattern, lambda match, said=said: match.expand(
+            said if re.match(r'an?\s', match.group(0), re.IGNORECASE) else said.removeprefix('a ')), text,
+            flags=re.IGNORECASE)
+    return re.sub(r'\s{2,}', ' ', text)
+
+
 def picture(sheet: dict, who: str) -> str:
     """The sheet as the opening of a picture's description: 'A tall, athletic woman in her early thirties with
     olive skin, an oval face, a defined jawline, a straight nose, almond-shaped hazel eyes, shoulder-length wavy
@@ -213,15 +250,25 @@ def picture(sheet: dict, who: str) -> str:
     if sheet.get('age'):
         opening += f" in {possessive} {age_words(sheet['age'])}"
     eyes = ' '.join(part for part in (sheet.get('eye_shape'), sheet.get('eyes')) if part)
-    parts = [f"{sheet['skin']} skin" if sheet.get('skin') else '',
+    parts = [skin_text(sheet),
              article(f"{sheet['face']} face") if sheet.get('face') else '', sheet.get('jaw') or '', sheet.get('nose') or '',
              f'{eyes} eyes' if eyes else '', (sheet.get('hair') or '').replace(', ', ' '), sheet.get('facial_hair') or '',
-             sheet.get('feature') or '']
+             sheet.get('feature') or '', sheet.get('glasses') or '', sheet.get('nails') or '']
+    parts = [seen(part) for part in parts]
+    if 'nose' in parts[7] and parts[3]:
+        parts[3] = ''  # the feature says how their nose looks
     parts = [part for part in parts if part]
     if not parts:
         return f'{opening[:1].upper()}{opening[1:]}.'
     listed = parts[0] if len(parts) == 1 else f"{', '.join(parts[:-1])} and {parts[-1]}"
     return f'{opening[:1].upper()}{opening[1:]} with {listed}.'
+
+
+def skin_text(sheet: dict) -> str:
+    """'olive skin', with a tan when they have one (companion/life/grooming.py)."""
+    if not sheet.get('skin'):
+        return ''
+    return f"{sheet['skin']} skin with {sheet['tan']}" if sheet.get('tan') else f"{sheet['skin']} skin"
 
 
 def text(sheet: dict) -> str:
@@ -230,11 +277,12 @@ def text(sheet: dict) -> str:
              height_text(sheet['height_cm']) if sheet.get('height_cm') else '',
              weight_text(sheet['weight_kg']) if sheet.get('weight_kg') else '',
              f"{sheet['build']} build" if sheet.get('build') else '',
-             f"{sheet['skin']} skin" if sheet.get('skin') else '',
+             skin_text(sheet),
              f"{sheet['face']} face" if sheet.get('face') else '', sheet.get('jaw') or '', sheet.get('nose') or '',
              ' '.join(part for part in (sheet.get('eye_shape'), sheet.get('eyes'), 'eyes') if part)
              if sheet.get('eyes') or sheet.get('eye_shape') else '',
-             sheet.get('hair') or '', sheet.get('facial_hair') or '', sheet.get('feature') or '']
+             sheet.get('hair') or '', sheet.get('facial_hair') or '', sheet.get('feature') or '',
+             sheet.get('glasses') or '', sheet.get('nails') or '']
     return ', '.join(part for part in parts if part)
 
 

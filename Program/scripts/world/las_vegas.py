@@ -233,7 +233,7 @@ CITY = {
         place('atomic-liquors', 'Atomic Liquors', 'bar', 'downtown', 'Fremont East bar that dates to the 1950s, '
               'billed as the oldest freestanding bar in the city.', ['bar', 'historic', 'craft-beer'], '$$', 'indoor',
               ['friends', 'solo', 'date'], NIGHT),
-        place('circa-stadium-swim', 'Stadium Swim at Circa', 'attraction', 'downtown', 'Tiered pool amphitheatre at '
+        place('circa-stadium-swim', 'Stadium Swim at Circa', 'attraction', 'downtown', 'Tiered pool amphitheater at '
               'Circa resort facing a giant screen showing live sports.', ['pool', 'sports', 'party'], '$$$',
               'outdoor', ['friends'], ['afternoon'], ['spring', 'summer', 'fall']),
         place('smith-center', 'The Smith Center for the Performing Arts', 'venue', 'downtown', 'Art deco performing '
@@ -308,7 +308,7 @@ CITY = {
               'Mountains, about 45 minutes from the northwest valley and markedly cooler, with winter snow.',
               ['hiking', 'mountains', 'snow', 'cool-escape'], 'free', 'outdoor', ['solo', 'friends', 'family'], DAY),
         place('craig-ranch-park', 'Craig Ranch Regional Park', 'park', 'north-las-vegas', 'Large park in North Las '
-              'Vegas with a skate park, dog parks and an outdoor amphitheatre.', ['park', 'dogs', 'concerts'],
+              'Vegas with a skate park, dog parks and an outdoor amphitheater.', ['park', 'dogs', 'concerts'],
               'free', 'outdoor', ALL, ['morning', 'afternoon', 'evening']),
         place('valley-of-fire', 'Valley of Fire State Park', 'trail', 'north-las-vegas', 'Red sandstone formations '
               'and petroglyphs about an hour northeast of the city.', ['hiking', 'desert', 'day-trip'], '$',
@@ -410,7 +410,7 @@ CITY = {
         place('centennial-hills-library', 'Centennial Hills Library', 'library', 'centennial-hills', 'Big suburban '
               'branch library with a YMCA next door.', ['books', 'kids', 'study'], 'free', 'indoor', ALL, DAY),
         place('centennial-hills-park', 'Centennial Hills Park', 'park', 'centennial-hills', 'Large city park with '
-              'an amphitheatre, fields, playgrounds and a dog park.', ['playground', 'dogs', 'sports'], 'free',
+              'an amphitheater, fields, playgrounds and a dog park.', ['playground', 'dogs', 'sports'], 'free',
               'outdoor', ALL, ['morning', 'evening']),
         place('santa-fe-station', 'Santa Fe Station', 'nightlife', 'centennial-hills', 'Northwest locals casino '
               'with a bowling center, cinema and bars.', ['casino', 'bowling', 'locals'], '$$', 'indoor',

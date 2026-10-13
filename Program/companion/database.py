@@ -206,6 +206,8 @@ ADDED_COLUMNS = (
     ('workspace_settings', 'show_adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_adult_side IN (0, 1))'),
     # Record model calls (companion/model_calls.py): off unless the user turns it on in Settings > Debug.
     ('workspace_settings', 'record_model_calls', 'INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1))'),
+    # 100% Matchlight matches (Settings > Debug): every like is liked back. Off unless the user turns it on.
+    ('workspace_settings', 'debug_all_matches', 'INTEGER NOT NULL DEFAULT 0 CHECK (debug_all_matches IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
     # from before that is switched on once (see initialize), and turning it off afterwards sticks.
     ('life_settings', 'events_on_by_default', 'INTEGER NOT NULL DEFAULT 0'),
@@ -244,6 +246,24 @@ ADDED_COLUMNS = (
     # A world lorebook that belongs to one of the user's cities (a Marinara world map's notes, companion/lore.py):
     # it comes along into new worlds in that city and goes when the city is deleted.
     ('lore_books', 'city_id', 'TEXT'),
+    # Home upkeep (companion/life/upkeep.py, Settings > Realism > Home life): 0 off, 1 light, 2 true to life, 3 messy.
+    ('life_settings', 'upkeep_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (upkeep_realism BETWEEN 0 AND 3)'),
+    # Looks that change (companion/life/grooming.py): how often, from never (0) to often (3), set on the Realism tab.
+    ('life_settings', 'looks_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (looks_realism BETWEEN 0 AND 3)'),
+    # The numbers behind home life (upkeep meters and the like), under Settings > Realism > Hidden values.
+    ('workspace_settings', 'show_home_meters', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_home_meters IN (0, 1))'),
+    # Pets with lives of their own (companion/life/pets.py), on Settings > Realism > Around the home: how often pets
+    # fall ill (0 off, 1 light, 2 true to life, 3 dramatic) and whether they can die.
+    ('life_settings', 'pets_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (pets_realism BETWEEN 0 AND 3)'),
+    ('life_settings', 'pets_can_die', 'INTEGER NOT NULL DEFAULT 1 CHECK (pets_can_die IN (0, 1))'),
+    # The pets on the user's persona (companion/worlds.py), as JSON: the user's own, given lives by pets.py.
+    ('persona', 'pets', "TEXT NOT NULL DEFAULT '[]'"),
+    # Kitchen and food (companion/life/kitchen.py, Settings > Realism > Around the home): 0 off, 1 light, 2 true to life,
+    # 3 dramatic.
+    ('life_settings', 'kitchen_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (kitchen_realism BETWEEN 0 AND 3)'),
+    # Life admin calendar (companion/life/admin.py), on the home features' shared scale: 0 off, 1 light, 2 true to
+    # life, 3 dramatic (Settings > Realism > Around the home).
+    ('life_settings', 'admin_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (admin_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

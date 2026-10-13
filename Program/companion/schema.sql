@@ -1843,3 +1843,140 @@ CREATE TABLE IF NOT EXISTS chat_imports (
   last_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+-- The town's mix (companion/world/mix.py, Settings > Debug): the shares townsfolk rolls use for looks and who people
+-- are drawn to. No row is the built-in mix. Each world keeps its own; a new world starts from the one it was made from.
+CREATE TABLE IF NOT EXISTS townsfolk_mix (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  mix TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Home upkeep (companion/life/upkeep.py): a companion's seeded tidiness habit (or the one the user picked) and the
+-- tidiness the user last set with Set it. The mess on any date is walked from these, never stored day by day.
+CREATE TABLE IF NOT EXISTS upkeep_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  habit TEXT NOT NULL CHECK (habit IN ('neat', 'average', 'messy')),
+  habit_set TEXT CHECK (habit_set IN ('neat', 'average', 'messy')),
+  started TEXT NOT NULL,
+  era TEXT NOT NULL,
+  set_on TEXT,
+  set_level INTEGER CHECK (set_level BETWEEN 0 AND 4),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+-- One walked day of upkeep before the companion's today, kept so what already happened never changes: the mess in
+-- each area (JSON, 0-100), what got done (JSON list), and the days since the last big clean.
+CREATE TABLE IF NOT EXISTS upkeep_days (
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  local_date TEXT NOT NULL,
+  mess TEXT NOT NULL,
+  done TEXT NOT NULL,
+  away INTEGER NOT NULL DEFAULT 0 CHECK (away IN (0, 1)),
+  busy INTEGER NOT NULL DEFAULT 0 CHECK (busy IN (0, 1)),
+  since_big INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (timeline_id, local_date)
+);
+-- Author's note (companion/authors_note.py): one note of the user's per chat, sent with every reply while it is on.
+-- `chat` is `companion:<id>`, `group:<id>` or `story`. Never a message: not in the transcript, memories or exports.
+CREATE TABLE IF NOT EXISTS authors_notes (
+  chat TEXT PRIMARY KEY,
+  text TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  updated_at TEXT NOT NULL
+);
+-- Looks that change (companion/life/grooming.py): the companion's grooming habits, drawn once per timeline, and
+-- whether the user keeps their looks as they are. `next_period` is the first two-week period not yet fully drawn.
+CREATE TABLE IF NOT EXISTS grooming_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  started TEXT NOT NULL,
+  profile TEXT NOT NULL,
+  next_period INTEGER NOT NULL DEFAULT 0,
+  kept INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+-- Each looks change on the local date it happens, one per period and track (hair, nails, sun, bold). `change` holds
+-- what it sets (a colour, cut, nail look, tan, glasses or facial hair); `spend` is a paid one's price tier.
+CREATE TABLE IF NOT EXISTS grooming_log (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  period INTEGER NOT NULL,
+  track TEXT NOT NULL CHECK (track IN ('hair', 'nails', 'sun', 'bold')),
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  change TEXT NOT NULL,
+  text TEXT NOT NULL,
+  spend TEXT NOT NULL DEFAULT '',
+  bold INTEGER NOT NULL DEFAULT 0 CHECK (bold IN (0, 1)),
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, period, track)
+);
+CREATE INDEX IF NOT EXISTS grooming_log_day ON grooming_log(timeline_id, local_date);
+-- Pets with lives of their own (companion/life/pets.py): what happened to each pet, written once as the days pass
+-- so the past stays put when a Realism setting changes. `pet_key` names the pet: 'home:<home_items id>' for the
+-- companion's, 'circle:<circle_people id>:<n>', 'town:<townsperson key>' or 'persona:<name>'. `until` ends a sick
+-- spell; `spend` is a vet bill's tier, counted for the companion's pets only (money.household).
+CREATE TABLE IF NOT EXISTS pet_log (
+  id TEXT PRIMARY KEY,
+  pet_key TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('sick', 'vet', 'checkup', 'died')),
+  until TEXT,
+  text TEXT NOT NULL,
+  serious INTEGER NOT NULL DEFAULT 0 CHECK (serious IN (0, 1)),
+  spend TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS pet_log_pet ON pet_log(pet_key, local_date);
+-- How far each pet's life has been written (pets.evolve).
+CREATE TABLE IF NOT EXISTS pet_state (
+  pet_key TEXT PRIMARY KEY,
+  through TEXT NOT NULL
+);
+-- Kitchen and food (companion/life/kitchen.py): the companion's seeded way of eating (diet, things avoided, cooking
+-- skill, baking, favourite dishes) and the user's changes to it. Meals and the pantry are drawn per day, not stored.
+CREATE TABLE IF NOT EXISTS kitchen_state (
+  timeline_id TEXT PRIMARY KEY REFERENCES timelines(id),
+  seed TEXT NOT NULL,
+  profile TEXT NOT NULL,
+  overrides TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Life admin calendar (companion/life/admin.py): appointments, deadlines, errands, paperwork and chores on the
+-- companion's days, from Life admin itself and from Pets, Home upkeep, Kitchen and Looks (`source`). `key` is the
+-- adder's own id for it, so nothing is added twice. An entry moves rather than being cancelled: `moved_from` is the
+-- day it was first meant for and `moved_reason` why ('clash', 'put-off', 'user', 'away'); `revision` changes with each
+-- move so the agenda composes its slot again. `cost` is in the city's currency, or `spend` a price tier.
+CREATE TABLE IF NOT EXISTS life_admin (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  key TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('admin', 'pets', 'upkeep', 'kitchen', 'looks')),
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  done_text TEXT NOT NULL,
+  line TEXT NOT NULL DEFAULT '',
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  first_date TEXT NOT NULL,
+  deadline TEXT,
+  minutes INTEGER NOT NULL DEFAULT 60,
+  fixed INTEGER NOT NULL DEFAULT 0 CHECK (fixed IN (0, 1)),
+  out_of_home INTEGER NOT NULL DEFAULT 0 CHECK (out_of_home IN (0, 1)),
+  place TEXT,
+  cost REAL NOT NULL DEFAULT 0,
+  spend TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'done', 'removed')),
+  moved_from TEXT,
+  moved_reason TEXT,
+  moves INTEGER NOT NULL DEFAULT 0,
+  revision INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (timeline_id, key)
+);
+CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date);
