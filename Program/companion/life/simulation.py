@@ -26,7 +26,7 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, composer, deck, dreams, feed, mood, routine, thoughts
+from companion.life import agenda, composer, deck, dreams, feed, mood, pets, routine, thoughts, upkeep
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -80,6 +80,10 @@ def update_settings(database, body) -> dict:
             if 'automatic_events' in changed:
                 connection.execute('UPDATE workspace_settings SET permission_revision=permission_revision+1, '
                                    'updated_at=? WHERE id=1', (timestamp,))
+            if {'pets_realism', 'pets_can_die'} & set(changed):
+                pets.settings_changed(connection, database.clock.now())
+            if 'upkeep_realism' in changed:
+                upkeep.settings_changed(connection, database.clock.now())
         return settings_view(life_settings(connection))
 
 

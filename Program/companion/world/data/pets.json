@@ -1,5 +1,5 @@
 {
- "about": "Pets with lives of their own (Hit List #15), drawn by seed with no model (companion/life/pets.py). kinds: lifespans in years, the eras a kind is drawn in, how common it is, and what it needs (walks, a minder while the owner is away, a vet). Each list entry names the kinds it suits (or 'any') and the eras (or 'any'). Sentences use {pet} for the pet's name. 'sick' texts follow 'is poorly with'; 'vet' texts follow 'for'; 'photos' describe only what the picture shows (visible things, no injuries) and carry a first-person caption. 'townsfolk' gives each townsperson pet of life_details.json a kind and a looks line; a null kind is an animal they feed or befriend but do not keep.",
+ "about": "Pets with lives of their own (Hit List #15), drawn by seed with no model (companion/life/pets.py). kinds: lifespans in years, the eras a kind is drawn in, how common it is, and what it needs (walks, a minder while the owner is away, a vet). 'vet' entries are reasons for a yearly checkup ('old': only for an old pet). Each list entry names the kinds it suits (or 'any') and the eras (or 'any'). Sentences use {pet} for the pet's name. 'sick' texts follow 'is poorly with'; 'vet' texts follow 'for'; 'photos' describe only what the picture shows (visible things, no injuries; 'out': taken away from home, so never for a moment at home) and carry a first-person caption. 'townsfolk' gives each townsperson pet of life_details.json a kind and a looks line; a null kind is an animal they feed or befriend but do not keep.",
  "kinds": {
   "cat": {
    "label": "cat",
@@ -304,7 +304,13 @@
   "horse": {
    "label": "horse kept at a stable",
    "eras": [
-    "modern"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "frontier",
+    "medieval",
+    "fantasy",
+    "steampunk"
    ],
    "weight": 0.12,
    "lifespan": [
@@ -736,7 +742,12 @@
    ],
    "text": "a beagle mix with floppy ears and a white-tipped tail",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
@@ -830,7 +841,12 @@
    ],
    "text": "a dachshund with a long body and a smooth red coat",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
@@ -849,7 +865,12 @@
    ],
    "text": "a fawn pug with a black wrinkled face",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
@@ -867,7 +888,12 @@
    ],
    "text": "a red-and-white border collie with one ear up",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk",
+    "frontier",
+    "fantasy"
    ]
   },
   {
@@ -1606,6 +1632,411 @@
    "eras": [
     "any"
    ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a black-and-white cat with a crooked white mustache",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a plump gray tabby with a white belly",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a lean ginger tom with a torn-looking ear tuft",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a dark brown cat with amber eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a small smoky-gray cat with a long fluffy tail",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a white cat with a single black spot on the head",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a striped gray tabby with a white chin",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a dilute calico, soft gray, cream and white",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a short-legged black cat with a white locket on the chest",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a sandy tabby with green-gold eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a shaggy brown sheepdog with hair over the eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a small black terrier with a gray beard",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a big brindle mastiff with a heavy head",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a red setter with a silky chestnut coat",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a white sheepdog with a patch over one eye",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a lean tan hound with long ears",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a black-and-tan hound mix with a deep chest",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a curly brown water dog with a curly topknot",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a little white lapdog with a feathery tail",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a sturdy black farm dog with a white chest",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a gray-muzzled yellow mutt with soft ears",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a speckled blue-gray cattle dog",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a gray-brown rabbit like a wild hare",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a white rabbit with black-tipped ears",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a chocolate-brown rabbit with a round face",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a cinnamon-colored rabbit with a fluffy tail",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a black rabbit with a white star on the nose",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "text": "a pair of cooing white doves",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "text": "a little goldfinch with a red face",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "text": "a black-and-white magpie that steals shiny things",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "text": "a pale yellow canary with a brown crest",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "chickens"
+   ],
+   "text": "a dozen mixed hens, brown, white and speckled",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "chickens"
+   ],
+   "text": "two big red hens and a proud red rooster",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "chickens"
+   ],
+   "text": "a handful of gray-speckled hens that follow anyone with a bucket",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a sturdy brown cob with shaggy feathered hooves",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a gray pony with a long white forelock",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a dark bay gelding with two white socks",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a chestnut mare with a flaxen mane",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "tortoise"
+   ],
+   "text": "a small tortoise with a ridged amber shell",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "tortoise"
+   ],
+   "text": "a slow brown tortoise with a high-domed shell",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "ferret"
+   ],
+   "text": "a dark polecat-colored ferret with pale cheeks",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "ferret"
+   ],
+   "text": "a long sandy ferret with a cream mask",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "text": "a gray parrot with a scarlet tail that whistles tunes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "text": "a green parrot with blue wing tips",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "guinea-pig"
+   ],
+   "text": "a smooth black-and-white guinea pig",
+   "eras": [
+    "any"
+   ]
   }
  ],
  "sick": [
@@ -2026,7 +2457,7 @@
    "vet": true,
    "serious": false,
    "eras": [
-    "any"
+    "modern"
    ]
   },
   {
@@ -3381,7 +3812,8 @@
    "text": "a senior wellness check with bloodwork",
    "eras": [
     "modern"
-   ]
+   ],
+   "old": true
   },
   {
    "kinds": [
@@ -3411,16 +3843,6 @@
    "text": "a lump check that came back fine",
    "eras": [
     "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "cat",
-    "dog"
-   ],
-   "text": "a follow-up to make sure the stitches healed",
-   "eras": [
-    "any"
    ]
   },
   {
@@ -3471,7 +3893,8 @@
    "text": "a check of the kidneys, as cats get older",
    "eras": [
     "modern"
-   ]
+   ],
+   "old": true
   },
   {
    "kinds": [
@@ -3520,24 +3943,6 @@
   },
   {
    "kinds": [
-    "cat"
-   ],
-   "text": "a new prescription diet",
-   "eras": [
-    "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "cat"
-   ],
-   "text": "a thyroid recheck",
-   "eras": [
-    "modern"
-   ]
-  },
-  {
-   "kinds": [
     "dog"
    ],
    "text": "a kennel cough vaccine",
@@ -3578,7 +3983,7 @@
    ],
    "text": "a check of a limp after the dog park",
    "eras": [
-    "any"
+    "modern"
    ]
   },
   {
@@ -3621,16 +4026,7 @@
    "kinds": [
     "dog"
    ],
-   "text": "a lyme disease test",
-   "eras": [
-    "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "dog"
-   ],
-   "text": "a joint supplement refill",
+   "text": "a Lyme disease test",
    "eras": [
     "modern"
    ]
@@ -3642,24 +4038,6 @@
    "text": "a lump on the side to be looked at",
    "eras": [
     "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog"
-   ],
-   "text": "a broken tooth from a bone",
-   "eras": [
-    "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog"
-   ],
-   "text": "a pre-trip health certificate",
-   "eras": [
-    "modern"
    ]
   },
   {
@@ -4147,26 +4525,6 @@
     "dog",
     "cat"
    ],
-   "text": "a refill of the daily pills",
-   "eras": [
-    "modern"
-   ]
-  },
-  {
-   "kinds": [
-    "dog",
-    "cat"
-   ],
-   "text": "a follow-up on last month's ear infection",
-   "eras": [
-    "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog",
-    "cat"
-   ],
    "text": "an X-ray of a sore leg",
    "eras": [
     "modern"
@@ -4180,7 +4538,8 @@
    "text": "a talk about getting older and slowing down",
    "eras": [
     "any"
-   ]
+   ],
+   "old": true
   },
   {
    "kinds": [
@@ -4197,18 +4556,6 @@
     "farm"
    ],
    "text": "a hoof trim",
-   "eras": [
-    "any"
-   ]
-  },
-  {
-   "kinds": [
-    "dog",
-    "cat",
-    "rabbit",
-    "ferret"
-   ],
-   "text": "a check-in after the last sick spell",
    "eras": [
     "any"
    ]
@@ -4240,6 +4587,488 @@
    "eras": [
     "any"
    ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a listen to the heart and lungs",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a look in the ears and eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a once-over from nose to tail",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a coat and skin check",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a feel of the belly and the joints",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a temperature check and a treat after",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a weigh-in and a pat on the head",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a talk about how much to feed",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a check that the weight is right for the size",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "any"
+   ],
+   "text": "a look at the teeth and gums",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a check of the paws and claws",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a brush-through to check for fleas",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a nail trim and an ear check",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a check of the coat after the change of season",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog"
+   ],
+   "text": "a listen to the heart, with a lot of wriggling",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a teeth check and a talk about chew toys",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a check of the pads after a summer of walks",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a look at the hips and a trot down the hallway",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a weigh-in on the big scale",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a check of the ears, which flop over and trap the damp",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a talk about how long the walks should be",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a check of the eyes and a clean of the ears",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a weigh-in in a basket on the scale",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a feel of the belly, which was not appreciated",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a look at the claws and a careful trim",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "a check of the teeth, with a lot of complaining",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a check of the ears and the coat",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a weigh-in and a talk about hay",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "a listen to the tummy",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "guinea-pig"
+   ],
+   "text": "a weigh-in and a look at the teeth",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "guinea-pig"
+   ],
+   "text": "a coat check and a nail trim",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird",
+    "parrot"
+   ],
+   "text": "a look at the feathers and the feet",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird",
+    "parrot"
+   ],
+   "text": "a weigh-in and a check of the beak",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "text": "a listen to the breathing and a look at the eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "text": "a check of the beak and a chat about toys",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "text": "a feather check and a talk about diet",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "ferret"
+   ],
+   "text": "a weigh-in and a look at those little teeth",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "ferret"
+   ],
+   "text": "a check of the coat and the ears",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "tortoise"
+   ],
+   "text": "a weigh-in and a look at the eyes",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "tortoise"
+   ],
+   "text": "a check of the feet and claws",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a look at the teeth and a feel of the legs",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a check of the coat and the weight",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a listen to the heart and gut",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "horse"
+   ],
+   "text": "a look at the eyes and the hooves",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "farm"
+   ],
+   "text": "a once-over in the field",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret"
+   ],
+   "text": "a check of the weight and the coat",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig"
+   ],
+   "text": "a quick look at the eyes, ears and teeth",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "guinea-pig"
+   ],
+   "text": "a check of the claws and a trim",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog",
+    "cat"
+   ],
+   "text": "a talk about getting older, and what to watch for",
+   "eras": [
+    "any"
+   ],
+   "old": true
+  },
+  {
+   "kinds": [
+    "dog",
+    "cat",
+    "rabbit"
+   ],
+   "text": "a check of stiff joints, as old pets get",
+   "eras": [
+    "any"
+   ],
+   "old": true
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "a look at a gray muzzle and some stiff mornings",
+   "eras": [
+    "any"
+   ],
+   "old": true
   }
  ],
  "home": [
@@ -4384,7 +5213,7 @@
    ],
    "text": "{pet} got the zoomies at full speed down the hallway.",
    "eras": [
-    "any"
+    "modern"
    ]
   },
   {
@@ -4474,7 +5303,10 @@
    ],
    "text": "{pet} barked at the mail coming through the door.",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk"
    ]
   },
   {
@@ -4492,7 +5324,7 @@
    ],
    "text": "{pet} chewed a new squeaky toy until it stopped squeaking.",
    "eras": [
-    "any"
+    "modern"
    ]
   },
   {
@@ -5170,6 +6002,141 @@
    "eras": [
     "any"
    ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} lay across the doorway so nobody could leave without them.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} chased their own tail until dizzy.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} rested their head on a foot and fell asleep.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} dreamed out loud, paws twitching.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} watched every bite of dinner from a respectful distance.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} groaned happily when the brushing started.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "{pet} curled up on the warmest chair in the house.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "{pet} stalked a sunbeam across the floor.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "{pet} washed their face very carefully, ears last.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "text": "{pet} sat in the window and ignored everyone.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "text": "{pet} flopped over in the hay, perfectly content.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "text": "{pet} sang along with anyone who hummed.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "chickens"
+   ],
+   "text": "{pet} gathered at the back door hoping for scraps.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "text": "{pet} whistled the same three notes all evening.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "ferret"
+   ],
+   "text": "{pet} stole a sock and hid it under the bed.",
+   "eras": [
+    "any"
+   ]
   }
  ],
  "walks": [
@@ -5305,7 +6272,10 @@
    ],
    "text": "{pet} came along and chased a ball in the park.",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk"
    ]
   },
   {
@@ -5379,6 +6349,726 @@
    "eras": [
     "any"
    ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and stopped to sniff every gatepost.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and trotted ahead, looking back every few steps.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and found a puddle worth lying down in.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and carried a stick the whole way home.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and leaned into every hand that reached down.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and chased the shadows of the clouds.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and wanted to say hello to a horse at a fence.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and tugged toward the smell of fresh bread.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and waded into the shallows up to the belly.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and sneezed at a dandelion.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and was very proud of a pine cone.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and flushed a rabbit out of a hedge.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and walked slower and slower on the way home.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and shook off river water right next to everyone.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and stopped dead to watch a duck.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and greeted an old dog with a polite sniff.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and found a bone nobody wanted them to have.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and dragged the walk toward the hill.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and rolled in something that will need a bath.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and rested in the shade under a big tree.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and kept a careful eye on a goose.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and dug a little hole by the path.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and drank from every trough and bucket on the way.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and got their ears scratched by a stranger.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and stared down a crow on a wall.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along, ears flapping in the wind the whole way.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and tried to bring a branch through a narrow gate.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and pranced through the long grass.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and stopped to listen to something only they could hear.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and was perfectly behaved until the ducks.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and wagged at a toddler, who waved back.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and picked up the pace on the way home.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and had a long, serious sniff at a fence post.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and found a friend at the bridge.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and came back with burrs in their coat.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and lay down in the stream to cool off.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and greeted the same neighbor twice.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and pulled toward the butcher's door.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and gave a cat on a wall a wide berth.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and walked nicely on the leash the whole way.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and paused at the top of the hill to look around.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and herded a few chickens back to their yard.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and sniffed out a picnic from a long way off.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and stopped to scratch an ear at the worst moment.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and trotted proudly with a mouthful of leaves.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and splashed after a stick thrown into the pond.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and wanted to go the long way, so they did.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and settled at the feet of everyone who stopped to talk.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and chased a butterfly and lost.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and got muddy paws in the first five minutes.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and found the warmest patch of sun to sit in.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and refused to cross a little wooden bridge.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and leapt the little ditch beside the path.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and sniffed the wind with their nose high.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and made a new friend at the well.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and dashed after a squirrel to the foot of a tree.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and nosed through a pile of fallen leaves.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and lay down flat when it was time to turn back.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and caught a snowflake on their tongue.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and looked very pleased with the whole outing.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and kept the pace easy the whole way.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and came home tired and happy.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and barked once at an echo.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and went straight for the deepest puddle.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and helped carry the basket, or tried to.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and stopped at every doorway to say hello.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and snapped at a bee and thought better of it.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and found a spot by the water to watch the boats.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and trotted beside a cart for a stretch.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and pulled all the way to the bakery.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and greeted a donkey through the fence.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and was the most popular one on the walk.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and kept turning around to make sure nobody got lost.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and dozed off the moment they got home.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and made a game of chasing the wind.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and nosed at the frost on the grass.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and stepped carefully around the nettles.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and wanted to stop at every bench.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and ran circles in the open field.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "text": "{pet} came along and came home with a twig still in their tail.",
+   "eras": [
+    "any"
+   ]
   }
  ],
  "photos": [
@@ -5399,7 +7089,10 @@
    "shows": "sitting inside a cardboard box that is much too small",
    "caption": "The box is clearly the right size, according to {pet}.",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk"
    ]
   },
   {
@@ -5449,7 +7142,10 @@
    "shows": "peering over the edge of a kitchen counter",
    "caption": "{pet} is not supposed to be up there.",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk"
    ]
   },
   {
@@ -5479,7 +7175,7 @@
    "shows": "staring into the camera from very close up",
    "caption": "{pet} would like to speak to the manager.",
    "eras": [
-    "any"
+    "modern"
    ]
   },
   {
@@ -5549,7 +7245,7 @@
    "shows": "gazing up at a bird feeder through a window",
    "caption": "{pet} watching cat television.",
    "eras": [
-    "any"
+    "modern"
    ]
   },
   {
@@ -5579,7 +7275,10 @@
    "shows": "sitting in a sink",
    "caption": "{pet} has found the coolest spot in the house.",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk"
    ]
   },
   {
@@ -5600,7 +7299,8 @@
    "caption": "{pet} found the best stick in the park.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5630,7 +7330,8 @@
    "caption": "{pet} at full speed.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5650,7 +7351,8 @@
    "caption": "{pet} found the water. Bath time later.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5669,7 +7371,7 @@
    "shows": "curled into a tight ball on a dog bed",
    "caption": "{pet} in donut mode.",
    "eras": [
-    "any"
+    "modern"
    ]
   },
   {
@@ -5680,7 +7382,8 @@
    "caption": "{pet} in the new sweater. Very handsome.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5690,7 +7393,8 @@
    "caption": "{pet} loves snow more than anyone.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5710,7 +7414,8 @@
    "caption": "{pet} never misses.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5720,7 +7425,8 @@
    "caption": "{pet} made it to the top before me.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5760,7 +7466,8 @@
    "caption": "{pet} on café duty.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5790,7 +7497,8 @@
    "caption": "{pet} in the leaves. Peak autumn.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -5829,7 +7537,10 @@
    "shows": "peeking out of a cardboard tunnel",
    "caption": "{pet} has a new tunnel.",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk"
    ]
   },
   {
@@ -6059,7 +7770,10 @@
    "shows": "surrounded by shredded cardboard confetti",
    "caption": "{pet} redecorated.",
    "eras": [
-    "any"
+    "modern",
+    "jazz-age",
+    "victorian",
+    "steampunk"
    ]
   },
   {
@@ -6280,7 +7994,8 @@
    "caption": "{pet} out in the paddock.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -6290,7 +8005,8 @@
    "caption": "{pet} waiting for me at the stable.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -6300,7 +8016,8 @@
    "caption": "{pet} after a good grooming.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -6310,7 +8027,8 @@
    "caption": "{pet} at the end of the day.",
    "eras": [
     "any"
-   ]
+   ],
+   "out": true
   },
   {
    "kinds": [
@@ -6410,6 +8128,431 @@
    "caption": "{pet} wanted to see the phone.",
    "eras": [
     "modern"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "curled up in a wicker basket by the fire",
+   "caption": "{pet} has the best seat in the house.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "sitting on a window ledge with the tail hanging down",
+   "caption": "{pet} keeping watch.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "peeking out from under a quilt",
+   "caption": "Found {pet}. Eventually.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "stretched out long on a wooden floor",
+   "caption": "{pet} is twice as long as I thought.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "sitting on a stack of books",
+   "caption": "{pet} has read none of these.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "curled nose to tail on a cushion",
+   "caption": "{pet}, perfectly round.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "watching a candle flame from a safe distance",
+   "caption": "{pet} is fascinated.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat"
+   ],
+   "shows": "tucked into a woolen shawl on a chair",
+   "caption": "{pet} borrowed my shawl.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "asleep by the hearth with the nose on the paws",
+   "caption": "{pet} by the fire. Nothing better.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "sitting by the door with ears up, waiting",
+   "caption": "{pet} heard footsteps.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "lying on a rug with a big bone",
+   "caption": "{pet} is very busy right now.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "rolled onto the back, asking for a belly rub",
+   "caption": "How could I say no to {pet}?",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "curled up in a basket that is too small",
+   "caption": "{pet} outgrew the basket and does not care.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "resting the head on a knee and looking up",
+   "caption": "{pet} and the sad eyes again.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "stretched out across the whole bed",
+   "caption": "{pet} left me about this much room.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "dog"
+   ],
+   "shows": "sitting beside a wooden bowl, very patiently",
+   "caption": "{pet} knows exactly when dinner is.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "shows": "stretched out flat on a cool stone floor",
+   "caption": "{pet} is doing a loaf. A long one.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "shows": "washing a long ear with both paws",
+   "caption": "{pet} cleaning up.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "rabbit"
+   ],
+   "shows": "nose twitching beside a bunch of fresh greens",
+   "caption": "Supper for {pet}.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "shows": "singing with the beak open wide",
+   "caption": "{pet} has a lot to say this morning.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "bird"
+   ],
+   "shows": "perched on the rim of a little dish of seed",
+   "caption": "{pet} at breakfast.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "parrot"
+   ],
+   "shows": "peering closely at the camera with one eye",
+   "caption": "{pet} wants to know what I am doing.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "chickens"
+   ],
+   "shows": "gathered around a scattering of grain by the back step",
+   "caption": "The hens at breakfast.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "chickens"
+   ],
+   "shows": "settled on a nest of straw",
+   "caption": "{pet}, very busy being broody.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "curled up asleep by the fire",
+   "caption": "{pet} found the warmest spot.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "sitting very still, ears pricked",
+   "caption": "{pet} heard something.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "sniffing at a basket of apples",
+   "caption": "{pet} is very interested in the apples.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "peeking around the corner of a doorway",
+   "caption": "Spotted: {pet}.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "sitting on a woven rug in the morning light",
+   "caption": "Good morning, {pet}.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "asleep in a pile of soft blankets",
+   "caption": "{pet} is not getting up today.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "tucked into a wooden crate lined with straw",
+   "caption": "{pet} made a nest.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "washing a paw on a windowsill",
+   "caption": "{pet} getting ready for the day.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "looking out of a half-open door",
+   "caption": "{pet} thinking about an adventure.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "curled up beside a pair of boots",
+   "caption": "{pet} keeping my boots warm.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "cat",
+    "dog",
+    "rabbit",
+    "ferret",
+    "guinea-pig",
+    "hamster"
+   ],
+   "shows": "sitting in a patch of evening light by the window",
+   "caption": "{pet} at the end of the day.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "fish"
+   ],
+   "shows": "turning a slow circle in a glass bowl",
+   "caption": "{pet} on the morning lap.",
+   "eras": [
+    "any"
+   ]
+  },
+  {
+   "kinds": [
+    "tortoise"
+   ],
+   "shows": "peering out of the shell on a warm floor",
+   "caption": "{pet} came out to see what is going on.",
+   "eras": [
+    "any"
    ]
   }
  ],

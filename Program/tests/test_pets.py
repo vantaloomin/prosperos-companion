@@ -1,9 +1,13 @@
 """Pets with lives of their own (companion/life/pets.py)."""
+import json
 from datetime import date, timedelta
 
 import pytest
 from conftest import send, set_life, show
 
+from companion import moods
+from companion.characters import require_current
+from companion.images import prompts
 from companion.life import home, pets, trips
 from companion.world import life_details
 from companion.world.source import CatalogWorld
@@ -48,7 +52,7 @@ def test_pets_suit_the_city_era_and_stay_the_same_for_the_same_seed():
     first = pets.draw('seed', 'pet', 'modern', NOW)
     assert pets.draw('seed', 'pet', 'modern', NOW) == first
     kinds = {pets.draw(f'seed{n}', 'pet', 'medieval', NOW)['variety'] for n in range(300)}
-    assert kinds <= {'cat', 'dog', 'rabbit', 'tortoise', 'ferret', 'chickens'} and {'cat', 'dog'} <= kinds
+    assert kinds <= {'cat', 'dog', 'rabbit', 'tortoise', 'ferret', 'chickens', 'horse'} and {'cat', 'dog'} <= kinds
     modern = {pets.draw(f'seed{n}', 'pet', 'modern', NOW)['variety'] for n in range(600)}
     assert {'hamster', 'fish', 'lizard'} <= modern and 'horse' in modern  # common pets and a few rare ones
     born = date.fromisoformat(first['details']['born'])
@@ -255,3 +259,156 @@ def test_an_added_pet_without_an_age_fits_its_looks_and_ages_read_in_years():
     assert pets.age_from_looks('a sleek black cat', 'cat', NOW) is None
     assert pets.age_text(NOW - timedelta(days=400), NOW) == '1 year old'
     assert pets.age_text(NOW - timedelta(days=200), NOW) == '6 months old'
+
+
+def test_a_pet_that_died_today_is_remembered_not_listed_as_theirs(client, mira, clock):
+    client.get('/api/life/pets')
+    tid = timeline(client)
+    with connect(client) as connection:
+        found = pets.of_home(connection, tid)[0]
+        # The home keeps it through the day it died: `until` is the day after.
+        connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, text, created_at) VALUES "
+                           "('d1', ?, ?, 'died', 'of old age', '2026-10-04')", (found['key'], NOW.isoformat()))
+        connection.execute('UPDATE home_items SET until=? WHERE id=?', ((NOW + timedelta(days=1)).isoformat(),
+                                                                         found['item_id']))
+        lines = [line for _id, line in home.context_lines(connection, tid, NOW)]
+        assert pets.at_home(connection, found, NOW, 'x', 'Mira') is None
+    data = client.get('/api/life/pets').json()
+    assert not data['pets'] and [pet['name'] for pet in data['remembered']] == ['Biscuit']
+    assert not any(line.startswith('- Pet: Biscuit') for line in lines)
+    assert any('cat Biscuit died of old age' in line for line in lines)
+
+
+def test_changing_the_pets_settings_relives_only_the_days_ahead(client, mira, clock):
+    client.get('/api/life/pets')
+    tid = timeline(client)
+    ahead, past = NOW + timedelta(days=3), NOW - timedelta(days=1)
+    with connect(client) as connection:
+        found = pets.of_home(connection, tid)[0]
+        # Their agenda is planned a few days ahead, and their pet's life with it.
+        connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, until, text, created_at) VALUES "
+                           "('s1', ?, ?, 'sick', ?, 'an upset stomach', '2026-10-04')",
+                           (found['key'], past.isoformat(), NOW.isoformat()))
+        connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, text, created_at) VALUES "
+                           "('d1', ?, ?, 'died', 'of old age', '2026-10-04')", (found['key'], ahead.isoformat()))
+        connection.execute('UPDATE home_items SET until=? WHERE id=?', ((ahead + timedelta(days=1)).isoformat(),
+                                                                         found['item_id']))
+        connection.execute('INSERT INTO pet_state (pet_key, through) VALUES (?, ?) ON CONFLICT (pet_key) DO UPDATE '
+                           'SET through=excluded.through', (found['key'], (NOW + timedelta(days=7)).isoformat()))
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, "
+                           "block, entry, basis, created_at) VALUES ('a1', ?, 'companion', 'evening@x', '', '', ?, "
+                           "'evening', ?, 'test', '')", (tid, ahead.isoformat(),
+                                                       '{"summary": "Mira said goodbye to Biscuit.", "home": '
+                                                       '{"pet_event": "d1"}}'))
+    set_life(client, pets_can_die=False)
+    with connect(client, False) as connection:
+        assert pets.died_on(connection, found['key']) is None
+        assert [row['id'] for row in pets.log(connection, found['key'], past, NOW + timedelta(days=7))] == ['s1']
+        assert connection.execute('SELECT through FROM pet_state WHERE pet_key=?',
+                                  (found['key'],)).fetchone()[0] <= NOW.isoformat()
+        assert pets.of_home(connection, tid, ahead + timedelta(days=2))
+        assert not connection.execute("SELECT id FROM life_agenda WHERE id='a1'").fetchall()
+
+
+def test_older_eras_get_no_modern_breeds_or_pet_lines():
+    modern = ('pug', 'border collie', 'dachshund', 'dog park', 'squeaky toy', 'zoomies', 'cat television')
+    seen = [pets.looks_for(f'seed{n}', 'pet', 'dog', 'medieval') for n in range(300)]
+    seen += [pets.moment({'name': 'Rex', 'kind': kind, 'era': 'medieval'}, f'seed{n}') or ''
+             for n in range(300) for kind in ('dog', 'cat')]
+    assert not [line for line in seen if any(word in line for word in modern)]
+
+
+def test_checkup_reasons_need_no_history_and_age_talk_waits_for_old_age():
+    texts = {item['text'] for item in pets.bank()['vet']}
+    assert not [text for text in texts if any(word in text for word in ('stitches', 'last month', 'last sick',
+                                                                        'broken tooth', 'recheck', 'refill'))]
+    assert 'a Lyme disease test' in texts
+    young = biscuit(NOW - timedelta(days=2 * 365))
+    old = biscuit(NOW - timedelta(days=14 * 365))
+    said = {pets.vet_entry(young, NOW + timedelta(days=n)) for n in range(400)}
+    assert not [text for text in said if 'older' in text or 'senior' in text]
+    assert any('older' in pets.vet_entry(old, NOW + timedelta(days=n)) for n in range(400))
+
+
+def test_a_sitter_costs_money_even_on_a_free_trip_and_a_trip_ahead_reads_as_a_plan(client, mira, clock,
+                                                                                    monkeypatch):
+    client.get('/api/life/pets')
+    tid = timeline(client)
+    monkeypatch.setattr(trips, 'local_people', lambda connection, timeline_id: [])
+    start = NOW + timedelta(days=3)
+    with connect(client) as connection:
+        companion_id = connection.execute('SELECT id FROM companions').fetchone()[0]
+        connection.execute("INSERT INTO trips (id, companion_id, timeline_id, start_date, end_date, city_id, city_name, "
+                           "kind, cost, created_at) VALUES ('t1', ?, ?, ?, ?, 'chicago', 'Chicago', 'family', 0, '')",
+                           (companion_id, tid, start.isoformat(), (start + timedelta(days=2)).isoformat()))
+        bought = trips.purchases(connection, tid, NOW, start)
+    assert [item['text'] for item in bought] == ['paid someone to look after Biscuit during the trip']
+    with connect(client, False) as connection:
+        lines = [text for _id, text in trips.context_lines(connection, require_current(connection), clock.now())]
+    assert '- While you are away: Biscuit will be with a paid sitter.' in lines, lines
+    dog = {**biscuit(NOW), 'kind': 'dog'}
+    along = [pets.minder({**dog, 'key': f'd{n}'}, {'id': 't1'}, [], ahead=True)['text'] for n in range(20)]
+    assert 'Biscuit is coming along' in along and 'Biscuit came along' not in along
+
+
+def test_add_a_pet_offers_the_kinds_of_the_city_era_and_the_ones_they_have(client, mira):
+    modern = [kind['id'] for kind in client.get('/api/life/pets').json()['kinds']]
+    assert {'hamster', 'snake', 'horse'} <= set(modern)
+    with connect(client) as connection:
+        connection.execute("UPDATE home_state SET era='medieval'")
+    medieval = [kind['id'] for kind in client.get('/api/life/pets').json()['kinds']]
+    assert 'horse' in medieval and 'cat' in medieval and not {'hamster', 'snake', 'lizard', 'fish'} & set(medieval)
+    client.post('/api/life/pets', json={'name': 'Nibbles', 'kind': 'hamster'})
+    assert 'hamster' in [kind['id'] for kind in client.get('/api/life/pets').json()['kinds']]
+
+
+def test_a_death_on_a_day_already_drawn_is_still_told_and_weighs_on_their_mood(client, mira, clock):
+
+    today = client.get('/api/life/pets').json()['today']
+    tid = timeline(client)
+    with connect(client) as connection:
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, "
+                           "block, entry, basis, created_at) VALUES ('a1', ?, 'companion', 'evening@x', '', '', ?, "
+                           "'evening', ?, 'test', '')", (tid, today, '{"summary": "Mira read at home.", '
+                                                                      '"activity": "reading"}'))
+    added = client.post('/api/life/pets', json={'name': 'Old Tom', 'kind': 'cat', 'looks': 'a gray tabby', 'age': 25})
+    assert [pet['name'] for pet in added.json()['remembered']] == ['Old Tom']
+    with connect(client, False) as connection:
+        entry = json.loads(connection.execute("SELECT entry FROM life_agenda WHERE id='a1'").fetchone()[0])
+        feelings = moods.day_moods(connection, require_current(connection), clock.now())
+    assert entry['summary'] == 'Mira read at home. Mira said goodbye to Old Tom, who died of old age.'
+    assert entry['mood'] == 'heartbroken' and entry['home']['pet_event']
+    assert ('sad', 2) in [(mood['feeling'], mood['intensity']) for mood in feelings if 'Old Tom died' in mood['reason']]
+
+
+@pytest.mark.parametrize('era', ['modern', 'jazz-age', 'victorian', 'steampunk', 'frontier', 'medieval', 'fantasy'])
+def test_every_era_has_a_hundred_entries_per_kind_of_line(era):
+    data = pets.bank()
+    for key in ('looks', 'sick', 'vet', 'home', 'walks', 'photos'):
+        fitting = [item for item in data[key] if pets.fits(item, None, era) and not item.get('out')]
+        assert len(fitting) >= 100, (era, key)
+
+
+def test_photos_at_home_are_never_taken_outdoors_and_suit_the_home():
+    plumbed = ('sink', 'counter', 'cardboard', 'laptop', 'mail')
+    for era in ('modern', 'medieval'):
+        for kind in ('dog', 'cat', 'rabbit', 'tortoise'):
+            found = {**biscuit(NOW - timedelta(days=900), era=era, kind=kind)}
+            shows = {pets.photo(found, f's{n}')['shows'] for n in range(300)}
+            outdoor = {item['shows'] for item in pets.bank()['photos'] if item.get('out')}
+            assert shows and not shows & outdoor
+            assert era == 'modern' or not [text for text in shows if any(word in text for word in plumbed)]
+    assert {'splashing through a shallow stream', 'surrounded by fall leaves in a park'} <= outdoor
+    lines = {pets.moment({'name': 'Rex', 'kind': 'dog', 'era': 'medieval'}, f's{n}') for n in range(300)}
+    assert not [line for line in lines if 'mail' in line]
+
+
+def test_a_digest_of_several_moments_is_not_drawn_as_a_pet_photo(client, mira):
+    client.get('/api/life/pets')
+    with connect(client) as connection:
+        tid = timeline(client)
+        found = pets.of_home(connection, tid)[0]
+        event = {'moment': {'pet_photo': {'item': found['item_id'], 'shows': 'curled up on a blanket'}}}
+        settings = {'style': ''}
+        assert 'curled up on a blanket' in prompts.pet_prompt(connection, tid, [event], settings)
+        assert prompts.pet_prompt(connection, tid, [event, {'moment': {}}], settings) == ''

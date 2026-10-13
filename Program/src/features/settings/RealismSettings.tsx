@@ -111,7 +111,7 @@ const UPKEEP_LEVELS = [
   { label: 'Off', hint: 'Laundry, dishes and clutter never come up. Their place stays as it is.' },
   { label: 'Light', hint: 'Mess builds slowly and they deal with it early. A tidy, easy home.' },
   { label: 'True to life', hint: 'Laundry, dishes and clutter build up with their week, and they catch up the way their habit says, with a big clean on a day off.' },
-  { label: 'Messy', hint: 'More mess, piling up longer, and big cleans that wait until the place is a real state.' },
+  { label: 'Messy', hint: 'More mess, piling up longer, and big cleans that wait until the place is a real mess.' },
 ]
 
 /**
@@ -216,7 +216,7 @@ export function AdultSideSettings() {
 /** How much happens to pets (companion/life/pets.py), from nothing at all to a dramatic life. */
 const PET_LEVELS = [
   { label: 'Off', hint: 'Pets stay well: no off days, vet visits or losses.' },
-  { label: 'Light', hint: 'Now and then a pet has an off day or a checkup. Short spells, small bills.' },
+  { label: 'Light', hint: 'Now and then a pet has an off day or a checkup. Short spells and few vet visits.' },
   { label: 'True to life', hint: 'Off days, vet visits and checkups about as often as real pets have them, more as they grow old.' },
-  { label: 'Dramatic', hint: 'More illnesses, longer spells and bigger vet bills.' },
+  { label: 'Dramatic', hint: 'More illnesses and longer spells, so more vet visits and more vet bills.' },
 ]
