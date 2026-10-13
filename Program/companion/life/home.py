@@ -705,6 +705,7 @@ def rebuild(connection, timeline_id: str, day: date, now):
     upcoming agenda entries that mention the home, so both are drawn again from what is there now."""
     ahead = many(connection, 'SELECT * FROM home_log WHERE timeline_id=? AND local_date>?', (timeline_id,
                                                                                               day.isoformat()))
+    pets.forget_ahead(connection, [f"home:{row['id']}" for row in pets.home_rows(connection, timeline_id)], day)
     for row in ahead:
         if row['kind'] == 'plant-lost':
             connection.execute('UPDATE home_items SET until=NULL WHERE id=? AND until=?', (row['item_id'],

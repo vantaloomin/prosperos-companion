@@ -255,3 +255,46 @@ def test_an_added_pet_without_an_age_fits_its_looks_and_ages_read_in_years():
     assert pets.age_from_looks('a sleek black cat', 'cat', NOW) is None
     assert pets.age_text(NOW - timedelta(days=400), NOW) == '1 year old'
     assert pets.age_text(NOW - timedelta(days=200), NOW) == '6 months old'
+
+
+def test_a_pet_that_died_today_is_remembered_not_listed_as_theirs(client, mira, clock):
+    client.get('/api/life/pets')
+    tid = timeline(client)
+    with connect(client) as connection:
+        found = pets.of_home(connection, tid)[0]
+        # The home keeps it through the day it died: `until` is the day after.
+        connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, text, created_at) VALUES "
+                           "('d1', ?, ?, 'died', 'of old age', '2026-10-04')", (found['key'], NOW.isoformat()))
+        connection.execute('UPDATE home_items SET until=? WHERE id=?', ((NOW + timedelta(days=1)).isoformat(),
+                                                                         found['item_id']))
+        lines = [line for _id, line in home.context_lines(connection, tid, NOW)]
+        assert pets.at_home(connection, found, NOW, 'x', 'Mira') is None
+    data = client.get('/api/life/pets').json()
+    assert not data['pets'] and [pet['name'] for pet in data['remembered']] == ['Biscuit']
+    assert not any(line.startswith('- Pet: Biscuit') for line in lines)
+    assert any('cat Biscuit died of old age' in line for line in lines)
+
+
+def test_changing_the_pets_settings_relives_only_the_days_ahead(client, mira, clock):
+    client.get('/api/life/pets')
+    tid = timeline(client)
+    ahead, past = NOW + timedelta(days=3), NOW - timedelta(days=1)
+    with connect(client) as connection:
+        found = pets.of_home(connection, tid)[0]
+        # Their agenda is planned a few days ahead, and their pet's life with it.
+        connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, until, text, created_at) VALUES "
+                           "('s1', ?, ?, 'sick', ?, 'an upset stomach', '2026-10-04')",
+                           (found['key'], past.isoformat(), NOW.isoformat()))
+        connection.execute("INSERT INTO pet_log (id, pet_key, local_date, kind, text, created_at) VALUES "
+                           "('d1', ?, ?, 'died', 'of old age', '2026-10-04')", (found['key'], ahead.isoformat()))
+        connection.execute('UPDATE home_items SET until=? WHERE id=?', ((ahead + timedelta(days=1)).isoformat(),
+                                                                         found['item_id']))
+        connection.execute('INSERT INTO pet_state (pet_key, through) VALUES (?, ?) ON CONFLICT (pet_key) DO UPDATE '
+                           'SET through=excluded.through', (found['key'], (NOW + timedelta(days=7)).isoformat()))
+    set_life(client, pets_can_die=False)
+    with connect(client, False) as connection:
+        assert pets.died_on(connection, found['key']) is None
+        assert [row['id'] for row in pets.log(connection, found['key'], past, NOW + timedelta(days=7))] == ['s1']
+        assert connection.execute('SELECT through FROM pet_state WHERE pet_key=?',
+                                  (found['key'],)).fetchone()[0] <= NOW.isoformat()
+        assert pets.of_home(connection, tid, ahead + timedelta(days=2))

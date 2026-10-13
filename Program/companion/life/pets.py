@@ -308,6 +308,42 @@ def evolve(connection, found: dict, through: date, now) -> None:
                            ((dead + timedelta(days=1)).isoformat(), found['item_id']))
 
 
+def forget_ahead(connection, keys: list[str], day: date) -> None:
+    """Forget what was written for these pets after `day` (their agenda is planned a few days ahead, and their
+    lives with it), so the days ahead follow a changed pet or a changed Realism setting; up to `day` stays put."""
+    for key in keys:
+        died = died_on(connection, key)
+        if died and died > day and key.startswith('home:'):
+            connection.execute('UPDATE home_items SET until=NULL WHERE id=? AND until=?',
+                               (key.removeprefix('home:'), (died + timedelta(days=1)).isoformat()))
+        connection.execute('DELETE FROM pet_log WHERE pet_key=? AND local_date>?', (key, day.isoformat()))
+        connection.execute('UPDATE pet_state SET through=? WHERE pet_key=? AND through>?',
+                           (day.isoformat(), key, day.isoformat()))
+
+
+def settings_changed(connection, now) -> None:
+    """The Pets slider or "Pets can die" changed: the days ahead are lived again under the new settings, and the
+    upcoming agenda entries that told of them are drawn again. Days up to each companion's today stay put."""
+    rows = many(connection, 'SELECT c.active_timeline_id AS timeline_id, v.timezone FROM companions c '
+                'JOIN character_versions v ON v.id=c.active_version_id')
+    days = []
+    for row in rows:
+        today = now.astimezone(zone(row['timezone'] or 'UTC')).date()
+        days.append(today)
+        forget_ahead(connection, [f"home:{item['id']}" for item in home_rows(connection, row['timeline_id'])], today)
+        removed = connection.execute(
+            "DELETE FROM life_agenda WHERE timeline_id=? AND subject='companion' AND status='upcoming' "
+            "AND json_extract(entry, '$.home.pet_event') IS NOT NULL", (row['timeline_id'],)).rowcount
+        if removed:
+            connection.execute("UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND "
+                               "subject='companion'", (stamp(now), row['timeline_id']))
+    # Everyone else's pets (the circle's, the townsfolk's and the user's own) from the earliest of those days.
+    day = min(days, default=now.astimezone(zone('UTC')).date())
+    others = many(connection, "SELECT pet_key FROM pet_state WHERE through>? AND pet_key NOT LIKE 'home:%'",
+                  (day.isoformat(),))
+    forget_ahead(connection, [row['pet_key'] for row in others], day)
+
+
 def log(connection, key: str, start: date, end: date) -> list[dict]:
     return many(connection, 'SELECT * FROM pet_log WHERE pet_key=? AND local_date>=? AND local_date<=? '
                 'ORDER BY local_date, kind', (key, start.isoformat(), end.isoformat()))
@@ -447,7 +483,7 @@ def home_rows(connection, timeline_id: str) -> list[dict]:
 
 
 def of_home(connection, timeline_id: str, day: date | None = None) -> list[dict]:
-    """The companion's pets: those at home on `day` (all ever kept when no day is given), oldest first."""
+    """The companion's pets: those alive and at home on `day` (all ever kept when no day is given), oldest first."""
     state = optional(connection, 'SELECT era, started FROM home_state WHERE timeline_id=?', (timeline_id,))
     if not state:
         return []
@@ -456,7 +492,12 @@ def of_home(connection, timeline_id: str, day: date | None = None) -> list[dict]
     for row in home_rows(connection, timeline_id):
         if day and not (row['since'] <= day.isoformat() and (row['until'] is None or row['until'] > day.isoformat())):
             continue
-        result.append({**from_home_item(row, era, started), 'until': row['until'], 'edited': row['edited']})
+        found = from_home_item(row, era, started)
+        # The home keeps a pet through the day it died (its `until` is the day after), but from that day it is
+        # remembered, not one of the pets they have now.
+        if day and (died := died_on(connection, found['key'])) and died <= day:
+            continue
+        result.append({**found, 'until': row['until'], 'edited': row['edited']})
     return result
 
 
@@ -568,7 +609,10 @@ def untold(connection, timeline_id: str, day: date, first_name: str) -> dict | N
 
 def at_home(connection, found: dict, day: date, seed: str, first_name: str) -> str | None:
     """A sentence about the pet while the companion is at home: a sick pet rests, a well one does its thing."""
-    if status_on(connection, found, day)['state'] in ('sick', 'vet'):
+    state = status_on(connection, found, day)['state']
+    if state == 'died':
+        return None
+    if state in ('sick', 'vet'):
         return f"{found['name']} rested, still poorly, and {first_name} checked on them often."
     return moment(found, seed)
 
