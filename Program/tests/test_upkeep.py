@@ -195,3 +195,16 @@ def test_a_big_clean_before_set_it_is_not_the_last_one(client, mira):
     assert disaster['last_big_clean'] is None
     system = client.get('/api/context/preview').json()['system']
     assert 'The place is a mess.' in system and 'you did a big clean' not in system
+
+
+def test_turning_housework_off_forgets_upcoming_housework_moments(client, mira):
+    tid = timeline(client)
+    with connect(client) as connection:
+        connection.execute("INSERT INTO life_agenda (id, timeline_id, subject, slot_key, starts_at, ends_at, local_date, "
+                           "block, entry, basis, created_at) VALUES ('a1', ?, 'companion', 'evening@x', '', '', ?, "
+                           "'evening', ?, 'test', '')", (tid, (TODAY + timedelta(days=3)).isoformat(),
+                                                       '{"summary": "Mira did chores. Ran the dishwasher.", '
+                                                       '"upkeep": {"kind": "dishes"}}'))
+    assert client.put('/api/life/settings', json={'upkeep_realism': 0}).status_code == 200
+    with connect(client, False) as connection:
+        assert not connection.execute("SELECT id FROM life_agenda WHERE id='a1'").fetchall()

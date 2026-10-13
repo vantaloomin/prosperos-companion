@@ -383,6 +383,13 @@ def rebuild(connection, timeline_id: str, now):
                            (stamp(now), timeline_id, COMPANION))
 
 
+def settings_changed(connection, now):
+    """The Housework slider changed: upcoming moments that mention housework are drawn again under it (none when it
+    is off). Days already kept stay as they were."""
+    for row in many(connection, 'SELECT active_timeline_id AS timeline_id FROM companions'):
+        rebuild(connection, row['timeline_id'], now)
+
+
 # --- Chat, pictures and Life admin ---
 
 def last_big_clean(days: list[dict], state: dict | None = None) -> str | None:
