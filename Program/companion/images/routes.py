@@ -11,12 +11,13 @@ from companion.errors import DomainError
 from companion.images import backends, jobs, node_packs, photos, storage
 from companion.images.adapters.base import AdapterError
 from companion.images.adapters.comfyui import (
-    FILE_INPUTS,
+    FAMILIES,
     SAMPLER_LISTS,
     built_in,
     default_files,
     default_sampler,
-    krea_first,
+    family_first,
+    family_of,
 )
 from companion.images.adapters.hosted import api_base
 from companion.images.models import (
@@ -106,7 +107,8 @@ def backend_workflows(request: Request, backend_id: str):
         config = decode(backends.get(connection, backend_id)['config'])
     return {**{key: config.get(key) or '' for key in ('workflow', 'reference_workflow')},
             'built_in': json.dumps(built_in(config)),
-            'built_in_reference': json.dumps(built_in(config, reference=True))}
+            # Empty for a family with no built-in reference workflow (Anima, Booru models).
+            'built_in_reference': json.dumps(reference) if (reference := built_in(config, reference=True)) else ''}
 
 
 @router.post('/backends/{backend_id}/move')
@@ -178,8 +180,8 @@ async def list_models(request: Request, body: ModelProbe):
 @router.get('/backends/{backend_id}/files')
 async def backend_files(request: Request, backend_id: str):
     """The model files and LoRAs a ComfyUI server offers the built-in workflow, from the address the
-    user entered, Krea 2's first (`krea` lists those). The character's own LoRA is left out of the
-    LoRA list: it is applied by itself. An unreachable server is not an error: the page then takes
+    user entered, the backend's model family's first (`matching` lists those). The character's own LoRA
+    is left out of the LoRA list: it is applied by itself (Krea 2 only). An unreachable server is not an error: the page then takes
     typed names."""
     with db(request).connect() as connection:
         backend = backends.get(connection, backend_id)
@@ -188,10 +190,13 @@ async def backend_files(request: Request, backend_id: str):
     if backend['kind'] != 'comfyui':
         raise DomainError('Only a ComfyUI server lists its model files.', 422)
     config = decode(backend['config'])
-    keys = [*FILE_INPUTS, 'lora', *SAMPLER_LISTS]
-    result = {'ok': True, 'error': None, 'defaults': default_files(), 'sampler_defaults': default_sampler(),
-              'options': {key: [] for key in keys},
-              'krea': {key: [] for key in keys}, 'character_lora': character['comfy_name'] if character else None}
+    family = family_of(config)
+    if not FAMILIES[family].character_lora:
+        character = None
+    keys = [*FAMILIES[family].files, 'lora', *SAMPLER_LISTS]
+    result = {'ok': True, 'error': None, 'family': family, 'defaults': default_files(family),
+              'sampler_defaults': default_sampler(family), 'options': {key: [] for key in keys},
+              'matching': {key: [] for key in keys}, 'character_lora': character['comfy_name'] if character else None}
     try:
         found = await runner(request).adapters['comfyui'].files(config)
     except AdapterError as error:
@@ -199,7 +204,7 @@ async def backend_files(request: Request, backend_id: str):
         return result
     for key in keys:
         options = [name for name in found.get(key, []) if not (key == 'lora' and character and name == character['comfy_name'])]
-        result['options'][key], result['krea'][key] = krea_first(key, options)
+        result['options'][key], result['matching'][key] = family_first(key, options, family)
     return result
 
 

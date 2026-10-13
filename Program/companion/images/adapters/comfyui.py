@@ -3,18 +3,22 @@
 The app only talks to a ComfyUI server the user configured. It never starts, stops or restarts
 one, and cancelling removes or interrupts only the prompt this app queued.
 
-The built-in workflow targets Krea 2 Turbo with the files ComfyUI's own Krea 2 template uses
+Each backend has a model family (Settings > Images; Vanta, 2026-10-13), and each family a built-in
+workflow (FAMILIES). Krea 2 targets Krea 2 Turbo with the files ComfyUI's own Krea 2 template uses
 (UNETLoader with `krea2_turbo_fp8_scaled.safetensors`, CLIPLoader of type `krea2` with
 `qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, 8 steps at CFG 1 with
-euler/simple). It ran on an RTX 5090 with ComfyUI 0.39.0, with other files chosen for the three
-loaders. The check reports any node or model file the server does not have. A custom workflow in
-ComfyUI's API format can replace it, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}`
-and `{{height}}` where the request's values belong.
+euler/simple); it ran on an RTX 5090 with ComfyUI 0.39.0, with other files chosen for the three
+loaders, and is the default. Qwen Image 2.1, Anima and the SDXL-based "Booru" models (Pony,
+Illustrious) and Z-Image Turbo follow ComfyUI's own templates for them, on their Turbo files where there is one. The
+check reports any node or model file the server does not have. A custom workflow in ComfyUI's API
+format can replace a built-in one, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
+`{{height}}` where the request's values belong.
 
-With the built-in workflow the user can pick other files from their server for its three loaders
-(`unet_name`, `clip_name` with its `type`, and `vae_name` in the backend's config); `files` asks the
-server which ones it has. Names are kept exactly as the server lists them, subfolder and all
-(`Krea 2\\model.safetensors` on Windows). A custom workflow is used exactly as given.
+With a built-in workflow the user can pick other files from their server for its loaders
+(`unet_name`, `clip_name` with its `type`, and `vae_name`, or a Booru model's `ckpt_name`, in the
+backend's config); `files` asks the server which ones it has. Names are kept exactly as the server
+lists them, subfolder and all (`Krea 2\\model.safetensors` on Windows). A custom workflow is used
+exactly as given.
 
 Onboarding portraits follow an earlier picture. Those use a second workflow with
 `{{reference_image}}` (a LoadImage node's image); the app uploads the picture through
@@ -22,11 +26,14 @@ Onboarding portraits follow an earlier picture. Those use a second workflow with
 the Krea 2 Identity Edit setup: its LoRA on the built-in workflow's model, and the reference read by
 the Krea2EditModelPatch and Krea2EditGroundedEncode nodes of the comfyui-krea2edit pack (Apache-2.0,
 no Python dependencies), which ComfyUI has no core equivalent for. It takes the same loader files
-and sampler settings. A custom reference workflow replaces it.
+and sampler settings. Qwen Image 2.1's (`qwen-image-2.1-turbo-reference.json`) hands the picture to
+ComfyUI's own TextEncodeQwenImage21. Z-Image Turbo, Anima and Booru models have no built-in one, so they make
+pictures from a reference only with the user's own. A custom reference workflow replaces a built-in one.
 """
 import asyncio
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -38,32 +45,95 @@ from companion.images import node_packs
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
 from companion.providers.urls import is_loopback
 
-TEMPLATE = Path(__file__).parent.parent / 'workflows' / 'krea2-turbo.json'
-TEMPLATE_NAME = 'krea2-turbo'
-REFERENCE_TEMPLATE = TEMPLATE.with_name('krea2-turbo-reference.json')
-REFERENCE_TEMPLATE_NAME = 'krea2-turbo reference'
+WORKFLOWS = Path(__file__).parent.parent / 'workflows'
 NUMERIC = {'{{seed}}', '{{width}}', '{{height}}'}
 MODEL_KEYS = ('unet_name', 'ckpt_name')
 LORA_NODE = 'prospero-lora'
 REFERENCE = '{{reference_image}}'
 MARKERS = re.compile(r'\{\{(?:prompt|negative|seed|width|height|reference_image)\}\}')
-# The built-in workflow's loader inputs the user can choose files for: config key -> (node, input).
+# The built-in workflows' loader inputs the user can choose files for: config key -> (node, input).
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
-               'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
+               'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name'),
+               'ckpt_name': ('CheckpointLoaderSimple', 'ckpt_name')}
 LORA_INPUT = ('LoraLoaderModelOnly', 'lora_name')
 # Custom nodes the built-in workflows use, with where to get them.
 NODE_PACKS = {name: ('Krea 2 Identity Edit', 'https://github.com/lbouaraba/comfyui-krea2edit')
               for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')}
 # The built-in workflow's KSampler settings the user can change for their model; unset means the
-# workflow's own (8 steps, CFG 1, euler, simple: Krea 2 Turbo's).
+# workflow's own (Krea 2 Turbo's are 8 steps, CFG 1, euler, simple).
 SAMPLER_INPUTS = ('steps', 'cfg', 'sampler_name', 'scheduler')
 SAMPLER_LISTS = ('sampler_name', 'scheduler')
-# Which listed files are Krea 2's, matched on the whole path so a "Krea 2" folder counts. ComfyUI
-# cannot say a file's model family, so these only sort a list; nothing is hidden for not matching.
-KREA_FILES = {'unet_name': re.compile(r'krea|kr2|kera', re.IGNORECASE),
-              'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?4b', re.IGNORECASE),
-              'vae_name': re.compile(r'qwen.*vae|krea', re.IGNORECASE),
-              'lora': re.compile(r'krea|kr2|kera', re.IGNORECASE)}
+SEPARATE = ('unet_name', 'clip_name', 'clip_type', 'vae_name')
+
+
+@dataclass(frozen=True)
+class Family:
+    """A kind of image model with a built-in workflow of its own (Vanta, 2026-10-13: not Krea 2 every time).
+    `files` are the loader inputs the user picks files for; `matching` says which listed files look like
+    this family's (matched on the whole path, so a "Krea 2" folder counts). ComfyUI cannot say a file's
+    model family, so `matching` only sorts a list; nothing is hidden for not matching. `reference` is
+    None where the family has no way to follow a picture with ComfyUI's own nodes."""
+    label: str
+    template: str
+    reference: str | None
+    files: tuple[str, ...]
+    matching: dict
+    # The character's adopted LoRA is trained on Krea 2 (companion/lora/trainer.py), so only Krea 2 applies it.
+    character_lora: bool = False
+    # The style its prompts start with when the backend has none of its own (images/backends.own_style);
+    # None keeps the general one.
+    style: str | None = None
+
+
+QWEN_VAE = re.compile(r'qwen.*vae', re.IGNORECASE)
+ANIME = 'Anime illustration'
+FAMILIES = {
+    'krea2': Family('Krea 2', 'krea2-turbo', 'krea2-turbo-reference', SEPARATE, {
+        'unet_name': re.compile(r'krea|kr2|kera', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?4b', re.IGNORECASE),
+        'vae_name': re.compile(r'qwen.*vae|krea', re.IGNORECASE),
+        'lora': re.compile(r'krea|kr2|kera', re.IGNORECASE)}, character_lora=True),
+    # Qwen Image 2.1 (Comfy-Org/Qwen-Image-2.1): its Turbo file at 8 steps, and a reference read by
+    # ComfyUI's own TextEncodeQwenImage21, which takes pictures to edit from.
+    'qwen21': Family('Qwen Image 2.1', 'qwen-image-2.1-turbo', 'qwen-image-2.1-turbo-reference', SEPARATE, {
+        'unet_name': re.compile(r'qwen[-_ ]?image[-_ ]?2[._-]?1', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?8b', re.IGNORECASE),
+        'vae_name': re.compile(r'qwen[-_ ]?image[-_ ]?2[._-]?1.*vae', re.IGNORECASE),
+        'lora': re.compile(r'qwen', re.IGNORECASE)}),
+    # Z-Image Turbo (Tongyi-MAI, Comfy-Org/z_image_turbo): photographic, 8 steps at CFG 1 with an empty negative,
+    # as ComfyUI's own template runs it.
+    'zimage': Family('Z-Image Turbo', 'z-image-turbo', None, SEPARATE, {
+        'unet_name': re.compile(r'z[-_ ]?image', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?4b', re.IGNORECASE),
+        'vae_name': re.compile(r'(^|[\\/])ae\.safetensors|flux.*vae|z[-_ ]?image', re.IGNORECASE),
+        'lora': re.compile(r'z[-_ ]?image|zit', re.IGNORECASE)}),
+    # Anima (circlestone-labs/Anima), an anime model: Turbo at CFG 1, with its README's quality tags.
+    'anima': Family('Anima', 'anima-turbo', None, SEPARATE, style=ANIME, matching={
+        'unet_name': re.compile(r'anima', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?0?[._]?6b', re.IGNORECASE),
+        'vae_name': QWEN_VAE,
+        'lora': re.compile(r'anima', re.IGNORECASE)}),
+    # SDXL and the anime models built on it (Pony, Illustrious, NoobAI): one checkpoint file, clip skip 2.
+    'booru': Family('Booru (SDXL, Pony, Illustrious)', 'booru-sdxl', None, ('ckpt_name',), style=ANIME, matching={
+        'ckpt_name': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|animagine', re.IGNORECASE),
+        'lora': re.compile(r'illustrious|pony|noob|sdxl|xl[-_ .v]|pdxl|ilxl', re.IGNORECASE)}),
+}
+DEFAULT_FAMILY = 'krea2'
+# Krea 2's built-in names, which jobs and tests know it by.
+TEMPLATE_NAME = FAMILIES[DEFAULT_FAMILY].template
+REFERENCE_TEMPLATE_NAME = f'{TEMPLATE_NAME} reference'
+TEMPLATE_NAMES = {family.template for family in FAMILIES.values()}
+
+
+def family_of(config) -> str:
+    family = (config or {}).get('family')
+    return family if family in FAMILIES else DEFAULT_FAMILY
+
+
+def has_reference(config) -> bool:
+    """Whether this ComfyUI backend can make a picture that follows another: its own reference workflow,
+    or its family's built-in one."""
+    return bool(config.get('reference_workflow')) or FAMILIES[family_of(config)].reference is not None
 
 
 def parse_workflow(text: str, reference=False) -> dict:
@@ -81,38 +151,55 @@ def parse_workflow(text: str, reference=False) -> dict:
     return workflow
 
 
-def workflow_for(config, reference=False) -> tuple[dict, str]:
+def workflow_for(config, reference=False) -> tuple[dict | None, str]:
+    """The workflow to run and its name. A family without a built-in reference workflow has none
+    (None) unless the user saved their own."""
     if reference:
         if config.get('reference_workflow'):
             return parse_workflow(config['reference_workflow'], reference=True), 'custom reference'
-        return built_in(config, reference=True), REFERENCE_TEMPLATE_NAME
+        family = FAMILIES[family_of(config)]
+        if family.reference is None:
+            return None, ''
+        return built_in(config, reference=True), f'{family.template} reference'
     if config.get('workflow'):
         return parse_workflow(config['workflow']), 'custom'
-    return built_in(config), TEMPLATE_NAME
+    return built_in(config), FAMILIES[family_of(config)].template
 
 
-def built_in(config, reference=False) -> dict:
-    """A built-in workflow (the reference one when asked) with the user's chosen loader files and
-    sampler settings in place of its defaults."""
-    workflow = json.loads((REFERENCE_TEMPLATE if reference else TEMPLATE).read_text(encoding='utf-8'))
-    chosen = [(class_type, name, config[key]) for key, (class_type, name) in FILE_INPUTS.items() if config.get(key)]
+def built_in(config, reference=False) -> dict | None:
+    """The family's built-in workflow (the reference one when asked, None when it has none) with the
+    user's chosen loader files and sampler settings in place of its defaults."""
+    family = FAMILIES[family_of(config)]
+    name = family.reference if reference else family.template
+    if name is None:
+        return None
+    workflow = json.loads((WORKFLOWS / f'{name}.json').read_text(encoding='utf-8'))
+    chosen = [(*FILE_INPUTS[key], config[key]) for key in family.files if config.get(key)]
     chosen += [('KSampler', key, config[key]) for key in SAMPLER_INPUTS if config.get(key) not in (None, '')]
-    for class_type, name, value in chosen:
+    for class_type, field, value in chosen:
         for node in workflow.values():
             if node['class_type'] == class_type:
-                node['inputs'][name] = value
+                node['inputs'][field] = value
     return workflow
 
 
-def default_sampler() -> dict:
-    sampler = next(node for node in built_in({}).values() if node['class_type'] == 'KSampler')
+def default_sampler(family=DEFAULT_FAMILY) -> dict:
+    sampler = next(node for node in built_in({'family': family}).values() if node['class_type'] == 'KSampler')
     return {key: sampler['inputs'][key] for key in SAMPLER_INPUTS}
 
 
-def default_files() -> dict:
-    workflow = built_in({})
-    return {key: next(node['inputs'][name] for node in workflow.values() if node['class_type'] == class_type)
-            for key, (class_type, name) in FILE_INPUTS.items()}
+def default_files(family=DEFAULT_FAMILY) -> dict:
+    """The family's own file for each of its loader inputs."""
+    workflow = built_in({'family': family})
+    return {key: next(node['inputs'][FILE_INPUTS[key][1]] for node in workflow.values()
+                      if node['class_type'] == FILE_INPUTS[key][0]) for key in FAMILIES[family].files}
+
+
+def model_file(config) -> str:
+    """The diffusion model or checkpoint the built-in workflow loads."""
+    family = family_of(config)
+    key = 'ckpt_name' if 'ckpt_name' in FAMILIES[family].files else 'unet_name'
+    return config.get(key) or default_files(family)[key]
 
 
 def options_of(spec) -> list | None:
@@ -187,9 +274,9 @@ def triggered(prompt: str, character: dict | None, styles: list[dict]) -> str:
     return ', '.join([*words, prompt])
 
 
-def krea_first(key: str, options: list[str]) -> tuple[list[str], list[str]]:
-    """The list with Krea 2's files first, and which those are."""
-    pattern = KREA_FILES.get(key)
+def family_first(key: str, options: list[str], family=DEFAULT_FAMILY) -> tuple[list[str], list[str]]:
+    """The list with the family's files first, and which those are."""
+    pattern = FAMILIES[family].matching.get(key)
     found = [option for option in options if pattern and pattern.search(option)]
     return found + [option for option in options if option not in found], found
 
@@ -221,7 +308,10 @@ class ComfyAdapter:
 
     async def generate(self, request) -> ImageResult:
         workflow, name = workflow_for(request.config, reference=request.reference is not None)
-        if name == TEMPLATE_NAME and any(request.config.get(key) not in (None, '') for key in SAMPLER_INPUTS):
+        if workflow is None:
+            raise AdapterError('incompatible', f"The built-in {FAMILIES[family_of(request.config)].label} workflow cannot "
+                               'follow a reference picture. Add a reference workflow in Settings > Images.')
+        if name in TEMPLATE_NAMES and any(request.config.get(key) not in (None, '') for key in SAMPLER_INPUTS):
             used = {**default_sampler(), **{key: request.config[key] for key in SAMPLER_INPUTS
                                              if request.config.get(key) not in (None, '')}}
             name = f"{name} ({used['steps']} steps, CFG {used['cfg']:g}, {used['sampler_name']}/{used['scheduler']})"
@@ -361,7 +451,7 @@ class ComfyAdapter:
         """Ask the server which nodes and model files it has; nothing is queued or downloaded."""
         try:
             workflow, name = workflow_for(config)
-            reference = workflow_for(config, reference=True)[0]
+            reference = workflow_for(config, reference=True)[0] or {}
         except DomainError as error:
             return Check(False, error.message)
         try:
@@ -378,12 +468,14 @@ class ComfyAdapter:
         # Problems the two workflows share (the built-in ones' loaders) are listed once.
         follows = [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)
                    if problem not in missing]
-        missing += self.lora_problems(info, config.get('lora_name'),
+        # The adopted LoRA is a Krea 2 one, used only by Krea 2 (Family.character_lora).
+        character = config.get('lora_name') if FAMILIES[family_of(config)].character_lora else None
+        missing += self.lora_problems(info, character,
                                       style_loras(config, {'comfy_name': config.get('lora_name')}))
         if config.get('reference_workflow'):
             missing += follows
         # Users never see the template's file name, so it reads as "the built-in workflow".
-        shown = 'built-in' if name == TEMPLATE_NAME else name
+        shown = f'built-in {FAMILIES[family_of(config)].label}' if name in TEMPLATE_NAMES else name
         if missing:
             return Check(False, f'ComfyUI is reachable, but the {shown} workflow cannot run yet.', missing, packs)
         if follows:
@@ -413,8 +505,9 @@ class ComfyAdapter:
         """The files the server offers the built-in workflow's loaders, asked of the configured
         address with the same client as the check. Nothing is queued or downloaded."""
         found = {}
+        inputs = {key: FILE_INPUTS[key] for key in FAMILIES[family_of(config)].files}
         async with self.client(config['base_url']) as client:
-            for class_type in dict.fromkeys([*(class_type for class_type, _ in FILE_INPUTS.values()), LORA_INPUT[0],
+            for class_type in dict.fromkeys([*(class_type for class_type, _ in inputs.values()), LORA_INPUT[0],
                                              'KSampler']):
                 response = await self.call(client, 'GET', f'/object_info/{class_type}')
                 try:
@@ -423,5 +516,5 @@ class ComfyAdapter:
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.') from error
                 if not isinstance(found[class_type], dict):
                     raise AdapterError('failed', 'ComfyUI returned an unreadable node list.')
-        lists = {**FILE_INPUTS, 'lora': LORA_INPUT, **{key: ('KSampler', key) for key in SAMPLER_LISTS}}
+        lists = {**inputs, 'lora': LORA_INPUT, **{key: ('KSampler', key) for key in SAMPLER_LISTS}}
         return {key: input_options(found[class_type], class_type, name) for key, (class_type, name) in lists.items()}

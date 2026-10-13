@@ -649,6 +649,8 @@ export interface ImageBackend {
   style: string
   cli_path: string
   custom_workflow: boolean
+  // ComfyUI: the model family whose built-in workflow runs; null for other kinds.
+  family: ImageFamily | null
   // ComfyUI: files chosen for the built-in workflow ('' means its default); null for other kinds.
   model_files: ModelFiles | null
   // ComfyUI: LoRAs applied after the character's own, in order; null for other kinds.
@@ -677,15 +679,17 @@ export interface ImageSettings { automatic_images: boolean; chat_photos: boolean
 
 export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
-export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name'
-export type ModelFiles = Record<ModelFileKey, string>
+export type ImageFamily = 'krea2' | 'qwen21' | 'zimage' | 'anima' | 'booru'
+export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name' | 'ckpt_name'
+/** The files of the family's own loaders only ('' means the workflow's default). */
+export type ModelFiles = Partial<Record<ModelFileKey, string>>
 export type FileListKey = ModelFileKey | 'lora' | 'sampler_name' | 'scheduler'
 export interface SamplerSettings { steps: number | null; cfg: number | null; sampler_name: string | null; scheduler: string | null }
 export interface StyleLora { name: string; strength: number; trigger: string }
-/** What a ComfyUI server offers the built-in workflow's loaders and its LoRAs, Krea 2's first (`krea` lists
- * those); ok is false when it could not be asked. The character's own LoRA is left out of `lora`. */
-export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; sampler_defaults: SamplerSettings; options: Record<FileListKey, string[]>; krea: Record<FileListKey, string[]>; character_lora: string | null }
-export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae' | 'reference'; file: string | null; url: string; licence: string }
+/** What a ComfyUI server offers the built-in workflow's loaders and its LoRAs, the family's own first (`matching`
+ * lists those); ok is false when it could not be asked. The character's own LoRA is left out of `lora`. */
+export interface BackendFiles { ok: boolean; error: string | null; family: ImageFamily; defaults: ModelFiles; sampler_defaults: SamplerSettings; options: Partial<Record<FileListKey, string[]>>; matching: Partial<Record<FileListKey, string[]>>; character_lora: string | null }
+export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae' | 'reference'; file: string | null; url: string; licence: string; family: ImageFamily }
 
 export interface ImageJob {
   id: string

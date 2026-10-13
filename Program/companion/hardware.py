@@ -21,7 +21,7 @@ import httpx
 
 from companion.database import decode, many
 from companion.images import backends
-from companion.images.adapters.comfyui import default_files
+from companion.images.adapters.comfyui import model_file
 from companion.providers.urls import is_loopback
 from companion.text_models import routes
 
@@ -34,7 +34,9 @@ DEFAULT_BITS = 4.8
 CONTEXT_GB = 1.5
 # Rough memory for a picture model with its text encoder and working space, by the precision in the
 # diffusion model's file name. Krea 2 is the target (docs/images.md); other models are similar or smaller.
-IMAGE_GB = [(r'(nv|mx)?fp4|int4|svdq', 11.0), (r'gguf|q[2-6]_', 12.0), (r'fp8|e4m3|e5m2', 16.0)]
+IMAGE_GB = [(r'(nv|mx)?fp4|int4|svdq', 11.0), (r'gguf|q[2-6]_', 12.0), (r'fp8|e4m3|e5m2', 16.0),
+            # Qwen Image 2.1's int8 files with their 8B encoder, Anima (2B), and SDXL-based checkpoints.
+            (r'int8|w4a8', 17.0), (r'anima', 6.0), (r'illustrious|pony|noob|sdxl|animagine', 8.0)]
 FULL_IMAGE_GB = 24.0
 NVFP4_IMAGE_GB = IMAGE_GB[0][1]
 LOW_MEMORY_GB = 16
@@ -218,7 +220,7 @@ def local_images(connection) -> list[dict]:
         if backend['kind'] != 'comfyui' or not is_loopback(urlsplit(decode(backend['config']).get('base_url', '')).hostname):
             continue
         config = decode(backend['config'])
-        unet = config.get('unet_name') or default_files()['unet_name']
+        unet = model_file(config)
         found.append({'label': backend['label'], 'base_url': config.get('base_url', ''), 'unet': unet,
                       'size_gb': image_size_gb(unet)})
     return found
