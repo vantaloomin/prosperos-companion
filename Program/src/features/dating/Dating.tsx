@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, MapPin, X } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CitySummary, Dating as DatingData, DatingCard, DatingMatch, DatingProfile } from '../../types'
@@ -9,13 +9,13 @@ import { ErrorNotice } from '../../components/ErrorNotice'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DATING_STATUS_KEY, cardHeading, interestText } from './datingText'
-import { Photo } from './Photo'
+import { Deck } from './Deck'
 import { CityOptions } from '../world/CityOptions'
 import { AboutYou, IntoWho, Setup, WhatYouWant } from './Setup'
 
 const DATING_KEY = ['dating']
 
-/** The dating app: swipe through townsfolk, and a match can become a companion. Older eras get a personal column. */
+/** The dating app: swipe through townsfolk (Deck.tsx), and a match can become a companion. Older eras get a personal column. */
 export function Dating({ go }: { go: (view: View) => void }) {
   const dating = useQuery({ queryKey: DATING_KEY, queryFn: () => api<DatingData>('/dating') })
   const client = useQueryClient()
@@ -44,12 +44,13 @@ export function Dating({ go }: { go: (view: View) => void }) {
   const swipe = async (key: string, like: boolean) => {
     const next = await run(() => api<DatingData>('/dating/swipes', { key, like }))
     if (next) setMatched(next.matched ?? null)
+    return next !== null
   }
   return (
     <section className="page dating" aria-labelledby="dating-heading">
       <header className="page-header"><div>
         <h1 id="dating-heading">{data.words.title}</h1>
-        <p className="subtle">Meet people around town. Someone you match with can become a companion. Your companions never see who you swipe on.</p>
+        <p className="subtle">Meet people around town. Someone you match with can become a companion. {data.surface === 'app' ? 'Your companions never see who you swipe on.' : 'Your companions never see who you pass on.'}</p>
         {data.all_matches && <p className="subtle dating-debug">Debug: everyone you like matches back. Turn off in <a className="text-button inline" href="#settings/debug" onClick={(event) => { event.preventDefault(); go('settings/debug') }}>Settings &gt; Debug</a>.</p>}
       </div></header>
       {error && <Notice tone="error">{error}</Notice>}
@@ -62,7 +63,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
             You are on a date with {data.date.name} in your story.</Notice>}
           {matched && <Notice action={<StartTalking name={matched.name} matchKey={matched.key} go={go} />}>
             {data.words.matched}: {matched.name} likes you too.</Notice>}
-          <Deck data={data} onSwipe={(key, like) => void swipe(key, like)} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
+          <Deck data={data} onSwipe={swipe} onPassedAgain={() => void run(() => api<DatingData>('/dating/swipes/passed', undefined, 'DELETE'))} />
           <Matches data={data} go={go} onUnmatch={(key) => void run(() => api<DatingData>(`/dating/matches/${encodeURIComponent(key)}`, undefined, 'DELETE'))}
             onDate={async (key, placeId) => { await run(async () => { await api('/dating/dates', { key, place_id: placeId }); return api<DatingData>('/dating') }); go('story') }} />
         </>}
@@ -111,33 +112,6 @@ function LookingIn({ data, onEdit, onMove }: { data: DatingData; onEdit: () => v
       </label>
       <p className="subtle">{interestText(profile)} <button type="button" className="text-button inline" onClick={onEdit}>Edit your profile</button></p>
     </div>
-  )
-}
-
-function Deck({ data, onSwipe, onPassedAgain }: { data: DatingData; onSwipe: (key: string, like: boolean) => void; onPassedAgain: () => void }) {
-  const card = data.deck[0]
-  if (!card) {
-    return <div className="dating-empty"><p className="subtle">{data.words.empty}</p>
-      <button type="button" className="text-button" onClick={onPassedAgain}>See people you passed on again</button></div>
-  }
-  return (
-    <article className={`dating-card dating-${data.surface}`} aria-label={data.surface === 'column' ? 'A notice in the personal column' : `${card.name}, ${card.age}`}>
-      {data.surface === 'column'
-        ? <p className="dating-notice">{card.notice}</p>
-        : <>
-          {data.photos && <Photo key={card.key} personKey={card.key} name={card.name} />}
-          <h2>{cardHeading(card)}</h2>
-          {card.job && <p>{card.job} · {card.neighborhood}</p>}
-          <p className="subtle">{card.looks}</p>
-          <p>{card.bio}</p>
-          <p className="subtle">Looking for {card.looking_text}.</p>
-        </>}
-      <div className="form-actions dating-actions">
-        <button type="button" className="button" onClick={() => onSwipe(card.key, false)}><X aria-hidden="true" />{data.words.pass}</button>
-        <button type="button" className="button primary" onClick={() => onSwipe(card.key, true)}><Heart aria-hidden="true" />{data.words.like}</button>
-      </div>
-      <p className="subtle">{data.remaining - 1 > 0 ? `${data.remaining - 1} more after this one.` : 'The last one for now.'}</p>
-    </article>
   )
 }
 

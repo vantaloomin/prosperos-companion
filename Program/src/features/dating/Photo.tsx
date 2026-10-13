@@ -23,7 +23,7 @@ export function Photo({ personKey, name }: { personKey: string; name: string }) 
     }
   }
   const shown = photo.data ?? { status: 'none' }
-  if (shown.status === 'completed' && shown.url) return <img className="dating-photo" src={shown.url} alt={`${name}'s photo`} />
+  if (shown.status === 'completed' && shown.url) return <img className="dating-photo" src={shown.url} alt={`${name}'s photo`} draggable={false} />
   return <Ask photo={shown} name={name} error={error} onAsk={() => void ask()} />
 }
 

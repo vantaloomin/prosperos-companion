@@ -264,6 +264,16 @@ ADDED_COLUMNS = (
     # Life admin calendar (companion/life/admin.py), on the home features' shared scale: 0 off, 1 light, 2 true to
     # life, 3 dramatic (Settings > Realism > Around the home).
     ('life_settings', 'admin_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (admin_realism BETWEEN 0 AND 3)'),
+    # Work life (companion/life/work.py, Settings > Realism > Their days): 0 off, 1 steady, 2 true to life, 3 dramatic.
+    ('life_settings', 'work_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (work_realism BETWEEN 0 AND 3)'),
+    # Group chat guests (companion/group_guests.py): who brought a guest in (a member's key, or 'user'), who they are
+    # to them ("Sally's sister"), and whether the user kept them so they never slip out. NULL host: a member.
+    ('group_members', 'host', 'TEXT'),
+    ('group_members', 'relation', "TEXT NOT NULL DEFAULT ''"),
+    ('group_members', 'kept', 'INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1))'),
+    # How often guests drop into group chats (Settings > Realism): 0 never on their own, 1 now and then, 2 true to
+    # life, 3 often.
+    ('life_settings', 'guests_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (guests_realism BETWEEN 0 AND 3)'),
     # Reading, watching and listening (companion/life/media.py, Settings > Realism > Their days): 0 off, 1 light,
     # 2 true to life, 3 dramatic.
     ('life_settings', 'media_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (media_realism BETWEEN 0 AND 3)'),
@@ -274,6 +284,8 @@ ADDED_COLUMNS = (
 WIDENED_CHECKS = (
     ('notification_deliveries', "'message')"),
     ('memory_vectors', "'storyline'))"),
+    # Work life's late nights on the shared calendar (companion/life/work.py).
+    ('life_admin', "'looks', 'work')"),
 )
 
 
@@ -288,6 +300,7 @@ def initialize(connection, timestamp: str):
     add_columns(connection)
     widen_context_categories(connection)
     widen_checks(connection)
+    connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
     connection.execute('CREATE INDEX IF NOT EXISTS messages_origin ON messages(origin_id)')
     connection.execute('CREATE INDEX IF NOT EXISTS memories_person ON memories(person_id)')
     backfill_subject_keys(connection)

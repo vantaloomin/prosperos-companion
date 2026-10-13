@@ -171,7 +171,9 @@ def test_seeded_admin_plans_ahead_and_counts_its_costs(client, mira, monkeypatch
     reconcile(client)
     panel = client.get('/api/life/admin').json()
     assert panel['upcoming'], panel
-    assert all('2026-10-05' <= item['local_date'] <= '2026-10-27' for item in panel['upcoming'])
+    # Planned up to AHEAD days out, then moved to the nearest free time, which can be up to MOVE_DAYS later.
+    last = (date(2026, 10, 5) + timedelta(days=admin.AHEAD + admin.MOVE_DAYS)).isoformat()
+    assert all('2026-10-05' <= item['local_date'] <= last for item in panel['upcoming'])
     assert {item['title'] for item in panel['later']} >= {'Dentist check-up', 'File taxes'}
     # Again the same: seeded, not rolled afresh.
     reconcile(client)

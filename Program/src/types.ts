@@ -281,7 +281,7 @@ export interface WorkspaceSettings {
   adult_side?: boolean
   /** Hidden values: what townsfolk are like that way, for the user's eyes; off unless turned on. */
   show_adult_side?: boolean
-  /** The numbers behind home life, such as upkeep meters (Settings > Realism > Hidden values). */
+  /** The numbers behind their life, such as upkeep meters (Settings > Realism > Hidden values). */
   show_home_meters?: boolean
   /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
@@ -446,6 +446,10 @@ export interface LifeSettings {
   kitchen_realism: number
   /** Life admin (companion/life/admin.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   admin_realism: number
+  /** Work life (companion/life/work.py): 0 off, 1 steady, 2 true to life, 3 dramatic. */
+  work_realism: number
+  /** Group chat guests (companion/group_guests.py): how often someone named in a group is pulled in, 0 never to 3. */
+  guests_realism: number
   /** Reading, watching and listening (companion/life/media.py): 0 off, 1 light, 2 true to life, 3 dramatic. */
   media_realism: number
 }
@@ -1495,6 +1499,8 @@ export interface Dating {
 /** Group chats (companion/groups.py, docs/group-chat.md). */
 export interface GroupMember {
   companion_id: string | null
+  /** Their person key: `companion:<id>`, or a guest's circle or townsfolk key. */
+  key: string
   /** Their full name now; `label` is how the chat names them (a first name unless two share it). */
   name: string
   label: string
@@ -1504,6 +1510,32 @@ export interface GroupMember {
   sees_from: number
   /** How they seem right now (companion/moods.py), read-only; only in a chat's own view. */
   mood?: GroupMood | null
+  /** Someone from a member's life who joined for a while (companion/group_guests.py); null for companions. */
+  guest?: GroupGuest | null
+}
+
+export interface GroupGuest {
+  /** The companion who knows them. */
+  host_id: string | null
+  /** "Mira's close friend". */
+  relation: string
+  /** The user kept them: they stay however quiet the chat gets. */
+  kept: boolean
+  /** They came back often enough to stay on their own. */
+  regular: boolean
+  visits: number
+  regular_after: number
+  replies_left: number
+  replies_each: number
+}
+
+/** Someone a companion in the group knows who could join it (GET /api/groups/{id}/guests). */
+export interface GuestOption {
+  key: string
+  name: string
+  relation: string
+  kind: 'circle' | 'town'
+  host_id: string | null
 }
 
 /** Record model calls (companion/model_calls.py), Settings > Debug. */
@@ -1522,8 +1554,8 @@ export interface GroupMood {
 export interface GroupMessage {
   id: string
   seq: number
-  /** The user, a companion, or the app's own line about who joined or left. */
-  kind: 'user' | 'companion' | 'app'
+  /** The user, a companion, a guest, or the app's own line about who joined or left. */
+  kind: 'user' | 'companion' | 'guest' | 'app'
   companion_id: string | null
   name: string
   text: string
@@ -1676,7 +1708,7 @@ export interface TownsfolkMix {
 export interface AdminItem {
   id: string
   key: string
-  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks'
+  source: 'admin' | 'pets' | 'upkeep' | 'kitchen' | 'looks' | 'work'
   kind: string
   title: string
   /** What just happened, for a surprise ("A parking ticket was tucked under the wiper"). */
@@ -1695,6 +1727,8 @@ export interface AdminItem {
   cost_text: string
   /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
   movable: boolean
+  /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */
+  detail?: string
 }
 
 export interface AdminLater { kind: string; title: string; local_date: string; due: boolean }
@@ -1709,6 +1743,33 @@ export interface AdminView {
   level: number
   /** 0 to 100, only with Hidden values' home-life meters on. */
   meter: number | null
+}
+
+/** Something that changed at work (companion/life/work.py): a raise, a promotion, a project wrapped up, a new job. */
+export interface WorkEvent {
+  id: string
+  kind: 'raise' | 'freeze' | 'promotion' | 'project' | 'laid-off' | 'quit' | 'new-job'
+  local_date: string
+  /** "the yearly raise, about 3.2%", "wrapped up the spring menu change; it went well". */
+  text: string
+}
+
+/** The Character page's Work life panel (GET /api/life/work). */
+export interface WorkLifeView {
+  state: string[]
+  workload: 'slammed' | 'normal' | 'slow' | null
+  status: 'working' | 'hunting'
+  project: { title: string; index: number; started: string; due: string }
+  started_on: string
+  tenure: string
+  employer: string
+  late_nights: AdminItem[]
+  /** Vacation days still to come this year. */
+  vacation: string[]
+  events: WorkEvent[]
+  level: number
+  /** Only with Hidden values' home-life meters on. */
+  meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
 }
 
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */

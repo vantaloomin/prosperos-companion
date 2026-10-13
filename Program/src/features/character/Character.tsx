@@ -23,6 +23,7 @@ import { LooksLately } from './LooksLately'
 import { Kitchen } from './Kitchen'
 import { Media } from './Media'
 import { LifeAdmin } from './LifeAdmin'
+import { WorkLife } from './WorkLife'
 import { TraitEditor } from './TraitEditor'
 import { LifeFields } from './LifeFields'
 import { PerceptionFields } from './PerceptionFields'
@@ -181,6 +182,7 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <Wardrobe name={name} />
       <LooksLately name={name} />
       <Kitchen name={name} />
+      <WorkLife name={name} />
       <Media name={name} />
       <LifeAdmin name={name} />
       <SelfFacts name={name} />

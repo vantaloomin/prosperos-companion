@@ -170,9 +170,11 @@ writing someone else's line is cut there (`groups.tidy`).
 | `GET /api/groups/{id}` | `{group, messages, ready, busy, phase, live}`: `live` is text written so far, by message id. |
 | `PATCH /api/groups/{id}` `{name?, reply_cap?}` | Rename (a line in the chat), or replies per message (1 to 3). |
 | `DELETE /api/groups/{id}` | Deletes the group and its messages. |
-| `POST /api/groups/{id}/members` `{companion_id, history, ties?}` | Adds someone; `history` is `from_now` (default) or `everything`. |
+| `POST /api/groups/{id}/members` `{companion_id, history, ties?}` | Adds someone; `history` is `from_now` (default) or `everything`. A guest's person key in `companion_id` adds them as a guest. |
+| `GET /api/groups/{id}/guests` | `{people}`: everyone the companions here know who could join as a guest, with `relation` ("Mira's close friend") and `host_id`. |
+| `POST /api/groups/{id}/guests/keep` `{person, kept}` | Keeps a guest in the group however quiet it gets, or lets them come and go again. |
 | `POST /api/groups/{id}/messages/{message_id}/moment` `{kept}` | Keeps a member's message as a shared moment, or lets it go. |
-| `DELETE /api/groups/{id}/members/{companion_id}` | Removes them. |
+| `DELETE /api/groups/{id}/members/{companion_id}` | Removes them (a guest by person key). |
 | `POST /api/groups/{id}/copy` | New group with the same members. |
 | `POST /api/groups/{id}/messages?wait=` `{text, client_id}` | Saves the message once per `client_id` and starts the replies. `connection: not_configured` without a model. |
 | `POST /api/groups/{id}/retry`, `POST /api/groups/{id}/stop` | Writes failed or stopped replies again; stops the round. |
@@ -275,9 +277,9 @@ never quietly undone.
 
 ### Seams for the later PRs
 
-- `public_line(connection, member)`: the cast's "Others see" line; a guest from the town would use
-  `perception.sheet_lines`.
-- Members are person keys (`companion:<id>`), so guests (wave F, not built yet) can be another kind.
+- `public_line(connection, member)`: the cast's "Others see" line; a guest's comes from their rule sheet (Guests,
+  below).
+- Members are person keys (`companion:<id>`); guests join under their own circle or townsfolk keys.
 
 ## Moods
 
@@ -383,3 +385,55 @@ from a member at Close or above toward its writer (25% at Close, 50% at Deeply c
 answer, so close members reply to each other a little more often. Profiles show a read-only line ("Mira and Sally:
 Comfortable", both directions when they differ); the circle and townsfolk lists in Today show each person's stage.
 
+## Guests
+
+People from the members' own lives can join a group chat for a while: someone in a companion's circle (their sister,
+a coworker, an old friend) or a townsperson they keep running into (met three times or more). Rules decide who comes,
+how much they say and how long they stay (`companion/group_guests.py`); only their lines come from the model.
+
+A guest is a stay like any member's (`group_members`) under their own person key (`circle:<timeline>:<n>` or a
+townsfolk key), with `host` (the companion who knows them), `relation` ("Mira's close friend", fixed when they join so
+the shared prefix stays the same) and `kept`.
+
+**Who comes in.**
+
+- When a finished message (the user's or anyone's) names someone a companion here knows, that companion may bring
+  them in: "Mira brought Ada, their close friend." Its writer brings them when the writer knows them, else the first
+  member who does. (When the user adds someone it reads "You added Ada, Mira's close friend.") Seeded by the message, so a retry decides the same way.
+- How often follows Settings > Realism > Their days > "Guests in group chats" (`life_settings.guests_realism`):
+
+  | Level | Chance a named person comes in | At most one pull-in per group every |
+  | --- | --- | --- |
+  | 0 Only when you add them | never | |
+  | 1 Now and then | 15% | 3 days |
+  | 2 True to life (default) | 30% | 24 hours |
+  | 3 Often | 55% | 8 hours |
+
+  The presets set it with the rest: Easy life 1, real life and I pull the strings 2, Drama 3.
+- Never while they're asleep by their own day (a circle person's agenda, else midnight to 7 in the host's time; a
+  townsperson's rules), and never more than two passing guests at once.
+- The user can add anyone a companion here knows from **Add someone** (under "People they know"), from now on or with
+  everything so far, and remove them like anyone else.
+
+**What they say.** A guest answers like a member, anyone named first, then by weight (a little less often than
+members, `GUEST_WEIGHT`), and right away when a member has just brought them in. They write at most four replies a
+conversation (a conversation ends after three quiet hours) and never answer while asleep. Their reply is one model
+call with the same shared part as everyone's (rules, cast, transcript), then their own short sheet in place of a
+companion's 1:1 sections: the in-character rules ("Who the companion is", with "a guest in a group chat with the user,
+whom you know only through Mira"), then "Guests in group chats" (Settings > Advanced; `SHEET`) with who they are,
+their work, and their "Others see" and "I see myself" lines (`perception.sheet_lines` for townsfolk,
+`perception.seeded_lines` by person key for circle people). Their notes carry their local time, what they're doing
+right now, "You and the user have no history outside this chat…" (`NO_HISTORY`, A/B tested: guests held to it 80% of
+the time, against 14% without the sheet), and the same group section as members: how close they feel to each member, secrets they know with who
+here must not find out, and news. A guest has no 1:1 chat, memory or mood: they remember the group through its own
+history. In the cast everyone sees them as `- Ada (Mira's close friend, a guest): <Others see>`.
+
+**How long they stay.** Once the chat has been quiet for three hours, a passing guest slips out ("Ada slipped out of
+the group."), checked with the news every ten minutes, rules only. Someone whose third visit it is becomes a regular
+("Ada is a regular here now.") and stays, and **Keep in group** in the people panel keeps anyone with one tap.
+Someone who is gone from their host's life (removed from the circle, the host deleted or starting over) leaves at
+once. An unnamed group's title lists only those who stay, so a guest passing through doesn't rename it.
+
+The people panel shows each guest as "Mira's close friend · guest" ("· regular" once they keep coming back, "· staying"
+once kept), with a Keep in group checkbox; with Settings > Realism > Hidden values > "Show the numbers behind their
+life" on, a muted line under it with their visits toward staying and replies left this conversation.

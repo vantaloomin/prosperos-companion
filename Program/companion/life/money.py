@@ -446,6 +446,7 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
         outings,
         trips,
         wardrobe,
+        work,
     )
 
     found = profile(definition)
@@ -459,7 +460,9 @@ def household(connection, timeline_id: str, definition: dict, day: date) -> dict
               *kitchen.purchases(connection, timeline_id, start, day, definition, None, None),
               *media.purchases(connection, timeline_id, start, day, definition),
               *admin.purchases(connection, timeline_id, start, day)]
-    return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date'])}
+    # Raises, promotions and time between jobs (companion/life/work.py).
+    return {'costs': costs, 'purchases': sorted(bought, key=lambda item: item['date']),
+            'pay': work.pay(connection, timeline_id, day)}
 
 
 def monthly_share(found: Profile) -> float:
@@ -467,8 +470,11 @@ def monthly_share(found: Profile) -> float:
     return found.income if found.period == 'month' else found.income * 52 / 12
 
 
-def with_home(found: Profile, costs: dict) -> Profile:
-    """The budget with the home's rent (when it names one in this city's money) and its upkeep."""
+def with_home(found: Profile, costs: dict, pay: dict | None = None) -> Profile:
+    """The budget with the home's rent (when it names one in this city's money) and its upkeep, and their pay after
+    raises, or what they live on between jobs (`pay`, from work.pay)."""
+    if pay and pay.get('factor'):
+        found = replace(found, income=found.income * pay['factor'])
     rent = found.rent
     if costs.get('rent') and (costs.get('currency') or found.city['currency']) == found.city['currency']:
         rent = costs['rent'] if costs.get('rent_period', 'month') == found.period else \
@@ -502,7 +508,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
     `household`: with it, rent and upkeep come from their home and its purchases count as spending."""
     found = profile(definition)
     if found and home:
-        found = with_home(found, home['costs'])
+        found = with_home(found, home['costs'], home.get('pay'))
     if not found:
         city = city_for(definition)
         reason = f"There is no money in {city['name']}." if city else \
@@ -519,6 +525,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'available': True, 'currency': currency, 'period': found.period, 'style': found.style,
         'career': {'id': found.career['id'], 'name': found.career['name'], 'pay': found.career['pay'],
                    'guessed': found.guessed} if found.career else None,
+        'between_jobs': bool(home and (home.get('pay') or {}).get('between_jobs')),
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
                                                                   'saving')},
@@ -547,6 +554,9 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
     lines = [('budget', f"- You take home about {text['income']} {per}{work}; rent is about {text['rent']} for {place}.")]
+    if view.get('between_jobs'):
+        lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; rent is about "
+                            f"{text['rent']} for {place}.")]
     if view['budget']['upkeep']:
         lines.append(('upkeep', f"- Your pets and getting around cost about {text['upkeep']} {per}."))
     for item in view['bought']:

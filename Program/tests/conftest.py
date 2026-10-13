@@ -104,6 +104,13 @@ def no_trips(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_work_life(monkeypatch):
+    """Work weeks, late nights and vacation days (companion/life/work.py) would change unrelated tests' days;
+    tests/test_work_life.py turns them on."""
+    monkeypatch.setattr('companion.life.work.ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_life_admin(monkeypatch):
     """Seeded appointments, errands and surprises (companion/life/admin.py) would take slots in unrelated tests'
     days; tests/test_life_admin.py turns them on."""
