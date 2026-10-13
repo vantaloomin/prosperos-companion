@@ -675,7 +675,7 @@ def later(connection, companion: dict, city: dict | None, today: date) -> list[d
     for rule in rules_for(city):
         if rule.get('needs') and rule['needs'] not in has:
             continue
-        found = occurrences(rule, seed, start, today + timedelta(days=LATER))
+        found = sorted(occurrences(rule, seed, start, today + timedelta(days=LATER)), key=lambda item: item[0])
         if found and rule['id'] not in result:
             day, due = found[0]
             result[rule['id']] = {'kind': rule['id'], 'title': rule['title'], 'local_date': day.isoformat(),

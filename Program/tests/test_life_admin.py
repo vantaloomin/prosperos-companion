@@ -249,3 +249,11 @@ def test_vet_visits_haircuts_and_grocery_runs_show_alongside_read_only(client, m
     assert [(item['title'], item['movable'], item['fixed']) for item in today] == [
         ('Return library books', True, False), ('Vet check-up for Biscuit', False, True), ('Haircut', False, True),
         ('Grocery run (out of eggs)', False, False)]
+
+
+def test_later_shows_the_soonest_of_each_kind(monkeypatch):
+    """Quarter-day rent comes due at Christmas before Lady Day, whatever order the rule lists its days in."""
+    monkeypatch.setattr(admin, 'owns', lambda *_args: {'rent'})
+    companion = {'active_timeline_id': 't1', 'version': {'definition': {'name': 'Wynn'}}}
+    found = admin.later(None, companion, catalog.city('camelot'), date(2026, 10, 13))
+    assert {item['kind']: item['local_date'] for item in found}['quarter-rent'] == '2026-12-25'
