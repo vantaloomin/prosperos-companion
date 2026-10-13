@@ -274,3 +274,13 @@ def test_later_shows_the_soonest_of_each_kind(monkeypatch):
     companion = {'active_timeline_id': 't1', 'version': {'definition': {'name': 'Wynn'}}}
     found = admin.later(None, companion, catalog.city('camelot'), date(2026, 10, 13))
     assert {item['kind']: item['local_date'] for item in found}['quarter-rent'] == '2026-12-25'
+
+
+def test_small_errands_cost_an_everyday_price_in_the_citys_money():
+    nurse = {'name': 'Mara', 'home_city': 'baltimore', 'identity': 'A registered nurse at Hopkins.'}
+    small = [admin.priced(nurse, '$', f'letter:{index}') for index in range(40)]
+    assert all(4 <= cost <= 20 for cost in small), small
+    assert all(25 <= admin.priced(nurse, '$$', f'repair:{index}') <= 100 for index in range(40))
+    smith = {'name': 'Wat', 'home_city': 'camelot', 'identity': 'A smith by the castle gate.'}
+    fines = [admin.priced(smith, '$', f'fine:{index}') for index in range(40)]
+    assert all(0 < fine <= 3 for fine in fines), fines

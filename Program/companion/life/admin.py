@@ -426,14 +426,25 @@ def city_place(city: dict | None, where: str, seed: str, label: str) -> dict | N
             'neighborhood': hoods.get(found.get('neighborhood'), '')}
 
 
+# Small errands cost about what a cheap meal does in their city, so a padlock or a registered letter is an everyday
+# price; only the biggest bills ('$$$') stay a share of a month's pay.
+MEALS = ('cheap-lunch', 'lunch-counter', 'meal', 'inn-meal', 'eating-house', 'chophouse', 'diner-breakfast',
+         'pie-and-peas', 'pie')
+EVERYDAY = {'$': (0.6, 0.002), '$$': (4, 0.012)}
+
+
 def priced(definition: dict, spend: str, seed: str) -> float:
-    """A price tier as an amount in their city's money, a seeded 60% to 140% of the tier's share of a month's pay, so
-    two small bills are not the same to the cent. 0 where money does not apply."""
+    """A price tier as an amount in their city's money, seeded 60% to 140% of the tier's price so two small bills are
+    not the same to the cent: '$' and '$$' are a share of a cheap meal there (or of a month's pay where the city lists
+    no meal), '$$$' a share of a month's pay. 0 where money does not apply."""
     found = money.profile(definition)
     if not found or not spend:
         return 0.0
-    share = money.PURCHASES.get(spend, 0) * money.monthly_share(found) * (0.6 + 0.8 * generators.unit(seed, 'price'))
-    return round(share, 0 if share >= 20 else 2)
+    meals, share = EVERYDAY.get(spend, (None, money.PURCHASES.get(spend, 0)))
+    meal = money.price(found.city, MEALS) if meals else None
+    base = meals * meal if meal else share * money.monthly_share(found)
+    cost = base * (0.6 + 0.8 * generators.unit(seed, 'price'))
+    return round(cost, 0 if cost >= 20 else 2)
 
 
 def recent_titles(connection, timeline_id: str, around: date) -> set[str]:
