@@ -166,7 +166,7 @@ def test_reference_capability_per_backend(client, companion):
     assert add_backend(client, kind='hosted', provider='openai', api_key='k', model='gpt-image-1')['takes_reference']
     assert add_backend(client, kind='hosted', provider='google', api_key='k', model='m')['takes_reference'] is False
     comfy = add_backend(client, kind='comfyui', base_url='http://127.0.0.1:8188')
-    assert comfy['takes_reference'] is False
+    assert comfy['takes_reference'] is True and comfy['reference_workflow'] is False
     bad = client.put(f"/api/images/backends/{comfy['id']}", json={'reference_workflow': json.dumps(
         {'1': {'class_type': 'CLIPTextEncode', 'inputs': {'text': '{{prompt}}'}}})})
     assert bad.status_code == 422 and 'reference_image' in bad.json()['detail']
@@ -235,15 +235,28 @@ def test_comfyui_uploads_the_reference_into_its_own_workflow():
     graph = server.prompts[0]
     assert graph['1']['inputs']['image'] == 'prospero-job1.png' and graph['2']['inputs']['text'] == 'A café'
     assert png(10, 12) in server.uploads[0] and result.workflow == 'custom reference'
-    with pytest.raises(AdapterError) as error:
-        asyncio.run(adapter.generate(request_for('comfyui', {'base_url': 'http://127.0.0.1:8188'}, reference=png())))
-    assert error.value.code == 'incompatible'
+
+
+def test_comfyui_has_a_built_in_reference_workflow():
+    server = ComfyWithUpload()
+    adapter = ComfyAdapter(httpx.MockTransport(server), poll_seconds=0)
+    config = {'base_url': 'http://127.0.0.1:8188', 'unet_name': 'mine.safetensors', 'steps': 10}
+    result = asyncio.run(adapter.generate(request_for('comfyui', config, reference=png(10, 12))))
+    graph = server.prompts[0]
+    by_class = {node['class_type']: node['inputs'] for node in graph.values()}
+    assert by_class['LoadImage']['image'] == 'prospero-job1.png' and png(10, 12) in server.uploads[0]
+    assert by_class['Krea2EditGroundedEncode']['prompt'] == 'A café'
+    assert by_class['Krea2EditModelPatch']['model'] == ['14', 0]
+    assert by_class['LoraLoaderModelOnly']['lora_name'] == 'krea2_identity_edit_v1_2.safetensors'
+    assert by_class['UNETLoader']['unet_name'] == 'mine.safetensors' and by_class['KSampler']['steps'] == 10
+    assert result.workflow.startswith('krea2-turbo reference')
 
 
 def test_the_pc_reads_a_comfyui_backends_saved_workflows(client, companion):
     comfy = add_backend(client, kind='comfyui', base_url='http://127.0.0.1:8188')
     empty = ok(client.get(f"/api/images/backends/{comfy['id']}/workflows"))
     assert empty['workflow'] == empty['reference_workflow'] == '' and '{{prompt}}' in empty['built_in']
+    assert '{{reference_image}}' in empty['built_in_reference'] and '{{prompt}}' in empty['built_in_reference']
     main = json.dumps({'1': {'class_type': 'CLIPTextEncode', 'inputs': {'text': '{{prompt}}'}}})
     ok(client.put(f"/api/images/backends/{comfy['id']}", json={'workflow': main, 'reference_workflow': REFERENCE_WORKFLOW}))
     saved = ok(client.get(f"/api/images/backends/{comfy['id']}/workflows"))

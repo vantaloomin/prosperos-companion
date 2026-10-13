@@ -59,12 +59,10 @@ def accepts_nsfw(backend: dict) -> bool:
 def takes_reference(backend: dict) -> bool:
     """Whether this backend can make a picture that follows an earlier one (the onboarding
     portraits): Codex attaches it to the prompt, chat-style APIs and OpenAI's image edits read it,
-    and ComfyUI needs the user's own reference workflow."""
-    config = decode(backend['config'])
-    if backend['kind'] == 'codex':
+    and ComfyUI uses its built-in reference workflow or the user's own."""
+    if backend['kind'] in ('codex', 'comfyui'):
         return True
-    if backend['kind'] == 'comfyui':
-        return bool(config.get('reference_workflow'))
+    config = decode(backend['config'])
     from companion.images.adapters.hosted import takes_reference as hosted_takes
     return hosted_takes(config, backend['provider'])
 

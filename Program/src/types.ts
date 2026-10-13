@@ -666,7 +666,7 @@ export interface ImageBackend {
 
 export interface ImageSettings { automatic_images: boolean; chat_photos: boolean; unprompted_photos: boolean; daily_limit: number; queue_limit: number; fallback: boolean; aspect: 'square' | 'landscape' | 'portrait'; style: string }
 
-export interface BackendCheck { ok: boolean; summary: string; details: string[] }
+export interface BackendCheck { ok: boolean; summary: string; details: string[]; install?: { id: string; label: string }[] }
 
 export type ModelFileKey = 'unet_name' | 'clip_name' | 'clip_type' | 'vae_name'
 export type ModelFiles = Record<ModelFileKey, string>
@@ -676,7 +676,7 @@ export interface StyleLora { name: string; strength: number; trigger: string }
 /** What a ComfyUI server offers the built-in workflow's loaders and its LoRAs, Krea 2's first (`krea` lists
  * those); ok is false when it could not be asked. The character's own LoRA is left out of `lora`. */
 export interface BackendFiles { ok: boolean; error: string | null; defaults: ModelFiles; sampler_defaults: SamplerSettings; options: Record<FileListKey, string[]>; krea: Record<FileListKey, string[]>; character_lora: string | null }
-export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae'; file: string | null; url: string; licence: string }
+export interface ModelLink { name: string; role: 'model' | 'clip' | 'vae' | 'reference'; file: string | null; url: string; licence: string }
 
 export interface ImageJob {
   id: string

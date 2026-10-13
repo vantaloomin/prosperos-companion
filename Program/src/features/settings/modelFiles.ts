@@ -56,7 +56,10 @@ export const isChosen = (saved: ModelFiles) => FILE_SLOTS.some(({ key }) => save
 
 /** Download pages for the slots that have them, in slot order. */
 export const linksByRole = (links: ModelLink[]) =>
-  FILE_SLOTS.filter(slot => slot.role).map(slot => ({ slot, links: links.filter(link => link.role === slot.role) })).filter(group => group.links.length > 0)
+  [...FILE_SLOTS.filter(slot => slot.role), REFERENCE_SLOT].map(slot => ({ slot, links: links.filter(link => link.role === slot.role) })).filter(group => group.links.length > 0)
+
+/** Files only the built-in reference workflow (profile pictures) uses; not a pickable slot. */
+const REFERENCE_SLOT = { label: 'Pictures made from a reference', role: 'reference' }
 
 /** Krea 2 Turbo's settings, the built-in workflow's own, shown until the server says otherwise. */
 export const TURBO: SamplerSettings = { steps: 8, cfg: 1, sampler_name: 'euler', scheduler: 'simple' }

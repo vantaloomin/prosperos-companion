@@ -16,23 +16,32 @@ With the built-in workflow the user can pick other files from their server for i
 server which ones it has. Names are kept exactly as the server lists them, subfolder and all
 (`Krea 2\\model.safetensors` on Windows). A custom workflow is used exactly as given.
 
-Onboarding portraits follow an earlier picture. A ComfyUI server makes those only with a second
-custom workflow that also has `{{reference_image}}` (a LoadImage node's image); the app uploads
-the picture through `/upload/image` and puts its name there. There is no built-in one.
+Onboarding portraits follow an earlier picture. Those use a second workflow with
+`{{reference_image}}` (a LoadImage node's image); the app uploads the picture through
+`/upload/image` and puts its name there. The built-in one (`krea2-turbo-reference.json`) follows
+the Krea 2 Identity Edit setup: its LoRA on the built-in workflow's model, and the reference read by
+the Krea2EditModelPatch and Krea2EditGroundedEncode nodes of the comfyui-krea2edit pack (Apache-2.0,
+no Python dependencies), which ComfyUI has no core equivalent for. It takes the same loader files
+and sampler settings. A custom reference workflow replaces it.
 """
 import asyncio
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
 
 from companion.errors import DomainError
+from companion.images import node_packs
 from companion.images.adapters.base import AdapterError, Check, ImageResult, media_type
+from companion.providers.urls import is_loopback
 
 TEMPLATE = Path(__file__).parent.parent / 'workflows' / 'krea2-turbo.json'
 TEMPLATE_NAME = 'krea2-turbo'
+REFERENCE_TEMPLATE = TEMPLATE.with_name('krea2-turbo-reference.json')
+REFERENCE_TEMPLATE_NAME = 'krea2-turbo reference'
 NUMERIC = {'{{seed}}', '{{width}}', '{{height}}'}
 MODEL_KEYS = ('unet_name', 'ckpt_name')
 LORA_NODE = 'prospero-lora'
@@ -42,6 +51,9 @@ MARKERS = re.compile(r'\{\{(?:prompt|negative|seed|width|height|reference_image)
 FILE_INPUTS = {'unet_name': ('UNETLoader', 'unet_name'), 'clip_name': ('CLIPLoader', 'clip_name'),
                'clip_type': ('CLIPLoader', 'type'), 'vae_name': ('VAELoader', 'vae_name')}
 LORA_INPUT = ('LoraLoaderModelOnly', 'lora_name')
+# Custom nodes the built-in workflows use, with where to get them.
+NODE_PACKS = {name: ('Krea 2 Identity Edit', 'https://github.com/lbouaraba/comfyui-krea2edit')
+              for name in ('Krea2EditModelPatch', 'Krea2EditGroundedEncode')}
 # The built-in workflow's KSampler settings the user can change for their model; unset means the
 # workflow's own (8 steps, CFG 1, euler, simple: Krea 2 Turbo's).
 SAMPLER_INPUTS = ('steps', 'cfg', 'sampler_name', 'scheduler')
@@ -71,18 +83,18 @@ def parse_workflow(text: str, reference=False) -> dict:
 
 def workflow_for(config, reference=False) -> tuple[dict, str]:
     if reference:
-        if not config.get('reference_workflow'):
-            raise AdapterError('incompatible', 'This ComfyUI server has no workflow for pictures made from a '
-                               'reference. Add one in Settings, Images.')
-        return parse_workflow(config['reference_workflow'], reference=True), 'custom reference'
+        if config.get('reference_workflow'):
+            return parse_workflow(config['reference_workflow'], reference=True), 'custom reference'
+        return built_in(config, reference=True), REFERENCE_TEMPLATE_NAME
     if config.get('workflow'):
         return parse_workflow(config['workflow']), 'custom'
     return built_in(config), TEMPLATE_NAME
 
 
-def built_in(config) -> dict:
-    """The built-in workflow with the user's chosen loader files in place of its defaults."""
-    workflow = json.loads(TEMPLATE.read_text(encoding='utf-8'))
+def built_in(config, reference=False) -> dict:
+    """A built-in workflow (the reference one when asked) with the user's chosen loader files and
+    sampler settings in place of its defaults."""
+    workflow = json.loads((REFERENCE_TEMPLATE if reference else TEMPLATE).read_text(encoding='utf-8'))
     chosen = [(class_type, name, config[key]) for key, (class_type, name) in FILE_INPUTS.items() if config.get(key)]
     chosen += [('KSampler', key, config[key]) for key in SAMPLER_INPUTS if config.get(key) not in (None, '')]
     for class_type, name, value in chosen:
@@ -331,7 +343,11 @@ class ComfyAdapter:
         for node in workflow.values():
             spec = info.get(node['class_type'])
             if spec is None:
-                missing.append(f"Missing node: {node['class_type']} (install the custom node that provides it).")
+                pack = NODE_PACKS.get(node['class_type'])
+                where = f'from the {pack[0]} nodes' if pack else 'install the custom node that provides it'
+                problem = f"Missing node: {node['class_type']} ({where})."
+                if problem not in missing:
+                    missing.append(problem)
                 continue
             required = {**(spec.get('input', {}).get('required') or {}), **(spec.get('input', {}).get('optional') or {})}
             for key_name, value in node.get('inputs', {}).items():
@@ -345,7 +361,7 @@ class ComfyAdapter:
         """Ask the server which nodes and model files it has; nothing is queued or downloaded."""
         try:
             workflow, name = workflow_for(config)
-            reference = workflow_for(config, reference=True)[0] if config.get('reference_workflow') else None
+            reference = workflow_for(config, reference=True)[0]
         except DomainError as error:
             return Check(False, error.message)
         try:
@@ -355,13 +371,43 @@ class ComfyAdapter:
         except (AdapterError, ValueError) as error:
             return Check(False, getattr(error, 'message', 'ComfyUI returned an unreadable node list.'))
         missing = self.node_problems(info, workflow)
-        if reference is not None:
-            missing += [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)]
+        # Only a server on this computer can have nodes installed into it.
+        packs = node_packs.providing([node['class_type'] for node in [*workflow.values(), *reference.values()]
+                                      if node['class_type'] not in info]) \
+            if is_loopback(urlsplit(config['base_url']).hostname) else []
+        # Problems the two workflows share (the built-in ones' loaders) are listed once.
+        follows = [f'Reference workflow: {problem}' for problem in self.node_problems(info, reference)
+                   if problem not in missing]
         missing += self.lora_problems(info, config.get('lora_name'),
                                       style_loras(config, {'comfy_name': config.get('lora_name')}))
+        if config.get('reference_workflow'):
+            missing += follows
+        # Users never see the template's file name, so it reads as "the built-in workflow".
+        shown = 'built-in' if name == TEMPLATE_NAME else name
         if missing:
-            return Check(False, f'ComfyUI is reachable, but the {name} workflow cannot run yet.', missing)
-        return Check(True, f'ComfyUI is reachable and has every node and model the {name} workflow uses.')
+            return Check(False, f'ComfyUI is reachable, but the {shown} workflow cannot run yet.', missing, packs)
+        if follows:
+            # Only profile pictures need the reference workflow, so the backend still passes (Iris's wording).
+            pack_nodes = {node for pack in packs for node in node_packs.PACKS[pack['id']]['nodes']}
+            needs = ' and '.join(f"the {pack['label']} nodes" for pack in packs)
+            others = [line for line in follows if not any(f'Missing node: {node} ' in line for node in pack_nodes)]
+            if needs and not others:
+                tail = f'Pictures made from a reference need {needs} first.'
+            elif needs:
+                tail = f'Pictures made from a reference need {needs} and the files under Details first.'
+            else:
+                tail = 'Pictures made from a reference cannot run yet; Details says what is missing.'
+            return Check(True, f'ComfyUI has everything the {shown} workflow needs. {tail}', follows, packs)
+        return Check(True, f'ComfyUI is reachable and has every node and model the {shown} workflow uses.')
+
+    async def folder_paths(self, config) -> dict:
+        """Where ComfyUI keeps each kind of file, from its own `/internal/folder_paths`."""
+        async with self.client(config['base_url']) as client:
+            response = await self.call(client, 'GET', '/internal/folder_paths')
+        try:
+            return response.json() if response.status_code == 200 else {}
+        except ValueError:
+            return {}
 
     async def files(self, config) -> dict:
         """The files the server offers the built-in workflow's loaders, asked of the configured
