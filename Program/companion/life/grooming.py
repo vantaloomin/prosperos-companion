@@ -556,7 +556,7 @@ def touch(connection, timeline_id: str, subject: str, entry: dict | None, block:
         return entry
     if change['kind'] in APPOINTMENTS and swappable(entry, block):
         return visit(change, entry, block, definition)
-    if not entry:
+    if not entry or change['kind'] in APPOINTMENTS and entry.get('activity') == 'sick-day':
         return entry
     sentence = f"{definition['name']} {change['text']}."
     return {**entry, 'summary': f"{entry['summary'].rstrip()} {sentence[0].upper()}{sentence[1:]}",

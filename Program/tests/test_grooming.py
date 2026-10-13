@@ -8,7 +8,7 @@ from conftest import reconcile
 
 from companion.database import decode
 from companion.images import content, prompts
-from companion.life import composer, grooming, money
+from companion.life import body, composer, grooming, money
 from companion.world import looks
 
 DAYS = [{'key': 'day', 'label': 'Day', 'kind': 'leisure', 'start': '09:00', 'end': '17:00'},
@@ -200,6 +200,7 @@ def test_haircuts_cost_money_and_are_appointments(client, rosa):
 
 def test_an_appointment_takes_a_free_slot_and_a_bold_one_is_posted(client, rosa, monkeypatch):
     monkeypatch.setattr(grooming, 'WEAVE', True)
+    monkeypatch.setattr(body, 'sick', lambda *args: False)
     client.get('/api/life/grooming')
     _, tid = ids(client)
     with connect(client) as connection:
@@ -272,3 +273,20 @@ def test_the_reference_sheet_keeps_the_hair_length_the_pictures_use(client, rosa
     lengths = [word for word in grooming.LENGTHS if re.search(rf"\b{word}\b", pictured)]
     # Some cuts carry their length in the cut itself ("in a bob"), so the pictures may name no length word.
     assert all(word in reference for word in lengths), (drawn, reference, pictured)
+
+
+def test_a_sick_day_keeps_its_appointment_out(client, rosa, monkeypatch):
+    monkeypatch.setattr(grooming, 'WEAVE', True)
+    monkeypatch.setattr(body, 'sick', lambda *args: True)
+    client.get('/api/life/grooming')
+    _, tid = ids(client)
+    with connect(client) as connection:
+        connection.execute("INSERT INTO grooming_log (id, timeline_id, period, track, local_date, kind, change, text, "
+                           "spend, bold, created_at) VALUES ('g1', ?, 99, 'bold', '2026-10-06', 'colour', ?, "
+                           "'dyed her hair copper red', '$$', 1, '2026-10-05')",
+                           (tid, json.dumps({'colour': 'copper red'})))
+    reconcile(client)
+    with connect(client, False) as connection:
+        told = connection.execute(
+            "SELECT COUNT(*) FROM life_agenda WHERE json_extract(entry, '$.looks.change')='g1'").fetchone()[0]
+    assert told == 0
