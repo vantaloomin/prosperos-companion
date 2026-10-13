@@ -63,7 +63,7 @@ STYLES = {
     'longish': (4, '', '', ''), 'neatly parted': (3, '', '', 'neatly parted'), 'shaved at the sides': (3, '', '', 'shaved at the sides'),
 }
 WHO = {'she/her': 'f', 'he/him': 'm', 'they/them': 'n'}
-APPOINTMENTS = {'trim': 'Haircut', 'touch-up': 'Haircut and colour', 'colour': 'Hair colour', 'cut': 'Haircut',
+APPOINTMENTS = {'trim': 'Haircut', 'touch-up': 'Haircut and color', 'colour': 'Hair color', 'cut': 'Haircut',
                 'nails': 'Nails', 'glasses': 'New glasses'}
 # Free time a salon visit can take the place of; plans, work, occasions and anything with someone else stay.
 KEPT_ACTIVITIES = {'birthday', 'own-birthday', 'festival', 'tradition', 'gathering', 'sick-day'}
@@ -315,7 +315,7 @@ class Draw:
         if so_far.get('colour') and (day - so_far['colour_on']).days >= ROOTS_DAYS:
             colour = so_far['colour']
             return {'kind': 'touch-up', 'change': {'colour': colour}, 'spend': self.price('$$', '$$$'),
-                    'text': f'got a trim and had the {colour} colour touched up at {place}'}
+                    'text': f'got a trim and had the {colour} color touched up at {place}'}
         return {'kind': 'trim', 'change': {}, 'spend': self.price('$', '$$'), 'text': f'got a trim at {place}'}
 
     def nails(self, seed, day, so_far, period):
