@@ -11,7 +11,7 @@ import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
 import { HardwareWarnings } from './models/HardwareCheck'
 import { HARDWARE_KEY, useHardware } from './models/hardware'
-import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
+import { FAMILIES, FAMILY_KEYS, MAX_STYLE_LORAS, MISSING, PRESET_FILES, missingFrom, NEW_STYLE_LORA, TURBO, familyOf, fileChoices, filesBody, hasMatching, isChosen, isTuned, linksByRole, noChoice, serverFiles, shownFiles, shownSampler, stylesBody, type FileSlot } from './modelFiles'
 import { SectionPending } from '../../components/SectionPending'
 import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
@@ -295,6 +295,8 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
         {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
       </select>
     )}</Field>
+    {/* Its own muted line, so the sentence above reads the same for every family (Iris). */}
+    {family.reference && !backend.reference_workflow && <p className="subtle family-reference">{family.reference}</p>}
     {shown && <div className="family-undo"><Notice action={<button type="button" className="text-button" onClick={() => void save(shown.body).then(() => setUndo(null))}>Undo</button>}>Switched to {shown.to} defaults.</Notice></div>}
   </div>
 }
@@ -474,9 +476,10 @@ function StyleLoraRows({ rows, options, matching, short, looks, setRows }: { row
 /** Official pages for the built-in workflow's files. Pages only, never a direct download. */
 function ModelLinks({ links, family }: { links: ModelLink[]; family: ImageFamily | null }) {
   const groups = linksByRole(links, family ?? 'krea2')
+  const { pack } = familyOf(family)
   if (groups.length === 0) return null
   return <div>
-    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list.{family === 'krea2' && <> Pictures made from a reference also need the Krea 2 Identity Edit <a className="text-button" href="https://github.com/lbouaraba/comfyui-krea2edit" target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder; Check offers to install it.</>} Check the license on each page before downloading.</p>
+    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list.{pack && <> Pictures made from a reference also need the {pack.label} <a className="text-button" href={pack.url} target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder{pack.install ? '; Check offers to install it' : ''}.</>}{family === 'anima' && <> They also need the Anima Edit LoRA, <code>AnimeEditV2.safetensors</code>, in models/loras.</>} Check the license on each page before downloading.</p>
     <ul className="plain-list">
       {groups.flatMap(({ slot, links: items }) => items.map(link => <li key={link.name}>
         {slot.label}: <a className="text-button" href={link.url} target="_blank" rel="noreferrer">{link.name}</a>{link.file && <> · {link.file}</>}
@@ -509,9 +512,11 @@ const BACK_TO_BUILT_IN = 'Back to the built-in workflow.'
 
 /** The files a built-in workflow loads, for its hint, on a line of their own (Iris). */
 function needs(workflow: string): ReactNode {
-  let nodes: { inputs?: Record<string, unknown> }[]
-  try { nodes = Object.values(JSON.parse(workflow) as Record<string, { inputs?: Record<string, unknown> }>) } catch { return null }
-  const files = nodes.flatMap(({ inputs = {} }) => ['unet_name', 'ckpt_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key]))
+  type Node = { class_type?: string; inputs?: Record<string, unknown> }
+  let nodes: Node[]
+  try { nodes = Object.values(JSON.parse(workflow) as Record<string, Node>) } catch { return null }
+  const files = [...nodes.flatMap(({ inputs = {} }) => ['unet_name', 'ckpt_name', 'clip_name', 'vae_name', 'lora_name'].map((key) => inputs[key])),
+    ...nodes.flatMap(({ class_type: type = '' }) => PRESET_FILES[type] ?? [])]
     .filter((name): name is string => typeof name === 'string' && name.endsWith('.safetensors'))
   if (!files.length) return null
   return <span className="workflow-needs">It needs, in ComfyUI's models folders: {files.map((file, index) => <span key={file}>{index ? ', ' : ''}<code>{file}</code></span>)}</span>

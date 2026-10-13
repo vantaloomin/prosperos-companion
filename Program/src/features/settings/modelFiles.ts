@@ -14,6 +14,16 @@ export interface Family {
   sampling: string; steps: string; slots: FileSlot[]
   // A line added to the dropdown's hint, when the family needs one.
   note?: string
+  // What pictures made from a reference need, on its own muted line under the hint (Iris).
+  reference?: string
+  // The custom node pack its reference workflow needs; only Krea 2's installs with one press (Vanta, 2026-10-13).
+  pack?: { label: string; url: string; install: boolean }
+}
+
+/** Files a reference workflow node loads without naming them (IPAdapter Plus picks its models by preset), for
+ * "It needs" (companion/images/adapters/comfyui.py PRESET_FILES). */
+export const PRESET_FILES: Record<string, string[]> = {
+  IPAdapterUnifiedLoader: ['ip-adapter-plus_sdxl_vit-h.safetensors', 'CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors'],
 }
 
 const TURBO_STEPS = 'Turbo models need few.'
@@ -29,6 +39,8 @@ const separate = (model: string, encoder: string, type: string, vae: string): Fi
 export const FAMILIES: Record<ImageFamily, Family> = {
   krea2: {
     label: 'Krea 2', short: 'Krea 2', looks: 'Krea 2', sampling: 'Krea 2 Turbo', steps: TURBO_STEPS,
+    reference: 'Pictures from a reference need the Krea 2 Identity Edit nodes.',
+    pack: { label: 'Krea 2 Identity Edit', url: 'https://github.com/lbouaraba/comfyui-krea2edit', install: true },
     slots: [...separate('The image model the UNETLoader node loads. A Krea 2 Turbo file or a fine-tune of it; the workflow runs 8 steps at CFG 1, which suits Turbo.',
       'Turns the prompt into what the model reads. Krea 2 uses the Qwen3-VL 4B encoder.', 'krea2 for Krea 2 models.',
       'Turns the finished picture from the model\'s internal form into pixels. Krea 2 uses the Qwen Image VAE.'),
@@ -42,20 +54,24 @@ export const FAMILIES: Record<ImageFamily, Family> = {
       'Qwen Image 2.1 uses the Qwen3-VL 8B encoder.', 'qwen_image for Qwen Image models.', 'Qwen Image 2.1 has a VAE of its own.'),
   },
   zimage: {
-    label: 'Z-Image Turbo', short: 'Z-Image Turbo', looks: 'Z-Image', sampling: 'Z-Image Turbo', steps: TURBO_STEPS,
-    note: 'Pictures made from a reference rework that picture, so they keep its pose and colours.',
+    // A non-breaking hyphen, so the name never breaks after "Z" on a phone (Iris).
+    label: 'Z\u2011Image Turbo', short: 'Z\u2011Image Turbo', looks: 'Z\u2011Image', sampling: 'Z\u2011Image Turbo', steps: TURBO_STEPS,
+    reference: 'Pictures from a reference rework that picture, so they keep its pose and colors.',
     slots: separate('A Z-Image Turbo file or a fine-tune of it; the workflow runs 9 steps at CFG 1.',
       'Z-Image uses the Qwen3 4B encoder.', 'lumina2 for Z-Image.', 'Z-Image uses the Flux VAE (ae.safetensors).'),
   },
   anima: {
     label: 'Anima', short: 'Anima', looks: 'Anima', sampling: 'Anima', steps: 'Anima Base uses about 30; its Turbo file needs about 10 at CFG 1.',
-    note: 'Pictures made from a reference need the Cosmos Reference nodes and the Anima Edit LoRA (AnimeEditV2).',
+    reference: 'Pictures from a reference need the Cosmos Reference nodes and the Anima Edit LoRA (AnimeEditV2).',
+    pack: { label: 'Cosmos Reference', url: 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference', install: false },
     slots: separate('An Anima file. The workflow runs Base at 30 steps and CFG 4; for Anima Turbo set about 10 steps at CFG 1 under Sampling.',
       'Anima uses the small Qwen3 0.6B encoder.', 'stable_diffusion for Anima.', 'Anima uses the Qwen Image VAE, the same file as Krea 2.'),
   },
   booru: {
     label: 'Booru (SDXL, Pony, Illustrious)', short: 'Booru', looks: 'SDXL, Pony or Illustrious', sampling: 'Illustrious XL', steps: 'Most SDXL models use 20 to 30.',
-    note: 'Works best with a tag-style prompt; see Prompt style. Pictures made from a reference need the IPAdapter Plus nodes.',
+    note: 'Works best with a tag-style prompt; see Prompt style.',
+    reference: 'Pictures from a reference need the IPAdapter Plus nodes and its two models.',
+    pack: { label: 'IPAdapter Plus', url: 'https://github.com/cubiq/ComfyUI_IPAdapter_plus', install: false },
     slots: [{ key: 'ckpt_name', label: 'Model', role: 'model', hint: 'From ComfyUI\'s models/checkpoints folder.', tip: 'One file holds the model, its text encoders and VAE. Any SDXL, Pony or Illustrious checkpoint works.' }],
   },
 }

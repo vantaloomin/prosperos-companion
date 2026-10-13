@@ -70,6 +70,11 @@ NODE_PACKS = {
     **{name: ('IPAdapter Plus', 'https://github.com/cubiq/ComfyUI_IPAdapter_plus')
        for name in ('IPAdapterUnifiedLoader', 'IPAdapterAdvanced')},
     'ApplyCosmosReferenceLatent': ('Cosmos Reference', 'https://github.com/Mirumo0u0/ComfyUI-Cosmos-Reference')}
+# Files a node loads by preset rather than by name: IPAdapter Plus's loader finds its models by name in their
+# folders, which its own loader nodes list (src/features/settings/modelFiles.ts PRESET_FILES).
+PRESET_FILES = {'IPAdapterUnifiedLoader': (
+    ('IPAdapterModelLoader', 'ipadapter_file', 'ip-adapter-plus_sdxl_vit-h.safetensors', 'models/ipadapter'),
+    ('CLIPVisionLoader', 'clip_name', 'CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors', 'models/clip_vision'))}
 # The built-in workflow's KSampler settings the user can change for their model; unset means the
 # workflow's own (Krea 2 Turbo's are 8 steps, CFG 1, euler, simple).
 SAMPLER_INPUTS = ('steps', 'cfg', 'sampler_name', 'scheduler')
@@ -481,6 +486,9 @@ class ComfyAdapter:
                 # A placeholder such as {{reference_image}} is filled in per request.
                 if isinstance(value, str) and '{{' not in value and options is not None and value not in options:
                     missing.append(f'Missing file or option for {node["class_type"]}.{key_name}: {value}.')
+            for loader, field, file, folder in PRESET_FILES.get(node['class_type'], ()):
+                if loader in info and not any(option.endswith(file) for option in input_options(info, loader, field)):
+                    missing.append(f'Missing file for {node["class_type"]}: {file} (in {folder}).')
         return missing
 
     async def check(self, backend, config, key=None) -> Check:

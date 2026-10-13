@@ -2021,6 +2021,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 
 /* Model family (Settings > Images): a short select, full width on a phone (Iris). */
 @media (min-width: 721px) { .family-picker select { max-width: 360px; } }
+.family-picker .family-reference { margin: -8px 0 0; }
 
 .field-missing { margin: 6px 0 0; }
 .family-undo .notice { align-items: center; }

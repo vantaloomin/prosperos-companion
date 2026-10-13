@@ -155,3 +155,12 @@ def test_z_image_turbo_runs_comfyuis_own_template_shape():
     assert nodes['KSampler']['sampler_name'] == 'res_multistep' and nodes['ConditioningZeroOut']['conditioning'] == ['4', 0]
     assert result.workflow == 'z-image-turbo' and result.model == 'z_image_turbo_bf16.safetensors'
     assert family_first('vae_name', ['flux\\ae.safetensors', 'qwen_image_vae.safetensors'], 'zimage')[1] == ['flux\\ae.safetensors']
+
+
+def test_the_check_names_ip_adapter_models_its_loader_finds_by_preset():
+    info = {name: {'input': {'required': {}}} for name in ('IPAdapterUnifiedLoader', 'IPAdapterAdvanced')}
+    info['CLIPVisionLoader'] = {'input': {'required': {'clip_name': [['CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors']]}}}
+    info['IPAdapterModelLoader'] = {'input': {'required': {'ipadapter_file': [['ip-adapter_sd15.safetensors']]}}}
+    reference = built_in({'family': 'booru'}, reference=True)
+    problems = ComfyAdapter.node_problems(info, {key: node for key, node in reference.items() if node['class_type'].startswith('IPAdapter')})
+    assert problems == ['Missing file for IPAdapterUnifiedLoader: ip-adapter-plus_sdxl_vit-h.safetensors (in models/ipadapter).']
