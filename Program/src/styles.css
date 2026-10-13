@@ -226,7 +226,7 @@ textarea { resize: vertical; line-height: 1.6; }
 .dating-top.dragging { cursor: grabbing; transition: none; }
 .dating-actions .button { flex: 1 1 auto; max-width: 100%; white-space: normal; text-align: center; }
 .dating-deck .dating-actions .button { flex: 0 1 auto; }
-@media (max-width: 720px) { .dating-actions { flex-wrap: wrap; } .dating-actions .button { min-height: 44px; } }
+@media (max-width: 720px) { .dating-actions { flex-wrap: wrap; } .dating-actions .button { min-height: 44px; } .dating-undo { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; } }
 /* Reduced motion: no tilt or spring; the card fades out and the next fades in (opacity only, so it stays). */
 @keyframes dating-fade-in { from { opacity: 0; } to { opacity: 1; } }
 :root .dating-stack.still .dating-top { transition: opacity 200ms ease-out !important; animation: dating-fade-in 200ms ease-out !important; }

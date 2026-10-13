@@ -77,6 +77,11 @@ def see_passed_again(request: Request):
     return dating.see_passed_again(request.app.state.database)
 
 
+@router.delete('/swipes/{key}')
+def undo(request: Request, key: str):
+    return dating.undo(request.app.state.database, key)
+
+
 @router.delete('/matches/{key}')
 def unmatch(request: Request, key: str):
     return dating.unmatch(request.app.state.database, key)

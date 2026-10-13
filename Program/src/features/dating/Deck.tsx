@@ -1,44 +1,58 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { Heart, X } from 'lucide-react'
 import type { Dating as DatingData, DatingCard } from '../../types'
 import { reducedMotion } from '../../motion'
 import { cardHeading } from './datingText'
 import { Photo } from './Photo'
-import { FLY_MS, answeredText, arrowWay, decide, hintText, pose, type SwipeWay } from './swipe'
+import { FLY_MS, answeredText, arrowWay, decide, hintText, pose, undoLabel, type SwipeWay } from './swipe'
 
 /** Answers the card; true once the app took it. */
 type Answer = (key: string, like: boolean) => Promise<boolean>
 
-interface DeckProps { data: DatingData; onSwipe: Answer; onPassedAgain: () => void }
+/** Takes back the last answer; true once the app took it back. */
+type TakeBack = (key: string) => Promise<boolean>
+
+interface DeckProps { data: DatingData; onSwipe: Answer; onUndo: TakeBack; onPassedAgain: () => void }
+
+interface Said { key: string; name: string; way: SwipeWay }
 
 /** The deck: on a dating app a stack of cards to drag left or right; older eras show one notice at a time.
  * Pass and Like stay under it, and the arrow keys answer too. */
-export function Deck({ data, onSwipe, onPassedAgain }: DeckProps) {
-  const [said, setSaid] = useState<{ name: string; way: SwipeWay } | null>(null)
+export function Deck({ data, onSwipe, onUndo, onPassedAgain }: DeckProps) {
+  const [said, setSaid] = useState<Said | null>(null)
+  const [back, setBack] = useState('')
   const card = data.deck[0]
   const answered: Answer = async (key, like) => {
-    const name = data.deck.find((item) => item.key === key)?.name ?? ''
+    // A personal-column notice gives initials only, so it is never named.
+    const name = data.surface === 'column' ? 'the notice' : data.deck.find((item) => item.key === key)?.name ?? ''
     const done = await onSwipe(key, like)
-    if (done) setSaid({ name, way: like ? 'like' : 'pass' })
+    if (done) { setSaid({ key, name, way: like ? 'like' : 'pass' }); setBack('') }
     return done
   }
-  const heard = <p className="visually-hidden" role="status">{said ? answeredText(said.name, said.way, card ? cardHeading(card) : null) : ''}</p>
+  const undo = said && (() => void onUndo(said.key).then((done) => { if (done) { setBack(`${said.name.charAt(0).toUpperCase()}${said.name.slice(1)} is back.`); setSaid(null) } }))
+  const heard = <p className="visually-hidden" role="status">{back || (said ? answeredText(said.name, said.way, card ? cardHeading(card) : null) : '')}</p>
+  const takeBack = said && undo ? <UndoButton said={said} onUndo={undo} /> : null
   if (!card) {
-    return <div className="dating-empty">{heard}<p className="subtle">{data.words.empty}</p>
+    return <div className="dating-empty">{heard}<p className="subtle">{data.words.empty} {takeBack}</p>
       <button type="button" className="text-button" onClick={onPassedAgain}>See people you passed on again</button></div>
   }
   return <>
     {heard}
     {data.surface === 'app'
-      ? <Stack key={card.key} data={data} card={card} onSwipe={answered} />
-      : <Notice key={card.key} data={data} card={card} onSwipe={answered} />}
+      ? <Stack key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} />
+      : <Notice key={card.key} data={data} card={card} onSwipe={answered} takeBack={takeBack} />}
   </>
 }
 
-interface CardProps { data: DatingData; card: DatingCard; onSwipe: Answer }
+/** "Undo": the last answer only, gone with the next one. */
+function UndoButton({ said, onUndo }: { said: Said; onUndo: () => void }) {
+  return <button type="button" className="text-button inline dating-undo" aria-label={undoLabel(said.name, said.way)} onClick={onUndo}>Undo</button>
+}
+
+interface CardProps { data: DatingData; card: DatingCard; onSwipe: Answer; takeBack: ReactNode }
 
 /** The personal column or the matchmaker: no dragging a newspaper, just the answers and the arrow keys. */
-function Notice({ data, card, onSwipe }: CardProps) {
+function Notice({ data, card, onSwipe, takeBack }: CardProps) {
   const [busy, setBusy] = useState(false)
   const answer = (way: SwipeWay) => {
     if (busy) return
@@ -49,7 +63,7 @@ function Notice({ data, card, onSwipe }: CardProps) {
   return (
     <article className={`dating-card dating-${data.surface}`} role="group" aria-label={data.surface === 'column' ? 'A notice in the personal column' : cardHeading(card)}>
       {data.surface === 'column' ? <p className="dating-notice">{card.notice}</p> : <Details card={card} />}
-      <Answers data={data} busy={busy} onAnswer={answer} />
+      <Answers data={data} busy={busy} onAnswer={answer} takeBack={takeBack} />
     </article>
   )
 }
@@ -58,7 +72,7 @@ interface Drag { x: number; y: number; at: number; lastX: number; lastAt: number
 
 /** One card on top with the next peeking behind. Drag or flick it away and it tilts and fades with a Like or Pass
  * stamp; let go early and it springs back. Text first: a photo shows only if one was already made. */
-function Stack({ data, card, onSwipe }: CardProps) {
+function Stack({ data, card, onSwipe, takeBack }: CardProps) {
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [flying, setFlying] = useState<SwipeWay | null>(null)
@@ -116,7 +130,7 @@ function Stack({ data, card, onSwipe }: CardProps) {
           <Details card={card} />
         </article>
       </div>
-      <Answers data={data} busy={flying !== null} onAnswer={answer} hint />
+      <Answers data={data} busy={flying !== null} onAnswer={answer} takeBack={takeBack} hint />
     </div>
   )
 }
@@ -131,14 +145,16 @@ function Details({ card }: { card: DatingCard }) {
   </>
 }
 
-function Answers({ data, busy, onAnswer, hint = false }: { data: DatingData; busy: boolean; onAnswer: (way: SwipeWay) => void; hint?: boolean }) {
+interface AnswersProps { data: DatingData; busy: boolean; onAnswer: (way: SwipeWay) => void; takeBack: ReactNode; hint?: boolean }
+
+function Answers({ data, busy, onAnswer, takeBack, hint = false }: AnswersProps) {
   const touch = window.matchMedia('(pointer: coarse)').matches
   return <>
     <div className="form-actions dating-actions">
       <button type="button" className="button" disabled={busy} aria-keyshortcuts="ArrowLeft" onClick={() => onAnswer('pass')}><X aria-hidden="true" />{data.words.pass}</button>
       <button type="button" className="button primary" disabled={busy} aria-keyshortcuts="ArrowRight" onClick={() => onAnswer('like')}><Heart aria-hidden="true" />{data.words.like}</button>
     </div>
-    <p className="subtle dating-left">{hintText(data.remaining - 1, touch, hint)}</p>
+    <p className="subtle dating-left">{hintText(data.remaining - 1, touch, hint)} {takeBack}</p>
   </>
 }
 

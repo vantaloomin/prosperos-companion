@@ -195,6 +195,20 @@ def swipe(database, key: str, like: bool) -> dict:
     return state(database) | {'matched': card(sheet, data, database) if matched else None}
 
 
+def undo(database, key: str) -> dict:
+    """Take back the user's last answer, so the person is back on top of the deck. Only the latest answer, and not
+    once a match became a companion or was met on a date."""
+    with database.connect(write=True) as connection:
+        last = optional(connection, 'SELECT person_key FROM dating_swipes ORDER BY rowid DESC LIMIT 1')
+        require(last is not None and last['person_key'] == key, 'Only your last answer can be undone.', 409)
+        require(optional(connection, 'SELECT 1 FROM companions WHERE townsfolk_key=?', (key,)) is None,
+                'They are already a companion.', 409)
+        require(optional(connection, 'SELECT 1 FROM dating_dates WHERE person_key=?', (key,)) is None,
+                'You already met them on a date.', 409)
+        connection.execute('DELETE FROM dating_swipes WHERE person_key=?', (key,))
+    return state(database)
+
+
 def see_passed_again(database) -> dict:
     with database.connect(write=True) as connection:
         connection.execute('DELETE FROM dating_swipes WHERE liked=0')
