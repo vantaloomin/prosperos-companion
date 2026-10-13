@@ -248,6 +248,8 @@ ADDED_COLUMNS = (
     ('lore_books', 'city_id', 'TEXT'),
     # Home upkeep (companion/life/upkeep.py, Settings > Realism > Home life): 0 off, 1 light, 2 true to life, 3 messy.
     ('life_settings', 'upkeep_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (upkeep_realism BETWEEN 0 AND 3)'),
+    # Looks that change (companion/life/grooming.py): how often, from never (0) to often (3), set on the Realism tab.
+    ('life_settings', 'looks_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (looks_realism BETWEEN 0 AND 3)'),
     # The numbers behind home life (upkeep meters and the like), under Settings > Realism > Hidden values.
     ('workspace_settings', 'show_home_meters', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_home_meters IN (0, 1))'),
 )
