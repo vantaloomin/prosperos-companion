@@ -211,6 +211,17 @@ def test_on_light_the_dentist_moves_for_dinner(client, mira, provider):
     assert moved['local_date'] != '2026-10-08' and moved['moved_reason'] == 'moved for a plan'
 
 
+def test_dinner_at_their_place_moves_a_chore_out_of_the_evening(client, mira, provider):
+    add(client, key='test:books', day=TUESDAY)
+    reconcile(client)
+    says(provider, 'Yes, come over!')
+    send(client, 'Can I come over for dinner at your place Tuesday?', 'client-admin-04')
+    [outing] = client.get('/api/life/outings').json()['outings']
+    assert outing['activity'] == 'dinner-in' and outing['local_date'] == '2026-10-06'
+    [moved] = [item for item in client.get('/api/life/admin').json()['upcoming'] if item['key'] == 'test:books']
+    assert moved['local_date'] == '2026-10-07' and moved['moved_reason'] == 'moved for a plan'
+
+
 def test_big_cleans_from_home_upkeep_land_on_the_calendar_once(client, mira, monkeypatch, clock):
     monkeypatch.setattr(admin, 'ACTIVE', True)
     client.put('/api/life/settings', json={'admin_realism': 0})  # Only the home features' items, none of its own.
