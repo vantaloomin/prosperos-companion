@@ -95,6 +95,8 @@ def editable(definition: dict) -> set[str]:
     fields = set(FIELDS) - user - looks.covered(text)
     if re.search(r'\b(?:nails?|manicure|polish)\b', text, re.IGNORECASE):
         fields.discard('nails')
+    if re.search(r'\b(?:tan|suntan|sun-?kissed|sunburnt|sunburned)\b', text, re.IGNORECASE):
+        fields.discard('skin')  # "a deep tan" they wrote stays; no summer tan comes and fades over it.
     return fields
 
 

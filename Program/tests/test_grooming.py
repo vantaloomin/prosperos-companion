@@ -95,6 +95,7 @@ def test_only_looks_the_app_filled_in_change():
     assert 'nails' not in grooming.editable(wrote) and 'feature' not in grooming.editable(wrote)  # Appearance says
     photos = {**ROSA, 'in_photos': 'Long braids and gold hoops.'}
     assert 'hair' not in grooming.editable(photos)  # the In photos line says
+    assert 'skin' not in grooming.editable({**ROSA, 'in_photos': 'Curly hair and a deep tan.'})
     # A townsperson's looks copied when they became a companion stay the app's until the user edits one.
     drawn = {'hair': 'black hair, in a bob', 'skin': 'olive'}
     town = {**ROSA, 'looks': {**drawn, 'drawn': drawn}}
