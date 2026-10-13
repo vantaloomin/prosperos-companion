@@ -23,7 +23,9 @@ def by_class(graph) -> dict:
 @pytest.mark.parametrize('family', list(FAMILIES))
 def test_every_family_has_a_built_in_workflow_with_the_request_markers(family):
     text = json.dumps(built_in({'family': family}))
-    assert all(marker in text for marker in ('{{prompt}}', '{{negative}}', '{{seed}}', '{{width}}', '{{height}}'))
+    assert all(marker in text for marker in ('{{prompt}}', '{{seed}}', '{{width}}', '{{height}}'))
+    # Z-Image Turbo runs at CFG 1 with an empty negative, as ComfyUI's template does.
+    assert ('{{negative}}' in text) == (family != 'zimage')
     reference = built_in({'family': family}, reference=True)
     assert (reference is not None) == (FAMILIES[family].reference is not None)
     if reference:
@@ -118,3 +120,15 @@ def test_an_anime_family_starts_its_prompts_as_an_illustration_unless_the_backen
     assert backends.style_for(own, 'Candid photo') == 'Watercolour'
     krea = {'kind': 'comfyui', 'config': json.dumps(LOCAL)}
     assert backends.style_for(krea, 'Candid photo') == 'Candid photo'
+
+
+def test_z_image_turbo_runs_comfyuis_own_template_shape():
+    server = ComfyStandIn()
+    adapter = ComfyAdapter(httpx.MockTransport(server), poll_seconds=0)
+    result = asyncio.run(adapter.generate(request_for('comfyui', {**LOCAL, 'family': 'zimage'})))
+    nodes = by_class(server.prompts[0])
+    assert nodes['CLIPLoader'] == {'clip_name': 'qwen_3_4b.safetensors', 'type': 'lumina2'}
+    assert nodes['ModelSamplingAuraFlow']['shift'] == 3 and nodes['KSampler']['model'] == ['10', 0]
+    assert nodes['KSampler']['sampler_name'] == 'res_multistep' and nodes['ConditioningZeroOut']['conditioning'] == ['4', 0]
+    assert result.workflow == 'z-image-turbo' and result.model == 'z_image_turbo_bf16.safetensors'
+    assert family_first('vae_name', ['flux\\ae.safetensors', 'qwen_image_vae.safetensors'], 'zimage')[1] == ['flux\\ae.safetensors']

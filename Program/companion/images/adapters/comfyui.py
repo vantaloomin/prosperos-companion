@@ -9,7 +9,7 @@ workflow (FAMILIES). Krea 2 targets Krea 2 Turbo with the files ComfyUI's own Kr
 `qwen3vl_4b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, 8 steps at CFG 1 with
 euler/simple); it ran on an RTX 5090 with ComfyUI 0.39.0, with other files chosen for the three
 loaders, and is the default. Qwen Image 2.1, Anima and the SDXL-based "Booru" models (Pony,
-Illustrious) follow ComfyUI's own templates for them, on their Turbo files where there is one. The
+Illustrious) and Z-Image Turbo follow ComfyUI's own templates for them, on their Turbo files where there is one. The
 check reports any node or model file the server does not have. A custom workflow in ComfyUI's API
 format can replace a built-in one, using `{{prompt}}`, `{{negative}}`, `{{seed}}`, `{{width}}` and
 `{{height}}` where the request's values belong.
@@ -27,7 +27,7 @@ the Krea 2 Identity Edit setup: its LoRA on the built-in workflow's model, and t
 the Krea2EditModelPatch and Krea2EditGroundedEncode nodes of the comfyui-krea2edit pack (Apache-2.0,
 no Python dependencies), which ComfyUI has no core equivalent for. It takes the same loader files
 and sampler settings. Qwen Image 2.1's (`qwen-image-2.1-turbo-reference.json`) hands the picture to
-ComfyUI's own TextEncodeQwenImage21. Anima and Booru models have no built-in one, so they make
+ComfyUI's own TextEncodeQwenImage21. Z-Image Turbo, Anima and Booru models have no built-in one, so they make
 pictures from a reference only with the user's own. A custom reference workflow replaces a built-in one.
 """
 import asyncio
@@ -100,6 +100,13 @@ FAMILIES = {
         'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?vl[-_ ]?8b', re.IGNORECASE),
         'vae_name': re.compile(r'qwen[-_ ]?image[-_ ]?2[._-]?1.*vae', re.IGNORECASE),
         'lora': re.compile(r'qwen', re.IGNORECASE)}),
+    # Z-Image Turbo (Tongyi-MAI, Comfy-Org/z_image_turbo): photographic, 8 steps at CFG 1 with an empty negative,
+    # as ComfyUI's own template runs it.
+    'zimage': Family('Z-Image Turbo', 'z-image-turbo', None, SEPARATE, {
+        'unet_name': re.compile(r'z[-_ ]?image', re.IGNORECASE),
+        'clip_name': re.compile(r'qwen[-_ ]?3[-_ ]?4b', re.IGNORECASE),
+        'vae_name': re.compile(r'(^|[\\/])ae\.safetensors|flux.*vae|z[-_ ]?image', re.IGNORECASE),
+        'lora': re.compile(r'z[-_ ]?image|zit', re.IGNORECASE)}),
     # Anima (circlestone-labs/Anima), an anime model: Turbo at CFG 1, with its README's quality tags.
     'anima': Family('Anima', 'anima-turbo', None, SEPARATE, style=ANIME, matching={
         'unet_name': re.compile(r'anima', re.IGNORECASE),

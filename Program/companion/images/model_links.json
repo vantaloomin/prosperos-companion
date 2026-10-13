@@ -72,6 +72,30 @@
     "family": "qwen21"
   },
   {
+    "name": "Z-Image Turbo, packaged for ComfyUI",
+    "role": "model",
+    "file": "z_image_turbo_bf16.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/z_image_turbo/tree/main/split_files/diffusion_models",
+    "licence": "Apache 2.0. Goes in models/diffusion_models. Not gated. The same folder has smaller int8 and NVFP4 files.",
+    "family": "zimage"
+  },
+  {
+    "name": "Qwen3 4B text encoder",
+    "role": "clip",
+    "file": "qwen_3_4b.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/z_image_turbo/tree/main/split_files/text_encoders",
+    "licence": "Apache 2.0. Goes in models/text_encoders. Load it with the lumina2 type. Smaller fp8 and fp4 files are there too.",
+    "family": "zimage"
+  },
+  {
+    "name": "Flux VAE (ae)",
+    "role": "vae",
+    "file": "ae.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/z_image_turbo/tree/main/split_files/vae",
+    "licence": "Apache 2.0. Goes in models/vae.",
+    "family": "zimage"
+  },
+  {
     "name": "Anima Turbo",
     "role": "model",
     "file": "anima-turbo-v1.1.safetensors",

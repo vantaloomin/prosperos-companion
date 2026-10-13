@@ -81,11 +81,11 @@ test('sampling starts on Krea 2 Turbo settings and shows a draft over a saved va
 })
 
 test('each model family lists only its own loaders, and an unknown family is Krea 2', () => {
-  assert.deepEqual(FAMILY_KEYS, ['krea2', 'qwen21', 'anima', 'booru'])
+  assert.deepEqual(FAMILY_KEYS, ['krea2', 'qwen21', 'zimage', 'anima', 'booru'])
   assert.deepEqual(FAMILIES.booru.slots.map(slot => slot.key), ['ckpt_name'])
   assert.deepEqual(FAMILIES.anima.slots.map(slot => slot.key), ['unet_name', 'clip_name', 'clip_type', 'vae_name'])
   assert.equal(familyOf(null), FAMILIES.krea2)
-  assert.ok(FAMILIES.krea2.reference && FAMILIES.qwen21.reference && !FAMILIES.anima.reference && !FAMILIES.booru.reference)
+  assert.ok(FAMILIES.krea2.reference && FAMILIES.qwen21.reference && !FAMILIES.zimage.reference && !FAMILIES.anima.reference && !FAMILIES.booru.reference)
 })
 
 test('the settings page and the server agree on the families', () => {

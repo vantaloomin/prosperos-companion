@@ -29,6 +29,7 @@ backend is off until the user sets it up, and text never waits for an image. The
   | --- | --- | --- | --- | --- |
   | Krea 2 (`krea2`) | `krea2-turbo.json` | as below | 8 steps, CFG 1, euler, simple | Krea 2 Identity Edit (below) |
   | Qwen Image 2.1 (`qwen21`) | `qwen-image-2.1-turbo.json` | `qwen_image_2.1_turbo_int8_convrot`, `qwen3vl_8b_int8_convrot` (type `qwen_image`), `qwen_image_2.1_vae_bf16`; prompt through `TextEncodeQwenImage21` | 8 steps, CFG 1, euler, simple (Turbo) | `qwen-image-2.1-turbo-reference.json`: the picture goes to `TextEncodeQwenImage21` as `image_1`, core nodes only |
+  | Z-Image Turbo (`zimage`) | `z-image-turbo.json` | `z_image_turbo_bf16`, `qwen_3_4b` (type `lumina2`), `ae` (Flux VAE); `ModelSamplingAuraFlow` shift 3, empty negative | 8 steps, CFG 1, res_multistep, simple | none |
   | Anima (`anima`) | `anima-turbo.json` | `anima-turbo-v1.1`, `qwen_3_06b_base` (type `stable_diffusion`), `qwen_image_vae`; its README's quality tags around the prompt | 10 steps, CFG 1, euler, simple (Turbo) | none |
   | Booru (`booru`: SDXL, Pony, Illustrious) | `booru-sdxl.json` | one checkpoint (`ckpt_name`, `Illustrious-XL-v2.0`), clip skip 2, `masterpiece, best quality, score_9, score_8_up, score_7_up` ahead of the prompt | 28 steps, CFG 6, euler_ancestral, normal | none |
 

@@ -8,7 +8,7 @@ from companion.models import Input
 Kind = Literal['comfyui', 'codex', 'hosted']
 Provider = Literal['comfyui', 'codex', 'openrouter', 'google', 'openai', 'nanogpt', 'other']
 Aspect = Literal['square', 'landscape', 'portrait']
-Family = Literal['krea2', 'qwen21', 'anima', 'booru']
+Family = Literal['krea2', 'qwen21', 'zimage', 'anima', 'booru']
 FILE_NAME = r'^[^\x00-\x1f\x7f]*$'
 
 

@@ -25,6 +25,11 @@ export const FAMILIES: Record<ImageFamily, Family> = {
     slots: separate('A Qwen Image 2.1 file. The Turbo one suits the workflow\'s 8 steps at CFG 1; the full model wants about 25.',
       'Qwen Image 2.1 uses the Qwen3-VL 8B encoder.', 'qwen_image for Qwen Image models.', 'Qwen Image 2.1 has a VAE of its own.'),
   },
+  zimage: {
+    label: 'Z-Image Turbo', short: 'Z-Image', sampling: 'Z-Image Turbo', reference: false,
+    slots: separate('A Z-Image Turbo file or a fine-tune of it; the workflow runs 8 steps at CFG 1.',
+      'Z-Image uses the Qwen3 4B encoder.', 'lumina2 for Z-Image.', 'Z-Image uses the Flux VAE (ae.safetensors).'),
+  },
   anima: {
     label: 'Anima', short: 'Anima', sampling: 'Anima Turbo', reference: false,
     slots: separate('An Anima file. Anima Turbo suits the workflow\'s 10 steps at CFG 1; Base and Aesthetic want 30 or more at CFG 4.',
