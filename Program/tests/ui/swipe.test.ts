@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { answeredText, arrowWay, decide, hintText, pose, stamp, threshold, tilt } from '../../src/features/dating/swipe.ts'
+import { undoLabel, answeredText, arrowWay, decide, hintText, pose, stamp, threshold, tilt } from '../../src/features/dating/swipe.ts'
 
 test('a drag past a third of the card likes to the right and passes to the left', () => {
   assert.equal(threshold(360), 120)
@@ -54,4 +54,9 @@ test('a card flies off the way it was answered, and only fades when motion is re
   assert.deepEqual(pose(0, 'pass', true, 300), { x: 0, rotate: 0, opacity: 0, like: 0, pass: 1, lift: 1 })
   assert.equal(pose(50, null, true, 300).rotate, 0)
   assert.equal(pose(50, null, false, 300).x, 50)
+})
+
+test('Undo names who it brings back for a screen reader', () => {
+  assert.equal(undoLabel('Ashanti', 'like'), 'Undo liking Ashanti')
+  assert.equal(undoLabel('Rachel', 'pass'), 'Undo passing on Rachel')
 })
