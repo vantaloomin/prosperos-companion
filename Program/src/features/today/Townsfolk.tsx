@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MapPin } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
-import type { PetView, Townsperson, TownspersonNow } from '../../types'
+import type { PersonalitySliders, PersonalityView, PetView, Townsperson, TownspersonNow } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { useStartWith, useSwitchBack } from '../character/useSwitchBack'
@@ -11,6 +11,7 @@ import { stageText } from '../memories/pairText'
 import { townMet, townNow, townRole } from './townText'
 import { BecomeThem } from './BecomeThem'
 import { PetLines } from '../pets/PetLines'
+import { PersonalitySliderList, PersonalitySummary } from '../character/PersonalityFields'
 
 /** Background people the companion keeps running into around town. Hidden until there is someone. */
 export function Townsfolk({ name, go }: { name: string; go: (view: View) => void }) {
@@ -44,6 +45,7 @@ function TownDetail({ person, go }: { person: Townsperson; go: (view: View) => v
     <div className="town-detail">
       <p>About {person.age}, {person.temperament}; {person.quirk}.</p>
       <ComesAcross person={person} />
+      <TownPersonality person={person} />
       <LifeDetails person={person} />
       {person.goal && <p>Trying to {person.goal}.{person.lately ? ` Last heard: ${person.lately}.` : ''}</p>}
       {person.reached.length > 0 && <p className="subtle">Already managed to {person.reached.join('; ')}.</p>}
@@ -75,6 +77,35 @@ function AdultSide({ person }: { person: Townsperson }) {
     return <p className="subtle"><span className="adult-side-label">Adult side ·</span> {side.orientation.charAt(0).toUpperCase()}{side.orientation.slice(1)}; {side.level_label.toLowerCase()}, {side.drive_label.toLowerCase()} drive.{into}</p>
   }
   return person.orientation ? <p className="subtle"><span className="adult-side-label">Adult side ·</span> Seems to be {person.orientation}.</p> : null
+}
+
+/** Their personality in short; Edit opens the same sliders as the character form, saved as they move. */
+function TownPersonality({ person }: { person: Townsperson }) {
+  const client = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [error, setError] = useState('')
+  const found = person.personality
+  if (!found?.traits) return null
+  const save = async (sliders: PersonalitySliders) => {
+    setError('')
+    try {
+      const saved = await api<PersonalityView>('/life/townsfolk/personality', { key: person.key, sliders })
+      client.setQueryData<Townsperson[]>(['townsfolk'], (people) => people?.map((other) => other.key === person.key ? { ...other, personality: saved } : other))
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'That could not be saved.') }
+  }
+  return (
+    <div className="town-personality">
+      <div className="town-personality-row">
+        <PersonalitySummary traits={found.traits} sliders={found.sliders} />
+        {!editing && <button type="button" className="text-button" aria-expanded={false} onClick={() => setEditing(true)}>Edit</button>}
+      </div>
+      {editing && <>
+        <PersonalitySliderList traits={found.traits} sliders={found.sliders} onChange={(sliders) => void save(sliders)} />
+        <div><button type="button" className="button town-personality-done" onClick={() => setEditing(false)}>Done</button></div>
+      </>}
+      {error && <p className="field-help-error" role="alert">{error}</p>}
+    </div>
+  )
 }
 
 /** What they have told about their life, and the stories they have shared. */

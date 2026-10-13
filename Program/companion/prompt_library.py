@@ -55,6 +55,11 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'whatever this says.',
            constant('companion.memory.context', 'GUIDANCE'),
            {'name': "the companion's name", 'relationship': 'the relationship framing from the character'}),
+    Prompt('chat-personality', CHAT, 'How the companion acts',
+           "Follows the character sheet in every chat reply and first text: one line of behaviour for each of the "
+           "companion's personality sliders that isn't in the middle (Character > Life details > Personality).",
+           constant('companion.memory.context', 'PERSONALITY'),
+           {'lines': 'what their personality sliders say, one behaviour per line'}),
     Prompt('first-texts', CHAT, 'Texting first',
            'Added when the companion writes to you first, such as a check-in. The app picks the reason.',
            constant('companion.life.openers', 'INSTRUCTION'),

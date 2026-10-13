@@ -57,7 +57,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import intimacy, looks, newcomers, perception
+from companion.world import intimacy, looks, newcomers, perception, personality
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -257,6 +257,9 @@ class Packet:
 
 
 NEUTRAL_ABSENCE = 'Time apart is fine with you: do not express hurt, guilt or pressure about absence.'
+# Their personality sliders as behaviour (companion/world/personality.py); editable in Settings > Advanced.
+PERSONALITY = ('How you tend to act (your personality; it shows where it fits the moment, the way it would in a real '
+               'person, not in every message, and you never describe yourself this way):\n{lines}')
 TRAITS = ('Your emotional traits, expressed in character only and only about what you can know '
           '(never claim to know what the user did): ')
 FLAWS = 'Flaws (let them show naturally; do not smooth them away): '
@@ -327,11 +330,22 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     if version.get('companion_id'):
         found = perception.for_companion(version['companion_id'], definition)
         lines.append(perception.own_text(found['public'], found['private']))
+        if acts := personality_text(connection, definition, version['companion_id']):
+            lines.append(acts)
     if intimate and (adult := intimacy.prompt_text(connection, version)):
         lines.append(adult)
     if style := texting.instruction(definition):
         lines.append(style)
     return '\n'.join(lines)
+
+
+def personality_text(connection, definition: dict, seed: str) -> str | None:
+    """How their personality sliders show, one behaviour line per slider away from the middle; None when every
+    slider sits in the middle."""
+    found = personality.behaviour(personality.levels_of(personality.settle(definition, seed)))
+    if not found:
+        return None
+    return prompt_library.text(connection, 'chat-personality', lines='\n'.join(f'- {line}' for line in found))
 
 
 def post_text(post) -> str:

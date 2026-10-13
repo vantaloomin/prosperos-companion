@@ -160,7 +160,18 @@ export interface CharacterDefinition {
   texting?: TextingStyle
   /** Their adult side as the user set it (companion/world/intimacy.py); empty fields use the roll. */
   intimacy?: IntimacySetup | null
+  /** Personality sliders (companion/world/personality.py); null, or a trait left out, is read from their words and rolled. */
+  personality_sliders?: PersonalitySliders | null
 }
+
+export type PersonalityKey = 'social' | 'warmth' | 'order' | 'curiosity' | 'stress'
+/** One slider: 0 low, 1 in between, 2 high, and who set it. */
+export interface PersonalitySlider { level: 0 | 1 | 2; source: 'rolled' | 'idea' | 'you' }
+export type PersonalitySliders = Partial<Record<PersonalityKey, PersonalitySlider>>
+/** A slider's words: its name, each end and what each stop looks like. */
+export interface PersonalityTrait { key: PersonalityKey; name: string; low: string; high: string; shows: [string, string, string] }
+/** The sliders as profiles show them: summary chips and the four-letter type they read as. */
+export interface PersonalityView { sliders: Required<PersonalitySliders>; chips: string[]; type: string | null; traits?: PersonalityTrait[] }
 
 export interface IntimacySetup { orientation: string; level: string; drive: string; interests: string[]; note: string }
 
@@ -1362,6 +1373,8 @@ export interface Townsperson {
   comes_across: string | null
   /** From the third meeting: how they once described themselves. */
   says_they_are: string | null
+  /** Their personality sliders (companion/life/town_personality.py); null for a companion living in town. */
+  personality?: PersonalityView | null
   /** With the adult side on: who they're drawn to, once the companion knows their heart. */
   orientation?: string | null
   /** With the adult side on and shown in Hidden values: all of it, for the user's eyes only. */
