@@ -1825,6 +1825,8 @@ export interface WorkLifeView {
   level: number
   /** Only with Hidden values' home-life meters on. */
   meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
+  /** Same days every week, shifts that change weekly, or freelance gigs (companion/life/shifts.py). */
+  hours: 'staff' | 'rota' | 'freelance'
 }
 
 /** Reading, watching and listening (companion/life/media.py): what they are on now and what ended lately. */

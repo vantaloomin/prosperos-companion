@@ -213,8 +213,11 @@ def test_freelance_gigs_show_and_pay_unevenly(client, ines, clock):
     assert revise(client, lambda definition: {'money': {**definition['money'], 'employment': 'freelance'}}
                   ).status_code == 200
     reconcile(client)
-    state = client.get('/api/life/work').json()['work']['state']
-    assert any('gig' in line and 'spell' in line for line in state)
+    view = client.get('/api/life/work').json()['work']
+    assert view['hours'] == 'freelance' and 'gig' in view['state'][0] and 'spell' in view['state'][0]
+    # The gigs say how the week goes; a week without them has no project line (Iris).
+    assert not any(line.endswith('this week.') and 'week at work' in line for line in view['state'])
+    assert any(line.startswith('Working on ') for line in view['state']) != view['state'][0].startswith('No gigs')
     with connect(client) as connection:
         connection.execute("UPDATE work_weeks SET pay=0 WHERE timeline_id=?", (ines['active_timeline_id'],))
         connection.execute("INSERT OR REPLACE INTO work_weeks (timeline_id, monday, kind, career, days, pay, created_at) "

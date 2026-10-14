@@ -887,16 +887,21 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
     late = [admin.item_view(item, companion['version']['definition'])
             for item in admin.upcoming(connection, timeline_id, today.isoformat())
             if item['source'] == 'work'][:4]
-    state_lines = []
+    state_lines, hours = [], 'staff'
     if not chosen:
         state_lines.append('Work life is off: their job stays as written.')
     elif found['status'] == 'hunting':
         state_lines.append('Between jobs and job hunting.')
     else:
-        state_lines.append(WORKLOAD_WORDS[week] + '.')
-        if shifts.ACTIVE and (line := shifts.overview_line(connection, companion, today)):
-            state_lines.append(line)
-        state_lines.append(f"Working on {found['project']['title']}, due {day_text(found['project']['due'])}.")
+        gigs = shifts.overview_line(connection, companion, today) if shifts.ACTIVE else ''
+        hours = (shifts.setup(connection, companion) or {}).get('kind', 'staff') if gigs else 'staff'
+        if hours == 'freelance':
+            # A freelancer's gigs say how the week is going; with none this week there is no project to be on (Iris).
+            state_lines.append(gigs)
+        else:
+            state_lines += [WORKLOAD_WORDS[week] + '.', *([gigs] if gigs else [])]
+        if hours != 'freelance' or not gigs.startswith('No gigs'):
+            state_lines.append(f"Working on {found['project']['title']}, due {day_text(found['project']['due'])}.")
         if line := vacation_line(days + vacation_days(connection, companion, today.year + 1, found), today):
             state_lines.append(line.replace('You are', 'They are').replace('You have', 'They have')
                                .replace('your', 'their'))
@@ -913,4 +918,4 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
             'late_nights': late, 'vacation': [day for day in days if day >= today.isoformat()][:10],
             'events': [{'id': event['id'], 'kind': event['kind'], 'local_date': event['local_date'],
                         'text': event['text']} for event in reversed(events)][:8],
-            'level': chosen, 'meter': meter}
+            'level': chosen, 'meter': meter, 'hours': hours}
