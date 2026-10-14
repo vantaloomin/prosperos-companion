@@ -55,7 +55,7 @@ test('on a call the strip says with whom and how long, with End call; a ring off
   assert.deepEqual(callActions({ ...ringing.call!, status: 'missed' }).map((item) => item.label), ['Call back'])
   assert.equal(stripLine({ ...ringing, call: { ...on, status: 'missed' } }, 'Mira')?.lead, "Mira didn't pick up.")
   const ended = stripLine({ ...ringing, call: { ...on, status: 'ended', ended_at: '2026-10-08T19:12:05Z' } }, 'Mira')
-  assert.equal(`${ended?.lead}${ended?.tail}`, 'Call ended · 12:05')
+  assert.equal(`${ended?.lead}${ended?.tail}`, 'Call ended after 12 minutes')
   assert.equal(callClock(3_723_000), '1:02:03')
   assert.ok(canCall({ state: 'apart', kind: 'long-distance', text: 'Long distance, Lisbon', outing: null, call: null }))
 })

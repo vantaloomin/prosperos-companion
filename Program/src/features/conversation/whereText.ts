@@ -44,7 +44,7 @@ export function callLine(call: WhereCall, name: string): StripLine {
   const line = (lead: string, tail = '') => ({ lead, place: null, tail })
   if (call.status === 'on') return line(`On a call with ${name}`)
   if (call.status === 'ringing') return line(`${name} is calling`)
-  if (call.status === 'ended') return line('Call ended', call.started_at && call.ended_at ? ` · ${callClock(Date.parse(call.ended_at) - Date.parse(call.started_at))}` : '')
+  if (call.status === 'ended') return line('Call ended', call.started_at && call.ended_at ? ` after ${minutesText(Date.parse(call.ended_at) - Date.parse(call.started_at))}` : '')
   if (call.status === 'declined') return line(`You declined ${name}'s call.`)
   return line(call.direction === 'you' ? `${name} didn't pick up.` : `Missed call from ${name}.`)
 }
@@ -55,6 +55,12 @@ export function callActions(call: WhereCall | null | undefined): CallAction[] {
   if (call.status === 'on') return [{ action: 'end', label: 'End call' }]
   if (call.status === 'missed' && call.direction === 'them') return [{ action: 'call', label: 'Call back' }]
   return []
+}
+
+/** "12 minutes", "1 minute", "less than a minute": how long a call that ended lasted. */
+export function minutesText(ms: number): string {
+  const minutes = Math.round(ms / 60_000)
+  return minutes < 1 ? 'less than a minute' : `${minutes} minute${minutes === 1 ? '' : 's'}`
 }
 
 /** "4:05", "1:02:09": how long a call has been on. */

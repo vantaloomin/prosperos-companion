@@ -111,6 +111,7 @@ def test_they_ring_and_writing_answers(client, nearby, provider, clock, monkeypa
     monkeypatch.setattr(calls, 'FIRST_TEXTS', True)
     monkeypatch.setattr(calls, 'RING_CHANCE', {1: 1.0, 2: 1.0, 3: 1.0})
     monkeypatch.setattr(calls, 'close', lambda *_args: True)
+    monkeypatch.setattr(calls, 'why_not', lambda *_args: None)  # Free, whatever the seeded evening holds.
     set_life(client, texts_first=True)
     clock.advance(timedelta(hours=9, minutes=50))  # 21:50, after any seeded minute.
     reconcile(client)

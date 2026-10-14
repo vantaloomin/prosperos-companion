@@ -299,7 +299,7 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
 
 
 def on_lines(connection, companion: dict, found: dict, now: datetime, fresh_ids: set[str]) -> list[tuple[str, str]]:
-    local = parse(found['started_at']).astimezone(zone(companion['version']['timezone']))
+    local = parse(found['created_at']).astimezone(zone(companion['version']['timezone']))
     who = 'You called the user' if found['direction'] == 'them' else 'The user called you'
     lines = [(f"call:{found['id']}", f'- You are on a phone call with the user right now. {who} at {local:%H:%M}. '
               f'{ON_CALL}')]
@@ -366,7 +366,7 @@ def ring_due(connection, companion: dict, now: datetime) -> list:
         return []
     far = where.between(connection, version['definition']).long_distance
     rng = random.Random(f"{companion['id']}:{key}")
-    if rng.random() >= min(0.6, chance * (FAR_TIMES if far else 1)) or \
+    if rng.random() >= chance * (FAR_TIMES if far else 1) or \
             local.hour * 60 + local.minute < rng.randint(RING_HOURS[0] * 60, RING_HOURS[1] * 60 - 30):
         return []
     if blocked(connection, companion, now) or why_not(connection, companion, now) or not close(connection, companion,
