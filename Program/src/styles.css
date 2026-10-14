@@ -627,8 +627,8 @@ textarea { resize: vertical; line-height: 1.6; }
   .hobby-card .person-actions { margin-bottom: -10px; }
   .hobby-form input:not([type="checkbox"]), .hobby-form select { max-width: none; }
 }
-.persona-pets { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
-.persona-pets legend { padding: 0 6px; font-weight: 600; }
+.persona-pets, .persona-home { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.persona-pets legend, .persona-home legend { padding: 0 6px; font-weight: 600; }
 .persona-pets > .button { justify-self: start; }
 .persona-pet { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .persona-pet .text-button { justify-self: start; }

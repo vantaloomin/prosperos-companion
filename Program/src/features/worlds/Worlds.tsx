@@ -49,7 +49,7 @@ export function Worlds() {
           : <div className="form-actions">
               <button type="button" className="button" onClick={() => setMaking(true)}><UserRoundPlus aria-hidden="true" />New persona</button>
             </div>}
-        <div id="persona-edit"><PersonaForm key={data.persona.id} persona={data.persona} cityId={data.world.city_id} onSaved={(saved) => { if (saved) store(saved) }} /></div>
+        <div id="persona-edit"><PersonaForm key={`${data.persona.id}:${data.world.id}`} persona={data.persona} world={data.world} cityId={data.world.city_id} onSaved={(saved) => { if (saved) store(saved) }} /></div>
       </div>
     </section>
   )

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { api } from '../../api'
-import type { Persona, PersonaGender, Worlds } from '../../types'
+import type { Persona, PersonaGender, World, Worlds } from '../../types'
 import { Field, TextArea, TextInput } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
 import { GENDERS } from './worldsText'
 import { CityPick, SOMEWHERE_NEW } from './CityPick'
 import { PersonaPets } from './PersonaPets'
+import { PersonaHome } from './PersonaHome'
+import { homeChanged, saveHome, useHomeDraft, type HomeDraft } from './personaHomeText'
 import { petDrafts, petsBody, type PetDraft } from './personaPetsText'
 
 const BIRTHDAY = /^(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?$/
@@ -33,13 +35,21 @@ async function savePersona(persona: Persona | undefined, body: Omit<Draft, 'age'
   return api<Worlds>(`/worlds/personas/${persona.id}`, body, 'PATCH')
 }
 
-/** `cityId` is the city the user is in now, listed in a new persona's city picker even before the cities load. */
-interface PersonaFormProps { persona?: Persona; cityId: string; onSaved: (data?: Worlds) => void; onCancel?: () => void }
+/** The persona, then where they live in the world they are in when the user changed it. */
+async function saveAll(persona: Persona | undefined, body: Parameters<typeof savePersona>[1], city: string, moving?: { world: World; home: HomeDraft } | null): Promise<Worlds | undefined> {
+  const saved = await savePersona(persona, body, city)
+  return moving && homeChanged(moving.world, moving.home) ? saveHome(moving.world, moving.home) : saved
+}
+
+/** `cityId` is the city the user is in now, listed in a new persona's city picker even before the cities load.
+ * `world` is the world the persona is in now, where the form also says where they live. */
+interface PersonaFormProps { persona?: Persona; world?: World; cityId: string; onSaved: (data?: Worlds) => void; onCancel?: () => void }
 
 /** Who the user is: the one in use, or (without `persona`) a new one. Only the user says this; companions know
  * only what is written here, and nothing left blank is made up. */
-export function PersonaForm({ persona, cityId, onSaved, onCancel }: PersonaFormProps) {
+export function PersonaForm({ persona, world, cityId, onSaved, onCancel }: PersonaFormProps) {
   const [draft, setDraft] = useState(() => draftOf(persona))
+  const home = useHomeDraft(world)
   const [city, setCity] = useState(SOMEWHERE_NEW)
   const [saving, setSaving] = useState(false)
   const text = persona ? TEXT.existing : TEXT.new
@@ -51,7 +61,9 @@ export function PersonaForm({ persona, cityId, onSaved, onCancel }: PersonaFormP
   const save = async () => {
     setSaving(true)
     try {
-      onSaved(await savePersona(persona, { ...draft, age, pets: petsBody(draft.pets) }, city))
+      const saved = await saveAll(persona, { ...draft, age, pets: petsBody(draft.pets) }, city, home.moving)
+      home.settle(saved)
+      onSaved(saved)
       setNote({ tone: 'info', text: 'Saved. Your companions know you this way from the next message.' })
     } catch (failure) { setNote({ tone: 'error', text: failure instanceof Error ? failure.message : 'That was not saved.' }) } finally { setSaving(false) }
   }
@@ -73,6 +85,7 @@ export function PersonaForm({ persona, cityId, onSaved, onCancel }: PersonaFormP
       <TextArea label="About you" value={draft.about} rows={3} maxLength={2000} onChange={(about) => set({ about })}
         placeholder="Works nights as a paramedic, loves old films." />
       <PersonaPets drafts={draft.pets} onChange={(pets) => set({ pets })} persona={persona} />
+      <PersonaHome moving={home.moving} disabled={saving} onChange={(next) => { home.setHome(next); setNote(null) }} />
       {!persona && <CityPick value={city} currentId={cityId} disabled={saving} onChange={setCity} />}
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={!valid || saving}>{saving ? text.busy : text.button}</button>
