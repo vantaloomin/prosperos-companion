@@ -26,7 +26,7 @@ from companion.characters import by_id, current, for_timeline
 from companion.clock import parse, stamp
 from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
-from companion.life import agenda, composer, deck, dreams, feed, hobbies, mood, pets, routine, thoughts, upkeep
+from companion.life import agenda, circle, composer, deck, dreams, feed, hobbies, mood, pets, routine, thoughts, upkeep
 from companion.life.synthesis import PROMPT_VERSION, SynthesisInvalid, phrase
 from companion.life.world import EmptyWorld
 from companion.models import EventProposal
@@ -632,7 +632,9 @@ class LifeEngine:
                 starts_at=slot['starts_at'], ends_at=slot['ends_at'],
                 inputs={'run_id': run['id'], 'mode': run['mode'], 'settles': due['id'],
                         'composer_version': settled['composer_version'], 'character_version_id': version['id']})
-        elif not busy and (opened := composer.open_thread(version['definition'], key, slot['local_date'], used)):
+        elif not busy and (opened := composer.open_thread(
+                version['definition'], key, slot['local_date'], used,
+                composer.thread_era(circle.city_data(version['definition'], self.world)))):
             thread_key = f"thread:{timeline_id}:{slot['key']}"
             proposal = EventProposal(
                 idempotency_key=thread_key, kind='thread', summary=opened['summary'],

@@ -199,9 +199,10 @@ def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bo
     """{activity, day, at, place} for the first sentence of a message that asks to go out together. `pastimes` are
     the companion's own (companion/life/hobbies.py `patterns`): "want to go climbing Saturday?" is one of them."""
     text = own_plans.QUOTED.sub(' ', own_plans.ACTIONS.sub(' ', text)).replace('’', "'")
-    for sentence in (part.strip() for part in SENTENCE.findall(text)):
+    sentences = [part.strip() for part in SENTENCE.findall(text)]
+    for index, sentence in enumerate(sentences):
         day = day_asked(sentence, today, holidays) if sentence else None
-        if sentence and (found := hosted(sentence, firm, day)):
+        if sentence and (found := hosted(with_food(sentences, index, day), firm, day)):
             return found
         if not sentence or not asked(sentence, firm, day):
             continue
@@ -218,6 +219,16 @@ def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bo
                 'word': word_for(sentence, activity), 'waterside': bool(WATERSIDE.search(sentence)),
                 'sentence': sentence[:300], 'hobby': pastime}
     return None
+
+
+def with_food(sentences: list[str], index: int, day: date | None) -> str:
+    """The sentence, read together with the next one when it names the day and the next one the food: "Want to come
+    over Saturday? I'll cook." is one invitation."""
+    sentence = sentences[index]
+    after = sentences[index + 1] if index + 1 < len(sentences) else ''
+    if day and after and not FOOD.search(sentence) and FOOD.search(after):
+        return f'{sentence} {after}'
+    return sentence
 
 
 def hosted(sentence: str, firm: bool, day: date | None) -> dict | None:

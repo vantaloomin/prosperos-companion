@@ -5,6 +5,7 @@ import { Loading } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { AdminList } from '../today/AdminList'
 import { WORK_KEY, eventDay, eventText, meterText, timeOffText } from './workText'
+import { panelTitle } from './panelText'
 
 /** The companion's job in plain words: the week, the project, late nights, time off and what changed lately. Nothing
  * for a companion without work in their week. */
@@ -14,7 +15,7 @@ export function WorkLife({ name }: { name: string }) {
   if (query.isSuccess && !view) return null
   return (
     <section id="work-life" className="home-panel work-panel" aria-labelledby="work-heading">
-      <h2 id="work-heading">{name.split(' ')[0]}'s work life</h2>
+      <h2 id="work-heading">{panelTitle(name, 'work life')}</h2>
       <p className="subtle">Busy weeks, slow weeks, a project on the go and a raise once a year, as their job and city do them. Picked for them; move a late night like anything on their calendar.</p>
       {query.isPending && <Loading label="Loading their work life" />}
       {query.isError && <ErrorNotice error={query.error} />}

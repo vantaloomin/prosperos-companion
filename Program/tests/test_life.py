@@ -3,6 +3,7 @@
 Every case drives a substitute clock; the host clock is never changed.
 """
 import asyncio
+import re
 import time
 from datetime import UTC, date, datetime, timedelta
 
@@ -20,6 +21,7 @@ from companion.models import CharacterRevision
 from companion.providers.chat import Chunk
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.providers.vault import MemoryVault
+from companion.world import catalog
 
 
 def life_requests(provider):
@@ -599,3 +601,20 @@ def test_a_photographed_slot_is_kept_however_many_plans_came_first(monkeypatch):
     assert chosen == ['s0', 's5']
     alone = [slot.key for slot in simulation.choose(None, 't', slots, 0, 'seed')]
     assert alone == ['s5']
+
+
+def test_open_threads_fit_the_home_citys_era():
+    """No record player, video, pottery class or resale tickets in Camelot; older eras get their own threads."""
+    def opened(era):
+        return {composer.open_thread({'name': 'Mira'}, f'seed-{n}', '2026-10-05', era=era)['thread']
+                for n in range(300) if composer.open_thread({'name': 'Mira'}, f'seed-{n}', '2026-10-05', era=era)}
+    modern, medieval = opened('modern'), opened('medieval')
+    assert {'parcel', 'repair', 'tickets'} <= modern and not modern & {'letter', 'mending', 'lost-glove'}
+    assert not medieval & {'parcel', 'repair', 'waitlist', 'tickets', 'plant', 'novel', 'noisy-neighbor'}
+    assert {'letter', 'mending'} <= medieval
+    for thread in composer.THREADS:
+        if 'medieval' in thread.eras or 'any' in thread.eras:
+            text = ' '.join((thread.opening, *thread.endings)).lower()
+            assert not re.search(r'record|video|ticket|class|landlord|cafe|houseplant', text), thread.key
+    assert composer.thread_era(catalog.city('camelot')) == 'medieval'
+    assert composer.thread_era({'era': 'future'}) == composer.thread_era(None) == 'modern'

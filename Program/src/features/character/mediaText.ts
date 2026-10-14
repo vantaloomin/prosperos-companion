@@ -1,5 +1,6 @@
 /** Wording for the Reading, watching, listening panel (companion/life/media.py). */
 import type { MediaNow, MediaView } from '../../types'
+import { panelTitle } from './panelText.ts'
 
 export const MEDIA_KEY = ['media']
 
@@ -51,8 +52,7 @@ export function recommendedNote(item: MediaNow): string {
 
 /** "Dana's books, shows and music", by first name like the other Character panels. */
 export function panelHeading(name: string): string {
-  const first = name.trim().split(/\s+/)[0] || name
-  return `${first}'s books, shows and music`
+  return panelTitle(name, 'books, shows and music')
 }
 
 /** The text before and after the title, to set the title off; null when the title is not in it. */

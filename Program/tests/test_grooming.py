@@ -290,3 +290,24 @@ def test_a_sick_day_keeps_its_appointment_out(client, rosa, monkeypatch):
         told = connection.execute(
             "SELECT COUNT(*) FROM life_agenda WHERE json_extract(entry, '$.looks.change')='g1'").fetchone()[0]
     assert told == 0
+
+
+def test_looks_lines_are_stored_neutral_and_said_with_their_pronouns(client, rosa):
+    """Rosa is "she": a stored line says "their", so the money panel's "they …" and her post's "I …" read right
+    (it read "they had her nails done" and "I had her nails done")."""
+    rows = history(client, date(2027, 4, 1))
+    texts = [row['text'] for row in rows if re.search(r'\b(?:nails|hair)\b', row['text'])]
+    assert texts and not any(re.search(r'\b(?:her|his)\b', text) for text in texts)
+    assert composer.said('Rosa had their nails done: a soft pink.', ROSA) == 'Rosa had her nails done: a soft pink.'
+    assert composer.mine('Rosa had their nails done: a soft pink.', 'Rosa') == 'I had my nails done: a soft pink.'
+    # Lines written before keep "her" in the log; they read neutral beside product copy and as "my" in a post.
+    assert composer.mine('Rosa dyed her hair copper red.', 'Rosa') == 'I dyed my hair copper red.'
+    assert composer.neutral_looks('had his hair cut into a buzz cut') == 'had their hair cut into a buzz cut'
+    assert composer.neutral_looks('Jo had her baby.') == 'Jo had her baby.'
+    _, tid = ids(client)
+    with connect(client) as connection:
+        connection.execute("INSERT INTO grooming_log (id, timeline_id, period, track, local_date, kind, change, text, "
+                           "spend, bold, created_at) VALUES ('old', ?, 98, 'nails', '2027-03-30', 'nails', '{}', "
+                           "'had her nails done: a soft pink', '$', 0, '2027-03-29')", (tid,))
+        bought = grooming.purchases(connection, tid, date(2027, 3, 30), date(2027, 3, 30))
+    assert [item['text'] for item in bought] == ['had their nails done: a soft pink']
