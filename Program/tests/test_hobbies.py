@@ -86,6 +86,16 @@ def test_written_interests_come_first_and_the_panel_says_it_in_words(client, kim
 
 def test_practice_adds_up_to_milestones_the_same_way_every_time(client, kim):
     client.get('/api/life/hobbies')
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        # Their skill is seeded on the random id; a first milestone just ahead keeps one always in reach. Set on the
+        # first mark and walked again from there, as the panel has already walked a few days.
+        connection.execute("UPDATE hobby_log SET details=json_set(details, '$.next_at', json_extract(details, "
+                           "'$.skill') + 1) WHERE kind='mark'")
+        timeline = connection.execute('SELECT active_timeline_id FROM companions').fetchone()['active_timeline_id']
+        definition = decode(connection.execute('SELECT definition FROM character_versions').fetchone()['definition'])
+        hobbies.rewind(hobbies.life_for(connection, timeline, definition, WORLD, database.clock.now()), TODAY,
+                       database.clock.now())
     before = {row['id']: row['skill'] for row in rows(client)}
     walk(client, 120)
     after = rows(client)
@@ -97,7 +107,6 @@ def test_practice_adds_up_to_milestones_the_same_way_every_time(client, kim):
     assert all(item['text'][:1].islower() and '{' not in item['text'] for item in found)
     # Rewinding to today and walking again gives the same life.
     texts = sorted(item['text'] for item in found)
-    database = client.app.state.database
     with database.connect(write=True) as connection:
         timeline = connection.execute('SELECT active_timeline_id FROM companions').fetchone()['active_timeline_id']
         definition = decode(connection.execute('SELECT definition FROM character_versions').fetchone()['definition'])
