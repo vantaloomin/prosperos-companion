@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
+import { BLANK, interestText } from '../../src/features/dating/datingText.ts'
 import { undoLabel, answeredText, arrowWay, decide, hintText, nextHeard, pose, stamp, threshold, tilt, undoShown } from '../../src/features/dating/swipe.ts'
 
 test('a drag past a third of the card likes to the right and passes to the left', () => {
@@ -94,4 +95,9 @@ test('the Like stamp sits on the edge that stays on screen, and a notice wraps i
   assert.match(css, /\.dating-stamp\.like \{ left: 20px;/)
   assert.match(css, /\.notice \{ display: flex; flex-wrap: wrap;/)
   assert.match(css, /\.notice > span \{ flex: 1 1 14rem;/)
+})
+
+test('the interest line names one age once when the range is a single year', () => {
+  assert.match(interestText({ ...BLANK, age_min: 22, age_max: 22 }), /aged 22, looking/)
+  assert.match(interestText({ ...BLANK, age_min: 22, age_max: 30 }), /aged 22 to 30, looking/)
 })
