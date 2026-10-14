@@ -16,7 +16,7 @@ export function WorkLife({ name }: { name: string }) {
   return (
     <section id="work-life" className="home-panel work-panel" aria-labelledby="work-heading">
       <h2 id="work-heading">{panelTitle(name, 'work life')}</h2>
-      <p className="subtle">Busy weeks, slow weeks, a project on the go and a raise once a year, as their job and city do them. Picked for them; move a late night like anything on their calendar.</p>
+      <p className="subtle">Busy weeks, slow weeks, a project on the go and a raise once a year, as their job and city do them. Shift work changes days each week; freelance work comes and goes. Picked for them; move a late night like anything on their calendar.</p>
       {query.isPending && <Loading label="Loading their work life" />}
       {query.isError && <ErrorNotice error={query.error} />}
       {view && <WorkDetails view={view} />}

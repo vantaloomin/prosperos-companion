@@ -193,12 +193,16 @@ export interface AdultSideChoices {
 export type SpendingStyle = 'careful' | 'balanced' | 'spender'
 
 /** How the companion's money works; pay, rent and prices come from the world data. */
+/** Their hours: '' follows their work (companion/life/shifts.py). */
+export type Employment = '' | 'staff' | 'rota' | 'freelance'
+
 export interface MoneySetup {
   career: string
   style: SpendingStyle
   saving_for: string
   goal: number
   goal_since: string
+  employment: Employment
 }
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }

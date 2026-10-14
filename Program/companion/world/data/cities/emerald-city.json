@@ -2364,6 +2364,7 @@
    "name": "Gardener",
    "sector": "gardens",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Tends beds, fountains and fruit trees in the royal gardens or the city orchards.",
    "themes": [
@@ -2381,6 +2382,7 @@
    "name": "Palace cook",
    "sector": "palace",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Cooks in the palace kitchens for the court, its guests and the many feasts.",
    "themes": [
@@ -2397,6 +2399,7 @@
    "name": "Palace steward",
    "sector": "palace",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Keeps the palace halls, guest rooms and linen in order and looks after visitors.",
    "themes": [
@@ -2413,6 +2416,7 @@
    "name": "Emerald cutter",
    "sector": "crafts",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Splits and polishes emeralds for the city's walls, pavements and jewellery.",
    "themes": [
@@ -2429,6 +2433,7 @@
    "name": "Goldsmith",
    "sector": "crafts",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Sets emeralds in gold for doors, lamps and brooches.",
    "themes": [
@@ -2445,6 +2450,7 @@
    "name": "Baker",
    "sector": "food",
    "schedule": "early",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Bakes the city's bread, buns and pies before dawn.",
    "themes": [
@@ -2461,6 +2467,7 @@
    "name": "Tavern keeper",
    "sector": "food",
    "schedule": "evening",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Runs a tavern or inn, keeps the fire and feeds whoever comes in.",
    "themes": [
@@ -2477,6 +2484,7 @@
    "name": "Tailor",
    "sector": "textiles",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Cuts and sews the green clothes nearly everyone in the city wears.",
    "themes": [
@@ -2493,6 +2501,7 @@
    "name": "Dyer",
    "sector": "textiles",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Works the vats that turn cloth a dozen shades of green.",
    "themes": [
@@ -2509,6 +2518,7 @@
    "name": "Soldier of the Royal Army",
    "sector": "army",
    "schedule": "flexible",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Serves in the famously tiny Royal Army of Oz, mostly parading and standing guard.",
    "themes": [
@@ -2525,6 +2535,7 @@
    "name": "Gate warden",
    "sector": "gates",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Helps the Guardian of the Gates welcome travellers and look after the boxes of green spectacles.",
    "themes": [
@@ -2541,6 +2552,7 @@
    "name": "Librarian",
    "sector": "learning",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Keeps the public reading room and finds books for readers of every age.",
    "themes": [
@@ -2557,6 +2569,7 @@
    "name": "Schoolteacher",
    "sector": "learning",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Teaches the city's children reading, sums and the geography of the four countries.",
    "themes": [
@@ -2573,6 +2586,7 @@
    "name": "Musician",
    "sector": "music",
    "schedule": "evening",
+   "employment": "freelance",
    "pay": "$$",
    "summary": "Plays at palace feasts, the bandstand and the taverns.",
    "themes": [
@@ -2589,6 +2603,7 @@
    "name": "Tinsmith",
    "sector": "crafts",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Makes and mends tin pails, lanterns and oil cans, a trade the Winkies are known for.",
    "themes": [
@@ -2605,6 +2620,7 @@
    "name": "Cobbler",
    "sector": "crafts",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Makes and mends shoes and boots.",
    "themes": [
@@ -2621,6 +2637,7 @@
    "name": "Glazier",
    "sector": "crafts",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Blows and fits the green glass in the city's windows.",
    "themes": [
@@ -2637,6 +2654,7 @@
    "name": "Street keeper",
    "sector": "city-works",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Sweeps and polishes the green marble streets and resets loose emeralds.",
    "themes": [
@@ -2653,6 +2671,7 @@
    "name": "Carpenter",
    "sector": "city-works",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Builds and repairs houses, wagons and market stalls.",
    "themes": [
@@ -2669,6 +2688,7 @@
    "name": "Road mender",
    "sector": "city-works",
    "schedule": "shift-day",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Relays broken yellow bricks and fills the holes in the road outside the gate.",
    "themes": [
@@ -2685,6 +2705,7 @@
    "name": "Healer",
    "sector": "care",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Looks after the sick and the injured at the city's house of healing.",
    "themes": [
@@ -2701,6 +2722,7 @@
    "name": "Farmer",
    "sector": "farming",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Grows grain, fruit and vegetables on the farms along the yellow brick road and brings them to market.",
    "themes": [
@@ -2717,6 +2739,7 @@
    "name": "Market keeper",
    "sector": "food",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Sets out stalls on Market Square and shares produce out fairly.",
    "themes": [

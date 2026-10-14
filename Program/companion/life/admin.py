@@ -122,7 +122,7 @@ def clock(total: int) -> str:
 
 
 def free_blocks(schedule, day: date) -> list[dict]:
-    return [block.view() for block in schedule if day.weekday() in block.days and block.kind not in BUSY]
+    return [block.view() for block in schedule if block.on(day) and block.kind not in BUSY]
 
 
 def time_in(block: dict, at: str | None, office: bool, jitter: float = 0.0) -> str | None:

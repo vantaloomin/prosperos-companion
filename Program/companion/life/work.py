@@ -27,7 +27,7 @@ from pathlib import Path
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import admin, money, outings, routine
+from companion.life import admin, money, outings, routine, shifts
 from companion.world import catalog, generators, wording
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'work_life.json'
@@ -215,8 +215,7 @@ def after_work(definition: dict, day: date, block: dict) -> str | None:
 
 def work_block(definition: dict, day: date) -> dict | None:
     """The day's last work block (the one a late night follows)."""
-    found = [block.view() for block in routine.blocks(definition)[0] if block.kind == 'work' and day.weekday() in
-             block.days]
+    found = [block.view() for block in routine.blocks(definition)[0] if block.kind == 'work' and block.on(day)]
     return max(found, key=lambda block: block['end'] if block['end'] > block['start'] else '24:00', default=None)
 
 
@@ -626,7 +625,7 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
     """A slammed week's late nights on the shared calendar, right after work, on seeded workdays. They hold their
     time against plans with the user on True to life and up (admin.stands), and move for them on Light."""
     definition, timeline_id = companion['version']['definition'], companion['active_timeline_id']
-    days, added = workdays(definition), 0
+    added = 0
     off = set(days_off(connection, companion, today, today + timedelta(days=AHEAD_DAYS + 7)))
     city = outings.city_data(connection, definition)
     if city:
@@ -640,8 +639,9 @@ def plan_late_nights(connection, companion: dict, found: dict, today: date, chos
         seed = f'work:{timeline_id}:late:{monday.isoformat()}'
         low, high = LATE_NIGHTS[chosen]
         count = low + int(generators.unit(seed, 'count') * (high - low + 1))
+        # This week's workdays: a rota's shifts or a freelancer's gigs (companion/life/shifts.py) where they have them.
         options = [monday + timedelta(days=offset) for offset in range(7)
-                   if (monday + timedelta(days=offset)).weekday() in days
+                   if work_block(definition, monday + timedelta(days=offset))
                    and (monday + timedelta(days=offset)).isoformat() not in off]
         due = date.fromisoformat(found['project']['due'])
         picks = sorted(options, key=lambda day: (day != due - timedelta(days=1), generators.unit(seed, 'day', day)))
@@ -676,14 +676,33 @@ def plan_ahead(connection, companion: dict, world, now: datetime) -> dict:
     if not found or not chosen:
         connection.execute("UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND source='work' "
                            "AND status='planned'", (stamp(now), timeline_id))
-        return {}
+        return {'shifts': plan_shifts(connection, companion, now)}
     connection.execute("UPDATE life_admin SET fixed=? WHERE timeline_id=? AND source='work' AND status='planned'",
                        (int(chosen >= 2), timeline_id))
     if found['status'] == 'hunting':
         connection.execute("UPDATE life_admin SET status='removed', updated_at=? WHERE timeline_id=? AND "
                            "source='work' AND status='planned'", (stamp(now), timeline_id))
-        return {'added': 0}
-    return {'added': plan_late_nights(connection, companion, found, local_today(companion, now), chosen, now)}
+        return {'added': 0, 'shifts': plan_shifts(connection, companion, now)}
+    moved = plan_shifts(connection, companion, now)
+    if moved:
+        companion = reread(connection, companion)
+    return {'added': plan_late_nights(connection, companion, found, local_today(companion, now), chosen, now),
+            'shifts': moved}
+
+
+def reread(connection, companion: dict) -> dict:
+    from companion.characters import by_id
+    return by_id(connection, companion['id']) or companion
+
+
+def plan_shifts(connection, companion: dict, now: datetime) -> bool:
+    """This week's and the next few weeks' shifts or gigs written down (companion/life/shifts.py), and the agenda's
+    upcoming work days brought in line when the week changed. True when it did, so the caller reads the companion
+    again."""
+    if not shifts.ACTIVE:
+        return False
+    added = shifts.plan_ahead(connection, companion, local_today(companion, now), now)
+    return shifts.refresh_agenda(connection, reread(connection, companion), now) or bool(added)
 
 
 # --- The day's account ---
@@ -701,6 +720,8 @@ HUNT = ('{name} spent the morning on job applications.', '{name} sent out a few 
         '{name} had an interview and came away hopeful.')
 HUNT_OLD = ('{name} went round asking after work.', '{name} answered a notice for a position and waited to hear.',
             '{name} called on a few places that might be hiring.')
+GIG = ('{name} spent the day on a gig: {project}.', '{name} had a gig today and put it into {project}.',
+       'A gig came through, and {name} spent the day on {project}.', '{name} worked a gig for a client: {project}.')
 SLAMMED_POSTS = ('Long day. Longer week.', 'Deadline week, send snacks.', 'Inbox: overflowing.')
 SLOW_POSTS = ('Quiet one today.', 'A slow day, for once.', 'Left on time, a miracle.')
 CAPTIONS_HUNT = ('Job hunting is a job.', 'Fingers crossed.', 'Applications out.')
@@ -726,6 +747,10 @@ def touch(connection, companion: dict, entry: dict | None, block: dict, day: dat
     if not week or not found:
         return entry
     label, project = routine_label(block), project_on(connection, companion, found, day)['title']
+    if (gig := shifts.setup(connection, companion)) and gig['kind'] == 'freelance' and \
+            generators.unit(seed, 'gig-line') < 0.5:
+        summary = generators.pick(seed, 'gig', list(GIG)).format(name=name, project=project)
+        return {**entry, 'summary': summary, 'mood': 'busy' if week == 'slammed' else entry.get('mood')}
     if week == 'slammed':
         lines, posts, mood = SLAMMED, SLAMMED_POSTS, 'busy'
     elif week == 'slow':
@@ -760,6 +785,9 @@ def pay(connection, timeline_id: str, day: date) -> dict | None:
         return None
     hunting = found['status'] == 'hunting' and found['hunt_since'] <= day.isoformat()
     factor = found['pay'] * (HUNT_PAY.get(found['hunt_reason'] or '', 0.5) if hunting else 1)
+    if not hunting and shifts.ACTIVE:
+        # Shifts worked and gigs landed lately, tips and all (companion/life/shifts.py).
+        factor *= shifts.pay(connection, timeline_id, day)
     return {'factor': round(factor, 4), 'between_jobs': hunting}
 
 
@@ -829,6 +857,8 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
                                'normal': 'An ordinary week at work.'}[week]))
         lines.append(('project', f"At work you are in the middle of {project['title']}.{due_text}"))
         lines.append(('tenure', f"You have been at this job for {tenure(found['started_on'], today)}."))
+        if shifts.ACTIVE and (line := shifts.context_line(connection, companion, today)):
+            lines.append(('shifts', line[2:]))
         if line := vacation_line(vacation_days(connection, companion, today.year, found)
                                  + vacation_days(connection, companion, today.year + 1, found), today):
             lines.append(('vacation', line))
@@ -864,6 +894,8 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
         state_lines.append('Between jobs and job hunting.')
     else:
         state_lines.append(WORKLOAD_WORDS[week] + '.')
+        if shifts.ACTIVE and (line := shifts.overview_line(connection, companion, today)):
+            state_lines.append(line)
         state_lines.append(f"Working on {found['project']['title']}, due {day_text(found['project']['due'])}.")
         if line := vacation_line(days + vacation_days(connection, companion, today.year + 1, found), today):
             state_lines.append(line.replace('You are', 'They are').replace('You have', 'They have')

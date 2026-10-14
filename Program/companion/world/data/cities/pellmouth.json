@@ -2642,6 +2642,7 @@
    "name": "Asylum attendant",
    "sector": "healthcare",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Twelve-hour shifts on the wards of the State Hospital: bathing, feeding and watching patients, walking them on the lawns, and living in the attendants' home.",
    "themes": [
@@ -2659,6 +2660,7 @@
    "name": "Lighthouse keeper",
    "sector": "maritime",
    "schedule": "rotating",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Keeping the Gannet Point lamp lit, the lens polished, the fog bell rung and the log written up, through every watch of the night.",
    "themes": [
@@ -2676,6 +2678,7 @@
    "name": "Rare-books cataloguer",
    "sector": "education",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Cataloguing the Whitcomb bequest card by card at the Lindall Library, in a room that must be locked at sundown.",
    "themes": [
@@ -2693,6 +2696,7 @@
    "name": "Tide-table clerk",
    "sector": "maritime",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$",
    "summary": "Working out and posting the week's tides, keeping the harbormaster's ledgers and logging every vessel in and out.",
    "themes": [
@@ -2710,6 +2714,7 @@
    "name": "Fish-cannery hand",
    "sector": "fishing",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Gutting, packing and sealing fish at the Pell River Packing Company, on shifts set by whatever the boats bring in.",
    "themes": [
@@ -2727,6 +2732,7 @@
    "name": "Séance medium",
    "sector": "spiritualism",
    "schedule": "evening",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Holding sittings in a front parlour and reading messages at the Spiritualist hall for people who have lost someone.",
    "themes": [
@@ -2744,6 +2750,7 @@
    "name": "Dowser",
    "sector": "trades",
    "schedule": "flexible",
+   "employment": "freelance",
    "pay": "$",
    "summary": "Walking farms and house lots with a forked witch-hazel stick to find where a well should go, paid if the water comes.",
    "themes": [
@@ -2761,6 +2768,7 @@
    "name": "Quarry worker",
    "sector": "quarrying",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Drilling, blasting and splitting granite in the Pellmouth Granite Company pits, by derrick and steam drill.",
    "themes": [
@@ -2778,6 +2786,7 @@
    "name": "Sexton",
    "sector": "religion",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Ringing the bell, minding the furnace, keeping the burying ground and digging the graves for First Parish.",
    "themes": [
@@ -2795,6 +2804,7 @@
    "name": "Folklore lecturer",
    "sector": "education",
    "schedule": "academic",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Teaching New England folklore at Haskett and collecting ballads, sayings and stories from old people who would rather not be written down.",
    "themes": [
@@ -2812,6 +2822,7 @@
    "name": "Wireless operator",
    "sector": "communications",
    "schedule": "shift-night",
+   "employment": "rota",
    "pay": "$$",
    "summary": "Keeping the night watch on the Coast Guard station's wireless set, and a radio ham in the off hours who talks to strangers across the ocean.",
    "themes": [
@@ -2829,6 +2840,7 @@
    "name": "Clam digger",
    "sector": "fishing",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$",
    "summary": "Digging soft-shell clams on the flats at low tide with a fork and a hod, and selling them to the clam shacks and the cannery.",
    "themes": [
@@ -2846,6 +2858,7 @@
    "name": "Boatbuilder",
    "sector": "trades",
    "schedule": "early",
+   "employment": "staff",
    "pay": "$$",
    "summary": "Building and mending dories and draggers at Ellsworth's yard by eye, adze and steam box.",
    "themes": [
@@ -2863,6 +2876,7 @@
    "name": "Ferry deckhand",
    "sector": "transit",
    "schedule": "rotating",
+   "employment": "rota",
    "pay": "$",
    "summary": "Handling lines, fares and the gangway on the Pell River ferry, and telling the skipper when the fog is too thick to cross.",
    "themes": [

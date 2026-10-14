@@ -5392,6 +5392,7 @@
    "name": "Aerospace engineer",
    "sector": "aerospace",
    "schedule": "office",
+   "employment": "staff",
    "pay": "$$$",
    "summary": "Designing and testing spacecraft, instruments and flight systems at a lab or contractor.",
    "themes": [
