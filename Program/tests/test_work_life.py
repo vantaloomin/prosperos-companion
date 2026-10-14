@@ -1,5 +1,6 @@
 """Work life: slammed, ordinary and slow weeks, a running project, a yearly raise, vacation days by country and era, and
 late nights that clash with plans the way an appointment does."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -56,11 +57,116 @@ def test_vacation_days_are_workdays_and_seeded():
 
 def test_the_week_the_project_is_due_is_slammed_and_off_means_ordinary():
     found = {'timeline_id': 't', 'status': 'working', 'project': {'due': '2026-10-15'}}
-    assert work.workload(found, date(2026, 10, 12), 1) == 'slammed'
+    assert work.workload(found, date(2026, 10, 12), 2) == 'slammed'
     assert work.workload(found, date(2026, 10, 12), 0) == 'normal'
     weeks = [work.workload(found, date(2026, 11, 2) + timedelta(weeks=week), 2) for week in range(200)]
     assert 20 <= weeks.count('slammed') <= 60 and 15 <= weeks.count('slow') <= 50
     assert work.workload({**found, 'status': 'hunting'}, date(2026, 10, 12), 3) == 'normal'
+
+
+def test_steady_has_fewer_slammed_weeks_than_true_to_life():
+    def slammed(chosen):
+        return sum(work.workload({'timeline_id': f't{index}', 'status': 'working', 'project': {'due': '2026-10-15'}},
+                                 date(2026, 10, 12) + timedelta(weeks=week), chosen) == 'slammed'
+                   for index in range(40) for week in range(10))
+    assert slammed(1) < slammed(2) / 2
+
+
+def test_projects_fit_the_career_and_stay_in_their_world():
+    careers, bank = catalog.careers(), work.data()['projects']
+    fits = {item['title']: set(item.get('fits') or ()) for items in bank.values() for item in items}
+    engineer = work.projects('tech', 'modern', work.trades_of(careers['software-engineer']))
+    assert len(engineer) >= work.MIN_OPTIONS and all(not fits[title] or 'software' in fits[title] for title in engineer)
+    worlds = {item['title']: item for items in bank.values() for item in items}
+    for city_id in ('camelot', 'grandport', 'emerald-city', 'london-1895'):
+        city = catalog.city(city_id)
+        for career in catalog.careers_for(city).values():
+            found = work.projects(work.kind_of(career), work.era_group(city), work.trades_of(career), city)
+            assert len(found) >= work.MIN_OPTIONS, (city_id, career['id'])
+            assert all(work.in_world(worlds[title], city) for title in found), (city_id, career['id'])
+    assert not any('Emerald' in title or 'Grandport' in title for title in
+                   work.projects('public', 'old', frozenset({'police'}), catalog.city('camelot')))
+    assert not any(worlds[title].get('monarchy') for title in
+                   work.projects('service', 'old', frozenset({'food'}), catalog.city('grandport')))
+    # In a US city the titles are in American spelling.
+    baltimore = catalog.city('baltimore')
+    titles = {work.new_project('seed', index, careers['office-clerk'], baltimore, date(2026, 10, 5), [])['title']
+              for index in range(80)}
+    assert not any(word in title for title in titles for word in ('catalogue', 'organis', ' rota', 'lorry'))
+
+
+def test_a_late_night_follows_the_work_day_and_skips_days_without_free_time():
+    day = date(2026, 10, 7)
+    plain = {'schedule': WEEKDAYS}
+    assert work.after_work(plain, day, work.work_block(plain, day)) == '17:00'
+    studies = {'schedule': [{**WEEKDAYS[0], 'end': '16:30'},
+                            {'key': 'class', 'label': 'Night class', 'kind': 'study', 'start': '16:30', 'end': '17:30'},
+                            {**WEEKDAYS[1], 'start': '17:30'}, WEEKDAYS[2]]}
+    assert work.after_work(studies, day, work.work_block(studies, day)) == '17:30'
+    long_shift = {'schedule': [{**WEEKDAYS[0], 'start': '07:00', 'end': '19:00'},
+                               {'key': 'night', 'label': 'Asleep', 'kind': 'sleep', 'start': '19:00', 'end': '07:00'}]}
+    assert work.after_work(long_shift, day, work.work_block(long_shift, day)) is None
+
+
+def test_no_late_night_on_a_public_holiday(client, nell, monkeypatch):
+    reconcile(client)
+    make_slammed(client, nell)
+    database = client.app.state.database
+    monkeypatch.setattr(work.generators, 'holidays', lambda _city, start, end: [
+        {'date': (start + timedelta(days=offset)).isoformat(), 'kind': 'public'} for offset in range((end - start).days + 1)])
+    with connect(client) as connection:
+        connection.execute("DELETE FROM life_admin WHERE source='work'")
+        companion = require_current(connection)
+        work.plan_ahead(connection, companion, None, database.clock.now())
+        assert not [item for item in admin.upcoming(connection, nell['active_timeline_id'], '2026-10-05')
+                    if item['source'] == 'work']
+
+
+def test_a_job_named_for_its_hours_is_still_the_shift():
+    assert composer.span({'label': 'Night-shift nurse', 'kind': 'work'}) == 'shift'
+    assert composer.span({'label': 'Night shift', 'kind': 'work'}) == 'night shift'
+
+
+def test_a_storyline_promotion_within_a_year_of_another_adds_no_pay(client, nell):
+    reconcile(client)
+    database = client.app.state.database
+    stages = '[{"on": "%s", "text": "Nell got the promotion.", "tone": "good"}]'
+    with connect(client) as connection:
+        for story, day in (('s1', '2026-03-01'), ('s2', '2026-10-04')):
+            connection.execute(
+                "INSERT INTO storylines (id, timeline_id, story, level, cast_ids, stages, started_on, status, created_at) "
+                "VALUES (?, ?, 'promotion_chance', 0, '[]', ?, ?, 'ended', ?)",
+                (story, nell['active_timeline_id'], stages % day, day, day))
+        connection.execute("UPDATE work_life SET started_on='2025-01-01' WHERE timeline_id=?",
+                           (nell['active_timeline_id'],))
+        companion = require_current(connection)
+        found = work.advance(connection, companion, database.clock.now())
+    assert 1.07 < found['pay'] <= 1.15
+
+
+def test_where_there_is_no_money_a_review_never_changes_pay(client, nell):
+    reconcile(client)
+    database = client.app.state.database
+    with connect(client) as connection:
+        companion = require_current(connection)
+        found = work.state(connection, nell['active_timeline_id'])
+        for year in range(2027, 2047):
+            assert work.review(connection, companion, found, date(year, 6, 1), 3, {'paid': False},
+                               database.clock.now()) == found['pay']
+    kinds = {event['kind'] for event in client.get('/api/life/work').json()['work']['events']}
+    assert kinds <= {'promotion', 'project'}
+
+
+def test_a_review_months_away_is_still_held(client, nell, clock):
+    reconcile(client)
+    with connect(client) as connection:
+        connection.execute("UPDATE work_life SET review_on='03-10', started_on='2020-01-01', checked_through='2026-02-01' "
+                           "WHERE timeline_id=?", (nell['active_timeline_id'],))
+    clock.advance(timedelta(days=1))
+    reconcile(client)
+    events = client.get('/api/life/work').json()['work']['events']
+    assert any(event['kind'] in ('raise', 'promotion', 'freeze') and event['local_date'] == '2026-03-10'
+               for event in events)
 
 
 @pytest.fixture
@@ -142,6 +248,14 @@ def test_on_light_a_late_night_moves_for_dinner_and_off_takes_them_away(client, 
         assert not [item for item in admin.upcoming(connection, nell['active_timeline_id'], '2026-10-05')
                     if item['source'] == 'work']
         assert work.context_lines(connection, companion, database.clock.now()) == []
+    # Back on, the late nights come back.
+    set_life(client, work_realism=1)
+    with connect(client) as connection:
+        companion = require_current(connection)
+        work.plan_ahead(connection, companion, None, database.clock.now())
+        again = [item for item in admin.upcoming(connection, nell['active_timeline_id'], '2026-10-05')
+                 if item['source'] == 'work']
+    assert [item['key'] for item in again] == [item['key'] for item in late]
 
 
 def test_a_yearly_review_raises_pay_and_the_budget_follows(client, nell, clock):
@@ -163,10 +277,26 @@ def test_a_yearly_review_raises_pay_and_the_budget_follows(client, nell, clock):
         companion = require_current(connection)
         lines = [text for _key, text in work.context_lines(connection, companion, client.app.state.database.clock.now())]
     assert any('October 6' in line for line in lines)
+    if review['kind'] == 'raise':
+        assert any(re.fullmatch(r'- On (Tuesday, )?October 6 you got your yearly raise at work, about \d+(\.\d)?%\.', line)
+                   for line in lines)
     assert any(line.startswith('- At work you are in the middle of ') for line in lines)
     # Reconciling again records nothing new.
     reconcile(client)
     assert len(client.get('/api/life/work').json()['work']['events']) == len(events)
+
+
+def test_a_day_after_the_due_date_names_the_project_that_follows(client, nell, clock):
+    reconcile(client)
+    make_slammed(client, nell, '2026-10-06')
+    with connect(client) as connection:
+        companion = require_current(connection)
+        found = work.state(connection, nell['active_timeline_id'])
+        assert work.project_on(connection, companion, found, date(2026, 10, 6)) == found['project']
+        following = work.project_on(connection, companion, found, date(2026, 10, 8))
+    clock.advance(timedelta(days=2))
+    reconcile(client)
+    assert client.get('/api/life/work').json()['work']['project']['title'] == following['title']
 
 
 def test_a_finished_project_is_recorded_and_the_next_starts(client, nell, clock):

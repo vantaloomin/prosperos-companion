@@ -41,7 +41,8 @@ def span(block: dict) -> str:
     """The block as a stretch of time for "during the {label}". A label that names an activity or a
     job ("Solo gaming", "Stage performer") reads as the shift, study session or part of the day instead."""
     label = block['label'].lower()
-    if set(re.findall(r'[a-z]+', label)) & SPAN_WORDS:
+    # Whole words only: "Night shift" is a stretch of time, "Night-shift nurse" is a job.
+    if set(re.findall(r"[a-z]+(?:-[a-z]+)*", label)) & SPAN_WORDS:
         return label
     if block.get('kind') == 'work':
         return 'shift'

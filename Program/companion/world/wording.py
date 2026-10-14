@@ -15,14 +15,16 @@ STEMS = {
     'travell': 'travel', 'jewellery': 'jewelry', 'pyjama': 'pajama', 'programme': 'program',
 }
 # -ise verbs, only with a verb ending: "realised" but not "realistic".
-VERBS = {'organis': 'organiz', 'realis': 'realiz', 'recognis': 'recogniz', 'apologis': 'apologiz',
+VERBS = {'organis': 'organiz', 'reorganis': 'reorganiz', 'realis': 'realiz', 'recognis': 'recogniz', 'apologis': 'apologiz',
          'memoris': 'memoriz'}
 # Whole words: "mum" leaves "museum" and "grey" leaves "greyhound" alone.
 WORDS = {
     'mum': 'mom', 'mums': 'moms', 'grey': 'gray', 'cosy': 'cozy', 'theatre': 'theater', 'theatres': 'theaters',
     'centre': 'center', 'centres': 'centers', 'practise': 'practice', 'practised': 'practiced',
     'practises': 'practices', 'practising': 'practicing', 'jumper': 'sweater', 'jumpers': 'sweaters',
-    'allotment': 'garden plot', 'queue': 'line', 'queues': 'lines',
+    'allotment': 'garden plot', 'queue': 'line', 'queues': 'lines', 'catalogue': 'catalog', 'catalogues': 'catalogs',
+    'rota': 'schedule', 'rotas': 'schedules', 'lorry': 'truck', 'lorries': 'trucks', 'drink-driving': 'drunk-driving',
+    'tachograph': 'logbook',
     # British-only things.
     'prize marrow': 'prize pumpkin', 'prize-winning marrow': 'prize-winning pumpkin', 'giant marrow': 'giant pumpkin',
     'parish vestry': 'town council', 'parish rolls': 'church records', 'every street in the parish': 'every street in town',
