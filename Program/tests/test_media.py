@@ -135,3 +135,96 @@ def test_books_and_streaming_count_as_spending(client, kim):
                                  definition)
     assert bought and all(item['for'] == 'media' and item['cost'] > 0 for item in bought)
     assert money.profile(definition)
+
+
+def test_a_city_set_in_a_year_of_its_own_caps_the_titles_at_that_year():
+    ny = media.place_of(WORLD.find('new-york-1925'))
+    assert (ny['bank'], ny['year']) == ('jazz-age', 1925)
+    for kind in media.KINDS:
+        assert all(item['year'] <= 1925 for item in media.candidates(ny, kind, set()))
+    eighties = media.place_of({'era': 'other', 'country': 'United States', 'names': {'year': 1985}})
+    assert (eighties['bank'], eighties['year']) == ('modern', 1985)
+    assert all(item['year'] <= 1985 for item in media.candidates(eighties, 'music', set()))
+    assert media.place_of({'era': 'other', 'names': {'year': 1924}})['bank'] == 'jazz-age'
+    # What was running then: no 1914 picture serial at the pictures in 1925.
+    running = [item for item in media.candidates(ny, 'show', set()) if item['format'] in media.SHOWING_FORMATS]
+    assert running and min(item['year'] for item in running) > 1914
+
+
+def test_the_genre_they_name_is_not_diluted_by_reading_or_novels():
+    liked, _ = media.tastes({'interests': ['mystery novels', 'reading', 'science fiction']})
+    assert liked == {'mystery', 'scifi'}
+
+
+def test_wording_for_plays_seasons_names_with_a_full_stop_and_american_cities():
+    play = {'kind': 'show', 'title': 'Rose-Marie', 'creator': 'Rudolf Friml', 'format': 'broadway',
+            'outcome': 'finish', 'verdict': 'loved it'}
+    assert media.ended_text(play) == 'Saw Rose-Marie by Rudolf Friml: loved it.'
+    assert media.ended_text(play, 'you') == 'You saw Rose-Marie by Rudolf Friml: you loved it.'
+    season = {**play, 'title': 'Shrinking', 'creator': 'Apple TV+', 'format': 'series'}
+    assert media.ended_text(season) == 'Finished a season of Shrinking: loved it.'
+    assert media.ended_sentence(season, 'Kim') == 'Kim finished a season of Shrinking and loved it.'
+    song = {'kind': 'music', 'title': 'Bright Lights', 'creator': 'Gary Clark Jr.', 'format': 'music',
+            'started_on': '2026-10-01', 'ends_on': '2026-10-20'}
+    assert media.now_text(song, TODAY, 'modern') == 'On repeat: Bright Lights by Gary Clark Jr.'
+    serial = {'kind': 'show', 'title': 'The Ghost City', 'creator': 'Universal', 'format': 'film-serial',
+              'started_on': '2026-10-01', 'ends_on': '2026-10-20'}
+    assert media.now_text(serial, TODAY, 'jazz-age', region='us') == \
+        'Following The Ghost City by Universal at the movies: a few chapters in.'
+    assert 'at the pictures' in media.now_text(serial, TODAY, 'jazz-age', region='uk')
+    magazine = {**serial, 'format': 'serial'}
+    assert 'installments' in media.now_text(magazine, TODAY, 'nineteenth', region='us')
+
+
+@pytest.fixture
+def clara(client, monkeypatch, provider):
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
+    response = client.post('/api/companion', json={'name': 'Clara', 'timezone': 'America/New_York',
+                                                    'schedule': EVENINGS, 'home_city': 'new-york-1925',
+                                                    'interests': ['jazz']})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_picks_saved_before_the_year_cap_are_drawn_again(client, clara):
+    client.get('/api/life/media')
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE media_state SET profile=json_set(profile, '$.year', 1926)")
+        connection.execute("UPDATE media_items SET title='Blue Skies', creator='Irving Berlin' WHERE kind='music' "
+                           "AND status='current'")
+    view = client.get('/api/life/media').json()
+    assert [item['kind'] for item in view['now']] == ['book', 'show', 'music']
+    assert all(item['title'] != 'Blue Skies' for item in view['now'])
+    with database.connect() as connection:
+        assert decode(connection.execute('SELECT profile FROM media_state').fetchone()[0])['year'] == 1925
+        assert not connection.execute("SELECT id FROM media_items WHERE title='Blue Skies'").fetchall()
+
+
+def test_a_recommendation_comes_first_on_the_panel_and_their_own_show_waits(client, kim, clock, monkeypatch):
+    from conftest import send
+
+    from companion.life import recommendations
+    monkeypatch.setattr(recommendations, 'SESSION_SHARE', 1)
+    monkeypatch.setattr(media, 'GAPS', dict.fromkeys(media.KINDS, (0, 0)))  # always a show of their own on
+    client.get('/api/life/media')
+    reconcile(client)  # the agenda draws the chains days ahead
+    send(client, 'You should watch Severance, it is great', 'client-media-rec-1')
+    today = clock.now().date().isoformat()
+    with client.app.state.database.connect() as connection:
+        ahead = connection.execute("SELECT COUNT(*) FROM media_items WHERE started_on>?", (today,)).fetchone()[0]
+    assert ahead == 0
+    held = False
+    for _day in range(8):
+        clock.advance(timedelta(days=1))
+        reconcile(client)
+        view = client.get('/api/life/media').json()
+        shown = next(item for item in view['now'] if item['kind'] == 'show')
+        if shown.get('recommended'):
+            assert shown['title'] == 'Severance' and shown['text'].startswith('Watching Severance: ')
+            held = True
+    assert held
+    assert any(item['text'].startswith('Finished Severance, which you recommended: ') for item in view['lately'])
+    with client.app.state.database.connect() as connection:
+        waited = connection.execute("SELECT MAX(held) FROM media_items WHERE kind='show'").fetchone()[0]
+    assert waited > 0

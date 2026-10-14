@@ -12,7 +12,7 @@ AMERICAN = re.compile(r'^(?:us|usa|u\.s\.a?\.?|united states(?: of america)?|ame
 STEMS = {
     'neighbour': 'neighbor', 'colour': 'color', 'favourit': 'favorit', 'honour': 'honor', 'harbour': 'harbor',
     'flavour': 'flavor', 'humour': 'humor', 'behaviour': 'behavior', 'labour': 'labor', 'rumour': 'rumor',
-    'travell': 'travel', 'jewellery': 'jewelry', 'pyjama': 'pajama', 'programme': 'program',
+    'travell': 'travel', 'jewellery': 'jewelry', 'pyjama': 'pajama', 'programme': 'program', 'instalment': 'installment',
 }
 # -ise verbs, only with a verb ending: "realised" but not "realistic".
 VERBS = {'organis': 'organiz', 'realis': 'realiz', 'recognis': 'recogniz', 'apologis': 'apologiz',
@@ -23,6 +23,7 @@ WORDS = {
     'centre': 'center', 'centres': 'centers', 'practise': 'practice', 'practised': 'practiced',
     'practises': 'practices', 'practising': 'practicing', 'jumper': 'sweater', 'jumpers': 'sweaters',
     'allotment': 'garden plot', 'queue': 'line', 'queues': 'lines',
+    'at the pictures': 'at the movies', 'to the pictures': 'to the movies',
     # British-only things.
     'prize marrow': 'prize pumpkin', 'prize-winning marrow': 'prize-winning pumpkin', 'giant marrow': 'giant pumpkin',
     'parish vestry': 'town council', 'parish rolls': 'church records', 'every street in the parish': 'every street in town',

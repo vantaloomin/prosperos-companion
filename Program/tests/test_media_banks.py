@@ -8,7 +8,7 @@ from companion.life import media
 
 FORMATS = set(media.SHOW_DAYS)
 # Each era's bank and the years a city of that era sees: at least 100 titles of every kind in each.
-ERAS = (('modern', 2026), ('nineteenth', 1885), ('nineteenth', 1890), ('nineteenth', 1895), ('jazz-age', 1926),
+ERAS = (('modern', 2026), ('nineteenth', 1885), ('nineteenth', 1890), ('nineteenth', 1895), ('jazz-age', 1925), ('jazz-age', 1926),
         ('tales', None), ('future', None))
 
 
