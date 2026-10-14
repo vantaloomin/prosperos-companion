@@ -266,14 +266,16 @@ ADDED_COLUMNS = (
     ('life_settings', 'admin_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (admin_realism BETWEEN 0 AND 3)'),
     # Work life (companion/life/work.py, Settings > Realism > Their days): 0 off, 1 steady, 2 true to life, 3 dramatic.
     ('life_settings', 'work_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (work_realism BETWEEN 0 AND 3)'),
-    # Group chat guests (companion/group_guests.py): who brought a guest in (a member's key, or 'user'), who they are
-    # to them ("Sally's sister"), and whether the user kept them so they never slip out. NULL host: a member.
+    # Group chat guests (companion/group_guests.py): the member who knows a guest (their host), who they are to them
+    # ("Sally's sister"), and whether the user kept them so they never slip out. NULL host: a member.
     ('group_members', 'host', 'TEXT'),
     ('group_members', 'relation', "TEXT NOT NULL DEFAULT ''"),
     ('group_members', 'kept', 'INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1))'),
     # How often guests drop into group chats (Settings > Realism): 0 never on their own, 1 now and then, 2 true to
     # life, 3 often.
     ('life_settings', 'guests_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (guests_realism BETWEEN 0 AND 3)'),
+    # Who brought a guest in: the member's key, or 'user' when the user added them (only pull-ins count toward the gap).
+    ('group_members', 'brought_by', 'TEXT'),
     # Reading, watching and listening (companion/life/media.py, Settings > Realism > Their days): 0 off, 1 light,
     # 2 true to life, 3 dramatic.
     ('life_settings', 'media_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (media_realism BETWEEN 0 AND 3)'),
