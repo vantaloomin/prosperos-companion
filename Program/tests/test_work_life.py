@@ -10,7 +10,7 @@ from companion.characters import require_current
 from companion.database import decode
 from companion.life import admin, body, composer, work
 from companion.providers.chat import Chunk
-from companion.world import catalog
+from companion.world import catalog, wording
 
 WEEKDAYS = [{'key': 'work', 'label': 'Work', 'kind': 'work', 'start': '09:00', 'end': '17:00', 'days': [0, 1, 2, 3, 4]},
             {'key': 'evening', 'label': 'Evening', 'kind': 'leisure', 'start': '17:00', 'end': '23:00'},
@@ -193,7 +193,8 @@ def test_work_life_starts_with_a_project_and_shows_on_the_character_page(client,
     reconcile(client)
     view = client.get('/api/life/work').json()['work']
     assert view['status'] == 'working' and view['project']['title']
-    assert view['project']['title'] in [item['title'] for item in work.data()['projects']['care']]
+    titles = [wording.americanize(item['title']) for item in work.data()['projects']['care']]
+    assert wording.americanize(view['project']['title']) in titles
     assert view['workload'] in ('slammed', 'normal', 'slow') and view['meter'] is None
     assert view['state'][0] in ('Slammed this week.', 'An ordinary week at work.', 'A slow week at work.')
     client.put('/api/settings', json={'show_home_meters': True})
