@@ -19,6 +19,7 @@ from companion.events import committed
 from companion.life import (
     agenda,
     body,
+    calls,
     chapters,
     circle,
     composer,
@@ -223,7 +224,8 @@ NOW = {
        'feeling': 'How you feel right now (from your own day and this conversation; it colors your tone, you '
                   'never explain it unless asked)',
        # Go somewhere together and Trips and postcards (companion/life/outings.py, trips.py).
-       # Together or apart (companion/life/together.py): a visit turned down, or time together that just ended.
+       # Together or apart (companion/life/together.py): a visit turned down, or time together that just ended; and
+       # On a call (companion/life/calls.py): the call under way, or one that just ended or was missed.
        'where': 'Where you are with the user (decided by the app; keep to it)',
        'together': 'Going out with the user, and your trips (decided: you agreed to these plans and picked the '
                    'places, and your trips are booked; keep to them, never move them or name another place, and '
@@ -742,7 +744,8 @@ def offer_together(packet, connection, companion, now, recent, group=None):
     for identity, text in [*outings.context_lines(connection, companion, now, turn),
                            *trips.context_lines(connection, companion, now)]:
         packet.offer('booked' if identity.endswith(':booked') else 'together', identity, text)
-    for identity, text in together.context_lines(connection, companion, now, turn):
+    for identity, text in [*together.context_lines(connection, companion, now, turn),
+                           *calls.context_lines(connection, companion, now, turn)]:
         packet.offer('where', identity, text)
 
 

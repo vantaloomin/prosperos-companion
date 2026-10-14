@@ -34,7 +34,7 @@ import { latestPhotoId } from './photoState'
 import { AwayRecap } from './AwayRecap'
 import { WhereStrip } from './WhereStrip'
 import { useWhere } from './useWhere'
-import { WHERE_KEY, inPerson } from './whereText'
+import { WHERE_KEY, notTexting } from './whereText'
 import { ChatsPanel } from '../chats/ChatsPanel'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { readThrough } from '../chats/chatText'
@@ -68,8 +68,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [branching, setBranching] = useState<Message | null>(null)
   const [found, setFound] = useState<{ id: string; at: number } | null>(null)
   const draft = useDraft()
-  // In person, texting habits like bursts stop (companion/life/together.py).
-  const together = inPerson(useWhere().data)
+  // In person or on the phone, texting habits like bursts stop (companion/life/together.py, calls.py).
+  const together = notTexting(useWhere().data)
   const ooc = useOoc()
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)

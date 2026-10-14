@@ -35,6 +35,8 @@ ENGINES = ('builtin', 'openai', 'elevenlabs', 'google')
 HOSTED = ('openai', 'elevenlabs', 'google')
 CHANCE = 0.3
 MAX_CHARACTERS = 320
+# A reply on a call (companion/life/calls.py) is read aloud whole, up to this long.
+CALL_CHARACTERS = 1500
 URL = re.compile(r'https?://\S+|www\.\S+', re.IGNORECASE)
 ACTION = re.compile(r'\*[^*\n]{1,200}\*')
 # Emoji and pictographs, which a voice cannot say.
@@ -66,8 +68,10 @@ def rolled(key: str) -> bool:
 
 
 def sent_today(connection, companion_id: str, now) -> int:
+    """Voice notes sent as first texts in the last day; replies read aloud on a call don't count."""
     return one(connection, 'SELECT COUNT(*) AS n FROM voice_notes v JOIN messages m ON m.id=v.message_id '
-               'JOIN timelines t ON t.id=m.timeline_id WHERE t.companion_id=? AND v.created_at>=?',
+               'JOIN timelines t ON t.id=m.timeline_id WHERE t.companion_id=? AND v.created_at>=? '
+               'AND v.message_id IN (SELECT message_id FROM openers)',
                (companion_id, stamp(now - timedelta(hours=24))))['n']
 
 
@@ -186,9 +190,16 @@ class VoiceNotes:
                 return None
         return current['engine'] if self.can_speak(current['engine']) else None
 
-    def fits(self, text: str) -> bool:
+    def for_call(self) -> str | None:
+        """The engine a reply on a call is read aloud with: voice notes are on and the chosen engine can speak, else
+        None and the call stays in text. No dice and no daily cap: on a call every reply is heard."""
+        with self.database.connect() as connection:
+            current = read(connection)
+        return current['engine'] if current['voice_notes'] and self.can_speak(current['engine']) else None
+
+    def fits(self, text: str, limit: int = MAX_CHARACTERS) -> bool:
         words = spoken(text)
-        return bool(words) and len(text) <= MAX_CHARACTERS and not URL.search(text)
+        return bool(words) and len(text) <= limit and not URL.search(text)
 
     # --- speaking ------------------------------------------------------------------------------
 
@@ -204,9 +215,9 @@ class VoiceNotes:
         path.write_bytes(data)
         return path, 'audio/mpeg'
 
-    async def record(self, companion: dict, engine: str, text: str) -> dict | None:
-        """A voice note for a first text about to be sent, or None to send it as text."""
-        if not self.fits(text):
+    async def record(self, companion: dict, engine: str, text: str, limit: int = MAX_CHARACTERS) -> dict | None:
+        """A voice note for a first text about to be sent (or a reply on a call), or None to send it as text."""
+        if not self.fits(text, limit):
             return None
         try:
             voice, _who = await self.voice_for(companion, engine)

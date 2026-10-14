@@ -1,5 +1,7 @@
 import { useState, type RefObject } from 'react'
-import { ChevronLeft, Ellipsis, GitBranch, MessageSquareText, MessagesSquare, Search, UsersRound } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft, Ellipsis, GitBranch, MessageSquareText, MessagesSquare, Phone, Search, UsersRound } from 'lucide-react'
+import { api } from '../../api'
 import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
 import { useChatStyle } from './useChatStyle'
@@ -11,6 +13,8 @@ import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/c
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
 import { ExportLinks } from '../chats/ExportLinks'
+import { useWhere } from './useWhere'
+import { WHERE_KEY, canCall, type WhereState } from './whereText'
 
 type Props = { companion: Companion; listing: boolean; chatsButton: RefObject<HTMLButtonElement | null>; onChats: () => void; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
 
@@ -33,6 +37,7 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
       </div>
       <ChatStyleSwitch />
       <span className="header-break phone-only" aria-hidden="true" />
+      <CallButton name={name} />
       {onGroups && <button type="button" className="icon-button" aria-label="Group chats: start a new group" title="Group chats" onClick={onGroups}><UsersRound aria-hidden="true" /></button>}
       <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
       <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
@@ -40,6 +45,21 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
       <ChatMenu threadId={companion.active_timeline_id} />
     </header>
   )
+}
+
+/** Call them (companion/life/calls.py): they pick up when they are free, and the strip above the composer shows the
+ * call. Hidden while you are together or a call is on or ringing. */
+function CallButton({ name }: { name: string }) {
+  const client = useQueryClient()
+  const where = useWhere().data
+  if (!canCall(where)) return null
+  const call = async () => {
+    const found = await api<WhereState>('/life/calls', {}).catch(() => undefined)
+    if (found) client.setQueryData(WHERE_KEY, found)
+    void client.invalidateQueries({ queryKey: WHERE_KEY })
+    void client.invalidateQueries({ queryKey: ['chats'] })
+  }
+  return <button type="button" className="icon-button" aria-label={`Call ${name}`} title={`Call ${name}`} onClick={() => void call()}><Phone aria-hidden="true" /></button>
 }
 
 /** The way to the other chats, with how many messages wait there; shown once there is more than one chat. */

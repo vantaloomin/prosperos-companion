@@ -154,7 +154,7 @@ function Reply({ message, found, name, text, position, onPage, onStop, onRemembe
         <span className="speaker">{name}</span>
         <ReplyTools message={message} position={position} streaming={streaming} onPage={onPage} onStop={onStop} actions={actions} onSheet={sheet.open} />
       </header>
-      {message.voice && !message.redacted ? <VoiceNote note={message.voice} text={message.text} name={name} /> : <ReplyBody text={text} streaming={streaming} bursts={bursts} />}
+      {message.voice && !message.redacted ? <VoiceNote note={message.voice} text={message.text} name={name} at={message.completed_at} /> : <ReplyBody text={text} streaming={streaming} bursts={bursts} />}
       <ReplyExtras message={message} name={name} note={note} />
       {sheet.sheet}
     </article>

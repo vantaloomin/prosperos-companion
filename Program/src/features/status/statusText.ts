@@ -1,15 +1,21 @@
 /** Status messages (companion/life/status.py): what shows, kept apart from the components for tests. */
 
-export type AwayGlyph = 'moon' | 'briefcase' | 'pin'
-/** Together or apart (companion/life/together.py), in plain words; the text is empty while apart in the same city. */
-export interface StatusWhere { state: 'together' | 'apart'; kind: string; text: string }
+export type AwayGlyph = 'moon' | 'briefcase' | 'pin' | 'phone'
+/** Together or apart (companion/life/together.py), or on a call (companion/life/calls.py), in plain words; the text is empty while apart in the same city. */
+export interface StatusWhere { state: 'together' | 'apart' | 'call'; kind: string; text: string }
 export interface CompanionStatus { text: string; set_by: 'app' | 'you'; away: { text: string; glyph: AwayGlyph } | null; where?: StatusWhere | null }
 
-/** Where they are with you while together ("At your place"), the away line while they are asleep, at work or out, else their status. */
+/** Where they are with you while together ("At your place") or on the phone ("On a call", "Calling you"), the away line while they are asleep, at work or out, else their status. */
 export function shown(status: CompanionStatus | null | undefined): { text: string; away: AwayGlyph | null } | null {
   if (!status) return null
   if (status.where?.state === 'together' && status.where.text) return { text: status.where.text, away: 'pin' }
+  if (onThePhone(status.where) && status.where?.text) return { text: status.where.text, away: 'phone' }
   return status.away ? { text: status.away.text, away: status.away.glyph } : status.text ? { text: status.text, away: null } : null
+}
+
+/** On a call, or ringing you (companion/life/calls.py). */
+export function onThePhone(where: StatusWhere | null | undefined): boolean {
+  return where?.kind === 'call' || where?.kind === 'ringing'
 }
 
 /** A line as it is read aloud: Retro IM decorations (♫, ~*~, xXx) dropped, and hearts said in words. */

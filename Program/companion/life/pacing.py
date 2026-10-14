@@ -77,6 +77,9 @@ def hold(connection, companion, now, seed: str) -> dict:
     """{held_until, held_line, instruction} for a reply being written now. `held_line` is a holding text
     sent now, `instruction` what the model is told; all None when the reply is an ordinary one shown at once."""
     life = optional(connection, 'SELECT paced_replies FROM life_settings WHERE id=1')
+    from companion.life import calls
+    if calls.on_call(connection, companion, now):
+        return dict(NOT_HELD)  # On the phone (companion/life/calls.py), they answer as they talk.
     found = block_now(connection, companion, now) if ACTIVE and life and life['paced_replies'] else None
     kind = busy_kind(found[0]) if found else None
     if kind is None:

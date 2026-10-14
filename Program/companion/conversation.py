@@ -29,7 +29,7 @@ from companion.characters import by_id, for_timeline, require_current
 from companion.database import encode, identifier, many, one, optional, settings
 from companion.errors import DomainError, require
 from companion.images import photos
-from companion.life import occasions, outings, own_plans, pacing, recommendations, together
+from companion.life import calls, occasions, outings, own_plans, pacing, recommendations, together
 from companion.memory import context, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
@@ -70,6 +70,8 @@ def record_user(database, body) -> dict:
         occasions.note(connection, message, database.now())
         # Asked out, the companion settles where and when before the reply is written (companion/life/outings.py).
         outings.note(connection, message, companion, database.now())
+        # Answering a ring, hanging up, or asking to call (companion/life/calls.py), likewise before the reply.
+        calls.note(connection, message, companion, database.now())
         self_checks.heed(connection, message, database.now())
         moods.from_user(connection, f"companion:{companion['id']}", body.text, database.clock.now())
         return message
@@ -207,6 +209,8 @@ class Conversation:
         self.running: dict[str, LiveReply] = {}
         # Called once a turn needs nothing more from the model, so memory work never runs ahead of a reply.
         self.after_turn = after_turn
+        # Voice notes (companion/voice/notes.py), set by the app: on a call, replies are read aloud with them.
+        self.voice = None
 
     def user_view(self, user) -> dict:
         with self.database.connect() as connection:
@@ -306,8 +310,8 @@ class Conversation:
 
     def reply(self, attempt_id) -> dict:
         with self.database.connect() as connection:
-            [view] = photos.decorate(connection, [message_view(one(
-                connection, "SELECT * FROM messages WHERE id=? AND role='companion'", (attempt_id,)))])
+            [view] = voice_notes.decorate(connection, photos.decorate(connection, [message_view(one(
+                connection, "SELECT * FROM messages WHERE id=? AND role='companion'", (attempt_id,)))]))
             return view
 
     async def events(self, attempt_id):
@@ -422,7 +426,32 @@ class Conversation:
             error = troubleshoot.describe("Couldn't finish", 'the reply', failure, str(logs.file_path()))
         if status == 'complete' and not ''.join(text).strip():
             status, error = 'failed', error or 'The model returned no reply text.'
-        self.finish(prepared['attempt_id'], ''.join(text), status, error)
+        if self.finish(prepared['attempt_id'], ''.join(text), status, error):
+            await self.read_aloud(prepared['attempt_id'])
+
+    async def read_aloud(self, attempt_id):
+        """On a call, a reply is also heard in their voice when one is set up for voice notes (companion/voice/notes.py,
+        companion/life/calls.py). The text is already shown; if reading it fails it stays a text."""
+        engine = self.voice.for_call() if self.voice else None
+        if engine is None:
+            return
+        with self.database.connect() as connection:
+            message = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
+            companion = for_timeline(connection, message['timeline_id'])
+        try:
+            note = await self.voice.record(companion, engine, message['text'], voice_notes.CALL_CHARACTERS)
+        except Exception:  # noqa: BLE001 - a voice that fails leaves the reply as text.
+            LOG.exception('A call reply could not be read aloud.')
+            return
+        if note is None:
+            return
+        with self.database.connect(write=True) as connection:
+            kept = optional(connection, "SELECT id FROM messages WHERE id=? AND status='complete' AND active=1",
+                            (attempt_id,))
+            if kept:
+                self.voice.attach(connection, attempt_id, note, self.database.now())
+        if not kept:
+            self.voice.discard(note)
 
     async def compose(self, prepared, key, packet, text, publish, active, step) -> tuple[str, str | None, int, dict]:
         """The reply, with one chance to ask to remember more first (companion/memory/look_back.py): returns the
@@ -502,7 +531,8 @@ class Conversation:
         with self.database.connect() as connection:
             return reactions.what_if_note(connection, chat_owner(connection, timeline_id), self.database.clock.now())
 
-    def finish(self, attempt_id, text, status, error):
+    def finish(self, attempt_id, text, status, error) -> bool:
+        """Save the reply in its final state; True when it is a complete reply said on the phone."""
         with self.database.connect(write=True) as connection:
             attempt = one(connection, 'SELECT * FROM messages WHERE id=?', (attempt_id,))
             # The companion whose chat this is: switching to another chat meanwhile doesn't withhold the reply.
@@ -511,11 +541,14 @@ class Conversation:
                 # The user wrote again first and a newer reply took its place (companion/life/pacing.py).
                 connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
                                    (text, status, error, self.database.now(), attempt_id))
-                return
+                return False
             if status == 'complete' and not still_current(connection, attempt, companion):
                 status, error = 'withheld', 'Memories or the character changed while this reply was written.'
-            if status == 'complete' and not together.together_now(connection, companion, self.database.clock.now()):
-                # Texting habits (typos, lowercase) stop while they are together in person (companion/life/together.py).
+            now = self.database.clock.now()
+            spoken = calls.speaking(connection, companion, now, attempt['reply_to'])
+            if status == 'complete' and not together.together_now(connection, companion, now) and not spoken:
+                # Texting habits (typos, lowercase) stop while they are together in person (companion/life/together.py)
+                # or on the phone (companion/life/calls.py).
                 text = texting.restyle(text, companion['version']['definition'], attempt_id)
             connection.execute('UPDATE messages SET text=?, status=?, error=?, completed_at=? WHERE id=?',
                                (text, status, error, self.database.now(), attempt_id))
@@ -526,6 +559,7 @@ class Conversation:
                 self_facts.note(connection, finished, self.database.now())
                 own_plans.note(connection, finished, companion, self.database.now())
                 outings.note(connection, finished, companion, self.database.now())
+            return status == 'complete' and spoken
 
 
 def model_of(prepared) -> str:
