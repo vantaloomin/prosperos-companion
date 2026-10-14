@@ -38,6 +38,7 @@ test('while together, their status line says where', () => {
   const status = { text: 'coffee first', set_by: 'app' as const, away: null, where: { state: 'together' as const, kind: 'yours', text: 'At your place' } }
   assert.deepEqual(shown(status), { text: 'At your place', away: 'pin' })
   assert.deepEqual(shown({ ...status, where: { state: 'apart', kind: 'long-distance', text: 'Long distance, Lisbon' } }), { text: 'coffee first', away: null })
+  assert.deepEqual(shown({ ...status, where: { state: 'together', kind: 'staying', text: 'Staying with you until Sunday' } }), { text: 'Staying with you until Sunday', away: 'luggage' })
 })
 
 test('on a call the strip says with whom and how long, with End call; a ring offers Answer and Decline', async () => {

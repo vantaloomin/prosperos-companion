@@ -99,7 +99,7 @@ function TripItem({ trip, name, act }: { trip: Trip; name: string; act: (path: s
         <strong>{tripTitle(trip, name)}</strong>
         <span className="badge">{trip.state === 'now' ? (trip.visit ? 'Together now' : 'Away now') : OUTING_STATES[trip.state]}</span>
       </div>
-      <p className="subtle">{tripDays(trip)}{trip.cost_text ? ` · about ${trip.cost_text}` : ''}</p>
+      <p className="subtle">{tripDays(trip)}{trip.cost_text ? ` · ${trip.visit ? `${name} spends about` : 'about'} ${trip.cost_text}` : ''}</p>
       {trip.postcard_message_id && <p className="subtle">{name} sent you a postcard{trip.landmark ? ` of ${trip.landmark.name}` : ''}.</p>}
       {trip.visit && trip.state === 'planned' && <div className="together-actions">
         <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
