@@ -583,6 +583,13 @@ class NewPersona(PersonaInput):
     city_id: str | None = Field(None, min_length=1, max_length=120)
 
 
+class HomeChange(Input):
+    """Where the user lives in a world (companion/life/where.py): a city and a neighbourhood there; a blank
+    neighbourhood lets the app pick one."""
+    city_id: str = Field(min_length=1, max_length=120)
+    neighbourhood: str = Field(default='', max_length=120)
+
+
 class WorldChange(Input):
     """Rename a world, or give it to another persona."""
     name: str | None = Field(None, max_length=80)

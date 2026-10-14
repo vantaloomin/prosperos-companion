@@ -284,6 +284,9 @@ ADDED_COLUMNS = (
     ('life_settings', 'hobbies_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (hobbies_realism BETWEEN 0 AND 3)'),
     # Matchlight's Undo (companion/dating.py): the person just answered, until it is undone or anything else changes.
     ('dating_profile', 'last_answer', "TEXT NOT NULL DEFAULT ''"),
+    # Where you live in this world (companion/life/where.py): a city id and a neighbourhood id in it.
+    ('persona', 'home_city_id', "TEXT NOT NULL DEFAULT ''"),
+    ('persona', 'home_neighbourhood', "TEXT NOT NULL DEFAULT ''"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

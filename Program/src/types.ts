@@ -1714,6 +1714,9 @@ export interface TownPaper {
 }
 
 /** Worlds and personas (companion/worlds.py): the user as someone in particular, and the worlds they live in. */
+export interface WorldHome { city_id: string; city: string; region: string; neighbourhood: string; neighbourhood_name: string; set_by: 'app' | 'you' }
+/** The persona form's "Where you live": the cities the persona can live in from this world, and one city's neighbourhoods. */
+export interface HomeChoices { home: WorldHome | null; cities: CitySummary[]; city_id: string; neighbourhoods: { id: string; name: string }[] }
 export interface World {
   id: string; name: string; persona_id: string; folder: string; city_id: string; created_at: string; used_at: string
   active: boolean
@@ -1721,6 +1724,8 @@ export interface World {
   first: boolean
   /** Its companions' names, main character first. */
   companions: string[]
+  /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
+  home: WorldHome | null
 }
 export type PersonaGender = 'woman' | 'man' | 'nonbinary' | ''
 /** One of the user's own pets on their persona: their words, given a life by companion/life/pets.py. */
