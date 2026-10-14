@@ -311,3 +311,14 @@ def test_looks_lines_are_stored_neutral_and_said_with_their_pronouns(client, ros
                            "'had her nails done: a soft pink', '$', 0, '2027-03-29')", (tid,))
         bought = grooming.purchases(connection, tid, date(2027, 3, 30), date(2027, 3, 30))
     assert [item['text'] for item in bought] == ['had their nails done: a soft pink']
+
+
+def test_a_picture_of_a_looks_change_says_it_with_their_pronouns():
+    """A picture drawn from the summary itself fills pronouns as the chat does ("She had their nails done" before)."""
+    appearance = 'Rosa is a 31-year-old woman with long dark hair. She has freckles.'
+    for summary in ('Rosa had their nails done: a soft pink.', 'Rosa had her nails done: a soft pink.'):
+        prompt = prompts.compose('Rosa', appearance, [{'summary': summary, 'place': None}], 'Candid phone photo')
+        assert 'She had her nails done: a soft pink.' in prompt and 'their nails' not in prompt
+    plain = prompts.compose('Sam', 'Sam has short gray hair.', [{'summary': 'Sam had their hair cut into a bob.',
+                                                                'place': None}], 'Candid phone photo')
+    assert 'They had their hair cut into a bob.' in plain
