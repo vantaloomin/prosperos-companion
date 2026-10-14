@@ -310,7 +310,9 @@ def test_looks_lines_are_stored_neutral_and_said_with_their_pronouns(client, ros
                            "spend, bold, created_at) VALUES ('old', ?, 98, 'nails', '2027-03-30', 'nails', '{}', "
                            "'had her nails done: a soft pink', '$', 0, '2027-03-29')", (tid,))
         bought = grooming.purchases(connection, tid, date(2027, 3, 30), date(2027, 3, 30))
-    assert [item['text'] for item in bought] == ['had their nails done: a soft pink']
+    # The seeded draw can put a real salon visit on the same day (it did on a Windows runner), so look for this one.
+    assert 'had their nails done: a soft pink' in [item['text'] for item in bought]
+    assert not any(re.search(r'\b(?:her|his)\b', item['text']) for item in bought)
 
 
 def test_a_picture_of_a_looks_change_says_it_with_their_pronouns():
